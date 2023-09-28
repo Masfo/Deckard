@@ -1,20 +1,15 @@
- 							   
 
-set(MODULENAME Deckard)
+cmake_minimum_required (VERSION 3.27)
 
-add_library(${MODULENAME} STATIC)
-set_property(TARGET ${MODULENAME} PROPERTY CXX_STANDARD          23)
-set_property(TARGET ${MODULENAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-set_property(TARGET ${MODULENAME} PROPERTY CXX_EXTENSIONS        OFF)
+macro(add_deckard TARGET DIR)
 
-
-target_sources(${MODULENAME} PRIVATE 
-               FILE_SET cxx_modules 
-               TYPE CXX_MODULES 
-               FILES 
-
-               src/Deckard.ixx
+	target_sources(${TARGET}
+			PRIVATE
+			FILE_SET modules 
+			TYPE CXX_MODULES
+			FILES
+			${DIR}/Deckard.ixx
+			${DIR}/BR.ixx
 )
 
-# Make this a macro
-											
+endmacro()
