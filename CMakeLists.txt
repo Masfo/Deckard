@@ -13,7 +13,7 @@ target_sources(${MODULENAME} PRIVATE
                TYPE CXX_MODULES 
                FILES 
 
-               module.ixx
+               Deckard.ixx
 )
 
 											
