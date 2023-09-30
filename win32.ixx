@@ -37,8 +37,8 @@ namespace deckard
 		using Func_RegOpenKeyExA    = LSTATUS(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
 		using Func_RegQueryValueExA = LSTATUS(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 
-		static auto RegOpenKeyExA_F    = piku::LoadDynamic<Func_RegOpenKeyExA *>("advapi32.dll", "RegOpenKeyExA");
-		static auto RegQueryValueExA_F = piku::LoadDynamic<Func_RegQueryValueExA *>("advapi32.dll", "RegQueryValueExA");
+		static auto RegOpenKeyExA_F    = LoadDynamic<Func_RegOpenKeyExA *>("advapi32.dll", "RegOpenKeyExA");
+		static auto RegQueryValueExA_F = LoadDynamic<Func_RegQueryValueExA *>("advapi32.dll", "RegQueryValueExA");
 
 		if (!RegOpenKeyExA_F || !RegQueryValueExA_F)
 			return "";
