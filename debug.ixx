@@ -31,6 +31,17 @@ export namespace deckard
 {
 	using namespace std::string_view_literals;
 
+	// debugln
+	template<typename... Args>
+	void dbgln(FormatLocation fmt, Args &&...args) noexcept
+	{
+		output_message(std::format("{}\n"sv, std::vformat(fmt.fmt, std::make_format_args(args...))));
+	}
+
+	void dbgln(FormatLocation fmt) noexcept { output_message(std::format("{}\n"sv, fmt.fmt)); }
+
+	void dbgln() noexcept { output_message("\n"); }
+
 	// trace
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args &&...args) noexcept
@@ -39,10 +50,7 @@ export namespace deckard
 			std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), std::vformat(fmt.fmt, std::make_format_args(args...))));
 	}
 
-	// trace
 	void trace(FormatLocation fmt) noexcept { output_message(std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), fmt.fmt)); }
 
 	void trace() noexcept { output_message("\n"); }
-
-
 } // namespace deckard

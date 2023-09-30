@@ -28,8 +28,8 @@ export namespace deckard
 	{
 		if (!expr)
 		{
-			std::println("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
-			trace("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
+			// std::println("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
+			dbgln("\n***** Assert *****\n\n{}({}): {}\n\n***** Assert *****\n", loc.file_name(), loc.line(), message);
 
 			auto traces = std::stacktrace::current();
 
@@ -38,10 +38,10 @@ export namespace deckard
 				if (traceline.source_file().contains(__FILE__))
 					continue;
 
-				trace("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
+				dbgln("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
 			}
 
-			trace("\nAssert *****\n\n");
+			dbgln("\n***** Assert *****\n");
 
 			debug_and_halt();
 		}
