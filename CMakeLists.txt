@@ -13,6 +13,10 @@ macro(add_deckard TARGET DIR)
 			${DIR}/assert.ixx
 			${DIR}/file.ixx
 			${DIR}/types.ixx
+			${DIR}/win32.ixx
+			${DIR}/DTE.ixx
+
+
 
 
 			
