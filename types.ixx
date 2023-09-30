@@ -1,6 +1,6 @@
 module;
 
-export module piku.types;
+export module deckard.types;
 
 import std;
 import deckard.assert;
