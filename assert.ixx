@@ -28,8 +28,8 @@ export namespace deckard
 	{
 		if (!expr)
 		{
-			println("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
-
+			std::println("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
+			trace("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
 
 			auto traces = std::stacktrace::current();
 
