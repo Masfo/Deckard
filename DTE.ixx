@@ -15,10 +15,10 @@ module;
 #include <atlbase.h>
 // #import "libid:80cc9f66-e7d8-4ddd-85b6-d9e6cd0e93e2" version("9.0") lcid("0") raw_interfaces_only named_guids
 #pragma warning(pop)
-#include <format>
-
 
 export module deckard.DTE;
+
+import std;
 import deckard.win32;
 
 
@@ -95,8 +95,8 @@ namespace DTE
 
 	auto GetDTE() -> CComPtr<_DTE>
 	{
-		static auto CLSIDFromProgID = piku::LoadDynamic<Func_CLSIDFromProID *>("ole32.dll", "CLSIDFromProgID");
-		static auto GetActiveObject = piku::LoadDynamic<Func_GetActiveObject *>("oleaut32.dll", "GetActiveObject");
+		static auto CLSIDFromProgID = deckard::LoadDynamic<Func_CLSIDFromProID *>("ole32.dll", "CLSIDFromProgID");
+		static auto GetActiveObject = deckard::LoadDynamic<Func_GetActiveObject *>("oleaut32.dll", "GetActiveObject");
 
 		if (!CLSIDFromProgID || !GetActiveObject)
 			return nullptr;
