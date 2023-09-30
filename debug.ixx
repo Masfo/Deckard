@@ -31,6 +31,15 @@ export namespace deckard
 {
 	using namespace std::string_view_literals;
 
+	// debug
+	template<typename... Args>
+	void dbg(FormatLocation fmt, Args &&...args) noexcept
+	{
+		output_message(std::format("{}"sv, std::vformat(fmt.fmt, std::make_format_args(args...))));
+	}
+
+	void dbg(FormatLocation fmt) noexcept { output_message(std::format("{}"sv, fmt.fmt)); }
+
 	// debugln
 	template<typename... Args>
 	void dbgln(FormatLocation fmt, Args &&...args) noexcept
