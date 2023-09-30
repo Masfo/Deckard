@@ -8,8 +8,9 @@ macro(add_deckard TARGET DIR)
 			FILE_SET modules 
 			TYPE CXX_MODULES
 			FILES
-			${DIR}/Deckard.ixx
-			${DIR}/BR.ixx
+			${DIR}/deckard.ixx
+			${DIR}/debug.ixx
+			
 )
 
 endmacro()
