@@ -49,7 +49,7 @@ export namespace deckard
 
 	export void assert(bool expr = false, const std::source_location &loc = std::source_location::current()) noexcept
 	{
-		assert_msg(expr, "", loc);
+		assert_msg(expr, "assert", loc);
 	}
 
 
