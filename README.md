@@ -19,7 +19,7 @@ add_deckard(<your project> Deckard)
     deckard::assert(true);
 
     ```
- - **Types**
+  - **Types**
       ```cpp
       import deckard.types;
 
@@ -29,14 +29,13 @@ add_deckard(<your project> Deckard)
       i64 i = 112233_i64;
 
       auto value = as<uint32>(256);
-
       ```
-   - **Fileview**
-        ```cpp 
-        import deckard.file;
+  - **Fileview**
+    ```cpp 
+    import deckard.file;
 
-        Fileview f;
-        f.open("dice.qoi", FileAccess::ReadWrite);
+    Fileview f;
+    f.open("dice.qoi", FileAccess::ReadWrite);
 
-        f[f.size()-1] = 0x01;
-        ```
+    f[f.size()-1] = 0x01;
+    ```
