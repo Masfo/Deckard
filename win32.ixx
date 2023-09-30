@@ -9,7 +9,7 @@ import std;
 import deckard.assert;
 import deckard.types;
 
-namespace piku
+namespace deckard
 {
 	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept;
 
@@ -112,4 +112,4 @@ namespace piku
 		return wret;
 	}
 
-} // namespace piku
+} // namespace deckard
