@@ -14,7 +14,7 @@ macro(add_deckard TARGET DIR)
 			${DIR}/File.ixx
 			${DIR}/types.ixx
 			${DIR}/win32.ixx
-			${DIR}/DTE.ixx
+			#${DIR}/DTE.ixx
 
 
 
