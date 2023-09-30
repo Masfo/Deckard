@@ -71,7 +71,4 @@ export namespace deckard
     void trace() noexcept { output_message("\n"); }
 
 
-
-
-
 }   // namespace piku
