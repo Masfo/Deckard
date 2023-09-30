@@ -5,13 +5,13 @@ module;
 #include <windows.h>
 
 
-export module piku.file;
+export module deckard.file;
 
 import std;
 import deckard.types;
 import deckard.assert;
 
-export namespace piku
+export namespace deckard
 {
 
 enum class FileAccess : u8

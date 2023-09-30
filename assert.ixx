@@ -5,7 +5,7 @@ module;
 
 
 
-export module piku.assert;
+export module deckard.assert;
 
 import std;
 import deckard.debug;
