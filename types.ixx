@@ -18,12 +18,6 @@ export namespace deckard
 	using f32 = float;
 	using f64 = double;
 
-
-	export enum class Uppercase : u8 {
-		No,
-		Yes,
-	};
-
 	template<typename T, typename U>
 	T as(U u)
 	{
