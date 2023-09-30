@@ -12,11 +12,16 @@ add_deckard(<your project> Deckard)
   - **deckard.debug**
     ```cpp
     import deckard.debug;
-    
-    deckard::trace("Hello {}", "World"); // winmain.cpp(15): Hello World
 
-    deckard::assert_msg(true, "Message");
-    deckard::assert(true);
+
+    trace("Hello {}", "World"); // winmain.cpp(15): Hello World
+    dbgln("Similar to trace");  // Similar to trace
+    dbg("Like dbgln but ");  	// 
+	dbg("w/o newline\n");  		// Like dbgln but w/o newline 
+	
+
+    assert_msg(true, "Message");
+    assert(true);
 
     ```
   - **Types**
