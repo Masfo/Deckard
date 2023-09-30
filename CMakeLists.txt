@@ -12,6 +12,7 @@ macro(add_deckard TARGET DIR)
 			${DIR}/debug.ixx
 			${DIR}/assert.ixx
 			${DIR}/File.ixx
+			${DIR}/FileMonitor.ixx
 			${DIR}/types.ixx
 			${DIR}/win32.ixx
 			#${DIR}/DTE.ixx
