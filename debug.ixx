@@ -32,33 +32,6 @@ export namespace deckard
 {
 	using namespace std::string_view_literals;
 
-	// print
-	template<typename... Args>
-	void print(std::string_view fmt, Args &&...args) noexcept
-	{
-		output_message(std::format("{}", std::vformat(fmt, std::make_format_args(args...))));
-	}
-
-	// print
-	void print(std::string_view fmt) noexcept { output_message(fmt); }
-
-	// println
-	template<typename... Args>
-	void println(std::string_view fmt, Args &&...args) noexcept
-	{
-
-		output_message(std::format("{}\n", std::vformat(fmt, std::make_format_args(args...))));
-	}
-
-	// println
-	void println() noexcept { output_message("\n"); }
-
-	void println(std::string_view fmt) noexcept
-	{
-		output_message(fmt);
-		println();
-	}
-
 	// trace
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args &&...args) noexcept
