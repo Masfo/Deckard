@@ -12,7 +12,8 @@ import deckard.debug;
 
 using namespace deckard;
 
-using namespace piku;
+export namespace deckard
+{
 
 #ifdef _DEBUG
 
@@ -25,9 +26,7 @@ using namespace piku;
     }
 }
 
-export void assert_msg(bool                        expr,
-                       std::string_view            message,
-                       const std::source_location &loc = std::source_location::current()) noexcept
+export void assert_msg(bool expr, std::string_view message, const std::source_location &loc = std::source_location::current()) noexcept
 {
     if (!expr)
     {
@@ -58,7 +57,7 @@ export void assert(bool expr = false, const std::source_location &loc = std::sou
 
 
 #else
-export void assert_msg(bool, std::string_view) noexcept {}
-export void assert(bool) noexcept {}
-
+export void assert_msg(bool, std::string_view) noexcept { }
+export void assert(bool) noexcept { }
+}
 #endif
