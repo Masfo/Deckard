@@ -1,4 +1,4 @@
 export module Deckard;
 
 
-export import BladeRunner;
+export import deckard.debug;
