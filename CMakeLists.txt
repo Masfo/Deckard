@@ -10,6 +10,7 @@ macro(add_deckard TARGET DIR)
 			FILES
 			${DIR}/deckard.ixx
 			${DIR}/debug.ixx
+			${DIR}/assert.ixx
 			
 )
 
