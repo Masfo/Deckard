@@ -1,0 +1,54 @@
+
+Language: Cpp
+Standard: Latest
+ColumnLimit: 140
+BreakBeforeBraces: Allman
+BasedOnStyle: WebKit
+PointerAlignment: Left
+ReferenceAlignment: Left
+UseTab: ForContinuationAndIndentation
+TabWidth: 4
+
+AlignOperands: Align
+BreakBeforeBinaryOperators: None
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: Consecutive 
+AlignConsecutiveDeclarations: Consecutive  
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 2
+Cpp11BracedListStyle: true
+DerivePointerAlignment: true
+IndentPPDirectives: None
+MaxEmptyLinesToKeep: 2
+SpaceBeforeCpp11BracedList: false
+NamespaceIndentation: All
+SortIncludes: CaseSensitive
+SeparateDefinitionBlocks: Always
+FixNamespaceComments: true
+SpaceAfterTemplateKeyword: false
+AlwaysBreakTemplateDeclarations: Yes
+RequiresClausePosition: OwnLine
+IndentRequiresClause: false
+
+IntegerLiteralSeparator:
+    Binary: 4
+    Decimal: 0
+    Hex: 4
+
+
+BinPackArguments: false
+BinPackParameters: true
+
+IncludeCategories:
+  - Regex: '^<windows.h>'
+    Priority: -200
+  - Regex: '^<'
+    Priority: -100
+  # finally other "" includes go between system headers and our headers
+  - Regex: '^"'
+    Priority: 0
+
+InsertNewlineAtEOF: true
+
