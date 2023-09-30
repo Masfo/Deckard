@@ -13,13 +13,11 @@ add_deckard(<your project> Deckard)
     ```cpp
     import deckard.debug;
 
-
     trace("Hello {}", "World"); // winmain.cpp(15): Hello World
     dbgln("Similar to trace");  // Similar to trace
-    dbg("Like dbgln but ");  	// 
-	dbg("w/o newline\n");  		// Like dbgln but w/o newline 
+    dbg("Like dbgln but ");     // 
+    dbg("w/o newline\n");       // Like dbgln but w/o newline 
 	
-
     assert_msg(true, "Message");
     assert(true);
 
