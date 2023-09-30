@@ -33,12 +33,12 @@ export namespace deckard
 
 			auto traces = std::stacktrace::current();
 
-			for (const auto &trace : traces)
+			for (const auto &traceline : traces)
 			{
-				if (trace.source_file().contains(__FILE__))
+				if (traceline.source_file().contains(__FILE__))
 					continue;
 
-				trace("{}({}): {}", trace.source_file(), trace.source_line(), trace.description());
+				trace("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
 			}
 
 			trace("\nAssert *****\n\n");
