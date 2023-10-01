@@ -26,7 +26,6 @@ export namespace deckard
 	{
 		if (!expr)
 		{
-			// std::println("\nAssert *****\n\n {}({}): {}", loc.file_name(), loc.line(), message);
 			dbgln("\n***** Assert *****\n\n{}({}): {}\n\n***** Assert *****\n", loc.file_name(), loc.line(), message);
 
 			auto traces = std::stacktrace::current();
