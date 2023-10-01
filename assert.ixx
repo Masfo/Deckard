@@ -8,8 +8,6 @@ export module deckard.assert;
 import std;
 import deckard.debug;
 
-using namespace deckard;
-
 export namespace deckard
 {
 
