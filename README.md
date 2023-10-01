@@ -31,7 +31,7 @@ add_deckard(<your project> Deckard)
       u8 u  = 64_u8;
       i64 i = 112233_i64;
 
-      auto value = as<uint32>(256);
+      auto value = as<u32>(256);
       ```
   - **Fileview**
     ```cpp 
