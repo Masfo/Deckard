@@ -13,13 +13,15 @@ export namespace deckard
 
 #ifdef _DEBUG
 
-	[[noreturn]] void debug_and_halt()
+	[[noreturn]] void panic(std::string_view message = "")
 	{
 		if (IsDebuggerPresent())
 		{
+			dbgln("PANIC: {}", message);
 			DebugBreak();
 			FatalExit(0);
 		}
+		std::unreachable();
 	}
 
 	export void assert_msg(bool expr, std::string_view message, const std::source_location &loc = std::source_location::current()) noexcept
