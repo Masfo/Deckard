@@ -11,7 +11,7 @@ target_sources(Deckard
 		TYPE CXX_MODULES
 		FILES
 
-		${CMAKE_CDeckard.ixx
+		Deckard.ixx
 		debug.ixx
 		assert.ixx
 		File.ixx
