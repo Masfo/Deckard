@@ -15,12 +15,12 @@ export namespace deckard
 
 	[[noreturn]] void panic(std::string_view message = "")
 	{
+		dbgln("PANIC{} {}", message.empty() ? "" : ":", message);
 		if (IsDebuggerPresent())
 		{
-			dbgln("PANIC{} {}", message.empty() ? "" : ":", message);
 			DebugBreak();
-			FatalExit(0);
 		}
+		FatalExit(0);
 		std::unreachable();
 	}
 
