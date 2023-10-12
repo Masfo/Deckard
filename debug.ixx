@@ -62,4 +62,20 @@ export namespace deckard
 	void trace(FormatLocation fmt) noexcept { output_message(std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), fmt.fmt)); }
 
 	void trace() noexcept { output_message("\n"); }
+
+	// Panic
+	template<typename... Args>
+	[[noreturn]] void panic(std::string_view fmt, Args &&...args) noexcept
+	{
+		dbgln("PANIC: ", std::vformat(fmt.fmt, std::make_format_args(args...)));
+		if (IsDebuggerPresent())
+		{
+			DebugBreak();
+		}
+		FatalExit(0);
+		std::unreachable();
+	}
+
+	[[noreturn]] void panic(std::string_view message = "") noexcept { panic(message); }
+
 } // namespace deckard
