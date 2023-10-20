@@ -101,6 +101,25 @@ target_sources(Deckard
 
 )
 
+# STD HACK
+if(MSVC)
+	set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+	configure_file(	
+	        $ENV{VCToolsInstallDir}modules/std.ixx
+	        ${CMAKE_CURRENT_LIST_DIR}/std_deckard.ixx
+	        COPYONLY
+	)
+	set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+	
+	
+	target_sources(Deckard 
+		PUBLIC 
+		FILE_SET std_module 
+		TYPE CXX_MODULES 
+		FILES 
+		std_deckard.ixx
+	 )
+ endif()
 
 
 #
