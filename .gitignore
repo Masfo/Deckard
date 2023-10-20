@@ -5,4 +5,3 @@ bin
 /.vs
 /out/
 /std.ixx
-/std_*.ixx
