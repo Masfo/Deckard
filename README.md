@@ -9,6 +9,11 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 
 
 ## Modules:
+  - **namespace**
+    ```cpp
+    // Everything is under deckard namespace
+    using namespace deckard;
+    ```
   - **deckard.debug**
     ```cpp
     import deckard.debug;
