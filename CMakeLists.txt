@@ -81,7 +81,13 @@ if(MSVC)
     endif()
 endif()
 
-
+set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+configure_file(	
+        $ENV{VCToolsInstallDir}modules/std.ixx
+        ${CMAKE_CURRENT_LIST_DIR}/std.ixx
+        COPYONLY
+)
+set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 set(DECKARD_SRCS
 		Deckard.ixx
@@ -92,6 +98,7 @@ set(DECKARD_SRCS
 		types.ixx
 		win32.ixx
 		#DTE.ixx
+        std.ixx
 )
 
 target_sources(Deckard
@@ -102,24 +109,19 @@ target_sources(Deckard
 )
 
 # STD HACK
-if(MSVC)
-	set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
-	configure_file(	
-	        $ENV{VCToolsInstallDir}modules/std.ixx
-	        ${CMAKE_CURRENT_LIST_DIR}/std_deckard.ixx
-	        COPYONLY
-	)
-	set(CMAKE_DISABLE_SOURCE_CHANGES ON)
-	
-	
-	target_sources(Deckard 
-		PUBLIC 
-		FILE_SET std_module 
-		TYPE CXX_MODULES 
-		FILES 
-		std_deckard.ixx
-	 )
- endif()
+#if(MSVC)
+
+#	
+#    # Check if std.ixx is already added
+#	
+#	target_sources(Deckard 
+#		PUBLIC 
+#		FILE_SET std_module 
+#		TYPE CXX_MODULES 
+#		FILES 
+#		std.ixx
+#	 )
+# endif()
 
 
 #
