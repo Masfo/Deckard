@@ -104,7 +104,7 @@ target_sources(Deckard
 
 
 #
-target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE 
+target_compile_options(Deckard PRIVATE 
        
     #/wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc.
     #
