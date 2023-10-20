@@ -1,13 +1,11 @@
 
 cmake_minimum_required (VERSION 3.28)
 
+
+
 macro(add_deckard TARGET DIR)
 
-	target_sources(${TARGET}
-			PRIVATE
-			FILE_SET modules 
-			TYPE CXX_MODULES
-			FILES
+	set(DECKARD_SRCS
 			${DIR}/Deckard.ixx
 			${DIR}/debug.ixx
 			${DIR}/assert.ixx
@@ -16,11 +14,13 @@ macro(add_deckard TARGET DIR)
 			${DIR}/types.ixx
 			${DIR}/win32.ixx
 			#${DIR}/DTE.ixx
+	)
 
-
-
-
-			
-)
+	target_sources(${TARGET}
+			PRIVATE
+			FILE_SET modules 
+			TYPE CXX_MODULES
+			FILES ${DECKARD_SRCS}
+	)
 
 endmacro()
