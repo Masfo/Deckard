@@ -4,7 +4,7 @@
 2. in your CMakelists.txt add:
 ```
 add_subdirectory(Deckard)
-add_deckard(<your project> Deckard)
+target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 ```
 
 
