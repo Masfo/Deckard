@@ -79,29 +79,9 @@ if(MSVC)
         target_link_options(Deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
     endif()
+endif()
 
 
-    # STD
-    if(MSVC)
-	    set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
-	    configure_file(	
-	            $ENV{VCToolsInstallDir}modules/std.ixx
-	            ${CMAKE_CURRENT_LIST_DIR}/std.ixx
-	            COPYONLY
-	    )
-	    set(CMAKE_DISABLE_SOURCE_CHANGES ON)
-	
-	
-	    target_sources(Deckard 
-		    PUBLIC 
-		    FILE_SET std_module 
-		    TYPE CXX_MODULES 
-		    FILES 
-		    std.ixx
-	     )
-     endif()
-
- endif()
 
 set(DECKARD_SRCS
 		Deckard.ixx
