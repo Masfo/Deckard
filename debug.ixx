@@ -67,7 +67,14 @@ export namespace deckard
 	template<typename... Args>
 	[[noreturn]] void panic(std::string_view fmt, Args &&...args) noexcept
 	{
-		dbgln("PANIC: ", std::vformat(fmt, std::make_format_args(args...)));
+		if constexpr (sizeof...(args) > 0)
+		{
+			dbgln("PANIC: ", std::vformat(fmt, std::make_format_args(args...)));
+		}
+		else
+		{
+			dbgln("PANIC: {}", fmt);
+		}
 		if (IsDebuggerPresent())
 		{
 			DebugBreak();
@@ -76,6 +83,15 @@ export namespace deckard
 		std::unreachable();
 	}
 
-	[[noreturn]] void panic(std::string_view message = "") noexcept { panic(message); }
+	[[noreturn]] void panic() noexcept
+	{
+		if (IsDebuggerPresent())
+		{
+			DebugBreak();
+		}
+		FatalExit(0);
+		std::unreachable();
+	}
+
 
 } // namespace deckard

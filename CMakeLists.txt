@@ -1,24 +1,137 @@
 
 cmake_minimum_required (VERSION 3.28)
 
-add_library(deckard)
+set(CMAKE_CXX_STANDARD          23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS        OFF)
+set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
+
+project(Deckard CXX)
+add_library(Deckard)
+
+
+target_compile_definitions(Deckard PRIVATE UNICODE)
+target_compile_definitions(Deckard PRIVATE _UNICODE)
+
+target_compile_definitions(Deckard PRIVATE NOMINMAX)
+target_compile_definitions(Deckard PRIVATE WIN32_LEAN_AND_MEAN)
+target_compile_definitions(Deckard PRIVATE WIN32_EXTRA_LEAN)
+target_compile_options(Deckard PRIVATE /nologo)
+target_compile_options(Deckard PRIVATE -Zc:__cplusplus /Zc:alignedNew)
+target_compile_options(Deckard PRIVATE /utf-8)
+target_compile_options(Deckard PRIVATE /EHsc)
+#target_compile_options(Deckard PRIVATE /Za)
+
+target_compile_options(Deckard  PRIVATE /fp:precise)
+target_compile_options(Deckard PRIVATE /diagnostics:caret)
+
+
+target_compile_options(Deckard PRIVATE /experimental:module)
+target_compile_options(Deckard PRIVATE /Zc:preprocessor)
+target_compile_options(Deckard PRIVATE /permissive-)
+target_compile_options(Deckard PRIVATE /std:c++latest)
+target_compile_options(Deckard PRIVATE /Zc:__cplusplus)
+
+target_compile_options(Deckard PRIVATE /W4)
+
+set_target_properties(Deckard PROPERTIES DEBUG_POSTFIX "d")
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+
+
+set_target_properties(Deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+
+# Debug
+if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+
+    target_compile_options(Deckard  PRIVATE /JMC)    # Just my debugging
+    target_compile_definitions(Deckard PRIVATE -DDEBUG)
+
+    target_compile_options(Deckard  PRIVATE /Od)
+
+    target_compile_options(Deckard  PRIVATE /RTC1)
+    target_compile_options(Deckard  PRIVATE /GS)
+    target_compile_options(Deckard  PRIVATE /Zi)     # /ZI edit/continue
+
+    target_link_options(Deckard PRIVATE /DEBUG)
+    #target_link_options(Deckard PRIVATE /ALIGN:16)
+endif()
+
+# Release
+if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+    #set_target_properties(Deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+
+    target_compile_definitions(Deckard PRIVATE -DNDEBUG)
+        
+    target_compile_options(Deckard  PRIVATE /O2  /Os)
+    target_compile_options(Deckard  PRIVATE /GS-)
+
+    target_link_options(Deckard PRIVATE /Release)
+    target_link_options(Deckard PRIVATE /INCREMENTAL:NO)
+
+
+    target_link_options(Deckard PRIVATE /OPT:REF /OPT:ICF)
+
+    # 0x800: LOAD_LIBRARY_SEARCH_SYSTEM32
+    target_link_options(Deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
+            
+    # Undocumented options
+    target_link_options(Deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
+
+endif()
+
+
 
 
 set(DECKARD_SRCS
-		${DIR}/Deckard.ixx
-		${DIR}/debug.ixx
-		${DIR}/assert.ixx
-		${DIR}/File.ixx
-		${DIR}/FileMonitor.ixx
-		${DIR}/types.ixx
-		${DIR}/win32.ixx
-		#${DIR}/DTE.ixx
+		Deckard.ixx
+		debug.ixx
+		assert.ixx
+		File.ixx
+		FileMonitor.ixx
+		types.ixx
+		win32.ixx
+		#DTE.ixx
 )
 
-target_sources(${TARGET}
-		PRIVATE
-		FILE_SET modules 
-		TYPE CXX_MODULES
-		FILES ${DECKARD_SRCS}
+target_sources(Deckard
+	PUBLIC
+    FILE_SET CXX_MODULES 
+	FILES ${DECKARD_SRCS}
+
 )
 
+
+
+#
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE 
+       
+    #/wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc.
+    #
+    #/wd5262 # implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break 
+    #        # statement is intentionally omitted between cases
+    #/wd4710 # function not inlined
+    #/wd4711 # function selected for automatic inline expansion
+    #/wd5045 # Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+    #/wd5050 # Possible incompatible environment while importing module
+    #
+    #/wd4820 # bytes padding added after data member
+    #
+    #/wd4626 # assignment operator was implicitly defined as deleted
+    #/wd5027 # move assignment operator was implicitly defined as deleted
+    #/wd5026 # move constructor was implicitly defined as deleted
+    #/wd4061 # switch of enum is not explicitly handled by a case label
+    #
+    #/wd4355 # 'this': used in base member initializer list
+    #/wd4625 # copy constructor was implicitly defined as deleted
+    #/wd5220 # a non-static data member with a volatile qualified type no longer implies
+    #        # that compiler generated copy/move constructors and copy/move assignment operators are not trivial
+    #/wd5204 # class has virtual functions, but its trivial destructor is not virtual; instances of 
+    #        # objects derived from this class may not be destructed correctly
+    #
+    #/wd4686 # possible change in behavior, change in UDT return calling convention
+    #
+    /wd4324 # structure was padded due to alignment specifier
+    #/wd5246 # the initialization of a subobject should be wrapped in braces
+
+)
