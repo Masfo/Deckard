@@ -35,53 +35,73 @@ target_compile_options(Deckard PRIVATE /Zc:__cplusplus)
 target_compile_options(Deckard PRIVATE /W4)
 
 set_target_properties(Deckard PROPERTIES DEBUG_POSTFIX "d")
-set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
+if(MSVC)
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-set_target_properties(Deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_target_properties(Deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+    # Debug
+    if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
-# Debug
-if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+        target_compile_options(Deckard  PRIVATE /JMC)    # Just my debugging
+        target_compile_definitions(Deckard PRIVATE -DDEBUG)
 
-    target_compile_options(Deckard  PRIVATE /JMC)    # Just my debugging
-    target_compile_definitions(Deckard PRIVATE -DDEBUG)
+        target_compile_options(Deckard  PRIVATE /Od)
 
-    target_compile_options(Deckard  PRIVATE /Od)
+        target_compile_options(Deckard  PRIVATE /RTC1)
+        target_compile_options(Deckard  PRIVATE /GS)
+        target_compile_options(Deckard  PRIVATE /Zi)     # /ZI edit/continue
 
-    target_compile_options(Deckard  PRIVATE /RTC1)
-    target_compile_options(Deckard  PRIVATE /GS)
-    target_compile_options(Deckard  PRIVATE /Zi)     # /ZI edit/continue
+        target_link_options(Deckard PRIVATE /DEBUG)
+        #target_link_options(Deckard PRIVATE /ALIGN:16)
+    endif()
 
-    target_link_options(Deckard PRIVATE /DEBUG)
-    #target_link_options(Deckard PRIVATE /ALIGN:16)
-endif()
+    # Release
+    if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+        #set_target_properties(Deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
 
-# Release
-if (${CMAKE_BUILD_TYPE} MATCHES "Release")
-    #set_target_properties(Deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
-
-    target_compile_definitions(Deckard PRIVATE -DNDEBUG)
+        target_compile_definitions(Deckard PRIVATE -DNDEBUG)
         
-    target_compile_options(Deckard  PRIVATE /O2  /Os)
-    target_compile_options(Deckard  PRIVATE /GS-)
+        target_compile_options(Deckard  PRIVATE /O2  /Os)
+        target_compile_options(Deckard  PRIVATE /GS-)
 
-    target_link_options(Deckard PRIVATE /Release)
-    target_link_options(Deckard PRIVATE /INCREMENTAL:NO)
+        target_link_options(Deckard PRIVATE /Release)
+        target_link_options(Deckard PRIVATE /INCREMENTAL:NO)
 
 
-    target_link_options(Deckard PRIVATE /OPT:REF /OPT:ICF)
+        target_link_options(Deckard PRIVATE /OPT:REF /OPT:ICF)
 
-    # 0x800: LOAD_LIBRARY_SEARCH_SYSTEM32
-    target_link_options(Deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
+        # 0x800: LOAD_LIBRARY_SEARCH_SYSTEM32
+        target_link_options(Deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
             
-    # Undocumented options
-    target_link_options(Deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
+        # Undocumented options
+        target_link_options(Deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
-endif()
+    endif()
 
 
+    # STD
+    if(MSVC)
+	    set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+	    configure_file(	
+	            $ENV{VCToolsInstallDir}modules/std.ixx
+	            ${CMAKE_CURRENT_LIST_DIR}/std.ixx
+	            COPYONLY
+	    )
+	    set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+	
+	
+	    target_sources(Deckard 
+		    PUBLIC 
+		    FILE_SET std_module 
+		    TYPE CXX_MODULES 
+		    FILES 
+		    std.ixx
+	     )
+     endif()
 
+ endif()
 
 set(DECKARD_SRCS
 		Deckard.ixx
