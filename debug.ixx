@@ -38,7 +38,7 @@ export namespace deckard
 		output_message(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
 	}
 
-	void dbg(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt.fmt)); }
+	void dbg(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt)); }
 
 	// debugln
 	template<typename... Args>
@@ -47,7 +47,7 @@ export namespace deckard
 		output_message(std::format("{}\n"sv, std::vformat(fmt, std::make_format_args(args...))));
 	}
 
-	void dbgln(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt.fmt)); }
+	void dbgln(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt)); }
 
 	void dbgln() noexcept { output_message("\n"); }
 
