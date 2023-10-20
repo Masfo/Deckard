@@ -33,21 +33,21 @@ export namespace deckard
 
 	// debug
 	template<typename... Args>
-	void dbg(FormatLocation fmt, Args &&...args) noexcept
+	void dbg(std::string_view fmt, Args &&...args) noexcept
 	{
-		output_message(std::format("{}"sv, std::vformat(fmt.fmt, std::make_format_args(args...))));
+		output_message(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
 	}
 
-	void dbg(FormatLocation fmt) noexcept { output_message(std::format("{}"sv, fmt.fmt)); }
+	void dbg(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt.fmt)); }
 
 	// debugln
 	template<typename... Args>
-	void dbgln(FormatLocation fmt, Args &&...args) noexcept
+	void dbgln(std::string_view fmt, Args &&...args) noexcept
 	{
-		output_message(std::format("{}\n"sv, std::vformat(fmt.fmt, std::make_format_args(args...))));
+		output_message(std::format("{}\n"sv, std::vformat(fmt, std::make_format_args(args...))));
 	}
 
-	void dbgln(FormatLocation fmt) noexcept { output_message(std::format("{}\n"sv, fmt.fmt)); }
+	void dbgln(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt.fmt)); }
 
 	void dbgln() noexcept { output_message("\n"); }
 
