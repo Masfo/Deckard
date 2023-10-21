@@ -14,7 +14,7 @@ export namespace deckard
 #ifdef _DEBUG
 
 
-	export void assert_msg(bool expr, std::string_view message, const std::source_location &loc = std::source_location::current()) noexcept
+	void assert_msg(bool expr, std::string_view message, const std::source_location &loc = std::source_location::current()) noexcept
 	{
 		if (!expr)
 		{
@@ -36,16 +36,16 @@ export namespace deckard
 		}
 	}
 
-	export void assert(bool expr = false, const std::source_location &loc = std::source_location::current()) noexcept
+	void assert(bool expr = false, const std::source_location &loc = std::source_location::current()) noexcept
 	{
 		assert_msg(expr, "assert", loc);
 	}
 
 
 #else
-	export void assert_msg(bool, std::string_view) noexcept { }
+	void assert_msg(bool, std::string_view) noexcept { }
 
-	export void assert(bool) noexcept { }
-}
+	void assert(bool) noexcept { }
+
 #endif
 } // namespace deckard
