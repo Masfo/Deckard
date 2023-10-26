@@ -12,7 +12,11 @@
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 //"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                 //"VCPKG_TARGET_TRIPLET": "x64-windows-static"
-                "BUILDINC": true
+                "BUILDINC": true,
+                "DECKARD_BUILD_SCRIPT": true,
+                "DECKARD_BUILD_TESTS": true
+
+
             },
             "architecture": {
                 "value": "x64",

@@ -161,8 +161,11 @@ endif()
 
 #####################################
 #####################################
-
+if(DECKARD_BUILD_SCRIPT)
 add_subdirectory(script)
+endif()
 
+if(DECKARD_BUILD_TESTS)
 add_subdirectory(tests)
+endif()
 
