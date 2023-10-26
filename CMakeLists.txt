@@ -91,6 +91,7 @@ set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 set(DECKARD_SRCS
 		Deckard.ixx
+        buildnumber.ixx
 
 		debug/debug.ixx
 		debug/assert.ixx
