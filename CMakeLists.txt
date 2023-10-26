@@ -108,21 +108,6 @@ target_sources(Deckard
 
 )
 
-# STD HACK
-#if(MSVC)
-
-#	
-#    # Check if std.ixx is already added
-#	
-#	target_sources(Deckard 
-#		PUBLIC 
-#		FILE_SET std_module 
-#		TYPE CXX_MODULES 
-#		FILES 
-#		std.ixx
-#	 )
-# endif()
-
 
 #
 target_compile_options(Deckard PRIVATE 
@@ -156,3 +141,24 @@ target_compile_options(Deckard PRIVATE
     #/wd5246 # the initialization of a subobject should be wrapped in braces
 
 )
+
+###################################
+
+find_program(BUILDINC_TOOL "buildinc" NO_CACHE)
+if(BUILDINC_TOOL)
+add_custom_command(TARGET Deckard
+                   PRE_BUILD
+                   COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx Deckard -q -m 
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                   COMMENT "Increase build number"
+)
+endif()
+
+
+#####################################
+#####################################
+
+add_subdirectory(script)
+
+add_subdirectory(tests)
+
