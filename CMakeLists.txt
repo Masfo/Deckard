@@ -151,7 +151,7 @@ if(BUILDINC)
     if(BUILDINC_TOOL)
     add_custom_command(TARGET Deckard
                        PRE_BUILD
-                       COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx Deckard -q -m 
+                       COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx DeckardBuild -q -m 
                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                        COMMENT "Increase build number"
     )
