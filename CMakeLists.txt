@@ -91,13 +91,15 @@ set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 set(DECKARD_SRCS
 		Deckard.ixx
-		debug.ixx
-		assert.ixx
-		File.ixx
-		FileMonitor.ixx
-		types.ixx
-		win32.ixx
-		#DTE.ixx
+
+		debug/debug.ixx
+		debug/assert.ixx
+		file/File.ixx
+		file/FileMonitor.ixx
+		types/types.ixx
+		win32/win32.ixx
+		#win32/DTE.ixx
+
         std.ixx
 )
 
