@@ -51,21 +51,21 @@ export namespace deckard
 	namespace literals
 	{
 
-		static constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
+		constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
 
-		static constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
+		constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
 
-		static constexpr u16 operator"" _u16(const u64 value) noexcept { return static_cast<u16>(value & 0xFFFF); }
+		constexpr u16 operator"" _u16(const u64 value) noexcept { return static_cast<u16>(value & 0xFFFF); }
 
-		static constexpr i16 operator"" _i16(const u64 value) noexcept { return static_cast<i16>(value & 0xFFFF); }
+		constexpr i16 operator"" _i16(const u64 value) noexcept { return static_cast<i16>(value & 0xFFFF); }
 
-		static constexpr u32 operator"" _u32(const u64 value) noexcept { return static_cast<u32>(value & 0xFFFF'FFFF); }
+		constexpr u32 operator"" _u32(const u64 value) noexcept { return static_cast<u32>(value & 0xFFFF'FFFF); }
 
-		static constexpr i32 operator"" _i32(const u64 value) noexcept { return static_cast<i32>(value & 0xFFFF'FFFF); }
+		constexpr i32 operator"" _i32(const u64 value) noexcept { return static_cast<i32>(value & 0xFFFF'FFFF); }
 
-		static constexpr u64 operator"" _u64(const u64 value) noexcept { return static_cast<u64>(value); }
+		constexpr u64 operator"" _u64(const u64 value) noexcept { return static_cast<u64>(value); }
 
-		static constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
+		constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
 	} // namespace literals
 
 
