@@ -9,4 +9,4 @@ export import deckard.types;
 // export import deckard.DTE;
 export import deckard.win32;
 
-export void function_new() { deckard::dbgln("hello world"); }
+export void function_new() { deckard::dbgln("hello world again"); }
