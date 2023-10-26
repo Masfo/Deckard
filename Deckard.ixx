@@ -8,5 +8,3 @@ export import deckard.filemonitor;
 export import deckard.types;
 // export import deckard.DTE;
 export import deckard.win32;
-
-export void function_new() { deckard::dbgln("revert all"); }

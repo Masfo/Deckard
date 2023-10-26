@@ -3,7 +3,14 @@
 1. Add as submodule to your git tree.
 2. in your CMakelists.txt add:
 ```
-add_subdirectory(Deckard)
+include(FetchContent)
+FetchContent_Declare(
+  Deckard
+  GIT_REPOSITORY https://github.com/Masfo/Deckard.git
+  GIT_TAG main
+)
+FetchContent_MakeAvailable(Deckard)
+
 target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 ```
 
