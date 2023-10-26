@@ -9,9 +9,10 @@
             "cacheVariables": {
                 //"CMAKE_C_COMPILER": "cl.exe",
                 "CMAKE_CXX_COMPILER": "cl.exe",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 //"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                 //"VCPKG_TARGET_TRIPLET": "x64-windows-static"
+                "BUILDINC": true
             },
             "architecture": {
                 "value": "x64",
