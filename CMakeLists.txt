@@ -169,3 +169,11 @@ if(DECKARD_BUILD_TESTS)
 add_subdirectory(tests)
 endif()
 
+
+
+######## 3rd party
+# FetchContent_Declare(SQLite
+#     URL https://www.sqlite.org/2023/sqlite-amalgamation-3430200.zip
+# )
+# FetchContent_Populate(SQLite)
+# target_include_directories(Deckard PUBLIC "${sqlite_SOURCE_DIR}")
