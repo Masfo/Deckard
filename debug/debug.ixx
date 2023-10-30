@@ -51,6 +51,13 @@ export namespace deckard
 
 	void dbgln() noexcept { output_message("\n"); }
 
+	template<typename... Args>
+	void dbgln_if(bool cond, std::string_view fmt, Args &&...args) noexcept
+	{
+		if (cond)
+			dbgln(fmt, args...);
+	}
+
 	// trace
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args &&...args) noexcept
