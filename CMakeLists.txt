@@ -26,7 +26,7 @@ target_compile_options(Deckard  PRIVATE /fp:precise)
 target_compile_options(Deckard PRIVATE /diagnostics:caret)
 
 
-target_compile_options(Deckard PRIVATE /experimental:module)
+#target_compile_options(Deckard PRIVATE /experimental:module)
 target_compile_options(Deckard PRIVATE /Zc:preprocessor)
 target_compile_options(Deckard PRIVATE /permissive-)
 target_compile_options(Deckard PRIVATE /std:c++latest)
@@ -177,3 +177,10 @@ endif()
 # )
 # FetchContent_Populate(SQLite)
 # target_include_directories(Deckard PUBLIC "${sqlite_SOURCE_DIR}")
+
+ # FetchContent_Declare(
+ #     glm
+ #     GIT_REPOSITORY https://github.com/g-truc/glm.git
+ #     GIT_TAG        0.9.9.8
+ #     SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glm/
+ # )
