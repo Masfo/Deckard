@@ -92,5 +92,10 @@ export namespace deckard
 
 	[[noreturn]] void panic() noexcept { panic(""); }
 
+	inline void who_called_me(const std::source_location &loc = std::source_location::current())
+	{
+		auto trace = std::stacktrace::current();
+		dbgln("{}({}): {}: {}", loc.file_name(), loc.line(), loc.function_name(), std::to_string(trace[2]));
+	}
 
 } // namespace deckard
