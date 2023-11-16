@@ -94,8 +94,10 @@ export namespace deckard
 
 	inline void who_called_me(const std::source_location &loc = std::source_location::current())
 	{
+#ifdef _DEBUG
 		auto trace = std::stacktrace::current();
 		dbgln("{}({}): {}: {}", loc.file_name(), loc.line(), loc.function_name(), std::to_string(trace[2]));
+#endif
 	}
 
 } // namespace deckard
