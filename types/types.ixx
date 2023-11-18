@@ -38,7 +38,7 @@ export namespace deckard
 		else
 		{
 			assert_msg(false,
-					   std::format("Could not convert float '{}' safely. Too small target: {} < {} < {}",
+					   std::format("Could not convert value '{}' safely. Target too small: {} < {} < {}",
 								   value,
 								   std::numeric_limits<I>::min(),
 								   value,
