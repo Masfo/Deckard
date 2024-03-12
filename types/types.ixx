@@ -68,5 +68,79 @@ export namespace deckard
 		constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
 	} // namespace literals
 
+	// Enum flags
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator|(const T lhs, const T rhs)
+	{
+		return static_cast<T>(std::to_underlying(lhs) | std::to_underlying(rhs));
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator&(const T lhs, const T rhs)
+	{
+		return static_cast<T>(std::to_underlying(lhs) & std::to_underlying(rhs));
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator^(const T lhs, const T rhs)
+	{
+		return static_cast<T>(std::to_underlying(lhs) ^ std::to_underlying(rhs));
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator|=(T &lhs, const T rhs)
+	{
+		lhs = lhs | rhs;
+		return lhs;
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator&=(T &lhs, const T rhs)
+	{
+		lhs = lhs & rhs;
+		return lhs;
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator^=(T &lhs, const T rhs)
+	{
+		lhs = lhs ^ rhs;
+		return lhs;
+	}
+
+	/*
+		namespace Filesystem
+		{
+			enum class Permission : u8
+			{
+				Read    = 0x01,
+				Write   = 0x02,
+				Execute = 0x04,
+			};
+			consteval void enable_bitmask_operator_or(Permission);
+
+
+			//	using Filesystem::Permission;
+			//	Permission readAndWrite{Permission::Read | Permission::Write};
+
+		} // namespace Filesystem
+
+
+
+		enum class FunEnum : u8
+		{
+			Read  = 0x01,
+			Write = 0x02,
+		};
+
+		consteval void enable_bitmask_operator_or(FunEnum);
+
+	*/
 
 } // namespace deckard
