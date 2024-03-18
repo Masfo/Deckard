@@ -92,6 +92,13 @@ export namespace deckard
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator~(const T lhs)
+	{
+		return static_cast<T>(~std::to_underlying(lhs));
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator|=(T &lhs, const T rhs)
 	{
 		lhs = lhs | rhs;
@@ -119,6 +126,7 @@ export namespace deckard
 		{
 			enum class Permission : u8
 			{
+				No      = 0x00,
 				Read    = 0x01,
 				Write   = 0x02,
 				Execute = 0x04,
@@ -126,8 +134,9 @@ export namespace deckard
 			consteval void enable_bitmask_operator_or(Permission);
 
 
-			//	using Filesystem::Permission;
-			//	Permission readAndWrite{Permission::Read | Permission::Write};
+			//		using Filesystem::Permission;
+			//		Permission readAndWrite{Permission::Read | Permission::Write | Permission::Execute};
+			// 		readAndWrite &= ~Permission::Write;	 // Read | Execute
 
 		} // namespace Filesystem
 
