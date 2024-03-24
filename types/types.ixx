@@ -18,6 +18,27 @@ export namespace deckard
 	using f32 = float;
 	using f64 = double;
 
+	using kibi = std::ratio<1ULL << 10>;
+	using mebi = std::ratio<1ULL << 20>;
+	using gibi = std::ratio<1ULL << 30>;
+	using tebi = std::ratio<1ULL << 40>;
+
+	constexpr u64 operator"" _KB(const u64 value) noexcept { return value * std::kilo::num; }
+
+	constexpr u64 operator"" _MB(const u64 value) noexcept { return value * std::mega::num; }
+
+	constexpr u64 operator"" _GB(const u64 value) noexcept { return value * std::giga::num; }
+
+	constexpr u64 operator"" _TB(const u64 value) noexcept { return value * std::tera::num; }
+
+	constexpr u64 operator"" _KiB(const u64 value) noexcept { return value * kibi::num; }
+
+	constexpr u64 operator"" _MiB(const u64 value) noexcept { return value * mebi::num; }
+
+	constexpr u64 operator"" _GiB(const u64 value) noexcept { return value * gibi::num; }
+
+	constexpr u64 operator"" _TiB(const u64 value) noexcept { return value * tebi::num; }
+
 	template<typename T, typename U>
 	T as(U u)
 	{
@@ -73,21 +94,21 @@ export namespace deckard
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator|(const T lhs, const T rhs)
 	{
-		return static_cast<T>(std::to_underlying(lhs) | std::to_underlying(rhs));
+		return static_cast<T>(std::to_underlying(lhs) bitor std::to_underlying(rhs));
 	}
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator&(const T lhs, const T rhs)
 	{
-		return static_cast<T>(std::to_underlying(lhs) & std::to_underlying(rhs));
+		return static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator^(const T lhs, const T rhs)
 	{
-		return static_cast<T>(std::to_underlying(lhs) ^ std::to_underlying(rhs));
+		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
 	}
 
 	template<typename T>
@@ -99,26 +120,34 @@ export namespace deckard
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
-	constexpr auto operator|=(T &lhs, const T rhs)
+	constexpr auto operator|=(T& lhs, const T rhs)
 	{
-		lhs = lhs | rhs;
+		lhs = lhs bitor rhs;
 		return lhs;
 	}
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
-	constexpr auto operator&=(T &lhs, const T rhs)
+	constexpr auto operator&=(T& lhs, const T rhs)
 	{
-		lhs = lhs & rhs;
+		lhs = lhs bitand rhs;
 		return lhs;
 	}
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
-	constexpr auto operator^=(T &lhs, const T rhs)
+	constexpr auto operator^=(T& lhs, const T rhs)
 	{
-		lhs = lhs ^ rhs;
+		lhs = lhs xor rhs;
 		return lhs;
+	}
+
+	// P3070 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	auto format_as(T f)
+	{
+		return std::to_underlying(f);
 	}
 
 	/*
