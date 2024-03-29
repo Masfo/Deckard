@@ -35,7 +35,7 @@ IndentRequiresClause: false
 
 IntegerLiteralSeparator:
     Binary: 4
-    Decimal: 4
+    Decimal: 5
     Hex: 4
     DecimalMinDigits: 4
     HexMinDigits:    6
