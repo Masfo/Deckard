@@ -97,6 +97,10 @@ set(DECKARD_SRCS
 		debug/assert.ixx
 		file/File.ixx
 		file/FileMonitor.ixx
+
+        math/math.ixx
+        math/matrix.ixx
+
 		types/types.ixx
 		win32/win32.ixx
 		#win32/DTE.ixx
@@ -142,6 +146,8 @@ target_compile_options(Deckard PRIVATE
     #
     /wd4324 # structure was padded due to alignment specifier
     #/wd5246 # the initialization of a subobject should be wrapped in braces
+    #/wd4273 # inconsistent dll linkage
+
 
 )
 
