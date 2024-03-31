@@ -51,6 +51,12 @@ export namespace deckard::dbg
 
 	void println() noexcept { output_message("\n"); }
 
+	void if_true(bool cond, std::string_view fmt) noexcept
+	{
+		if (cond)
+			println(fmt);
+	}
+
 	template<typename... Args>
 	void if_true(bool cond, std::string_view fmt, Args &&...args) noexcept
 	{
