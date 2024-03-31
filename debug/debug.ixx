@@ -27,35 +27,35 @@ struct alignas(64) FormatLocation
 
 static_assert(64 == sizeof(FormatLocation), "FormatLocation is not 64 bytes");
 
-export namespace deckard
+export namespace deckard::dbg
 {
 	using namespace std::string_view_literals;
 
 	// debug
 	template<typename... Args>
-	void dbg(std::string_view fmt, Args &&...args) noexcept
+	void print(std::string_view fmt, Args &&...args) noexcept
 	{
 		output_message(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
 	}
 
-	void dbg(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt)); }
+	void print(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt)); }
 
 	// debugln
 	template<typename... Args>
-	void dbgln(std::string_view fmt, Args &&...args) noexcept
+	void println(std::string_view fmt, Args &&...args) noexcept
 	{
 		output_message(std::format("{}\n"sv, std::vformat(fmt, std::make_format_args(args...))));
 	}
 
-	void dbgln(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt)); }
+	void println(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt)); }
 
-	void dbgln() noexcept { output_message("\n"); }
+	void println() noexcept { output_message("\n"); }
 
 	template<typename... Args>
-	void dbgln_if(bool cond, std::string_view fmt, Args &&...args) noexcept
+	void if_true(bool cond, std::string_view fmt, Args &&...args) noexcept
 	{
 		if (cond)
-			dbgln(fmt, args...);
+			println(fmt, args...);
 	}
 
 	// trace
@@ -95,9 +95,9 @@ export namespace deckard
 	inline void who_called_me(const std::source_location &loc = std::source_location::current())
 	{
 #ifdef _DEBUG
-		auto trace = std::stacktrace::current();
-		dbgln("{}({}): {}: {}", loc.file_name(), loc.line(), loc.function_name(), std::to_string(trace[2]));
+		auto strace = std::stacktrace::current();
+		dbg::println("{}({}): {}: {}", loc.file_name(), loc.line(), loc.function_name(), std::to_string(strace[2]));
 #endif
 	}
 
-} // namespace deckard
+} // namespace deckard::dbg
