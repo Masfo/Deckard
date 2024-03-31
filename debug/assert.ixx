@@ -7,7 +7,8 @@ import deckard.debug;
 export namespace deckard::assert
 {
 
-	void if_true(bool expr, std::string_view message, const std::source_location &loc = std::source_location::current()) noexcept
+	void if_true([[maybe_unused]] bool expr, [[maybe_unused]] std::string_view message,
+				 [[maybe_unused]] const std::source_location &loc = std::source_location::current()) noexcept
 	{
 #ifdef _DEBUG
 		if (!expr)
@@ -31,10 +32,11 @@ export namespace deckard::assert
 #endif
 	}
 
-	void if_false(bool expr, std::string_view message, const std::source_location &loc = std::source_location::current()) noexcept
+	void if_false([[maybe_unused]] bool expr, [[maybe_unused]] std::string_view message,
+				  [[maybe_unused]] const std::source_location &loc = std::source_location::current()) noexcept
 	{
 #ifdef _DEBUG
-		if_true(!expr, message, loc);
+		if_true(not expr, message, loc);
 #endif
 	}
 
