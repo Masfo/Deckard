@@ -90,6 +90,8 @@ export namespace deckard
 	} // namespace literals
 
 	// Enum flags
+
+
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator|(const T lhs, const T rhs)
@@ -99,9 +101,16 @@ export namespace deckard
 
 	template<typename T>
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
-	constexpr auto operator&(const T lhs, const T rhs)
+	constexpr T operator&(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr bool operator&&(const T lhs, const T rhs)
+	{
+		return static_cast<bool>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
 	template<typename T>
@@ -130,7 +139,7 @@ export namespace deckard
 	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator&=(T& lhs, const T rhs)
 	{
-		lhs = lhs bitand rhs;
+		lhs = static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 		return lhs;
 	}
 
@@ -139,6 +148,23 @@ export namespace deckard
 	constexpr auto operator^=(T& lhs, const T rhs)
 	{
 		lhs = lhs xor rhs;
+		return lhs;
+	}
+
+	// Helpers for removing and setting flags
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator-=(T& lhs, const T rhs)
+	{
+		lhs &= ~rhs;
+		return lhs;
+	}
+
+	template<typename T>
+	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	constexpr auto operator+=(T& lhs, const T rhs)
+	{
+		lhs |= rhs;
 		return lhs;
 	}
 
