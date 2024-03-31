@@ -17,13 +17,13 @@ namespace deckard
 	T LoadDynamic(const std::string_view dll, const std::string_view function) noexcept
 	{
 		HMODULE lib = LoadLibraryA(dll.data());
-		assert_msg(lib != nullptr, "Failed to load library.");
+		assert::if_true(lib != nullptr, "Failed to load library.");
 		if (!lib)
 			return nullptr;
 
 
 		auto function_to_load = GetProcAddress(lib, function.data());
-		assert_msg(function_to_load != nullptr, "Failed to load function.");
+		assert::if_true(function_to_load != nullptr, "Failed to load function.");
 
 		if (!function_to_load)
 			return nullptr;

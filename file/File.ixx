@@ -47,7 +47,7 @@ export namespace deckard
 				CreateFile(filename.wstring().c_str(), access, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			m_mappinghandle = CreateFileMapping(m_filehandle, nullptr, page_protect, 0, 0, nullptr);
 
-			assert_msg(m_mappinghandle != 0, "Could not open file mapping");
+			assert::if_true(m_mappinghandle != 0, "Could not open file mapping");
 
 			map();
 
@@ -83,7 +83,7 @@ export namespace deckard
 
 		auto &operator[](u64 index) noexcept
 		{
-			assert_msg(is_open(), "File view is not open");
+			assert::if_true(is_open(), "File view is not open");
 
 			auto ptr = static_cast<char *>(map());
 			return ptr[index];
@@ -96,7 +96,7 @@ export namespace deckard
 	private:
 		void *map() noexcept
 		{
-			assert_msg(m_mappinghandle != 0, "File mapping is not open");
+			assert::if_true(m_mappinghandle != 0, "File mapping is not open");
 
 			if (m_addr != nullptr)
 				return m_addr;
@@ -107,7 +107,7 @@ export namespace deckard
 
 			m_addr = MapViewOfFile(m_mappinghandle, access, 0, 0, 0);
 
-			assert_msg(m_addr != nullptr, "Map view is not valid");
+			assert::if_true(m_addr != nullptr, "Map view is not valid");
 			return m_addr;
 		}
 
