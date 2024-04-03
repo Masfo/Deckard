@@ -7,6 +7,16 @@ import deckard.assert;
 
 export namespace deckard
 {
+	struct sink_t
+	{
+		template<typename T>
+		constexpr void operator=(T&&) const noexcept
+		{
+		}
+	};
+
+	inline constexpr sink_t _;
+
 	using u8  = std::uint8_t;
 	using i8  = std::int8_t;
 	using u16 = std::uint16_t;
