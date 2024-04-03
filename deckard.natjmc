@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NonUserCode xmlns="http://schemas.microsoft.com/vstudio/debugger/jmc/2015">
+
+	<!-- Files -->
+	<File Name="assert.ixx"/>
+	<File Name="debug.ixx"/>
+
+	<File Name="types.ixx"/>
+
+	<!-- Functions -->
+	<Function Name="std\:\:.*" />
+
+</NonUserCode>
