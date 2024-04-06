@@ -7,15 +7,7 @@ import deckard.assert;
 
 export namespace deckard
 {
-	struct sink_t
-	{
-		template<typename T>
-		constexpr void operator=(T&&) const noexcept
-		{
-		}
-	};
 
-	inline constexpr sink_t _;
 
 	using u8  = std::uint8_t;
 	using i8  = std::int8_t;
@@ -79,44 +71,51 @@ export namespace deckard
 		}
 	}
 
-	namespace literals
+	constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
+
+	constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
+
+	constexpr u16 operator"" _u16(const u64 value) noexcept { return static_cast<u16>(value & 0xFFFF); }
+
+	constexpr i16 operator"" _i16(const u64 value) noexcept { return static_cast<i16>(value & 0xFFFF); }
+
+	constexpr u32 operator"" _u32(const u64 value) noexcept { return static_cast<u32>(value & 0xFFFF'FFFF); }
+
+	constexpr i32 operator"" _i32(const u64 value) noexcept { return static_cast<i32>(value & 0xFFFF'FFFF); }
+
+	constexpr u64 operator"" _u64(const u64 value) noexcept { return static_cast<u64>(value); }
+
+	constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
+
+	// sink
+	struct sink_t
 	{
+		template<typename T>
+		constexpr void operator=(T&&) const noexcept
+		{
+		}
+	};
 
-		constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
-
-		constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
-
-		constexpr u16 operator"" _u16(const u64 value) noexcept { return static_cast<u16>(value & 0xFFFF); }
-
-		constexpr i16 operator"" _i16(const u64 value) noexcept { return static_cast<i16>(value & 0xFFFF); }
-
-		constexpr u32 operator"" _u32(const u64 value) noexcept { return static_cast<u32>(value & 0xFFFF'FFFF); }
-
-		constexpr i32 operator"" _i32(const u64 value) noexcept { return static_cast<i32>(value & 0xFFFF'FFFF); }
-
-		constexpr u64 operator"" _u64(const u64 value) noexcept { return static_cast<u64>(value); }
-
-		constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
-	} // namespace literals
+	inline constexpr sink_t _;
 
 	// *************************************
 	// Enum flags **************************
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator|(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitor std::to_underlying(rhs));
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr T operator&(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr bool operator&&(const T lhs, const T rhs) noexcept
 	{
 		if (std::to_underlying(lhs) == std::to_underlying(rhs))
@@ -126,21 +125,21 @@ export namespace deckard
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator^(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator~(const T lhs) noexcept
 	{
 		return static_cast<T>(~std::to_underlying(lhs));
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator|=(T& lhs, const T rhs) noexcept
 	{
 		lhs = lhs bitor rhs;
@@ -148,7 +147,7 @@ export namespace deckard
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator&=(T& lhs, const T rhs) noexcept
 	{
 		lhs = static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
@@ -156,7 +155,7 @@ export namespace deckard
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator^=(T& lhs, const T rhs) noexcept
 	{
 		lhs = lhs xor rhs;
@@ -165,7 +164,7 @@ export namespace deckard
 
 	// Helpers for removing and setting flags
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator-=(T& lhs, const T rhs) noexcept
 	{
 		lhs &= ~rhs;
@@ -173,7 +172,7 @@ export namespace deckard
 	}
 
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator+=(T& lhs, const T rhs) noexcept
 	{
 		lhs |= rhs;
@@ -182,7 +181,7 @@ export namespace deckard
 
 	// P3070 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
 	template<typename T>
-	requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	auto format_as(T f) noexcept
 	{
 		return std::to_underlying(f);
