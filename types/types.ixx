@@ -8,6 +8,15 @@ import deckard.assert;
 export namespace deckard
 {
 
+	using DefaultErrorType = std::string;
+
+	template<typename T, typename E = DefaultErrorType>
+	using Result = std::expected<T, E>;
+
+
+	auto Ok  = [](const auto value) -> Result<decltype(value)> { return value; };
+	auto Err = [](const DefaultErrorType& value) { return std::unexpected(value); };
+
 
 	using u8  = std::uint8_t;
 	using i8  = std::int8_t;
