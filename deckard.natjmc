@@ -4,6 +4,8 @@
 	<!-- Files -->
 	<File Name="types.ixx"/>
 	<File Name="as.ixx"/>
+	<File Name="enum_flags.ixx"/>
+
 
 
 	<File Name="assert.ixx"/>

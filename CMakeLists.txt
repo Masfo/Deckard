@@ -111,6 +111,7 @@ set(DECKARD_SRCS
 
 		types/types.ixx
         types/as.ixx
+        types/enum_flags.ixx
 		win32/win32.ixx
 		#win32/DTE.ixx
 
