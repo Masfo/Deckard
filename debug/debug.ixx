@@ -92,7 +92,7 @@ export namespace deckard::dbg
 		{
 			DebugBreak();
 		}
-		FatalExit(0);
+		std::terminate();
 		std::unreachable();
 	}
 
