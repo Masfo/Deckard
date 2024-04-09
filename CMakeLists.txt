@@ -103,6 +103,7 @@ set(DECKARD_SRCS
         math/math_utility.ixx
 
         utils/base64.ixx
+        utils/generator.ixx     # Remove when MSVC has it
 
 		types/types.ixx
 		win32/win32.ixx
