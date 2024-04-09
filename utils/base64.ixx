@@ -101,7 +101,7 @@ namespace deckard::utils::base64
 	export std::string encode_str(std::string_view input)
 	{
 		//
-		return encode({reinterpret_cast<const u8*>(input.data()), input.size()});
+		return encode({reinterpret_cast<const u8 *>(input.data()), input.size()});
 	}
 
 	export std::optional<std::vector<u8>> decode(std::string_view encoded_input)
@@ -157,4 +157,21 @@ namespace deckard::utils::base64
 		return {};
 	}
 
+	void test()
+	{
+
+		std::vector<u8> rnd;
+		rnd.resize(1024);
+
+		std::random_device                 rd;
+		std::mt19937                       gen(rd());
+		std::uniform_int_distribution<int> dis(0, 255);
+
+		for (auto &i : rnd)
+			i = dis(gen);
+
+
+		auto rb   = utils::base64::encode(rnd);
+		auto drnd = utils::base64::decode(rb);
+	}
 } // namespace deckard::utils::base64
