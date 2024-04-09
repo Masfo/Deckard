@@ -20,7 +20,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
     // Everything is under deckard namespace
     using namespace deckard;
     ```
-  - **deckard.debug/assert**
+  - **Debug / Assert**
     ```cpp
     import deckard;
 
