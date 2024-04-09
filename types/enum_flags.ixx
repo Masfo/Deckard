@@ -112,15 +112,6 @@ export namespace deckard
 		} // namespace Filesystem
 
 
-
-		enum class FunEnum : u8
-		{
-			Read  = 0x01,
-			Write = 0x02,
-		};
-
-		consteval void enable_bitmask_operator_or(FunEnum);
-
 	*/
 
 } // namespace deckard
