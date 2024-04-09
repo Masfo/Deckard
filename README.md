@@ -88,9 +88,27 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	  // or alternatively using += and -=
 	  readAndWrite -= Permission::Execute; // Read | Write
 	  readAndWrite += Permission::Execute; // Read | Write | Execute
-
-
 	  ```
+  - **Result**
+    ```cpp
+	// Default error is std::string
+	Ok(<value>);
+	Err("error value");
+
+    // Return value or error
+	auto getex(int x) -> Result<int>
+	{
+		if (x == 10)
+			return Ok(x); 
+		else
+			return Err("bad int {}", x);
+	}
+
+	if (auto v = getex(100); v)
+	{
+		dbg::trace("int {}", *v);
+	}
+    ```
   - **Fileview**
 	```cpp 
 	import deckard;
