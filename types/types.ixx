@@ -13,21 +13,27 @@ export namespace deckard
 	template<typename T, typename E = DefaultErrorType>
 	using Result = std::expected<T, E>;
 
+	auto Ok  = []<typename T>(const T value) -> Result<T> { return value; };
+	auto Err = [](std::string_view fmt, auto... args)
+	{
+		using namespace std::string_view_literals;
+		if constexpr (sizeof...(args) > 0)
+			return std::unexpected<DefaultErrorType>(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
+		else
+			return std::unexpected<DefaultErrorType>(fmt);
+	};
 
-	auto Ok  = [](const auto value) -> Result<decltype(value)> { return value; };
-	auto Err = [](const DefaultErrorType& value) { return std::unexpected(value); };
-
-
-	using u8  = std::uint8_t;
-	using i8  = std::int8_t;
-	using u16 = std::uint16_t;
-	using i16 = std::int16_t;
-	using u32 = std::uint32_t;
-	using i32 = std::int32_t;
-	using u64 = std::uint64_t;
-	using i64 = std::int64_t;
-	using f32 = float;
-	using f64 = double;
+	using byte = std::byte;
+	using u8   = std::uint8_t;
+	using i8   = std::int8_t;
+	using u16  = std::uint16_t;
+	using i16  = std::int16_t;
+	using u32  = std::uint32_t;
+	using i32  = std::int32_t;
+	using u64  = std::uint64_t;
+	using i64  = std::int64_t;
+	using f32  = float;
+	using f64  = double;
 
 	using kibi = std::ratio<1ULL << 10>;
 	using mebi = std::ratio<1ULL << 20>;
