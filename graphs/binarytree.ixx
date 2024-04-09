@@ -5,7 +5,7 @@ import deckard.generator;
 export namespace deckard::graph
 {
 	template<typename T>
-	using GeneratorImpl = deckard::generator<T>;
+	using GeneratorAlias = deckard::generator<T>;
 
 	template<typename T>
 	struct BinaryTree
@@ -17,7 +17,7 @@ export namespace deckard::graph
 		// 1. Traverse the left subtree, i.e., call Inorder(left->subtree)
 		// 2. Visit the root.
 		// 3. Traverse the right subtree, i.e., call Inorder(right->subtree)
-		GeneratorImpl<const T &> traverse_inorder() const
+		GeneratorAlias<const T &> traverse_inorder() const
 		{
 			if (left)
 				for (const T &x : left->traverse_inorder())
@@ -33,7 +33,7 @@ export namespace deckard::graph
 		// 1. Visit the root.
 		// 2. Traverse the left subtree, i.e., call Preorder(left->subtree)
 		// 3. Traverse the right subtree, i.e.,call Preorder(right->subtree)
-		GeneratorImpl<const T &> traverse_preorder() const
+		GeneratorAlias<const T &> traverse_preorder() const
 		{
 			co_yield value;
 
@@ -50,7 +50,7 @@ export namespace deckard::graph
 		// 1.Traverse the left subtree, i.e., call Postorder(left->subtree)
 		// 2. Traverse the right subtree, i.e., call Postorder(right->subtree)
 		// 3. Visit the root
-		GeneratorImpl<const T &> traverse_postorder() const
+		GeneratorAlias<const T &> traverse_postorder() const
 		{
 			if (left)
 				for (const T &x : left->traverse_postorder())
