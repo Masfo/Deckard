@@ -168,7 +168,7 @@ namespace deckard::utils::base64
 		std::uniform_int_distribution<int> dis(0, 255);
 
 		for (auto &i : rnd)
-			i = dis(gen);
+			i = as<u8>(dis(gen));
 
 
 		auto rb   = utils::base64::encode(rnd);
