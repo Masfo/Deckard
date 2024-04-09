@@ -72,6 +72,11 @@ export namespace deckard::dbg
 			std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), std::vformat(fmt.fmt, std::make_format_args(args...))));
 	}
 
+	void trace(const std::source_location &loc) noexcept
+	{
+		output_message(std::format("{}({}): "sv, loc.file_name(), loc.line()));
+	}
+
 	void trace(FormatLocation fmt) noexcept { output_message(std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), fmt.fmt)); }
 
 	void trace() noexcept { output_message("\n"); }
