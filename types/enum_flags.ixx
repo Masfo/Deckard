@@ -1,5 +1,7 @@
 export module deckard.enums;
 
+import std;
+
 export namespace deckard
 {
 	template<typename T>
