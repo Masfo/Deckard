@@ -1,7 +1,12 @@
+module;
+#if __cpp_lib_generator && __has_include(<generator>)
+#error "Generator is supported, delete this version"
+#endif
+
 export module deckard.generator;
 import std;
 
-export namespace tl
+export namespace deckard
 {
 	template<class T>
 	class generator final
@@ -172,7 +177,7 @@ export namespace tl
 
 		handle_type handle_ = nullptr;
 	};
-} // namespace tl
+} // namespace deckard
 
 export template<class T>
-inline constexpr bool std::ranges::enable_view<tl::generator<T>> = true;
+inline constexpr bool std::ranges::enable_view<deckard::generator<T>> = true;
