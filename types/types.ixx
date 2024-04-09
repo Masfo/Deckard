@@ -3,9 +3,10 @@ module;
 export module deckard.types;
 
 import std;
+
 export import deckard.as;
-import deckard.assert;
-import deckard.debug;
+export import deckard.enums;
+export import deckard.result;
 
 export namespace deckard
 {
@@ -21,23 +22,6 @@ export namespace deckard
 	using i64  = std::int64_t;
 	using f32  = float;
 	using f64  = double;
-
-
-	// Result
-	using DefaultErrorType = std::string;
-
-	template<typename T, typename E = DefaultErrorType>
-	using Result = std::expected<T, E>;
-
-	auto Ok  = []<typename T>(const T value) -> Result<T> { return value; };
-	auto Err = [](std::string_view fmt, auto... args)
-	{
-		using namespace std::string_view_literals;
-		if constexpr (sizeof...(args) > 0)
-			return std::unexpected<DefaultErrorType>(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
-		else
-			return std::unexpected<DefaultErrorType>(fmt);
-	};
 
 	constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
 

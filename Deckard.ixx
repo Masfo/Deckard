@@ -8,8 +8,6 @@ export import deckard.file;
 export import deckard.filemonitor;
 export import deckard.math;
 export import deckard.types;
-export import deckard.enums;
-
 
 export import deckard.base64;
 export import deckard.generator;
