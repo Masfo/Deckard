@@ -6,26 +6,6 @@ import Deckard;
 
 using namespace deckard;
 
-namespace Filesystem
-{
-	enum class Permission : u8
-	{
-		NoPermissions = 0x00,
-		Read          = 0x01,
-		Write         = 0x02,
-		Execute       = 0x04,
-	};
-
-
-	consteval void enable_bitmask_operations(Permission);
-
-
-	/*
-		using Filesystem::Permission;
-		Permission readAndWrite{Permission::Read | Permission::Write};
-	*/
-} // namespace Filesystem
-
 bool multiplyOverflow(i64 a, i64 b)
 {
 	// Check if 'a' is zero
@@ -56,15 +36,41 @@ auto getex(int x) -> Result<int>
 	// return Err("bad int");
 }
 
+// Enums as flags
+namespace Filesystem
+{
+	enum class Permission : u8
+	{
+		No      = 0x00,
+		Read    = 0x01,
+		Write   = 0x02,
+		Execute = 0x04,
+	};
+	consteval void enable_bitmask_operations(Permission);
+
+
+} // namespace Filesystem
+
 int main()
 {
-	u32  X = 126;
-	auto u = as<float>(X);
+	float X = 128.0f;
+	auto  u = as<u16>(X);
 
-	i8 a = X;
 
 	std::array<byte, 4> buff{'Z', 'E', 'U', 'S'};
-	auto                gg = utils::base64::decode(utils::base64::encode(buff));
+
+	auto encoded_base64 = utils::base64::encode(buff);
+	auto decoded_base64 = utils::base64::decode(encoded_base64);
+
+	using Filesystem::Permission;
+	Permission readAndWrite{Permission::Read | Permission::Write | Permission::Execute};
+
+	readAndWrite &= ~Permission::Write; // Read | Execute
+	readAndWrite |= Permission::Write;  // Read | Execute | Write
+
+	// or alternatively using += and -=
+	readAndWrite -= Permission::Execute; // Read | Write
+	readAndWrite += Permission::Execute; // Read | Write | Execute
 
 
 	dbg::println("{:<20f}", std::numeric_limits<float>::max());
@@ -116,21 +122,6 @@ int main()
 	{
 		dbg::println("{}", x);
 	}
-
-	using Filesystem::Permission;
-
-
-	Permission readAndWrite{Permission::Read | Permission::Write | Permission::Execute};
-
-
-	readAndWrite -= Permission::Write;
-
-	readAndWrite -= Permission::Read;
-
-	readAndWrite -= Permission::Execute;
-
-	readAndWrite += Permission::Execute;
-	readAndWrite += Permission::Write;
 
 
 	//	std::println("{}", readAndWrite);

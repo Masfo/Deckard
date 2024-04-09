@@ -101,16 +101,20 @@ export namespace deckard
 				Write   = 0x02,
 				Execute = 0x04,
 			};
-			consteval void enable_bitmask_operator_or(Permission);
-
-
-			//		using Filesystem::Permission;
-			//		Permission readAndWrite{Permission::Read | Permission::Write | Permission::Execute};
-			// 		readAndWrite &= ~Permission::Write;	 // Read | Execute
-			//      readAndWrite -= Permission::Write    // Read | Execute
-
+			consteval void enable_bitmask_operations(Permission);
 		} // namespace Filesystem
 
+		// Usage:
+
+		using Filesystem::Permission;
+		Permission readAndWrite{Permission::Read | Permission::Write | Permission::Execute};
+
+		readAndWrite &= ~Permission::Write; // Read | Execute
+		readAndWrite |= Permission::Write;  // Read | Execute | Write
+
+		// or alternatively using += and -=
+		readAndWrite -= Permission::Execute; // Read | Write
+		readAndWrite += Permission::Execute; // Read | Write | Execute
 
 	*/
 
