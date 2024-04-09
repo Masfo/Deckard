@@ -72,6 +72,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	  		Write   = 0x02,
 	  		Execute = 0x04,
 	  	};
+
+        // Enable flags by adding the following to your enum:s
 	  	consteval void enable_bitmask_operations(Permission);
 	  } // namespace Filesystem
       
