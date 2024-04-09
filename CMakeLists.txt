@@ -100,6 +100,9 @@ set(DECKARD_SRCS
 
         math/math.ixx
         math/matrix.ixx
+        math/math_utility.ixx
+
+        utils/base64.ixx
 
 		types/types.ixx
 		win32/win32.ixx
