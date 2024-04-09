@@ -3,6 +3,8 @@
 
 	<!-- Files -->
 	<File Name="types.ixx"/>
+	<File Name="as.ixx"/>
+
 
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>

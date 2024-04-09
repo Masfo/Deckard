@@ -13,6 +13,7 @@ export import deckard.base64;
 export import deckard.generator;
 export import deckard.graph;
 export import deckard.scope_exit;
+export import deckard.as;
 
 // export import deckard.DTE;
 export import deckard.win32;
