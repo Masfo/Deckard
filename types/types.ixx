@@ -39,29 +39,6 @@ export namespace deckard
 			return std::unexpected<DefaultErrorType>(fmt);
 	};
 
-	/*
-
-		template<typename I, typename F>
-		requires(std::integral<I> && std::floating_point<F>)
-		I as(F value) noexcept
-		{
-			if (((value <= static_cast<F>(std::numeric_limits<I>::max())) && (value >= static_cast<F>(std::numeric_limits<I>::min()))))
-			{
-				return static_cast<I>(value);
-			}
-			else
-			{
-				assert_msg(false,
-						   std::format("Could not convert value '{}' safely. Target too small: {} < {} < {}",
-									   value,
-									   std::numeric_limits<I>::min(),
-									   value,
-									   std::numeric_limits<I>::max()));
-
-				return std::numeric_limits<I>::max();
-			}
-		}*/
-
 	constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
 
 	constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
