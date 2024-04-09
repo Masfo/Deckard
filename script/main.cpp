@@ -63,6 +63,9 @@ int main()
 
 	i8 a = X;
 
+	std::array<byte, 4> buff{'Z', 'E', 'U', 'S'};
+	auto                gg = utils::base64::decode(utils::base64::encode(buff));
+
 
 	dbg::println("{:<20f}", std::numeric_limits<float>::max());
 	dbg::println("{:<20}", std::numeric_limits<u64>::max());
