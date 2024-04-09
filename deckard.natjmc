@@ -2,10 +2,14 @@
 <NonUserCode xmlns="http://schemas.microsoft.com/vstudio/debugger/jmc/2015">
 
 	<!-- Files -->
+	<File Name="types.ixx"/>
+
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
+	<File Name="base64.ixx"/>
 
-	<File Name="types.ixx"/>
+
+	<File Name="win32.ixx"/>
 
 	<!-- Functions -->
 	<Function Name="std\:\:.*" />
