@@ -98,11 +98,14 @@ set(DECKARD_SRCS
 		file/File.ixx
 		file/FileMonitor.ixx
 
-        math/math.ixx
         math/matrix.ixx
         math/math_utility.ixx
+        math/math.ixx
+
+        graphs/binarytree.ixx
 
         utils/base64.ixx
+        utils/scope_exit.ixx
         utils/generator.ixx     # Remove when MSVC has it
 
 		types/types.ixx
