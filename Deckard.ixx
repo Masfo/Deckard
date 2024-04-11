@@ -7,6 +7,7 @@ export import deckard.assert;
 export import deckard.file;
 export import deckard.filemonitor;
 export import deckard.math;
+export import deckard.helpers;
 export import deckard.types;
 
 export import deckard.base64;
