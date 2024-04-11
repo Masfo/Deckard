@@ -1,5 +1,4 @@
-
-
+#include <Windows.h>
 
 import std;
 import Deckard;
@@ -51,8 +50,52 @@ namespace Filesystem
 
 } // namespace Filesystem
 
+using KUSER_SHARED_DATA_TYPE                           = u32;
+constexpr KUSER_SHARED_DATA_TYPE KUSER_SHARED_DATA_PTR = 0x7FFE'0000u;
+
 int main()
 {
+
+	char a = 0b0000'0001;
+	char b = !a;
+
+	char c = a xor 0b1111'1111;
+
+
+	for (auto i : upto(10))
+	{
+		dbg::println("upto {}", i);
+	}
+
+	for (auto i : loop(5))
+	{
+		dbg::println("loop {}", i);
+
+		if (i > 10)
+			break;
+	}
+
+
+	u32 major = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x026C); // NtMajorVersion, 4.0+
+	u32 minor = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x0270); // NtMinorVersion, 4.0+
+
+	u32 build = 0;
+	if (major >= 10)
+		build = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x0260); // NtBuildNumber, 10.0+
+
+	dbg::println("Winver: {}.{}.{}", major, minor, build);
+
+
+	u64 MyTickCount = ((u64)(*(KUSER_SHARED_DATA_TYPE *)(KUSER_SHARED_DATA_PTR + 0x320)) *
+					   (u64)(*(KUSER_SHARED_DATA_TYPE *)(KUSER_SHARED_DATA_PTR + 0x4))) >>
+					  0x18;
+	u64 TickCount = GetTickCount64();
+	dbg::println("Ticks: {} vs {}\n", MyTickCount, TickCount);
+
+
+	u64 ActiveCPUCount = (u64)(*(KUSER_SHARED_DATA_TYPE *)(KUSER_SHARED_DATA_PTR + 0x3C0));
+	dbg::println("Processor count: {}", ActiveCPUCount);
+
 	float X = 128.0f;
 	auto  u = as<u16>(X);
 

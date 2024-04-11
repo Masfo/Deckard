@@ -1,6 +1,14 @@
 
 add_executable(sc)
 
+
+target_compile_definitions(sc PRIVATE UNICODE)
+target_compile_definitions(sc PRIVATE _UNICODE)
+
+target_compile_definitions(sc PRIVATE NOMINMAX)
+target_compile_definitions(sc PRIVATE WIN32_LEAN_AND_MEAN)
+target_compile_definitions(sc PRIVATE WIN32_EXTRA_LEAN)
+
     set_property(TARGET sc PROPERTY CXX_STANDARD          23)
     set_property(TARGET sc PROPERTY CXX_STANDARD_REQUIRED ON)
     set_property(TARGET sc PROPERTY CXX_EXTENSIONS        OFF)
