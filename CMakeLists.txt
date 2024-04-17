@@ -101,6 +101,7 @@ set(DECKARD_SRCS
         math/matrix.ixx
         math/math_utility.ixx
         math/math.ixx
+        math/vec.ixx
 
         graphs/binarytree.ixx
 
