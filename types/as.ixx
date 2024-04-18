@@ -17,46 +17,46 @@ namespace deckard
 					 std::numeric_limits<T>::max());
 	}
 
-	export template<typename T, typename U>
-	constexpr T as(U u, const std::source_location &loc = std::source_location::current()) noexcept
+	export template<typename Ret, typename U>
+	constexpr Ret as(U u, [[maybe_unused]] const std::source_location &loc = std::source_location::current()) noexcept
 	{
+#ifdef _DEBUG
 
-
-		if constexpr (std::is_integral_v<U> && std::is_integral_v<T>)
+		if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
 		{
-			if (((u <= static_cast<U>(std::numeric_limits<T>::max())) && (u >= static_cast<U>(std::numeric_limits<T>::min()))))
+			if (((u <= static_cast<U>(std::numeric_limits<Ret>::max())) && (u >= static_cast<U>(std::numeric_limits<Ret>::min()))))
 			{
-				return static_cast<T>(u);
+				return static_cast<Ret>(u);
 			}
 			else
 			{
-				warn_cast_limit<T>(u, loc);
-				return static_cast<T>(u);
+				warn_cast_limit<Ret>(u, loc);
+				return static_cast<Ret>(u);
 			}
 		}
-		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<T>)
+		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
 		{
-			T diff = u - static_cast<T>(u);
+			Ret diff = u - static_cast<Ret>(u);
 
-			if (u - static_cast<T>(u) == 0)
+			if (u - static_cast<Ret>(u) == 0)
 			{
-				return as<T>(static_cast<T>(u));
+				return as<Ret>(static_cast<Ret>(u));
 			}
 			else
 			{
-				if constexpr (std::is_signed_v<T>)
+				if constexpr (std::is_signed_v<Ret>)
 				{
 					std::int64_t value{};
-					value = as<T>(static_cast<std::int64_t>(u));
+					value = as<Ret>(static_cast<std::int64_t>(u));
 
 					dbg::trace(loc);
 					dbg::println("Loss of precision casting '{:f}' to '{}'", u, value);
 					return value;
 				}
-				if constexpr (std::is_unsigned_v<T>)
+				if constexpr (std::is_unsigned_v<Ret>)
 				{
 					std::uint64_t value{};
-					value = as<T>(static_cast<std::uint64_t>(u));
+					value = as<Ret>(static_cast<std::uint64_t>(u));
 
 					dbg::trace(loc);
 					dbg::println("Loss of precision casting '{:f}' to '{}'", u, value);
@@ -65,9 +65,9 @@ namespace deckard
 			}
 		}
 		else
+#endif
 		{
-
-			return static_cast<T>(u);
+			return static_cast<Ret>(u);
 		}
 	}
 
