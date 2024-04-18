@@ -11,17 +11,21 @@ export import deckard.result;
 export namespace deckard
 {
 
-	using byte = unsigned char;
-	using u8   = std::uint8_t;
-	using i8   = std::int8_t;
-	using u16  = std::uint16_t;
-	using i16  = std::int16_t;
-	using u32  = std::uint32_t;
-	using i32  = std::int32_t;
-	using u64  = std::uint64_t;
-	using i64  = std::int64_t;
-	using f32  = float;
-	using f64  = double;
+	using u8  = std::uint8_t;
+	using i8  = std::int8_t;
+	using u16 = std::uint16_t;
+	using i16 = std::int16_t;
+	using u32 = std::uint32_t;
+	using i32 = std::int32_t;
+	using u64 = std::uint64_t;
+	using i64 = std::int64_t;
+
+	using byte  = unsigned char;
+	using usize = std::uintmax_t;
+	using isize = std::intmax_t;
+
+	using f32 = float;
+	using f64 = double;
 
 	constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
 
