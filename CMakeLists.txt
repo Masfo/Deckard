@@ -109,12 +109,13 @@ set(DECKARD_SRCS
         utils/scope_exit.ixx
         utils/helpers.ixx
         utils/generator.ixx     # Remove when MSVC has it
+        
 
 
 		types/types.ixx
         types/as.ixx
         types/enum_flags.ixx
-        types/result.ixx
+        types/HelperTypes.ixx
 
 		win32/win32.ixx
 		#win32/DTE.ixx

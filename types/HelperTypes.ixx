@@ -1,4 +1,4 @@
-export module deckard.result;
+export module deckard.helpertypes;
 
 import std;
 
@@ -19,5 +19,13 @@ export namespace deckard
 		else
 			return std::unexpected<DefaultErrorType>(fmt);
 	};
+
+
+	template<typename T>
+	using Option = std::optional<T>;
+
+	auto Some = []<typename T>(const T value) -> Option<T> { return value; };
+	auto None = []<typename T>(const T value) -> Option<T> { return std::nullopt_t; };
+
 
 } // namespace deckard
