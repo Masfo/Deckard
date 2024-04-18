@@ -25,7 +25,7 @@ export namespace deckard
 	using Option = std::optional<T>;
 
 	auto Some = []<typename T>(const T value) -> Option<T> { return value; };
-	auto None = []<typename T>(const T value) -> Option<T> { return std::nullopt_t; };
+	auto None = []<typename T>(const T) -> Option<T> { return {}; };
 
 
 } // namespace deckard
