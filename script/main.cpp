@@ -56,6 +56,7 @@ constexpr KUSER_SHARED_DATA_TYPE KUSER_SHARED_DATA_PTR = 0x7FFE'0000u;
 int main()
 {
 
+
 	char a = 0b0000'0001;
 	char b = !a;
 

@@ -9,16 +9,16 @@ export namespace DeckardBuild
 	constexpr uint32_t minor = 0;
 
 	 // Do not modify these
-	constexpr uint32_t build = 1106;
+	constexpr uint32_t build = 1203;
 	
 	constexpr uint32_t version = major * 100000 + minor * 10000 + build;
-	constexpr uint64_t random_seed = 0x1253f08d21db457d;
+	constexpr uint64_t random_seed = 0xbb4e7e0dd8984478;
 	
-	constexpr char version_string[] = "v0.0.1106";
-	constexpr char build_time_string[] = "2024-04-14 14:03:17";
-	constexpr char phrase[] = "idiocy-travesty-dominoes";
-	constexpr char calver[] = "2024.15.1106";
-	constexpr char uuid[] = "CF86B47D-5757-4E00-8EC6-FC032FF3E7D5";
+	constexpr char version_string[] = "v0.0.1203";
+	constexpr char build_time_string[] = "2024-04-18 14:53:19";
+	constexpr char phrase[] = "irrigate-feast-wisdom";
+	constexpr char calver[] = "2024.16.1203";
+	constexpr char uuid[] = "EB5DA38A-3C06-4FF0-B0F4-A632338FF2EC";
 
 	// Copy paste to import to your project
 	/*
