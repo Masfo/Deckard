@@ -14,6 +14,7 @@ target_compile_definitions(sc PRIVATE WIN32_EXTRA_LEAN)
     set_property(TARGET sc PROPERTY CXX_EXTENSIONS        OFF)
 
 
+
     set_target_properties(sc PROPERTIES 
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
@@ -32,6 +33,7 @@ set(SCRIPTCOMPILER_SRCS
 target_sources(sc PRIVATE ${SCRIPTCOMPILER_SRCS})
 target_link_libraries(sc Deckard)
 
+target_compile_features(sc PRIVATE cxx_std_23) 
 
 target_compile_options(sc PRIVATE 
        

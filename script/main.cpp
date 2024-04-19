@@ -76,6 +76,8 @@ int main()
 			break;
 	}
 
+	auto vb = utils::base64::encode_str("hello");
+
 
 	u32 major = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x026C); // NtMajorVersion, 4.0+
 	u32 minor = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x0270); // NtMinorVersion, 4.0+
