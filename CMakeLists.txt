@@ -1,14 +1,17 @@
 
-cmake_minimum_required (VERSION 3.28)
+cmake_minimum_required (VERSION 3.25)
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS        OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
 
+
 project(Deckard CXX)
 add_library(Deckard)
 
+
+target_compile_features(Deckard PRIVATE cxx_std_23) 
 
 target_compile_definitions(Deckard PRIVATE UNICODE)
 target_compile_definitions(Deckard PRIVATE _UNICODE)
@@ -187,6 +190,7 @@ add_subdirectory(script)
 endif()
 
 if(DECKARD_BUILD_TESTS)
+enable_testing()
 add_subdirectory(tests)
 endif()
 
