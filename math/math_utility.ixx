@@ -8,7 +8,7 @@ export namespace deckard::math
 	concept number = std::integral<T> && std::floating_point<T>;
 
 	template<std::floating_point T>
-	inline constexpr T default_float_tolerance = T{0.0000001};
+	inline constexpr T default_float_tolerance = T{1e-8};
 
 	// is_close_enough
 	template<std::floating_point T>
