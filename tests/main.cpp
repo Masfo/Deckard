@@ -1,20 +1,21 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
-TEST_CASE("name" * doctest::description("shouldn't take more than 500ms") * doctest::timeout(0.5) * doctest::skip(true))
+import std;
+using namespace std::chrono_literals;
+
+TEST_CASE("name" * doctest::description("shouldn't take more than 500ms") * doctest::timeout(0.5) *
+		  doctest::may_fail(true) /* * doctest::skip(true)*/)
 {
 	// asserts
-	WARN_EQ(1, 2);
+	std::this_thread::sleep_for(0.3s);
+	// WARN_EQ(1, 2);
 }
 
-TEST_CASE("test name")
+TEST_CASE("test name" * doctest::description("hello description"))
 {
-	int data;
-	SUBCASE("") { data = 1; }
-	SUBCASE("") { data = 2; }
 
-	CAPTURE(data);
-
+	WARN_EQ(1, 1);
 	// do asserts with data
 }
 
