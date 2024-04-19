@@ -27,4 +27,6 @@ export import deckard.graph;
 // export import deckard.DTE;
 export import deckard.win32;
 
+#ifndef _DEBUG
 export import DeckardBuild;
+#endif
