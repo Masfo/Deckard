@@ -21,11 +21,19 @@ export namespace deckard
 	};
 
 
+	// Option
 	template<typename T>
 	using Option = std::optional<T>;
 
 	auto Some = []<typename T>(const T value) -> Option<T> { return value; };
 	auto None = []<typename T>(const T) -> Option<T> { return {}; };
+
+
+	// Box
+	template<typename T>
+	using Box = std::unique_ptr<T>;
+
+	auto MakeBox = []<typename T>(T value) -> Box<T> { return std::make_unique<T>(value); };
 
 
 } // namespace deckard
