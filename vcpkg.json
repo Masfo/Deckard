@@ -1,17 +1,16 @@
 {
-    "name": "deckard",
-    "version": "1.0.0",
-    "description": ".",
-    "homepage": "https://",
-
-    "vcpkg-configuration": {
-        "default-registry": {
-            "kind": "git",
-            "repository": "https://github.com/Microsoft/vcpkg",
-            "baseline": "a34c873a9717a888f58dc05268dea15592c2f0ff"
-        }
-    },
-    "dependencies": [
-        "doctest"
-    ]
+  "name": "deckard",
+  "version": "1.0.0",
+  "description": ".",
+  "homepage": "https://",
+  "vcpkg-configuration": {
+    "default-registry": {
+      "kind": "git",
+      "baseline": "6c87aab05cb2ebd1c9e382167edf3b15a7718e70",
+      "repository": "https://github.com/Microsoft/vcpkg"
+    }
+  },
+  "dependencies": [
+    "doctest"
+  ]
 }
