@@ -22,6 +22,12 @@ namespace deckard
 	{
 #ifdef _DEBUG
 
+		if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
+		{
+			return as<Ret>(std::to_underlying(u));
+		}
+
+
 		if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
 		{
 			if (((u <= static_cast<U>(std::numeric_limits<Ret>::max())) && (u >= static_cast<U>(std::numeric_limits<Ret>::min()))))
