@@ -63,7 +63,9 @@ namespace deckard::utils::base64
 		return is_valid_base64_char(*last) || (*last == '=');
 	}
 
-	export std::string encode(const std::span<const u8> input)
+	export enum class padding { yes, no };
+
+	export std::string encode(const std::span<const u8> input, padding add_padding = padding::yes)
 	{
 		const auto size   = input.size();
 		const auto blocks = size / 3ULL;
@@ -85,23 +87,32 @@ namespace deckard::utils::base64
 			output.push_back(base64_chars[0]);
 			output.push_back(base64_chars[1]);
 			output.push_back(base64_chars[2]);
-			output.push_back('=');
+			if (add_padding == padding::yes)
+			{
+				output.push_back('=');
+			}
 		}
 		else if (remaining == 1)
 		{
 			const auto base64_chars = encode_three(input.back(), 0, 0);
 			output.push_back(base64_chars[0]);
 			output.push_back(base64_chars[1]);
-			output.push_back('=');
-			output.push_back('=');
+			if (add_padding == padding::yes)
+			{
+				output.push_back('=');
+				output.push_back('=');
+			}
 		}
+
+		output.shrink_to_fit();
+
 		return output;
 	}
 
-	export std::string encode_str(std::string_view input)
+	export std::string encode_str(std::string_view input, padding add_padding = padding::yes)
 	{
 		//
-		return encode({reinterpret_cast<const u8 *>(input.data()), input.size()});
+		return encode({reinterpret_cast<const u8 *>(input.data()), input.size()}, add_padding);
 	}
 
 	export std::optional<std::vector<u8>> decode(std::string_view encoded_input)
@@ -141,6 +152,7 @@ namespace deckard::utils::base64
 		}
 
 		//
+		output.shrink_to_fit();
 		return output;
 	}
 
