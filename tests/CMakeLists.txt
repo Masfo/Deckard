@@ -20,31 +20,29 @@ configure_file(
 )
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
-set(TEST_SOURCES
+set(TEST_MODULE_SOURCES
     std.ixx
 )
 
 target_sources(tests
 	PUBLIC
     FILE_SET CXX_MODULES 
-	FILES ${TEST_SOURCES}
-
+	FILES ${TEST_MODULE_SOURCES}
 )
 
 
 target_sources(tests PUBLIC
-
     main.cpp
 )
 
 
 target_link_libraries(tests PRIVATE doctest::doctest)
 
-    set_target_properties(tests PROPERTIES 
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin
-        PDB_NAME tests
-        PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/pdb"
-    )
+set_target_properties(tests PROPERTIES 
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin
+    PDB_NAME tests
+    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/pdb"
+)
 
