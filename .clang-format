@@ -33,9 +33,12 @@ AlwaysBreakTemplateDeclarations: Yes
 RequiresClausePosition: OwnLine
 IndentRequiresClause: false
 
+AllowShortCaseLabelsOnASingleLine: true
+IndentCaseLabels: true
+
 IntegerLiteralSeparator:
     Binary: 4
-    Decimal: 5
+    Decimal: 4
     Hex: 4
     DecimalMinDigits: 4
     HexMinDigits:    6

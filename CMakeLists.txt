@@ -112,6 +112,7 @@ set(DECKARD_SRCS
         utils/scope_exit.ixx
         utils/helpers.ixx
         utils/generator.ixx     # Remove when MSVC has it
+        utils/uuid.ixx
         
 
 
@@ -131,7 +132,7 @@ target_sources(Deckard
     FILE_SET CXX_MODULES 
 	FILES ${DECKARD_SRCS}
 
-)
+ "utils/uuid.ixx")
 
 
 #
