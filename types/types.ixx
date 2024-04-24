@@ -77,4 +77,47 @@ export namespace deckard
 	inline constexpr sink_t _;
 
 
+	/* Formatter
+		template <>
+		struct std::formatter<Color> {
+			constexpr auto parse(std::format_parse_context& ctx){
+				auto pos = ctx.begin();
+				while (pos != ctx.end() && *pos != '}') {
+					if (*pos == 'h' || *pos == 'H')
+						isHex_ = true;
+					++pos;
+				}
+				return pos;  // expect `}` at this position, otherwise,
+							  // it's error! exception!
+			}
+
+			auto format(const Color& col, std::format_context& ctx) const {
+				if (isHex_) {
+					uint32_t val = col.r << 16 | col.g << 8 | col.b;
+					return std::format_to(ctx.out(), "#{:x}", val);
+				}
+
+				return std::format_to(ctx.out(), "({}, {}, {})", col.r, col.g, col.b);
+			}
+
+			bool isHex_{ false };
+		};
+
+		template<>
+		class std::formatter<YourType>
+		{
+		public:
+			// parse is optional
+			constexpr auto parse( std::format_parse_context& ctx)
+			{
+				 return ctx.begin();
+			}
+
+			auto format( const YourType& type, std::format_context& context )
+			{
+				 return std::format_to(ctx.out(), "{}", type.value);
+			}
+		};
+	*/
+
 } // namespace deckard
