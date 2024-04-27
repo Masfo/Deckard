@@ -1,5 +1,10 @@
 {
-    "version": 3,
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 29,
+        "patch": 2
+    },
     "configurePresets": [
         {
             "name": "windows-base",
@@ -80,6 +85,18 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "VCPKG_TARGET_TRIPLET": "x86-windows-static"
             }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debugx64",
+            "configurePreset": "x64-debug",
+            "displayName": "Debug(x64)"
+        },
+        {
+            "name": "releasex64",
+            "configurePreset": "x64-release",
+            "displayName": "Release(x64)"
         }
     ]
 }

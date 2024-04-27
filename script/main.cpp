@@ -3,39 +3,13 @@
 import std;
 import Deckard;
 
+#ifndef _DEBUG
+import scbuild;
+#endif
+
 using namespace std::string_view_literals;
 using namespace deckard;
 using namespace deckard::utils;
-
-bool multiplyOverflow(i64 a, i64 b)
-{
-	// Check if 'a' is zero
-	if (a == 0)
-		return false;
-
-	// Check if 'b' is zero
-	if (b == 0)
-		return false;
-
-	// Check if 'a' is greater than maximum value of 'b' / 'a'
-	if (a > std::numeric_limits<i64>::max() / b)
-		return true;
-
-	// Check if 'b' is greater than maximum value of 'a' / 'b'
-	if (b > std::numeric_limits<i64>::max() / a)
-		return true;
-
-	return false;
-}
-
-auto getex(int x) -> Result<int>
-{
-	if (x == 10)
-		return Ok(x);
-	else
-		return Err("bad int {}", x);
-	// return Err("bad int");
-}
 
 // Enums as flags
 namespace Filesystem
@@ -52,8 +26,6 @@ namespace Filesystem
 
 } // namespace Filesystem
 
-using KUSER_SHARED_DATA_TYPE                           = u32;
-constexpr KUSER_SHARED_DATA_TYPE KUSER_SHARED_DATA_PTR = 0x7FFE'0000u;
 
 enum class ConvertEpoch : u64
 {
@@ -219,7 +191,7 @@ void IPv6Address::print()
 	dbg::println("");
 }
 
-class alignas(16) IpAddress
+class IpAddress
 {
 public:
 	explicit IpAddress(std::string_view address) { }
@@ -229,85 +201,14 @@ private:
 	u16                port{0};
 };
 
+constexpr auto IpSize = sizeof(IpAddress);
+
 int main()
 {
-
-
-	// 0-15
-	// 00. bool
-	// 01. u8
-	// 02. i8
-	// 03. u16
-	// 04. i16
-	// 05. u32
-	// 06. i32
-	// 07. u64
-	// 08. i64
-	// 09. float
-	// 10. double
-	// 11
-	// 12
-	// 13
-	// 14 string 1110.unsigned size.
-	// 15 bytes  1111.unsigned size.
-
-	// 14 bytes, 3 u16, FF05
-	// 1110      0011   <data>
-
-	// 000 bool
-	// 001 u8
-	// 010 i32
-	// 011 i64
-	// 100 data
-	// 101 i8
-	// 110 i32
-	// 111 i64
-
-	auto mymod = [](i64 dividend, i64 divisor)
-	{
-		while (dividend >= divisor)
-			dividend -= divisor;
-		return dividend;
-	};
-
-
-	auto myfdiv = [](i64 dividend, i64 divisor) -> float
-	{
-		if (divisor == 0)
-			return 0;
-		i64 quotient = 0;
-
-		while (dividend >= divisor)
-		{
-			dividend -= divisor;
-			quotient += 1;
-		}
-
-
-		float decimal   = 0.0f;
-		float precision = 0.00001f;
-
-		if (dividend < divisor)
-			dividend *= 10'0000;
-
-
-		while (dividend >= divisor)
-		{
-			dividend -= divisor;
-			decimal += precision;
-		}
-
-		return quotient + decimal;
-	};
-
-
-	int  y  = 4561;
-	int  x  = 35;
-	auto m1 = mymod(x, y);
-	auto m2 = x % y;
-
-	auto d1 = myfdiv(x, y);
-	auto d2 = 1.0f * x / y;
+#ifndef _DEBUG
+	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
+	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
+#endif
 
 
 	dbg::println("{}", sizeof(IpAddress));
@@ -331,25 +232,16 @@ int main()
 	addr.fromString("::1");
 	addr.print();
 
-	u8 C1 = 0b1000'1010;
-	u8 L1 = 0b1100'1111;
 	{
 		std::string inp{"foob"};
 		auto        foob_e = base64::encode_str(inp, base64::padding::no);
 		auto        foob_d = base64::decode_str(foob_e);
 
-
 		dbg::println("'{}': '{}' - '{}'", inp, foob_e, foob_d);
 	}
 
-	u64 a1 = (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() &
-			  0xFFFF'FFFF'FFFF)
-			 << 16;
-	u64 mask = 0x1234;
-
-	u64 result = a1 | mask;
-
-
+	u8 C1 = 0b1000'1010;
+	u8 L1 = 0b1100'1111;
 	dbg::println("{:0b} - {}", C1, std::countl_one(C1));
 	dbg::println("{:0b} - {}", L1, std::countl_one(L1));
 
@@ -362,7 +254,7 @@ int main()
 	dbg::println("ms {:>14} => {}", ms_epoch, from_epoch(ms_epoch, ConvertEpoch::Milliseconds));
 	dbg::println(" s {:>14} => {}", s_epoch, from_epoch(s_epoch, ConvertEpoch::Seconds));
 	dbg::println("v7 {:>14} => {}", 0x018f'0ad8'1600, from_epoch(0x018f'0ad8'1600, ConvertEpoch::Milliseconds));
-
+	dbg::println();
 
 	auto const time     = std::chrono::current_zone()->to_local(nowTime);
 	auto       zone     = std::chrono::current_zone()->get_info(nowTime);
@@ -373,31 +265,6 @@ int main()
 	dbg::println(" 2 {0:>14} => {1:%F} {1:%T}", "", time);
 	dbg::println(" 3 {:>14} => {} - {}", "", zone.abbrev, zonename);
 
-
-	u32 major = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x026C); // NtMajorVersion, 4.0+
-	u32 minor = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x0270); // NtMinorVersion, 4.0+
-
-	u32 build = 0;
-	if (major >= 10)
-		build = *(u32 *)(KUSER_SHARED_DATA_PTR + 0x0260); // NtBuildNumber, 10.0+
-
-	dbg::println("Winver: {}.{}.{}", major, minor, build);
-
-
-	dbg::println("{:<20f}", std::numeric_limits<float>::max());
-	dbg::println("{:<20}", std::numeric_limits<u64>::max());
-
-
-	i64 num1 = 922'3372'0368'5477'5807i64; // Max value of 64-bit signed integer
-	i64 num2 = 1;
-
-	if (multiplyOverflow(num1, num2))
-		dbg::println("overflow");
-	else
-		dbg::println("ok");
-
-
-	//	std::println("{}", readAndWrite);
 
 	std::println("Script Compiler v5");
 

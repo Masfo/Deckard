@@ -30,7 +30,17 @@ set(SCRIPTCOMPILER_SRCS
 	main.cpp
 )
 
-target_sources(sc PRIVATE ${SCRIPTCOMPILER_SRCS})
+target_sources(sc PUBLIC ${SCRIPTCOMPILER_SRCS})
+
+set(SC_MODULE_SOURCES
+    $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx>
+)
+
+target_sources(sc
+	PUBLIC
+    FILE_SET CXX_MODULES 
+	FILES ${SC_MODULE_SOURCES}
+)
 target_link_libraries(sc Deckard)
 
 target_compile_features(sc PRIVATE cxx_std_23) 
@@ -66,3 +76,13 @@ target_compile_options(sc PRIVATE
     #/wd5246 # the initialization of a subobject should be wrapped in braces
     /wd4273 # inconsistent dll linkage
 )
+
+find_program(BUILDINC_TOOL "buildinc")
+if(BUILDINC_TOOL)
+    add_custom_command(TARGET sc
+                        PRE_BUILD
+                        COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx scbuild -q -m 
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        COMMENT "Increase build number"
+    )
+endif()
