@@ -85,17 +85,252 @@ std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds) noex
 		return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 }
 
-struct Test
+class IPv6Address
 {
-	u64 data{};
-	u64 data2;
-	u64 data3;
-	u64 data4;
-	u64 data5;
+
+public:
+	IPv6Address();
+
+	bool fromString(const char *addrstr);
+	void print();
+
+private:
+	unsigned char _address[16];
+};
+
+IPv6Address::IPv6Address() { memset(_address, 0, sizeof(_address)); }
+
+#define MAX_IPV6_ADDRESS_STR_LEN 39
+
+i8 asciiToHex(char c)
+{
+	c |= 0x20;
+
+	if (c >= '0' && c <= '9')
+	{
+		return c - '0';
+	}
+	else if (c >= 'a' && c <= 'f')
+	{
+		return (c - 'a') + 10;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+bool IPv6Address::fromString(const char *addrstr)
+{
+	u16 accumulator = 0;
+	u8  colon_count = 0;
+	u8  pos         = 0;
+
+	memset(_address, 0, sizeof(_address));
+
+	// Step 1: look for position of ::, and count colons after it
+	for (uint8_t i = 1; i <= MAX_IPV6_ADDRESS_STR_LEN; i++)
+	{
+		if (addrstr[i] == ':')
+		{
+			if (addrstr[i - 1] == ':')
+			{
+				// Double colon!
+				colon_count = 14;
+			}
+			else if (colon_count)
+			{
+				// Count backwards the number of colons after the ::
+				colon_count -= 2;
+			}
+		}
+		else if (addrstr[i] == '\0')
+		{
+			break;
+		}
+	}
+
+	// Step 2: convert from ascii to binary
+	for (uint8_t i = 0; i <= MAX_IPV6_ADDRESS_STR_LEN && pos < 16; i++)
+	{
+		if (addrstr[i] == ':' || addrstr[i] == '\0')
+		{
+			_address[pos]     = accumulator >> 8;
+			_address[pos + 1] = accumulator;
+			accumulator       = 0;
+
+			if (colon_count && i && addrstr[i - 1] == ':')
+			{
+				pos = colon_count;
+			}
+			else
+			{
+				pos += 2;
+			}
+		}
+		else
+		{
+			int8_t val = asciiToHex(addrstr[i]);
+			if (val == -1)
+			{
+				// Not hex or colon: fail
+				return 0;
+			}
+			else
+			{
+				accumulator <<= 4;
+				accumulator |= val;
+			}
+		}
+
+		if (addrstr[i] == '\0')
+			break;
+	}
+
+	// Success
+	return 1;
+}
+
+static void printPaddedHex(uint8_t byte)
+{
+	char str[2];
+	str[0] = (byte >> 4) & 0x0f;
+	str[1] = byte & 0x0f;
+
+	for (int i = 0; i < 2; i++)
+	{
+		// base for converting single digit numbers to ASCII is 48
+		// base for 10-16 to become lower-case characters a-f is 87
+		if (str[i] > 9)
+			str[i] += 39;
+		str[i] += 48;
+		dbg::print("{:c}", str[i]);
+	}
+}
+
+void IPv6Address::print()
+{
+	for (int i = 0; i < 16; ++i)
+	{
+		printPaddedHex(_address[i]);
+		if (i % 2 == 1 && i < 15)
+			dbg::print(":");
+	}
+	dbg::println("");
+}
+
+class alignas(16) IpAddress
+{
+public:
+	explicit IpAddress(std::string_view address) { }
+
+private:
+	std::array<u16, 8> address;
+	u16                port{0};
 };
 
 int main()
 {
+
+
+	// 0-15
+	// 00. bool
+	// 01. u8
+	// 02. i8
+	// 03. u16
+	// 04. i16
+	// 05. u32
+	// 06. i32
+	// 07. u64
+	// 08. i64
+	// 09. float
+	// 10. double
+	// 11
+	// 12
+	// 13
+	// 14 string 1110.unsigned size.
+	// 15 bytes  1111.unsigned size.
+
+	// 14 bytes, 3 u16, FF05
+	// 1110      0011   <data>
+
+	// 000 bool
+	// 001 u8
+	// 010 i32
+	// 011 i64
+	// 100 data
+	// 101 i8
+	// 110 i32
+	// 111 i64
+
+	auto mymod = [](i64 dividend, i64 divisor)
+	{
+		while (dividend >= divisor)
+			dividend -= divisor;
+		return dividend;
+	};
+
+
+	auto myfdiv = [](i64 dividend, i64 divisor) -> float
+	{
+		if (divisor == 0)
+			return 0;
+		i64 quotient = 0;
+
+		while (dividend >= divisor)
+		{
+			dividend -= divisor;
+			quotient += 1;
+		}
+
+
+		float decimal   = 0.0f;
+		float precision = 0.00001f;
+
+		if (dividend < divisor)
+			dividend *= 10'0000;
+
+
+		while (dividend >= divisor)
+		{
+			dividend -= divisor;
+			decimal += precision;
+		}
+
+		return quotient + decimal;
+	};
+
+
+	int  y  = 4561;
+	int  x  = 35;
+	auto m1 = mymod(x, y);
+	auto m2 = x % y;
+
+	auto d1 = myfdiv(x, y);
+	auto d2 = 1.0f * x / y;
+
+
+	dbg::println("{}", sizeof(IpAddress));
+
+	IPv6Address addr;
+
+	addr.fromString("2606:2800:220:1:248:1893:25c8:1946");
+	addr.print();
+
+	// 2606:2800:0220:0001:0248:1893:25c8:1946
+	//     1    2    3    4    5    6    7
+	// 2001:0db8:0000:0000:0001:0000:0000:0001
+	// 2001:0db8::1:0:0:1
+	//     6       5 4 3
+	addr.fromString("2001:0db8::1:0:0:1");
+	addr.print();
+
+	addr.fromString("1000::1");
+	addr.print();
+
+	addr.fromString("::1");
+	addr.print();
+
 	u8 C1 = 0b1000'1010;
 	u8 L1 = 0b1100'1111;
 	{
@@ -113,8 +348,6 @@ int main()
 	u64 mask = 0x1234;
 
 	u64 result = a1 | mask;
-
-	dbg::println("{}/{}", sizeof(Test), sizeof(std::unique_ptr<Test>));
 
 
 	dbg::println("{:0b} - {}", C1, std::countl_one(C1));

@@ -6,4 +6,4 @@ bin
 /out/
 /std.ixx
 /scratch.txt
-/update_baseline.cmd
+/*.cmd

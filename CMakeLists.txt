@@ -131,8 +131,7 @@ target_sources(Deckard
 	PUBLIC
     FILE_SET CXX_MODULES 
 	FILES ${DECKARD_SRCS}
-
- "utils/uuid.ixx")
+)
 
 
 #
