@@ -138,14 +138,11 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	````
   - **SHA256**
 	```cpp
-
 	import deckard.sha256;
-	import std;
 
 	using namespace deckard::sha256;
 
 	hasher.update("abc");
 	auto digest = hasher.finalize().to_string();
 	// digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-	
 	````
