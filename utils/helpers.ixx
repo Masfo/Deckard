@@ -21,4 +21,12 @@ export namespace deckard
 		assert::if_true(output.size() >= (input.size() * 2 + input.size() - 1), "Not enough space in output buffer");
 	}
 
+	export template<typename T, typename U>
+	T load_bigendian(U const bytes)
+	{
+		T ret{};
+		std::memcpy(&ret, bytes, sizeof(T));
+		return std::byteswap(ret);
+	}
+
 } // namespace deckard

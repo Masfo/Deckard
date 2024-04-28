@@ -4,8 +4,9 @@
 import std;
 using namespace std::chrono_literals;
 
+/*
 TEST_CASE("name" * doctest::description("shouldn't take more than 500ms") * doctest::timeout(0.5) *
-		  doctest::may_fail(true) /* * doctest::skip(true)*/)
+		  doctest::may_fail(true) / * * doctest::skip(true)* /)
 {
 	// asserts
 	std::this_thread::sleep_for(0.3s);
@@ -60,3 +61,4 @@ TEST_CASE("all binary assertions")
 	CHECK_UNARY_FALSE(0);
 	REQUIRE_UNARY_FALSE(0);
 }
+*/

@@ -20,6 +20,7 @@ export import deckard.generator;
 export import deckard.helpers;
 export import deckard.scope_exit;
 export import deckard.uuid;
+export import deckard.sha256;
 
 // Graph
 export import deckard.graph;
