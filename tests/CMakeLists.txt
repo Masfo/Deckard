@@ -54,8 +54,8 @@ target_sources(tests
 
 target_sources(tests PUBLIC
     main.cpp
-    sha256_test.cpp
-    base64_test.cpp
+    tests/sha256_test.cpp
+    tests/base64_test.cpp
 )
 
 
