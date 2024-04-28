@@ -211,6 +211,10 @@ int main()
 #endif
 
 
+	auto digest = sha256::hash("hello");
+	dbg::println("{}", digest.to_string());
+
+
 	dbg::println("{}", sizeof(IpAddress));
 
 	IPv6Address addr;

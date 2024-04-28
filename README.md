@@ -136,3 +136,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	auto encoded_base64 = utils::base64::encode(buff); // WkVVUw==
 	auto decoded_base64 = utils::base64::decode(encoded_base64); // Optional vector with original data
 	````
+  - **SHA256**
+	```cpp
+
+	import deckard.sha256;
+	import std;
+
+	using namespace deckard::sha256;
+
+	hasher.update("abc");
+	auto digest = hasher.finalize().to_string();
+	// digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+	
+	````
