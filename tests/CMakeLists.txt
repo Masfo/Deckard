@@ -33,23 +33,6 @@ target_compile_options(tests PRIVATE /Zc:__cplusplus)
 
 target_compile_options(tests PRIVATE /W4)
 
-set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
-configure_file(	
-        $ENV{VCToolsInstallDir}modules/std.ixx
-        ${CMAKE_CURRENT_LIST_DIR}/std.ixx
-        COPYONLY
-)
-set(CMAKE_DISABLE_SOURCE_CHANGES ON)
-
-set(TEST_MODULE_SOURCES
-    #std.ixx
-)
-
-target_sources(tests
-	PUBLIC
-    FILE_SET CXX_MODULES 
-	FILES ${TEST_MODULE_SOURCES}
-)
 
 
 target_sources(tests PUBLIC
