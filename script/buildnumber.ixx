@@ -9,16 +9,16 @@ export namespace scbuild
 	constexpr uint32_t minor = 0;
 
 	 // Do not modify these
-	constexpr uint32_t build = 29;
+	constexpr uint32_t build = 32;
 	
 	constexpr uint32_t version = major * 1000 + minor * 100 + build;
-	constexpr uint64_t random_seed = 0x87f99f2fcded4ea1;
+	constexpr uint64_t random_seed = 0x87978c53076fa13d;
 	
-	constexpr char version_string[] = "v0.0.29";
-	constexpr char build_time_string[] = "2024-04-28 20:29:11";
-	constexpr char phrase[] = "gab-derby-overbook";
-	constexpr char calver[] = "2024.17.29";
-	constexpr char uuid[] = "A39803F5-44ED-4208-839B-F722DB60B62A";
+	constexpr char version_string[] = "v0.0.32";
+	constexpr char build_time_string[] = "2024-04-28 20:37:54";
+	constexpr char phrase[] = "uneven-sequel-pruning";
+	constexpr char calver[] = "2024.17.32";
+	constexpr char uuid[] = "C897C6C1-62BD-4129-B78D-9694184C57D9";
 
 	// Copy paste to import to your project
 	/*
