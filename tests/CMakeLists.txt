@@ -44,6 +44,9 @@ target_sources(tests PUBLIC
 
 target_link_libraries(tests PRIVATE doctest::doctest Deckard)
 
+include(doctest)
+doctest_discover_tests(tests)
+
 set_target_properties(tests PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin

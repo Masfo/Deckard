@@ -185,7 +185,7 @@ namespace deckard::sha256
 			0x748f'82ee, 0x78a5'636f, 0x84c8'7814, 0x8cc7'0208, 0x90be'fffa, 0xa450'6ceb, 0xbef9'a3f7, 0xc671'78f2};
 	};
 
-	export std::string quickhash(std::string_view input)
+	export std::string quickhash(std::string_view input) noexcept
 	{
 		sha256 hasher;
 		hasher.update({(u8 *)input.data(), input.size()});
