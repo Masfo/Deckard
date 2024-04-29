@@ -108,3 +108,14 @@ export namespace deckard::dbg
 	}
 
 } // namespace deckard::dbg
+
+export namespace deckard
+{
+	void todo(std::string_view str, const std::source_location &loc = std::source_location::current()) noexcept
+	{
+		dbg::trace(loc);
+		dbg::println("TODO: {}", str);
+		if (IsDebuggerPresent())
+			DebugBreak();
+	}
+} // namespace deckard
