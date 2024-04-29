@@ -197,7 +197,7 @@ public:
 	explicit IpAddress(std::string_view address) { }
 
 private:
-	std::array<u16, 8> address;
+	std::array<u16, 8> address{};
 	u16                port{0};
 };
 
@@ -209,6 +209,17 @@ int main()
 	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
 	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
 #endif
+
+
+	std::array keywords{"if"sv, "while"sv, "for"sv};
+
+	auto add_keywords = [](std::span<std::string_view> words)
+	{
+		for (const auto &word : words)
+			dbg::println("adding word '{}'", word);
+	};
+
+	add_keywords(keywords);
 
 
 	dbg::println("{}", sizeof(IpAddress));

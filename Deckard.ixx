@@ -25,6 +25,9 @@ export import deckard.sha256;
 // Graph
 export import deckard.graph;
 
+// Scripting
+export import deckard.tokenizer;
+
 
 // export import deckard.DTE;
 export import deckard.win32;

@@ -115,6 +115,8 @@ set(DECKARD_SRCS
         utils/uuid.ixx
         utils/sha256.ixx
         
+        # Scripting
+        scripting/tokenizer.ixx
 
 
 		types/types.ixx
