@@ -13,6 +13,11 @@ TEST_CASE("example" * doctest::description("description") * doctest::skip(false)
 {
 	//
 	// CHECK_EQ(1, 1);
+
+	SUBCASE("")
+	{
+		//
+	}
 }
 
 /*

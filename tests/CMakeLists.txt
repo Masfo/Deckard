@@ -39,6 +39,8 @@ target_sources(tests PUBLIC
     main.cpp
     tests/sha256_test.cpp
     tests/base64_test.cpp
+    
+    tests/scripting/tokenizer_test.cpp
 )
 
 
