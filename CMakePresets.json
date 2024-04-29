@@ -17,13 +17,6 @@
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 //"CMAKE_CXX_COMPILER_LAUNCHER": "sccache",
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-
-
-                "BUILDINC": true,
-                "DECKARD_BUILD_SCRIPT": true,
-                "DECKARD_BUILD_TESTS": true
-
-
             },
             "architecture": {
                 "value": "x64",

@@ -188,14 +188,10 @@ endif()
 
 #####################################
 #####################################
-if(DECKARD_BUILD_SCRIPT)
-add_subdirectory(script)
-endif()
+add_subdirectory(sc)
 
-if(DECKARD_BUILD_TESTS)
 enable_testing()
 add_subdirectory(tests)
-endif()
 
 
 
