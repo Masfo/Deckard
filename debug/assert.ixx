@@ -27,8 +27,7 @@ export namespace deckard::assert
 			}
 
 			dbg::println("\n***** Assert *****\n");
-
-			dbg::panic();
+			dbg::panic("assert");
 		}
 #endif
 	}
