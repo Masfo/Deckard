@@ -190,8 +190,10 @@ endif()
 #####################################
 add_subdirectory(sc)
 
+if(RUN_DECKARD_TESTS)
 enable_testing()
 add_subdirectory(tests)
+endif()
 
 
 
