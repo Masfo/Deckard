@@ -163,7 +163,7 @@ namespace deckard::utils::base64
 		{
 			std::string r;
 			r.reserve(result->size());
-			std::copy(std::begin(*result), std::end(*result), std::back_inserter(r));
+			std::ranges::copy(*result, std::back_inserter(r));
 			return r;
 		}
 		return {};
