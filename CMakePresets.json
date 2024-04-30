@@ -66,7 +66,8 @@
             },
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "VCPKG_TARGET_TRIPLET": "x86-windows-static"
+                "VCPKG_TARGET_TRIPLET": "x86-windows-static",
+                "RUN_DECKARD_TESTS": true
 
             }
         },
