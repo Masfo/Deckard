@@ -1,9 +1,11 @@
 export module deckard.sha2;
 
+import deckard.assert;
 import deckard.types;
 import deckard.helpers;
 import std;
 
+using namespace deckard;
 using namespace std::string_view_literals;
 
 
@@ -11,7 +13,7 @@ export enum class Uppercase { Yes, No };
 
 template<typename Type>
 requires std::is_integral_v<Type>
-class [[nodiscard("You are not using your hash digest.")]] generic_sha2_digest final
+[[nodiscard("You are not using your hash digest.")]] class generic_sha2_digest final
 {
 public:
 	[[nodiscard("You are not using your hash digest string.")]] std::string
@@ -24,7 +26,11 @@ public:
 							std::make_format_args(binary[0], binary[1], binary[2], binary[3], binary[4], binary[5], binary[6], binary[7]));
 	}
 
-	Type operator[](int index) const noexcept { return binary[as<Type>(index)]; }
+	Type operator[](int index) const noexcept
+	{
+		assert::if_true(index < binary.size(), "Indexing out-of-bounds");
+		return binary[as<Type>(index)];
+	}
 
 	bool operator==(const generic_sha2_digest<Type> &that) const noexcept { return binary == that.binary; }
 
@@ -386,6 +392,7 @@ namespace deckard::sha512
 		hasher.update({(u8 *)input.data(), input.size()});
 
 		sha512::digest digest = hasher.finalize();
+
 		return digest.to_string();
 	}
 
