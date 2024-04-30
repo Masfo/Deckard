@@ -5,7 +5,15 @@ export module deckard.debug;
 
 import std;
 
-void output_message(const std::string_view message) noexcept { OutputDebugStringA(message.data()); }
+using namespace std::string_view_literals;
+
+void output_message(const std::string_view message) noexcept
+{
+	std::println(std::cerr, "{}"sv, message);
+#ifdef _DEBUG
+	OutputDebugStringA(message.data());
+#endif
+}
 
 struct alignas(64) FormatLocation
 {
