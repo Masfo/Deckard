@@ -37,7 +37,7 @@ target_compile_options(tests PRIVATE /W4)
 
 target_sources(tests PUBLIC
     main.cpp
-    tests/sha256_test.cpp
+    tests/sha2_test.cpp
     tests/base64_test.cpp
     
     tests/scripting/tokenizer_test.cpp

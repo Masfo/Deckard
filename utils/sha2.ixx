@@ -11,7 +11,7 @@ namespace deckard::sha256
 
 	export enum class Uppercase { Yes, No };
 
-	export class [[nodiscard("You are not using your hash digest.")]] sha256_digest final
+	export class [[nodiscard("You are not using your hash digest.")]] digest final
 	{
 	public:
 		using Type = u32;
@@ -28,15 +28,15 @@ namespace deckard::sha256
 
 		Type operator[](int index) const noexcept { return binary[static_cast<u64>(index)]; }
 
-		bool operator==(const sha256_digest &that) const noexcept { return binary == that.binary; }
+		bool operator==(const digest &that) const noexcept { return binary == that.binary; }
 
 		std::array<Type, 8> binary;
 	};
 
-	export class sha256 final
+	export class hasher final
 	{
 	public:
-		sha256() { reset(); }
+		hasher() { reset(); }
 
 		void reset() noexcept
 		{
@@ -50,9 +50,9 @@ namespace deckard::sha256
 
 		void update(std::span<u8> const data) noexcept { generic_update<u8>(data); }
 
-		sha256_digest finalize() noexcept
+		digest finalize() noexcept
 		{
-			sha256_digest ret;
+			digest ret;
 
 			pad();
 			ret.binary = m_state;
@@ -187,14 +187,14 @@ namespace deckard::sha256
 
 	export std::string quickhash(std::string_view input) noexcept
 	{
-		sha256 hasher;
+		sha256::hasher hasher;
 		hasher.update({(u8 *)input.data(), input.size()});
 
-		sha256_digest digest = hasher.finalize();
+		sha256::digest digest = hasher.finalize();
 		return digest.to_string();
 	}
 
-	static_assert(sizeof(sha256) == 112);
+	static_assert(sizeof(hasher) == 112);
 
 
 } // namespace deckard::sha256
