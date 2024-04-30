@@ -11,7 +11,7 @@ project(tests VERSION 0.0.1 LANGUAGES CXX)
 
 add_executable(tests)
 
-target_compile_features(tests PRIVATE cxx_std_23) 
+#target_compile_features(tests PRIVATE cxx_std_23) 
 
 target_compile_definitions(tests PRIVATE UNICODE)
 target_compile_definitions(tests PRIVATE _UNICODE)
