@@ -213,7 +213,7 @@ int main()
 
 	std::array keywords{"if"sv, "while"sv, "for"sv};
 
-	auto add_keywords = [](std::span<std::string_view> words)
+	auto add_keywords = [](const std::span<std::string_view> words)
 	{
 		for (const auto &word : words)
 			dbg::println("adding word '{}'", word);
