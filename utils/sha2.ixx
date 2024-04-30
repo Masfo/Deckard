@@ -29,7 +29,7 @@ public:
 	Type operator[](int index) const noexcept
 	{
 		assert::if_true(index < binary.size(), "Indexing out-of-bounds");
-		return binary[as<Type>(index)];
+		return binary[index];
 	}
 
 	bool operator==(const generic_sha2_digest<Type> &that) const noexcept { return binary == that.binary; }
