@@ -113,7 +113,7 @@ set(DECKARD_SRCS
         utils/helpers.ixx
         utils/generator.ixx     # Remove when MSVC has it
         utils/uuid.ixx
-        utils/sha256.ixx
+        utils/sha2.ixx
         
         # Scripting
         scripting/tokenizer.ixx

@@ -1,7 +1,7 @@
 
 #include <doctest/doctest.h>
 
-import deckard.sha256;
+import deckard.sha2;
 import std;
 
 using namespace deckard;

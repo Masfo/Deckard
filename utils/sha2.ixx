@@ -1,4 +1,4 @@
-export module deckard.sha256;
+export module deckard.sha2;
 
 import deckard.types;
 import deckard.helpers;
