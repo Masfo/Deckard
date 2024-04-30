@@ -89,13 +89,13 @@ namespace deckard::sha256
 			}
 		}
 
-		static u32 choose(u32 e, u32 f, u32 g) noexcept { return (e & f) ^ (~e & g); }
+		u32 choose(u32 e, u32 f, u32 g) noexcept { return (e & f) ^ (~e & g); }
 
-		static u32 majority(u32 a, u32 b, u32 c) noexcept { return (a & b) ^ (a & c) ^ (b & c); }
+		u32 majority(u32 a, u32 b, u32 c) noexcept { return (a & b) ^ (a & c) ^ (b & c); }
 
-		static u32 sig0(u32 x) noexcept { return std::rotr(x, 7) ^ std::rotr(x, 18) ^ (x >> 3); }
+		u32 sig0(u32 x) noexcept { return std::rotr(x, 7) ^ std::rotr(x, 18) ^ (x >> 3); }
 
-		static u32 sig1(u32 x) noexcept { return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10); }
+		u32 sig1(u32 x) noexcept { return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10); }
 
 		void transform() // Process the message in successive 512-bit chunks
 		{
@@ -268,13 +268,13 @@ namespace deckard::sha512
 			}
 		}
 
-		static u64 choose(u64 e, u64 f, u64 g) noexcept { return (e & f) ^ ((~e) & g); }
+		u64 choose(u64 e, u64 f, u64 g) noexcept { return (e & f) ^ ((~e) & g); }
 
-		static u64 majority(u64 a, u64 b, u64 c) noexcept { return (a & b) ^ (a & c) ^ (b & c); }
+		u64 majority(u64 a, u64 b, u64 c) noexcept { return (a & b) ^ (a & c) ^ (b & c); }
 
-		static u64 sig0(u64 x) noexcept { return (std::rotr(x, 1) ^ std::rotr(x, 8) ^ (x >> 7)); }
+		u64 sig0(u64 x) noexcept { return (std::rotr(x, 1) ^ std::rotr(x, 8) ^ (x >> 7)); }
 
-		static u64 sig1(u64 x) noexcept { return (std::rotr(x, 19) ^ std::rotr(x, 61) ^ (x >> 6)); }
+		u64 sig1(u64 x) noexcept { return (std::rotr(x, 19) ^ std::rotr(x, 61) ^ (x >> 6)); }
 
 		void transform() // Process the message in successive 512-bit chunks
 		{
