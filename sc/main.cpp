@@ -222,6 +222,11 @@ int main()
 	add_keywords(keywords);
 
 
+	sha256::hasher hash;
+	auto           digest = hash.finalize();
+	auto           d      = digest[7 + 1];
+
+
 	dbg::println("{}", sizeof(IpAddress));
 
 	IPv6Address addr;
