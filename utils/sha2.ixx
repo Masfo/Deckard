@@ -6,7 +6,6 @@ import deckard.helpers;
 import std;
 
 using namespace deckard;
-using namespace std::string_view_literals;
 
 
 export enum class Uppercase { Yes, No };
@@ -19,8 +18,8 @@ public:
 	[[nodiscard("You are not using your hash digest string.")]] std::string
 	to_string(const Uppercase uppercase = Uppercase::No) const noexcept
 	{
-		constexpr static std::array fmt_array{"{:08x}"sv, "{:08X}"sv, "{:016x}"sv, "{:016X}"sv};
-		const int                   index = (sizeof(Type) == 4 ? 0 : 2) + (uppercase == Uppercase::No ? 0 : 1);
+		constexpr static std::array<std::string_view, 4> fmt_array{"{:08x}", "{:08X}", "{:016x}", "{:016X}"};
+		const int                                        index = (sizeof(Type) == 4 ? 0 : 2) + (uppercase == Uppercase::No ? 0 : 1);
 
 		return std::vformat(std::format("{0}{0}{0}{0}{0}{0}{0}{0}", fmt_array[index]),
 							std::make_format_args(binary[0], binary[1], binary[2], binary[3], binary[4], binary[5], binary[6], binary[7]));
@@ -263,7 +262,7 @@ namespace deckard::sha512
 
 			for (const auto &i : data)
 			{
-				m_block[m_blockindex++] = as<u8>(i);
+				m_block[m_blockindex++] = as<u8>(i & 0xFF);
 				if (m_blockindex == BLOCK_SIZE)
 				{
 					transform();
