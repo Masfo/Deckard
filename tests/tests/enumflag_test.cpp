@@ -22,18 +22,22 @@ namespace EnumFlagTest__
 			// Width = 3,
 		};
 		consteval void enable_bitmask_operations(Permission);
-	} // namespace Filesystem
-} // namespace EnumFlagTest__
 
-template<EnumFlagType T>
-struct std::formatter<T> : formatter<int>
-{
-	auto format(T f, format_context& ctx) const
-	{
-		//
-		return std::format_to(ctx.out(), "{:03b}", std::to_underlying(f));
-	}
-};
+		template<EnumFlagType T>
+		struct std::formatter<T> : formatter<int>
+		{
+			// parse is optional
+			constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+			auto format(T f, format_context& ctx) const
+			{
+				//
+				return std::format_to(ctx.out(), "{:03b}", std::to_underlying(f));
+			}
+		};
+
+	}; // namespace Filesystem
+} // namespace EnumFlagTest__
 
 // template<EnumFlagType T>
 // class std::formatter<T> : std::formatter<std::string_view>
