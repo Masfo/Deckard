@@ -11,34 +11,19 @@ using namespace std::string_view_literals;
 using namespace deckard;
 using namespace deckard::utils;
 
-// Enums as flags
-namespace Filesystem
-{
-	enum class Permission : u8
-	{
-		No      = 0x00,
-		Read    = 0x01,
-		Write   = 0x02,
-		Execute = 0x04,
-	};
-	consteval void enable_bitmask_operations(Permission);
-
-
-} // namespace Filesystem
-
 
 enum class ConvertEpoch : u64
 {
 	Microseconds = 10,
-	Milliseconds = Microseconds * 1000,
-	Seconds      = Milliseconds * 1000,
+	Milliseconds = Microseconds * 1'000,
+	Seconds      = Milliseconds * 1'000,
 };
 
 std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds) noexcept
 {
 	u64 t{epoch};
 	t *= as<u64>(mul);
-	t += 11'6444'7360'0000'0000LL;
+	t += 116'444'736'000'000'000LL;
 
 	FILETIME ft{};
 	ft.dwLowDateTime  = t & 0xFFFF'FFFF;
@@ -216,7 +201,7 @@ int main()
 	auto add_keywords = [](const std::span<std::string_view> words)
 	{
 		for (const auto &word : words)
-			dbg::println("adding word '{}'", word);
+			dbg::println("adding keyword '{}'", word);
 	};
 
 	add_keywords(keywords);
