@@ -1,6 +1,7 @@
 export module deckard.enums;
 
 import std;
+import deckard.types;
 
 export namespace deckard
 {

@@ -5,8 +5,6 @@ export module deckard.types;
 import std;
 
 export import deckard.as;
-export import deckard.enums;
-export import deckard.helpertypes;
 
 export namespace deckard
 {
