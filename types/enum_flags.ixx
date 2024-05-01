@@ -5,15 +5,21 @@ import deckard.types;
 
 export template<typename T>
 concept EnumFlagType = requires {
-	typename std::underlying_type<T>::type;
+	// typename std::underlying_type<T>::type;
 	requires std::is_scoped_enum_v<T>;
 	// requires std::is_same_v<decltype(T::Width), T>;
 	{ enable_bitmask_operations(std::declval<T>()) } -> std::same_as<void>; //
 };
 
-
-template<typename T>
-inline constexpr std::formatter<T> repeat;
+export template<EnumFlagType T>
+struct std::formatter<T> : formatter<int>
+{
+	auto format(T f, format_context& ctx) const
+	{
+		//
+		return formatter<int>::format(std::to_underlying(f), ctx);
+	}
+};
 
 export namespace deckard
 {
