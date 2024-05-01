@@ -5,7 +5,7 @@ using namespace std::chrono_literals;
 
 
 /*
-TEST_CASE("example", "[tag]")
+TEST_CASE("example", "tag")
 {
 	SECTION("section", "description")
 	{

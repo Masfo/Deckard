@@ -1,4 +1,5 @@
 
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import deckard.tokenizer;
@@ -6,7 +7,7 @@ import std;
 
 using namespace deckard;
 
-TEST_CASE("tokenizer")
+TEST_CASE("tokenizer", "[tokenizer]")
 {
 
 	//
@@ -14,6 +15,6 @@ TEST_CASE("tokenizer")
 	SECTION("no tokens")
 	{
 		//
-		CHECK(1 == 1);
+		REQUIRE(1 == 1);
 	}
 }
