@@ -168,14 +168,14 @@ namespace deckard::sha256
 			}
 
 			m_bitlen += m_blockindex * 8;
-			m_block[63] = as<u8>(m_bitlen >> 0);
-			m_block[62] = as<u8>(m_bitlen >> 8);
-			m_block[61] = as<u8>(m_bitlen >> 16);
-			m_block[60] = as<u8>(m_bitlen >> 24);
-			m_block[59] = as<u8>(m_bitlen >> 32);
-			m_block[58] = as<u8>(m_bitlen >> 40);
-			m_block[57] = as<u8>(m_bitlen >> 48);
-			m_block[56] = as<u8>(m_bitlen >> 56);
+			m_block[63] = as<u8>(m_bitlen >> 0 & 0xFF);
+			m_block[62] = as<u8>(m_bitlen >> 8 & 0xFF);
+			m_block[61] = as<u8>(m_bitlen >> 16 & 0xFF);
+			m_block[60] = as<u8>(m_bitlen >> 24 & 0xFF);
+			m_block[59] = as<u8>(m_bitlen >> 32 & 0xFF);
+			m_block[58] = as<u8>(m_bitlen >> 40 & 0xFF);
+			m_block[57] = as<u8>(m_bitlen >> 48 & 0xFF);
+			m_block[56] = as<u8>(m_bitlen >> 56 & 0xFF);
 
 			transform();
 		}
@@ -348,14 +348,14 @@ namespace deckard::sha512
 
 			m_bitlen += m_blockindex * 8;
 
-			m_block[BLOCK_SIZE - 1] = as<u8>(m_bitlen >> 0);
-			m_block[BLOCK_SIZE - 2] = as<u8>(m_bitlen >> 8);
-			m_block[BLOCK_SIZE - 3] = as<u8>(m_bitlen >> 16);
-			m_block[BLOCK_SIZE - 4] = as<u8>(m_bitlen >> 24);
-			m_block[BLOCK_SIZE - 5] = as<u8>(m_bitlen >> 32);
-			m_block[BLOCK_SIZE - 6] = as<u8>(m_bitlen >> 40);
-			m_block[BLOCK_SIZE - 7] = as<u8>(m_bitlen >> 48);
-			m_block[BLOCK_SIZE - 8] = as<u8>(m_bitlen >> 56);
+			m_block[BLOCK_SIZE - 1] = as<u8>(m_bitlen >> 0 & 0xFF);
+			m_block[BLOCK_SIZE - 2] = as<u8>(m_bitlen >> 8 & 0xFF);
+			m_block[BLOCK_SIZE - 3] = as<u8>(m_bitlen >> 16 & 0xFF);
+			m_block[BLOCK_SIZE - 4] = as<u8>(m_bitlen >> 24 & 0xFF);
+			m_block[BLOCK_SIZE - 5] = as<u8>(m_bitlen >> 32 & 0xFF);
+			m_block[BLOCK_SIZE - 6] = as<u8>(m_bitlen >> 40 & 0xFF);
+			m_block[BLOCK_SIZE - 7] = as<u8>(m_bitlen >> 48 & 0xFF);
+			m_block[BLOCK_SIZE - 8] = as<u8>(m_bitlen >> 56 & 0xFF);
 
 			transform();
 		}
