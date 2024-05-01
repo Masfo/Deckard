@@ -13,10 +13,10 @@ namespace EnumFlagTest__
 	{
 		enum class Permission : u8
 		{
-			No      = BIT<u8>(0),
-			Read    = BIT<u8>(1),
-			Write   = BIT<u8>(2),
-			Execute = BIT<u8>(3),
+			No      = BIT(0),
+			Read    = BIT(1),
+			Write   = BIT(2),
+			Execute = BIT(3),
 		};
 		consteval void enable_bitmask_operations(Permission);
 	} // namespace Filesystem

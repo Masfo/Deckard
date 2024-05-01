@@ -5,7 +5,7 @@ import std;
 export namespace deckard
 {
 	// Bit indexes
-	template<typename T>
+	template<typename T = u8>
 	consteval T BIT(size_t index)
 	{
 		return static_cast<T>(index == 0 ? 0 : 1 << (index - 1));
