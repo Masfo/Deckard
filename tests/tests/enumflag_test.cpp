@@ -30,25 +30,36 @@ TEST_CASE("enumflags", "[enum]")
 	Permission rwx{};
 
 	// Default flag
-	CHECK(rwx == Permission::No);
+	REQUIRE(rwx == (Permission::No));
 
 	// Add read
 	rwx += Permission::Read;
-	CHECK(rwx == Permission::Read);
+	REQUIRE(rwx == (Permission::Read));
 
 	// Add write + execute
 	rwx += Permission::Write | Permission::Execute;
-	CHECK(rwx == (Permission::Read | Permission::Write | Permission::Execute));
+	REQUIRE(rwx == (Permission::Read | Permission::Write | Permission::Execute));
 
 	// Remove read and execute
 	rwx -= Permission::Read | Permission::Execute;
-	CHECK(rwx == (Permission::Write));
+	REQUIRE(rwx == (Permission::Write));
 
 	// Remove write with traditional way
 	rwx &= ~Permission::Write;
-	CHECK(rwx == Permission::No);
+	REQUIRE(rwx == (Permission::No));
 
 	// Add all back traditional way
 	rwx |= Permission::Read | Permission::Write | Permission::Execute;
-	CHECK(rwx == (Permission::Read | Permission::Write | Permission::Execute));
+	REQUIRE(rwx == (Permission::Read | Permission::Write | Permission::Execute));
+
+
+	// Toggle read
+	rwx ^= Permission::Read;
+	REQUIRE(rwx == (Permission::Write | Permission::Execute));
+
+	// Toggle write and execute
+	rwx ^= Permission::Write | Permission::Execute;
+	REQUIRE(rwx == (Permission::No));
+
+	// TODO: add format printing when it is supported
 }
