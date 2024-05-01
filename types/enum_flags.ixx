@@ -3,16 +3,16 @@ export module deckard.enums;
 import std;
 import deckard.types;
 
-export template<typename T>
-concept EnumFlagType = requires {
-	// typename std::underlying_type<T>::type;
-	requires std::is_scoped_enum_v<T>;
-	// requires std::is_same_v<decltype(T::Width), T>;
-	{ enable_bitmask_operations(std::declval<T>()) } -> std::same_as<void>; //
-};
-
 export namespace deckard
 {
+
+	export template<typename T>
+	concept EnumFlagType = requires {
+		// typename std::underlying_type<T>::type;
+		requires std::is_scoped_enum_v<T>;
+		// requires std::is_same_v<decltype(T::Width), T>;
+		{ enable_bitmask_operations(std::declval<T>()) } -> std::same_as<void>; //
+	};
 
 	// Bit indexes
 	template<typename T = u8>
