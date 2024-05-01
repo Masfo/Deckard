@@ -188,12 +188,32 @@ private:
 
 constexpr auto IpSize = sizeof(IpAddress);
 
+auto foobar(int x) -> Result<int>
+{
+	if (x > 10)
+		return Ok(x);
+
+	return Err("Whoopsie");
+}
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
 	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
 #endif
+
+
+	if (auto val = foobar(100); val)
+		std::println("{}", *val);
+	else
+		std::println("{}", val.error());
+
+
+	if (auto val = foobar(-1); val)
+		std::println("{}", *val);
+	else
+		std::println("{}", val.error());
 
 
 	std::array keywords{"if"sv, "while"sv, "for"sv};

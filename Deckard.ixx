@@ -6,7 +6,7 @@ export import deckard.debug;
 export import deckard.assert;
 export import deckard.types;
 export import deckard.as;
-
+export import deckard.helpertypes;
 // File
 export import deckard.filemonitor;
 export import deckard.file;
