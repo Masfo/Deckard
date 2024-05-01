@@ -6,9 +6,9 @@ export namespace deckard
 {
 	// Bit indexes
 	template<typename T>
-	consteval T BIT(int index)
+	consteval T BIT(size_t index)
 	{
-		return static_cast<T>(index <= 0 ? 0 : 1 << (index - 1));
+		return static_cast<T>(index == 0 ? 0 : 1 << (index - 1));
 	}
 
 	template<typename T>

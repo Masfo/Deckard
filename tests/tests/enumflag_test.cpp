@@ -64,7 +64,8 @@ TEST_CASE("enumflags", "[enum]")
 	// Reset
 	rwx += Permission::Read | Permission::Write | Permission::Execute;
 
-	// Check all flags
+	// Check all flags, with boolean test
+	//
 	REQUIRE(true == (rwx && Permission::Read));
 	REQUIRE(true == (rwx && Permission::Write));
 	REQUIRE(true == (rwx && Permission::Execute));
