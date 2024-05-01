@@ -113,7 +113,7 @@ export namespace deckard
 				 return ctx.begin();
 			}
 
-			auto format( const YourType& type, std::format_context& context )
+			auto format( const YourType& type, std::format_context& ctx )
 			{
 				 return std::format_to(ctx.out(), "{}", type.value);
 			}
