@@ -4,6 +4,13 @@ import std;
 
 export namespace deckard
 {
+	// Bit indexes
+	template<typename T>
+	consteval T BIT(int index)
+	{
+		return static_cast<T>(index <= 0 ? 0 : 1 << (index - 1));
+	}
+
 	template<typename T>
 	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
 	constexpr auto operator|(const T lhs, const T rhs) noexcept
@@ -96,10 +103,10 @@ export namespace deckard
 		{
 			enum class Permission : u8
 			{
-				No      = 0x00,
-				Read    = 0x01,
-				Write   = 0x02,
-				Execute = 0x04,
+				No      = BIT(0),
+				Read    = BIT(1),
+				Write   = BIT(2),
+				Execute = BIT(3),
 			};
 			consteval void enable_bitmask_operations(Permission);
 		} // namespace Filesystem
