@@ -8,7 +8,8 @@ import deckard.math;
 export namespace deckard::assert
 {
 
-	void if_true([[maybe_unused]] bool expr, [[maybe_unused]] std::string_view message,
+
+	void if_true([[maybe_unused]] bool expr, [[maybe_unused]] std::string_view message = "",
 				 [[maybe_unused]] const std::source_location &loc = std::source_location::current()) noexcept
 	{
 #ifdef _DEBUG
