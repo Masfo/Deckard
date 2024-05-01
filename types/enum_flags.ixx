@@ -7,9 +7,13 @@ export template<typename T>
 concept EnumFlagType = requires {
 	typename std::underlying_type<T>::type;
 	requires std::is_scoped_enum_v<T>;
-	requires std::is_same_v<decltype(T::Width), T>;
+	// requires std::is_same_v<decltype(T::Width), T>;
 	{ enable_bitmask_operations(std::declval<T>()) } -> std::same_as<void>; //
 };
+
+
+template<typename T>
+inline constexpr std::formatter<T> repeat;
 
 export namespace deckard
 {

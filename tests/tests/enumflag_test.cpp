@@ -6,6 +6,7 @@ import deckard.types;
 import std;
 
 using namespace deckard;
+using namespace std::string_literals;
 
 namespace EnumFlagTest__
 {
@@ -17,10 +18,26 @@ namespace EnumFlagTest__
 			Read    = BIT(1),
 			Write   = BIT(2),
 			Execute = BIT(3),
+
+			// Width = 3,
 		};
 		consteval void enable_bitmask_operations(Permission);
 	} // namespace Filesystem
 } // namespace EnumFlagTest__
+
+template<EnumFlagType T>
+class std::formatter<T> : std::formatter<std::string_view>
+{
+public:
+	// parse is optional
+	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+	auto format(const T& type, std::format_context& ctx) const
+	{
+		//
+		return std::format_to(ctx.out(), "{:03b}", std::to_underlying(type));
+	}
+};
 
 TEST_CASE("enumflags", "[enum]")
 {
@@ -106,4 +123,9 @@ TEST_CASE("enumflags", "[enum]")
 
 
 	// TODO: add format printing when it is supported
+	REQUIRE(std::format("{}", (Permission::No)) == "000"s);
+	REQUIRE(std::format("{}", (Permission::Read)) == "001"s);
+	REQUIRE(std::format("{}", (Permission::Write)) == "010"s);
+	REQUIRE(std::format("{}", (Permission::Execute)) == "100"s);
+	REQUIRE(std::format("{}", (Permission::Execute | Permission::Read)) == "101"s);
 }
