@@ -3,8 +3,17 @@ export module deckard.enums;
 import std;
 import deckard.types;
 
+export template<typename T>
+concept EnumFlagType = requires {
+	typename std::underlying_type<T>::type;
+	requires std::is_scoped_enum_v<T>;
+	requires std::is_same_v<decltype(T::Width), T>;
+	{ enable_bitmask_operations(std::declval<T>()) } -> std::same_as<void>; //
+};
+
 export namespace deckard
 {
+
 	// Bit indexes
 	template<typename T = u8>
 	consteval T BIT(size_t index)
@@ -12,22 +21,19 @@ export namespace deckard
 		return static_cast<T>(index == 0 ? 0 : 1 << (index - 1));
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator|(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitor std::to_underlying(rhs));
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr T operator&(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr bool operator&&(const T lhs, const T rhs) noexcept
 	{
 		if (std::to_underlying(lhs) == std::to_underlying(rhs))
@@ -36,38 +42,33 @@ export namespace deckard
 		return static_cast<bool>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator^(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator~(const T lhs) noexcept
 	{
 		return static_cast<T>(~std::to_underlying(lhs));
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator|=(T& lhs, const T rhs) noexcept
 	{
 		lhs = lhs bitor rhs;
 		return lhs;
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator&=(T& lhs, const T rhs) noexcept
 	{
 		lhs = static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 		return lhs;
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator^=(T& lhs, const T rhs) noexcept
 	{
 		lhs = lhs xor rhs;
@@ -75,16 +76,14 @@ export namespace deckard
 	}
 
 	// Helpers for removing and setting flags
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator-=(T& lhs, const T rhs) noexcept
 	{
 		lhs &= ~rhs;
 		return lhs;
 	}
 
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	constexpr auto operator+=(T& lhs, const T rhs) noexcept
 	{
 		lhs |= rhs;
@@ -92,8 +91,7 @@ export namespace deckard
 	}
 
 	// P3070 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
-	template<typename T>
-	requires(std::is_scoped_enum_v<T> and requires(T e) { enable_bitmask_operations(e); })
+	template<EnumFlagType T>
 	auto format_as(T f) noexcept
 	{
 		return std::to_underlying(f);
