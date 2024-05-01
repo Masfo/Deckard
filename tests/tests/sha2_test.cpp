@@ -30,16 +30,12 @@ TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256]")
 
 	SECTION("'a' repeated million times")
 	{
-
 		sha256::hasher hasher;
 
+		std::string to_hash(100, 'a');
 
-		int counter = 10'000;
-		while (counter--)
-			hasher.update("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-
-
-		auto digest = hasher.finalize();
+		repeat<10'000> = [&] { hasher.update(to_hash); };
+		auto digest    = hasher.finalize();
 
 		REQUIRE(digest.to_string() == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
 	}
@@ -76,9 +72,10 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512]")
 	SECTION("'a' repeated million timesP", "")
 	{
 		sha512::hasher hasher;
-		int            counter = 10'000;
-		while (counter--)
-			hasher.update("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+		std::string to_hash(100, 'a');
+
+		repeat<10'000> = [&] { hasher.update(to_hash); };
 
 		auto digest = hasher.finalize();
 
