@@ -28,17 +28,17 @@ TEST_SUITE("SHA256" * doctest::description("SHA256 - Cryptographic hash function
 				 "dfe7a23fefeea519e9bbfdd1a6be94c4b2e4529dd6b7cbea83f9959c2621b13c"s);
 	}
 
-	// 	TEST_CASE("sha256('aaaa..)' 'a' repeated million times")
-	// 	{
-	// 		sha256::hasher hasher;
-	// 		for (int i : upto(10'000))
-	// 			hasher.update("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-	//
-	//
-	// 		auto digest = hasher.finalize();
-	//
-	// 		CHECK_EQ(digest.to_string(), "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
-	// 	}
+	TEST_CASE("sha256('aaaa..)' 'a' repeated million times" * doctest::skip(true))
+	{
+		sha256::hasher hasher;
+		for (int i : upto(10'000))
+			hasher.update("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+
+		auto digest = hasher.finalize();
+
+		CHECK_EQ(digest.to_string(), "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
+	}
 }
 
 TEST_SUITE("SHA512" * doctest::description("SHA512 - Cryptographic hash function"))
@@ -69,16 +69,16 @@ TEST_SUITE("SHA512" * doctest::description("SHA512 - Cryptographic hash function
 	}
 
 
-	// 	TEST_CASE("sha512('aaaa..)' 'a' repeated million times")
-	// 	{
-	// 		sha512::hasher hasher;
-	// 		for (int i : upto(10'000))
-	// 			hasher.update("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-	//
-	// 		auto digest = hasher.finalize();
-	//
-	// 		CHECK_EQ(digest.to_string(),
-	// 				 "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217a"
-	// 				 "d8cc09b");
-	// 	}
+	TEST_CASE("sha512('aaaa..)' 'a' repeated million times" * doctest::skip(true))
+	{
+		sha512::hasher hasher;
+		for (int i : upto(10'000))
+			hasher.update("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+		auto digest = hasher.finalize();
+
+		CHECK_EQ(digest.to_string(),
+				 "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217a"
+				 "d8cc09b");
+	}
 }
