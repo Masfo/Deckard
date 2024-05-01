@@ -1,7 +1,7 @@
 #include <Windows.h>
 
 import std;
-import Deckard;
+import deckard;
 
 #ifndef _DEBUG
 import scbuild;

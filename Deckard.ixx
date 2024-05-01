@@ -1,5 +1,5 @@
 
-export module Deckard;
+export module deckard;
 
 
 export import deckard.debug;
