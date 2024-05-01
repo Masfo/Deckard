@@ -5,6 +5,7 @@ module;
 export module deckard.win32;
 
 import std;
+import deckard.as;
 import deckard.assert;
 import deckard.types;
 

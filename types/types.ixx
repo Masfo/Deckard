@@ -4,8 +4,6 @@ export module deckard.types;
 
 import std;
 
-export import deckard.as;
-
 export namespace deckard
 {
 

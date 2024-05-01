@@ -6,6 +6,7 @@ module;
 export module deckard.file;
 
 import std;
+import deckard.as;
 import deckard.types;
 import deckard.assert;
 

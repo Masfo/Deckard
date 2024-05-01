@@ -1,6 +1,7 @@
 export module deckard.base64;
 
 import deckard.types;
+import deckard.as;
 import std;
 
 namespace deckard::utils::base64
@@ -173,7 +174,7 @@ namespace deckard::utils::base64
 	{
 
 		std::vector<u8> rnd;
-		rnd.resize(1024);
+		rnd.resize(1'024);
 
 		std::random_device                 rd;
 		std::mt19937                       gen(rd());

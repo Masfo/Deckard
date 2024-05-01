@@ -1,6 +1,7 @@
 export module deckard.sha2;
 
 import deckard.assert;
+import deckard.as;
 import deckard.types;
 import deckard.helpers;
 import std;
@@ -250,7 +251,7 @@ namespace deckard::sha512
 		}
 
 	private:
-		static constexpr u32 CHUNK_SIZE_IN_BITS = 1024;
+		static constexpr u32 CHUNK_SIZE_IN_BITS = 1'024;
 		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
 		static constexpr u32 ROUNDS             = 80;
 
