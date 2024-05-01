@@ -61,5 +61,22 @@ TEST_CASE("enumflags", "[enum]")
 	rwx ^= Permission::Write | Permission::Execute;
 	REQUIRE(rwx == (Permission::No));
 
+	// Reset
+	rwx += Permission::Read | Permission::Write | Permission::Execute;
+
+	bool has_read    = rwx && Permission::Read;
+	bool has_write   = rwx && Permission::Read;
+	bool has_execute = rwx && Permission::Execute;
+
+	CHECK(true == (rwx && Permission::Read));
+	CHECK(true == (rwx && Permission::Write));
+	CHECK(true == (rwx && Permission::Execute));
+
+	rwx -= Permission::Read;
+	CHECK(false == (rwx && Permission::Read));
+	CHECK(true == (rwx && Permission::Write));
+	CHECK(true == (rwx && Permission::Execute));
+
+
 	// TODO: add format printing when it is supported
 }
