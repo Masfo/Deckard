@@ -66,7 +66,7 @@ export namespace deckard
 	constexpr u64 operator"" _TiB(const u64 value) noexcept { return value * tebi::num; }
 
 	// sink
-	struct sink_t
+	struct sink_t final
 	{
 		template<typename T>
 		constexpr void operator=(T&&) const noexcept
