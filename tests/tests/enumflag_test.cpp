@@ -22,32 +22,22 @@ namespace EnumFlagTest__
 			// Width = 3,
 		};
 		consteval void enable_bitmask_operations(Permission);
-	} // namespace Filesystem
+
+		template<EnumFlagType T>
+		struct std::formatter<T> : formatter<int>
+		{
+			// parse is optional
+			constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+			auto format(T f, format_context& ctx) const
+			{
+				//
+				return std::format_to(ctx.out(), "{:03b}", std::to_underlying(f));
+			}
+		};
+
+	}; // namespace Filesystem
 } // namespace EnumFlagTest__
-
-template<EnumFlagType T>
-struct std::formatter<T> : formatter<int>
-{
-	auto format(T f, format_context& ctx) const
-	{
-		//
-		return std::format_to(ctx.out(), "{:03b}", std::to_underlying(f));
-	}
-};
-
-// template<EnumFlagType T>
-// class std::formatter<T> : std::formatter<std::string_view>
-// {
-// public:
-// 	// parse is optional
-// 	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-//
-// 	auto format(const T& type, std::format_context& ctx) const
-// 	{
-// 		//
-// 		return std::format_to(ctx.out(), "{:03b}", std::to_underlying(type));
-// 	}
-// };
 
 TEST_CASE("enumflags", "[enum]")
 {
@@ -133,6 +123,7 @@ TEST_CASE("enumflags", "[enum]")
 
 
 	// TODO: add format printing when it is supported
+	// TODO: this is just temp
 	REQUIRE(std::format("{}", (Permission::No)) == "000"s);
 	REQUIRE(std::format("{}", (Permission::Read)) == "001"s);
 	REQUIRE(std::format("{}", (Permission::Write)) == "010"s);
