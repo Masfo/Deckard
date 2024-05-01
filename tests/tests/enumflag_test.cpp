@@ -7,7 +7,7 @@ import std;
 
 using namespace deckard;
 
-namespace EnumFlagTest
+namespace EnumFlagTest__
 {
 	namespace Filesystem
 	{
@@ -20,12 +20,12 @@ namespace EnumFlagTest
 		};
 		consteval void enable_bitmask_operations(Permission);
 	} // namespace Filesystem
-} // namespace EnumFlagTest
+} // namespace EnumFlagTest__
 
 TEST_CASE("enumflags", "[enum]")
 {
 
-	using EnumFlagTest::Filesystem::Permission;
+	using EnumFlagTest__::Filesystem::Permission;
 
 	Permission rwx{};
 
@@ -64,18 +64,44 @@ TEST_CASE("enumflags", "[enum]")
 	// Reset
 	rwx += Permission::Read | Permission::Write | Permission::Execute;
 
-	bool has_read    = rwx && Permission::Read;
-	bool has_write   = rwx && Permission::Read;
-	bool has_execute = rwx && Permission::Execute;
+	// Check all flags
+	REQUIRE(true == (rwx && Permission::Read));
+	REQUIRE(true == (rwx && Permission::Write));
+	REQUIRE(true == (rwx && Permission::Execute));
 
-	CHECK(true == (rwx && Permission::Read));
-	CHECK(true == (rwx && Permission::Write));
-	CHECK(true == (rwx && Permission::Execute));
-
+	// Remove read
 	rwx -= Permission::Read;
-	CHECK(false == (rwx && Permission::Read));
-	CHECK(true == (rwx && Permission::Write));
-	CHECK(true == (rwx && Permission::Execute));
+	REQUIRE(false == (rwx && Permission::Read));
+	REQUIRE(true == (rwx && Permission::Write));
+	REQUIRE(true == (rwx && Permission::Execute));
+
+	// Remove write
+	rwx -= Permission::Write;
+	REQUIRE(false == (rwx && Permission::Read));
+	REQUIRE(false == (rwx && Permission::Write));
+	REQUIRE(true == (rwx && Permission::Execute));
+
+	// Remove execute
+	rwx -= Permission::Execute;
+	REQUIRE(false == (rwx && Permission::Read));
+	REQUIRE(false == (rwx && Permission::Write));
+	REQUIRE(false == (rwx && Permission::Execute));
+	REQUIRE(rwx == Permission::No);
+
+	// OR read
+	rwx |= Permission::Read;
+	REQUIRE(true == (rwx && Permission::Read));
+	REQUIRE(false == (rwx && Permission::Write));
+	REQUIRE(false == (rwx && Permission::Execute));
+
+	//
+	rwx += Permission::Write | Permission::Execute;
+
+	// AND execute, remove all but execute
+	rwx &= Permission::Execute;
+	REQUIRE(false == (rwx && Permission::Read));
+	REQUIRE(false == (rwx && Permission::Write));
+	REQUIRE(true == (rwx && Permission::Execute));
 
 
 	// TODO: add format printing when it is supported
