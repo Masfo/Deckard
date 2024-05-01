@@ -8,7 +8,7 @@ using namespace deckard::utils;
 using namespace std::string_literals;
 
 // Encode
-TEST_CASE("encode base64", "[base64_encode]")
+TEST_CASE("encode base64", "[base64]")
 {
 	SECTION("encode base64('foob') - w/ padding")
 	{
@@ -30,7 +30,7 @@ TEST_CASE("encode base64", "[base64_encode]")
 }
 
 // Decode
-TEST_CASE("decode base64", "[base64_decode]")
+TEST_CASE("decode base64", "[base64]")
 {
 	SECTION("decode base64('foob') - w/ padding")
 	{
