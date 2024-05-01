@@ -12,6 +12,23 @@ export namespace deckard
 	// loop (n, n+1, n+..)
 	inline constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
 
+	// repeat
+	template<size_t Count>
+	struct repeat_t final
+	{
+		template<std::invocable Func>
+		constexpr void operator=(Func &&f) const noexcept
+		{
+			size_t count = Count;
+			while (count--)
+				f();
+		}
+	};
+
+	template<size_t Count>
+	inline constexpr repeat_t<Count> repeat;
+
+	// to hex
 	inline void to_hex(const std::span<u8> &input, std::span<u8> &output, char delimiter = ' ')
 	{
 		//
