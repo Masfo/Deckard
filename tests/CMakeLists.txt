@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS        OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
 
-find_package(doctest CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
 
 project(tests VERSION 0.0.1 LANGUAGES CXX)
 
@@ -36,7 +36,7 @@ target_compile_options(tests PRIVATE /W4)
 
 
 target_sources(tests PUBLIC
-    main.cpp
+    test-main.cpp
     tests/sha2_test.cpp
     tests/base64_test.cpp
     
@@ -44,10 +44,11 @@ target_sources(tests PUBLIC
 )
 
 
-target_link_libraries(tests PRIVATE doctest::doctest Deckard)
+target_link_libraries(tests PRIVATE Catch2::Catch2WithMain Deckard)
 
-include(doctest)
-doctest_discover_tests(tests)
+include(CTest)
+include(Catch)
+catch_discover_tests(tests)
 
 set_target_properties(tests PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
