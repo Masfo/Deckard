@@ -29,7 +29,7 @@ export import deckard.graph;
 export import deckard.tokenizer;
 
 // DB
-export import deckard.db;
+export import deckard.archive;
 
 
 // export import deckard.DTE;

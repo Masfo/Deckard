@@ -215,12 +215,25 @@ int main()
 #endif
 
 	{
-		sqlite::db db("sqlite3.db");
+		archive::file db("sqlite3.db");
 		db.application_id(10);
 
-		db.exec("CREATE TABLE COMPANY(ID INT NOT NULL);");
-		db.exec("CREATE TABLE TESTING_TABLE(ID INT NOT NULL);");
-		db.exec("SELECT * FROM User");
+		db.exec("CREATE TABLE IF NOT EXISTS sportscar(make, model, year, horsepower,data)");
+		// db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+
+		// db.exec("INSERT INTO sportscar VALUES ('Ferrari', 'F8 Tributo', 2021, 710, ''), ('Lamborghini', 'Huracan EVO', 2021, 640,'')");
+
+		db.exec("SELECT * FROM sportscar where year=2021");
+
+		// db.exec("DROP TABLE sportscar;");
+
+		// db.exec(
+		//	"CREATE TABLE IF NOT EXISTS LOG(ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, UNIXTIME INTEGER, NAME TEXT, INTEGER RANDOM);");
+		//
+		//
+		// for (int i : upto(1'000))
+		//	db.exec("INSERT INTO LOG (UNIXTIME, NAME, INTEGER) VALUES ({}, '{}', {})", i * 10, "hell1o", (i * 2) ^ 66);
+
 		db.begin_transaction();
 		db.commit();
 

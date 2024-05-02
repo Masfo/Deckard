@@ -1,25 +1,39 @@
 module;
 #include <sqlite3.h>
 
-export module deckard.db;
+export module deckard.archive;
 
 import std;
 import deckard.debug;
 
 namespace fs = std::filesystem;
 
-export namespace deckard::sqlite
+export namespace deckard::archive
 {
+	// TODO: Pivot to just holding binary data as data pak,
+	// TODO: update from filesystem, check whats changed, update only changed files
+	// TODO: Compress files before
+	// TODO: path, size, compressed size, meta?
+	//
+	// TODO: db->load_folder("level01"); -> gives vector of handles?
+	// TODO: db->load_file("level01/mainscript.txt");
 
 
-	class db final
+	std::string pointerToHex(const void *ptr)
+	{
+		std::stringstream stream;
+		stream << std::hex << reinterpret_cast<const char *>(ptr);
+		return stream.str();
+	}
+
+	class file final
 	{
 	public:
-		db() = default;
+		file() = default;
 
-		db(fs::path file) noexcept { open(file); }
+		file(fs::path file) noexcept { open(file); }
 
-		~db() { close(); }
+		~file() { close(); }
 
 		bool open(fs::path dbfile) noexcept
 		{
@@ -30,11 +44,11 @@ export namespace deckard::sqlite
 				return false;
 			}
 
-			quiet_log_callback = true;
-			exec("PRAGMA synchronous = NORMAL;");
-			exec("PRAGMA journal_mode = WAL;");
-			exec("PRAGMA temp_store = MEMORY;");
-			quiet_log_callback = false;
+			quiet(true);
+			// exec("PRAGMA synchronous = NORMAL;");
+			// exec("PRAGMA journal_mode = WAL;");
+			// exec("PRAGMA temp_store = MEMORY;");
+			quiet(false);
 
 
 			application_id(0);
@@ -67,13 +81,17 @@ export namespace deckard::sqlite
 			return true;
 		}
 
-		static int log_callback(void *, int count, char **data, char **columns) noexcept
+		static int log_callback(void *, int column_count, char **data, char **columns) noexcept
 		{
 
-			dbg::println("Column count: {}", count);
-			for (int i = 0; i < count; i++)
+			dbg::println("Column count: {}", column_count);
+			for (int i = 0; i < column_count; i++)
 			{
-				dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
+				std::string d("data");
+				if (d.contains(columns[i]))
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], pointerToHex(data[i]));
+				else
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
 			}
 
 			return 0;
@@ -103,6 +121,7 @@ export namespace deckard::sqlite
 
 		bool is_open() const noexcept { return m_db != nullptr; }
 
+		void quiet(bool q) noexcept { quiet_log_callback = q; }
 
 	private:
 		auto get_callback() const noexcept -> decltype(&log_callback)
@@ -116,4 +135,4 @@ export namespace deckard::sqlite
 
 		bool quiet_log_callback{false};
 	};
-} // namespace deckard::sqlite
+} // namespace deckard::archive
