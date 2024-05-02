@@ -33,9 +33,12 @@ export namespace deckard::sqlite
 				return false;
 			}
 
+			quiet_log_callback = true;
 			exec("PRAGMA synchronous = NORMAL;");
 			exec("PRAGMA journal_mode = WAL;");
 			exec("PRAGMA temp_store = MEMORY;");
+			quiet_log_callback = false;
+
 
 			application_id(0);
 			user_version(0);
@@ -48,17 +51,15 @@ export namespace deckard::sqlite
 
 		void user_version(int ver) const noexcept { exec("PRAGMA user_version = {};", ver); }
 
-		// TODO: variadic
 		template<typename... Args>
 		bool exec(std::string_view fmt, Args &&...args) const noexcept
 		{
 			if (!is_open())
 				return false;
 
-			auto Callback = &log_callback;
 
 			auto statement = std::vformat(fmt, std::make_format_args(args...));
-			int  rc        = sqlite3_exec(m_db, statement.data(), Callback, 0, nullptr);
+			int  rc        = sqlite3_exec(m_db, statement.data(), get_callback(), 0, nullptr);
 
 			if (rc != SQLITE_OK)
 			{
@@ -71,6 +72,7 @@ export namespace deckard::sqlite
 
 		static int log_callback(void *, int count, char **data, char **columns) noexcept
 		{
+
 			dbg::println("Column count: {}", count);
 			for (int i = 0; i < count; i++)
 			{
@@ -86,8 +88,8 @@ export namespace deckard::sqlite
 
 		void optimize() const noexcept
 		{
-			_ = exec("PRAGMA OPTIMIZE");
-			_ = exec("VACUUM");
+			exec("PRAGMA OPTIMIZE");
+			exec("VACUUM");
 		}
 
 		bool close() noexcept
@@ -104,7 +106,17 @@ export namespace deckard::sqlite
 
 		bool is_open() const noexcept { return m_db != nullptr; }
 
+
 	private:
+		auto get_callback() const noexcept -> decltype(&log_callback)
+		{
+			if (quiet_log_callback)
+				return nullptr;
+			return &log_callback;
+		}
+
 		sqlite3 *m_db{nullptr};
+
+		bool quiet_log_callback{false};
 	};
 } // namespace deckard::sqlite

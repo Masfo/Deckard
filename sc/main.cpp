@@ -220,7 +220,7 @@ int main()
 
 		db.exec("CREATE TABLE COMPANY(ID INT NOT NULL);");
 		db.exec("CREATE TABLE TESTING_TABLE(ID INT NOT NULL);");
-
+		db.exec("SELECT * FROM User");
 		db.begin_transaction();
 		db.commit();
 
