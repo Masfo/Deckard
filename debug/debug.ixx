@@ -1,5 +1,6 @@
 module;
 #include <Windows.h>
+#include <sqlite3.h>
 
 export module deckard.debug;
 
@@ -9,7 +10,7 @@ using namespace std::string_view_literals;
 
 void output_message(const std::string_view message) noexcept
 {
-	std::println(std::cerr, "{}"sv, message);
+	std::print(std::cerr, "{}"sv, message);
 #ifdef _DEBUG
 	OutputDebugStringA(message.data());
 #endif
@@ -125,5 +126,43 @@ export namespace deckard
 		dbg::println("TODO: {}", str);
 		if (IsDebuggerPresent())
 			DebugBreak();
+	}
+
+	void test()
+	{
+
+		sqlite3 *db{};
+
+		int rc = sqlite3_open("sqlite3.db", &db);
+
+		std::string sql_command = "create table test01(id int not null,"
+								  "hash int not null);";
+
+		if (rc)
+		{
+			dbg::println("SQLite open error: {}", sqlite3_errmsg(db));
+			return;
+		}
+		else
+			dbg::println("SQLITE open ok");
+
+		const char *sql = R"(
+			CREATE TABLE COMPANY(ID	INT	NOT NULL);
+
+			CREATE TABLE TESTING_TABLE(ID INT NOT NULL);
+	)";
+
+		char *errMsg = 0;
+		rc           = sqlite3_exec(db, sql, nullptr, 0, &errMsg);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error {} || {}", errMsg, sqlite3_errmsg(db));
+			sqlite3_free(errMsg);
+			sqlite3_close(db);
+			return;
+		}
+
+		dbg::println("Table created OK");
+		sqlite3_close(db);
 	}
 } // namespace deckard
