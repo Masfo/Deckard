@@ -28,6 +28,9 @@ export import deckard.graph;
 // Scripting
 export import deckard.tokenizer;
 
+// DB
+export import deckard.db;
+
 
 // export import deckard.DTE;
 export import deckard.win32;

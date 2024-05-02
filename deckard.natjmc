@@ -19,6 +19,9 @@
 
 	<File Name="win32.ixx"/>
 
+	<File Name="sqlite3.c"/>
+
+
 	<!-- Functions -->
 	<Function Name="std\:\:.*" />
 

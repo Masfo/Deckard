@@ -214,6 +214,15 @@ int main()
 	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
 #endif
 
+	{
+		sqlite::db db;
+
+		db.open("sqlite3.db");
+		db.application_id(10);
+
+		db.exec("CREATE TABLE COMPANY(ID	INT	NOT NULL);");
+		db.exec("CREATE TABLE TESTING_TABLE(ID INT NOT NULL);");
+	}
 
 	IpAddress ipv6;
 	ipv6.version(6);
@@ -233,7 +242,6 @@ int main()
 	};
 
 	add_keywords(keywords);
-
 
 	sha256::hasher hash;
 	auto           digest = hash.finalize();

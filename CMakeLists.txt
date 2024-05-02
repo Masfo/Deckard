@@ -125,6 +125,8 @@ set(DECKARD_SRCS
 		win32/win32.ixx
 		#win32/DTE.ixx
 
+        sqlite3/db.ixx
+
         std.ixx
 )
 
