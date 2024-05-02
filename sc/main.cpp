@@ -215,13 +215,17 @@ int main()
 #endif
 
 	{
-		sqlite::db db;
-
-		db.open("sqlite3.db");
+		sqlite::db db("sqlite3.db");
 		db.application_id(10);
 
-		db.exec("CREATE TABLE COMPANY(ID	INT	NOT NULL);");
+		db.exec("CREATE TABLE COMPANY(ID INT NOT NULL);");
 		db.exec("CREATE TABLE TESTING_TABLE(ID INT NOT NULL);");
+
+		db.begin_transaction();
+		db.commit();
+
+		db.optimize();
+		db.close();
 	}
 
 	IpAddress ipv6;

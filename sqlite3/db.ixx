@@ -7,15 +7,21 @@ export module deckard.db;
 import std;
 import deckard.types;
 import deckard.debug;
+import deckard.enums;
+
 namespace fs = std::filesystem;
 
-namespace deckard::sqlite
+export namespace deckard::sqlite
 {
-	export struct sqlite3_stmt;
 
-	export class db final
+
+	class db final
 	{
 	public:
+		db() = default;
+
+		db(fs::path file) noexcept { open(file); }
+
 		~db() { close(); }
 
 		bool open(fs::path dbfile) noexcept
@@ -27,36 +33,32 @@ namespace deckard::sqlite
 				return false;
 			}
 
-			_ = exec("PRAGMA synchronous = NORMAL;");
-			_ = exec("PRAGMA journal_mode = WAL;");
-			_ = exec("PRAGMA temp_store = MEMORY;");
+			exec("PRAGMA synchronous = NORMAL;");
+			exec("PRAGMA journal_mode = WAL;");
+			exec("PRAGMA temp_store = MEMORY;");
 
 			application_id(0);
-			application_id(0);
+			user_version(0);
 
 
 			return true;
 		}
 
-		void application_id(int id) const noexcept
-		{
-			auto str = std::format("PRAGMA application_id = {}", id);
-			_        = exec(str.c_str());
-		}
+		void application_id(int id) const noexcept { exec("PRAGMA application_id = {};", id); }
 
-		void user_version(int ver) const noexcept
-		{
-			auto str = std::format("PRAGMA user_version = {}", ver);
-			_        = exec(str.c_str());
-		}
+		void user_version(int ver) const noexcept { exec("PRAGMA user_version = {};", ver); }
 
 		// TODO: variadic
-		bool exec(std::string_view statement) const noexcept
+		template<typename... Args>
+		bool exec(std::string_view fmt, Args &&...args) const noexcept
 		{
 			if (!is_open())
 				return false;
 
-			int rc = sqlite3_exec(m_db, statement.data(), &log_callback, 0, nullptr);
+			auto Callback = &log_callback;
+
+			auto statement = std::vformat(fmt, std::make_format_args(args...));
+			int  rc        = sqlite3_exec(m_db, statement.data(), Callback, 0, nullptr);
 
 			if (rc != SQLITE_OK)
 			{
@@ -78,28 +80,27 @@ namespace deckard::sqlite
 			return 0;
 		}
 
-		bool begin_transaction() const noexcept
-		{
-			int rc = exec("BEGIN TRANSACTION");
+		bool begin_transaction() const noexcept { return exec("BEGIN TRANSACTION"); }
 
-			return rc == SQLITE_OK;
+		bool commit() const noexcept { return exec("COMMIT;"); }
+
+		void optimize() const noexcept
+		{
+			_ = exec("PRAGMA OPTIMIZE");
+			_ = exec("VACUUM");
 		}
 
-		bool end_transaction() const noexcept
+		bool close() noexcept
 		{
-			int rc = exec("END TRANSACTION");
-
-			return rc == SQLITE_OK;
+			int rc = sqlite3_close(m_db);
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("SQLite3 closing error: {}", sqlite3_errmsg(m_db));
+				return false;
+			}
+			m_db = nullptr;
+			return true;
 		}
-
-		bool commit() const noexcept
-		{
-			int rc = exec("COMMIT;");
-
-			return rc == SQLITE_OK;
-		}
-
-		void close() const noexcept { sqlite3_close(m_db); }
 
 		bool is_open() const noexcept { return m_db != nullptr; }
 
