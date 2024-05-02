@@ -1,5 +1,6 @@
 #include <Windows.h>
 
+
 import std;
 import deckard;
 
@@ -176,25 +177,35 @@ void IPv6Address::print()
 	dbg::println("");
 }
 
-class IpAddress
+class alignas(4) IpAddress
 {
 public:
-	explicit IpAddress(std::string_view address) { }
+	enum class Version : u8
+	{
+		v4 = 4,
+		v6 = 6
+	};
+
+	IpAddress() = default;
+
+	IpAddress(std::string_view ip_string) { }
+
+	std::string as_string(size_t truncated = 0) const { return {}; }
+
+	std::array<u8, 16> address{0};
+	u16                port_num{0};
+	Version            ver{Version::v4};
+	u8                 flags{0};
+
+	void version(u8 v) { ver = (v == 4_u8) ? Version::v4 : Version::v6; }
+
+	void port(u16 p) { port_num = p; };
 
 private:
-	std::array<u16, 8> address{};
-	u16                port{0};
+	// Recommendation for IPv6 Address Text Representation: https://www.rfc-editor.org/rfc/rfc5952
 };
 
-constexpr auto IpSize = sizeof(IpAddress);
-
-auto foobar(int x) -> Result<int>
-{
-	if (x > 10)
-		return Ok(x);
-
-	return Err("Whoopsie");
-}
+static_assert(sizeof(IpAddress) == 20, "IpAddress is not 20-bytes");
 
 int main()
 {
@@ -204,16 +215,13 @@ int main()
 #endif
 
 
-	if (auto val = foobar(100); val)
-		std::println("{}", *val);
-	else
-		std::println("{}", val.error());
+	IpAddress ipv6;
+	ipv6.version(6);
+	ipv6.port(0xB97A);
 
 
-	if (auto val = foobar(-1); val)
-		std::println("{}", *val);
-	else
-		std::println("{}", val.error());
+	IpAddress ipv4;
+	ipv4 = ipv6;
 
 
 	std::array keywords{"if"sv, "while"sv, "for"sv};
@@ -229,10 +237,10 @@ int main()
 
 	sha256::hasher hash;
 	auto           digest = hash.finalize();
-	auto           d      = digest[7 + 1];
+	auto           d      = digest[7];
 
 
-	dbg::println("{}", sizeof(IpAddress));
+	dbg::println("ipaddress size {}", sizeof(IpAddress));
 
 	IPv6Address addr;
 

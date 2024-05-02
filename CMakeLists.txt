@@ -1,5 +1,5 @@
 
-cmake_minimum_required (VERSION 3.25)
+cmake_minimum_required (VERSION 3.29)
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,79 +7,77 @@ set(CMAKE_CXX_EXTENSIONS        OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
 
 
-project(Deckard CXX)
-add_library(Deckard)
+project(deckard CXX)
+add_library(deckard)
 
 
-target_compile_features(Deckard PRIVATE cxx_std_23) 
+target_compile_definitions(deckard PRIVATE UNICODE)
+target_compile_definitions(deckard PRIVATE _UNICODE)
 
-target_compile_definitions(Deckard PRIVATE UNICODE)
-target_compile_definitions(Deckard PRIVATE _UNICODE)
+target_compile_definitions(deckard PRIVATE NOMINMAX)
+target_compile_definitions(deckard PRIVATE WIN32_LEAN_AND_MEAN)
+target_compile_definitions(deckard PRIVATE WIN32_EXTRA_LEAN)
+target_compile_options(deckard PRIVATE /nologo)
+target_compile_options(deckard PRIVATE -Zc:__cplusplus /Zc:alignedNew)
+target_compile_options(deckard PRIVATE /utf-8)
+target_compile_options(deckard PRIVATE /EHsc)
+#target_compile_options(deckard PRIVATE /Za)
 
-target_compile_definitions(Deckard PRIVATE NOMINMAX)
-target_compile_definitions(Deckard PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_definitions(Deckard PRIVATE WIN32_EXTRA_LEAN)
-target_compile_options(Deckard PRIVATE /nologo)
-target_compile_options(Deckard PRIVATE -Zc:__cplusplus /Zc:alignedNew)
-target_compile_options(Deckard PRIVATE /utf-8)
-target_compile_options(Deckard PRIVATE /EHsc)
-#target_compile_options(Deckard PRIVATE /Za)
-
-target_compile_options(Deckard  PRIVATE /fp:precise)
-target_compile_options(Deckard PRIVATE /diagnostics:caret)
+target_compile_options(deckard  PRIVATE /fp:precise)
+target_compile_options(deckard PRIVATE /diagnostics:caret)
 
 
-#target_compile_options(Deckard PRIVATE /experimental:module)
-target_compile_options(Deckard PRIVATE /Zc:preprocessor)
-target_compile_options(Deckard PRIVATE /permissive-)
-target_compile_options(Deckard PRIVATE /std:c++latest)
-target_compile_options(Deckard PRIVATE /Zc:__cplusplus)
+#target_compile_options(deckard PRIVATE /experimental:module)
+target_compile_options(deckard PRIVATE /Zc:preprocessor)
+target_compile_options(deckard PRIVATE /permissive-)
+target_compile_options(deckard PRIVATE /std:c++latest)
+target_compile_options(deckard PRIVATE /Zc:__cplusplus)
 
-target_compile_options(Deckard PRIVATE /W4)
+target_compile_options(deckard PRIVATE /W4)
 
-set_target_properties(Deckard PROPERTIES DEBUG_POSTFIX "d")
+set_target_properties(deckard PROPERTIES DEBUG_POSTFIX "d")
 
 if(MSVC)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-    set_target_properties(Deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
-        target_compile_options(Deckard  PRIVATE /JMC)    # Just my debugging
-        target_compile_definitions(Deckard PRIVATE -DDEBUG)
+        target_compile_options(deckard  PRIVATE /JMC)    # Just my debugging
+        target_compile_definitions(deckard PRIVATE -DDEBUG)
 
-        target_compile_options(Deckard  PRIVATE /Od)
+        target_compile_options(deckard  PRIVATE /Od)
 
-        target_compile_options(Deckard  PRIVATE /RTC1)
-        target_compile_options(Deckard  PRIVATE /GS)
-        target_compile_options(Deckard  PRIVATE /Zi)     # /ZI edit/continue
+        target_compile_options(deckard  PRIVATE /RTC1)
+        target_compile_options(deckard  PRIVATE /GS)
+        target_compile_options(deckard  PRIVATE /Zi)     # /ZI edit/continue
 
-        target_link_options(Deckard PRIVATE /DEBUG)
-        #target_link_options(Deckard PRIVATE /ALIGN:16)
+        target_link_options(deckard PRIVATE /DEBUG)
+        #target_link_options(deckard PRIVATE /ALIGN:16)
     endif()
 
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
-        #set_target_properties(Deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+        #set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
 
-        target_compile_definitions(Deckard PRIVATE -DNDEBUG)
+        target_compile_definitions(deckard PRIVATE -DNDEBUG)
         
-        target_compile_options(Deckard  PRIVATE /O2  /Os)
-        target_compile_options(Deckard  PRIVATE /GS-)
+        target_compile_options(deckard  PRIVATE /O2  /Os)
+        target_compile_options(deckard  PRIVATE /GS-)
 
-        target_link_options(Deckard PRIVATE /Release)
-        target_link_options(Deckard PRIVATE /INCREMENTAL:NO)
+        target_link_options(deckard PRIVATE /Release)
+        target_link_options(deckard PRIVATE /INCREMENTAL:NO)
 
 
-        target_link_options(Deckard PRIVATE /OPT:REF /OPT:ICF)
+        target_link_options(deckard PRIVATE /OPT:REF /OPT:ICF)
 
         # 0x800: LOAD_LIBRARY_SEARCH_SYSTEM32
-        target_link_options(Deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
+        target_link_options(deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
             
         # Undocumented options
-        target_link_options(Deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
+        target_link_options(deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
     endif()
 endif()
@@ -93,7 +91,7 @@ configure_file(
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 set(DECKARD_SRCS
-		Deckard.ixx
+		deckard.ixx
          $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx>
 
 		debug/debug.ixx
@@ -130,15 +128,20 @@ set(DECKARD_SRCS
         std.ixx
 )
 
-target_sources(Deckard
+target_sources(deckard
 	PUBLIC
     FILE_SET CXX_MODULES 
 	FILES ${DECKARD_SRCS}
 )
+ #find_package(unofficial-sqlite3 CONFIG REQUIRED)
+ find_package(SQLite3 REQUIRED)
+ #target_link_libraries(deckard PRIVATE unofficial::sqlite3::sqlite3)
+ target_link_libraries(deckard PRIVATE SQLite::SQLite3)
+
 
 
 #
-target_compile_options(Deckard PRIVATE 
+target_compile_options(deckard PRIVATE 
        
     #/wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc.
     #
@@ -176,9 +179,9 @@ target_compile_options(Deckard PRIVATE
 if(BUILDINC)
     find_program(BUILDINC_TOOL "buildinc" NO_CACHE)
     if(BUILDINC_TOOL)
-    add_custom_command(TARGET Deckard
+    add_custom_command(TARGET deckard
                        PRE_BUILD
-                       COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx DeckardBuild -q -m 
+                       COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckardBuild -q -m 
                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                        COMMENT "Increase build number"
     )
@@ -202,7 +205,7 @@ endif()
 #     URL https://www.sqlite.org/2023/sqlite-amalgamation-3430200.zip
 # )
 # FetchContent_Populate(SQLite)
-# target_include_directories(Deckard PUBLIC "${sqlite_SOURCE_DIR}")
+# target_include_directories(deckard PUBLIC "${sqlite_SOURCE_DIR}")
 
  # FetchContent_Declare(
  #     glm

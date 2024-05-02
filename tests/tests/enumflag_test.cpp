@@ -115,7 +115,7 @@ TEST_CASE("enumflags", "[enum]")
 	//
 	rwx += Permission::Write | Permission::Execute;
 
-	// AND execute, remove all but execute
+	// AND execute, removes all but execute
 	rwx &= Permission::Execute;
 	REQUIRE(false == (rwx && Permission::Read));
 	REQUIRE(false == (rwx && Permission::Write));

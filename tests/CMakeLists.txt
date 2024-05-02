@@ -44,7 +44,7 @@ target_sources(tests PUBLIC
     tests/enumflag_test.cpp)
 
 
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain Deckard)
+target_link_libraries(tests PRIVATE Catch2::Catch2WithMain deckard)
 
 include(CTest)
 include(Catch)
