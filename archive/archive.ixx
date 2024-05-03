@@ -19,7 +19,7 @@ export namespace deckard::archive
 	// TODO: db->load_file("level01/mainscript.txt");
 
 
-	class file final
+	class file
 	{
 	public:
 		file() = default;

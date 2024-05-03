@@ -19,7 +19,7 @@ export namespace deckard
 		ReadWrite,
 	};
 
-	class Fileview final
+	class Fileview
 	{
 	public:
 		Fileview() = default;

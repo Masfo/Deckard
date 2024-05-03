@@ -44,7 +44,7 @@ namespace deckard::sha256
 
 	static_assert(sizeof(digest) == 32);
 
-	export class hasher final
+	export class hasher
 	{
 	public:
 		hasher() { reset(); }
@@ -216,7 +216,7 @@ namespace deckard::sha512
 
 	static_assert(sizeof(digest) == 64);
 
-	export class hasher final
+	export class hasher
 	{
 	public:
 		hasher() { reset(); }
