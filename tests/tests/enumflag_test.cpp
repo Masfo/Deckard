@@ -14,9 +14,9 @@ namespace EnumFlagTest__
 	{
 		enum class Permission : u8
 		{
-			Read    = BIT(1),
-			Write   = BIT(2),
-			Execute = BIT(3),
+			Read    = BIT(0),
+			Write   = BIT(1),
+			Execute = BIT(2),
 
 			// Width = 3,
 		};

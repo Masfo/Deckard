@@ -18,7 +18,7 @@ export namespace deckard
 	template<typename T = u8>
 	consteval T BIT(size_t index)
 	{
-		return static_cast<T>(index == 0 ? 0 : 1 << (index - 1));
+		return static_cast<T>(1 << index);
 	}
 
 	template<EnumFlagType T>
@@ -102,10 +102,9 @@ export namespace deckard
 		{
 			enum class Permission : u8
 			{
-				No      = BIT(0),
-				Read    = BIT(1),
-				Write   = BIT(2),
-				Execute = BIT(3),
+				Read    = BIT(0),
+				Write   = BIT(1),
+				Execute = BIT(2),
 			};
 			consteval void enable_bitmask_operations(Permission);
 
