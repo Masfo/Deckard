@@ -214,6 +214,39 @@ int main()
 	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
 #endif
 
+	auto count = [](std::string_view input) -> i32
+	{
+		i32 colons{0};
+		i32 i{0};
+		while (i < input.size())
+		{
+			if (input[i] == ':')
+			{
+				if ((i + 1) < input.size() and input[i + 1] == ':')
+				{
+					i += 2;
+					continue;
+				}
+				else
+				{
+					colons += 1;
+					i += 1;
+					continue;
+				}
+			}
+			i += 1;
+		}
+		return colons;
+	};
+
+	dbg::println("0 == {}", count("::1"));             // 0
+	dbg::println("1 == {}", count("12::34:5"));        // 1
+	dbg::println("3 == {}", count("11:22:33::44:55")); // 3
+	dbg::println("2 == {}", count("::12::34::45::67:00:0::")); // 2
+
+
+	int x = 0;
+
 	{
 		archive::file db("sqlite3.db");
 		db.application_id(10);
