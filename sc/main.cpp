@@ -214,9 +214,10 @@ int main()
 	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
 #endif
 
-	auto count = [](std::string_view input) -> i32
+	auto count_colons = [](std::string_view input) -> i32
 	{
 		i32 colons{0};
+		i32 doublecolon{0};
 		i32 i{0};
 		while (i < input.size())
 		{
@@ -224,26 +225,61 @@ int main()
 			{
 				if ((i + 1) < input.size() and input[i + 1] == ':')
 				{
-					i += 2;
-					continue;
+					doublecolon += 1;
+					i += 1;
 				}
 				else
-				{
 					colons += 1;
-					i += 1;
-					continue;
-				}
 			}
 			i += 1;
 		}
+
 		return colons;
 	};
 
-	dbg::println("0 == {}", count("::1"));             // 0
-	dbg::println("1 == {}", count("12::34:5"));        // 1
-	dbg::println("3 == {}", count("11:22:33::44:55")); // 3
-	dbg::println("2 == {}", count("::12::34::45::67:00:0::")); // 2
 
+	auto longest_zero_run = [](std::string_view input) -> i32
+	{
+		i32 max_zeros           = 0;
+		i32 max_zeros_index     = 0;
+		i32 current_zeros       = 0;
+		i32 current_zeros_index = 0;
+
+		for (auto [i, digit] : std::views::enumerate(input))
+		{
+			if (digit == '0')
+			{
+				if (current_zeros == 0)
+					current_zeros_index = i;
+				current_zeros += 1;
+			}
+			else
+			{
+				if (current_zeros > max_zeros)
+				{
+					max_zeros       = current_zeros;
+					max_zeros_index = current_zeros_index;
+				}
+				current_zeros = 0;
+			}
+		}
+
+		if (current_zeros > max_zeros)
+		{
+			max_zeros       = current_zeros;
+			max_zeros_index = current_zeros_index;
+		}
+
+		return max_zeros_index;
+	};
+
+	dbg::println("4 == {}", longest_zero_run("12340000"));
+	dbg::println("6 == {}", longest_zero_run("120034000012"));
+	dbg::println("0 == {}", longest_zero_run("0000100020010"));
+	dbg::println("9 == {}", longest_zero_run("01002000300004"));
+	//                                        0123456789
+	dbg::println("6 == {}", longest_zero_run("1200340000560007"));
+	
 
 	int x = 0;
 
@@ -254,14 +290,16 @@ int main()
 		db.exec("CREATE TABLE IF NOT EXISTS sportscar(make, model, year, horsepower,data)");
 		// db.exec("SELECT name FROM sqlite_master WHERE type='table'");
 
-		// db.exec("INSERT INTO sportscar VALUES ('Ferrari', 'F8 Tributo', 2021, 710, ''), ('Lamborghini', 'Huracan EVO', 2021, 640,'')");
+		// db.exec("INSERT INTO sportscar VALUES ('Ferrari', 'F8 Tributo', 2021, 710, ''), ('Lamborghini', 'Huracan EVO', 2021,
+		// 640,'')");
 
 		db.exec("SELECT * FROM sportscar where year=2021");
 
 		// db.exec("DROP TABLE sportscar;");
 
 		// db.exec(
-		//	"CREATE TABLE IF NOT EXISTS LOG(ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, UNIXTIME INTEGER, NAME TEXT, INTEGER RANDOM);");
+		//	"CREATE TABLE IF NOT EXISTS LOG(ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, UNIXTIME INTEGER, NAME TEXT, INTEGER
+		// RANDOM);");
 		//
 		//
 		// for (int i : upto(1'000))
