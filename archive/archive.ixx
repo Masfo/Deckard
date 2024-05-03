@@ -19,13 +19,6 @@ export namespace deckard::archive
 	// TODO: db->load_file("level01/mainscript.txt");
 
 
-	std::string pointerToHex(const void *ptr)
-	{
-		std::stringstream stream;
-		stream << std::hex << reinterpret_cast<const char *>(ptr);
-		return stream.str();
-	}
-
 	class file final
 	{
 	public:
@@ -69,8 +62,8 @@ export namespace deckard::archive
 				return false;
 
 
-			auto statement = std::vformat(fmt, std::make_format_args(args...));
-			int  rc        = sqlite3_exec(m_db, statement.data(), get_callback(), 0, nullptr);
+			const auto statement = std::vformat(fmt, std::make_format_args(args...));
+			int        rc        = sqlite3_exec(m_db, statement.data(), get_callback(), 0, nullptr);
 
 			if (rc != SQLITE_OK)
 			{
@@ -89,7 +82,7 @@ export namespace deckard::archive
 			{
 				std::string d("data");
 				if (d.contains(columns[i]))
-					dbg::println("\tData in column: '{}' = '{}'", columns[i], pointerToHex(data[i]));
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
 				else
 					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
 			}
