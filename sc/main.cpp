@@ -192,7 +192,7 @@ public:
 
 	std::string as_string(size_t truncated = 0) const { return {}; }
 
-	std::array<u8, 16> address{0};
+	std::array<u16, 8> address{0};
 	u16                port_num{0};
 	Version            ver{Version::v4};
 	u8                 flags{0};
@@ -279,7 +279,7 @@ int main()
 	dbg::println("9 == {}", longest_zero_run("01002000300004"));
 	//                                        0123456789
 	dbg::println("6 == {}", longest_zero_run("1200340000560007"));
-	
+
 
 	int x = 0;
 

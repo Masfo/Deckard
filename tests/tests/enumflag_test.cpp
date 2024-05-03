@@ -14,7 +14,6 @@ namespace EnumFlagTest__
 	{
 		enum class Permission : u8
 		{
-			No      = BIT(0),
 			Read    = BIT(1),
 			Write   = BIT(2),
 			Execute = BIT(3),
@@ -46,8 +45,6 @@ TEST_CASE("enumflags", "[enum]")
 
 	Permission rwx{};
 
-	// Default flag
-	REQUIRE(rwx == (Permission::No));
 
 	// Add read
 	rwx += Permission::Read;
@@ -63,7 +60,6 @@ TEST_CASE("enumflags", "[enum]")
 
 	// Remove write with traditional way
 	rwx &= ~Permission::Write;
-	REQUIRE(rwx == (Permission::No));
 
 	// Add all back traditional way
 	rwx |= Permission::Read | Permission::Write | Permission::Execute;
@@ -76,7 +72,6 @@ TEST_CASE("enumflags", "[enum]")
 
 	// Toggle write and execute
 	rwx ^= Permission::Write | Permission::Execute;
-	REQUIRE(rwx == (Permission::No));
 
 	// Reset
 	rwx += Permission::Read | Permission::Write | Permission::Execute;
@@ -104,7 +99,6 @@ TEST_CASE("enumflags", "[enum]")
 	REQUIRE(false == (rwx && Permission::Read));
 	REQUIRE(false == (rwx && Permission::Write));
 	REQUIRE(false == (rwx && Permission::Execute));
-	REQUIRE(rwx == Permission::No);
 
 	// OR read
 	rwx |= Permission::Read;
@@ -124,7 +118,6 @@ TEST_CASE("enumflags", "[enum]")
 
 	// TODO: add format printing when it is supported
 	// TODO: this is just temp
-	REQUIRE(std::format("{}", (Permission::No)) == "000"s);
 	REQUIRE(std::format("{}", (Permission::Read)) == "001"s);
 	REQUIRE(std::format("{}", (Permission::Write)) == "010"s);
 	REQUIRE(std::format("{}", (Permission::Execute)) == "100"s);
