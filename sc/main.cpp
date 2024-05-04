@@ -1,8 +1,9 @@
 #include <Windows.h>
 
 
-import std;
 import deckard;
+import deckard.types;
+import std;
 
 #ifndef _DEBUG
 import scbuild;
@@ -241,9 +242,9 @@ int main()
 	auto longest_zero_run = [](std::string_view input) -> i32
 	{
 		i32 max_zeros           = 0;
-		i32 max_zeros_index     = 0;
+		i32 max_zeros_index     = -1;
 		i32 current_zeros       = 0;
-		i32 current_zeros_index = 0;
+		i32 current_zeros_index = -1;
 
 		for (auto [i, digit] : std::views::enumerate(input))
 		{
@@ -272,6 +273,10 @@ int main()
 
 		return max_zeros_index;
 	};
+
+	cpuid::CPUID id;
+	dbg::println("{}", id.as_string());
+
 
 	dbg::println("4 == {}", longest_zero_run("12340000"));
 	dbg::println("6 == {}", longest_zero_run("120034000012"));
