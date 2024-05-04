@@ -19,7 +19,33 @@ namespace deckard::cpuid
 		edx
 	};
 
+	struct Features
+	{
+		std::string  name;
+		u32          id;
+		cpu_register reg;
+		u32          bit;
+	};
+
+	std::array<Features, 12> g_features = {{{"MMX", 1, cpu_register::edx, 23},
+											{"SSE", 1, cpu_register::edx, 25},
+											{"SSE2", 1, cpu_register::edx, 25},
+											{"SSE3", 1, cpu_register::ecx, 0},
+											{"SSE4.1", 1, cpu_register::ecx, 19},
+
+											{"SSE4.2", 1, cpu_register::ecx, 20},
+											{"AES", 1, cpu_register::ecx, 25},
+											{"SHA1", 7, cpu_register::ebx, 29},
+											{"AVX", 1, cpu_register::ecx, 28},
+											{"AVX2", 7, cpu_register::ebx, 5},
+
+											{"AVX512", 7, cpu_register::ebx, 16},
+											{"RDRAND", 1, cpu_register::ecx, 30}}};
+
+	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+
 	export class CPUID
+
 	{
 	private:
 		std::array<u32, 4> regs{0};
@@ -37,7 +63,24 @@ namespace deckard::cpuid
 #endif
 		}
 
-		std::string vendor() noexcept
+		std::string features() const noexcept
+		{
+			std::string ret;
+
+			for (const auto &feature : g_features)
+			{
+				CPUID id(feature.id);
+				if (is_bit_set(id[feature.reg], feature.bit))
+				{
+					ret += feature.name;
+					ret += " ";
+				}
+			}
+			ret[ret.size() - 1] = 0;
+			return ret;
+		}
+
+		std::string vendor() const noexcept
 		{
 			std::string ret;
 			ret.reserve(16);
@@ -53,6 +96,7 @@ namespace deckard::cpuid
 
 		std::string brand() noexcept
 		{
+
 
 			if (CPUID id(0x8000'0000); id.EAX() >= 0x8000'0004)
 			{
