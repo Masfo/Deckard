@@ -112,6 +112,7 @@ set(DECKARD_SRCS
         utils/generator.ixx     # Remove when MSVC has it
         utils/uuid.ixx
         utils/sha2.ixx
+        utils/cpuid.ixx
         
         # Scripting
         scripting/tokenizer.ixx
