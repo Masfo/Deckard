@@ -3,6 +3,7 @@ export module deckard.helpers;
 import std;
 import deckard.types;
 import deckard.assert;
+import deckard.debug;
 
 export namespace deckard
 {
@@ -45,5 +46,29 @@ export namespace deckard
 		std::memcpy(&ret, bytes, sizeof(T));
 		return std::byteswap(ret);
 	}
+
+	class ScopeTimer
+	{
+	public:
+		explicit ScopeTimer(std::string_view scopename)
+		{
+			name = scopename;
+			start();
+		}
+
+		~ScopeTimer() { stop(); }
+
+		void start() { start_time = std::chrono::high_resolution_clock::now(); }
+
+		void stop()
+		{
+			std::chrono::duration<double, std::milli> duration(std::chrono::high_resolution_clock::now() - start_time);
+			dbg::println("{} took {}", name, duration);
+		}
+
+	private:
+		std::string                           name;
+		std::chrono::steady_clock::time_point start_time{};
+	};
 
 } // namespace deckard
