@@ -12,6 +12,17 @@ using namespace std::chrono_literals;
 
 namespace deckard::cpuid
 {
+	enum class Vendor : u32
+	{
+		AMD,
+		Intel,
+		Unknown,
+	};
+
+
+	constexpr u32 CPU_VENDOR_AMD   = 1'752'462'657; // htuA
+	constexpr u32 CPU_VENDOR_INTEL = 1'970'169'159; // uneG
+
 	enum class cpu_register : u32
 	{
 		eax,
@@ -30,9 +41,10 @@ namespace deckard::cpuid
 
 	struct CPU_Info
 	{
-		std::string vendor;
-		std::string brand;
-		std::string features;
+		std::string vendor_string;
+		std::string brand_string;
+		std::string features_string;
+
 
 		u32 speed_in_mhz{0};
 
@@ -48,22 +60,27 @@ namespace deckard::cpuid
 
 		u32 cores{0};
 		u32 threads{0};
+
+		Vendor vendor{Vendor::Unknown};
 	};
 
-	std::array<Features, 12> g_features = {{{"MMX", 1, cpu_register::edx, 23},
-											{"SSE", 1, cpu_register::edx, 25},
-											{"SSE2", 1, cpu_register::edx, 25},
-											{"SSE3", 1, cpu_register::ecx, 0},
-											{"SSE4.1", 1, cpu_register::ecx, 19},
+	std::array<Features, 13> g_features = {{
+		{"MMX", 1, cpu_register::edx, 23},
+		{"SSE", 1, cpu_register::edx, 25},
+		{"SSE2", 1, cpu_register::edx, 25},
+		{"SSE3", 1, cpu_register::ecx, 0},
+		{"SSE4.1", 1, cpu_register::ecx, 19},
 
-											{"SSE4.2", 1, cpu_register::ecx, 20},
-											{"AES", 1, cpu_register::ecx, 25},
-											{"SHA1", 7, cpu_register::ebx, 29},
-											{"AVX", 1, cpu_register::ecx, 28},
-											{"AVX2", 7, cpu_register::ebx, 5},
+		{"SSE4.2", 1, cpu_register::ecx, 20},
+		{"AES", 1, cpu_register::ecx, 25},
+		{"SHA1", 7, cpu_register::ebx, 29},
+		{"AVX", 1, cpu_register::ecx, 28},
+		{"AVX2", 7, cpu_register::ebx, 5},
 
-											{"AVX512", 7, cpu_register::ebx, 16},
-											{"RDRAND", 1, cpu_register::ecx, 30}}};
+		{"AVX512", 7, cpu_register::ebx, 16},
+		{"RDRAND", 1, cpu_register::ecx, 30},
+		//	{"HyperThreading", 1, cpu_register::edx, 28},
+	}};
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
 
@@ -112,7 +129,7 @@ namespace deckard::cpuid
 #endif
 		}
 
-		std::string features() const noexcept
+		std::string feature_string() const noexcept
 		{
 			std::string ret;
 			ret.reserve(64);
@@ -129,7 +146,19 @@ namespace deckard::cpuid
 			return ret.substr(0, ret.size() - 1);
 		}
 
-		std::string vendor() const noexcept
+		Vendor vendor() const noexcept
+		{
+			CPUID id(0);
+			if (id.EBX() == CPU_VENDOR_AMD)
+				return Vendor::AMD;
+
+			if (id.EBX() == CPU_VENDOR_INTEL)
+				return Vendor::Intel;
+
+			return Vendor::Unknown;
+		}
+
+		std::string vendor_string() const noexcept
 		{
 			std::string ret;
 			ret.reserve(16);
@@ -143,7 +172,7 @@ namespace deckard::cpuid
 			return ret;
 		}
 
-		std::string brand() noexcept
+		std::string brand_string() noexcept
 		{
 
 
@@ -181,8 +210,10 @@ namespace deckard::cpuid
 
 		auto core_count() const noexcept -> std::pair<u32, u32>
 		{
-			u32 cores{0};
+			// u32 threads{std::thread::hardware_concurrency()};
 			u32 threads{0};
+			u32 cores{threads};
+
 
 			if (GetProcAddress(GetModuleHandleA("kernel32"), "GetLogicalProcessorInformation") != nullptr)
 			{
@@ -266,10 +297,12 @@ namespace deckard::cpuid
 			i.stepping = FeatureInformationFamily.details.stepping;
 			i.type     = FeatureInformationFamily.details.type;
 
-			i.speed_in_mhz = speed_in_mhz();
-			i.brand        = brand();
-			i.vendor       = vendor();
-			i.features     = features();
+			i.speed_in_mhz    = speed_in_mhz();
+			i.brand_string    = brand_string();
+			i.vendor_string   = vendor_string();
+			i.features_string = feature_string();
+
+			i.vendor = vendor();
 
 			const auto [cores, threads] = core_count();
 			i.cores                     = cores;
@@ -286,7 +319,7 @@ namespace deckard::cpuid
 			ret =
 				std::format("{} ({}MHz)\nCores: {}, Threads {}\nFamily: {:X}, Ext. Family: {:X}\nModel: {:X}, Ext. Model: {:X}\nStepping: "
 							"{:X}\nFeatures: {}",
-							i.brand,
+							i.brand_string,
 							i.speed_in_mhz,
 							i.cores,
 							i.threads,
@@ -295,7 +328,7 @@ namespace deckard::cpuid
 							i.model,
 							i.exmodel,
 							i.stepping,
-							i.features);
+							i.features_string);
 
 			//
 			return ret;
