@@ -66,12 +66,14 @@ namespace deckard::cpuid
 
 	std::array<Features, 13> g_features = {{
 		{"MMX", 1, cpu_register::edx, 23},
+
 		{"SSE", 1, cpu_register::edx, 25},
 		{"SSE2", 1, cpu_register::edx, 25},
 		{"SSE3", 1, cpu_register::ecx, 0},
 		{"SSE4.1", 1, cpu_register::ecx, 19},
-
 		{"SSE4.2", 1, cpu_register::ecx, 20},
+		{"SSE4a", 0x8000'0001, cpu_register::ecx, 6},
+
 		{"AES", 1, cpu_register::ecx, 25},
 		{"SHA1", 7, cpu_register::ebx, 29},
 		{"AVX", 1, cpu_register::ecx, 28},
@@ -83,6 +85,20 @@ namespace deckard::cpuid
 	}};
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+
+	auto cpuid(int id) -> std::array<u32, 4>
+	{
+		std::array<u32, 4> regs{0};
+		__cpuid((int *)regs.data(), id);
+		return regs;
+	}
+
+	auto cpuidex(int id, int leaf) -> std::array<u32, 4>
+	{
+		std::array<u32, 4> regs{0};
+		__cpuidex((int *)regs.data(), id, leaf);
+		return regs;
+	}
 
 	export class CPUID
 	{
@@ -208,13 +224,100 @@ namespace deckard::cpuid
 			return static_cast<u32>(std::round((1000.0 / total_time.count()) * (time_variable / 1'000'000.0)));
 		}
 
-		auto core_count() const noexcept -> std::pair<u32, u32>
+		u32 logical_cores() noexcept
 		{
-			// u32 threads{std::thread::hardware_concurrency()};
+			auto [mfi, ebx, ecx, edx] = cpuid(0);
+
+			switch (vendor())
+			{
+				case Vendor::Intel:
+				{
+					if (mfi < 0xb)
+					{
+						if (mfi < 0)
+							return 0;
+
+						auto [eax1, ebx1, ecx1, edx1] = cpuid(1);
+						u32 logical                   = (ebx1 >> 16) & 0xFF;
+						return logical;
+					}
+
+					auto [_, ebx_intel, __, ___] = cpuidex(0xb, 0);
+					return ebx_intel & 0xFFFF;
+				}
+
+				case Vendor::AMD:
+				{
+					auto [_1, ebx_amd, _2, _3] = cpuid(1);
+					return (ebx_amd >> 16) & 0xFF;
+				}
+
+				default: return 0;
+			}
+			std::unreachable();
+		}
+
+		u32 threads_per_core() noexcept
+		{
+			//
+			auto [mfi, ebx, c, d] = cpuid(0);
+			if (mfi < 0x4)
+				return 1;
+
+			if (mfi < 0xb)
+			{
+				if (vendor() == Vendor::AMD)
+					return 1;
+
+
+				auto [a1, ebx2, _, __] = cpuid(1);
+				if ((d & (1 << 28)) != 0)
+				{
+					u32 v = (ebx2 >> 16) & 0xFF;
+					if (v > 1)
+					{
+						auto [a, __, ___, _____] = cpuid(4);
+						u32 v2                   = (a >> 26) + 1;
+						if (v2 > 0)
+						{
+							return (u32)(v / v2);
+						}
+					}
+				}
+
+				return 1;
+			}
+
+			auto [_2, b2, _3, _4] = cpuidex(0xb, 0);
+			if ((b2 & 0xFFFF) == 0)
+			{
+				if (vendor() == Vendor::AMD)
+				{
+					CPU_Info i             = info();
+					auto [_, __, ___, edx] = cpuid(1);
+					if ((edx & (1 << 28)) != 0 && i.family >= 23)
+						return 2;
+				}
+				return 1;
+			}
+
+			return b2 & 0xFFFF;
+		}
+
+		auto core_count() noexcept -> std::pair<u32, u32>
+		{
 			u32 threads{0};
 			u32 cores{threads};
 
+			u32 tpc = threads_per_core();
+			u32 lc  = logical_cores();
 
+			cores   = lc / tpc;
+			threads = lc;
+
+			return {cores, threads};
+
+#if 0
 			if (GetProcAddress(GetModuleHandleA("kernel32"), "GetLogicalProcessorInformation") != nullptr)
 			{
 				PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer{nullptr};
@@ -229,46 +332,44 @@ namespace deckard::cpuid
 						buffer = static_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(std::malloc(((u64)retlen)));
 
 						if (buffer == nullptr)
-							goto backup;
-					}
-				}
+							return {cores, threads};
 
-				if (GetLogicalProcessorInformation(buffer, &retlen) == TRUE)
-				{
-					ptr              = buffer;
-					DWORD byteOffset = 0;
-
-					while (u64(byteOffset) + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= retlen)
-					{
-						switch (ptr->Relationship)
+						if (GetLogicalProcessorInformation(buffer, &retlen) == TRUE)
 						{
-							case RelationProcessorCore:
-								cores++;
-								threads += std::popcount(ptr->ProcessorMask);
+							ptr              = buffer;
+							DWORD byteOffset = 0;
 
-								break;
+							while (u64(byteOffset) + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= retlen)
+							{
+								switch (ptr->Relationship)
+								{
+									case RelationProcessorCore:
+										cores++;
+										threads += std::popcount(ptr->ProcessorMask);
+										break;
 
-							default: break;
+									default: break;
+								}
+								byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+								ptr++;
+							}
+
+							std::free(buffer);
+							buffer = nullptr;
+							ptr    = nullptr;
 						}
-						byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-						ptr++;
 					}
 				}
-
-				std::free(buffer);
-				buffer = nullptr;
-				ptr    = nullptr;
 			}
 			else
 			{
-			backup:
-				// backup
 				SYSTEM_INFO si{};
 				GetSystemInfo(&si);
 				cores = threads = si.dwNumberOfProcessors;
 			}
 
 			return {cores, threads};
+#endif
 		}
 
 		CPU_Info info() noexcept
