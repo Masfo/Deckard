@@ -212,7 +212,7 @@ int main()
 {
 #ifndef _DEBUG
 	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
-	std::println("deckard {} ({})", DeckardBuild::version_string, DeckardBuild::calver);
+	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
 
 	auto count_colons = [](std::string_view input) -> i32
@@ -276,7 +276,7 @@ int main()
 
 	cpuid::CPUID id;
 	dbg::println("{}", id.as_string());
-
+	return 0;
 
 	dbg::println("4 == {}", longest_zero_run("12340000"));
 	dbg::println("6 == {}", longest_zero_run("120034000012"));

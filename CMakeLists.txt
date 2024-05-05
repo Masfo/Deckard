@@ -92,7 +92,7 @@ set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 set(DECKARD_SRCS
 		deckard.ixx
-         $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx>
+         $<$<CONFIG:Release>:buildnumber.ixx>
 
 		debug/debug.ixx
 		debug/assert.ixx

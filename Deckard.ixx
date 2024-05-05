@@ -37,5 +37,5 @@ export import deckard.archive;
 export import deckard.win32;
 
 #ifndef _DEBUG
-export import DeckardBuild;
+export import deckardBuild;
 #endif
