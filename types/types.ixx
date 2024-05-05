@@ -39,6 +39,10 @@ export namespace deckard
 
 	constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
 
+	constexpr f32 operator"" _f32(const u64 value) noexcept { return static_cast<f32>(value); }
+
+	constexpr f64 operator"" _f64(const u64 value) noexcept { return static_cast<f64>(value); }
+
 	// Sizes
 	using kibi = std::ratio<1ULL << 10>;
 	using mebi = std::ratio<1ULL << 20>;
