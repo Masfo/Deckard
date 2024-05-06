@@ -59,10 +59,10 @@ namespace deckard::system
 	T GetAddress(std::string_view dll, std::string_view apiname, const std::source_location &loc = std::source_location::current()) noexcept
 	{
 		auto library = LoadLibraryA(dll.data());
-		assert::if_true(library != nullptr, std::format("{}({}) Assert: Library '{}' not found.", loc.file_name(), loc.line(), dll));
+		assert::if_true(library != nullptr, std::format("{}({}) library '{}' not found.", loc.file_name(), loc.line(), dll));
 
 		T function = reinterpret_cast<T>(static_cast<void *>(GetProcAddress(library, apiname.data())));
-		assert::if_true(function != nullptr, std::format("{}({}) Assert: Function '{}' not found.", loc.file_name(), loc.line(), apiname));
+		assert::if_true(function != nullptr, std::format("{}({}) function '{}' not found.", loc.file_name(), loc.line(), apiname));
 
 		return function;
 	}
