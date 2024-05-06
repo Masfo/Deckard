@@ -64,22 +64,22 @@ namespace deckard::cpuid
 		Vendor vendor{Vendor::Unknown};
 	};
 
-	std::array<Features, 13> g_features = {{
+	const std::array<Features, 13> g_features = {{
 		{"MMX", 1, cpu_register::edx, 23},
 
 		{"SSE", 1, cpu_register::edx, 25},
-		{"SSE2", 1, cpu_register::edx, 25},
+		{"SSE2", 1, cpu_register::edx, 26},
 		{"SSE3", 1, cpu_register::ecx, 0},
 		{"SSE4.1", 1, cpu_register::ecx, 19},
 		{"SSE4.2", 1, cpu_register::ecx, 20},
 		{"SSE4a", 0x8000'0001, cpu_register::ecx, 6},
 
-		{"AES", 1, cpu_register::ecx, 25},
-		{"SHA1", 7, cpu_register::ebx, 29},
 		{"AVX", 1, cpu_register::ecx, 28},
 		{"AVX2", 7, cpu_register::ebx, 5},
-
 		{"AVX512", 7, cpu_register::ebx, 16},
+
+		{"SHA1", 7, cpu_register::ebx, 29},
+		{"AES", 1, cpu_register::ecx, 25},
 		{"RDRAND", 1, cpu_register::ecx, 30},
 		//	{"HyperThreading", 1, cpu_register::edx, 28},
 	}};
@@ -259,6 +259,7 @@ namespace deckard::cpuid
 
 		u32 threads_per_core() noexcept
 		{
+
 			//
 			auto [mfi, ebx, c, d] = cpuid(0);
 			if (mfi < 0x4)
@@ -301,7 +302,15 @@ namespace deckard::cpuid
 				return 1;
 			}
 
-			return b2 & 0xFFFF;
+			u32 tpc = b2 & 0xFFFF;
+
+			auto [eax, __2, ecx, edx] = cpuid(1);
+
+			u32 HTT = 0;
+			HTT     = (((edx & (1 << 28)) != 0) and (mfi >= 4)) && tpc > 1;
+
+
+			return tpc;
 		}
 
 		auto core_count() noexcept -> std::pair<u32, u32>
@@ -312,7 +321,7 @@ namespace deckard::cpuid
 			u32 tpc = threads_per_core();
 			u32 lc  = logical_cores();
 
-			cores   = lc / tpc;
+			cores   = (lc / tpc == 0) ? lc : lc / tpc;
 			threads = lc;
 
 			return {cores, threads};
