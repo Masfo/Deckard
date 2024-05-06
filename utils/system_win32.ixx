@@ -9,6 +9,13 @@ import deckard.types;
 import deckard.assert;
 import deckard.debug;
 
+extern "C"
+{
+	// Hints for higher performance (choose discrete GPU by default)
+	_declspec(dllexport) DWORD NvOptimusEnablement                  = 0x0000'0001;
+	_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x0000'0001;
+}
+
 namespace deckard::system
 {
 
@@ -17,7 +24,7 @@ namespace deckard::system
 		std::string ret;
 
 		HKEY hKey{};
-		auto dwError = RegOpenKeyExA(HKEY_LOCAL_MACHINE, key.data(), 0u, (REGSAM)KEY_READ | KEY_WOW64_64KEY, &hKey);
+		auto dwError = RegOpenKeyExA(HKEY_LOCAL_MACHINE, key.data(), 0u, (REGSAM)(KEY_READ | KEY_WOW64_64KEY), &hKey);
 		if (dwError != ERROR_SUCCESS)
 			return "";
 
@@ -67,7 +74,7 @@ namespace deckard::system
 		return function;
 	}
 
-	export std::string GetOSVersion() noexcept
+	export std::string GetOS() noexcept
 	{
 
 		static constexpr std::string_view key = R"(SOFTWARE\Microsoft\Windows NT\CurrentVersion)";
@@ -78,7 +85,7 @@ namespace deckard::system
 		auto CurrentBuild   = GetLocalRegistryValue(key, "CurrentBuild");
 		auto UBR            = GetLocalRegistryValue(key, "UBR");
 
-		if (ProductName.empty() && ReleaseId.empty() && CurrentBuild.empty() && UBR.empty())
+		if (ProductName.empty() or ReleaseId.empty() or CurrentBuild.empty() or UBR.empty())
 			return "Windows";
 
 		return std::format(
@@ -95,7 +102,7 @@ namespace deckard::system
 		return as<u64>(status.ullTotalPhys / R::num);
 	}
 
-	export std::string GPUString() noexcept
+	export std::string GetGPU() noexcept
 	{
 		using D3DCREATETYPE = LPDIRECT3D9(unsigned int);
 		LPDIRECT3D9            lpD3D9{nullptr};
