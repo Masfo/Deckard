@@ -16,6 +16,15 @@ requires std::is_integral_v<Type>
 [[nodiscard("You are not using your hash digest.")]] class generic_sha2_digest final
 {
 public:
+	generic_sha2_digest() = default;
+
+	generic_sha2_digest(const std::initializer_list<Type> &digits)
+	{
+		assert::if_true(digits.size() == binary.size(), "Initializer-list must be same size");
+
+		std::copy(digits.begin(), digits.end(), binary.begin());
+	};
+
 	[[nodiscard("You are not using your hash digest string.")]] std::string
 	to_string(const Uppercase uppercase = Uppercase::No) const noexcept
 	{
@@ -34,7 +43,7 @@ public:
 
 	bool operator==(const generic_sha2_digest<Type> &that) const noexcept { return binary == that.binary; }
 
-	std::array<Type, 8> binary;
+	std::array<Type, 8> binary{0};
 };
 
 namespace deckard::sha256

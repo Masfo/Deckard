@@ -6,12 +6,28 @@ import std;
 
 using namespace deckard;
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 
-TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256]")
+TEST_CASE("SHA digests", "[sha]")
+{
+	//
+	sha256::digest correct_abc_digest{
+		0xba78'16bf, 0x8f01'cfea, 0x4141'40de, 0x5dae'2223, 0xb003'61a3, 0x9617'7a9c, 0xb410'ff61, 0xf200'15ad};
+
+	sha256::digest copy = correct_abc_digest;
+
+	sha256::hasher h;
+	h.update("abc"sv);
+	auto abc_digest = h.finalize();
+
+	REQUIRE(abc_digest == correct_abc_digest);
+	REQUIRE(copy == abc_digest);
+}
+
+TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")
 {
 	SECTION("empty")
-	{
-		//
+	{ //
 		REQUIRE(sha256::quickhash("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"s);
 	}
 
@@ -41,7 +57,7 @@ TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256]")
 	}
 }
 
-TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512]")
+TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
 {
 	SECTION("empty")
 	{
