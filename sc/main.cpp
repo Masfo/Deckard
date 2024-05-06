@@ -12,6 +12,7 @@ import scbuild;
 using namespace std::string_view_literals;
 using namespace deckard;
 using namespace deckard::utils;
+using namespace deckard::system;
 
 
 enum class ConvertEpoch : u64
@@ -276,6 +277,12 @@ int main()
 
 	cpuid::CPUID id;
 	dbg::println("{}", id.as_string());
+	dbg::println("{}", system::GPUString());
+
+	dbg::println("RAM: {} GiB", system::GetRAM());
+
+
+	dbg::println("OS: {}", system::GetOSVersion());
 
 	dbg::println("4 == {}", longest_zero_run("12340000"));
 	dbg::println("6 == {}", longest_zero_run("120034000012"));

@@ -22,6 +22,7 @@ export import deckard.scope_exit;
 export import deckard.uuid;
 export import deckard.sha2;
 export import deckard.cpuid;
+export import deckard.system;
 
 // Graph
 export import deckard.graph;

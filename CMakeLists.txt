@@ -113,6 +113,8 @@ set(DECKARD_SRCS
         utils/uuid.ixx
         utils/sha2.ixx
         utils/cpuid.ixx
+        $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
+        
         
         # Scripting
         scripting/tokenizer.ixx
