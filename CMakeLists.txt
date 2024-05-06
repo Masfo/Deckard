@@ -138,9 +138,7 @@ target_sources(deckard
     FILE_SET CXX_MODULES 
 	FILES ${DECKARD_SRCS}
 )
- #find_package(unofficial-sqlite3 CONFIG REQUIRED)
  find_package(SQLite3 REQUIRED)
- #target_link_libraries(deckard PRIVATE unofficial::sqlite3::sqlite3)
  target_link_libraries(deckard PRIVATE SQLite::SQLite3)
 
 
