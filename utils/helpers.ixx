@@ -29,29 +29,24 @@ export namespace deckard
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
 
-	export template<std::ranges::random_access_range Container>
-	auto to_bytes(const Container &data) -> std::vector<u8>
-	{
-		std::vector<u8> output;
-		output.reserve(sizeof(*data.begin()) * data.size());
-
-		for (auto it = data.begin(); it != data.end(); ++it)
-		{
-			for (int i = sizeof(*it) - 1; i >= 0; --i)
-			{
-				u8 byte = static_cast<u8>(*it >> (i * 8));
-				output.emplace_back(byte);
-			}
-		}
-		return output;
-	}
-
 	export template<typename T, typename U>
 	T load_bigendian(U const bytes)
 	{
 		T ret{};
 		std::memcpy(&ret, bytes, sizeof(T));
 		return std::byteswap(ret);
+	}
+
+	template<typename T>
+	auto as_bytes(T data)
+	{
+		return std::as_bytes(std::span{data});
+	}
+
+	template<typename T>
+	auto as_writable_bytes(T data)
+	{
+		return std::as_writable_bytes(std::span{data});
 	}
 
 	//
