@@ -245,9 +245,9 @@ namespace deckard::cpuid
 			return static_cast<u32>(std::round((1000.0 / total_time.count()) * (time_variable / 1'000'000.0)));
 		}
 
-		[[deprecated("On Intel does not work")]]u32 logical_cores() noexcept
+		[[deprecated("On Intel does not work")]] u32 logical_cores() noexcept
 		{
-			auto [mfi, ebx, ecx, edx] = cpuid(0);
+			auto [mfi, _, __, ___] = cpuid(0);
 
 			switch (vendor())
 			{
@@ -258,18 +258,18 @@ namespace deckard::cpuid
 						if (mfi < 0)
 							return 0;
 
-						auto [eax1, ebx1, ecx1, edx1] = cpuid(1);
-						u32 logical                   = (ebx1 >> 16) & 0xFF;
+						auto [_1, ebx, __1, ___1] = cpuid(1);
+						u32 logical               = (ebx >> 16) & 0xFF;
 						return logical;
 					}
 
-					auto [_, ebx_intel, __, ___] = cpuidex(0xb, 0);
+					auto [_2, ebx_intel, __2, ___2] = cpuidex(0xb, 0);
 					return ebx_intel & 0xFFFF;
 				}
 
 				case Vendor::AMD:
 				{
-					auto [_1, ebx_amd, _2, _3] = cpuid(1);
+					auto [_3, ebx_amd, __3, ___3] = cpuid(1);
 					return (ebx_amd >> 16) & 0xFF;
 				}
 
@@ -282,7 +282,7 @@ namespace deckard::cpuid
 		{
 
 			//
-			auto [mfi, ebx, c, d] = cpuid(0);
+			auto [mfi, _1, __1, edx] = cpuid(0);
 			if (mfi < 0x4)
 				return 1;
 
@@ -292,14 +292,14 @@ namespace deckard::cpuid
 					return 1;
 
 
-				auto [a1, ebx2, _, __] = cpuid(1);
-				if ((d & (1 << 28)) != 0)
+				auto [_2, ebx, __2, ___2] = cpuid(1);
+				if ((edx & (1 << 28)) != 0)
 				{
-					u32 v = (ebx2 >> 16) & 0xFF;
+					u32 v = (ebx >> 16) & 0xFF;
 					if (v > 1)
 					{
-						auto [a, __, ___, _____] = cpuid(4);
-						u32 v2                   = (a >> 26) + 1;
+						auto [eax, _3, __3, ___3] = cpuid(4);
+						u32 v2                    = (eax >> 26) + 1;
 						if (v2 > 0)
 						{
 							return (u32)(v / v2);
@@ -310,25 +310,25 @@ namespace deckard::cpuid
 				return 1;
 			}
 
-			auto [_2, b2, _3, _4] = cpuidex(0xb, 0);
-			if ((b2 & 0xFFFF) == 0)
+			auto [_4, ebx, __4, ___4] = cpuidex(0xb, 0);
+			if ((ebx & 0xFFFF) == 0)
 			{
 				if (vendor() == Vendor::AMD)
 				{
-					CPU_Info i             = info();
-					auto [_, __, ___, edx] = cpuid(1);
-					if ((edx & (1 << 28)) != 0 && i.family >= 23)
+					CPU_Info i                    = info();
+					auto [_5, __5, ___5, edx_amd] = cpuid(1);
+					if ((edx_amd & (1 << 28)) != 0 && i.family >= 23)
 						return 2;
 				}
 				return 1;
 			}
 
-			u32 tpc = b2 & 0xFFFF;
+			u32 tpc = ebx & 0xFFFF;
 
-			auto [eax, __2, ecx, edx] = cpuid(1);
+			auto [_6, __6, ___6, edx2] = cpuid(1);
 
 			u32 HTT = 0;
-			HTT     = (((edx & (1 << 28)) != 0) and (mfi >= 4)) && tpc > 1;
+			HTT     = (((edx2 & (1 << 28)) != 0) and (mfi >= 4)) && tpc > 1;
 
 			return tpc;
 		}
