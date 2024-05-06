@@ -245,7 +245,7 @@ namespace deckard::cpuid
 			return static_cast<u32>(std::round((1000.0 / total_time.count()) * (time_variable / 1'000'000.0)));
 		}
 
-		u32 logical_cores() noexcept
+		[[deprecated("On Intel does not work")]]u32 logical_cores() noexcept
 		{
 			auto [mfi, ebx, ecx, edx] = cpuid(0);
 
@@ -278,7 +278,7 @@ namespace deckard::cpuid
 			std::unreachable();
 		}
 
-		u32 threads_per_core() noexcept
+		[[deprecated("On Intel does not work")]] u32 threads_per_core() noexcept
 		{
 
 			//
@@ -338,15 +338,14 @@ namespace deckard::cpuid
 			u32 threads{0};
 			u32 cores{threads};
 
-			u32 tpc = threads_per_core();
-			u32 lc  = logical_cores();
+			// u32 tpc = threads_per_core();
+			// u32 lc  = logical_cores();
+			//
+			// cores   = (lc / tpc == 0) ? lc : lc / tpc;
+			// threads = lc;
+			//
+			// return {cores, threads};
 
-			cores   = (lc / tpc == 0) ? lc : lc / tpc;
-			threads = lc;
-
-			return {cores, threads};
-
-#if 0
 			if (GetProcAddress(GetModuleHandleA("kernel32"), "GetLogicalProcessorInformation") != nullptr)
 			{
 				PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer{nullptr};
@@ -361,7 +360,7 @@ namespace deckard::cpuid
 						buffer = static_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(std::malloc(((u64)retlen)));
 
 						if (buffer == nullptr)
-							return {cores, threads};
+							goto backup_method;
 
 						if (GetLogicalProcessorInformation(buffer, &retlen) == TRUE)
 						{
@@ -392,13 +391,13 @@ namespace deckard::cpuid
 			}
 			else
 			{
+			backup_method:
 				SYSTEM_INFO si{};
 				GetSystemInfo(&si);
 				cores = threads = si.dwNumberOfProcessors;
 			}
 
 			return {cores, threads};
-#endif
 		}
 
 		CPU_Info info() noexcept
