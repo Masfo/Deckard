@@ -20,9 +20,6 @@ namespace deckard::cpuid
 	};
 
 
-	constexpr u32 CPU_VENDOR_AMD   = 1'752'462'657; // htuA
-	constexpr u32 CPU_VENDOR_INTEL = 1'970'169'159; // uneG
-
 	enum class cpu_register : u32
 	{
 		eax,
@@ -83,8 +80,6 @@ namespace deckard::cpuid
 		{"RDRAND", 1, cpu_register::ecx, 30},
 		//	{"HyperThreading", 1, cpu_register::edx, 28},
 	}};
-
-	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
 
 	auto cpuid(int id) -> std::array<u32, 4>
 	{
@@ -165,10 +160,13 @@ namespace deckard::cpuid
 		Vendor vendor() const noexcept
 		{
 			CPUID id(0);
-			if (id.EBX() == CPU_VENDOR_AMD)
+
+			// AuthenticAMD
+			if ((id.EBX() == 0x6874'7541) && (id.ECX() == 0x444D'4163) && (id.EDX() == 0x6974'6E65))
 				return Vendor::AMD;
 
-			if (id.EBX() == CPU_VENDOR_INTEL)
+			// GenuineIntel
+			if ((id.EBX() == 0x756E'6547) && (id.ECX() == 0x6C65'746E) && (id.EDX() == 0x4965'6E69))
 				return Vendor::Intel;
 
 			return Vendor::Unknown;

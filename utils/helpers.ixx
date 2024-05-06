@@ -47,6 +47,10 @@ export namespace deckard
 		return std::byteswap(ret);
 	}
 
+	//
+	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+
+	// ScopeTimer
 	class ScopeTimer
 	{
 	public:
