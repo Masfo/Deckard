@@ -50,6 +50,8 @@ export namespace deckard
 	//
 	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
 
+	auto clock_now() noexcept { return std::chrono::high_resolution_clock::now(); }
+
 	// ScopeTimer
 	class ScopeTimer
 	{
@@ -62,11 +64,11 @@ export namespace deckard
 
 		~ScopeTimer() { stop(); }
 
-		void start() { start_time = std::chrono::high_resolution_clock::now(); }
+		void start() { start_time = clock_now(); }
 
 		void stop()
 		{
-			std::chrono::duration<double, std::milli> duration(std::chrono::high_resolution_clock::now() - start_time);
+			std::chrono::duration<double, std::milli> duration(clock_now() - start_time);
 			dbg::println("{} took {}", name, duration);
 		}
 
