@@ -29,8 +29,6 @@ export namespace deckard
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
 
-
-
 	export template<std::integral T, typename U>
 	T load_as(U const bytes)
 	{
@@ -39,8 +37,8 @@ export namespace deckard
 		return ret;
 	}
 
-		export template<std::integral T, typename U>
-	T load_as_bigendian(U const bytes)
+	export template<std::integral T, typename U>
+	T load_as_be(U const bytes)
 	{
 		T ret{};
 		std::memcpy(&ret, bytes, sizeof(T));
