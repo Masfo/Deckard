@@ -29,11 +29,19 @@ export namespace deckard
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
 
+
+	template<typename T>
+	concept HasDataMember = requires(T obj) { obj.data(); };
+
 	export template<std::integral T, typename U>
 	T load_as(U const bytes)
 	{
 		T ret{};
-		std::memcpy(&ret, bytes, sizeof(T));
+		if constexpr (HasDataMember<U>)
+			std::memcpy(&ret, bytes.data(), sizeof(T));
+		else
+			std::memcpy(&ret, bytes, sizeof(T));
+
 		return ret;
 	}
 
@@ -41,7 +49,10 @@ export namespace deckard
 	T load_as_be(U const bytes)
 	{
 		T ret{};
-		std::memcpy(&ret, bytes, sizeof(T));
+		if constexpr (HasDataMember<U>)
+			std::memcpy(&ret, bytes.data(), sizeof(T));
+		else
+			std::memcpy(&ret, bytes, sizeof(T));
 		return std::byteswap(ret);
 	}
 
