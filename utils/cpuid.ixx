@@ -61,7 +61,25 @@ namespace deckard::cpuid
 		Vendor vendor{Vendor::Unknown};
 	};
 
-	const std::array<Features, 13> g_features = {{
+	enum class Feature : u32
+	{
+		MMX = 0,
+		SSE,
+		SSE2,
+		SSE3,
+		SSE41,
+		SSE42,
+		SSE4a,
+		AVX,
+		AVX2,
+		AVX512,
+		SHA1,
+		AES,
+		RDRAND,
+		RDSEED,
+	};
+
+	const std::array<Features, 14> g_features = {{
 		{"MMX", 1, cpu_register::edx, 23},
 
 		{"SSE", 1, cpu_register::edx, 25},
@@ -77,7 +95,10 @@ namespace deckard::cpuid
 
 		{"SHA1", 7, cpu_register::ebx, 29},
 		{"AES", 1, cpu_register::ecx, 25},
+
 		{"RDRAND", 1, cpu_register::ecx, 30},
+		{"RDSEED", 7, cpu_register::ebx, 18},
+
 		//	{"HyperThreading", 1, cpu_register::edx, 28},
 	}};
 
@@ -133,6 +154,14 @@ namespace deckard::cpuid
 		explicit CPUID(unsigned id) { read(id); }
 
 		void read(unsigned id) { regs = cpuid(id); }
+
+		bool has(Feature f) const noexcept
+		{
+			const auto &feature = g_features[std::to_underlying(f)];
+			CPUID       id(feature.id);
+
+			return is_bit_set(id[feature.reg], feature.bit);
+		}
 
 		std::string feature_string() const noexcept
 		{
@@ -415,6 +444,7 @@ namespace deckard::cpuid
 
 		std::string as_string() noexcept
 		{
+
 			CPU_Info    i = info();
 			std::string ret;
 			ret.reserve(256);
