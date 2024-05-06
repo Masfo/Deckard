@@ -23,6 +23,8 @@ export namespace deckard
 	using f32 = float;
 	using f64 = double;
 
+	constexpr std::byte operator"" _byte(const u64 value) noexcept { return static_cast<std::byte>(value & 0xFF); }
+
 	constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
 
 	constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
