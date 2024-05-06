@@ -73,7 +73,7 @@ namespace deckard::cpuid
 		AVX,
 		AVX2,
 		AVX512,
-		SHA1,
+		SHA,
 		AES,
 		RDRAND,
 		RDSEED,
@@ -93,7 +93,7 @@ namespace deckard::cpuid
 		{"AVX2", 7, cpu_register::ebx, 5},
 		{"AVX512", 7, cpu_register::ebx, 16},
 
-		{"SHA1", 7, cpu_register::ebx, 29},
+		{"SHA", 7, cpu_register::ebx, 29},
 		{"AES", 1, cpu_register::ecx, 25},
 
 		{"RDRAND", 1, cpu_register::ecx, 30},
@@ -329,7 +329,6 @@ namespace deckard::cpuid
 
 			u32 HTT = 0;
 			HTT     = (((edx & (1 << 28)) != 0) and (mfi >= 4)) && tpc > 1;
-
 
 			return tpc;
 		}
