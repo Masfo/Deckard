@@ -48,12 +48,7 @@ export namespace deckard
 	export template<std::integral T, typename U>
 	T load_as_be(U const bytes)
 	{
-		T ret{};
-		if constexpr (HasDataMember<U>)
-			std::memcpy(&ret, bytes.data(), sizeof(T));
-		else
-			std::memcpy(&ret, bytes, sizeof(T));
-		return std::byteswap(ret);
+		return std::byteswap(load_as<T>(bytes));
 	}
 
 	//
