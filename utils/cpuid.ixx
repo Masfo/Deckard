@@ -77,9 +77,11 @@ namespace deckard::cpuid
 		AES,
 		RDRAND,
 		RDSEED,
+
+		MAX_FEATURE
 	};
 
-	const std::array<Features, 14> g_features = {{
+	const std::array<Features, std::to_underlying(Feature::MAX_FEATURE)> g_features = {{
 		{"MMX", 1, cpu_register::edx, 23},
 
 		{"SSE", 1, cpu_register::edx, 25},
@@ -99,7 +101,7 @@ namespace deckard::cpuid
 		{"RDRAND", 1, cpu_register::ecx, 30},
 		{"RDSEED", 7, cpu_register::ebx, 18},
 
-		//	{"HyperThreading", 1, cpu_register::edx, 28},
+		//{"HTT", 1, cpu_register::edx, 28},
 	}};
 
 	auto cpuid(int id) -> std::array<u32, 4>
@@ -339,12 +341,12 @@ namespace deckard::cpuid
 			u32 cores{threads};
 
 			// u32 tpc = threads_per_core();
-			// u32 lc  = logical_cores();
+			//  u32 lc  = logical_cores();
 			//
-			// cores   = (lc / tpc == 0) ? lc : lc / tpc;
-			// threads = lc;
+			//  cores   = (lc / tpc == 0) ? lc : lc / tpc;
+			//  threads = lc;
 			//
-			// return {cores, threads};
+			//  return {cores, threads};
 
 			if (GetProcAddress(GetModuleHandleA("kernel32"), "GetLogicalProcessorInformation") != nullptr)
 			{
