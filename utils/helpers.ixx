@@ -29,14 +29,21 @@ export namespace deckard
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
 
-	// to hex
-	inline void to_hex(const std::span<u8> &input, std::span<u8> &output, char delimiter = ' ')
+	export template<std::ranges::random_access_range Container>
+	auto to_bytes(const Container &data) -> std::vector<u8>
 	{
-		//
-		constexpr char dict[32 + 1]{"0123456789abcdef0123456789ABCDEF"};
+		std::vector<u8> output;
+		output.reserve(sizeof(*data.begin()) * data.size());
 
-		// 61 61 61 61
-		assert::if_true(output.size() >= (input.size() * 2 + input.size() - 1), "Not enough space in output buffer");
+		for (auto it = data.begin(); it != data.end(); ++it)
+		{
+			for (int i = sizeof(*it) - 1; i >= 0; --i)
+			{
+				u8 byte = static_cast<u8>(*it >> (i * 8));
+				output.emplace_back(byte);
+			}
+		}
+		return output;
 	}
 
 	export template<typename T, typename U>
@@ -76,5 +83,25 @@ export namespace deckard
 		std::string                           name;
 		std::chrono::steady_clock::time_point start_time{};
 	};
+
+	// Prettys
+	std::string PrettyBytes(u64 bytes) noexcept
+	{
+
+		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
+
+		auto count = static_cast<f64>(bytes);
+		u64  suffix{0};
+
+		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
+		{
+			suffix++;
+			count /= static_cast<f64>(1_KiB);
+		}
+
+		if (std::fabs(count - std::floor(count)) == 0.0)
+			return std::format("{} {}", static_cast<u64>(count), unit[suffix]);
+		return std::format("{:.2f} {}", count, unit[suffix]);
+	}
 
 } // namespace deckard
