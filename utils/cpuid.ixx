@@ -132,13 +132,7 @@ namespace deckard::cpuid
 
 		explicit CPUID(unsigned id) { read(id); }
 
-		void read(unsigned id)
-		{
-			regs.fill(0);
-#if defined(_MSC_VER)
-			__cpuid((int *)regs.data(), (int)id);
-#endif
-		}
+		void read(unsigned id) { regs = cpuid(id); }
 
 		std::string feature_string() const noexcept
 		{
