@@ -276,7 +276,6 @@ int main()
 
 	cpuid::CPUID id;
 	dbg::println("{}", id.as_string());
-	return 0;
 
 	dbg::println("4 == {}", longest_zero_run("12340000"));
 	dbg::println("6 == {}", longest_zero_run("120034000012"));

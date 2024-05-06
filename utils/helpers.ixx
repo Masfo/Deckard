@@ -64,9 +64,9 @@ export namespace deckard
 
 		~ScopeTimer() { stop(); }
 
-		void start() { start_time = clock_now(); }
+		void start() noexcept { start_time = clock_now(); }
 
-		void stop()
+		void stop() noexcept
 		{
 			std::chrono::duration<double, std::milli> duration(clock_now() - start_time);
 			dbg::println("{} took {}", name, duration);
