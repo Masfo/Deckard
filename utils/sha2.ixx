@@ -119,7 +119,7 @@ namespace deckard::sha256
 
 			// copy chunk into first 16 words w[0..15] of the message schedule array
 			for (u32 i = 0, j = 0; i < 16; i++, j += 4)
-				w[i] = load_bigendian<u32>(&m_block[j]);
+				w[i] = load_as_bigendian<u32>(&m_block[j]);
 
 			for (u32 i = 16; i < ROUNDS; i++)
 			{
@@ -298,7 +298,7 @@ namespace deckard::sha512
 
 			// copy chunk into first 16 words w[0..15] of the message schedule array
 			for (u64 i = 0, j = 0; i < 16; i++, j += 8)
-				w[i] = load_bigendian<u64>(&m_block[j]);
+				w[i] = load_as_bigendian<u64>(&m_block[j]);
 
 
 			// Initialize working variables to current hash value

@@ -29,24 +29,22 @@ export namespace deckard
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
 
-	export template<typename T, typename U>
-	T load_bigendian(U const bytes)
+
+
+	export template<std::integral T, typename U>
+	T load_as(U const bytes)
+	{
+		T ret{};
+		std::memcpy(&ret, bytes, sizeof(T));
+		return ret;
+	}
+
+		export template<std::integral T, typename U>
+	T load_as_bigendian(U const bytes)
 	{
 		T ret{};
 		std::memcpy(&ret, bytes, sizeof(T));
 		return std::byteswap(ret);
-	}
-
-	template<typename T>
-	auto as_bytes(T data)
-	{
-		return std::as_bytes(std::span{data});
-	}
-
-	template<typename T>
-	auto as_writable_bytes(T data)
-	{
-		return std::as_writable_bytes(std::span{data});
 	}
 
 	//
@@ -82,7 +80,6 @@ export namespace deckard
 	// Prettys
 	std::string PrettyBytes(u64 bytes) noexcept
 	{
-
 		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
 
 		auto count = static_cast<f64>(bytes);
