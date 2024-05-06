@@ -5,9 +5,11 @@ module;
 export module deckard.system;
 
 import std;
+import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.debug;
+import deckard.helpers;
 
 extern "C"
 {
@@ -92,15 +94,16 @@ namespace deckard::system
 			"Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
 	}
 
-	export template<typename R = gibi>
-	u64 GetRAM() noexcept
+	export u64 GetRAM() noexcept
 	{
 		MEMORYSTATUSEX status{};
 		status.dwLength = sizeof(status);
 		GlobalMemoryStatusEx(&status);
 
-		return as<u64>(status.ullTotalPhys / R::num);
+		return as<u64>(status.ullTotalPhys);
 	}
+
+	export std::string GetRAMString() noexcept { return PrettyBytes(system::GetRAM()); }
 
 	export std::string GetGPU() noexcept
 	{

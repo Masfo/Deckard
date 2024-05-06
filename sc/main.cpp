@@ -3,6 +3,7 @@
 
 import deckard;
 import deckard.types;
+import deckard.helpers;
 import std;
 
 #ifndef _DEBUG
@@ -216,6 +217,15 @@ int main()
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
 
+	std::vector<u16> adata;
+	adata.push_back(0x1122);
+
+
+	auto bbs = to_bytes(adata);
+
+
+	int j = 0;
+
 	auto count_colons = [](std::string_view input) -> i32
 	{
 		i32 colons{0};
@@ -279,7 +289,7 @@ int main()
 	dbg::println("{}", id.as_string());
 	dbg::println("{}", system::GetGPU());
 
-	dbg::println("RAM: {} GiB", system::GetRAM());
+	dbg::println("RAM: {}", system::GetRAMString());
 
 
 	dbg::println("OS: {}", system::GetOS());
