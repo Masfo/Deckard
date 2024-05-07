@@ -112,7 +112,7 @@ namespace deckard::sha256
 
 		u32 sig1(u32 x) noexcept { return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10); }
 
-		void transform() // Process the message in successive 512-bit chunks
+		void transform() noexcept // Process the message in successive 512-bit chunks
 		{
 			u32                maj{}, S0{}, ch{}, S1{}, temp1{}, temp2{}, w[ROUNDS]{0};
 			std::array<u32, 8> state;
