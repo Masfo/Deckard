@@ -217,11 +217,23 @@ int main()
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
 
-	std::vector<u16> adata;
-	adata.push_back(0x1122);
+	std::vector<u32> adata;
+	adata.push_back(0x1122'3344);
+	adata.push_back(0x5566'7788);
 
 
-	auto bbs = to_bytes(adata);
+	auto bbs2 = std::as_bytes(std::span{adata});
+	auto bbs3 = std::as_writable_bytes(std::span{adata});
+
+	auto header = std::as_bytes(std::span{bbs3.first(4)});
+	u64  hhe    = load_as<u32>(header);
+	u64  hhe2   = load_as<u32>(header.data());
+
+	// load_as<char, 16>(header); //
+	// subspan => string
+
+
+	bbs3[5] = 0xFF_byte;
 
 
 	int j = 0;
