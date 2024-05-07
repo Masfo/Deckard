@@ -1,6 +1,7 @@
 module;
 #include <Windows.h>
 #include <d3d9.h>
+#include <dxgi1_4.h>
 
 export module deckard.system;
 
@@ -10,6 +11,8 @@ import deckard.types;
 import deckard.assert;
 import deckard.debug;
 import deckard.helpers;
+import deckard.helpertypes;
+import deckard.win32;
 
 extern "C"
 {
@@ -68,10 +71,18 @@ namespace deckard::system
 	T GetAddress(std::string_view dll, std::string_view apiname, const std::source_location &loc = std::source_location::current()) noexcept
 	{
 		auto library = LoadLibraryA(dll.data());
-		assert::if_true(library != nullptr, std::format("{}({}) library '{}' not found.", loc.file_name(), loc.line(), dll));
+		if (not library)
+		{
+			dbg::println("{}({}) library '{}' not found.", loc.file_name(), loc.line(), dll);
+			return nullptr;
+		}
 
-		T function = reinterpret_cast<T>(static_cast<void *>(GetProcAddress(library, apiname.data())));
-		assert::if_true(function != nullptr, std::format("{}({}) function '{}' not found.", loc.file_name(), loc.line(), apiname));
+		T function = std::bit_cast<T>(GetProcAddress(library, apiname.data()));
+		if (not function)
+		{
+			dbg::println("{}({}) function '{}' not found.", loc.file_name(), loc.line(), apiname);
+			return nullptr;
+		}
 
 		return function;
 	}
@@ -107,11 +118,53 @@ namespace deckard::system
 
 	export std::string GetGPU() noexcept
 	{
+		std::string                    result{"Unknown"};
+		std::unique_ptr<IDXGIFactory4> factory{};
+
+		CreateDXGIFactory1(__uuidof(IDXGIFactory3), (void **)&factory);
+
+		std::unique_ptr<IDXGIAdapter3> adapter;
+		factory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter **>(&adapter));
+
+		DXGI_ADAPTER_DESC1 desc{0};
+		adapter->GetDesc1(&desc);
+
+		adapter->Release();
+		adapter.release();
+
+		factory->Release();
+		factory.release();
+
+		result = std::format("GPU: {}, {}", from_wide(desc.Description), PrettyBytes(desc.DedicatedVideoMemory));
+		return result;
+
+		// NVML
+		// using NVLInit          = void *();
+		// using NVLShutdown      = void *();
+		// using NVLDriverVersion = void *(char *, unsigned);
+		//
+		//
+		// auto nvl_init          = system::GetAddress<NVLInit *>("nvml.dll", "nvmlInit");
+		// auto nvl_shutdown      = system::GetAddress<NVLShutdown *>("nvml.dll", "nvmlShutdown");
+		// auto nvl_driverversion = system::GetAddress<NVLDriverVersion *>("nvml.dll", "nvmlSystemGetDriverVersion");
+		//
+		// if (nvl_init != nullptr && nvl_shutdown != nullptr && nvl_driverversion != nullptr)
+		//{
+		//
+		//	nvl_init();
+		//	char buffer[81]{0};
+		//	nvl_driverversion(buffer, sizeof(buffer));
+		//	nvl_shutdown();
+		//	dbg::println("NVidia Driver version: {}", buffer);
+		//}
+
+		/*
+
 		using D3DCREATETYPE = LPDIRECT3D9(unsigned int);
 		LPDIRECT3D9            lpD3D9{nullptr};
 		D3DADAPTER_IDENTIFIER9 id{0};
-		std::string            result{"Unknown"};
 		auto                   Direct3DCreate9 = system::GetAddress<D3DCREATETYPE *>("d3d9.dll", "Direct3DCreate9");
+
 		if (Direct3DCreate9 == nullptr)
 			return result;
 
@@ -134,6 +187,7 @@ namespace deckard::system
 				"{}, v{}.{}.{}.{} {}", id.Description, driver_product, driver_version, driver_subversion, driver_build, id.Driver);
 		}
 		return result;
+		*/
 	}
 
 
