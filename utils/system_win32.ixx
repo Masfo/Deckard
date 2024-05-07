@@ -67,26 +67,6 @@ namespace deckard::system
 		return "";
 	}
 
-	template<typename T>
-	T GetAddress(std::string_view dll, std::string_view apiname, const std::source_location &loc = std::source_location::current()) noexcept
-	{
-		auto library = LoadLibraryA(dll.data());
-		if (not library)
-		{
-			dbg::println("{}({}) library '{}' not found.", loc.file_name(), loc.line(), dll);
-			return nullptr;
-		}
-
-		T function = std::bit_cast<T>(GetProcAddress(library, apiname.data()));
-		if (not function)
-		{
-			dbg::println("{}({}) function '{}' not found.", loc.file_name(), loc.line(), apiname);
-			return nullptr;
-		}
-
-		return function;
-	}
-
 	export std::string GetOS() noexcept
 	{
 

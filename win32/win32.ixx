@@ -8,28 +8,32 @@ import std;
 import deckard.as;
 import deckard.assert;
 import deckard.types;
+import deckard.debug;
 
 namespace deckard
 {
 	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept;
 
-	export template<typename T>
+	template<typename T>
 	requires std::is_pointer_v<T>
-	T LoadDynamic(const std::string_view dll, const std::string_view function) noexcept
+	T LoadDynamicAddress(std::string_view dll, std::string_view apiname,
+						 const std::source_location &loc = std::source_location::current()) noexcept
 	{
-		HMODULE lib = LoadLibraryA(dll.data());
-		assert::if_true(lib != nullptr, "Failed to load library.");
-		if (!lib)
+		auto library = LoadLibraryA(dll.data());
+		if (not library)
+		{
+			dbg::println("{}({}) library '{}' not found.", loc.file_name(), loc.line(), dll);
 			return nullptr;
+		}
 
-
-		auto function_to_load = GetProcAddress(lib, function.data());
-		assert::if_true(function_to_load != nullptr, "Failed to load function.");
-
-		if (!function_to_load)
+		T function = std::bit_cast<T>(GetProcAddress(library, apiname.data()));
+		if (not function)
+		{
+			dbg::println("{}({}) function '{}' not found.", loc.file_name(), loc.line(), apiname);
 			return nullptr;
+		}
 
-		return reinterpret_cast<T>((FARPROC *)function_to_load);
+		return function;
 	}
 
 	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept
@@ -38,8 +42,8 @@ namespace deckard
 		using Func_RegOpenKeyExA    = LSTATUS(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
 		using Func_RegQueryValueExA = LSTATUS(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 
-		static auto RegOpenKeyExA_F    = LoadDynamic<Func_RegOpenKeyExA *>("advapi32.dll", "RegOpenKeyExA");
-		static auto RegQueryValueExA_F = LoadDynamic<Func_RegQueryValueExA *>("advapi32.dll", "RegQueryValueExA");
+		static auto RegOpenKeyExA_F    = LoadDynamicAddress<Func_RegOpenKeyExA *>("advapi32.dll", "RegOpenKeyExA");
+		static auto RegQueryValueExA_F = LoadDynamicAddress<Func_RegQueryValueExA *>("advapi32.dll", "RegQueryValueExA");
 
 		if (!RegOpenKeyExA_F || !RegQueryValueExA_F)
 			return "";
