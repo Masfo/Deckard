@@ -123,7 +123,7 @@ namespace deckard::cpuid
 
 	export class CPUID
 	{
-		union _FeatureInformationFamily
+		union FeatureInformationFamily
 		{
 			struct _Details
 			{
@@ -145,7 +145,6 @@ namespace deckard::cpuid
 			u32 value;
 		};
 
-		_FeatureInformationFamily FeatureInformationFamily;
 
 	private:
 		std::array<u32, 4> regs{0};
@@ -214,7 +213,7 @@ namespace deckard::cpuid
 			return ret;
 		}
 
-		std::string brand_string() noexcept
+		std::string brand_string() const noexcept
 		{
 
 
@@ -250,7 +249,7 @@ namespace deckard::cpuid
 			return static_cast<u32>(std::round(total_time.count() * time_variable));
 		}
 
-		[[deprecated("On Intel does not work")]] u32 logical_cores() noexcept
+		[[deprecated("On Intel does not work")]] u32 logical_cores() const noexcept
 		{
 			auto [mfi, _, __, ___] = cpuid(0);
 
@@ -283,7 +282,7 @@ namespace deckard::cpuid
 			std::unreachable();
 		}
 
-		[[deprecated("On Intel does not work")]] u32 threads_per_core() noexcept
+		[[deprecated("On Intel does not work")]] u32 threads_per_core() const noexcept
 		{
 
 			//
@@ -338,7 +337,7 @@ namespace deckard::cpuid
 			return tpc;
 		}
 
-		auto core_count() noexcept -> std::pair<u32, u32>
+		auto core_count() const noexcept -> std::pair<u32, u32>
 		{
 			u32 threads{0};
 			u32 cores{threads};
@@ -405,31 +404,33 @@ namespace deckard::cpuid
 			return {cores, threads};
 		}
 
-		CPU_Info info() noexcept
+		CPU_Info info() const noexcept
 		{
-			CPU_Info i;
-			CPUID    id(1);
-			FeatureInformationFamily.value = id.EAX();
+			CPU_Info                 i;
+			CPUID                    id(1);
+			FeatureInformationFamily info;
 
-			i.family = FeatureInformationFamily.details.family;
+			info.value = id.EAX();
+
+			i.family = info.details.family;
 
 			//
 			if (i.family != 0xF)
-				i.exfamily = FeatureInformationFamily.details.family;
+				i.exfamily = info.details.family;
 			else
-				i.exfamily = FeatureInformationFamily.details.exFamily + FeatureInformationFamily.details.family;
+				i.exfamily = info.details.exFamily + info.details.family;
 
-			i.model = FeatureInformationFamily.details.model;
+			i.model = info.details.model;
 
 			//
 			if (i.family == 0x6 or i.family == 0xF)
-				i.exmodel = (FeatureInformationFamily.details.exModel << 4) | FeatureInformationFamily.details.model;
+				i.exmodel = (info.details.exModel << 4) | info.details.model;
 			else
-				i.exfamily = FeatureInformationFamily.details.model;
+				i.exfamily = info.details.model;
 
 
-			i.stepping = FeatureInformationFamily.details.stepping;
-			i.type     = FeatureInformationFamily.details.type;
+			i.stepping = info.details.stepping;
+			i.type     = info.details.type;
 
 			i.speed_in_mhz    = speed_in_mhz();
 			i.brand_string    = brand_string();
@@ -445,7 +446,7 @@ namespace deckard::cpuid
 			return i;
 		}
 
-		std::string as_string() noexcept
+		std::string as_string() const noexcept
 		{
 
 			CPU_Info    i = info();
@@ -469,15 +470,15 @@ namespace deckard::cpuid
 			return ret;
 		}
 
-		u32 operator[](enum class cpu_register index) { return regs[u32(index)]; }
+		u32 operator[](enum class cpu_register index) const noexcept { return regs[u32(index)]; }
 
-		const u32 &EAX() const { return regs[0]; }
+		const u32 &EAX() const noexcept { return regs[0]; }
 
-		const u32 &EBX() const { return regs[1]; }
+		const u32 &EBX() const noexcept { return regs[1]; }
 
-		const u32 &ECX() const { return regs[2]; }
+		const u32 &ECX() const noexcept { return regs[2]; }
 
-		const u32 &EDX() const { return regs[3]; }
+		const u32 &EDX() const noexcept { return regs[3]; }
 	};
 
 } // namespace deckard::cpuid
