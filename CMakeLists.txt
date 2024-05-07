@@ -40,7 +40,6 @@ set_target_properties(deckard PROPERTIES DEBUG_POSTFIX "d")
 if(MSVC)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-    set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -55,6 +54,9 @@ if(MSVC)
         target_compile_options(deckard  PRIVATE /Zi)     # /ZI edit/continue
 
         target_link_options(deckard PRIVATE /DEBUG)
+
+        set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+
         #target_link_options(deckard PRIVATE /ALIGN:16)
     endif()
 
@@ -72,6 +74,9 @@ if(MSVC)
 
 
         target_link_options(deckard PRIVATE /OPT:REF /OPT:ICF)
+
+        set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
 
         # 0x800: LOAD_LIBRARY_SEARCH_SYSTEM32
         target_link_options(deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
@@ -209,16 +214,3 @@ endif()
 
 
 
-######## 3rd party
-# FetchContent_Declare(SQLite
-#     URL https://www.sqlite.org/2023/sqlite-amalgamation-3430200.zip
-# )
-# FetchContent_Populate(SQLite)
-# target_include_directories(deckard PUBLIC "${sqlite_SOURCE_DIR}")
-
- # FetchContent_Declare(
- #     glm
- #     GIT_REPOSITORY https://github.com/g-truc/glm.git
- #     GIT_TAG        0.9.9.8
- #     SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glm/
- # )

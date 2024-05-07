@@ -262,7 +262,7 @@ int main()
 	};
 
 	dbg::println("0 == {}", count_colons("::1"));
-	dbg::println("2 == {}", count_colons("00:00:00::1"));
+	dbg::println("2 == {}", count_colons("00:00::1"));
 	dbg::println("2 == {}", count_colons("0:0:0::1"));
 
 
