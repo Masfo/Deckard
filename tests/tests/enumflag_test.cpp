@@ -8,7 +8,7 @@ import std;
 using namespace deckard;
 using namespace std::string_literals;
 
-namespace EnumFlagTest__
+namespace EnumFlag__Test
 {
 	namespace Filesystem
 	{
@@ -17,8 +17,6 @@ namespace EnumFlagTest__
 			Read    = BIT(0),
 			Write   = BIT(1),
 			Execute = BIT(2),
-
-			// Width = 3,
 		};
 		consteval void enable_bitmask_operations(Permission);
 
@@ -36,12 +34,12 @@ namespace EnumFlagTest__
 		};
 
 	}; // namespace Filesystem
-} // namespace EnumFlagTest__
+} // namespace EnumFlag__Test
 
 TEST_CASE("enumflags", "[enum]")
 {
 
-	using EnumFlagTest__::Filesystem::Permission;
+	using EnumFlag__Test::Filesystem::Permission;
 
 	Permission rwx{};
 
