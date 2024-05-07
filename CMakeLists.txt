@@ -139,7 +139,12 @@ target_sources(deckard
 	FILES ${DECKARD_SRCS}
 )
  find_package(SQLite3 REQUIRED)
- target_link_libraries(deckard PRIVATE SQLite::SQLite3)
+
+ 
+set(THIRD_PARTY_LIBS
+    dxgi.lib
+)
+ target_link_libraries(deckard PRIVATE SQLite::SQLite3 ${THIRD_PARTY_LIBS})
 
 
 
@@ -168,6 +173,7 @@ target_compile_options(deckard PRIVATE
     #        # that compiler generated copy/move constructors and copy/move assignment operators are not trivial
     #/wd5204 # class has virtual functions, but its trivial destructor is not virtual; instances of 
     #        # objects derived from this class may not be destructed correctly
+    /wd5205 # delete of an abstract class '??' that has a non-virtual destructor results in undefined behavior
     #
     #/wd4686 # possible change in behavior, change in UDT return calling convention
     #
