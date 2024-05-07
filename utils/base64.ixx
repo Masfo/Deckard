@@ -53,9 +53,7 @@ namespace deckard::utils::base64
 		if ((encoded_string.size() % 4) == 1)
 			return false;
 		if (!std::all_of(std::begin(encoded_string), std::end(encoded_string) - 2, [](byte c) { return is_valid_base64_char(c); }))
-		{
 			return false;
-		}
 
 		const auto last = std::rbegin(encoded_string);
 		if (!is_valid_base64_char(*std::next(last)))
@@ -170,21 +168,4 @@ namespace deckard::utils::base64
 		return {};
 	}
 
-	void test()
-	{
-
-		std::vector<u8> rnd;
-		rnd.resize(1'024);
-
-		std::random_device                 rd;
-		std::mt19937                       gen(rd());
-		std::uniform_int_distribution<int> dis(0, 255);
-
-		for (auto &i : rnd)
-			i = as<u8>(dis(gen));
-
-
-		auto rb   = utils::base64::encode(rnd);
-		auto drnd = utils::base64::decode(rb);
-	}
 } // namespace deckard::utils::base64
