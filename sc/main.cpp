@@ -261,6 +261,10 @@ int main()
 		return colons;
 	};
 
+	dbg::println("0 == {}", count_colons("::1"));
+	dbg::println("2 == {}", count_colons("00:00:00::1"));
+	dbg::println("2 == {}", count_colons("0:0:0::1"));
+
 
 	auto longest_zero_run = [](std::string_view input) -> i32
 	{
@@ -312,9 +316,8 @@ int main()
 	dbg::println("9 == {}", longest_zero_run("01002000300004"));
 	//                                        0123456789
 	dbg::println("6 == {}", longest_zero_run("1200340000560007"));
+	dbg::println("2 == {}", longest_zero_run("12000055000021"));
 
-
-	int x = 0;
 
 	{
 		archive::file db("sqlite3.db");
@@ -346,7 +349,7 @@ int main()
 	}
 
 	IpAddress ipv6;
-	ipv6.version(6);
+	ipv6.version(0);
 	ipv6.port(0xB97A);
 
 
@@ -363,11 +366,6 @@ int main()
 	};
 
 	add_keywords(keywords);
-
-	sha256::hasher hash;
-	auto           digest = hash.finalize();
-	auto           d      = digest[7];
-
 
 	dbg::println("ipaddress size {}", sizeof(IpAddress));
 
