@@ -126,7 +126,7 @@ namespace deckard::system
 			return result;
 
 		std::unique_ptr<IDXGIAdapter3> adapter;
-		factory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter **>(&adapter));
+		factory->EnumAdapters(0, std::bit_cast<IDXGIAdapter **>(&adapter));
 		factory->Release();
 		factory.release();
 

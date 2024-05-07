@@ -113,7 +113,7 @@ namespace deckard::utils::base64
 	export std::string encode_str(std::string_view input, padding add_padding = padding::yes)
 	{
 		//
-		return encode({reinterpret_cast<const u8 *>(input.data()), input.size()}, add_padding);
+		return encode({std::bit_cast<u8 *>(input.data()), input.size()}, add_padding);
 	}
 
 	export std::optional<std::vector<u8>> decode(std::string_view encoded_input)
