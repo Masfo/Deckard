@@ -118,76 +118,30 @@ namespace deckard::system
 
 	export std::string GetGPU() noexcept
 	{
-		std::string                    result{"Unknown"};
+		std::string                    result{"GPU: "};
 		std::unique_ptr<IDXGIFactory4> factory{};
 
 		CreateDXGIFactory1(__uuidof(IDXGIFactory3), (void **)&factory);
+		if (!factory)
+			return result;
 
 		std::unique_ptr<IDXGIAdapter3> adapter;
 		factory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter **>(&adapter));
+		factory->Release();
+		factory.release();
+
+		if (!adapter)
+			return result;
 
 		DXGI_ADAPTER_DESC1 desc{0};
-		adapter->GetDesc1(&desc);
+		if (S_OK != adapter->GetDesc1(&desc))
+			return result;
 
 		adapter->Release();
 		adapter.release();
 
-		factory->Release();
-		factory.release();
 
-		result = std::format("GPU: {}, {}", from_wide(desc.Description), PrettyBytes(desc.DedicatedVideoMemory));
-		return result;
-
-		// NVML
-		// using NVLInit          = void *();
-		// using NVLShutdown      = void *();
-		// using NVLDriverVersion = void *(char *, unsigned);
-		//
-		//
-		// auto nvl_init          = system::GetAddress<NVLInit *>("nvml.dll", "nvmlInit");
-		// auto nvl_shutdown      = system::GetAddress<NVLShutdown *>("nvml.dll", "nvmlShutdown");
-		// auto nvl_driverversion = system::GetAddress<NVLDriverVersion *>("nvml.dll", "nvmlSystemGetDriverVersion");
-		//
-		// if (nvl_init != nullptr && nvl_shutdown != nullptr && nvl_driverversion != nullptr)
-		//{
-		//
-		//	nvl_init();
-		//	char buffer[81]{0};
-		//	nvl_driverversion(buffer, sizeof(buffer));
-		//	nvl_shutdown();
-		//	dbg::println("NVidia Driver version: {}", buffer);
-		//}
-
-		/*
-
-		using D3DCREATETYPE = LPDIRECT3D9(unsigned int);
-		LPDIRECT3D9            lpD3D9{nullptr};
-		D3DADAPTER_IDENTIFIER9 id{0};
-		auto                   Direct3DCreate9 = system::GetAddress<D3DCREATETYPE *>("d3d9.dll", "Direct3DCreate9");
-
-		if (Direct3DCreate9 == nullptr)
-			return result;
-
-		lpD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
-		if (lpD3D9 == nullptr)
-			return result;
-
-		HRESULT hr{S_OK};
-
-		hr = lpD3D9->GetAdapterIdentifier(D3DADAPTER_DEFAULT, 0, &id);
-		if (SUCCEEDED(hr))
-		{
-			const u32 driver_product    = HIWORD(id.DriverVersion.HighPart);
-			const u32 driver_version    = LOWORD(id.DriverVersion.HighPart);
-			const u32 driver_subversion = HIWORD(id.DriverVersion.LowPart);
-			const u32 driver_build      = LOWORD(id.DriverVersion.LowPart);
-
-
-			result = std::format(
-				"{}, v{}.{}.{}.{} {}", id.Description, driver_product, driver_version, driver_subversion, driver_build, id.Driver);
-		}
-		return result;
-		*/
+		return std::format("GPU: {}, ({})", from_wide(desc.Description), PrettyBytes(desc.DedicatedVideoMemory));
 	}
 
 
