@@ -9,6 +9,7 @@ import deckard.types;
 import deckard.helpers;
 
 using namespace std::chrono_literals;
+using namespace std::string_view_literals;
 
 namespace deckard::cpuid
 {
@@ -204,9 +205,9 @@ namespace deckard::cpuid
 
 			CPUID id(0);
 
-			ret += std::string(reinterpret_cast<const char *>(&id.EBX()), 4);
-			ret += std::string(reinterpret_cast<const char *>(&id.EDX()), 4);
-			ret += std::string(reinterpret_cast<const char *>(&id.ECX()), 4);
+			ret += std::string(std::bit_cast<const char *>(&id.EBX()), 4);
+			ret += std::string(std::bit_cast<const char *>(&id.EDX()), 4);
+			ret += std::string(std::bit_cast<const char *>(&id.ECX()), 4);
 
 			return ret;
 		}
@@ -220,13 +221,12 @@ namespace deckard::cpuid
 				std::string ret;
 				ret.resize(48);
 #if defined(_MSC_VER)
-				__cpuidex((int *)(&ret[0] + 00), 0x8000'0002, 0);
-				__cpuidex((int *)(&ret[0] + 16), 0x8000'0003, 0);
-				__cpuidex((int *)(&ret[0] + 32), 0x8000'0004, 0);
+				__cpuidex(std::bit_cast<int *>(&ret[0] + 00), 0x8000'0002, 0);
+				__cpuidex(std::bit_cast<int *>(&ret[0] + 16), 0x8000'0003, 0);
+				__cpuidex(std::bit_cast<int *>(&ret[0] + 32), 0x8000'0004, 0);
 #endif
 				// Remove whitespace in the end
-				ret.resize(ret.size() - 1);
-				return ret.substr(0, ret.find_last_not_of(' ') + 1);
+				return ret.substr(0, ret.find_last_not_of(" \0"sv) + 1);
 			}
 			return {};
 		}
