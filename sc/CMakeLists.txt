@@ -41,11 +41,7 @@ target_sources(sc
     FILE_SET CXX_MODULES 
 	FILES ${SC_MODULE_SOURCES}
 )
-
-set(OTHER_LIBS
-
-)
-target_link_libraries(sc deckard ${OTHER_LIBS})
+target_link_libraries(sc deckard)
 
 
 

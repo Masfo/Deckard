@@ -1,7 +1,6 @@
 module;
 #include <Windows.h>
 #include <d3d9.h>
-#include <dxgi1_4.h>
 
 export module deckard.system;
 
@@ -11,7 +10,6 @@ import deckard.types;
 import deckard.assert;
 import deckard.debug;
 import deckard.helpers;
-import deckard.win32;
 
 extern "C"
 {
@@ -109,35 +107,6 @@ namespace deckard::system
 
 	export std::string GetGPU() noexcept
 	{
-		std::unique_ptr<IDXGIFactory4> factory{};
-
-		CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void **)&factory);
-
-		std::unique_ptr<IDXGIAdapter3> adapter;
-		factory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter **>(&adapter));
-
-		DXGI_ADAPTER_DESC1 desc{0};
-		adapter->GetDesc1(&desc);
-
-		std::cout << "Dedicated vram: " << desc.DedicatedVideoMemory << "\n";
-
-		factory->Release();
-
-		// while (true)
-		{
-			Sleep(500);
-			DXGI_QUERY_VIDEO_MEMORY_INFO videoMemInfo{0};
-
-			adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemInfo);
-			std::cout << "Group local:\n";
-			std::cout << "\t * GPU RAM  : " << videoMemInfo.CurrentUsage / 1'024 / 1'024 << " MB\n";
-			std::cout << "\t * Budget   : " << videoMemInfo.Budget / 1'024 / 1'024 << "MB\n";
-			std::cout << "\t * Available: " << videoMemInfo.AvailableForReservation / 1'024 / 1'024 << "MB\n\n";
-		}
-
-		adapter->Release();
-
-
 		using D3DCREATETYPE = LPDIRECT3D9(unsigned int);
 		LPDIRECT3D9            lpD3D9{nullptr};
 		D3DADAPTER_IDENTIFIER9 id{0};
@@ -159,6 +128,7 @@ namespace deckard::system
 			const u32 driver_version    = LOWORD(id.DriverVersion.HighPart);
 			const u32 driver_subversion = HIWORD(id.DriverVersion.LowPart);
 			const u32 driver_build      = LOWORD(id.DriverVersion.LowPart);
+
 
 			result = std::format(
 				"{}, v{}.{}.{}.{} {}", id.Description, driver_product, driver_version, driver_subversion, driver_build, id.Driver);
