@@ -105,17 +105,19 @@ namespace deckard::cpuid
 		//{"HTT", 1, cpu_register::edx, 28},
 	}};
 
-	auto cpuid(int id) -> std::array<u32, 4>
+	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+
+	export auto cpuid(int id) -> std::array<u32, 4>
 	{
 		std::array<u32, 4> regs{0};
-		__cpuid((int *)regs.data(), id);
+		__cpuid(std::bit_cast<i32 *>(regs.data()), id);
 		return regs;
 	}
 
-	auto cpuidex(int id, int leaf) -> std::array<u32, 4>
+	export auto cpuidex(int id, int leaf) -> std::array<u32, 4>
 	{
 		std::array<u32, 4> regs{0};
-		__cpuidex((int *)regs.data(), id, leaf);
+		__cpuidex(std::bit_cast<i32 *>(regs.data()), id, leaf);
 		return regs;
 	}
 
@@ -233,7 +235,7 @@ namespace deckard::cpuid
 
 		u32 speed_in_mhz() const noexcept
 		{
-			u32 time_variable = 100'000'000;
+			u32 time_variable = 1'000'000;
 
 			u64  cycle = 0;
 			auto start = std::chrono::high_resolution_clock::now();
@@ -244,7 +246,8 @@ namespace deckard::cpuid
 
 			std::chrono::duration<f64, std::milli> total_time(std::chrono::high_resolution_clock::now() - start);
 
-			return static_cast<u32>(std::round((1000.0 / total_time.count()) * (time_variable / 1'000'000.0)));
+			// return static_cast<u32>(std::round((1000.0 / total_time.count()) * (time_variable / 1'000'000.0)));
+			return static_cast<u32>(std::round(total_time.count() * time_variable));
 		}
 
 		[[deprecated("On Intel does not work")]] u32 logical_cores() noexcept
