@@ -112,4 +112,16 @@ namespace deckard
 		return wret;
 	}
 
+	export std::string from_wide(std::wstring_view wstr) noexcept
+	{
+		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), nullptr, 0, nullptr, nullptr);
+		std::string strTo;
+		if (num_chars > 0)
+		{
+			strTo.resize((u64)num_chars);
+			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), &strTo[0], num_chars, nullptr, nullptr);
+		}
+		return strTo;
+	}
+
 } // namespace deckard

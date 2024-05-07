@@ -210,12 +210,23 @@ private:
 
 static_assert(sizeof(IpAddress) == 20, "IpAddress is not 20-bytes");
 
+struct alignas(64) FF
+{
+	u32 low{};
+	u32 high{};
+};
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
+
+	FF f{1'234, 7'890};
+
+	u64 lf2 = load_as<u64>(&f);
+
 
 	std::vector<u32> adata;
 	adata.push_back(0x1122'3344);
@@ -227,7 +238,10 @@ int main()
 
 	auto header = std::as_bytes(std::span{bbs3.first(4)});
 	u64  hhe    = load_as<u32>(header);
-	u64  hhe2   = load_as<u32>(header.data());
+	u64  he2    = load_as<u32>(header.data());
+	u64  hh3    = load_as_be<u32>(header);
+
+	// std::string she = load_as<std::string>(header);
 
 	// load_as<char, 16>(header); //
 	// subspan => string

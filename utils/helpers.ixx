@@ -1,6 +1,7 @@
 export module deckard.helpers;
 
 import std;
+import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.debug;
@@ -31,17 +32,17 @@ export namespace deckard
 
 
 	template<typename T>
-	concept HasDataMember = requires(T obj) { obj.data(); };
+	concept HasDataMember = requires(T obj) {
+		{ obj.data() } -> std::same_as<const T::value_type *>;
+	};
 
 	export template<typename To, typename From>
 	To load_as(const From from) noexcept
 	{
-		// TODO: Bitcast
 		To ret{};
+		// TODO: Bitcast
 		if constexpr (HasDataMember<From>)
-		{
 			std::memcpy(&ret, from.data(), sizeof(To));
-		}
 		else
 			std::memcpy(&ret, from, sizeof(To));
 
@@ -55,7 +56,6 @@ export namespace deckard
 	}
 
 	//
-	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
 
 	auto clock_now() noexcept { return std::chrono::high_resolution_clock::now(); }
 
@@ -89,13 +89,13 @@ export namespace deckard
 	{
 		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
 
-		auto count = static_cast<f64>(bytes);
-		u64  suffix{0};
+		f64 count = as<f64>(bytes);
+		u64 suffix{0};
 
-		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
+		while (count >= as<f64>(1_KiB) && suffix < unit.size())
 		{
 			suffix++;
-			count /= static_cast<f64>(1_KiB);
+			count /= 1_KiB;
 		}
 
 		if (std::fabs(count - std::floor(count)) == 0.0)
