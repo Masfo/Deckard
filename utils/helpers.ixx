@@ -33,22 +33,25 @@ export namespace deckard
 	template<typename T>
 	concept HasDataMember = requires(T obj) { obj.data(); };
 
-	export template<std::integral T, typename U>
-	T load_as(U const bytes)
+	export template<typename To, typename From>
+	To load_as(const From from) noexcept
 	{
-		T ret{};
-		if constexpr (HasDataMember<U>)
-			std::memcpy(&ret, bytes.data(), sizeof(T));
+		// TODO: Bitcast
+		To ret{};
+		if constexpr (HasDataMember<From>)
+		{
+			std::memcpy(&ret, from.data(), sizeof(To));
+		}
 		else
-			std::memcpy(&ret, bytes, sizeof(T));
+			std::memcpy(&ret, from, sizeof(To));
 
 		return ret;
 	}
 
-	export template<std::integral T, typename U>
-	T load_as_be(U const bytes)
+	export template<typename To, typename From>
+	To load_as_be(const From from) noexcept
 	{
-		return std::byteswap(load_as<T>(bytes));
+		return std::byteswap(load_as<To>(from));
 	}
 
 	//
