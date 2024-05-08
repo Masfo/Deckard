@@ -41,7 +41,9 @@ target_sources(tests PUBLIC
     tests/base64_test.cpp
     
     tests/scripting/tokenizer_test.cpp
-    tests/enumflag_test.cpp)
+    tests/enumflag_test.cpp 
+    tests/math_test.cpp
+)
 
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain deckard)

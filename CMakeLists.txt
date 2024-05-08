@@ -104,9 +104,9 @@ set(DECKARD_SRCS
 		file/File.ixx
 		file/FileMonitor.ixx
 
+        # Math
         math/matrix.ixx
         math/math_utility.ixx
-        math/math.ixx
         math/vec.ixx
 
         graphs/binarytree.ixx
@@ -120,7 +120,7 @@ set(DECKARD_SRCS
         utils/cpuid.ixx
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
         
-        
+
         # Scripting
         scripting/tokenizer.ixx
 

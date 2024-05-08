@@ -12,7 +12,10 @@ export import deckard.filemonitor;
 export import deckard.file;
 
 // Math
-export import deckard.math;
+export import deckard.math.utility;
+export import deckard.math.matrix;
+export import deckard.math.vec;
+
 
 // Utils
 export import deckard.base64;
