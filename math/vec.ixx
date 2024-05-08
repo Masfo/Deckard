@@ -18,22 +18,22 @@ namespace deckard::math
 		using type     = T;
 		using vec_type = vec_n<T, N>;
 
-		vec_n() = default;
+		constexpr vec_n() = default;
 
-		vec_n(T scalar) noexcept
+		constexpr vec_n(T scalar) noexcept
 		requires(N >= 2)
 		{
 			m_data.fill(scalar);
 		}
 
-		vec_n(T x, T y) noexcept
+		constexpr vec_n(T x, T y) noexcept
 		requires(N >= 2)
 		{
 			m_data[0] = x;
 			m_data[1] = y;
 		}
 
-		vec_n(T x, T y, T z) noexcept
+		constexpr vec_n(T x, T y, T z) noexcept
 		requires(N >= 3)
 		{
 			m_data[0] = x;
@@ -41,7 +41,7 @@ namespace deckard::math
 			m_data[2] = z;
 		}
 
-		vec_n(T x, T y, T z, T w) noexcept
+		constexpr vec_n(T x, T y, T z, T w) noexcept
 		requires(N == 4)
 		{
 			m_data[0] = x;
@@ -50,7 +50,7 @@ namespace deckard::math
 			m_data[3] = w;
 		}
 
-		vec_n(const std::initializer_list<T> list, const std::source_location& loc = std::source_location::current()) noexcept
+		constexpr vec_n(const std::initializer_list<T> list, const std::source_location& loc = std::source_location::current()) noexcept
 		{
 
 			if (list.size() == 1)
@@ -82,7 +82,7 @@ namespace deckard::math
 
 		constexpr const T& operator[](size_t index) const noexcept { return m_data[index]; }
 
-		bool has_zero() const noexcept
+		constexpr bool has_zero() const noexcept
 		{
 
 			for (int i = 0; i < N; ++i)
