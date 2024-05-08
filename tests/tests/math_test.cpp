@@ -24,6 +24,11 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		vec2 v2{1.0f, 2.0f};
 		REQUIRE(v2[0] == 1.0f);
 		REQUIRE(v2[1] == 2.0f);
+
+		vec2 v3{1.0f, 2.0f};
+		v3 = -v3;
+		REQUIRE(v3[0] == -1.0f);
+		REQUIRE(v3[1] == -2.0f);
 	}
 
 	SECTION("basic math")
@@ -135,6 +140,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(v3[0] == 1.0f);
 		REQUIRE(v3[1] == 2.0f);
 		REQUIRE(v3[2] == 3.0f);
+
+		vec3 v4{1.0f, 2.0f, 3.0f};
+		v4 = -v4;
+		REQUIRE(v4[0] == -1.0f);
+		REQUIRE(v4[1] == -2.0f);
+		REQUIRE(v4[2] == -3.0f);
 	}
 
 	SECTION("basic math")
@@ -265,6 +276,14 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(v4[1] == 2.0f);
 		REQUIRE(v4[2] == 3.0f);
 		REQUIRE(v4[3] == 4.0f);
+
+
+		vec4 v5{1.0f, 2.0f, 3.0f, 4.0f};
+		v5 = -v5;
+		REQUIRE(v5[0] == -1.0f);
+		REQUIRE(v5[1] == -2.0f);
+		REQUIRE(v5[2] == -3.0f);
+		REQUIRE(v5[3] == -4.0f);
 	}
 
 	SECTION("basic math")

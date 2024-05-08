@@ -187,7 +187,11 @@ namespace deckard::math
 		}
 
 		// unary
-		constexpr vec_type& operator-() const noexcept { return *this * vec_type(-1); }
+		constexpr vec_type& operator-() noexcept
+		{
+			*this *= vec_type(T{-1.0});
+			return *this;
+		}
 
 		constexpr vec_type& operator+() const noexcept { return *this; }
 
