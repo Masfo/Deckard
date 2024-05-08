@@ -353,6 +353,19 @@ namespace deckard::math
 			return std::acos(cosTheta) * T{180.0} / std::numbers::pi_v<T>;
 		}
 
+		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const noexcept
+		requires(N == 3)
+		{
+			const vec_type axis_norm = axis.normalized();
+			const vec_type v         = *this;
+
+			T cosTheta         = std::cos(rad);
+			T sinTheta         = std::sin(rad);
+			T oneMinusCosTheta = T{1.0} - cosTheta;
+
+			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
+		}
+
 		std::array<T, N> m_data{T{}};
 	};
 
@@ -448,6 +461,13 @@ namespace deckard::math
 	[[nodiscard("Use the angle value")]] constexpr T angle(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.angle(rhs);
+	}
+
+	export template<typename T, size_t N>
+	requires(N == 2 or N == 3)
+	[[nodiscard("Use the rotated vector")]] constexpr vec_n<T, N> rotate(const vec_n<T, N>& v, const vec_n<T, N>& axis, const T angle)
+	{
+		return v.rotate(axis, angle);
 	}
 
 	export using vec4 = vec_n<float, 4>;

@@ -107,6 +107,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 projected2 = project(pB, pA);
 		REQUIRE(true == projected2.equals(vec2{0.23999999f, 0.31999999f}));
 
+		// angle
 		const vec2 angleA{3.0f, 4.0f};
 		const vec2 angleB{2.0f, -1.0f};
 		const auto angle_between = angle(angleA, angleB);
@@ -220,6 +221,18 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		const vec3 angleB{2.0f, -1.0f, 5.0f};
 		const auto angle_between = angle(angleA, angleB);
 		REQUIRE_THAT(angle_between, WithinAbs(75.48459f, 0.00001));
+
+		// rotate
+		const vec3 rotateA(1.0f, 0.0, 0.0f);
+		const vec3 axis(0.0f, 0.0, 1.0f);
+
+		float angle = to_radians<float>(180.0f);
+
+		const vec3 rotated = rotate(rotateA, axis, angle);
+		REQUIRE(true == rotated.equals(vec3{-1.0f, 0.00000000f, 0.0f}));
+
+		const vec3 rotated2 = rotate(vec3{0.0f, 1.0f, 0.0f}, vec3{0.0f, 0.0f, 1.0f}, to_radians<float>(180));
+		REQUIRE(true == rotated2.equals(vec3{0.0f, -1.0f, 0.0f}));
 	}
 }
 
