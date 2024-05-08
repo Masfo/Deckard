@@ -41,9 +41,6 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 mul_result{4.0f, 6.0f};
 		const vec2 div_result{1.0f, 0.6666666f};
 
-		const vec2 div_diff = div.diff(div_result);
-
-
 		REQUIRE(true == add.equals(add_result));
 		REQUIRE(true == sub.equals(sub_result));
 		REQUIRE(true == mul.equals(mul_result));
@@ -124,8 +121,6 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		const vec3 sub_result{0.0f, -1.0f, -2.0f};
 		const vec3 mul_result{4.0f, 6.0f, 8.0f};
 		const vec3 div_result{1.0f, 0.6666666f, 0.500f};
-
-		const vec3 div_diff = div.diff(div_result);
 
 
 		REQUIRE(true == add.equals(add_result));
@@ -216,8 +211,6 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 sub_result{0.0f, -1.0f, -2.0f, -3.0f};
 		const vec4 mul_result{4.0f, 6.0f, 8.0f, 10.0f};
 		const vec4 div_result{1.0f, 0.6666666f, 0.500f, 0.400f};
-
-		const vec4 div_diff = div.diff(div_result);
 
 
 		REQUIRE(true == add.equals(add_result));
