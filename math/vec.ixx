@@ -216,6 +216,8 @@ namespace deckard::math
 		}
 
 		// other functions
+
+		// min
 		[[nodiscard("Use the minimum value")]] constexpr vec_type min(const vec_type& other) const noexcept
 		{
 			vec_type result{0};
@@ -225,6 +227,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// max
 		[[nodiscard("Use the maximum value")]] constexpr vec_type max(const vec_type& other) const noexcept
 		{
 			vec_type result{0};
@@ -234,6 +237,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// abs
 		[[nodiscard("Use the absolute value")]] constexpr vec_type abs() const noexcept
 		{
 			vec_type result{0};
@@ -243,6 +247,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// magnitude/length
 		template<typename U = T>
 		[[nodiscard("Use the length value")]] constexpr U length() const noexcept
 		{
@@ -253,6 +258,7 @@ namespace deckard::math
 			return std::sqrt(result);
 		}
 
+		// normalize
 		constexpr void normalize() noexcept
 		requires(N >= 2)
 		{
@@ -262,6 +268,7 @@ namespace deckard::math
 				m_data[i] /= len;
 		}
 
+		// normalized
 		[[nodiscard("Use the normalized value")]] constexpr vec_type normalized() const noexcept
 		requires(N >= 2)
 		{
@@ -274,6 +281,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// manhattan distance
 		template<typename U = T>
 		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const noexcept
 		{
@@ -283,6 +291,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// clamp
 		template<typename U = T>
 		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const U cmin, const U cmax) const noexcept
 		{
@@ -294,6 +303,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// 2d cross product
 		template<typename U = T>
 		[[nodiscard("Use the cross product")]] constexpr U cross(const vec_type& other) const noexcept
 		requires(N == 2)
@@ -301,6 +311,7 @@ namespace deckard::math
 			return m_data[0] * other[1] - m_data[1] * other[0];
 		}
 
+		// 3d+ cross product
 		template<typename T, size_t N>
 		requires(N >= 3)
 		[[nodiscard("Use the cross product")]] constexpr auto cross(const vec_n<T, N>& other) const noexcept
@@ -323,6 +334,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// 2d/3d projection
 		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const noexcept
 		requires(N == 2 or N == 3)
 		{
@@ -339,6 +351,7 @@ namespace deckard::math
 			return other * projection_scalar;
 		}
 
+		// 2d/3d angle
 		[[nodiscard("Use the angle value")]] constexpr T angle(const vec_type& other) const noexcept
 		requires(N == 2 or N == 3)
 		{
@@ -353,6 +366,7 @@ namespace deckard::math
 			return std::acos(cosTheta) * T{180.0} / std::numbers::pi_v<T>;
 		}
 
+		// 3d-rotate
 		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const noexcept
 		requires(N == 3)
 		{
