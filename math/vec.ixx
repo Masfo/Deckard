@@ -195,7 +195,7 @@ namespace deckard::math
 
 		constexpr bool operator==(const vec_type& other) const noexcept { return equals(other, T{}); }
 
-		constexpr bool equals(const vec_type& other, T epsilon = T{0.000001}) const noexcept
+		constexpr bool equals(const vec_type& other, T epsilon = math::epsilon<T>) const noexcept
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
