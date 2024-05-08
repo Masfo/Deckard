@@ -306,6 +306,21 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == sub.equals(sub_result));
 		REQUIRE(true == mul.equals(mul_result));
 		REQUIRE(true == div.equals(div_result));
+
+		// scalar
+		const vec4 add_scalar = v1 + 4;
+		const vec4 sub_scalar = v1 - 4;
+		const vec4 mul_scalar = v1 * 4;
+		const vec4 div_scalar = v1 / 4;
+
+		const vec4 add_scalar_result{6.0f, 6.0f, 6.0f, 6.0f};
+		const vec4 sub_scalar_result{-2.0f, -2.0f, -2.0f, -2.0f};
+		const vec4 mul_scalar_result{8.0f, 8.0f, 8.0f, 8.0f};
+		const vec4 div_scalar_result{0.5f, 0.5f, 0.5f, 0.5f};
+		REQUIRE(true == add_scalar.equals(add_scalar_result));
+		REQUIRE(true == sub_scalar.equals(sub_scalar_result));
+		REQUIRE(true == mul_scalar.equals(mul_scalar_result));
+		REQUIRE(true == div_scalar.equals(div_scalar_result));
 	}
 
 	SECTION("vec4 other functions")
