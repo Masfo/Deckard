@@ -388,14 +388,6 @@ int main()
 	addr.fromString("::1");
 	addr.print();
 
-	{
-		std::string inp{"foob"};
-		auto        foob_e = base64::encode_str(inp, base64::padding::no);
-		auto        foob_d = base64::decode_str(foob_e);
-
-		dbg::println("'{}': '{}' - '{}'", inp, foob_e, foob_d);
-	}
-
 	u8 C1 = 0b1000'1010;
 	u8 L1 = 0b1100'1111;
 	dbg::println("{:0b} - {}", C1, std::countl_one(C1));
@@ -420,7 +412,6 @@ int main()
 	dbg::println(" 1 {0:>14} => {1:%Y}-{1:%m}-{1:%d} {1:%OH}:{1:%M}:{1:%OS}", "", time);
 	dbg::println(" 2 {0:>14} => {1:%F} {1:%T}", "", time);
 	dbg::println(" 3 {:>14} => {} - {}", "", zone.abbrev, zonename);
-
 
 	std::println("Script Compiler v5");
 
