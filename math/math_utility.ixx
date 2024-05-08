@@ -7,12 +7,12 @@ export namespace deckard::math
 	template<class T>
 	concept number = std::integral<T> && std::floating_point<T>;
 
-	template<std::floating_point T>
-	inline constexpr T default_float_tolerance = T{1e-8};
+	template<std::floating_point T = float>
+	inline constexpr T epsilon = T{1e-8};
 
 	// is_close_enough
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = default_float_tolerance)
+	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = epsilon)
 	{
 		return std::fabs(A - B) <= error;
 	}
