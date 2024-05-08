@@ -81,12 +81,12 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 b{1.0f, -2.0f};
 
 		const auto dotted = dot(a, b);
-		REQUIRE_THAT(dotted, WithinAbs(-5.0f, deckard::math::epsilon<float>));
+		REQUIRE_THAT(dotted, WithinAbs(-5.0f, 0.0000001));
 
 		const vec2 c{2.0f, 3.0f};
 		const vec2 d{4.0f, 1.0f};
 		const auto crossed = cross(c, d);
-		REQUIRE_THAT(crossed, WithinAbs(-10.0f, deckard::math::epsilon<float>));
+		REQUIRE_THAT(crossed, WithinAbs(-10.0f, 0.0000001));
 
 		// length
 		const vec2 lvec{3.14f, 5.11f};
@@ -187,7 +187,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f, 4.0f}));
 
 		const auto dist = distance(v1, v2);
-		REQUIRE_THAT(dist, WithinAbs(12.0, deckard::math::epsilon<float>));
+		REQUIRE_THAT(dist, WithinAbs(12.0, 0.0000001));
 
 		const vec3 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
@@ -203,7 +203,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == crossed.equals(vec3{19.870000f, -6.0399994f, -17.230001f}));
 
 		const auto dotted = dot(a, b);
-		REQUIRE_THAT(dotted, WithinAbs(11.719999f, deckard::math::epsilon<float>));
+		REQUIRE_THAT(dotted, WithinAbs(11.719999f, 0.000001));
 
 		// length
 		const vec3 lvec{3.14f, 5.11f, -1.34f};

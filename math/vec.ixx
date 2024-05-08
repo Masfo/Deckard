@@ -202,12 +202,12 @@ namespace deckard::math
 
 		constexpr bool operator==(const vec_type& other) const noexcept { return equals(other, T{}); }
 
-		constexpr bool equals(const vec_type& other, T epsilon = math::epsilon<T>) const noexcept
+		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const noexcept
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
-				if (not is_close_enough(m_data[i], other[i], epsilon))
-					return false;
+					if (not is_close_enough(m_data[i], other[i], epsilon))
+						return false;
 			}
 			return true;
 		}
@@ -536,9 +536,18 @@ namespace deckard::math
 	export using vec3 = vec_n<float, 3>;
 	export using vec2 = vec_n<float, 2>;
 
-	static_assert(sizeof(vec4) == 4 * 4, "vec4 ist 4 floats");
-	static_assert(sizeof(vec3) == 3 * 4, "vec3 ist 3 floats");
-	static_assert(sizeof(vec2) == 2 * 4, "vec2 ist 2 floats");
+	export using uvec2 = vec_n<u32, 2>;
+	export using uvec3 = vec_n<u32, 3>;
+	export using uvec4 = vec_n<u32, 4>;
+
+	export using ivec2 = vec_n<i32, 2>;
+	export using ivec3 = vec_n<i32, 3>;
+	export using ivec4 = vec_n<i32, 4>;
+
+
+	static_assert(sizeof(vec4) == 4 * 4, "vec4 should be 4 floats");
+	static_assert(sizeof(vec3) == 3 * 4, "vec3 should be 3 floats");
+	static_assert(sizeof(vec2) == 2 * 4, "vec2 should be 2 floats");
 
 
 } // namespace deckard::math
