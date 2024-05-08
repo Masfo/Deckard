@@ -69,7 +69,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(true == clamped.equals(vec2{3.0f, 2.0f}));
 	}
 
-	SECTION("vec2 cross/dot")
+	SECTION("vec2 cross/dot/length/normal")
 	{
 		//
 		const vec2 a{3.0f, 4.0f};
@@ -82,6 +82,15 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 d{4.0f, 1.0f};
 		const auto crossed = cross(c, d);
 		REQUIRE_THAT(crossed, WithinAbs(-10.0f, deckard::math::epsilon<float>));
+
+		// length
+		const vec2 lvec{3.14f, 5.11f};
+		const auto len = length(lvec);
+		REQUIRE_THAT(len, WithinAbs(5.9976415f, 0.000001));
+
+		// normalize
+		const vec2 normalized = lvec.normalize();
+		REQUIRE(true == normalized.equals(vec2{0.52353912f, 0.85200160f}));
 	}
 }
 
@@ -152,7 +161,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
 	}
 
-	SECTION("vec3 cross/dot")
+	SECTION("vec3 cross/dot/normal/length")
 	{
 		//
 		const vec4 a{2.1f, 3.2f, 1.3f};
@@ -163,6 +172,15 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 
 		const auto dotted = dot(a, b);
 		REQUIRE_THAT(dotted, WithinAbs(11.719999f, deckard::math::epsilon<float>));
+
+		// length
+		const vec3 lvec{3.14f, 5.11f, -1.34f};
+		const auto len = length(lvec);
+		REQUIRE_THAT(len, WithinAbs(6.1455106f, 0.000001));
+
+		// normalize
+		const vec3 normalized = lvec.normalize();
+		REQUIRE(true == normalized.equals(vec3{0.51094210f, 0.83150130f, -0.21804535f}));
 	}
 }
 
@@ -239,7 +257,10 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 
 		const vec4 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));
+	}
 
+	SECTION("vec4 cross/dot/length/normal")
+	{
 		// cross
 		const vec4 a{3.0, -3.0, 1.0};
 		const vec4 b{4.0, 9.0, 2.0};
