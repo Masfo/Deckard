@@ -3,7 +3,7 @@ export module deckard.assert;
 
 import std;
 import deckard.debug;
-import deckard.math;
+import deckard.math.utility;
 
 export namespace deckard::assert
 {
