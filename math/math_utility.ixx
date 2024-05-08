@@ -8,7 +8,7 @@ export namespace deckard::math
 	concept number = std::integral<T> && std::floating_point<T>;
 
 	template<std::floating_point T = float>
-	inline constexpr T epsilon = T{1e-8};
+	inline constexpr T epsilon = T{1e-7};
 
 	// is_close_enough
 	template<std::floating_point T>
