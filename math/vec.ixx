@@ -170,8 +170,7 @@ namespace deckard::math
 		}
 
 		// div
-		template<typename U>
-		requires(std::integral<U> or std::floating_point<U>)
+		template<typename U = T>
 		constexpr vec_type operator/(const U& scalar) const noexcept
 		{
 			if (scalar == U{})
