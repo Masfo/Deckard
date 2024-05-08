@@ -326,7 +326,6 @@ namespace deckard::math
 		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const noexcept
 		requires(N == 2 or N == 3)
 		{
-			vec_type result{0};
 
 			if (other.has_zero())
 			{
@@ -338,6 +337,20 @@ namespace deckard::math
 
 			T projection_scalar = dot_ab / (b_length * b_length);
 			return other * projection_scalar;
+		}
+
+		[[nodiscard("Use the angle value")]] constexpr T angle(const vec_type& other) const noexcept
+		requires(N == 2 or N == 3)
+		{
+			if (has_zero() or other.has_zero())
+			{
+				dbg::panic("cannot take angle between zero vectors: {} / {}", *this, other);
+			}
+
+			T cosTheta = dot(other) / (length() * other.length());
+
+
+			return std::acos(cosTheta) * T{180.0} / std::numbers::pi_v<T>;
 		}
 
 		std::array<T, N> m_data{T{}};
@@ -428,6 +441,13 @@ namespace deckard::math
 	[[nodiscard("Use the projected vector")]] constexpr vec_n<T, N> project(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.project(rhs);
+	}
+
+	export template<typename T, size_t N>
+	requires(N == 2 or N == 3)
+	[[nodiscard("Use the angle value")]] constexpr T angle(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.angle(rhs);
 	}
 
 	export using vec4 = vec_n<float, 4>;

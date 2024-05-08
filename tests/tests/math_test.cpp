@@ -69,7 +69,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(true == clamped.equals(vec2{3.0f, 2.0f}));
 	}
 
-	SECTION("vec2 cross/dot/length/normal/project")
+	SECTION("vec2 cross/dot/length/normal/project/angle")
 	{
 		//
 		const vec2 a{3.0f, 4.0f};
@@ -106,6 +106,11 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 
 		const vec2 projected2 = project(pB, pA);
 		REQUIRE(true == projected2.equals(vec2{0.23999999f, 0.31999999f}));
+
+		const vec2 angleA{3.0f, 4.0f};
+		const vec2 angleB{2.0f, -1.0f};
+		const auto angle_between = angle(angleA, angleB);
+		REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
 	}
 }
 
@@ -176,7 +181,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
 	}
 
-	SECTION("vec3 cross/dot/normal/length")
+	SECTION("vec3 cross/dot/normal/length/angle")
 	{
 		//
 		const vec3 a{2.1f, 3.2f, 1.3f};
@@ -209,6 +214,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 
 		const vec3 projected = project(pA, pB);
 		REQUIRE(true == projected.equals(vec3{0.46666663f, -0.23333331f, 1.1666666f}));
+
+		// angle
+		const vec3 angleA{3.0f, 4.0f, 1.0f};
+		const vec3 angleB{2.0f, -1.0f, 5.0f};
+		const auto angle_between = angle(angleA, angleB);
+		REQUIRE_THAT(angle_between, WithinAbs(75.48459f, 0.00001));
 	}
 }
 
