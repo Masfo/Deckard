@@ -39,7 +39,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 add_result{4.0f, 5.0f};
 		const vec2 sub_result{0.0f, -1.0f};
 		const vec2 mul_result{4.0f, 6.0f};
-		const vec2 div_result{1.0f, 0.6666666f};
+		const vec2 div_result{1.0f, 0.666666627f};
 
 		REQUIRE(true == add.equals(add_result));
 		REQUIRE(true == sub.equals(sub_result));
@@ -159,7 +159,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		const vec4 b{4.4f, -1.5f, 5.6f};
 
 		const vec3 crossed = cross(a, b);
-		REQUIRE(true == crossed.equals(vec3{19.870000f, -6.039999f, -17.2300014f}));
+		REQUIRE(true == crossed.equals(vec3{19.870000f, -6.0399994f, -17.230001f}));
 
 		const auto dotted = dot(a, b);
 		REQUIRE_THAT(dotted, WithinAbs(11.719999f, deckard::math::epsilon<float>));
