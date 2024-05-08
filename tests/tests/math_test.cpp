@@ -3,6 +3,7 @@
 
 
 import deckard.math.vec;
+import deckard.math.utility;
 import std;
 
 using namespace Catch::Matchers;
@@ -17,9 +18,12 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 	SECTION("constructor")
 	{
 		vec2 v{1.0f};
-
 		REQUIRE(v[0] == 1.0f);
 		REQUIRE(v[1] == 1.0f);
+
+		vec2 v2{1.0f, 2.0f};
+		REQUIRE(v2[0] == 1.0f);
+		REQUIRE(v2[1] == 2.0f);
 	}
 
 	SECTION("basic math")
@@ -64,8 +68,23 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const auto dist = distance(v1, v2);
 		REQUIRE_THAT(dist, WithinAbs(10.0, 0.000001));
 
-		const vec2 clamped = clamp(v2, {2.0f}, {3.0f});
+		const vec2 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec2{3.0f, 2.0f}));
+	}
+
+	SECTION("vec2 cross/dot")
+	{
+		//
+		const vec2 a{3.0f, 4.0f};
+		const vec2 b{1.0f, -2.0f};
+
+		const auto dotted = dot(a, b);
+		REQUIRE_THAT(dotted, WithinAbs(-5.0f, deckard::math::epsilon<float>));
+
+		const vec2 c{2.0f, 3.0f};
+		const vec2 d{4.0f, 1.0f};
+		const auto crossed = cross(c, d);
+		REQUIRE_THAT(crossed, WithinAbs(-10.0f, deckard::math::epsilon<float>));
 	}
 }
 
@@ -76,10 +95,19 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 	SECTION("constructor")
 	{
 		vec3 v{1.0f};
-
 		REQUIRE(v[0] == 1.0f);
 		REQUIRE(v[1] == 1.0f);
 		REQUIRE(v[2] == 1.0f);
+
+		vec3 v2{1.0f, 2.0f};
+		REQUIRE(v2[0] == 1.0f);
+		REQUIRE(v2[1] == 2.0f);
+		REQUIRE(v2[2] == 0.0f);
+
+		vec3 v3{1.0f, 2.0f, 3.0f};
+		REQUIRE(v3[0] == 1.0f);
+		REQUIRE(v3[1] == 2.0f);
+		REQUIRE(v3[2] == 3.0f);
 	}
 
 	SECTION("basic math")
@@ -123,25 +151,55 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f, 4.0f}));
 
 		const auto dist = distance(v1, v2);
-		REQUIRE_THAT(dist, WithinAbs(12.0, 0.000001));
+		REQUIRE_THAT(dist, WithinAbs(12.0, deckard::math::epsilon<float>));
 
-		const vec3 clamped = clamp(v2, {2.0f}, {3.0f});
+		const vec3 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
+	}
+
+	SECTION("vec3 cross/dot")
+	{
+		//
+		const vec4 a{2.1f, 3.2f, 1.3f};
+		const vec4 b{4.4f, -1.5f, 5.6f};
+
+		const vec3 crossed = cross(a, b);
+		REQUIRE(true == crossed.equals(vec3{19.870000f, -6.039999f, -17.2300014f}));
+
+		const auto dotted = dot(a, b);
+		REQUIRE_THAT(dotted, WithinAbs(11.719999f, deckard::math::epsilon<float>));
 	}
 }
 
-// vec3
+// vec4
 TEST_CASE("vec 4", "[vec][vec4][math]")
 {
 	//
 	SECTION("constructor")
 	{
 		vec4 v{1.0f};
-
 		REQUIRE(v[0] == 1.0f);
 		REQUIRE(v[1] == 1.0f);
 		REQUIRE(v[2] == 1.0f);
 		REQUIRE(v[3] == 1.0f);
+
+		vec4 v2{1.0f, 2.0f};
+		REQUIRE(v2[0] == 1.0f);
+		REQUIRE(v2[1] == 2.0f);
+		REQUIRE(v2[2] == 0.0f);
+		REQUIRE(v2[3] == 0.0f);
+
+		vec4 v3{1.0f, 2.0f, 3.0f};
+		REQUIRE(v3[0] == 1.0f);
+		REQUIRE(v3[1] == 2.0f);
+		REQUIRE(v3[2] == 3.0f);
+		REQUIRE(v3[3] == 0.0f);
+
+		vec4 v4{1.0f, 2.0f, 3.0f, 4.0f};
+		REQUIRE(v4[0] == 1.0f);
+		REQUIRE(v4[1] == 2.0f);
+		REQUIRE(v4[2] == 3.0f);
+		REQUIRE(v4[3] == 4.0f);
 	}
 
 	SECTION("basic math")
@@ -186,8 +244,15 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const auto dist = distance(v1, v2);
 		REQUIRE_THAT(dist, WithinAbs(21.0, 0.000001));
 
-		const vec4 clamped = clamp(v2, {2.0f}, {3.0f});
+		const vec4 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));
+
+		// cross
+		const vec4 a{3.0, -3.0, 1.0};
+		const vec4 b{4.0, 9.0, 2.0};
+
+		const vec3 crossed = cross(a, b);
+		REQUIRE(true == crossed.equals(vec3{-15.0, -2.0, 39.0}));
 	}
 }
 
