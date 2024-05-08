@@ -235,7 +235,7 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f, 4.0f, 7.0f}));
 
 		const auto dist = distance(v1, v2);
-		REQUIRE_THAT(dist, WithinAbs(21.0, 0.000001));
+		REQUIRE_THAT(dist, WithinAbs(21.0f, 0.000001));
 
 		const vec4 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));
@@ -246,6 +246,15 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 
 		const vec3 crossed = cross(a, b);
 		REQUIRE(true == crossed.equals(vec3{-15.0, -2.0, 39.0}));
+
+		// length
+		const vec4 lvec{3.14f, 5.11f, -1.34f, 8.1f};
+		const auto len = length(lvec);
+		REQUIRE_THAT(len, WithinAbs(10.167463f, 0.000001));
+
+		// normalize
+		const vec4 normalized = lvec.normalize();
+		REQUIRE(true == normalized.equals(vec4{0.30882826f, 0.50258356f, -0.13179294f, 0.79665893f}));
 	}
 }
 

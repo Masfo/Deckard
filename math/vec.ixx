@@ -243,7 +243,29 @@ namespace deckard::math
 			return result;
 		}
 
-		template<std::integral U>
+		template<typename U = T>
+		[[nodiscard("Use the length value")]] constexpr U length() const noexcept
+		{
+			U result{0};
+			for (size_t i = 0; i < N; ++i)
+				result += m_data[i] * m_data[i];
+
+			return std::sqrt(result);
+		}
+
+		[[nodiscard("Use the normalized value")]] constexpr vec_type normalize() const noexcept
+		requires(N >= 2)
+		{
+			vec_type   result{0};
+			const auto len = length();
+
+			for (size_t i = 0; i < N; ++i)
+				result[i] = m_data[i] / len;
+
+			return result;
+		}
+
+		template<typename U = T>
 		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const noexcept
 		{
 			U result{};
@@ -252,16 +274,7 @@ namespace deckard::math
 			return result;
 		}
 
-		template<std::floating_point U>
-		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const noexcept
-		{
-			U result{};
-			for (size_t i = 0; i < N; ++i)
-				result += as<U>(std::abs(m_data[i] - other[i]));
-			return result;
-		}
-
-		template<std::floating_point U>
+		template<typename U = T>
 		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const U cmin, const U cmax) const noexcept
 		{
 
@@ -354,6 +367,20 @@ namespace deckard::math
 	[[nodiscard("Use the clamped value")]] constexpr T dot(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.dot(rhs);
+	}
+
+	export template<typename T, size_t N>
+	requires(N >= 2)
+	[[nodiscard("Use the length value")]] constexpr T length(const vec_n<T, N>& rhs)
+	{
+		return rhs.length();
+	}
+
+	export template<typename T, size_t N>
+	requires(N >= 2)
+	[[nodiscard("Use the normalized value")]] constexpr auto normalize(const vec_n<T, N>& rhs)
+	{
+		return rhs.normalize();
 	}
 
 	export using vec4 = vec_n<float, 4>;
