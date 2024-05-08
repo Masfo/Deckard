@@ -89,8 +89,13 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE_THAT(len, WithinAbs(5.9976415f, 0.000001));
 
 		// normalize
-		const vec2 normalized = lvec.normalize();
+		const vec2 normalized = lvec.normalized();
 		REQUIRE(true == normalized.equals(vec2{0.52353912f, 0.85200160f}));
+
+		// normalize inplace
+		vec2 normalize_inplace = lvec;
+		normalize_inplace.normalize();
+		REQUIRE(normalize_inplace == normalized);
 
 		// project
 		const vec2 pA{3.0f, 4.0f};
@@ -189,8 +194,14 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE_THAT(len, WithinAbs(6.1455106f, 0.000001));
 
 		// normalize
-		const vec3 normalized = lvec.normalize();
+		const vec3 normalized = lvec.normalized();
 		REQUIRE(true == normalized.equals(vec3{0.51094210f, 0.83150130f, -0.21804535f}));
+
+		// normalize inplace
+		vec3 normalize_inplace = lvec;
+		normalize_inplace.normalize();
+		REQUIRE(normalize_inplace == normalized);
+
 
 		// project
 		const vec3 pA{3.0f, 4.0f, 1.0f};
@@ -291,8 +302,12 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE_THAT(len, WithinAbs(10.167463f, 0.000001));
 
 		// normalize
-		const vec4 normalized = lvec.normalize();
+		const vec4 normalized = lvec.normalized();
 		REQUIRE(true == normalized.equals(vec4{0.30882826f, 0.50258356f, -0.13179294f, 0.79665893f}));
+
+		vec4 normalize_inplace = lvec;
+		normalize_inplace.normalize();
+		REQUIRE(normalize_inplace == normalized);
 	}
 }
 

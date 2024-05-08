@@ -253,7 +253,16 @@ namespace deckard::math
 			return std::sqrt(result);
 		}
 
-		[[nodiscard("Use the normalized value")]] constexpr vec_type normalize() const noexcept
+		constexpr void normalize() noexcept
+		requires(N >= 2)
+		{
+			const auto len = length();
+
+			for (size_t i = 0; i < N; ++i)
+				m_data[i] /= len;
+		}
+
+		[[nodiscard("Use the normalized value")]] constexpr vec_type normalized() const noexcept
 		requires(N >= 2)
 		{
 			vec_type   result{0};
@@ -395,9 +404,16 @@ namespace deckard::math
 
 	export template<typename T, size_t N>
 	requires(N >= 2)
-	[[nodiscard("Use the normalized value")]] constexpr auto normalize(const vec_n<T, N>& rhs)
+	constexpr void normalize(const vec_n<T, N>& rhs)
 	{
-		return rhs.normalize();
+		rhs.normalize();
+	}
+
+	export template<typename T, size_t N>
+	requires(N >= 2)
+	[[nodiscard("Use the normalized value")]] constexpr auto normalized(const vec_n<T, N>& rhs)
+	{
+		return rhs.normalized();
 	}
 
 	export template<typename T, size_t N>
