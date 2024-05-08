@@ -2,6 +2,7 @@ export module deckard.math.vec;
 
 import std;
 import deckard.as;
+import deckard.assert;
 import deckard.types;
 import deckard.debug;
 import deckard.math.utility;
@@ -20,38 +21,20 @@ namespace deckard::math
 		vec_n() = default;
 
 		vec_n(T scalar) noexcept
-		requires(N == 2)
+		requires(N >= 2)
 		{
-			m_data[0] = scalar;
-			m_data[1] = scalar;
-		}
-
-		vec_n(T scalar) noexcept
-		requires(N == 3)
-		{
-			m_data[0] = scalar;
-			m_data[1] = scalar;
-			m_data[2] = scalar;
-		}
-
-		vec_n(T scalar) noexcept
-		requires(N == 4)
-		{
-			m_data[0] = scalar;
-			m_data[1] = scalar;
-			m_data[2] = scalar;
-			m_data[3] = scalar;
+			m_data.fill(scalar);
 		}
 
 		vec_n(T x, T y) noexcept
-		requires(N == 2)
+		requires(N >= 2)
 		{
 			m_data[0] = x;
 			m_data[1] = y;
 		}
 
 		vec_n(T x, T y, T z) noexcept
-		requires(N == 3)
+		requires(N >= 3)
 		{
 			m_data[0] = x;
 			m_data[1] = y;
@@ -65,6 +48,24 @@ namespace deckard::math
 			m_data[1] = y;
 			m_data[2] = z;
 			m_data[3] = w;
+		}
+
+		vec_n(const std::initializer_list<T> list, const std::source_location& loc = std::source_location::current()) noexcept
+		{
+
+			if (list.size() == 1)
+			{
+				m_data.fill(*list.begin());
+				return;
+			}
+			dbg::if_true(list.size() > N,
+						 "{}({}): Warning: initializer list (length: {}) is longer than the container (length: {}).",
+						 loc.file_name(),
+						 loc.line(),
+						 list.size(),
+						 N);
+
+			std::copy_n(list.begin(), std::min(N, list.size()), m_data.begin());
 		}
 
 		constexpr operator vec_type() const noexcept
@@ -261,20 +262,29 @@ namespace deckard::math
 			return result;
 		}
 
-		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const vec_type& cmin, const vec_type& cmax) const noexcept
+		template<std::floating_point U>
+		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const U cmin, const U cmax) const noexcept
 		{
 
 			vec_type result{0};
 			for (size_t i = 0; i < N; ++i)
-				result[i] = std::clamp(m_data[i], cmin[i], cmax[i]);
+				result[i] = std::clamp(m_data[i], cmin, cmax);
 
 			return result;
 		}
 
-		[[nodiscard("Use the cross product")]] constexpr vec_type cross(const vec_type& other) const noexcept
-		requires(N == 3)
+		template<typename U = T>
+		[[nodiscard("Use the cross product")]] constexpr U cross(const vec_type& other) const noexcept
+		requires(N == 2)
 		{
-			vec_type result;
+			return m_data[0] * other[1] - m_data[1] * other[0];
+		}
+
+		template<typename T, size_t M = N>
+		requires(N >= 3)
+		[[nodiscard("Use the cross product")]] constexpr auto cross(const vec_n<T, M>& other) const noexcept
+		{
+			vec_n<T, 3> result;
 
 			result[0] = m_data[1] * other[2] - m_data[2] * other[1];
 			result[1] = m_data[2] * other[0] - m_data[0] * other[2];
@@ -292,7 +302,7 @@ namespace deckard::math
 			return result;
 		}
 
-		std::array<T, N> m_data{};
+		std::array<T, N> m_data{T{}};
 	};
 
 	// Free functions
@@ -320,11 +330,31 @@ namespace deckard::math
 		return lhs.distance<T>(rhs);
 	}
 
-	export template<typename T, size_t N>
-	[[nodiscard("Use the clamped value")]] constexpr vec_n<T, N> clamp(const vec_n<T, N>& v, const vec_n<T, N>& cmin,
-																	   const vec_n<T, N>& cmax)
+	export template<typename T, typename U = T, size_t N>
+	[[nodiscard("Use the clamped value")]] constexpr vec_n<T, N> clamp(const vec_n<T, N>& v, const U cmin, const U cmax)
 	{
 		return v.clamp(cmin, cmax);
+	}
+
+	export template<typename T, size_t N>
+	requires(N == 2)
+	[[nodiscard("Use the clamped value")]] constexpr auto cross(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.cross(rhs);
+	}
+
+	export template<typename T, size_t N, size_t M>
+	requires(N >= 3 and M >= 3)
+	[[nodiscard("Use the clamped value")]] constexpr vec_n<T, 3> cross(const vec_n<T, N>& lhs, const vec_n<T, M>& rhs)
+	{
+		return lhs.cross(rhs);
+	}
+
+	export template<typename T, size_t N>
+	requires(N >= 2)
+	[[nodiscard("Use the clamped value")]] constexpr T dot(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.dot(rhs);
 	}
 
 	export using vec4 = vec_n<float, 4>;
@@ -340,6 +370,7 @@ namespace deckard::math
 
 // STD specials
 export namespace std
+
 {
 	using namespace deckard::math;
 
