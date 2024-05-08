@@ -93,7 +93,8 @@ export namespace deckard::dbg
 	{
 		if constexpr (sizeof...(args) > 0)
 		{
-			trace("PANIC: ", std::vformat(fmt, std::make_format_args(args...)));
+			const auto formatted = std::vformat(fmt, std::make_format_args(args...));
+			trace("PANIC: {}", formatted);
 		}
 		else
 		{
@@ -106,7 +107,16 @@ export namespace deckard::dbg
 		std::terminate();
 	}
 
+	template<typename... Args>
+	[[noreturn]] void panic_throw(std::string_view fmt, Args &&...args)
+	{
+		const auto f = format("divide by zero: {}", std::vformat(fmt, std::make_format_args(args...)));
+		throw std::domain_error{f};
+	}
+
 	[[noreturn]] void panic() noexcept { panic(""); }
+
+	[[noreturn]] void panic_throw() { panic_throw(""); }
 
 	inline void who_called_me(const std::source_location &loc = std::source_location::current())
 	{
