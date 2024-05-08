@@ -321,6 +321,12 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == sub_scalar.equals(sub_scalar_result));
 		REQUIRE(true == mul_scalar.equals(mul_scalar_result));
 		REQUIRE(true == div_scalar.equals(div_scalar_result));
+
+		// div zero
+		const vec4 div_v_zero = safe_divide(v1, vec4{0.0});
+		const vec4 div_s_zero = safe_divide(v1, 0.0f);
+		REQUIRE(true == div_v_zero.has_nan());
+		REQUIRE(true == div_s_zero.has_nan());
 	}
 
 	SECTION("vec4 other functions")

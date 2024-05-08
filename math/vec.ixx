@@ -84,10 +84,19 @@ namespace deckard::math
 
 		constexpr bool has_zero() const noexcept
 		{
-
 			for (int i = 0; i < N; ++i)
 				if (m_data[i] == T{0})
 					return true;
+			return false;
+		};
+
+		constexpr bool has_nan() const noexcept
+		{
+			for (int i = 0; i < N; ++i)
+			{
+				if (std::isnan(m_data[i]))
+					return true;
+			}
 			return false;
 		};
 
@@ -144,9 +153,7 @@ namespace deckard::math
 		constexpr vec_type& operator/=(const vec_type& other) noexcept
 		{
 			if (other.has_zero())
-			{
 				dbg::panic("divide by zero: {} / {}", *this, other);
-			}
 
 			for (size_t i = 0; i < N; ++i)
 				m_data[i] /= other[i];
@@ -158,9 +165,7 @@ namespace deckard::math
 		constexpr vec_type operator/(const vec_type& other) const noexcept
 		{
 			if (other.has_zero())
-			{
 				dbg::panic("divide by zero: {} / {}", *this, other);
-			}
 
 			vec_type result = *this;
 			for (size_t i = 0; i < N; ++i)
@@ -174,9 +179,7 @@ namespace deckard::math
 		constexpr vec_type operator/(const U& scalar) const noexcept
 		{
 			if (scalar == U{})
-			{
-				dbg::panic("divide by scalar zero: {}/{}", *this, scalar);
-			}
+				dbg::panic("divide by scalar zero: {} / {}", *this, scalar);
 
 			vec_type result = *this;
 
@@ -345,7 +348,8 @@ namespace deckard::math
 
 			if (other.has_zero())
 			{
-				dbg::panic("cannot project onto a zero vector: {} / {}", *this, other);
+				dbg::trace("cannot project onto a zero vector: {} / {}", *this, other);
+				return vec_type(std::numeric_limits<T>::quiet_NaN());
 			}
 
 			auto dot_ab   = dot(other);
@@ -361,7 +365,8 @@ namespace deckard::math
 		{
 			if (has_zero() or other.has_zero())
 			{
-				dbg::panic("cannot take angle between zero vectors: {} / {}", *this, other);
+				dbg::trace("cannot take angle between zero vectors: {} / {}", *this, other);
+				return std::numeric_limits<T>::quiet_NaN();
 			}
 
 			T cosTheta = dot(other) / (length() * other.length());
@@ -382,6 +387,33 @@ namespace deckard::math
 			T oneMinusCosTheta = T{1.0} - cosTheta;
 
 			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
+		}
+
+		// divide - non panicking
+		[[nodiscard("Use the divide vector")]] constexpr vec_type safe_divide(const vec_type& other) const noexcept
+		{
+			if (other.has_zero())
+				return vec_type(std::numeric_limits<T>::quiet_NaN());
+
+			vec_type result = *this;
+			for (size_t i = 0; i < N; ++i)
+				result[i] /= other[i];
+
+			return result;
+		}
+
+		template<typename U = T>
+		[[nodiscard("Use the divide scalar")]] constexpr vec_type safe_divide(const U scalar) const noexcept
+		{
+			if (scalar == U{})
+				return vec_type(std::numeric_limits<U>::quiet_NaN());
+
+			vec_type result = *this;
+
+			for (size_t i = 0; i < N; ++i)
+				result[i] /= as<U>(scalar);
+
+			return result;
 		}
 
 		std::array<T, N> m_data{T{}};
@@ -486,6 +518,18 @@ namespace deckard::math
 	[[nodiscard("Use the rotated vector")]] constexpr vec_n<T, N> rotate(const vec_n<T, N>& v, const vec_n<T, N>& axis, const T angle)
 	{
 		return v.rotate(axis, angle);
+	}
+
+	export template<typename T, size_t N>
+	[[nodiscard("Use the divided value")]] constexpr vec_n<T, N> safe_divide(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.safe_divide(rhs);
+	}
+
+	export template<typename T, typename U = T, size_t N>
+	[[nodiscard("Use the divided value")]] constexpr vec_n<T, N> safe_divide(const vec_n<T, N>& lhs, const U scalar)
+	{
+		return lhs.safe_divide(scalar);
 	}
 
 	export using vec4 = vec_n<float, 4>;
