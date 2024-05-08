@@ -292,9 +292,9 @@ namespace deckard::math
 			return m_data[0] * other[1] - m_data[1] * other[0];
 		}
 
-		template<typename T, size_t M = N>
+		template<typename T, size_t N>
 		requires(N >= 3)
-		[[nodiscard("Use the cross product")]] constexpr auto cross(const vec_n<T, M>& other) const noexcept
+		[[nodiscard("Use the cross product")]] constexpr auto cross(const vec_n<T, N>& other) const noexcept
 		{
 			vec_n<T, 3> result;
 
@@ -314,6 +314,23 @@ namespace deckard::math
 			return result;
 		}
 
+		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const noexcept
+		requires(N == 2 or N == 3)
+		{
+			vec_type result{0};
+
+			if (other.has_zero())
+			{
+				dbg::panic("cannot project onto a zero vector: {} / {}", *this, other);
+			}
+
+			auto dot_ab   = dot(other);
+			auto b_length = other.length();
+
+			T projection_scalar = dot_ab / (b_length * b_length);
+			return other * projection_scalar;
+		}
+
 		std::array<T, N> m_data{T{}};
 	};
 
@@ -325,13 +342,13 @@ namespace deckard::math
 	}
 
 	export template<typename T, size_t N>
-	[[nodiscard("Use the maximum value")]] constexpr vec_n<T, N> max(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	[[nodiscard("Use the maximum vector")]] constexpr vec_n<T, N> max(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.max(rhs);
 	}
 
 	export template<typename T, size_t N>
-	[[nodiscard("Use the absolute value")]] constexpr vec_n<T, N> abs(const vec_n<T, N>& lhs)
+	[[nodiscard("Use the absolute vector")]] constexpr vec_n<T, N> abs(const vec_n<T, N>& lhs)
 	{
 		return lhs.abs();
 	}
@@ -343,21 +360,21 @@ namespace deckard::math
 	}
 
 	export template<typename T, typename U = T, size_t N>
-	[[nodiscard("Use the clamped value")]] constexpr vec_n<T, N> clamp(const vec_n<T, N>& v, const U cmin, const U cmax)
+	[[nodiscard("Use the clamped vector")]] constexpr vec_n<T, N> clamp(const vec_n<T, N>& v, const U cmin, const U cmax)
 	{
 		return v.clamp(cmin, cmax);
 	}
 
 	export template<typename T, size_t N>
 	requires(N == 2)
-	[[nodiscard("Use the clamped value")]] constexpr auto cross(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	[[nodiscard("Use the cross product vector")]] constexpr auto cross(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.cross(rhs);
 	}
 
 	export template<typename T, size_t N, size_t M>
 	requires(N >= 3 and M >= 3)
-	[[nodiscard("Use the clamped value")]] constexpr vec_n<T, 3> cross(const vec_n<T, N>& lhs, const vec_n<T, M>& rhs)
+	[[nodiscard("Use the clamped vector")]] constexpr vec_n<T, 3> cross(const vec_n<T, N>& lhs, const vec_n<T, M>& rhs)
 	{
 		return lhs.cross(rhs);
 	}
@@ -381,6 +398,20 @@ namespace deckard::math
 	[[nodiscard("Use the normalized value")]] constexpr auto normalize(const vec_n<T, N>& rhs)
 	{
 		return rhs.normalize();
+	}
+
+	export template<typename T, size_t N>
+	requires(N == 3)
+	[[nodiscard("Use the projected vector")]] constexpr vec_n<T, N> cross(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.cross(rhs);
+	}
+
+	export template<typename T, size_t N>
+	requires(N == 2 or N == 3)
+	[[nodiscard("Use the projected vector")]] constexpr vec_n<T, N> project(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.project(rhs);
 	}
 
 	export using vec4 = vec_n<float, 4>;

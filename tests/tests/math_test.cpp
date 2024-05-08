@@ -69,7 +69,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(true == clamped.equals(vec2{3.0f, 2.0f}));
 	}
 
-	SECTION("vec2 cross/dot/length/normal")
+	SECTION("vec2 cross/dot/length/normal/project")
 	{
 		//
 		const vec2 a{3.0f, 4.0f};
@@ -91,6 +91,16 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		// normalize
 		const vec2 normalized = lvec.normalize();
 		REQUIRE(true == normalized.equals(vec2{0.52353912f, 0.85200160f}));
+
+		// project
+		const vec2 pA{3.0f, 4.0f};
+		const vec2 pB{2.0f, -1.0f};
+
+		const vec2 projected = project(pA, pB);
+		REQUIRE(true == projected.equals(vec2{0.8f, -0.4f}));
+
+		const vec2 projected2 = project(pB, pA);
+		REQUIRE(true == projected2.equals(vec2{0.23999999f, 0.31999999f}));
 	}
 }
 
@@ -164,8 +174,8 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 	SECTION("vec3 cross/dot/normal/length")
 	{
 		//
-		const vec4 a{2.1f, 3.2f, 1.3f};
-		const vec4 b{4.4f, -1.5f, 5.6f};
+		const vec3 a{2.1f, 3.2f, 1.3f};
+		const vec3 b{4.4f, -1.5f, 5.6f};
 
 		const vec3 crossed = cross(a, b);
 		REQUIRE(true == crossed.equals(vec3{19.870000f, -6.0399994f, -17.230001f}));
@@ -181,6 +191,13 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		// normalize
 		const vec3 normalized = lvec.normalize();
 		REQUIRE(true == normalized.equals(vec3{0.51094210f, 0.83150130f, -0.21804535f}));
+
+		// project
+		const vec3 pA{3.0f, 4.0f, 1.0f};
+		const vec3 pB{2.0f, -1.0f, 5.0f};
+
+		const vec3 projected = project(pA, pB);
+		REQUIRE(true == projected.equals(vec3{0.46666663f, -0.23333331f, 1.1666666f}));
 	}
 }
 
@@ -259,7 +276,7 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));
 	}
 
-	SECTION("vec4 cross/dot/length/normal")
+	SECTION("vec4 cross/dot/length/normal/project")
 	{
 		// cross
 		const vec4 a{3.0, -3.0, 1.0};
