@@ -172,14 +172,13 @@ export namespace deckard
 		const i32 lowercase_offset = options.lowercase ? 16 : 0;
 
 		const bool show_hex = options.show_hex;
-		const auto bytes    = std::as_bytes(input);
 		u32        len      = 0;
 
-		for (const auto [i, byte] : std::views::enumerate(input))
+		for (const auto [i, word] : std::views::enumerate(input))
 		{
-			T le = byte;
+			T input_word = word;
 			if (options.byteswap)
-				le = std::byteswap(byte);
+				input_word = std::byteswap(input_word);
 
 			u32 offset = 0;
 			if (show_hex)
@@ -196,10 +195,10 @@ export namespace deckard
 			{
 				u8 shift                    = k << 3;
 				T  mask                     = as<T>(0xFF) << shift;
-				T  word                     = (le & mask) >> shift;
-				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(word) >> 4) + lowercase_offset];
+				T  masked_word              = (input_word & mask) >> shift;
+				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(masked_word) >> 4) + lowercase_offset];
 				offset += 1;
-				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(word) & 0xF) + lowercase_offset];
+				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(masked_word) & 0xF) + lowercase_offset];
 				offset += 1;
 			}
 
