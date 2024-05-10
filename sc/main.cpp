@@ -41,7 +41,7 @@ std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds) noex
 
 	if (mul == ConvertEpoch::Milliseconds)
 		return std::format(
-			"{:04}-{:02}-{:02} {:02}:{:02}:{:#02}:{:0}", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+		  "{:04}-{:02}-{:02} {:02}:{:02}:{:#02}:{:0}", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 	else
 		return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 }
@@ -52,7 +52,7 @@ class IPv6Address
 public:
 	IPv6Address();
 
-	bool fromString(const char *addrstr);
+	bool fromString(const char* addrstr);
 	void print();
 
 private:
@@ -81,7 +81,7 @@ i8 asciiToHex(char c)
 	}
 }
 
-bool IPv6Address::fromString(const char *addrstr)
+bool IPv6Address::fromString(const char* addrstr)
 {
 	u16 accumulator = 0;
 	u8  colon_count = 0;
@@ -210,12 +210,67 @@ private:
 
 static_assert(sizeof(IpAddress) == 20, "IpAddress is not 20-bytes");
 
+class Chain
+{
+public:
+	auto& set(int v)
+	{
+		dbg::println("{} = set({})", std::exchange(value, v), v);
+		value = v;
+
+		return *this;
+	};
+
+	auto& execute() const
+	{
+		dbg::println("execute({})", value);
+		return *this;
+	}
+
+	auto& close() const
+	{
+		dbg::println("close");
+		return *this;
+	}
+
+private:
+	int value = 0;
+};
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
+
+
+	Chain c;
+	c.set(123).execute().close();
+
+	/*
+		enum { Startup, Exit, First, Last, PreUpdate, Update, PostUpdate, FixedUpdate}
+
+		void setup()
+		void load()
+		vpod mainloop()
+		void exit()
+
+		auto app = deckard::app();
+
+		app.add(App::Startup, setup)
+		   .add(App::Startup, load)
+
+		   .add(App::Startup, setup, load) <- variadic
+
+		   .add(App::Update: mainloop)
+		   .add(App::Exit, exit)
+		   .run();
+
+
+
+
+	*/
 
 	std::vector<u32> adata;
 	adata.push_back(0x1122'3344);
@@ -361,7 +416,7 @@ int main()
 
 	auto add_keywords = [](const std::span<std::string_view> words)
 	{
-		for (const auto &word : words)
+		for (const auto& word : words)
 			dbg::println("adding keyword '{}'", word);
 	};
 

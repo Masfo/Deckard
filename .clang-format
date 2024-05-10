@@ -12,6 +12,8 @@ TabWidth: 4
 AlignOperands: Align
 BreakBeforeBinaryOperators: None
 
+
+
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: Consecutive 
 AlignConsecutiveDeclarations: Consecutive  
@@ -20,7 +22,7 @@ AlignTrailingComments:
   OverEmptyLines: 2
   
 Cpp11BracedListStyle: true
-DerivePointerAlignment: true
+DerivePointerAlignment: false
 IndentPPDirectives: None
 MaxEmptyLinesToKeep: 2
 SpaceBeforeCpp11BracedList: false
@@ -32,6 +34,9 @@ SpaceAfterTemplateKeyword: false
 AlwaysBreakTemplateDeclarations: Yes
 RequiresClausePosition: OwnLine
 IndentRequiresClause: false
+
+PenaltyIndentedWhitespace: 2
+ContinuationIndentWidth: 2
 
 AllowShortCaseLabelsOnASingleLine: true
 IndentCaseLabels: true

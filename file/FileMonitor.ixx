@@ -113,19 +113,19 @@ export namespace deckard
 		{
 
 			m_monitor_thread = std::jthread(
-				[&, update_time](std::stop_token token)
-				{
-					// First scan
-					for (const auto &file : std::filesystem::recursive_directory_iterator(
-							 m_current_path, std::filesystem::directory_options::skip_permission_denied))
-						update_file(file, StatusFlag::Created);
+							[&, update_time](std::stop_token token)
+							{
+								// First scan
+								for (const auto &file : std::filesystem::recursive_directory_iterator(
+													 m_current_path, std::filesystem::directory_options::skip_permission_denied))
+									update_file(file, StatusFlag::Created);
 
-					while (!token.stop_requested())
-					{
-						std::this_thread::sleep_for(update_time);
-						update_files();
-					}
-				});
+								while (!token.stop_requested())
+								{
+									std::this_thread::sleep_for(update_time);
+									update_files();
+								}
+							});
 		}
 
 		void callback(const MonitorData &data) const noexcept

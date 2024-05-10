@@ -82,7 +82,7 @@ namespace deckard::system
 			return "Windows";
 
 		return std::format(
-			"Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
+		  "Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
 	}
 
 	export u64 GetRAM() noexcept
