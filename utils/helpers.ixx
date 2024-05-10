@@ -1,6 +1,7 @@
 export module deckard.helpers;
 
 import std;
+import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.debug;
@@ -147,6 +148,7 @@ export namespace deckard
 
 	struct HexOption
 	{
+		bool        byteswap{true};
 		std::string delimiter{", "};
 		bool        lowercase{false};
 		bool        show_hex{true};
@@ -154,13 +156,14 @@ export namespace deckard
 
 	void enable_bitmask_operations(HexOption);
 
-	[[no_discard]] u32 to_hex(const std::span<u8> input, std::span<u8> output, const HexOption& options = {})
+	export template<typename T>
+	u32 to_hex(std::span<T> const& input, std::span<u8> output, const HexOption& options = {}) noexcept
 	{
-		const u32 delimiter_len = options.delimiter.size();
+		const u32 delimiter_len = as<u32>(options.delimiter.size());
 		const u32 hex_len       = options.show_hex ? 2 : 0;
 
-		const u32 stride = 2 + delimiter_len + hex_len;
-		const u32 maxlen = input.size() * stride;
+		const u32 stride = sizeof(T) * 2 + delimiter_len + hex_len;
+		const u32 maxlen = as<u32>(input.size()) * stride;
 
 		if (output.size() < maxlen or output.empty())
 			return maxlen;
@@ -174,8 +177,12 @@ export namespace deckard
 		const auto bytes    = std::as_bytes(input);
 		u32        len      = 0;
 
-		for (const auto [i, byte] : std::views::enumerate(bytes))
+		for (const auto [i, byte] : std::views::enumerate(input))
 		{
+			T le = byte;
+			if (options.byteswap)
+				le = std::byteswap(byte);
+
 			u32 offset = 0;
 			if (show_hex)
 			{
@@ -187,14 +194,20 @@ export namespace deckard
 				len += 2;
 			}
 
-			output[i * stride + offset] = HEX_LUT[(static_cast<u8>(byte) >> 4) + lowercase_offset];
-			offset += 1;
-			output[i * stride + offset] = HEX_LUT[(static_cast<u8>(byte) & 0xF) + lowercase_offset];
-			offset += 1;
+			for (u8 k = 0; k < sizeof(T); k++)
+			{
+				u8 shift                    = k << 3;
+				T  mask                     = as<T>(0xFF) << shift;
+				T  word                     = (le & mask) >> shift;
+				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(word) >> 4) + lowercase_offset];
+				offset += 1;
+				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(word) & 0xF) + lowercase_offset];
+				offset += 1;
+			}
 
-			len += 2;
+			len += sizeof(T);
 
-			for (size_t j = 0; i < input.size() - 1 and j < options.delimiter.size(); j++)
+			for (size_t j = 0; (as<u64>(i) < input.size() - 1) and (j < options.delimiter.size()); j++)
 			{
 				output[i * stride + offset] = options.delimiter[j];
 				offset += 1;
@@ -204,13 +217,14 @@ export namespace deckard
 		return len;
 	}
 
-	std::string to_hex_string(const std::span<u8> input, const HexOption& options = {})
+	template<typename T>
+	std::string to_hex_string(std::span<T> const& input, const HexOption& options = {}) noexcept
 	{
 		std::string ret;
 
 		ret.resize(to_hex(input, {}, options));
 
-		(void)to_hex(input, {reinterpret_cast<u8*>(ret.data()), ret.size()}, options);
+		(void)to_hex<T>(input, {reinterpret_cast<u8*>(ret.data()), ret.size()}, options);
 
 		return ret;
 	}
