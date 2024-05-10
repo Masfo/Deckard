@@ -5,10 +5,13 @@ import deckard.types;
 import deckard.assert;
 import deckard.debug;
 
+using namespace std::string_view_literals;
+
 export namespace deckard
 {
 	// upto 0..n-1, P3060
 	inline constexpr auto upto = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
+
 
 	// loop (n, n+1, n+..)
 	inline constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
@@ -138,6 +141,78 @@ export namespace deckard
 		std::size_t seed = 0;
 		hash_combine(seed, args...);
 		return seed;
+	}
+
+	// to_hex
+
+	struct HexOption
+	{
+		std::string delimiter{", "};
+		bool        lowercase{false};
+		bool        show_hex{true};
+	};
+
+	void enable_bitmask_operations(HexOption);
+
+	[[no_discard]] u32 to_hex(const std::span<u8> input, std::span<u8> output, const HexOption& options = {})
+	{
+		const u32 delimiter_len = options.delimiter.size();
+		const u32 hex_len       = options.show_hex ? 2 : 0;
+
+		const u32 stride = 2 + delimiter_len + hex_len;
+		const u32 maxlen = input.size() * stride;
+
+		if (output.size() < maxlen or output.empty())
+			return maxlen;
+
+		constexpr static std::array<u8, 32> HEX_LUT{
+		  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+		  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+		const i32 lowercase_offset = options.lowercase ? 16 : 0;
+
+		const bool show_hex = options.show_hex;
+		const auto bytes    = std::as_bytes(input);
+		u32        len      = 0;
+
+		for (const auto [i, byte] : std::views::enumerate(bytes))
+		{
+			u32 offset = 0;
+			if (show_hex)
+			{
+				output[i * stride + offset] = '0';
+				offset += 1;
+
+				output[i * stride + offset] = 'x';
+				offset += 1;
+				len += 2;
+			}
+
+			output[i * stride + offset] = HEX_LUT[(static_cast<u8>(byte) >> 4) + lowercase_offset];
+			offset += 1;
+			output[i * stride + offset] = HEX_LUT[(static_cast<u8>(byte) & 0xF) + lowercase_offset];
+			offset += 1;
+
+			len += 2;
+
+			for (size_t j = 0; i < input.size() - 1 and j < options.delimiter.size(); j++)
+			{
+				output[i * stride + offset] = options.delimiter[j];
+				offset += 1;
+				len += 1;
+			}
+		}
+		return len;
+	}
+
+	std::string to_hex_string(const std::span<u8> input, const HexOption& options = {})
+	{
+		std::string ret;
+
+		ret.resize(to_hex(input, {}, options));
+
+		(void)to_hex(input, {reinterpret_cast<u8*>(ret.data()), ret.size()}, options);
+
+		return ret;
 	}
 
 } // namespace deckard
