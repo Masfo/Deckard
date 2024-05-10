@@ -148,22 +148,22 @@ export namespace deckard
 
 	struct HexOption
 	{
-		bool        byteswap{true};
+		bool        byteswap{std::endian::native == std::endian::little};
 		std::string delimiter{", "};
 		bool        lowercase{false};
 		bool        show_hex{true};
 	};
 
-	template<typename T>
+	template<typename T = u8>
 	u32 to_hex(std::span<T> const input, std::span<u8> output, const HexOption& options = {}) noexcept
 	{
-		const u32 delimiter_len = as<u32>(options.delimiter.size());
+		const u32 delimiter_len = input.size() == 1 ? 0 : as<u32>(options.delimiter.size());
 		const u32 hex_len       = options.show_hex ? 2 : 0;
 
-		const u32 stride = sizeof(T) * 2 + delimiter_len + hex_len;
-		const u32 maxlen = as<u32>(input.size()) * stride;
+		const u32 stride = (sizeof(T) * 2) + delimiter_len + hex_len;
+		const u32 maxlen = (as<u32>(input.size()) * stride) - delimiter_len;
 
-		if (output.size() < maxlen or output.empty())
+		if (input.empty() or output.size() < maxlen or output.empty())
 			return maxlen;
 
 		constexpr static std::array<u8, 32> HEX_LUT{
@@ -214,7 +214,7 @@ export namespace deckard
 		return len;
 	}
 
-	template<typename T>
+	template<typename T = u8>
 	std::string to_hex_string(std::span<T> const input, const HexOption& options = {}) noexcept
 	{
 		std::string ret;
