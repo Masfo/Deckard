@@ -13,6 +13,7 @@ void output_message(const std::string_view message) noexcept
 	std::print(std::cerr, "{}"sv, message);
 #ifdef _DEBUG
 	OutputDebugStringA(message.data());
+
 #endif
 }
 
@@ -21,13 +22,13 @@ struct alignas(64) FormatLocation
 	std::string_view     fmt;
 	std::source_location loc;
 
-	FormatLocation(const char *s, const std::source_location &l = std::source_location::current()) noexcept
+	FormatLocation(const char* s, const std::source_location& l = std::source_location::current()) noexcept
 		: fmt(s)
 		, loc(l)
 	{
 	}
 
-	FormatLocation(std::string_view s, const std::source_location &l = std::source_location::current()) noexcept
+	FormatLocation(std::string_view s, const std::source_location& l = std::source_location::current()) noexcept
 		: fmt(s)
 		, loc(l)
 	{
@@ -42,18 +43,20 @@ export namespace deckard::dbg
 
 	// debug
 	template<typename... Args>
-	void print(std::string_view fmt, Args &&...args) noexcept
+	void print(std::string_view fmt, Args&&... args) noexcept
 	{
-		output_message(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
+		const auto formatted = std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...)));
+		output_message(formatted);
 	}
 
 	void print(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt)); }
 
 	// debugln
 	template<typename... Args>
-	void println(std::string_view fmt, Args &&...args) noexcept
+	void println(std::string_view fmt, Args&&... args) noexcept
 	{
-		output_message(std::format("{}\n"sv, std::vformat(fmt, std::make_format_args(args...))));
+		const auto formatted = std::format("{}\n"sv, std::vformat(fmt, std::make_format_args(args...)));
+		output_message(formatted);
 	}
 
 	void println(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt)); }
@@ -67,7 +70,7 @@ export namespace deckard::dbg
 	}
 
 	template<typename... Args>
-	void if_true(bool cond, std::string_view fmt, Args &&...args) noexcept
+	void if_true(bool cond, std::string_view fmt, Args&&... args) noexcept
 	{
 		if (cond)
 			println(fmt, args...);
@@ -75,13 +78,13 @@ export namespace deckard::dbg
 
 	// trace
 	template<typename... Args>
-	void trace(FormatLocation fmt, Args &&...args) noexcept
+	void trace(FormatLocation fmt, Args&&... args) noexcept
 	{
-		output_message(std::format(
-						"{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), std::vformat(fmt.fmt, std::make_format_args(args...))));
+		output_message(
+		  std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), std::vformat(fmt.fmt, std::make_format_args(args...))));
 	}
 
-	void trace(const std::source_location &loc) noexcept { output_message(std::format("{}({}): "sv, loc.file_name(), loc.line())); }
+	void trace(const std::source_location& loc) noexcept { output_message(std::format("{}({}): "sv, loc.file_name(), loc.line())); }
 
 	void trace(FormatLocation fmt) noexcept { output_message(std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), fmt.fmt)); }
 
@@ -89,7 +92,7 @@ export namespace deckard::dbg
 
 	// Panic
 	template<typename... Args>
-	[[noreturn]] void panic(std::string_view fmt, Args &&...args) noexcept
+	[[noreturn]] void panic(std::string_view fmt, Args&&... args) noexcept
 	{
 		if constexpr (sizeof...(args) > 0)
 		{
@@ -108,7 +111,7 @@ export namespace deckard::dbg
 	}
 
 	template<typename... Args>
-	[[noreturn]] void panic_throw(std::string_view fmt, Args &&...args)
+	[[noreturn]] void panic_throw(std::string_view fmt, Args&&... args)
 	{
 		const auto f = format("divide by zero: {}", std::vformat(fmt, std::make_format_args(args...)));
 		throw std::domain_error{f};
@@ -118,7 +121,7 @@ export namespace deckard::dbg
 
 	[[noreturn]] void panic_throw() { panic_throw(""); }
 
-	inline void who_called_me(const std::source_location &loc = std::source_location::current())
+	inline void who_called_me(const std::source_location& loc = std::source_location::current())
 	{
 #ifdef _DEBUG
 		auto strace = std::stacktrace::current();
@@ -130,7 +133,7 @@ export namespace deckard::dbg
 
 export namespace deckard
 {
-	void todo(std::string_view str, const std::source_location &loc = std::source_location::current()) noexcept
+	void todo(std::string_view str, const std::source_location& loc = std::source_location::current()) noexcept
 	{
 		dbg::trace(loc);
 		dbg::println("TODO: {}", str);
