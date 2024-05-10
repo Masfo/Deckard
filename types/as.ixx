@@ -7,20 +7,22 @@ namespace deckard
 {
 
 	template<typename T, typename U>
-	void warn_cast_limit(U value, const std::source_location &loc) noexcept
+	void warn_cast_limit(U value, const std::source_location& loc) noexcept
 	{
 		dbg::trace(loc);
-		dbg::println("Could not convert value '{}' safely. Target too small: {} < {} < {} ",
-					 value,
-					 std::numeric_limits<T>::min(),
-					 value,
-					 std::numeric_limits<T>::max());
+		dbg::println(
+		  "Unable to cast '{}' safely. Target range is {}...{}", value, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 
 	export template<typename Ret, typename U>
-	constexpr Ret as(U u, [[maybe_unused]] const std::source_location &loc = std::source_location::current()) noexcept
+	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
 	{
 #ifdef _DEBUG
+
+		const Ret return_max = std::numeric_limits<Ret>::max();
+		const Ret return_min = std::numeric_limits<Ret>::min();
+		const U   value      = u;
+
 
 		if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
 		{
@@ -28,47 +30,33 @@ namespace deckard
 		}
 
 
+		// i
 		if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
 		{
-			if (((u <= static_cast<U>(std::numeric_limits<Ret>::max())) && (u >= static_cast<U>(std::numeric_limits<Ret>::min()))))
-			{
+			if (value >= return_min and value <= return_max)
 				return static_cast<Ret>(u);
-			}
-			else
-			{
-				warn_cast_limit<Ret>(u, loc);
-				return static_cast<Ret>(u);
-			}
+
+			warn_cast_limit<Ret>(u, loc);
+			return static_cast<Ret>(u);
 		}
 		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
 		{
-			Ret diff = u - static_cast<Ret>(u);
+			// FP
+			std::int64_t max_cast     = static_cast<std::int64_t>(value);
+			Ret          casted_value = static_cast<Ret>(value);
 
-			if (u - static_cast<Ret>(u) == 0)
-			{
-				return as<Ret>(static_cast<Ret>(u));
-			}
-			else
-			{
-				if constexpr (std::is_signed_v<Ret>)
-				{
-					std::int64_t value{};
-					value = as<Ret>(static_cast<std::int64_t>(u));
+			auto diff = std::abs(max_cast - value);
 
-					dbg::trace(loc);
-					dbg::println("Loss of precision casting '{:f}' to '{}'", u, value);
-					return value;
-				}
-				if constexpr (std::is_unsigned_v<Ret>)
-				{
-					std::uint64_t value{};
-					value = as<Ret>(static_cast<std::uint64_t>(u));
+			// If diff is near zero and it fits
+			if (max_cast >= return_min and max_cast <= return_max and diff <= 0.00000001)
+				return static_cast<Ret>(u);
 
-					dbg::trace(loc);
-					dbg::println("Loss of precision casting '{:f}' to '{}'", u, value);
-					return value;
-				}
-			}
+			dbg::trace(loc);
+			dbg::println("Casting '{:f}' to range of {}...{} resulted in value '{}", value, return_min, return_max, casted_value);
+
+
+			warn_cast_limit<Ret>(value, loc);
+			return static_cast<Ret>(u);
 		}
 		else
 #endif
