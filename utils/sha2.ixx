@@ -16,23 +16,21 @@ requires std::is_integral_v<Type>
 [[nodiscard("You are not using your hash digest.")]] class generic_sha2_digest final
 {
 public:
+	using type            = Type;
 	generic_sha2_digest() = default;
 
-	generic_sha2_digest(const std::initializer_list<Type> &digits)
+	generic_sha2_digest(const std::initializer_list<Type>& digits)
 	{
 		assert::if_true(digits.size() == binary.size(), "Initializer-list must be same size");
 
 		std::copy(digits.begin(), digits.end(), binary.begin());
 	};
 
-	[[nodiscard("You are not using your hash digest string.")]] std::string
-	to_string(const Uppercase uppercase = Uppercase::No) const noexcept
+	[[nodiscard("You are not using your hash digest string.")]]
+	std::string to_string(const Uppercase uppercase = Uppercase::No) noexcept
 	{
-		constexpr static std::array<std::string_view, 4> fmt_array{"{:08x}", "{:08X}", "{:016x}", "{:016X}"};
-		const int                                        index = (sizeof(Type) == 4 ? 0 : 2) + (uppercase == Uppercase::No ? 0 : 1);
-
-		return std::vformat(std::format("{0}{0}{0}{0}{0}{0}{0}{0}", fmt_array[index]),
-							std::make_format_args(binary[0], binary[1], binary[2], binary[3], binary[4], binary[5], binary[6], binary[7]));
+		return to_hex_string<Type>(
+		  binary, {.byteswap = true, .delimiter = "", .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
 	}
 
 	Type operator[](int index) const noexcept
@@ -41,7 +39,7 @@ public:
 		return binary[index];
 	}
 
-	bool operator==(const generic_sha2_digest<Type> &that) const noexcept { return binary == that.binary; }
+	bool operator==(const generic_sha2_digest<Type>& that) const noexcept { return binary == that.binary; }
 
 	std::array<Type, 8> binary{0};
 };
@@ -91,7 +89,7 @@ namespace deckard::sha256
 			if (data.empty())
 				return;
 
-			for (const auto &i : data)
+			for (const auto& i : data)
 			{
 				m_block[m_blockindex++] = static_cast<u8>(i);
 				if (m_blockindex == BLOCK_SIZE)
@@ -207,7 +205,7 @@ namespace deckard::sha256
 	export std::string quickhash(std::string_view input) noexcept
 	{
 		sha256::hasher hasher;
-		hasher.update({(u8 *)input.data(), input.size()});
+		hasher.update({(u8*)input.data(), input.size()});
 
 		sha256::digest digest = hasher.finalize();
 		return digest.to_string();
@@ -270,7 +268,7 @@ namespace deckard::sha512
 			if (data.empty())
 				return;
 
-			for (const auto &i : data)
+			for (const auto& i : data)
 			{
 				m_block[m_blockindex++] = as<u8>(i & 0xFF);
 				if (m_blockindex == BLOCK_SIZE)
@@ -398,7 +396,7 @@ namespace deckard::sha512
 	export std::string quickhash(std::string_view input) noexcept
 	{
 		sha512::hasher hasher;
-		hasher.update({(u8 *)input.data(), input.size()});
+		hasher.update({(u8*)input.data(), input.size()});
 
 		sha512::digest digest = hasher.finalize();
 
