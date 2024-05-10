@@ -154,10 +154,8 @@ export namespace deckard
 		bool        show_hex{true};
 	};
 
-	void enable_bitmask_operations(HexOption);
-
-	export template<typename T>
-	u32 to_hex(std::span<T> const& input, std::span<u8> output, const HexOption& options = {}) noexcept
+	template<typename T>
+	u32 to_hex(std::span<T> const input, std::span<u8> output, const HexOption& options = {}) noexcept
 	{
 		const u32 delimiter_len = as<u32>(options.delimiter.size());
 		const u32 hex_len       = options.show_hex ? 2 : 0;
@@ -218,7 +216,7 @@ export namespace deckard
 	}
 
 	template<typename T>
-	std::string to_hex_string(std::span<T> const& input, const HexOption& options = {}) noexcept
+	std::string to_hex_string(std::span<T> const input, const HexOption& options = {}) noexcept
 	{
 		std::string ret;
 
