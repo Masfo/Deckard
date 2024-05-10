@@ -216,7 +216,6 @@ public:
 	auto& set(int v)
 	{
 		dbg::println("{} = set({})", std::exchange(value, v), v);
-		value = v;
 
 		return *this;
 	};
@@ -245,9 +244,8 @@ int main()
 #endif
 
 
-	Chain c;
-	c.set(123).execute().close();
-
+	auto d = Chain().set(123).execute().close();
+	int  k = 0;
 	/*
 		enum { Startup, Exit, First, Last, PreUpdate, Update, PostUpdate, FixedUpdate}
 

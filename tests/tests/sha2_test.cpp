@@ -12,7 +12,7 @@ TEST_CASE("SHA digests", "[sha]")
 {
 	//
 	sha256::digest correct_abc_digest{
-		0xba78'16bf, 0x8f01'cfea, 0x4141'40de, 0x5dae'2223, 0xb003'61a3, 0x9617'7a9c, 0xb410'ff61, 0xf200'15ad};
+	  0xba78'16bf, 0x8f01'cfea, 0x4141'40de, 0x5dae'2223, 0xb003'61a3, 0x9617'7a9c, 0xb410'ff61, 0xf200'15ad};
 
 	sha256::digest copy = correct_abc_digest;
 
@@ -63,25 +63,24 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
 	{
 		//
 		REQUIRE(
-			sha512::quickhash("") ==
-			"cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"s);
+		  sha512::quickhash("") ==
+		  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"s);
 	}
-
 	SECTION("abc")
 	{
 		//
 		REQUIRE(
-			sha512::quickhash("abc") ==
-			"ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"s);
+		  sha512::quickhash("abc") ==
+		  "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"s);
 	}
 
 	SECTION("sha512(sha512(abc))")
 	{
 		//
 		REQUIRE(
-			sha512::quickhash("ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643c"
-							  "e80e2a9ac94fa54ca49f") ==
-			"ee02b3dd5b2c06e4e61888d141998abac194d57692f77ae7a28d748fdf9b9f28f756d980687f7290f1306857edf3fe01f8ebf4626880d49a33e029399cb2d700"s);
+		  sha512::quickhash("ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643c"
+							"e80e2a9ac94fa54ca49f") ==
+		  "ee02b3dd5b2c06e4e61888d141998abac194d57692f77ae7a28d748fdf9b9f28f756d980687f7290f1306857edf3fe01f8ebf4626880d49a33e029399cb2d700"s);
 	}
 
 
