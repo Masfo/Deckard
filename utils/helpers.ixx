@@ -59,7 +59,14 @@ export namespace deckard
 	}
 
 	//
-	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+
+	template<typename T = u8>
+	constexpr T bitmask(u8 size)
+	{
+		return (1 << (size - 1)) | ((1 << size) - 1);
+	}
+
+	constexpr bool test_bit(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
 
 	auto clock_now() noexcept { return std::chrono::high_resolution_clock::now(); }
 
@@ -189,9 +196,9 @@ export namespace deckard
 				len += 2;
 			}
 
-			for (u8 k = 0; k < sizeof(T); k++)
+			for (u8 byte = 0; byte < sizeof(T); byte++)
 			{
-				const u8 shift              = k * 8;
+				const u8 shift              = byte * 8;
 				const T  mask               = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
 				const T  masked_byte        = (input_word & mask) >> shift;
 				output[i * stride + offset] = HEX_LUT[(as<u8>(masked_byte) >> 4) + lowercase_offset];
