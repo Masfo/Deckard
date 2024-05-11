@@ -200,6 +200,7 @@ export namespace deckard
 				const T  mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
 				const u8 masked_byte = as<u8>((input_word & mask) >> shift);
 
+
 				output[i * stride + offset] = HEX_LUT[((masked_byte) >> 4) + lowercase_offset];
 				offset += 1;
 
@@ -233,7 +234,7 @@ export namespace deckard
 
 	std::string to_hex_string(const std::string_view input, const HexOption& options = {}) noexcept
 	{
-		return to_hex_string(std::span{input.data(), input.size()}, options);
+		return to_hex_string(std::span{(u8*)input.data(), input.size()}, options);
 	}
 
 } // namespace deckard
