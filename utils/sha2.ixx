@@ -17,7 +17,8 @@ requires std::is_integral_v<Type>
 [[nodiscard("You are not using your hash digest.")]] class generic_sha2_digest final
 {
 public:
-	using type            = Type;
+	using type = Type;
+
 	generic_sha2_digest() = default;
 
 	generic_sha2_digest(std::string_view string_hash)

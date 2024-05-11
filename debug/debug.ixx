@@ -82,17 +82,18 @@ export namespace deckard::dbg
 
 	void println() noexcept { output_message("\n"); }
 
-	void if_true(bool cond, std::string_view fmt) noexcept
-	{
-		if (cond)
-			println(fmt);
-	}
-
 	template<typename... Args>
 	void if_true(bool cond, std::string_view fmt, Args&&... args) noexcept
 	{
+#ifdef _DEBUG
 		if (cond)
-			println(fmt, args...);
+		{
+			if constexpr (sizeof...(Args) > 0)
+				println(fmt, args...);
+			else
+				println("{}", fmt);
+		}
+#endif
 	}
 
 	std::string who_called_me()

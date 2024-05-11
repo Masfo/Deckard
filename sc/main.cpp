@@ -296,7 +296,6 @@ private:
 	u8 acc{0};
 };
 
-
 int main()
 {
 #ifndef _DEBUG
