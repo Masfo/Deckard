@@ -226,4 +226,10 @@ export namespace deckard
 		return ret;
 	}
 
+	std::string to_hex_string(std::string_view input, const HexOption& options = {}) noexcept
+	{
+		//
+		return to_hex_string(std::span{(u8*)input.data(), input.size()}, options);
+	}
+
 } // namespace deckard

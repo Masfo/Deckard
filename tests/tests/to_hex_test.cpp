@@ -31,4 +31,28 @@ TEST_CASE("to_hex", "[to_hex]")
 		REQUIRE(to_hex_string<u32>(values, {.show_hex = false}) == "11223344, DEADBEEF"s);
 		REQUIRE(to_hex_string<u32>(values, {.delimiter = "-", .show_hex = true}) == "0x11223344-0xDEADBEEF"s);
 	}
+
+
+	SECTION("array of u8 values")
+	{
+		std::array<u8, 8> values{1, 2, 3, 4, 5, 6, 7, 8};
+
+		REQUIRE(to_hex_string<u8>(values) == "0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08"s);
+
+		HexOption option{.delimiter = "<$>", .show_hex = false};
+		REQUIRE(to_hex_string<u8>(values, option) == "01<$>02<$>03<$>04<$>05<$>06<$>07<$>08"s);
+	}
+
+	SECTION("normal string (hello world)")
+	{
+		std::string value = "Hello World";
+
+		REQUIRE(to_hex_string(value) == "0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64"s);
+
+		HexOption option{.delimiter = "", .lowercase = true, .show_hex = false};
+		REQUIRE(to_hex_string(value, option) == "48656c6c6f20576f726c64"s);
+
+		option = {.delimiter = "/", .lowercase = false, .show_hex = false};
+		REQUIRE(to_hex_string(value, option) == "48/65/6C/6C/6F/20/57/6F/72/6C/64"s);
+	}
 }
