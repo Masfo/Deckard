@@ -33,16 +33,17 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(aa_points[1] == 0xC4);
 		REQUIRE(aa_points[2] == 0x21A5);
 		REQUIRE(aa_points[3] == 0x1F30D);
-	}
 
-	SECTION("invalid codepoints")
-	{
 		// u+FFFF
 		REQUIRE(utf8::codepoints_from_utf8_string("\xEF\xBF\xBF").size() == 1);
 
 		// UTF BOM
-		REQUIRE(utf8::codepoints_from_utf8_string("\uFEFF").empty() == true);
-		REQUIRE(utf8::codepoints_from_utf8_string("\uFFFE").empty() == true);
+		REQUIRE(utf8::codepoints_from_utf8_string("\uFEFF").size() == 1);
+		REQUIRE(utf8::codepoints_from_utf8_string("\uFFFE").size() == 1);
+	}
+
+	SECTION("invalid codepoints")
+	{
 
 
 		// C3 (single byte starting with a multi-byte prefix)

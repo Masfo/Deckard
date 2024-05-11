@@ -28,7 +28,7 @@ namespace deckard::utf8
 	constexpr u32 UTF8_REPLACEMENT_CHARACTER{0xFFFD};
 	constexpr u32 UTF8_BOM{0xFEFF};
 
-	constexpr bool is_bom(u32 codepoint) noexcept
+	export constexpr bool is_bom(u32 codepoint) noexcept
 	{
 		switch (codepoint)
 		{
@@ -58,9 +58,6 @@ namespace deckard::utf8
 		{
 			if (!decode(b))
 			{
-				if (is_bom(codepoint))
-					continue;
-
 				ret.emplace_back(codepoint);
 				codepoint_count += 1;
 			}
