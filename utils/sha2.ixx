@@ -55,7 +55,7 @@ public:
 	std::string to_string(const Uppercase uppercase = Uppercase::No) noexcept
 	{
 		return to_hex_string<Type>(
-		  binary, {.byteswap = true, .delimiter = "", .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
+		  binary, {.delimiter = "", .endian_swap = true, .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
 	}
 
 	Type operator[](int index) const noexcept

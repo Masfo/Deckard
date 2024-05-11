@@ -17,7 +17,7 @@ TEST_CASE("to_hex", "[to_hex]")
 
 		value = 0xDEAD'BEEF;
 		REQUIRE(to_hex_string<u32>({&value, 1}, {.lowercase = true, .show_hex = false}) == "deadbeef"s);
-		REQUIRE(to_hex_string<u32>({&value, 1}, {.byteswap = false, .lowercase = true, .show_hex = true}) == "0xefbeadde"s);
+		REQUIRE(to_hex_string<u32>({&value, 1}, {.endian_swap = false, .lowercase = true, .show_hex = true}) == "0xefbeadde"s);
 		REQUIRE(to_hex_string<u32>({&value, 1}, {.lowercase = false, .show_hex = true}) == "0xDEADBEEF"s);
 	}
 
@@ -54,6 +54,6 @@ TEST_CASE("to_hex", "[to_hex]")
 
 
 		value = "Hello 🌍";
- 		REQUIRE(to_hex_string(value) == "0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0xF0, 0x9F, 0x8C, 0x8D"s);
+		REQUIRE(to_hex_string(value) == "0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0xF0, 0x9F, 0x8C, 0x8D"s);
 	}
 }

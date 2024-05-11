@@ -153,8 +153,8 @@ export namespace deckard
 
 	struct HexOption
 	{
-		bool        byteswap{std::endian::native == std::endian::little};
 		std::string delimiter{", "};
+		bool        endian_swap{std::endian::native == std::endian::little};
 		bool        lowercase{false};
 		bool        show_hex{true};
 	};
@@ -181,7 +181,7 @@ export namespace deckard
 
 		for (const auto [i, word] : std::views::enumerate(input))
 		{
-			const T input_word = options.byteswap ? std::byteswap(word) : word;
+			const T input_word = options.endian_swap ? std::byteswap(word) : word;
 
 			u32 offset = 0;
 			if (show_hex)
