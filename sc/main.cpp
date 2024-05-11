@@ -236,12 +236,85 @@ private:
 	int value = 0;
 };
 
+template<i32 size>
+struct LeastUnsignedType
+{
+	static_assert(size == 1 || size == 2 || size == 4 || size == 8, "Invalid size for type");
+};
+
+template<>
+struct LeastUnsignedType<1>
+{
+	using type = u8;
+};
+
+template<>
+struct LeastUnsignedType<2>
+{
+	using type = u16;
+};
+
+template<>
+struct LeastUnsignedType<4>
+{
+	using type = u32;
+};
+
+template<>
+struct LeastUnsignedType<8>
+{
+	using type = u64;
+};
+
+class bitstream
+
+{
+public:
+	void reserve(u32 size) noexcept { data.reserve(size); }
+
+	template<typename T>
+	void write(const T value, u32 bitwidth = 0) noexcept
+	{
+		using type = LeastUnsignedType<sizeof(T)>::type;
+
+		if (bitwidth == 0)
+			bitwidth = sizeof(type) * 8;
+
+
+		const type input_be   = std::bit_cast<type>(value);
+		const type input_word = std::byteswap(std::bit_cast<type>(value));
+
+
+		int j = 0;
+	}
+
+private:
+	std::vector<u8> data;
+	size_t          bitposition{0};
+
+	u8 acc_remaining{0};
+	u8 acc{0};
+};
+
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
+
+
+	dbg::println("{:08b}", bitmask(4));
+	dbg::println("{:08b}", bitmask(0));
+	dbg::println("{:08b}", bitmask(2));
+	dbg::println("{:032b}", bitmask<u32>(5));
+
+
+	bitstream bs;
+
+	bs.write<u16>(0x1234);
+	bs.write<f32>(1);
 
 
 	auto d = Chain().set(123).execute().close();
