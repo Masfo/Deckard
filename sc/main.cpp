@@ -303,10 +303,6 @@ int main()
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
 
-	sha512::digest hash512_str(
-	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"sv);
-
-	auto ss = hash512_str.to_string();
 
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(0));

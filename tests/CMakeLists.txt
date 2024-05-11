@@ -93,7 +93,7 @@ if(MSVC)
 
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
-        #set_target_properties(tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+        set_target_properties(tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
 
         target_compile_definitions(tests PRIVATE -DNDEBUG)
         

@@ -130,7 +130,7 @@ set(DECKARD_SRCS
         types/enum_flags.ixx
         types/helpertypes.ixx
 
-		win32/win32.ixx
+         $<$<PLATFORM_ID:Windows>:win32/win32.ixx>
 		#win32/DTE.ixx
 
         archive/archive.ixx
@@ -207,7 +207,7 @@ endif()
 #####################################
 add_subdirectory(sc)
 
-if(RUN_DECKARD_TESTS)
+if(DECKARD_TESTS)
 enable_testing()
 add_subdirectory(tests)
 endif()
