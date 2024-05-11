@@ -191,12 +191,12 @@ export namespace deckard
 
 			for (u8 k = 0; k < sizeof(T); k++)
 			{
-				u8 shift                    = k << 3;
-				T  mask                     = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
-				T  masked_word              = (input_word & mask) >> shift;
-				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(masked_word) >> 4) + lowercase_offset];
+				const u8 shift              = k * 8;
+				const T  mask               = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
+				const T  masked_byte        = (input_word & mask) >> shift;
+				output[i * stride + offset] = HEX_LUT[(as<u8>(masked_byte) >> 4) + lowercase_offset];
 				offset += 1;
-				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(masked_word) & 0xF) + lowercase_offset];
+				output[i * stride + offset] = HEX_LUT[(as<u8>(masked_byte) & 0xF) + lowercase_offset];
 				offset += 1;
 			}
 
