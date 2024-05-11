@@ -24,8 +24,22 @@ TEST_CASE("SHA digests", "[sha]")
 	REQUIRE(copy == abc_digest);
 
 
-	sha256::digest hash_str("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"sv);
-	REQUIRE(correct_abc_digest == hash_str);
+	sha256::digest hash256_str("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"sv);
+	REQUIRE(correct_abc_digest == hash256_str);
+
+	sha512::digest correct_512_digest{
+	  0xcf83'e135'7eef'b8bd,
+	  0xf154'2850'd66d'8007,
+	  0xd620'e405'0b57'15dc,
+	  0x83f4'a921'd36c'e9ce,
+	  0x47d0'd13c'5d85'f2b0,
+	  0xff83'18d2'877e'ec2f,
+	  0x63b9'31bd'4741'7a81,
+	  0xa538'327a'f927'da3e};
+
+	sha512::digest hash512_str(
+	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"sv);
+	REQUIRE(correct_512_digest == hash512_str);
 }
 
 TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")

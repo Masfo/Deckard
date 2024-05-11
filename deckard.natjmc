@@ -10,6 +10,8 @@
 
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
+	<File Name="_helpers.ixx"/>
+
 	<File Name="base64.ixx"/>
 	<File Name="sha2.ixx"/>
 	<File Name="_tokenizer.ixx"/>
