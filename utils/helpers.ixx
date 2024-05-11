@@ -61,9 +61,10 @@ export namespace deckard
 	//
 
 	template<typename T = u8>
-	constexpr T bitmask(u8 size)
+	constexpr T bitmask(u8 size, u8 offset = 0)
 	{
-		return (1 << (size - 1)) | ((1 << size) - 1);
+		return ((1 << size) - 1) << offset;
+
 	}
 
 	constexpr bool test_bit(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
