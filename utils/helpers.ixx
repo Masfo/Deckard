@@ -43,9 +43,7 @@ export namespace deckard
 		// TODO: Bitcast
 		To ret{};
 		if constexpr (HasDataMember<From>)
-		{
 			std::memcpy(&ret, from.data(), sizeof(To));
-		}
 		else
 			std::memcpy(&ret, from, sizeof(To));
 
@@ -64,7 +62,6 @@ export namespace deckard
 	constexpr T bitmask(u8 size, u8 offset = 0)
 	{
 		return ((1 << size) - 1) << offset;
-
 	}
 
 	constexpr bool test_bit(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
@@ -199,12 +196,14 @@ export namespace deckard
 
 			for (u8 byte = 0; byte < sizeof(T); byte++)
 			{
-				const u8 shift              = byte * 8;
-				const T  mask               = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
-				const T  masked_byte        = (input_word & mask) >> shift;
-				output[i * stride + offset] = HEX_LUT[(as<u8>(masked_byte) >> 4) + lowercase_offset];
+				const u8  shift       = byte * 8;
+				const T mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
+				const u8  masked_byte = (input_word & mask) >> shift;
+
+				output[i * stride + offset] = HEX_LUT[((masked_byte) >> 4) + lowercase_offset];
 				offset += 1;
-				output[i * stride + offset] = HEX_LUT[(as<u8>(masked_byte) & 0xF) + lowercase_offset];
+
+				output[i * stride + offset] = HEX_LUT[((masked_byte) & 0xF) + lowercase_offset];
 				offset += 1;
 			}
 
