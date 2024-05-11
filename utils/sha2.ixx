@@ -37,7 +37,8 @@ public:
 			}
 			else
 			{
-				dbg::println("Invaid hash: {}", string_hash);
+				auto ws = word | std::ranges::to<std::string>();
+				dbg::println("Cannot convert word '{}' in hash '{}'", ws, string_hash);
 				binary.fill(0);
 			}
 		}
