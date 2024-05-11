@@ -51,5 +51,9 @@ TEST_CASE("to_hex", "[to_hex]")
 
 		option = {.delimiter = "/", .lowercase = false, .show_hex = false};
 		REQUIRE(to_hex_string(value, option) == "48/65/6C/6C/6F/20/77/6F/72/6C/64"s);
+
+
+		value = "Hello 🌍";
+		REQUIRE(to_hex_string(value) == "0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0xF0, 0x9F, 0x8C, 0x8D"s);
 	}
 }
