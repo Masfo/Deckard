@@ -243,6 +243,14 @@ int main()
 	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
 #endif
 
+	u32                xxx = 0x1122'3344;
+	std::array<u16, 2> xxx2{0x1122, 0x9988};
+
+	auto xxstr = to_hex_string<u16>(xxx2);
+
+	// TODO: hex to string test
+	// TODO: as<> limit tests
+
 
 	auto d = Chain().set(123).execute().close();
 	int  k = 0;

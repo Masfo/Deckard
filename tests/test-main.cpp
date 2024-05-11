@@ -5,22 +5,20 @@ using namespace std::chrono_literals;
 
 
 /*
-TEST_CASE("example", "tag")
+#include <catch2/catch_test_macros.hpp>
+
+
+import std;
+
+
+TEST_CASE("", "[tag]")
 {
-	SECTION("section", "description")
+	SECTION("")
 	{
 		//
-		CHECK(1==1);
-		REQUIRE(1==1)
+		REQUIRE(1==1);
 	}
 
-	SECTION("section", "description")
-	{
-		SKIP();
-		//
-		CHECK(1==1);
-		REQUIRE(1==1)
-	}
 
 }
 

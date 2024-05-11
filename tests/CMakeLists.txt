@@ -43,6 +43,7 @@ target_sources(tests PUBLIC
     tests/scripting/tokenizer_test.cpp
     tests/enumflag_test.cpp 
     tests/math_vec_test.cpp
+    tests/to_hex_test.cpp
 )
 
 
