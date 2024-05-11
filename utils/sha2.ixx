@@ -2,6 +2,7 @@ export module deckard.sha2;
 
 import deckard.assert;
 import deckard.as;
+import deckard.debug;
 import deckard.types;
 import deckard.helpers;
 import std;
@@ -19,9 +20,31 @@ public:
 	using type            = Type;
 	generic_sha2_digest() = default;
 
+	generic_sha2_digest(std::string_view string_hash)
+	{
+
+		assert::if_true(string_hash.size() == binary.size() * sizeof(type) * 2, "Hash parameter not correct size for sha256");
+		constexpr size_t wordsize = sizeof(type) * 2;
+
+		u32 count{0};
+		for (const auto& word : string_hash | std::views::chunk(wordsize))
+		{
+			type result{};
+			if (std::from_chars(word.data(), word.data() + word.size(), result, 16).ec == std::errc{})
+			{
+				binary[count++] = result;
+			}
+			else
+			{
+				dbg::println("Invaid hash: {}", string_hash);
+				binary.fill(0);
+			}
+		}
+	}
+
 	generic_sha2_digest(const std::initializer_list<Type>& digits)
 	{
-		assert::if_true(digits.size() == binary.size(), "Initializer-list must be same size");
+		assert::if_true(digits.size() == binary.size(), "Initializer-list must be same size as digest");
 
 		std::copy(digits.begin(), digits.end(), binary.begin());
 	};

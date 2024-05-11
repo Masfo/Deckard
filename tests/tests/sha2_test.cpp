@@ -22,6 +22,10 @@ TEST_CASE("SHA digests", "[sha]")
 
 	REQUIRE(abc_digest == correct_abc_digest);
 	REQUIRE(copy == abc_digest);
+
+
+	sha256::digest hash_str("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"sv);
+	REQUIRE(correct_abc_digest == hash_str);
 }
 
 TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")
