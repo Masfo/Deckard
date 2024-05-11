@@ -26,6 +26,17 @@ namespace deckard::utf8
 
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REPLACEMENT_CHARACTER{0xFFFD};
+	constexpr u32 UTF8_BOM{0xFEFF};
+
+	constexpr bool is_bom(u32 codepoint) noexcept
+	{
+		switch (codepoint)
+		{
+			case 0xFEFF:
+			case 0xFFFE: return true;
+			default: return false;
+		}
+	}
 
 	export std::vector<u32> codepoints_from_utf8_string(const std::span<u8> input)
 	{
@@ -47,6 +58,9 @@ namespace deckard::utf8
 		{
 			if (!decode(b))
 			{
+				if (is_bom(codepoint))
+					continue;
+
 				ret.emplace_back(codepoint);
 				codepoint_count += 1;
 			}
@@ -68,5 +82,9 @@ namespace deckard::utf8
 		return ret;
 	}
 
+	export auto codepoints_from_utf8_string(const std::string_view input) noexcept
+	{
+		return codepoints_from_utf8_string(std::span{(u8*)input.data(), input.size()});
+	}
 
 } // namespace deckard::utf8
