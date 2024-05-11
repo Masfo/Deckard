@@ -26,19 +26,38 @@ namespace deckard::utf8
 
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REPLACEMENT_CHARACTER{0xFFFD};
-	constexpr u32 UTF8_BOM{0xFEFF};
 
-	export constexpr bool is_bom(u32 codepoint) noexcept
+	u32 decode(u32* state, u32* codepoint, u8 byte) noexcept
 	{
-		switch (codepoint)
-		{
-			case 0xFEFF:
-			case 0xFFFE: return true;
-			default: return false;
-		}
+		u32 type   = utf8d[byte];
+		*codepoint = (*state != UTF8_ACCEPT) ? (byte & 0x3fu) | (*codepoint << 6) : (0xff >> type) & (byte);
+		*state     = utf8d[256 + *state + type];
+		return *state;
 	}
 
-	export std::vector<u32> codepoints_from_utf8_string(const std::span<u8> input)
+	export constexpr bool is_bom(u32 codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
+
+	export u32 count_codepoints(const std::span<u8> input) noexcept
+	{
+		u32 codepoint_count{0};
+		u32 codepoint{0};
+		u32 state{UTF8_ACCEPT};
+
+		for (const u8& b : input)
+		{
+			if (!decode(&state, &codepoint, b))
+				codepoint_count += 1;
+		}
+
+		return state == UTF8_ACCEPT ? codepoint_count : 0;
+	}
+
+	export auto count_codepoints(const std::string_view input) noexcept
+	{
+		return count_codepoints(std::span{(u8*)input.data(), input.size()});
+	}
+
+	export std::vector<u32> codepoints(const std::span<u8> input) noexcept
 	{
 		u32              codepoint_count{0};
 		u32              state{UTF8_ACCEPT};
@@ -46,17 +65,10 @@ namespace deckard::utf8
 		std::vector<u32> ret;
 		ret.reserve(input.size());
 
-		const auto decode = [&state, &codepoint](u8 byte) -> u32
-		{
-			u32 type  = utf8d[byte];
-			codepoint = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (codepoint << 6) : (0xff >> type) & (byte);
-			state     = utf8d[256 + state + type];
-			return state;
-		};
 
 		for (const u8& b : input)
 		{
-			if (!decode(b))
+			if (!decode(&state, &codepoint, b))
 			{
 				ret.emplace_back(codepoint);
 				codepoint_count += 1;
@@ -79,9 +91,6 @@ namespace deckard::utf8
 		return ret;
 	}
 
-	export auto codepoints_from_utf8_string(const std::string_view input) noexcept
-	{
-		return codepoints_from_utf8_string(std::span{(u8*)input.data(), input.size()});
-	}
+	export auto codepoints(const std::string_view input) noexcept { return codepoints(std::span{(u8*)input.data(), input.size()}); }
 
 } // namespace deckard::utf8
