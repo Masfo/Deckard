@@ -155,7 +155,7 @@ export namespace deckard
 	};
 
 	template<typename T = u8>
-	u32 to_hex(std::span<T> const input, std::span<u8> output, const HexOption& options = {}) noexcept
+	u32 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {}) noexcept
 	{
 		const u32 delimiter_len = input.size() == 1 ? 0 : as<u32>(options.delimiter.size());
 		const u32 hex_len       = options.show_hex ? 2 : 0;
@@ -176,9 +176,7 @@ export namespace deckard
 
 		for (const auto [i, word] : std::views::enumerate(input))
 		{
-			T input_word = word;
-			if (options.byteswap)
-				input_word = std::byteswap(input_word);
+			const T input_word = options.byteswap ? std::byteswap(word) : word;
 
 			u32 offset = 0;
 			if (show_hex)
@@ -194,7 +192,7 @@ export namespace deckard
 			for (u8 k = 0; k < sizeof(T); k++)
 			{
 				u8 shift                    = k << 3;
-				T  mask                     = as<T>(0xFF) << shift;
+				T  mask                     = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
 				T  masked_word              = (input_word & mask) >> shift;
 				output[i * stride + offset] = HEX_LUT[(static_cast<u8>(masked_word) >> 4) + lowercase_offset];
 				offset += 1;
@@ -214,8 +212,8 @@ export namespace deckard
 		return len;
 	}
 
-	template<typename T = u8>
-	std::string to_hex_string(std::span<T> const input, const HexOption& options = {}) noexcept
+	template<typename T>
+	std::string to_hex_string(const std::span<T> input, const HexOption& options = {}) noexcept
 	{
 		std::string ret;
 
@@ -226,10 +224,10 @@ export namespace deckard
 		return ret;
 	}
 
-	std::string to_hex_string(std::string_view input, const HexOption& options = {}) noexcept
+	std::string to_hex_string(const std::string_view input, const HexOption& options = {}) noexcept
 	{
 		//
-		return to_hex_string(std::span{(u8*)input.data(), input.size()}, options);
+		return to_hex_string(std::span{input.data(), input.size()}, options);
 	}
 
 } // namespace deckard
