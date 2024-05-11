@@ -194,9 +194,9 @@ export namespace deckard
 				len += 2;
 			}
 
-			for (u8 byte = 0; byte < sizeof(T); byte++)
+			for (u8 byteindex = 0; byteindex < sizeof(T); byteindex++)
 			{
-				const T  shift       = byte * 8;
+				const T  shift       = byteindex * 8;
 				const T  mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
 				const u8 masked_byte = as<u8>((input_word & mask) >> shift);
 

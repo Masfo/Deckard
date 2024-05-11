@@ -7,11 +7,13 @@ namespace deckard
 {
 
 	template<typename T, typename U>
-	void warn_cast_limit(U value, const std::source_location& loc) noexcept
+	void warn_cast_limit([[maybe_unused]] U value, [[maybe_unused]] const std::source_location& loc) noexcept
 	{
+#ifdef _DEBUG
 		dbg::trace(loc);
 		dbg::println(
 		  "Unable to cast '{}' safely. Target range is {}...{}", value, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+#endif
 	}
 
 	export template<typename Ret, typename U>
