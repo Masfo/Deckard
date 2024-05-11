@@ -1,7 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
-using Catch::Matchers::ContainsSubstring;
-using Catch::Matchers::EndsWith;
 
 import deckard.types;
 import deckard.helpers;
@@ -15,13 +12,13 @@ TEST_CASE("to_hex", "[to_hex]")
 	SECTION("single u32 value")
 	{
 		u32 value = 0x1122'3344;
-		CHECK(to_hex_string<u32>({&value, 1}) == "0x11223344"s);
-		CHECK(to_hex_string<u32>({&value, 1}, {.show_hex = false}) == "11223344"s);
+		REQUIRE(to_hex_string<u32>({&value, 1}) == "0x11223344"s);
+		REQUIRE(to_hex_string<u32>({&value, 1}, {.show_hex = false}) == "11223344"s);
 
 		value = 0xDEAD'BEEF;
-		CHECK(to_hex_string<u32>({&value, 1}, {.lowercase = true, .show_hex = false}) == "deadbeef"s);
-		CHECK(to_hex_string<u32>({&value, 1}, {.byteswap = false, .lowercase = true, .show_hex = true}) == "0xefbeadde"s);
-		CHECK(to_hex_string<u32>({&value, 1}, {.lowercase = false, .show_hex = true}) == "0xDEADBEEF"s);
+		REQUIRE(to_hex_string<u32>({&value, 1}, {.lowercase = true, .show_hex = false}) == "deadbeef"s);
+		REQUIRE(to_hex_string<u32>({&value, 1}, {.byteswap = false, .lowercase = true, .show_hex = true}) == "0xefbeadde"s);
+		REQUIRE(to_hex_string<u32>({&value, 1}, {.lowercase = false, .show_hex = true}) == "0xDEADBEEF"s);
 	}
 
 	SECTION("array of u32 values")
@@ -45,14 +42,14 @@ TEST_CASE("to_hex", "[to_hex]")
 
 	SECTION("normal string (hello world)")
 	{
-		std::string value = "Hello World";
+		std::string value = "Hello world";
 
-		REQUIRE(to_hex_string(value) == "0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64"s);
+		REQUIRE(to_hex_string(value) == "0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64"s);
 
 		HexOption option{.delimiter = "", .lowercase = true, .show_hex = false};
-		REQUIRE(to_hex_string(value, option) == "48656c6c6f20576f726c64"s);
+		REQUIRE(to_hex_string(value, option) == "48656c6c6f20776f726c64"s);
 
 		option = {.delimiter = "/", .lowercase = false, .show_hex = false};
-		REQUIRE(to_hex_string(value, option) == "48/65/6C/6C/6F/20/57/6F/72/6C/64"s);
+		REQUIRE(to_hex_string(value, option) == "48/65/6C/6C/6F/20/77/6F/72/6C/64"s);
 	}
 }
