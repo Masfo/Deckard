@@ -95,6 +95,14 @@ export namespace deckard::dbg
 			println(fmt, args...);
 	}
 
+	std::string who_called_me()
+	{
+#ifdef _DEBUG
+		auto strace = std::stacktrace::current();
+		return std::to_string(strace[2]);
+#endif
+	}
+
 	// trace
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args&&... args) noexcept
@@ -113,13 +121,14 @@ export namespace deckard::dbg
 	template<typename... Args>
 	[[noreturn]] void panic(std::string_view fmt, Args&&... args) noexcept
 	{
+		dbg::print("{} : ", who_called_me());
 		if constexpr (sizeof...(args) > 0)
 		{
-			trace("PANIC: {}", format(fmt, args...));
+			dbg::println("PANIC: {}", format(fmt, args...));
 		}
 		else
 		{
-			trace("PANIC: {}", fmt);
+			dbg::println("PANIC: {}", fmt);
 		}
 		if (IsDebuggerPresent())
 		{
@@ -130,13 +139,6 @@ export namespace deckard::dbg
 
 	[[noreturn]] void panic() noexcept { panic(""); }
 
-	inline void who_called_me(const std::source_location& loc = std::source_location::current())
-	{
-#ifdef _DEBUG
-		auto strace = std::stacktrace::current();
-		dbg::println("{}({}): {}: {}", loc.file_name(), loc.line(), loc.function_name(), std::to_string(strace[2]));
-#endif
-	}
 
 } // namespace deckard::dbg
 
