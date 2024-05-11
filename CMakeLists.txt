@@ -8,7 +8,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
 
 
 project(deckard CXX)
-add_library(deckard)
+add_library(deckard STATIC)
 
 
 target_compile_definitions(deckard PRIVATE UNICODE)
@@ -118,6 +118,8 @@ set(DECKARD_SRCS
         utils/uuid.ixx
         utils/sha2.ixx
         utils/cpuid.ixx
+        utils/utf8.ixx
+
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
         
 

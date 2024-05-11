@@ -12,6 +12,9 @@ TabWidth: 4
 AlignOperands: Align
 BreakBeforeBinaryOperators: None
 
+MaxEmptyLinesToKeep: 2
+SeparateDefinitionBlocks: Always
+EmptyLineBeforeAccessModifier: LogicalBlock
 
 
 AlignAfterOpenBracket: Align
@@ -24,11 +27,9 @@ AlignTrailingComments:
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 IndentPPDirectives: None
-MaxEmptyLinesToKeep: 2
 SpaceBeforeCpp11BracedList: false
 NamespaceIndentation: All
 SortIncludes: CaseSensitive
-SeparateDefinitionBlocks: Always
 FixNamespaceComments: true
 SpaceAfterTemplateKeyword: false
 AlwaysBreakTemplateDeclarations: Yes
