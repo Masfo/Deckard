@@ -44,6 +44,7 @@ target_sources(tests PUBLIC
     tests/enumflag_test.cpp 
     tests/math_vec_test.cpp
     tests/to_hex_test.cpp
+    tests/utf8_test.cpp
 )
 
 

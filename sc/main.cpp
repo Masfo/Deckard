@@ -304,6 +304,49 @@ int main()
 #endif
 
 
+	/*
+	C3 (single byte starting with a multi-byte prefix)
+	E0 80 (incomplete sequence of trailing bytes)
+	FF (invalid byte value)
+	F8 88 88 88 88 (sequence exceeding maximum length)
+
+	1. Lone surrogate halves:
+	D8 00 (high surrogate half)
+	DC 00 (low surrogate half)
+
+	2. Overlong encodings:
+	C0 80 (overlong encoding for character 'A' - U+0041)
+	0x00
+	0xC0 0x80
+	0xE0 0x80 0x80
+	0xF0 0x80 0x80 0x80
+
+	3. Start byte followed by non-continuation byte:
+	C2 FF (start byte for a 2-byte sequence followed by an invalid byte)
+
+	4. Isolated continuation byte:
+	80 (isolated continuation byte)
+
+	Undefined character
+	U+FFFF
+	UTF-8 Encoding:	0xEF 0xBF 0xBF
+
+	*/
+
+	auto        k = to_wide("\xF4\x8F\xBF\xBF");
+	std::string mixed_utf8_ascii{"🌍1🍋Ä"};
+	auto        codepoints = utf8::codepoints_from_utf8_string(mixed_utf8_ascii);
+
+
+	std::string lorem =
+	  R"(A1😡w😖🙁😱😟😭🙇p😏KfHAJzjM😙GGf😂i😭🙆W😢😐A😉😱8😹6🙊😺🙃1😕😄m😻😭😤🙁🙂😔u😆😎r😱😥w😱E😣a😛😯😶ln8🙎😐l😻😚😼😏😚🙌😝U🙅😒A😝😟a😥MU😦🙇T🙄🙇LB😂7😚😽y😐D😳😬H🙀😭o🙂CZ😤😋BZllGp3🙇😸😕jobpG😘😙😠cdk😽🙂🙀😇🙎🙂🙎🙀Y😴😱😘🙁bW😘8R😽😛x😰E😜😓K😟5m😈sHb😷😙😁😼🙂3😪😵U😉😳ffgvk😒😌F😅😾ioG😶😤PD😢😾😡😑🙁🙄i😌😲😨😹US5😊hX7t😓6A🙎😔9H😹😤🙋NG9T😃😳😊😰ij🙌V😦c4😤😴😋😎😽😬p😳btJW5😵21😝😿tiT😫X3😵😋🙌🙆😠😉OUS😴DA😢😸o😜wI😽E😰😜😪🙊Y😮7😒f😴P8😄uh😖😅😖😲😭Pj😆fd😧0🙁😇W😞N😂Le😻c🙈m😍GIm😟d😽😕VD🙊v😈f😬Y😲😆😄9😫😥Te😲Id😇🙄😗😚😎😝😥o😚😹Nl😹N😬xgj😙hR🙊h😩Gi😸u😝V😁luC😦4s😐😤😺😫iB😘o🙁H0😾😽😖🙌😖e😟😧😗😧😣wt🙀😗😵sf7NL😍😭9🙎😖C😻q😁3X🙂x😑😻Z😺nQJl🙊😢😶v😏n😲😀🙀😳😾😈😻x😓😂🙉😯20🙀GuDl😡😽🙄😍😅r9🙄Ne🙁K9😇🙀😉😶gi😺😎😨g😞😍6DA😲😢O🙄😇😾uJP😯😁😝😘q😒T😶4😳9😧🙎😢C2😨😓😒😓1😄😑🙄3🙈😑😫wu😫😐1😃G😒😭a😐😵🙋O😓😴🙄q😷🙈🙎yg🙈😝z94😟😄😍😏CM🙄😩🙃😿y6w😣😄lhk5😦🙇😜😢B😓😗😷As😟S😯😵🙍😔3😁0😬😃zo😊7f😱😟😶C😭🙈😽🙁😦xQa😓bJY1😐😫U🙄😯😹🙌😖😉😤4🙈😵😻IC😽😋P😻o1K9🙅🙆😗3HZl😻b😼😃😺😥😆Nu3😽😻5J🙅😐😄😞L😨5😿😀GM😡TQ😐😅sF😒C😷C87🙎😥😷😺6qmr😮Rl😉😏s😖8L😎🙁OY😆E🙃P😶Up😗😪v😘R😌😵6🙂😫6😛fC🙇😁😚9😄j😝NI😫😘8🙉NC😭😅😕🙁6g😔😆🙂5😙🙅😑N🙁😬🙊Z😞🙅1😙😞😭wUpNmc🙌😫c😏😅Cu🙆😉😕😘😞E8b😧😛SQJF🙉😖oP😔😂kFa😶😜😋9😋🙊😚p😬😪🙉😄😗🙀R😲🙃😾😃😿😫😓z😯🙋2z😭🙈C😸😈😍😞T😚😭0🙍😉Dl😁5😉😈😟T😡5😷😃U🙊😠😠🙄😓😄vb😷🙋1😩azoreEX2Z😋ID6🙇😥q😭🙆S😝🙎l😻😽T😶t🙌V😿iZ🙈B😍b😾h6😍YMqt9f😕😀😿9🙁🙊🙉l😉😉😉E😧6vCo🙅kf🙂😖M🙈😅😝😘l😵2pv😗😛😉😑😹UE🙎😹M🙇🙅😶Xo😂A😦🙆😁😋😸😕du😱😇😳u😧Rh😠c😫😑N😵WKd2iXCj🙎😰d😃🙈e😌.)";
+
+	std::array<u8, 4> in{0x41, 0xC0, 0x80, 041};
+	auto              inv1 = utf8::codepoints_from_utf8_string(in);
+
+	auto invl = utf8::codepoints_from_utf8_string({(u8*)lorem.data(), lorem.size()});
+
+
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(0));
 	dbg::println("{:08b}", bitmask(2));
@@ -316,8 +359,8 @@ int main()
 	bs.write<f32>(1);
 
 
-	auto d = Chain().set(123).execute().close();
-	int  k = 0;
+	// auto d = Chain().set(123).execute().close();
+	// int  k = 0;
 	/*
 		enum { Startup, Exit, First, Last, PreUpdate, Update, PostUpdate, FixedUpdate}
 
