@@ -33,9 +33,23 @@ struct alignas(64) FormatLocation
 		, loc(l)
 	{
 	}
+
+	std::string to_string() const { return std::format("{}({}): {}", loc.file_name(), loc.line(), fmt); }
 };
 
 static_assert(64 == sizeof(FormatLocation), "FormatLocation is not 64 bytes");
+
+// template<typename... Args>
+// auto format_check(std::format_string<Args...> format, Args&&... args) noexcept
+// {
+// 	return std::format(format, std::forward<Args>(args)...);
+// }
+
+template<typename... Args>
+auto format(std::string_view fmt, Args&&... args) noexcept
+{
+	return std::vformat(fmt, std::make_format_args(args...));
+}
 
 export namespace deckard::dbg
 {
@@ -45,21 +59,26 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void print(std::string_view fmt, Args&&... args) noexcept
 	{
-		const auto formatted = std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...)));
-		output_message(formatted);
+		if constexpr (sizeof...(Args) > 0)
+			output_message(format(fmt, args...));
+		else
+			output_message(fmt);
 	}
 
-	void print(std::string_view fmt) noexcept { output_message(std::format("{}"sv, fmt)); }
-
 	// debugln
+
 	template<typename... Args>
 	void println(std::string_view fmt, Args&&... args) noexcept
 	{
-		const auto formatted = std::format("{}\n"sv, std::vformat(fmt, std::make_format_args(args...)));
-		output_message(formatted);
+		if constexpr (sizeof...(Args) > 0)
+		{
+			output_message(format("{}\n"sv, format(fmt, args...)));
+		}
+		else
+		{
+			output_message(format("{}\n"sv, fmt));
+		}
 	}
-
-	void println(std::string_view fmt) noexcept { output_message(std::format("{}\n"sv, fmt)); }
 
 	void println() noexcept { output_message("\n"); }
 
@@ -80,15 +99,15 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args&&... args) noexcept
 	{
-		output_message(
-		  std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), std::vformat(fmt.fmt, std::make_format_args(args...))));
+		println("{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
 	}
 
-	void trace(const std::source_location& loc) noexcept { output_message(std::format("{}({}): "sv, loc.file_name(), loc.line())); }
+	void trace(const std::source_location& loc = std::source_location::current()) noexcept
+	{
+		println("{}({}):"sv, loc.file_name(), loc.line());
+	}
 
-	void trace(FormatLocation fmt) noexcept { output_message(std::format("{}({}): {}\n"sv, fmt.loc.file_name(), fmt.loc.line(), fmt.fmt)); }
-
-	void trace() noexcept { output_message("\n"); }
+	void trace(FormatLocation fmt) noexcept { dbg::println("{}", fmt.to_string()); }
 
 	// Panic
 	template<typename... Args>
@@ -96,8 +115,7 @@ export namespace deckard::dbg
 	{
 		if constexpr (sizeof...(args) > 0)
 		{
-			const auto formatted = std::vformat(fmt, std::make_format_args(args...));
-			trace("PANIC: {}", formatted);
+			trace("PANIC: {}", format(fmt, args...));
 		}
 		else
 		{
@@ -110,16 +128,7 @@ export namespace deckard::dbg
 		std::terminate();
 	}
 
-	template<typename... Args>
-	[[noreturn]] void panic_throw(std::string_view fmt, Args&&... args)
-	{
-		const auto f = format("divide by zero: {}", std::vformat(fmt, std::make_format_args(args...)));
-		throw std::domain_error{f};
-	}
-
 	[[noreturn]] void panic() noexcept { panic(""); }
-
-	[[noreturn]] void panic_throw() { panic_throw(""); }
 
 	inline void who_called_me(const std::source_location& loc = std::source_location::current())
 	{
@@ -133,10 +142,9 @@ export namespace deckard::dbg
 
 export namespace deckard
 {
-	void todo(std::string_view str, const std::source_location& loc = std::source_location::current()) noexcept
+	void todo(std::string_view fmt, const std::source_location& loc = std::source_location::current()) noexcept
 	{
-		dbg::trace(loc);
-		dbg::println("TODO: {}", str);
+		dbg::println("{}({}): TODO: {}", loc.file_name(), loc.line(), fmt);
 		if (IsDebuggerPresent())
 			DebugBreak();
 	}
