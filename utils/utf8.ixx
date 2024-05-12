@@ -187,28 +187,5 @@ namespace deckard::utf8
 
 	export constexpr bool is_bom(u32 codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
-	export u32 count_codepoints(const std::span<u8> input) noexcept
-	{
-		codepoints decoder(input);
-		return decoder.count();
-	}
-
-	export auto count_codepoints(const std::string_view input) noexcept
-	{
-		codepoints decoder(input);
-		return decoder.count();
-	}
-
-	export std::vector<u32> codepoints_to_vector(const std::span<u8> input) noexcept
-	{
-		codepoints decoder(input);
-		return decoder.data();
-	}
-
-	export auto codepoints_to_vector(const std::string_view input) noexcept
-	{
-		codepoints decoder(input);
-		return decoder.data();
-	}
 
 } // namespace deckard::utf8
