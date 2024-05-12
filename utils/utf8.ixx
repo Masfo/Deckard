@@ -69,6 +69,12 @@ namespace deckard::utf8
 			state = UTF8_ACCEPT;
 		}
 
+		void reload(std::span<u8> input) noexcept
+		{
+			reset();
+			buffer = input;
+		}
+
 		void reload(std::string_view input) noexcept
 		{
 			reset();
