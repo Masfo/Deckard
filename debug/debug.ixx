@@ -105,8 +105,9 @@ export namespace deckard::dbg
 #ifdef _DEBUG
 		auto strace = std::stacktrace::current();
 		return std::to_string(strace[2]);
-#endif
+#else
 		return {};
+#endif
 	}
 
 	// trace
