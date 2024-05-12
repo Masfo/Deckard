@@ -9,7 +9,6 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 {
 	SECTION("valid codepoints")
 	{
-		//
 		utf8::codepoints decoder;
 
 		decoder.reload("🌍1🍋Ä");
@@ -53,9 +52,7 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(test.size() == 1);
 		REQUIRE(test[0] == 0xFEFF);
 
-
 		// UTF16 BOM
-
 		decoder.reload("\uFFFE");
 		test = decoder.data();
 		REQUIRE(test.size() == 1);
@@ -66,13 +63,11 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 	{
 		utf8::codepoints decoder;
 
-
 		// C3 (single byte starting with a multi-byte prefix)
 		decoder.reload("\xC3");
 		auto test = decoder.data();
 		REQUIRE(test.size() == 1);
 		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
-
 
 		// E0 80 (incomplete sequence of trailing bytes)
 		decoder.reload("\xE0\x80");
@@ -85,7 +80,6 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		test = decoder.data();
 		REQUIRE(test.size() == 1);
 		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
-
 
 		// 1. Lone surrogate halves:
 		// D8 00 (high surrogate half)
@@ -107,7 +101,6 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(test.size() == 2);
 		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 		REQUIRE(test[1] == utf8::REPLACEMENT_CHARACTER);
-
 
 		// 0xF0 0x80 0x80 0x80
 		decoder.reload("\xF0\x80\x80\x80");
