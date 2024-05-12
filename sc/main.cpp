@@ -357,7 +357,7 @@ int main()
 
 	auto s = clock_now();
 
-	std::ifstream testFile("stress.txt", std::ios::binary);
+	std::ifstream testFile("testfile.txt", std::ios::binary);
 
 	std::vector<u8> fileContents((std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
 	std::println("{} - {}", fileContents.size(), PrettyBytes(fileContents.size()));
@@ -367,12 +367,9 @@ int main()
 	std::vector<u32>   cps;
 	cps.reserve(fileContents.size());
 	s = clock_now();
-	while (1)
+	while (decode.has_data())
 	{
-		if (cp = decode.next(); cp)
-			cps.push_back(*cp);
-		else
-			break;
+		cps.push_back(decode.next());
 	}
 	clock_stop("decoder UTF8 codepoints", s);
 	testFile.close();
