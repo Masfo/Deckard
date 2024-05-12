@@ -304,11 +304,9 @@ int main()
 #endif
 
 
-	auto s = clock_now();
-	u32  stat[5]{};
 #if 0
 	std::vector<u8> stress;
-	for (int i = 0; i < 100'000'000; i++)
+	for (int i = 0; i < 1'000'000; i++)
 	{
 		i32 r = std::rand() % 4;
 		if (r == 0)
@@ -356,6 +354,9 @@ int main()
 	std::copy(stress.begin(), stress.end(), output_iterator);
 	output_file.close();
 #endif
+
+	auto s = clock_now();
+
 	std::ifstream testFile("stress.txt", std::ios::binary);
 
 	std::vector<u8> fileContents((std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
@@ -376,22 +377,6 @@ int main()
 	clock_stop("decoder UTF8 codepoints", s);
 	testFile.close();
 	std::println("cps count {}", cps.size());
-	std::println(
-	  "stats: ascii {}/{}, 2-byte {}/{}, 3-byte {}/{}, 4-byte {}/{}, invalid bytes {}/{}",
-	  decode.ascii_bytes,
-	  stat[0],
-	  decode.two_bytes,
-	  stat[1],
-
-	  decode.three_bytes,
-	  stat[2],
-
-	  decode.four_bytes,
-	  stat[3],
-
-	  decode.invalid_bytes,
-	  stat[4]);
-
 
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(0));

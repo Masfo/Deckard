@@ -8,7 +8,26 @@ import deckard.debug;
 
 namespace deckard::utf8
 {
-	const u8 utf8d[] = {
+	/*
+	 Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+	 https://bjoern.hoehrmann.de/utf-8/decoder/dfa/
+
+	 Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	 software and associated documentation files (the "Software"), to deal in the Software
+	 without restriction, including without limitation the rights to use, copy, modify,
+	 merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	 permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies or
+	substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+	BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+	*/
+	constexpr std::array<u8, 400> utf8d{
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 00..1f
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -45,6 +64,8 @@ namespace deckard::utf8
 	// TODO: is_whitespace
 	// TODO: is_xid_start, is_xid_continue
 
+#define UTF8_STAT 0
+
 	export class decoder
 	{
 	public:
@@ -66,7 +87,7 @@ namespace deckard::utf8
 			{
 				byte = buffer[index];
 
-
+#if UTF8_STAT
 				auto leading_ones = std::countl_one(byte);
 				switch (leading_ones)
 				{
@@ -77,7 +98,7 @@ namespace deckard::utf8
 					case 4: four_bytes++; break;
 					default: dbg::panic("utf8 not handled");
 				}
-
+#endif
 
 				if (!read(byte))
 				{
@@ -88,7 +109,9 @@ namespace deckard::utf8
 				{
 					u32 skip = state / 3 + 1;
 					index += 1 + skip;
+#if UTF8_STAT
 					invalid_bytes += 1;
+#endif
 
 					return UTF8_REPLACEMENT_CHARACTER;
 				}
@@ -107,16 +130,15 @@ namespace deckard::utf8
 	private:
 		u32 read(u8 byte) noexcept
 		{
+			assert::if_true(byte < utf8d.size(), "Out-of-bound indexing on utf8 table");
 			u32 type = utf8d[byte];
 
 			codepoint = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (codepoint << 6) : (0xff >> type) & (byte);
 			state     = utf8d[256 + state * 16 + type];
-
-			// codepoint = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (codepoint << 6) : (0xff >> type) & (byte);
-			// state     = utf8d[256 + state + type];
 			return state;
 		}
 
+#if UTF8_STAT
 	public:
 		u32 ascii_bytes{0};
 		u32 continuation_bytes{0};
@@ -124,11 +146,10 @@ namespace deckard::utf8
 		u32 three_bytes{0};
 		u32 four_bytes{0};
 		u32 invalid_bytes{0};
-
+#endif
 	private:
 		std::span<u8> buffer;
 		u32           index{0};
-		u32           prev{0};
 		u32           codepoint{0};
 		u32           state{UTF8_ACCEPT};
 	};
