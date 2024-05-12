@@ -12,7 +12,7 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		//
 
 		std::string mixed_utf8_ascii{"🌍1🍋Ä"};
-		auto        mixed_points = utf8::codepoints(mixed_utf8_ascii);
+		auto        mixed_points = utf8::codepoints_to_vector(mixed_utf8_ascii);
 
 
 		REQUIRE(mixed_points[0] == 0x1f30d);
@@ -21,14 +21,14 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(mixed_points[3] == 0xC4);
 
 		// abc
-		REQUIRE(utf8::codepoints("abc").size() == 3);
+		REQUIRE(utf8::codepoints_to_vector("abc").size() == 3);
 
-		// 1 byte: A  0x41		 0x41
-		// 2 byte: Ä  0xC4	     0xC3 0x84
-		// 3 byte: ↥  0x21A5     0xE2 0x86 0xA5
-		// 4 byte: 🌍 0x1F30D	 0xF0 0x9F 0x8C 0x8D
+		// 1 byte: A   0x41		 0x41
+		// 2 byte: Ä   0xC4	     0xC3 0x84
+		// 3 byte: ↥   0x21A5     0xE2 0x86 0xA5
+		// 4 byte: 🌍  0x1F30D	 0xF0 0x9F 0x8C 0x8D
 		std::string all_bytes{"\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D"};
-		auto        aa_points = utf8::codepoints(all_bytes);
+		auto        aa_points = utf8::codepoints_to_vector(all_bytes);
 		REQUIRE(aa_points.size() == 4);
 		REQUIRE(aa_points[0] == 0x41);
 		REQUIRE(aa_points[1] == 0xC4);
@@ -36,51 +36,107 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(aa_points[3] == 0x1F30D);
 
 		// u+FFFF
-		REQUIRE(utf8::codepoints("\xEF\xBF\xBF").size() == 1);
+		REQUIRE(utf8::codepoints_to_vector("\xEF\xBF\xBF").size() == 1);
 
-		// UTF BOM
-		REQUIRE(utf8::codepoints("\uFEFF").size() == 1);
-		REQUIRE(utf8::codepoints("\uFFFE").size() == 1);
+		// UTF8 BOM
+		REQUIRE(utf8::codepoints_to_vector("\xEF\xBB\xBF").size() == 1);
+
+
+		// UTF16 BOM
+		REQUIRE(utf8::codepoints_to_vector("\uFEFF").size() == 1);
+		REQUIRE(utf8::codepoints_to_vector("\uFFFE").size() == 1);
 	}
 
 	SECTION("invalid codepoints")
 	{
+		utf8::codepoints decoder;
 
 
 		// C3 (single byte starting with a multi-byte prefix)
-		REQUIRE(utf8::codepoints("\xC3").empty() == true);
+		decoder.reload("\xC3");
+		auto test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
+
 
 		// E0 80 (incomplete sequence of trailing bytes)
-		REQUIRE(utf8::codepoints("\xE0\x80").empty() == true);
+		decoder.reload("\xE0\x80");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 
 		// FF (invalid byte value)
-		REQUIRE(utf8::codepoints("\xFF").empty() == true);
+		decoder.reload("\xFF");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 
 
 		// 1. Lone surrogate halves:
 		// D8 00 (high surrogate half)
-		REQUIRE(utf8::codepoints("\xD8\00").empty() == true);
+		decoder.reload("\xD8\x00");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 
 		// DC 00 (low surrogate half)
-		REQUIRE(utf8::codepoints("\xDC\x00").empty() == true);
+		decoder.reload("\xDC\x00");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 
 		// 2. Overlong encodings:
 		// C0 80 (overlong encoding for character 'A' - U+0041)
-		REQUIRE(utf8::codepoints("\xC0\x80").empty() == true);
+		decoder.reload("\xC0\x80");
+		test = decoder.data();
+		REQUIRE(test.size() == 2);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[1] == utf8::REPLACEMENT_CHARACTER);
+
 
 		// 0xF0 0x80 0x80 0x80
-		REQUIRE(utf8::codepoints("\xF0\x80\x80\x80").empty() == true);
+		decoder.reload("\xF0\x80\x80\x80");
+		test = decoder.data();
+		REQUIRE(test.size() == 3);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[1] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[2] == utf8::REPLACEMENT_CHARACTER);
 
 		//  Start byte followed by non-continuation byte:
-		REQUIRE(utf8::codepoints("\xC2\xFF").empty() == true);
+		decoder.reload("\xC2\xFF");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 
 		// F8 88 88 88 88 (sequence exceeding maximum length)
-		REQUIRE(utf8::codepoints("\xF8\x88\x88\x88\x88").empty() == true);
+		decoder.reload("\xF8\x88\x88\x88\x88");
+		test = decoder.data();
+		REQUIRE(test.size() == 5);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[1] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[2] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[3] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[4] == utf8::REPLACEMENT_CHARACTER);
 
 		// C2 FF (start byte for a 2-byte sequence followed by an invalid byte)
-		REQUIRE(utf8::codepoints("\xC2\xFF").empty() == true);
+		decoder.reload("\xC2\xFF");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 
 		// 80 (isolated continuation byte)
-		REQUIRE(utf8::codepoints("\x80").empty() == true);
+		decoder.reload("\x80");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
+
+		// A <invalid> A
+		decoder.reload("\x41\x88\xC2\xFF\x41");
+		test = decoder.data();
+		REQUIRE(test.size() == 4);
+		REQUIRE(test[0] == 0x41);
+		REQUIRE(test[1] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[2] == utf8::REPLACEMENT_CHARACTER);
+		REQUIRE(test[3] == 0x41);
 	}
 }

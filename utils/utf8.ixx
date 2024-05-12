@@ -48,25 +48,58 @@ namespace deckard::utf8
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REJECT{1};
 
-	constexpr u32 UTF8_REPLACEMENT_CHARACTER{0xFFFD};
-
-	// TODO: is_digit
-	// TODO: is_whitespace
-	// TODO: is_xid_start, is_xid_continue
+	export constexpr u32 REPLACEMENT_CHARACTER{0xFFFD};
 
 #define UTF8_STAT 0
 
-	export class decoder
+	export class codepoints
 	{
 	public:
-		decoder(std::string_view input) { buffer = std::span{(u8*)input.data(), input.size()}; }
+		codepoints() = default;
 
-		decoder(std::span<u8> input)
+		codepoints(std::string_view input)
+			: codepoints(std::span{(u8*)input.data(), input.size()})
+		{
+		}
+
+		codepoints(std::span<u8> input)
 			: buffer(input)
 		{
 		}
 
-		u32 next()
+		void reset() noexcept
+		{
+			index = 0;
+			state = UTF8_ACCEPT;
+		}
+
+		void reload(std::string_view input) noexcept
+		{
+			reset();
+			buffer = std::span{(u8*)input.data(), input.size()};
+		}
+
+		u32 count() noexcept
+		{
+			u32 old_index = index;
+			u32 old_state = state;
+
+			reset();
+
+			u32 count{0};
+			while (has_data())
+			{
+				if (next())
+					count += 1;
+			}
+
+			index = old_index;
+			state = old_state;
+
+			return count;
+		}
+
+		u32 next() noexcept
 		{
 
 			u8 byte = 0;
@@ -91,31 +124,43 @@ namespace deckard::utf8
 				if (!read(byte))
 				{
 					index += 1;
-					return codepoint;
+					return decoded_point;
 				}
 				else if (state == UTF8_REJECT)
 				{
 					u32 skip = state / 3 + 1;
-					index += 1 + skip;
+					index += 1; //
+								//+skip;
 #if UTF8_STAT
 					invalid_bytes += 1;
 #endif
-
-					return UTF8_REPLACEMENT_CHARACTER;
+					return REPLACEMENT_CHARACTER;
 				}
 			}
-
 
 			if (state != UTF8_ACCEPT)
 			{
 				state = UTF8_ACCEPT;
-				return UTF8_REPLACEMENT_CHARACTER;
+				return REPLACEMENT_CHARACTER;
 			}
 
-			return codepoint;
+			return decoded_point;
 		}
 
 		bool has_data() const noexcept { return index < buffer.size(); }
+
+		std::vector<u32> data() noexcept
+		{
+			std::vector<u32> points;
+			points.reserve(buffer.size());
+
+			while (has_data())
+			{
+				points.push_back(next());
+			}
+
+			return points;
+		}
 
 	private:
 		u32 read(u8 byte) noexcept
@@ -124,8 +169,8 @@ namespace deckard::utf8
 
 			uint32_t type = utf8_table[byte];
 
-			codepoint = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (codepoint << 6) : (0xff >> type) & (byte);
-			state     = utf8_table[256 + state * 16 + type];
+			decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
+			state         = utf8_table[256 + state * 16 + type];
 			return state;
 		}
 
@@ -141,76 +186,35 @@ namespace deckard::utf8
 	private:
 		std::span<u8> buffer;
 		u32           index{0};
-		u32           codepoint{0};
+		u32           decoded_point{0};
 		u32           state{UTF8_ACCEPT};
 		bool          buffer_empty{false};
 	};
-
-	u32 decode(u32* state, u32* codepoint, u8 byte) noexcept
-	{
-		u32 type   = utf8_table[byte];
-		*codepoint = (*state != UTF8_ACCEPT) ? (byte & 0x3fu) | (*codepoint << 6) : (0xff >> type) & (byte);
-		*state     = utf8_table[256 + *state * 16 + type];
-
-		return *state;
-	}
 
 	export constexpr bool is_bom(u32 codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
 	export u32 count_codepoints(const std::span<u8> input) noexcept
 	{
-		u32 codepoint_count{0};
-		u32 codepoint{0};
-		u32 state{UTF8_ACCEPT};
-
-		for (const u8& b : input)
-		{
-			if (!decode(&state, &codepoint, b))
-				codepoint_count += 1;
-		}
-
-		return state == UTF8_ACCEPT ? codepoint_count : 0;
+		codepoints decoder(input);
+		return decoder.count();
 	}
 
 	export auto count_codepoints(const std::string_view input) noexcept
 	{
-		return count_codepoints(std::span{(u8*)input.data(), input.size()});
+		codepoints decoder(input);
+		return decoder.count();
 	}
 
-	export std::vector<u32> codepoints(const std::span<u8> input) noexcept
+	export std::vector<u32> codepoints_to_vector(const std::span<u8> input) noexcept
 	{
-		u32              codepoint_count{0};
-		u32              state{UTF8_ACCEPT};
-		u32              codepoint{0};
-		std::vector<u32> ret;
-		ret.reserve(input.size());
-
-
-		for (const u8& b : input)
-		{
-			if (!decode(&state, &codepoint, b))
-			{
-				ret.emplace_back(codepoint);
-				codepoint_count += 1;
-			}
-			else
-			{
-				// state = UTF8_ACCEPT;
-				// dbg::println("Ill-formed codepoint U+{:0X}", b);
-				// ret.emplace_back(UTF8_REPLACEMENT_CHARACTER);
-			}
-		}
-
-		if (state != UTF8_ACCEPT)
-		{
-			dbg::println("Ill-formed utf8 stream");
-			return {};
-		}
-
-
-		return ret;
+		codepoints decoder(input);
+		return decoder.data();
 	}
 
-	export auto codepoints(const std::string_view input) noexcept { return codepoints(std::span{(u8*)input.data(), input.size()}); }
+	export auto codepoints_to_vector(const std::string_view input) noexcept
+	{
+		codepoints decoder(input);
+		return decoder.data();
+	}
 
 } // namespace deckard::utf8
