@@ -68,6 +68,12 @@ export namespace deckard
 
 	auto clock_now() noexcept { return std::chrono::high_resolution_clock::now(); }
 
+	void clock_stop(std::string_view id, std::chrono::steady_clock::time_point start)
+	{
+		std::chrono::duration<double, std::milli> took(clock_now() - start);
+		std::println("{} took {}", id, took);
+	}
+
 	// ScopeTimer
 	class ScopeTimer
 	{

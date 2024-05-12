@@ -304,34 +304,93 @@ int main()
 #endif
 
 
-	/*
-	C3 (single byte starting with a multi-byte prefix)
-	E0 80 (incomplete sequence of trailing bytes)
-	FF (invalid byte value)
-	F8 88 88 88 88 (sequence exceeding maximum length)
+	auto s = clock_now();
+	u32  stat[5]{};
+#if 0
+	std::vector<u8> stress;
+	for (int i = 0; i < 100'000'000; i++)
+	{
+		i32 r = std::rand() % 4;
+		if (r == 0)
+		{
+			stat[0]++;
 
-	1. Lone surrogate halves:
-	D8 00 (high surrogate half)
-	DC 00 (low surrogate half)
+			stress.push_back(0x41);
+		}
+		else if (r == 1)
+		{
+			stat[1]++;
 
-	2. Overlong encodings:
-	C0 80 (overlong encoding for character 'A' - U+0041)
-	0x00
-	0xC0 0x80
-	0xE0 0x80 0x80
-	0xF0 0x80 0x80 0x80
+			stress.push_back(0xC3);
+			stress.push_back(0x84);
+		}
+		else if (r == 2)
+		{
+			stat[2]++;
 
-	3. Start byte followed by non-continuation byte:
-	C2 FF (start byte for a 2-byte sequence followed by an invalid byte)
+			stress.push_back(0xE2);
+			stress.push_back(0x86);
+			stress.push_back(0xA5);
+		}
+		else if (r == 3)
+		{
+			stat[3]++;
 
-	4. Isolated continuation byte:
-	80 (isolated continuation byte)
+			stress.push_back(0xF0);
+			stress.push_back(0x9F);
+			stress.push_back(0x8C);
+			stress.push_back(0x8D);
+		}
+#if 0
+		if (std::rand() % 1'000'000'000 == 0)
+		{
+			stat[4]++;
+			stress.push_back(0xE0);
+			stress.push_back(0x80);
+		}
+#endif
+	}
 
-	Undefined character
-	U+FFFF
-	UTF-8 Encoding:	0xEF 0xBF 0xBF
+	std::ofstream               output_file("stress.txt");
+	std::ostream_iterator<char> output_iterator(output_file, "");
+	std::copy(stress.begin(), stress.end(), output_iterator);
+	output_file.close();
+#endif
+	std::ifstream testFile("stress.txt", std::ios::binary);
 
-	*/
+	std::vector<u8> fileContents((std::istreambuf_iterator<char>(testFile)), std::istreambuf_iterator<char>());
+	std::println("{} - {}", fileContents.size(), PrettyBytes(fileContents.size()));
+	clock_stop("Loading file", s);
+	std::optional<u32> cp;
+	utf8::decoder      decode(fileContents);
+	std::vector<u32>   cps;
+	cps.reserve(fileContents.size());
+	s = clock_now();
+	while (1)
+	{
+		if (cp = decode.next(); cp)
+			cps.push_back(*cp);
+		else
+			break;
+	}
+	clock_stop("decoder UTF8 codepoints", s);
+	testFile.close();
+	std::println("cps count {}", cps.size());
+	std::println(
+	  "stats: ascii {}/{}, 2-byte {}/{}, 3-byte {}/{}, 4-byte {}/{}, invalid bytes {}/{}",
+	  decode.ascii_bytes,
+	  stat[0],
+	  decode.two_bytes,
+	  stat[1],
+
+	  decode.three_bytes,
+	  stat[2],
+
+	  decode.four_bytes,
+	  stat[3],
+
+	  decode.invalid_bytes,
+	  stat[4]);
 
 
 	dbg::println("{:08b}", bitmask(4));
