@@ -10,41 +10,55 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 	SECTION("valid codepoints")
 	{
 		//
+		utf8::codepoints decoder;
 
-		std::string mixed_utf8_ascii{"🌍1🍋Ä"};
-		auto        mixed_points = utf8::codepoints_to_vector(mixed_utf8_ascii);
-
-
-		REQUIRE(mixed_points[0] == 0x1f30d);
-		REQUIRE(mixed_points[1] == 0x31);
-		REQUIRE(mixed_points[2] == 0x1f34b);
-		REQUIRE(mixed_points[3] == 0xC4);
+		decoder.reload("🌍1🍋Ä");
+		auto test = decoder.data();
+		REQUIRE(test.size() == 4);
+		REQUIRE(test[0] == 0x1f30d);
+		REQUIRE(test[1] == 0x31);
+		REQUIRE(test[2] == 0x1f34b);
+		REQUIRE(test[3] == 0xC4);
 
 		// abc
-		REQUIRE(utf8::codepoints_to_vector("abc").size() == 3);
+		decoder.reload("ABC");
+		test = decoder.data();
+		REQUIRE(test.size() == 3);
+		REQUIRE(test[0] == 0x41);
+		REQUIRE(test[1] == 0x42);
+		REQUIRE(test[2] == 0x43);
 
 		// 1 byte: A   0x41		 0x41
 		// 2 byte: Ä   0xC4	     0xC3 0x84
 		// 3 byte: ↥   0x21A5     0xE2 0x86 0xA5
 		// 4 byte: 🌍  0x1F30D	 0xF0 0x9F 0x8C 0x8D
-		std::string all_bytes{"\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D"};
-		auto        aa_points = utf8::codepoints_to_vector(all_bytes);
-		REQUIRE(aa_points.size() == 4);
-		REQUIRE(aa_points[0] == 0x41);
-		REQUIRE(aa_points[1] == 0xC4);
-		REQUIRE(aa_points[2] == 0x21A5);
-		REQUIRE(aa_points[3] == 0x1F30D);
+		decoder.reload("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
+		test = decoder.data();
+		REQUIRE(test.size() == 4);
+		REQUIRE(test[0] == 0x41);
+		REQUIRE(test[1] == 0xC4);
+		REQUIRE(test[2] == 0x21A5);
+		REQUIRE(test[3] == 0x1F30D);
 
 		// u+FFFF
-		REQUIRE(utf8::codepoints_to_vector("\xEF\xBF\xBF").size() == 1);
+		decoder.reload("\xEF\xBF\xBF");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == 0xFFFF);
 
 		// UTF8 BOM
-		REQUIRE(utf8::codepoints_to_vector("\xEF\xBB\xBF").size() == 1);
+		decoder.reload("\xEF\xBB\xBF");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == 0xFEFF);
 
 
 		// UTF16 BOM
-		REQUIRE(utf8::codepoints_to_vector("\uFEFF").size() == 1);
-		REQUIRE(utf8::codepoints_to_vector("\uFFFE").size() == 1);
+
+		decoder.reload("\uFFFE");
+		test = decoder.data();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == 0xFFFE);
 	}
 
 	SECTION("invalid codepoints")
