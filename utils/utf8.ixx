@@ -75,6 +75,7 @@ namespace deckard::utf8
 			buffer = std::span{(u8*)input.data(), input.size()};
 		}
 
+		// count - returns the number of codepoints in the buffer
 		u32 count() noexcept
 		{
 			u32 old_index = index;
@@ -95,6 +96,7 @@ namespace deckard::utf8
 			return count;
 		}
 
+		// next() - returns the next codepoint
 		u32 next() noexcept
 		{
 
@@ -143,6 +145,7 @@ namespace deckard::utf8
 
 		bool has_data() const noexcept { return index < buffer.size(); }
 
+		// data() - collects all codepoints to a vector
 		std::vector<u32> data() noexcept
 		{
 			std::vector<u32> points;

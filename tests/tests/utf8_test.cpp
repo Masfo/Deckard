@@ -28,10 +28,11 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(test[1] == 0x42);
 		REQUIRE(test[2] == 0x43);
 
-		// 1 byte: A   0x41		 0x41
-		// 2 byte: Ä   0xC4	     0xC3 0x84
-		// 3 byte: ↥   0x21A5     0xE2 0x86 0xA5
-		// 4 byte: 🌍  0x1F30D	 0xF0 0x9F 0x8C 0x8D
+		//             UTF32		UTF8
+		// 1 byte: A   0x41			0x41
+		// 2 byte: Ä   0xC4			0xC3 0x84
+		// 3 byte: ↥   0x21A5		0xE2 0x86 0xA5
+		// 4 byte: 🌍  0x1F30D		0xF0 0x9F 0x8C 0x8D
 		decoder.reload("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
 		test = decoder.data();
 		REQUIRE(test.size() == 4);
