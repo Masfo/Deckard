@@ -1,5 +1,5 @@
 #include <Windows.h>
-
+#include <sqlite3.h>
 
 import deckard;
 import deckard.types;
@@ -305,7 +305,7 @@ int main()
 #endif
 
 
-	dbg::println("{:08b}", bitmask(5));
+	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(0));
 	dbg::println("{:08b}", bitmask(2));
 	dbg::println("{:032b}", bitmask<u32>(5));
@@ -443,8 +443,13 @@ int main()
 	dbg::println("6 == {}", longest_zero_run("1200340000560007"));
 	dbg::println("2 == {}", longest_zero_run("12000055000021"));
 
-#if 0
+
 	{
+		dbg::println("SQLite ver: {}", sqlite3_libversion());
+		dbg::println("SQLite ver num: {}", sqlite3_libversion_number());
+		dbg::println("SQLite id: {}", sqlite3_sourceid());
+		dbg::println("SQLite threadsafe: {}", sqlite3_threadsafe());
+#if 0
 		archive::file db("sqlite3.db");
 		db.application_id(10);
 
@@ -471,8 +476,8 @@ int main()
 
 		db.optimize();
 		db.close();
-	}
 #endif
+	}
 
 	IpAddress ipv6;
 	ipv6.version(0);

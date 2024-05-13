@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.23)
 
-set(CMAKE_C_STANDARD          11)
 
 project(sqlite3)
 add_library(sqlite3 STATIC)
