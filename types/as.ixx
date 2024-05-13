@@ -25,14 +25,27 @@ namespace deckard
 		const Ret return_min = std::numeric_limits<Ret>::min();
 		const U   value      = u;
 
+		// pointers
+		if constexpr (std::is_pointer_v<U> && std::is_pointer_v<Ret>)
+		{
+			if (value == nullptr)
+			{
+				dbg::trace(loc);
+				dbg::panic("Pointer is null");
+			}
 
+			return reinterpret_cast<Ret>(value);
+		}
+
+
+		// Enum
 		if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
 		{
 			return as<Ret>(std::to_underlying(u));
 		}
 
 
-		// i
+		// integers
 		if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
 		{
 			if (value >= return_min and value <= return_max)
@@ -43,7 +56,7 @@ namespace deckard
 		}
 		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
 		{
-			// FP
+			// floating point
 			std::int64_t max_cast     = static_cast<std::int64_t>(value);
 			Ret          casted_value = static_cast<Ret>(value);
 
