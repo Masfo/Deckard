@@ -44,13 +44,15 @@ namespace deckard::utf8
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REJECT{12};
 
-	export constexpr u32 REPLACEMENT_CHARACTER{0xFFFD};
+	export constexpr char32_t REPLACEMENT_CHARACTER{0xFFFD};
 
 #define UTF8_STAT 0
 
 	export class codepoints
 	{
 	public:
+		using type = char32_t;
+
 		codepoints() = default;
 
 		codepoints(std::string_view input)
@@ -82,7 +84,7 @@ namespace deckard::utf8
 		}
 
 		// count - returns the number of codepoints in the buffer
-		u32 count() noexcept
+		type count() noexcept
 		{
 			u32 old_index = index;
 			u32 old_state = state;
@@ -103,7 +105,7 @@ namespace deckard::utf8
 		}
 
 		// next() - returns the next codepoint
-		u32 next() noexcept
+		type next() noexcept
 		{
 
 			u8 byte = 0;
@@ -152,9 +154,9 @@ namespace deckard::utf8
 		bool has_data() const noexcept { return index < buffer.size(); }
 
 		// data() - collects all codepoints to a vector
-		std::vector<u32> data() noexcept
+		std::vector<type> data() noexcept
 		{
-			std::vector<u32> points;
+			std::vector<type> points;
 			points.reserve(buffer.size());
 
 			while (has_data())
@@ -166,11 +168,11 @@ namespace deckard::utf8
 		}
 
 	private:
-		u32 read(u8 byte) noexcept
+		type read(u8 byte) noexcept
 		{
 			assert::if_true(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
 
-			uint32_t type = utf8_table[byte];
+			u32 type = utf8_table[byte];
 
 			decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
 			state         = utf8_table[256 + state + type];
@@ -188,9 +190,9 @@ namespace deckard::utf8
 #endif
 	private:
 		std::span<u8> buffer;
+		type          decoded_point{0};
+		type          state{UTF8_ACCEPT};
 		u32           index{0};
-		u32           decoded_point{0};
-		u32           state{UTF8_ACCEPT};
 		bool          buffer_empty{false};
 	};
 
