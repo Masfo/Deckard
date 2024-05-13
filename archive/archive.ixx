@@ -38,9 +38,9 @@ export namespace deckard::archive
 			}
 
 			quiet(true);
-			// exec("PRAGMA synchronous = NORMAL;");
-			// exec("PRAGMA journal_mode = WAL;");
-			// exec("PRAGMA temp_store = MEMORY;");
+			exec("PRAGMA synchronous = NORMAL;");
+			exec("PRAGMA journal_mode = WAL;");
+			exec("PRAGMA temp_store = MEMORY;");
 			quiet(false);
 
 

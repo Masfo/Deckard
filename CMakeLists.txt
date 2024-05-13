@@ -198,17 +198,15 @@ target_compile_options(deckard PRIVATE
 )
 
 ###################################
-if(BUILDINC)
-    find_program(BUILDINC_TOOL "buildinc" NO_CACHE)
-    if(BUILDINC_TOOL)
-    add_custom_command(TARGET deckard
-                       PRE_BUILD
-                       COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckardBuild -q -m 
-                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                       COMMENT "Increase build number"
-    )
-    endif()
-endif()
+ find_program(BUILDINC_TOOL "buildinc")
+ if(BUILDINC_TOOL)
+ add_custom_command(TARGET deckard
+                    PRE_BUILD
+                    COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckard -q -m 
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    COMMENT "Increase build number"
+ )
+ endif()
 
 
 #####################################

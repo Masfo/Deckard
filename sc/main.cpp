@@ -443,6 +443,7 @@ int main()
 	dbg::println("6 == {}", longest_zero_run("1200340000560007"));
 	dbg::println("2 == {}", longest_zero_run("12000055000021"));
 
+#if 0
 	{
 		archive::file db("sqlite3.db");
 		db.application_id(10);
@@ -471,6 +472,7 @@ int main()
 		db.optimize();
 		db.close();
 	}
+#endif
 
 	IpAddress ipv6;
 	ipv6.version(0);
