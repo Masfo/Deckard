@@ -2,6 +2,7 @@ export module deckard.utf8;
 
 
 import std;
+import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.debug;
@@ -83,8 +84,11 @@ namespace deckard::utf8
 			buffer = std::span{(u8*)input.data(), input.size()};
 		}
 
+		// return buffer size in bytes
+		u32 size_in_bytes() const noexcept { return as<u32>(buffer.size()); }
+
 		// count - returns the number of codepoints in the buffer
-		type count() noexcept
+		u32 count() noexcept
 		{
 			u32 old_index = index;
 			u32 old_state = state;
