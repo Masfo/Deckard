@@ -213,7 +213,9 @@ endif()
 
 #####################################
 #####################################
+if(DECKARD_SCRIPT)
 add_subdirectory(sc)
+endif()
 
 if(DECKARD_TESTS)
 enable_testing()
