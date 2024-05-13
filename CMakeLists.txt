@@ -118,7 +118,8 @@ set(DECKARD_SRCS
         utils/uuid.ixx
         utils/sha2.ixx
         utils/cpuid.ixx
-        utils/utf8.ixx
+
+        unicode/utf8.ixx
 
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
         
