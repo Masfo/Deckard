@@ -58,12 +58,10 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void print([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
 	{
-#ifdef _DEBUG
 		if constexpr (sizeof...(Args) > 0)
 			output_message(format(fmt, args...));
 		else
 			output_message(fmt);
-#endif
 	}
 
 	// debugln
@@ -71,7 +69,6 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void println([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
 	{
-#ifdef _DEBUG
 		if constexpr (sizeof...(Args) > 0)
 		{
 			output_message(format("{}\n"sv, format(fmt, args...)));
@@ -80,7 +77,6 @@ export namespace deckard::dbg
 		{
 			output_message(format("{}\n"sv, fmt));
 		}
-#endif
 	}
 
 	void println() noexcept { output_message("\n"); }

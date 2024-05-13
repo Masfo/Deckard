@@ -39,7 +39,6 @@ target_compile_options(deckard PRIVATE /W4)
 #set_target_properties(deckard PROPERTIES DEBUG_POSTFIX "d")
 
 if(MSVC)
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
 
     # Debug
