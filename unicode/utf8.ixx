@@ -57,7 +57,7 @@ namespace deckard::utf8
 		codepoints() = default;
 
 		codepoints(std::string_view input)
-			: codepoints(std::span{(u8*)input.data(), input.size()})
+			: codepoints(std::span{as<u8*>(input.data()), input.size()})
 		{
 		}
 
@@ -81,7 +81,7 @@ namespace deckard::utf8
 		void reload(std::string_view input) noexcept
 		{
 			reset();
-			buffer = std::span{(u8*)input.data(), input.size()};
+			buffer = std::span{as<u8*>(input.data()), input.size()};
 		}
 
 		// return buffer size in bytes

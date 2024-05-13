@@ -20,34 +20,29 @@ namespace deckard
 	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
 	{
 #ifdef _DEBUG
-
+		U         value      = u;
 		const Ret return_max = std::numeric_limits<Ret>::max();
 		const Ret return_min = std::numeric_limits<Ret>::min();
-		const U   value      = u;
+
 
 		// pointers
-		if constexpr (std::is_pointer_v<U> && std::is_pointer_v<Ret>)
+		if constexpr (std::is_pointer_v<U> and std::is_pointer_v<Ret>)
 		{
 			if (value == nullptr)
 			{
 				dbg::trace(loc);
 				dbg::panic("Pointer is null");
 			}
-
-			return reinterpret_cast<Ret>(value);
+			return (Ret)u;
 		}
-
-
-		// Enum
-		if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
+		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
 		{
+			// Enum
 			return as<Ret>(std::to_underlying(u));
 		}
-
-
-		// integers
-		if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
+		else if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
 		{
+			// integers
 			if (value >= return_min and value <= return_max)
 				return static_cast<Ret>(u);
 

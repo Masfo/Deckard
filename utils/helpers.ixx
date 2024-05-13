@@ -233,14 +233,14 @@ export namespace deckard
 
 		ret.resize(to_hex(input, {}, options));
 
-		(void)to_hex<T>(input, {reinterpret_cast<u8*>(ret.data()), ret.size()}, options);
+		(void)to_hex<T>(input, {as<u8*>(ret.data()), ret.size()}, options);
 
 		return ret;
 	}
 
 	std::string to_hex_string(const std::string_view input, const HexOption& options = {}) noexcept
 	{
-		return to_hex_string(std::span{(u8*)input.data(), input.size()}, options);
+		return to_hex_string(std::span{as<u8*>(input.data()), input.size()}, options);
 	}
 
 } // namespace deckard
