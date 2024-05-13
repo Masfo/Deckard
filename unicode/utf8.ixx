@@ -131,7 +131,7 @@ namespace deckard::utf8
 				}
 #endif
 
-				if (!read(byte))
+				if (!read_byte(byte))
 				{
 					index += 1;
 					return decoded_point;
@@ -172,7 +172,7 @@ namespace deckard::utf8
 		}
 
 	private:
-		type read(u8 byte) noexcept
+		type read_byte(u8 byte) noexcept
 		{
 			assert::if_true(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
 
