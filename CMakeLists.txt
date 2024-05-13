@@ -148,14 +148,18 @@ target_sources(deckard
 	FILES ${DECKARD_SRCS}
 )
 
-find_package(sqlite3 REQUIRED)
+
+
+add_subdirectory(3rdparty/sqlite3)
+
+
  
 set(THIRD_PARTY_LIBS
     dxgi.lib
+    sqlite3
 )
- target_link_libraries(deckard PUBLIC SQLite::SQLite3 ${THIRD_PARTY_LIBS})
 
-
+target_link_libraries(deckard PUBLIC ${THIRD_PARTY_LIBS})
 
 #
 target_compile_options(deckard PRIVATE 
