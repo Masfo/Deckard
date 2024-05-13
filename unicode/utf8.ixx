@@ -47,8 +47,6 @@ namespace deckard::utf8
 
 	export constexpr char32_t REPLACEMENT_CHARACTER{0xFFFD};
 
-#define UTF8_STAT 1
-
 	export class codepoints
 	{
 	public:
@@ -118,19 +116,6 @@ namespace deckard::utf8
 			{
 				byte = buffer[index];
 
-#if UTF8_STAT
-				auto leading_ones = std::countl_one(byte);
-				switch (leading_ones)
-				{
-					case 0: ascii_bytes++; break;
-					case 1: continuation_bytes++; break;
-					case 2: two_bytes++; break;
-					case 3: three_bytes++; break;
-					case 4: four_bytes++; break;
-					default: dbg::panic("utf8 not handled");
-				}
-#endif
-
 				if (!read_byte(byte))
 				{
 					index += 1;
@@ -139,9 +124,6 @@ namespace deckard::utf8
 				else if (state == UTF8_REJECT)
 				{
 					index += 1;
-#if UTF8_STAT
-					invalid_bytes += 1;
-#endif
 					return REPLACEMENT_CHARACTER;
 				}
 			}
@@ -183,21 +165,12 @@ namespace deckard::utf8
 			return state;
 		}
 
-#if UTF8_STAT
-	public:
-		u32 ascii_bytes{0};
-		u32 continuation_bytes{0};
-		u32 two_bytes{0};
-		u32 three_bytes{0};
-		u32 four_bytes{0};
-		u32 invalid_bytes{0};
-#endif
 	private:
 		std::span<u8> buffer;
 		type          decoded_point{0};
 		type          state{UTF8_ACCEPT};
 		u32           index{0};
-		bool          buffer_empty{false};
+		u32           unused{};
 	};
 
 	export constexpr bool is_bom(char32_t codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
