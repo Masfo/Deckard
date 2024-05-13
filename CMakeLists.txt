@@ -11,6 +11,7 @@ project(deckard CXX)
 add_library(deckard STATIC)
 
 
+
 target_compile_definitions(deckard PRIVATE UNICODE)
 target_compile_definitions(deckard PRIVATE _UNICODE)
 
@@ -146,13 +147,14 @@ target_sources(deckard
     FILE_SET CXX_MODULES 
 	FILES ${DECKARD_SRCS}
 )
- find_package(SQLite3 REQUIRED)
+
+find_package(sqlite3 REQUIRED)
 
  
 set(THIRD_PARTY_LIBS
     dxgi.lib
 )
- target_link_libraries(deckard PRIVATE SQLite::SQLite3 ${THIRD_PARTY_LIBS})
+ target_link_libraries(deckard PUBLIC SQLite::SQLite3 ${THIRD_PARTY_LIBS})
 
 
 
