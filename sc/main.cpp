@@ -300,8 +300,8 @@ private:
 int main()
 {
 #ifndef _DEBUG
-	std::print("sc {} ({}), ", scbuild::version_string, scbuild::calver);
-	std::println("deckard {} ({})", deckardBuild::version_string, deckardBuild::calver);
+	std::print("sc {} ({}), ", scbuild::build::version_string, scbuild::build::calver);
+	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
 

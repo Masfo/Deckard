@@ -1,4 +1,5 @@
 
+project(sc)
 add_executable(sc)
 
 
@@ -43,46 +44,7 @@ target_sources(sc
 )
 target_link_libraries(sc deckard)
 
-if (${CMAKE_BUILD_TYPE} MATCHES "Release")
 
-    
-    target_link_options(sc PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
-    target_link_options(sc PRIVATE /DYNAMICBASE:NO)
-    set_target_properties(sc PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
-
-    target_compile_definitions(sc PRIVATE -DNDEBUG)
- 
-    target_compile_options(sc  PRIVATE /O2 /Os)
-    target_compile_options(sc  PRIVATE /GS-)
-    target_compile_options(sc  PRIVATE /GF)
-
-    target_compile_options(sc  PRIVATE /Gw /MP)
-
-    target_link_options(sc PRIVATE /RELEASE)
-    target_link_options(sc PRIVATE /INCREMENTAL:NO)
-    target_link_options(sc PRIVATE /OPT:REF /OPT:ICF)
-
-elseif(${CMAKE_BUILD_TYPE} MATCHES "Debug" OR ${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
-
-    target_compile_definitions(sc PRIVATE -DDEBUG)
-
-    target_compile_options(sc  PRIVATE /JMC)    # Just my debugging
-    target_compile_options(sc  PRIVATE /RTC1)
-    target_compile_options(sc  PRIVATE /Od)
-    target_compile_options(sc  PRIVATE /GS)
-    #target_compile_options(sc  PRIVATE /Ob1)
-
-    if (POLICY CMP0141)
-        cmake_policy(SET CMP0141 NEW)
-        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-    endif()
-
-
-    target_link_libraries(sc PRIVATE ${DEBUG_LIBS})
-
-    target_link_options(sc PRIVATE /DEBUG  /NOVCFEATURE /NOCOFFGRPINFO)
-
-endif()
 
 
 target_compile_options(sc PRIVATE 

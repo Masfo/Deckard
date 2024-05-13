@@ -151,7 +151,8 @@ target_sources(deckard
 
 
 add_subdirectory(3rdparty/sqlite3)
-
+find_library(sqlite3 sqlite3)
+add_dependencies(deckard sqlite3)
 
  
 set(THIRD_PARTY_LIBS
@@ -202,7 +203,7 @@ target_compile_options(deckard PRIVATE
  if(BUILDINC_TOOL)
  add_custom_command(TARGET deckard
                     PRE_BUILD
-                    COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckard -q -m 
+                    COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckard_build -q -m 
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     COMMENT "Increase build number"
  )
@@ -211,8 +212,8 @@ target_compile_options(deckard PRIVATE
 
 #####################################
 #####################################
-if(DECKARD_SCRIPT)
 add_subdirectory(sc)
+if(DECKARD_SCRIPT)
 endif()
 
 if(DECKARD_TESTS)

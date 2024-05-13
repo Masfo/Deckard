@@ -14,4 +14,3 @@ target_sources(sqlite3 PRIVATE sqlite3.c)
 
 target_include_directories(sqlite3 INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 
-find_library(sqlite3 sqlite3)
