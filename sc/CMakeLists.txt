@@ -1,5 +1,4 @@
 
-project(sc)
 add_executable(sc)
 
 

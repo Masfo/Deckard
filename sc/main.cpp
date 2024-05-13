@@ -305,7 +305,7 @@ int main()
 #endif
 
 
-	dbg::println("{:08b}", bitmask(4));
+	dbg::println("{:08b}", bitmask(5));
 	dbg::println("{:08b}", bitmask(0));
 	dbg::println("{:08b}", bitmask(2));
 	dbg::println("{:032b}", bitmask<u32>(5));
