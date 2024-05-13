@@ -4,6 +4,7 @@
 import deckard;
 import deckard.types;
 import deckard.helpers;
+import deckard.win32;
 import std;
 
 #ifndef _DEBUG
@@ -308,10 +309,6 @@ int main()
 	dbg::println("{:08b}", bitmask(0));
 	dbg::println("{:08b}", bitmask(2));
 	dbg::println("{:032b}", bitmask<u32>(5));
-
-	std::string_view input{"hello"};
-
-	std::span<u8> vi{as<u8*>(input.data()), input.size()};
 
 
 	bitstream bs;

@@ -1,6 +1,8 @@
 module;
 
 #include <Windows.h>
+#include <d3d9.h>
+#include <dxgi1_4.h>
 
 export module deckard.win32;
 
@@ -9,10 +11,40 @@ import deckard.as;
 import deckard.assert;
 import deckard.types;
 import deckard.debug;
+import deckard.helpers;
 
-namespace deckard
+
+extern "C"
 {
-	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept;
+	// Hints for higher performance (choose discrete GPU by default)
+	_declspec(dllexport) DWORD NvOptimusEnablement                  = 0x0000'0001;
+	_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x0000'0001;
+}
+
+namespace deckard::system
+{
+
+	export std::wstring to_wide(std::string_view in) noexcept
+	{
+		std::wstring wret;
+		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
+		wret.resize(as<size_t>(size));
+		if (size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, wret.data(), size); size == 0)
+			return {};
+		return wret;
+	}
+
+	export std::string from_wide(std::wstring_view wstr) noexcept
+	{
+		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), nullptr, 0, nullptr, nullptr);
+		std::string strTo;
+		if (num_chars > 0)
+		{
+			strTo.resize(as<u64>(num_chars));
+			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), &strTo[0], num_chars, nullptr, nullptr);
+		}
+		return strTo;
+	}
 
 	template<typename T>
 	requires std::is_pointer_v<T>
@@ -89,7 +121,7 @@ namespace deckard
 		return "";
 	}
 
-	export std::string OSVersion() noexcept
+	export std::string GetOS() noexcept
 	{
 		const std::string key("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
 
@@ -106,26 +138,44 @@ namespace deckard
 		  "Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
 	}
 
-	export std::wstring to_wide(std::string_view in) noexcept
+	export u64 GetRAM() noexcept
 	{
-		std::wstring wret;
-		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
-		wret.resize(as<size_t>(size));
-		if (size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, wret.data(), size); size == 0)
-			return {};
-		return wret;
+		MEMORYSTATUSEX status{};
+		status.dwLength = sizeof(status);
+		GlobalMemoryStatusEx(&status);
+
+		return as<u64>(status.ullTotalPhys);
 	}
 
-	export std::string from_wide(std::wstring_view wstr) noexcept
+	export std::string GetRAMString() noexcept { return PrettyBytes(GetRAM()); }
+
+	export std::string GetGPU() noexcept
 	{
-		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), nullptr, 0, nullptr, nullptr);
-		std::string strTo;
-		if (num_chars > 0)
-		{
-			strTo.resize(as<u64>(num_chars));
-			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), &strTo[0], num_chars, nullptr, nullptr);
-		}
-		return strTo;
+		std::string                    result{"GPU: "};
+		std::unique_ptr<IDXGIFactory4> factory{};
+
+		CreateDXGIFactory1(__uuidof(IDXGIFactory3), (void**)&factory);
+		if (!factory)
+			return result;
+
+		std::unique_ptr<IDXGIAdapter3> adapter;
+		factory->EnumAdapters(0, std::bit_cast<IDXGIAdapter**>(&adapter));
+		factory->Release();
+		factory.release();
+
+		if (!adapter)
+			return result;
+
+		DXGI_ADAPTER_DESC1 desc{0};
+		if (S_OK != adapter->GetDesc1(&desc))
+			return result;
+
+		adapter->Release();
+		adapter.release();
+
+
+		return std::format("GPU: {}, ({})", from_wide(desc.Description), PrettyBytes(desc.DedicatedVideoMemory));
 	}
 
-} // namespace deckard
+
+} // namespace deckard::system

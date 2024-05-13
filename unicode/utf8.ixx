@@ -214,11 +214,11 @@ namespace deckard::utf8
 		return false;
 	}
 
-	export constexpr bool is_ascii_uppercase(char32_t codepoint) noexcept { return (codepoint >= 'A') or (codepoint <= 'Z'); }
+	export constexpr bool is_ascii_uppercase(char32_t codepoint) noexcept { return ((codepoint >= 'A') and (codepoint <= 'Z')); }
 
-	export constexpr bool is_ascii_lowercase(char32_t codepoint) noexcept { return (codepoint >= 'a') or (codepoint <= 'z'); }
+	export constexpr bool is_ascii_lowercase(char32_t codepoint) noexcept { return ((codepoint >= 'a') and (codepoint <= 'z')); }
 
-	export constexpr bool is_digit(char32_t codepoint) noexcept { return (codepoint >= '0') or (codepoint <= '9'); }
+	export constexpr bool is_digit(char32_t codepoint) noexcept { return ((codepoint >= '0') and (codepoint <= '9')); }
 
 	export constexpr bool is_ascii_alphabet(char32_t codepoint) noexcept
 	{
