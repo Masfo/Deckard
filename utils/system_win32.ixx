@@ -101,12 +101,12 @@ namespace deckard::system
 		std::string                    result{"GPU: "};
 		std::unique_ptr<IDXGIFactory4> factory{};
 
-		CreateDXGIFactory1(__uuidof(IDXGIFactory3), (void **)&factory);
+		CreateDXGIFactory1(__uuidof(IDXGIFactory3), (void**)&factory);
 		if (!factory)
 			return result;
 
 		std::unique_ptr<IDXGIAdapter3> adapter;
-		factory->EnumAdapters(0, std::bit_cast<IDXGIAdapter **>(&adapter));
+		factory->EnumAdapters(0, std::bit_cast<IDXGIAdapter**>(&adapter));
 		factory->Release();
 		factory.release();
 
@@ -124,5 +124,6 @@ namespace deckard::system
 		return std::format("GPU: {}, ({})", from_wide(desc.Description), PrettyBytes(desc.DedicatedVideoMemory));
 	}
 
+	// implement file, as c++ and win32 filemapping, same interface, cmake include windows and not windows
 
 } // namespace deckard::system

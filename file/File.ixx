@@ -25,10 +25,10 @@ export namespace deckard
 		Fileview() = default;
 
 
-		Fileview(Fileview &&) noexcept        = delete;
-		Fileview(const Fileview &)            = delete;
-		Fileview &operator=(const Fileview &) = delete;
-		Fileview &operator=(Fileview &&)      = delete;
+		Fileview(Fileview&&) noexcept        = delete;
+		Fileview(const Fileview&)            = delete;
+		Fileview& operator=(const Fileview&) = delete;
+		Fileview& operator=(Fileview&&)      = delete;
 
 		explicit Fileview(std::filesystem::path const filename, FileAccess rw = FileAccess::Read) noexcept { open(filename, rw); }
 
@@ -45,7 +45,7 @@ export namespace deckard
 			}
 
 			m_filehandle =
-				CreateFile(filename.wstring().c_str(), access, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			  CreateFile(filename.wstring().c_str(), access, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			m_mappinghandle = CreateFileMapping(m_filehandle, nullptr, page_protect, 0, 0, nullptr);
 
 			assert::if_true(m_mappinghandle != 0, "Could not open file mapping");
@@ -72,7 +72,7 @@ export namespace deckard
 		template<typename T, typename U>
 		T as_type() noexcept
 		{
-			if (auto *addr = as<U *>(map()); addr != nullptr)
+			if (auto* addr = as<U*>(map()); addr != nullptr)
 				return T{addr, size()};
 
 			return {};
@@ -82,20 +82,20 @@ export namespace deckard
 
 		auto as_span() noexcept { return as_type<std::span<char>, char>(); }
 
-		auto &operator[](u64 index) noexcept
+		auto& operator[](u64 index) noexcept
 		{
 			assert::if_true(is_open(), "File view is not open");
 
-			auto ptr = static_cast<char *>(map());
+			auto ptr = static_cast<char*>(map());
 			return ptr[index];
 		}
 
 		~Fileview() { close(); }
 
-		bool operator==(const Fileview &other) const = default;
+		bool operator==(const Fileview& other) const = default;
 
 	private:
-		void *map() noexcept
+		void* map() noexcept
 		{
 			assert::if_true(m_mappinghandle != 0, "File mapping is not open");
 
@@ -123,7 +123,7 @@ export namespace deckard
 
 		HANDLE     m_filehandle{0};
 		HANDLE     m_mappinghandle{0};
-		void      *m_addr{nullptr};
+		void*      m_addr{nullptr};
 		FileAccess m_access_flag{FileAccess::Read};
 	};
 
