@@ -151,8 +151,6 @@ target_sources(deckard
 
 
 add_subdirectory(3rdparty/sqlite3)
-find_library(sqlite3 sqlite3)
-add_dependencies(deckard sqlite3)
 
  
 set(THIRD_PARTY_LIBS
@@ -212,8 +210,8 @@ target_compile_options(deckard PRIVATE
 
 #####################################
 #####################################
-add_subdirectory(sc)
 if(DECKARD_SCRIPT)
+add_subdirectory(sc)
 endif()
 
 if(DECKARD_TESTS)
