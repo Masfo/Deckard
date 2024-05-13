@@ -208,8 +208,8 @@ namespace deckard::utf8
 	{
 		// PropList-15.1.0.txt
 		return (
-		  ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control
 		  (codepoint == 0x0020) or                             // space
+		  ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control
 		  (codepoint == 0x0085) or                             // control
 		  (codepoint == 0x00A0) or                             // no-break space
 		  (codepoint == 0x1680) or                             // Ogham space mark
