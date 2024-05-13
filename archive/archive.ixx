@@ -56,7 +56,7 @@ export namespace deckard::archive
 		void user_version(int ver) const noexcept { exec("PRAGMA user_version = {};", ver); }
 
 		template<typename... Args>
-		bool exec(std::string_view fmt, Args &&...args) const noexcept
+		bool exec(std::string_view fmt, Args&&... args) const noexcept
 		{
 			if (!is_open())
 				return false;
@@ -74,7 +74,7 @@ export namespace deckard::archive
 			return true;
 		}
 
-		static int log_callback(void *, int column_count, char **data, char **columns) noexcept
+		static int log_callback(void*, int column_count, char** data, char** columns) noexcept
 		{
 
 			dbg::println("Column count: {}", column_count);
@@ -124,8 +124,9 @@ export namespace deckard::archive
 			return &log_callback;
 		}
 
-		sqlite3 *m_db{nullptr};
+		sqlite3* m_db{nullptr};
 
 		bool quiet_log_callback{false};
 	};
+
 } // namespace deckard::archive

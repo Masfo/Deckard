@@ -84,7 +84,6 @@ elseif(${CMAKE_BUILD_TYPE} MATCHES "Debug" OR ${CMAKE_BUILD_TYPE} MATCHES "RelWi
 
 endif()
 
-target_compile_features(sc PRIVATE cxx_std_23) 
 
 target_compile_options(sc PRIVATE 
        

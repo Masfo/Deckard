@@ -1,6 +1,5 @@
 module;
 #include <Windows.h>
-#include <sqlite3.h>
 
 export module deckard.debug;
 
