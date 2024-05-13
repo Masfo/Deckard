@@ -309,9 +309,12 @@ int main()
 	dbg::println("{:08b}", bitmask(2));
 	dbg::println("{:032b}", bitmask<u32>(5));
 
+	std::string_view input{"hello"};
+
+	std::span<u8> vi{as<u8*>(input.data()), input.size()};
+
 
 	bitstream bs;
-
 	bs.write<u16>(0x1234);
 	bs.write<f32>(1);
 

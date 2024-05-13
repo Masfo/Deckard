@@ -17,7 +17,7 @@ namespace deckard
 	template<typename T>
 	requires std::is_pointer_v<T>
 	T LoadDynamicAddress(std::string_view dll, std::string_view apiname,
-						 const std::source_location &loc = std::source_location::current()) noexcept
+						 const std::source_location& loc = std::source_location::current()) noexcept
 	{
 		auto library = LoadLibraryA(dll.data());
 		if (not library)
@@ -42,8 +42,8 @@ namespace deckard
 		using Func_RegOpenKeyExA    = LSTATUS(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
 		using Func_RegQueryValueExA = LSTATUS(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 
-		static auto RegOpenKeyExA_F    = LoadDynamicAddress<Func_RegOpenKeyExA *>("advapi32.dll", "RegOpenKeyExA");
-		static auto RegQueryValueExA_F = LoadDynamicAddress<Func_RegQueryValueExA *>("advapi32.dll", "RegQueryValueExA");
+		static auto RegOpenKeyExA_F    = LoadDynamicAddress<Func_RegOpenKeyExA*>("advapi32.dll", "RegOpenKeyExA");
+		static auto RegQueryValueExA_F = LoadDynamicAddress<Func_RegQueryValueExA*>("advapi32.dll", "RegQueryValueExA");
 
 		if (!RegOpenKeyExA_F || !RegQueryValueExA_F)
 			return "";
@@ -103,7 +103,7 @@ namespace deckard
 			return "Windows";
 
 		return std::format(
-			"Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
+		  "Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
 	}
 
 	export std::wstring to_wide(std::string_view in) noexcept
@@ -122,7 +122,7 @@ namespace deckard
 		std::string strTo;
 		if (num_chars > 0)
 		{
-			strTo.resize((u64)num_chars);
+			strTo.resize(as<u64>(num_chars));
 			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), &strTo[0], num_chars, nullptr, nullptr);
 		}
 		return strTo;
