@@ -83,7 +83,7 @@ namespace deckard::utf8
 		}
 
 		// return buffer size in bytes
-		u32 size_in_bytes() const noexcept { return as<u32>(buffer.size()); }
+		u64 size_in_bytes() const noexcept { return as<u64>(buffer.size()); }
 
 		// count - returns the number of codepoints in the buffer
 		u32 count() noexcept
@@ -153,6 +153,7 @@ namespace deckard::utf8
 			return points;
 		}
 
+
 	private:
 		type read_byte(u8 byte) noexcept
 		{
@@ -173,19 +174,18 @@ namespace deckard::utf8
 		u32           unused{};
 	};
 
+	export constexpr u32 codepoint_width(char32_t codepoint) noexcept
+	{
+		if (codepoint < 128)
+			return 1;
+		if (codepoint < 2'048)
+			return 2;
+		if (codepoint < 65'536)
+			return 3;
+		return 4;
+	}
+
 	export constexpr bool is_bom(char32_t codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
-
-	export constexpr bool is_xid_start(char32_t codepoint) noexcept
-	{
-		(codepoint);
-		return false;
-	}
-
-	export constexpr bool is_xid_continue(char32_t codepoint) noexcept
-	{
-		(codepoint);
-		return false;
-	}
 
 	export constexpr bool is_ascii_uppercase(char32_t codepoint) noexcept { return ((codepoint >= 'A') and (codepoint <= 'Z')); }
 
@@ -219,6 +219,29 @@ namespace deckard::utf8
 		  (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE
 		  (codepoint == 0x205F) or                             // MEDIUM MATHEMATICAL SPACE
 		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
+	}
+
+	export constexpr bool is_xid_start(char32_t codepoint) noexcept
+	{
+		if (codepoint < 128)
+		{
+			return is_ascii_alphabet(codepoint) or codepoint == '_' or codepoint == '$';
+		}
+
+		(codepoint);
+		// xid_start
+		return false;
+	}
+
+	export constexpr bool is_xid_continue(char32_t codepoint) noexcept
+	{
+		if (codepoint < 128)
+		{
+			return is_ascii_alphanumeric(codepoint) or codepoint == '_' or codepoint == '$';
+		}
+		(codepoint);
+		// xid_continue
+		return false;
 	}
 
 
