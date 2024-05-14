@@ -181,10 +181,12 @@ target_sources(deckard
 	FILES ${DECKARD_SRCS}
 )
 
-
+add_subdirectory(external/sqlite3)
+add_dependencies(deckard sqlite3)
  
 set(THIRD_PARTY_LIBS
     dxgi.lib
+    sqlite3
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

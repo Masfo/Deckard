@@ -1,4 +1,5 @@
 module;
+#include <sqlite3.h>
 
 export module deckard.archive;
 
@@ -16,6 +17,8 @@ export namespace deckard::archive
 	//
 	// TODO: db->load_folder("level01"); -> gives vector of handles?
 	// TODO: db->load_file("level01/mainscript.txt");
+
+	std::string sql3_version() { return sqlite3_libversion(); }
 
 #if 1
 	class file
