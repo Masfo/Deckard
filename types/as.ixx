@@ -12,7 +12,7 @@ namespace deckard
 #ifdef _DEBUG
 		dbg::trace(loc);
 		dbg::println(
-		  "Unable to cast '{}' safely. Target range is {}...{}", value, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+		  "Unable to cast '{}' safely. Target range is {}...{}", (T)(value), std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 #endif
 	}
 
