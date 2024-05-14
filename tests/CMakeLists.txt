@@ -11,7 +11,6 @@ project(tests VERSION 0.0.1 LANGUAGES CXX)
 
 add_executable(tests)
 
-#target_compile_features(tests PRIVATE cxx_std_23) 
 
 target_compile_definitions(tests PRIVATE UNICODE)
 target_compile_definitions(tests PRIVATE _UNICODE)
@@ -75,11 +74,11 @@ set_target_properties(tests PROPERTIES
 if(MSVC)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-    set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
+        set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
         target_compile_options(tests  PRIVATE /JMC)    # Just my debugging
         target_compile_definitions(tests PRIVATE -DDEBUG)
 
@@ -96,6 +95,9 @@ if(MSVC)
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
         set_target_properties(tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+
+    set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+
 
         target_compile_definitions(tests PRIVATE -DNDEBUG)
         

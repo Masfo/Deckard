@@ -71,7 +71,6 @@ if(MSVC)
         target_compile_options(deckard PRIVATE /GS)
         target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
     
-        target_link_options(deckard PRIVATE /INCREMENTAL:YES)
         target_link_options(deckard PRIVATE /DEBUG)
         target_link_options(deckard PRIVATE /NOVCFEATURE /NOCOFFGRPINFO)
 
