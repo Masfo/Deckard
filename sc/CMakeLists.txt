@@ -2,12 +2,6 @@
 add_executable(sc)
 
 
-target_compile_definitions(sc PRIVATE UNICODE)
-target_compile_definitions(sc PRIVATE _UNICODE)
-
-target_compile_definitions(sc PRIVATE NOMINMAX)
-target_compile_definitions(sc PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_definitions(sc PRIVATE WIN32_EXTRA_LEAN)
 
 set_property(TARGET sc PROPERTY CXX_STANDARD          23)
 set_property(TARGET sc PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -21,13 +15,82 @@ set_target_properties(sc PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin
-    ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
 
     PDB_NAME sc
     PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/pdb"
 )
+
+
+
+if(MSVC)
+    
+    target_compile_options(sc PRIVATE /nologo)
+
+    target_compile_definitions(sc PRIVATE UNICODE)
+    target_compile_definitions(sc PRIVATE _UNICODE)
+    target_compile_definitions(sc PRIVATE NOMINMAX)
+    target_compile_definitions(sc PRIVATE WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(sc PRIVATE WIN32_EXTRA_LEAN)
+    
+    target_compile_options(sc PRIVATE /W4)
+    target_compile_options(sc PRIVATE /EHsc)
+
+    target_compile_options(sc PRIVATE /Zc:preprocessor)
+    target_compile_options(sc PRIVATE /permissive-)
+    target_compile_options(sc PRIVATE /std:c++latest)
+    target_compile_options(sc PRIVATE /Zc:__cplusplus /Zc:alignedNew)
+    target_compile_options(sc PRIVATE /utf-8)
+
+
+    target_compile_options(sc PRIVATE /fp:precise)
+    target_compile_options(sc PRIVATE /diagnostics:caret)
+
+    set_target_properties(sc PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(sc PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+     # Debug
+    if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    
+        set_target_properties(sc PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+
+        set_target_properties(sc PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+
+
+        target_compile_definitions(sc PRIVATE -DDEBUG)
+
+        target_compile_options(sc PRIVATE /JMC)    # Just my debugging
+        target_compile_options(sc PRIVATE /Od)
+        target_compile_options(sc PRIVATE /RTC1)
+        target_compile_options(sc PRIVATE /GS)
+
+        target_compile_options(sc PRIVATE /Zi)     # /ZI edit/continue
+    
+        target_link_options(sc PRIVATE /DEBUG)
+    endif()
+    
+    # Release
+    if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+    
+        set_target_properties(sc PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
+        target_compile_definitions(sc PRIVATE -DNDEBUG)
+
+        target_compile_options(sc PRIVATE /O2 /Os)
+        target_compile_options(sc PRIVATE /GS-)
+        target_compile_options(sc PRIVATE /Gw /MP)
+        
+        target_link_options(sc PRIVATE /RELEASE)
+        target_link_options(sc PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
+        target_link_options(sc PRIVATE /DYNAMICBASE:NO)
+
+        # Undocumented options
+        target_link_options(sc PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
+    endif()
+
+endif()
+
 
 
 set_target_properties(sc PROPERTIES DEBUG_POSTFIX "d")
@@ -48,6 +111,7 @@ target_sources(sc
     FILE_SET CXX_MODULES 
 	FILES ${SC_MODULE_SOURCES}
 )
+
 target_link_libraries(sc deckard)
 
 

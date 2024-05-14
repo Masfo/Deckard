@@ -96,7 +96,7 @@ if(MSVC)
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
         set_target_properties(tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
 
-    set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+        set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
 
         target_compile_definitions(tests PRIVATE -DNDEBUG)
@@ -105,7 +105,6 @@ if(MSVC)
         target_compile_options(tests  PRIVATE /GS-)
 
         target_link_options(tests PRIVATE /Release)
-        target_link_options(tests PRIVATE /INCREMENTAL:NO)
 
 
         target_link_options(tests PRIVATE /OPT:REF /OPT:ICF)

@@ -51,16 +51,13 @@ if(MSVC)
     target_compile_options(deckard PRIVATE /fp:precise)
     target_compile_options(deckard PRIVATE /diagnostics:caret)
 
-    set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-    set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
-        set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+       set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-        set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+       set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
 
         target_compile_definitions(deckard PRIVATE -DDEBUG)
@@ -69,10 +66,11 @@ if(MSVC)
         target_compile_options(deckard PRIVATE /Od)
         target_compile_options(deckard PRIVATE /RTC1)
         target_compile_options(deckard PRIVATE /GS)
-        target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
+        #target_link_options(deckard PRIVATE /INCREMENTAL)
+
+        #target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
     
         target_link_options(deckard PRIVATE /DEBUG)
-        target_link_options(deckard PRIVATE /NOVCFEATURE /NOCOFFGRPINFO)
 
     endif()
     
@@ -80,6 +78,8 @@ if(MSVC)
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
     
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
+        set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
         target_compile_definitions(deckard PRIVATE -DNDEBUG)
 
@@ -88,29 +88,27 @@ if(MSVC)
         target_compile_options(deckard PRIVATE /Gw /MP)
         
         target_link_options(deckard PRIVATE /RELEASE)
-        target_link_options(deckard PRIVATE /INCREMENTAL:NO)
-        target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
-        target_link_options(deckard PRIVATE /DYNAMICBASE:NO)
+
 
         # Undocumented options
         target_link_options(deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
-         # Generate out stub
-        if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-            set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
-            file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
-            # CertUtil has been included since Windows XP
-            execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-            file(REMOVE newstub.txt)
-            set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
-        endif()
-
-        # use our own stub
-        if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-            target_link_options(deckard PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
-        else()
-            message(WARNING "Could not find stub.bin")
-        endif()
+        # # Generate out stub
+        # if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        #     set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
+        #     file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
+        #     # CertUtil has been included since Windows XP
+        #     execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        #     file(REMOVE newstub.txt)
+        #     set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
+        # endif()
+        # 
+        # # use our own stub
+        # if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        #     target_link_options(deckard PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
+        # else()
+        #     message(WARNING "Could not find stub.bin")
+        # endif()
 
     endif()
 
@@ -171,6 +169,12 @@ set(DECKARD_SRCS
         std.ixx
 )
 
+
+
+
+target_sources(deckard PUBLIC
+)
+
 target_sources(deckard
 	PUBLIC
     FILE_SET CXX_MODULES 
@@ -178,13 +182,15 @@ target_sources(deckard
 )
 
 
-
-add_subdirectory(3rdparty/sqlite3)
-
  
 set(THIRD_PARTY_LIBS
     dxgi.lib
-    sqlite3
+   # libcpmtd.lib
+   # libcmtd.lib
+   # libconcrtd.lib
+   # libvcruntimed.lib
+   #libucrtd.lib
+   #libvcruntimed.lib	
 )
 
 target_link_libraries(deckard PUBLIC ${THIRD_PARTY_LIBS})
@@ -240,8 +246,10 @@ target_compile_options(deckard PRIVATE
 #####################################
 #####################################
 if(DECKARD_SCRIPT)
-add_subdirectory(sc)
+#add_subdirectory(sc)
+add_subdirectory(dbc)
 endif()
+
 
 if(DECKARD_TESTS)
 enable_testing()
