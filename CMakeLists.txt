@@ -55,9 +55,9 @@ if(MSVC)
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
-       set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-       set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+        set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
 
         target_compile_definitions(deckard PRIVATE -DDEBUG)
@@ -66,7 +66,7 @@ if(MSVC)
         target_compile_options(deckard PRIVATE /Od)
         target_compile_options(deckard PRIVATE /RTC1)
         target_compile_options(deckard PRIVATE /GS)
-        #target_link_options(deckard PRIVATE /INCREMENTAL)
+        target_link_options(deckard PRIVATE /INCREMENTAL)
 
         #target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
     
