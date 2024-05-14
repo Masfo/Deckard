@@ -10,90 +10,121 @@ set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
 project(deckard CXX)
 add_library(deckard STATIC)
 
+set_target_properties(deckard PROPERTIES 
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin
+    ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
+
+    PDB_NAME deckard
+    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/pdb"
+)
 
 
-target_compile_definitions(deckard PRIVATE UNICODE)
-target_compile_definitions(deckard PRIVATE _UNICODE)
-
-target_compile_definitions(deckard PRIVATE NOMINMAX)
-target_compile_definitions(deckard PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_definitions(deckard PRIVATE WIN32_EXTRA_LEAN)
-target_compile_options(deckard PRIVATE /nologo)
-target_compile_options(deckard PRIVATE -Zc:__cplusplus /Zc:alignedNew)
-target_compile_options(deckard PRIVATE /utf-8)
-target_compile_options(deckard PRIVATE /EHsc)
-#target_compile_options(deckard PRIVATE /Za)
-
-target_compile_options(deckard  PRIVATE /fp:precise)
-target_compile_options(deckard PRIVATE /diagnostics:caret)
-
-
-#target_compile_options(deckard PRIVATE /experimental:module)
-target_compile_options(deckard PRIVATE /Zc:preprocessor)
-target_compile_options(deckard PRIVATE /permissive-)
-target_compile_options(deckard PRIVATE /std:c++latest)
-target_compile_options(deckard PRIVATE /Zc:__cplusplus)
-
-target_compile_options(deckard PRIVATE /W4)
 
 #set_target_properties(deckard PROPERTIES DEBUG_POSTFIX "d")
 
+
 if(MSVC)
+    
+    target_compile_options(deckard PRIVATE /nologo)
+
+    target_compile_definitions(deckard PRIVATE UNICODE)
+    target_compile_definitions(deckard PRIVATE _UNICODE)
+    target_compile_definitions(deckard PRIVATE NOMINMAX)
+    target_compile_definitions(deckard PRIVATE WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(deckard PRIVATE WIN32_EXTRA_LEAN)
+    
+    target_compile_options(deckard PRIVATE /W4)
+    target_compile_options(deckard PRIVATE /EHsc)
+
+    target_compile_options(deckard PRIVATE /Zc:preprocessor)
+    target_compile_options(deckard PRIVATE /permissive-)
+    target_compile_options(deckard PRIVATE /std:c++latest)
+    target_compile_options(deckard PRIVATE /Zc:__cplusplus /Zc:alignedNew)
+    target_compile_options(deckard PRIVATE /utf-8)
 
 
-    # Debug
+    target_compile_options(deckard PRIVATE /fp:precise)
+    target_compile_options(deckard PRIVATE /diagnostics:caret)
+
+    set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+    set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)
+     # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
-
-        target_compile_options(deckard  PRIVATE /JMC)    # Just my debugging
-        target_compile_definitions(deckard PRIVATE -DDEBUG)
-
-        target_compile_options(deckard  PRIVATE /Od)
-
-        target_compile_options(deckard  PRIVATE /RTC1)
-        target_compile_options(deckard  PRIVATE /GS)
-        target_compile_options(deckard  PRIVATE /Zi)     # /ZI edit/continue
-
-        target_link_options(deckard PRIVATE /DEBUG)
+    
+        set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
-        #target_link_options(deckard PRIVATE /ALIGN:16)
-    endif()
 
+        target_compile_definitions(deckard PRIVATE -DDEBUG)
+
+        target_compile_options(deckard PRIVATE /JMC)    # Just my debugging
+        target_compile_options(deckard PRIVATE /Od)
+        target_compile_options(deckard PRIVATE /RTC1)
+        target_compile_options(deckard PRIVATE /GS)
+        target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
+    
+        target_link_options(deckard PRIVATE /INCREMENTAL:YES)
+        target_link_options(deckard PRIVATE /DEBUG)
+        target_link_options(deckard PRIVATE /NOVCFEATURE /NOCOFFGRPINFO)
+
+    endif()
+    
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
-        #set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
-
-        target_compile_definitions(deckard PRIVATE -DNDEBUG)
-        
-        target_compile_options(deckard  PRIVATE /O2  /Os)
-        target_compile_options(deckard  PRIVATE /GS-)
-
-        target_link_options(deckard PRIVATE /Release)
-        target_link_options(deckard PRIVATE /INCREMENTAL:NO)
-
-
-        target_link_options(deckard PRIVATE /OPT:REF /OPT:ICF)
-
+    
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
+        target_compile_definitions(deckard PRIVATE -DNDEBUG)
 
-        # 0x800: LOAD_LIBRARY_SEARCH_SYSTEM32
-        target_link_options(deckard PRIVATE /DEPENDENTLOADFLAG:0x800)
-            
+        target_compile_options(deckard PRIVATE /O2 /Os)
+        target_compile_options(deckard PRIVATE /GS-)
+        target_compile_options(deckard PRIVATE /Gw /MP)
+        
+        target_link_options(deckard PRIVATE /RELEASE)
+        target_link_options(deckard PRIVATE /INCREMENTAL:NO)
+        target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
+        target_link_options(deckard PRIVATE /DYNAMICBASE:NO)
+
         # Undocumented options
         target_link_options(deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
-    endif()
-endif()
+         # Generate out stub
+        if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+            set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
+            file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
+            # CertUtil has been included since Windows XP
+            execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            file(REMOVE newstub.txt)
+            set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
+        endif()
 
-set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
-configure_file(	
-        $ENV{VCToolsInstallDir}modules/std.ixx
-        ${CMAKE_CURRENT_LIST_DIR}/std.ixx
-        COPYONLY
-)
-set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+        # use our own stub
+        if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+            target_link_options(deckard PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
+        else()
+            message(WARNING "Could not find stub.bin")
+        endif()
+
+    endif()
+
+    # STD hack
+    set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+    configure_file(	
+            $ENV{VCToolsInstallDir}modules/std.ixx
+            ${CMAKE_CURRENT_LIST_DIR}/std.ixx
+            COPYONLY
+    )
+    set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+
+endif()
 
 set(DECKARD_SRCS
 		deckard.ixx

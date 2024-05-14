@@ -166,13 +166,13 @@ export namespace deckard
 	};
 
 	template<typename T = u8>
-	u32 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {}) noexcept
+	u64 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {}) noexcept
 	{
-		const u32 delimiter_len = input.size() == 1 ? 0 : as<u32>(options.delimiter.size());
-		const u32 hex_len       = options.show_hex ? 2 : 0;
+		const u64 delimiter_len = input.size() == 1 ? 0 : as<u64>(options.delimiter.size());
+		const u64 hex_len       = options.show_hex ? 2 : 0;
 
-		const u32 stride = (sizeof(T) * 2) + delimiter_len + hex_len;
-		const u32 maxlen = (as<u32>(input.size()) * stride) - delimiter_len;
+		const u64 stride = (sizeof(T) * 2) + delimiter_len + hex_len;
+		const u64 maxlen = (as<u64>(input.size()) * stride) - delimiter_len;
 
 		if (input.empty() or output.size() < maxlen or output.empty())
 			return maxlen;
@@ -183,7 +183,7 @@ export namespace deckard
 		const i32 lowercase_offset = options.lowercase ? 16 : 0;
 
 		const bool show_hex = options.show_hex;
-		u32        len      = 0;
+		u64        len      = 0;
 
 		for (const auto [i, word] : std::views::enumerate(input))
 		{
@@ -203,7 +203,7 @@ export namespace deckard
 			for (u8 byteindex = 0; byteindex < sizeof(T); byteindex++)
 			{
 				const T  shift       = byteindex * 8;
-				const T  mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF) << shift;
+				const T  mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF_u8) << shift;
 				const u8 masked_byte = as<u8>((input_word & mask) >> shift);
 
 

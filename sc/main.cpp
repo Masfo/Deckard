@@ -299,14 +299,34 @@ private:
 
 int main()
 {
+
+
 #ifndef _DEBUG
 	std::print("sc {} ({}), ", scbuild::build::version_string, scbuild::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	utf8::codepoints dec("\u07FF");
+	auto             maxcp = dec.next();
+
+	dec.reload("\u0800");
+	auto maxcp3 = dec.next();
+
+	auto u10 = '\uFFFD';
+
+
+	dec.reload("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
+	auto test = dec.data();
+
+
+	for (char32_t i : test)
+	{
+		dbg::println("{:X} width {}", as<u32>(i), utf8::codepoint_width(i));
+	}
+
 
 	dbg::println("{:08b}", bitmask(4));
-	dbg::println("{:08b}", bitmask(0));
+	dbg::println("{:08b}", bitmask(4, 3));
 	dbg::println("{:08b}", bitmask(2));
 	dbg::println("{:032b}", bitmask<u32>(5));
 
