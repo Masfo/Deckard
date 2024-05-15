@@ -545,7 +545,7 @@ namespace deckard::math
 	} // namespace v1
 
 	export using float4 = sse::vec4;
-	export using vec4   = v1::vec_n<float, 4>;
+	export using vec4   = sse::vec4; // v1::vec_n<float, 4>;
 	export using vec3   = v1::vec_n<float, 3>;
 	export using vec2   = v1::vec_n<float, 2>;
 
@@ -571,10 +571,10 @@ export namespace std
 {
 	using namespace deckard::math;
 
-	template<>
-	struct hash<vec4>
+	template<arithmetic T, size_t N>
+	struct hash<v1::vec_n<T, N>>
 	{
-		size_t operator()(const vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const v1::vec_n<T, N>& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<arithmetic T, size_t N>
@@ -597,6 +597,38 @@ export namespace std
 				for (size_t i = 0; i < N; ++i)
 					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < N - 1 ? ", " : "");
 			}
+
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+
+
+} // namespace std
+
+// STD specials
+export namespace std
+
+{
+	using namespace deckard::math;
+
+	template<>
+	struct hash<sse::vec4>
+	{
+		size_t operator()(const vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+
+	template<>
+	struct formatter<vec4>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const vec4& vec, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "vec4(");
+
+			for (int i = 0; i < 4; ++i)
+				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < 4 - 1 ? ", " : "");
 
 			return std::format_to(ctx.out(), ")");
 		}

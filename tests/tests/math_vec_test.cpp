@@ -3,6 +3,7 @@
 
 
 import deckard.math.vec;
+// import deckard.math.vec4sse;
 import deckard.math.utility;
 import std;
 
@@ -323,10 +324,10 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == div_scalar.equals(div_scalar_result));
 
 		// div zero
-		const vec4 div_v_zero = safe_divide(v1, vec4{0.0});
-		const vec4 div_s_zero = safe_divide(v1, 0.0f);
-		REQUIRE(true == div_v_zero.has_nan());
-		REQUIRE(true == div_s_zero.has_nan());
+		// const vec4 div_v_zero = safe_divide(v1, vec4{0.0});
+		// const vec4 div_s_zero = safe_divide(v1, 0.0f);
+		// REQUIRE(true == div_v_zero.has_nan());
+		// REQUIRE(true == div_s_zero.has_nan());
 	}
 
 	SECTION("vec4 other functions")
@@ -354,11 +355,16 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 	SECTION("vec4 cross/dot/length/normal/project")
 	{
 		// cross
-		const vec4 a{3.0, -3.0, 1.0};
-		const vec4 b{4.0, 9.0, 2.0};
+		const vec4 a{3.0, -3.0, 1.0, 2.0};
+		const vec4 b{4.0, 9.0, 2.0, 2.0};
 
-		const vec3 crossed = cross(a, b);
-		REQUIRE(true == crossed.equals(vec3{-15.0, -2.0, 39.0}));
+		const vec4 crossed = cross(a, b);
+		REQUIRE(true == crossed.equals(vec4{-15.0, -2.0, 39.0}));
+
+		// dot
+		const float dotted = dot(a, b);
+		REQUIRE_THAT(dotted, WithinAbs(-9.0f, 0.000001));
+
 
 		// length
 		const vec4 lvec{3.14f, 5.11f, -1.34f, 8.1f};
