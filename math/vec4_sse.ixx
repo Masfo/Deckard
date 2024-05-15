@@ -4,7 +4,7 @@ module;
 #include <limits>
 #include <xmmintrin.h>
 
-export module deckard.math.vec4sse;
+export module deckard.math.vec.sse;
 
 import deckard.debug;
 
@@ -240,7 +240,6 @@ namespace deckard::math::sse
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
 				default: dbg::panic("Indexing out-of-bound");
 			}
-			std::unreachable();
 		}
 
 		inline static __m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
@@ -284,6 +283,3 @@ namespace deckard::math::sse
 	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const float scalar) { return lhs / scalar; }
 
 } // namespace deckard::math::sse
-
-template<typename T>
-concept arithmetic = std::integral<T> or std::floating_point<T>;

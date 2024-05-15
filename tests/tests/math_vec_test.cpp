@@ -3,7 +3,8 @@
 
 
 import deckard.math.vec;
-// import deckard.math.vec4sse;
+import deckard.math.vec.sse;
+
 import deckard.math.utility;
 import std;
 
