@@ -51,6 +51,8 @@ if(MSVC)
     target_compile_options(deckard PRIVATE /fp:precise)
     target_compile_options(deckard PRIVATE /diagnostics:caret)
 
+    target_compile_options(deckard PRIVATE /arch:SSE2)
+
 
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -136,6 +138,11 @@ set(DECKARD_SRCS
         math/matrix.ixx
         math/math_utility.ixx
         math/vec.ixx
+        "math/vec_generic.ixx"
+        math/vec2_sse.ixx
+        math/vec3_sse.ixx
+        math/vec4_sse.ixx
+
 
         graphs/binarytree.ixx
 

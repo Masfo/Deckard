@@ -15,6 +15,9 @@ export import deckard.file;
 export import deckard.math.utility;
 export import deckard.math.matrix;
 export import deckard.math.vec;
+export import deckard.math.vec2.sse;
+export import deckard.math.vec3.sse;
+export import deckard.math.vec4.sse;
 
 
 // Utils

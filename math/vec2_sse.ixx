@@ -188,6 +188,7 @@ namespace deckard::math::sse
 
 			if (other.has_zero())
 			{
+				// TODO:
 				// dbg::trace("cannot project onto a zero vector: {} / {}", *this, other);
 				return vec2(inf);
 			}
@@ -203,6 +204,7 @@ namespace deckard::math::sse
 		{
 			if (has_zero() or other.has_zero() or has_inf())
 			{
+				// TODO
 				// dbg::trace("cannot take angle between zero vectors: {} / {}", *this, other);
 				return std::numeric_limits<float>::infinity();
 			}

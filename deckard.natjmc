@@ -22,6 +22,8 @@
 	<File Name="win32.ixx"/>
 
 	<File Name="sqlite3.c"/>
+	<File Name="catch_*.*"/>
+
 
 
 	<!-- Functions -->
