@@ -179,6 +179,23 @@ namespace deckard::math::sse
 			return horizontal_addf(mul);
 		}
 
+		// divide - non panicking
+		[[nodiscard("Use the divide vector")]] vec4 safe_divide(const vec4& other) const noexcept
+		{
+			if (other.has_zero())
+				return vec4(inf);
+
+			return *this / other;
+		}
+
+		[[nodiscard("Use the divide scalar")]] vec4 safe_divide(const float scalar) const noexcept
+		{
+			if (scalar == 0.0f)
+				return vec4(inf);
+
+			return *this / vec4(scalar);
+		}
+
 		// has / is
 		bool has_zero() const noexcept
 		{
@@ -287,8 +304,8 @@ namespace deckard::math::sse
 
 	export [[nodiscard("Use the projected vector")]] vec4 cross(const vec4& lhs, const vec4& rhs) { return lhs.cross(rhs); }
 
-	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const vec4& rhs) { return lhs / rhs; }
+	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const vec4& rhs) { return lhs.safe_divide(rhs); }
 
-	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const float scalar) { return lhs / scalar; }
+	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const float scalar) { return lhs.safe_divide(scalar); }
 
 } // namespace deckard::math::sse

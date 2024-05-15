@@ -1,5 +1,5 @@
 
-export module deckard.math.vec.x86;
+export module deckard.math.vec.generic;
 
 import std;
 import deckard.debug;
@@ -91,6 +91,14 @@ namespace deckard::math
 			return false;
 		};
 
+		constexpr bool is_zero() const noexcept
+		{
+			for (int i = 0; i < N; ++i)
+				if (m_data[i] != T{0})
+					return false;
+			return true;
+		}
+
 		constexpr bool has_nan() const noexcept
 		{
 			for (int i = 0; i < N; ++i)
@@ -109,6 +117,16 @@ namespace deckard::math
 					return true;
 			}
 			return false;
+		};
+
+		constexpr bool is_inf() const noexcept
+		{
+			for (int i = 0; i < N; ++i)
+			{
+				if (std::isinf(m_data[i]) == false)
+					return false;
+			}
+			return true;
 		};
 
 		constexpr vec_type& operator+=(const vec_type& other) noexcept
@@ -189,7 +207,7 @@ namespace deckard::math
 		template<typename U = T>
 		constexpr vec_type operator/(const U& scalar) const noexcept
 		{
-			if (scalar == U{})
+			if (scalar == U{0})
 				dbg::panic("divide by scalar zero: {} / {}", *this, scalar);
 
 			vec_type result = *this;
@@ -434,6 +452,10 @@ namespace deckard::math
 
 		std::array<T, N> m_data{T{}};
 	};
+
+	static_assert(sizeof(vec_n<float, 4>) == 16);
+	static_assert(sizeof(vec_n<float, 3>) == 12);
+	static_assert(sizeof(vec_n<float, 2>) == 8);
 
 	// Free functions
 	export template<typename T, size_t N>

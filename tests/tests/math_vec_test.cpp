@@ -3,8 +3,6 @@
 
 
 import deckard.math.vec;
-import deckard.math.vec3.sse;
-import deckard.math.vec4.sse;
 
 import deckard.math.utility;
 import std;
@@ -86,10 +84,18 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const auto dotted = dot(a, b);
 		REQUIRE_THAT(dotted, WithinAbs(-5.0f, 0.0000001));
 
-		const vec2 c{2.0f, 3.0f};
-		const vec2 d{4.0f, 1.0f};
-		const auto crossed = cross(c, d);
+
+#if 0
+		const vec2  c{2.0f, 3.0f};
+		const vec2  d{4.0f, 1.0f};
+		const float crossed = cross(c, d);
 		REQUIRE_THAT(crossed, WithinAbs(-10.0f, 0.0000001));
+#else
+		const vec2  c{1.0f, 2.0f};
+		const vec2  d{3.0f, 4.0f};
+		const float crossed = cross(c, d);
+		REQUIRE_THAT(crossed, WithinAbs(-2.0f, 0.0000001));
+#endif
 
 		// length
 		const vec2 lvec{3.14f, 5.11f};
@@ -156,8 +162,8 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(v5.is_zero() == true);
 
 
-		vec3 v6 = vec3(1.0f) / v5;
-		REQUIRE(v5.has_inf() == true);
+		vec3 v6 = vec3(1.0f).safe_divide(v5);
+		REQUIRE(v6.has_inf() == true);
 		REQUIRE(v6.is_inf() == true);
 	}
 
@@ -298,6 +304,15 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(v5[1] == -2.0f);
 		REQUIRE(v5[2] == -3.0f);
 		REQUIRE(v5[3] == -4.0f);
+
+		vec4 v6(0.0f);
+		REQUIRE(v6.has_zero() == true);
+		REQUIRE(v6.is_zero() == true);
+
+
+		vec4 v7 = vec4(1.0f).safe_divide(v6);
+		REQUIRE(v7.has_inf() == true);
+		REQUIRE(v7.is_inf() == true);
 	}
 
 	SECTION("basic math")
