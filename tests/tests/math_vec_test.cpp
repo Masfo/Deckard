@@ -397,6 +397,9 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 e{1.0, 1.0, 1.0, 1.0};
 		const vec4 f{1.0, 1.0, 1.0, 1.0};
 		REQUIRE(false == (e < f));
+		REQUIRE(true == (e <= f));
+		REQUIRE(false == (e > f));
+		REQUIRE(true == (e >= f));
 		REQUIRE(e == f);
 
 		const vec4 g{1.0, 1.0, 1.0, 1.0};
