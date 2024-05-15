@@ -55,25 +55,7 @@ export namespace deckard::archive
 			return true;
 		}
 
-		bool is_open() const noexcept {return m_db != nullptr; }
-
-
-	private:
-		static int log_callback(void*, int column_count, char** data, char** columns) noexcept
-		{
-
-			dbg::println("Column count: {}", column_count);
-			for (int i = 0; i < column_count; i++)
-			{
-				std::string d("data");
-				if (d.contains(columns[i]))
-					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
-				else
-					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
-			}
-
-			return 0;
-		}
+		bool is_open() const noexcept { return m_db != nullptr; }
 
 		template<typename... Args>
 		bool exec(std::string_view fmt, Args&&... args) const noexcept
@@ -92,6 +74,23 @@ export namespace deckard::archive
 			}
 
 			return true;
+		}
+
+	private:
+		static int log_callback(void*, int column_count, char** data, char** columns) noexcept
+		{
+
+			dbg::println("Column count: {}", column_count);
+			for (int i = 0; i < column_count; i++)
+			{
+				std::string d("data");
+				if (d.contains(columns[i]))
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
+				else
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
+			}
+
+			return 0;
 		}
 
 		sqlite3* m_db{nullptr};
