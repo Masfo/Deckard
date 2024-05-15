@@ -313,6 +313,13 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		vec4 v7 = vec4(1.0f).safe_divide(v6);
 		REQUIRE(v7.has_inf() == true);
 		REQUIRE(v7.is_inf() == true);
+
+		vec3 v8(6.0f, 2.0f, 9.0f);
+		vec4 v9 = vec4{v8, -1.0f};
+		REQUIRE(v9[0] == 6.0f);
+		REQUIRE(v9[1] == 2.0f);
+		REQUIRE(v9[2] == 9.0f);
+		REQUIRE(v9[3] == -1.0f);
 	}
 
 	SECTION("basic math")
