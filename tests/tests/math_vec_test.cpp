@@ -3,7 +3,8 @@
 
 
 import deckard.math.vec;
-import deckard.math.vec.sse;
+import deckard.math.vec3.sse;
+import deckard.math.vec4.sse;
 
 import deckard.math.utility;
 import std;
@@ -70,7 +71,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f}));
 
 		const auto dist = distance(v1, v2);
-		REQUIRE_THAT(dist, WithinAbs(10.0, 0.000001));
+		REQUIRE_THAT(dist, WithinAbs(7.6157732f, 0.000001));
 
 		const vec2 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec2{3.0f, 2.0f}));
@@ -189,7 +190,8 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f, 4.0f}));
 
 		const auto dist = distance(v1, v2);
-		REQUIRE_THAT(dist, WithinAbs(12.0, 0.0000001));
+		// 12.0??
+		REQUIRE_THAT(dist, WithinAbs(7.8740077f, 0.0000001));
 
 		const vec3 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
@@ -347,7 +349,7 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f, 4.0f, 7.0f}));
 
 		const auto dist = distance(v1, v2);
-		REQUIRE_THAT(dist, WithinAbs(21.0f, 0.000001));
+		REQUIRE_THAT(dist, WithinAbs(11.958261f, 0.000001));
 
 		const vec4 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));

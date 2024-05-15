@@ -8,7 +8,9 @@ import deckard.debug;
 import deckard.math.utility;
 import deckard.helpers;
 
-import deckard.math.vec.sse;
+import deckard.math.vec3.sse;
+import deckard.math.vec4.sse;
+
 import deckard.math.vec.x86;
 
 template<typename T>
@@ -21,7 +23,7 @@ namespace deckard::math
 	export using float4 = sse::vec4;
 	export using vec4   = sse::vec4; // vec_n<float, 4>;
 
-	export using vec3 = vec_n<float, 3>;
+	export using vec3 = sse::vec3;   // vec_n<float, 3>;
 	export using vec2 = vec_n<float, 2>;
 
 	export using uvec2 = vec_n<u32, 2>;
@@ -34,7 +36,7 @@ namespace deckard::math
 
 
 	static_assert(sizeof(vec4) == 4 * 4, "vec4 size should be 4*4 bytes");
-	static_assert(sizeof(vec3) == 4 * 3, "vec3 size should be 4*3 bytes");
+	// static_assert(sizeof(vec3) == 4 * 3, "vec3 size should be 4*3 bytes");
 	static_assert(sizeof(vec2) == 4 * 2, "vec2 size should be 4*2 bytes");
 
 
@@ -76,6 +78,7 @@ export namespace std
 		}
 	};
 
+	// sse vec4
 	template<>
 	struct hash<sse::vec4>
 	{
@@ -94,6 +97,30 @@ export namespace std
 
 			for (int i = 0; i < 4; ++i)
 				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < 4 - 1 ? ", " : "");
+
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+
+	// sse vec3
+	template<>
+	struct hash<sse::vec3>
+	{
+		size_t operator()(const vec3& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+
+	template<>
+	struct formatter<sse::vec3>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const sse::vec3& vec, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "vec3(");
+
+			for (int i = 0; i < 3; ++i)
+				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < 3 - 1 ? ", " : "");
 
 			return std::format_to(ctx.out(), ")");
 		}

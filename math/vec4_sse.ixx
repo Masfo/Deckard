@@ -4,19 +4,28 @@ module;
 #include <limits>
 #include <xmmintrin.h>
 
-export module deckard.math.vec.sse;
+export module deckard.math.vec4.sse;
 
 import deckard.debug;
 
 namespace deckard::math::sse
 {
-	float horizontal_add(const __m128& lhs) noexcept
+	float horizontal_addf(const __m128& lhs) noexcept
 	{
 		__m128 shuf = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(2, 3, 0, 1)); // [ C D | A B ]
 		__m128 sums = _mm_add_ps(lhs, shuf);                             // sums = [ D+C C+D | B+A A+B ]
 		shuf        = _mm_movehl_ps(shuf, sums); //  [   C   D | D+C C+D ]  // let the compiler avoid a mov by reusing shuf
 		sums        = _mm_add_ss(sums, shuf);
 		return _mm_cvtss_f32(sums);
+	};
+
+	__m128 horizontal_add(const __m128& lhs) noexcept
+	{
+		__m128 shuf = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(2, 3, 0, 1)); // [ C D | A B ]
+		__m128 sums = _mm_add_ps(lhs, shuf);                             // sums = [ D+C C+D | B+A A+B ]
+		shuf        = _mm_movehl_ps(shuf, sums); //  [   C   D | D+C C+D ]  // let the compiler avoid a mov by reusing shuf
+		sums        = _mm_add_ss(sums, shuf);
+		return sums;
 	};
 
 	export struct alignas(16) vec4
@@ -124,7 +133,7 @@ namespace deckard::math::sse
 		float length() const noexcept
 		{
 			__m128 a      = _mm_mul_ps(reg, reg);
-			auto   rc     = _mm_sqrt_ps(_mm_set_ps1(horizontal_add(a)));
+			auto   rc     = _mm_sqrt_ps(horizontal_add(a));
 			float  result = _mm_cvtss_f32(rc);
 			return result;
 		}
@@ -135,9 +144,9 @@ namespace deckard::math::sse
 
 		float distance(const vec4& lhs) const noexcept
 		{
-			vec4 result;
-			result += *this - lhs;
-			return horizontal_add(result.abs().reg);
+			__m128 tmp = _mm_sub_ps(reg, lhs.reg);
+			__m128 sqr = _mm_mul_ps(tmp, tmp);
+			return _mm_cvtss_f32(_mm_sqrt_ps(horizontal_add(sqr)));
 		}
 
 		vec4 clamp(float cmin, float cmax) const noexcept { return vec4(_mm_min_ps(_mm_max_ps(reg, vec4(cmin)), vec4(cmax))); }
@@ -167,7 +176,7 @@ namespace deckard::math::sse
 		float dot(const vec4& lhs) const noexcept
 		{
 			__m128 mul = _mm_mul_ps(reg, lhs.reg);
-			return horizontal_add(mul);
+			return horizontal_addf(mul);
 		}
 
 		// has / is
@@ -238,7 +247,7 @@ namespace deckard::math::sse
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
-				default: dbg::panic("Indexing out-of-bound");
+				default: dbg::panic("vec4: indexing out-of-bound");
 			}
 		}
 
