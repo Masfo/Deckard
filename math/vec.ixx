@@ -8,16 +8,17 @@ import deckard.debug;
 import deckard.math.utility;
 import deckard.helpers;
 
+import deckard.math.vec4sse;
+
 namespace deckard::math
 {
-
-
-	// inline namespace sse  version,
-	// math::sse::vec[2/3/4] should work automagic
 	template<typename T>
 	concept arithmetic = std::integral<T> or std::floating_point<T>;
 
-	inline namespace v1
+	// inline namespace sse  version,
+	// math::sse::vec[2/3/4] should work automagic
+
+	namespace v1
 	{
 		template<arithmetic T, size_t N>
 		requires(N > 1)
@@ -543,17 +544,18 @@ namespace deckard::math
 
 	} // namespace v1
 
-	export using vec4 = vec_n<float, 4>;
-	export using vec3 = vec_n<float, 3>;
-	export using vec2 = vec_n<float, 2>;
+	export using float4 = sse::vec4;
+	export using vec4   = v1::vec_n<float, 4>;
+	export using vec3   = v1::vec_n<float, 3>;
+	export using vec2   = v1::vec_n<float, 2>;
 
-	export using uvec2 = vec_n<u32, 2>;
-	export using uvec3 = vec_n<u32, 3>;
-	export using uvec4 = vec_n<u32, 4>;
+	export using uvec2 = v1::vec_n<u32, 2>;
+	export using uvec3 = v1::vec_n<u32, 3>;
+	export using uvec4 = v1::vec_n<u32, 4>;
 
-	export using ivec2 = vec_n<i32, 2>;
-	export using ivec3 = vec_n<i32, 3>;
-	export using ivec4 = vec_n<i32, 4>;
+	export using ivec2 = v1::vec_n<i32, 2>;
+	export using ivec3 = v1::vec_n<i32, 3>;
+	export using ivec4 = v1::vec_n<i32, 4>;
 
 
 	static_assert(sizeof(vec4) == 4 * 4, "vec4 size should be 4*4 bytes");
@@ -575,36 +577,30 @@ export namespace std
 		size_t operator()(const vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
-	template<std::integral T, size_t len>
-	struct formatter<vec_n<T, len>>
+	template<arithmetic T, size_t N>
+	struct formatter<v1::vec_n<T, N>>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const vec_n<T, len>& vec, std::format_context& ctx) const
+		auto format(const v1::vec_n<T, N>& vec, std::format_context& ctx) const
 		{
-			std::format_to(ctx.out(), "vec{}("), len;
-			for (size_t i = 0; i < len; ++i)
-				std::format_to(ctx.out(), "{}{}", vec[i], i < len - 1 ? "," : "");
+			std::format_to(ctx.out(), "vec{}(", N);
+
+			if constexpr (std::is_integral_v<T>)
+			{
+				for (size_t i = 0; i < N; ++i)
+					std::format_to(ctx.out(), "{}{}", vec[i], i < N - 1 ? "," : "");
+			}
+			else
+			{
+				for (size_t i = 0; i < N; ++i)
+					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < N - 1 ? ", " : "");
+			}
 
 			return std::format_to(ctx.out(), ")");
 		}
 	};
 
-	template<std::floating_point T, size_t len>
-	struct formatter<vec_n<T, len>>
-	{
-		// TODO: Parse width
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-
-		auto format(const vec_n<T, len>& vec, std::format_context& ctx) const
-		{
-			std::format_to(ctx.out(), "vec{}(", len);
-			for (size_t i = 0; i < len; ++i)
-				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < len - 1 ? ", " : "");
-
-			return std::format_to(ctx.out(), ")");
-		}
-	};
 
 } // namespace std

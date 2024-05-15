@@ -373,6 +373,31 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		normalize_inplace.normalize();
 		REQUIRE(normalize_inplace == normalized);
 	}
+
+	SECTION("compares")
+	{
+		// lt
+		const vec4 a{0.0, 0.0, 0.0, 0.0};
+		const vec4 b{1.0, 1.0, 1.0, 1.0};
+
+		REQUIRE(a < b);
+		REQUIRE(a != b);
+
+		const vec4 c{1.0, 1.0, 1.0, 1.0};
+		const vec4 d{1.0, 1.0, 1.0, 2.0};
+		REQUIRE(c < d);
+		REQUIRE(c != d);
+
+		const vec4 e{1.0, 1.0, 1.0, 1.0};
+		const vec4 f{1.0, 1.0, 1.0, 1.0};
+		REQUIRE(false == (e < f));
+		REQUIRE(e == f);
+
+		const vec4 g{1.0, 1.0, 1.0, 1.0};
+		const vec4 h{2.0, 1.0, 1.0, 1.0};
+		REQUIRE(h >= g);
+		REQUIRE(h > g);
+	}
 }
 
 // Format
