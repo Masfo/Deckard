@@ -14,11 +14,13 @@ namespace deckard::math
 
 	// inline namespace sse  version,
 	// math::sse::vec[2/3/4] should work automagic
+	template<typename T>
+	concept arithmetic = std::integral<T> or std::floating_point<T>;
 
 	inline namespace v1
 	{
-		template<typename T, size_t N>
-		requires(std::integral<T> or std::floating_point<T>) and (N > 1)
+		template<arithmetic T, size_t N>
+		requires(N > 1)
 		struct vec_n
 		{
 			using type     = T;
@@ -64,12 +66,13 @@ namespace deckard::math
 					m_data.fill(*list.begin());
 					return;
 				}
-				dbg::if_true(list.size() > N,
-							 "{}({}): Warning: initializer list (length: {}) is longer than the container (length: {}).",
-							 loc.file_name(),
-							 loc.line(),
-							 list.size(),
-							 N);
+				dbg::if_true(
+				  list.size() > N,
+				  "{}({}): Warning: initializer list (length: {}) is longer than the container (length: {}).",
+				  loc.file_name(),
+				  loc.line(),
+				  list.size(),
+				  N);
 
 				std::copy_n(list.begin(), std::min(N, list.size()), m_data.begin());
 			}
