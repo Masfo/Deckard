@@ -114,7 +114,7 @@ namespace deckard::math::sse
 
 		vec2& operator-() noexcept
 		{
-			*this *= vec2(neg_one);
+			reg = _mm_mul_ps(reg, neg_one);
 			return *this;
 		}
 
