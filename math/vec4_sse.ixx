@@ -7,6 +7,7 @@ module;
 export module deckard.math.vec4.sse;
 
 import deckard.debug;
+import deckard.math.vec3.sse;
 
 namespace deckard::math::sse
 {
@@ -65,6 +66,13 @@ namespace deckard::math::sse
 		}
 
 		vec4(float x, float y, float z, float w) { reg = _mm_set_ps(w, z, y, x); }
+
+		vec4(const vec3& v, float w)
+		{
+			reg       = v.reg;
+			auto tmp0 = _mm_shuffle_ps(_mm_set_ps1(w), v.reg, _MM_SHUFFLE(3, 2, 0, 0));
+			reg       = _mm_shuffle_ps(reg, tmp0, _MM_SHUFFLE(0, 2, 1, 0));
+		}
 
 		vec4& operator+=(const vec4& lhs) noexcept
 		{
@@ -307,5 +315,6 @@ namespace deckard::math::sse
 	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const vec4& rhs) { return lhs.safe_divide(rhs); }
 
 	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const float scalar) { return lhs.safe_divide(scalar); }
+
 
 } // namespace deckard::math::sse

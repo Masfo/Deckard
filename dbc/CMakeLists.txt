@@ -50,6 +50,8 @@ if(MSVC)
     set_target_properties(dbc PROPERTIES POSITION_INDEPENDENT_CODE ON)
     set_target_properties(dbc PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+    target_compile_options(dbc PRIVATE /arch:SSE2)
+
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     

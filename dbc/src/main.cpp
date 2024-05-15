@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <xmmintrin.h>
 
 import std;
 import deckard;
@@ -14,6 +15,7 @@ using namespace std::string_view_literals;
 using namespace deckard;
 using namespace deckard::utils;
 using namespace deckard::system;
+using namespace deckard::math;
 
 
 enum class ConvertEpoch : u64
@@ -299,12 +301,22 @@ private:
 int main()
 {
 
+	u32 inff = std::bit_cast<u32>(std::numeric_limits<float>::infinity());
+
+	dbg::println();
 
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+
+	sse::vec4 v4(1.0f);
+	sse::vec3 v2(6.0f, 2.0f, 9.0f);
+
+	sse::vec4 v = sse::vec4{v2, -1.0f};
+
+	int k = 0;
 
 	{
 		archive::file f("sqlite3.db");
