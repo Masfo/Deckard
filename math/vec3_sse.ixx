@@ -233,7 +233,8 @@ namespace deckard::math::sse
 
 		bool is_zero() const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero));
+
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(_mm_mul_ps(reg, xyzmask), zero));
 			return mask == 0xF;
 		}
 
@@ -245,7 +246,7 @@ namespace deckard::math::sse
 
 		bool is_inf() const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(_mm_mul_ps(reg, inf_xyzmask), inf));
 			return mask == 0xF;
 		}
 
@@ -295,7 +296,9 @@ namespace deckard::math::sse
 			}
 		}
 
-		inline static __m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
+		inline static __m128 xyzmask     = _mm_set_ps(0, 1, 1, 1);
+		inline static __m128 inf_xyzmask = _mm_set_ps(std::numeric_limits<float>::infinity(), 1, 1, 1);
+
 		inline static __m128 zero     = _mm_set_ps1(0.0f);
 		inline static __m128 neg_zero = _mm_set_ps1(-0.0f);
 

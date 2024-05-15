@@ -149,6 +149,16 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(v4[0] == -1.0f);
 		REQUIRE(v4[1] == -2.0f);
 		REQUIRE(v4[2] == -3.0f);
+
+
+		vec3 v5(0.0f);
+		REQUIRE(v5.has_zero() == true);
+		REQUIRE(v5.is_zero() == true);
+
+
+		vec3 v6 = vec3(1.0f) / v5;
+		REQUIRE(v5.has_inf() == true);
+		REQUIRE(v6.is_inf() == true);
 	}
 
 	SECTION("basic math")
