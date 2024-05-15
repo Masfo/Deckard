@@ -110,6 +110,16 @@ namespace deckard::math
 				return false;
 			};
 
+			constexpr bool has_inf() const noexcept
+			{
+				for (int i = 0; i < N; ++i)
+				{
+					if (std::isinf(m_data[i]))
+						return true;
+				}
+				return false;
+			};
+
 			constexpr vec_type& operator+=(const vec_type& other) noexcept
 			{
 				for (size_t i = 0; i < N; ++i)
@@ -401,9 +411,10 @@ namespace deckard::math
 
 			// divide - non panicking
 			[[nodiscard("Use the divide vector")]] constexpr vec_type safe_divide(const vec_type& other) const noexcept
+			requires(std::floating_point<T>)
 			{
 				if (other.has_zero())
-					return vec_type(std::numeric_limits<T>::quiet_NaN());
+					return vec_type(std::numeric_limits<T>::infinity());
 
 				vec_type result = *this;
 				for (size_t i = 0; i < N; ++i)
@@ -414,9 +425,10 @@ namespace deckard::math
 
 			template<typename U = T>
 			[[nodiscard("Use the divide scalar")]] constexpr vec_type safe_divide(const U scalar) const noexcept
+			requires(std::floating_point<U>)
 			{
 				if (scalar == U{})
-					return vec_type(std::numeric_limits<U>::quiet_NaN());
+					return vec_type(std::numeric_limits<U>::infinity());
 
 				vec_type result = *this;
 
@@ -545,7 +557,7 @@ namespace deckard::math
 	} // namespace v1
 
 	export using float4 = sse::vec4;
-	export using vec4   = sse::vec4; // v1::vec_n<float, 4>;
+	export using vec4   = v1::vec_n<float, 4>;
 	export using vec3   = v1::vec_n<float, 3>;
 	export using vec2   = v1::vec_n<float, 2>;
 

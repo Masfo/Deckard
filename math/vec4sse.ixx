@@ -1,10 +1,7 @@
 module;
 #include <array>
-#include <format>
-
-#include <emmintrin.h>
 #include <immintrin.h>
-
+#include <limits>
 #include <xmmintrin.h>
 
 export module deckard.math.vec4sse;
@@ -227,7 +224,7 @@ namespace deckard::math::sse
 
 		bool operator<(const vec4& lhs) const noexcept
 		{
-			auto cmp = _mm_cmplt_ps(reg, lhs.reg);
+			auto cmp  = _mm_cmplt_ps(reg, lhs.reg);
 			auto mask = _mm_movemask_ps(cmp);
 			return mask != 0;
 		}
@@ -253,7 +250,7 @@ namespace deckard::math::sse
 		inline static __m128 one     = _mm_set_ps1(1.0f);
 		inline static __m128 neg_one = _mm_set_ps1(-1.0f);
 
-		inline static __m128 inf = _mm_div_ps(one, zero);
+		inline static __m128 inf = _mm_set_ps1(std::numeric_limits<float>::infinity());
 
 
 		__m128 reg;
@@ -282,6 +279,9 @@ namespace deckard::math::sse
 
 	export [[nodiscard("Use the projected vector")]] vec4 cross(const vec4& lhs, const vec4& rhs) { return lhs.cross(rhs); }
 
+	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const vec4& rhs) { return lhs / rhs; }
+
+	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const float scalar) { return lhs / scalar; }
 
 } // namespace deckard::math::sse
 
