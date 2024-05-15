@@ -20,9 +20,15 @@ concept arithmetic = std::integral<T> or std::floating_point<T>;
 namespace deckard::math
 {
 
+#if 0
 	export using vec4 = sse::vec4; // vec_n<float, 4>;
 	export using vec3 = sse::vec3; // vec_n<float, 3>;
 	export using vec2 = sse::vec2; // vec_n<float, 2>;
+#else
+	export using vec4 = vec_n<float, 4>;
+	export using vec3 = vec_n<float, 3>;
+	export using vec2 = vec_n<float, 2>;
+#endif
 
 	export using uvec2 = vec_n<u32, 2>;
 	export using uvec3 = vec_n<u32, 3>;

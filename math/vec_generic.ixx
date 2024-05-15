@@ -50,6 +50,25 @@ namespace deckard::math
 			m_data[3] = w;
 		}
 
+		template<typename U, typename S>
+		constexpr vec_n(const vec_n<U, 3>& v, S scalar)
+		requires(N == 4)
+		{
+			m_data[0] = v[0];
+			m_data[1] = v[1];
+			m_data[2] = v[2];
+			m_data[3] = scalar;
+		}
+
+		template<typename U, typename S>
+		constexpr vec_n(const vec_n<U, 2>& v, S scalar)
+		requires(N == 3)
+		{
+			m_data[0] = v[0];
+			m_data[1] = v[1];
+			m_data[2] = scalar;
+		}
+
 		constexpr vec_n(const std::initializer_list<T> list, const std::source_location& loc = std::source_location::current()) noexcept
 		{
 
