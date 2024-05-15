@@ -9,6 +9,7 @@ module;
 export module deckard.math.vec3.sse;
 
 import deckard.debug;
+import deckard.math.vec2.sse;
 
 namespace deckard::math::sse
 {
@@ -62,6 +63,8 @@ namespace deckard::math::sse
 		}
 
 		vec3(float x, float y, float z) { reg = _mm_set_ps(1.0f, z, y, x); }
+
+		vec3(const vec2& v, float w) { reg = _mm_shuffle_ps(v.reg, _mm_set_ps1(w), _MM_SHUFFLE(0, 0, 1, 0)); }
 
 		vec3& operator+=(const vec3& lhs) noexcept
 		{
