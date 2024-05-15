@@ -18,9 +18,6 @@ export namespace deckard::archive
 	// TODO: db->load_folder("level01"); -> gives vector of handles?
 	// TODO: db->load_file("level01/mainscript.txt");
 
-	std::string sql3_version() { return sqlite3_libversion(); }
-
-#if 1
 	class file
 	{
 	public:
@@ -30,14 +27,73 @@ export namespace deckard::archive
 
 		~file() { close(); }
 
-		bool open(fs::path dbfile) noexcept { return true; }
+		bool open(fs::path dbfile) noexcept
+		{
+			int rc = sqlite3_open(dbfile.string().c_str(), &m_db);
+			if (rc)
+			{
+				dbg::println("SQLite3 open error: {}", sqlite3_errmsg(m_db));
+				return false;
+			}
 
-		bool close() noexcept { return true; }
+			exec("PRAGMA synchronous = NORMAL;");
+			exec("PRAGMA journal_mode = WAL;");
+			exec("PRAGMA temp_store = MEMORY;");
 
-		bool is_open() const noexcept { return false; }
+			return true;
+		}
+
+		bool close() noexcept
+		{
+			int rc = sqlite3_close(m_db);
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("SQLite3 closing error: {}", sqlite3_errmsg(m_db));
+				return false;
+			}
+			m_db = nullptr;
+			return true;
+		}
+
+		bool is_open() const noexcept {return m_db != nullptr; }
 
 
 	private:
+		static int log_callback(void*, int column_count, char** data, char** columns) noexcept
+		{
+
+			dbg::println("Column count: {}", column_count);
+			for (int i = 0; i < column_count; i++)
+			{
+				std::string d("data");
+				if (d.contains(columns[i]))
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
+				else
+					dbg::println("\tData in column: '{}' = '{}'", columns[i], data[i]);
+			}
+
+			return 0;
+		}
+
+		template<typename... Args>
+		bool exec(std::string_view fmt, Args&&... args) const noexcept
+		{
+			if (!is_open())
+				return false;
+
+
+			const auto statement = std::vformat(fmt, std::make_format_args(args...));
+			int        rc        = sqlite3_exec(m_db, statement.data(), &log_callback, 0, nullptr);
+
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("SQLite3 error: {}", sqlite3_errmsg(m_db));
+				return false;
+			}
+
+			return true;
+		}
+
+		sqlite3* m_db{nullptr};
 	};
-#endif
 } // namespace deckard::archive
