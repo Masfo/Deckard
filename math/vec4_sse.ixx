@@ -6,12 +6,18 @@ module;
 
 export module deckard.math.vec4.sse;
 
-import deckard.debug;
 import deckard.math.vec3.sse;
 import deckard.math.utility;
+import deckard.debug;
 
 namespace deckard::math::sse
 {
+
+	export template<typename T, size_t N>
+	struct alignas(16) vec_sse_n
+	{
+		__m128 reg;
+	};
 
 	export struct alignas(16) vec4
 	{
@@ -147,7 +153,6 @@ namespace deckard::math::sse
 
 		bool is_close_enough(const vec4& lhs, float epsilon = 0.0000001f) const noexcept
 		{
-			//
 			auto diff   = *this - lhs;
 			auto result = _mm_cmple_ps(diff.abs().reg, _mm_set_ps1(epsilon));
 			auto mask   = _mm_movemask_ps(result);
@@ -175,7 +180,9 @@ namespace deckard::math::sse
 		[[nodiscard("Use the divide vector")]] vec4 safe_divide(const vec4& other) const noexcept
 		{
 			if (other.has_zero())
+			{
 				return vec4(inf);
+			}
 
 			return *this / other;
 		}
@@ -214,11 +221,7 @@ namespace deckard::math::sse
 		}
 
 		// cmp
-		bool operator==(const vec4& lhs) const noexcept
-		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, lhs.reg));
-			return mask == 0xF;
-		}
+		bool operator==(const vec4& lhs) const noexcept { return is_close_enough(lhs); }
 
 		//
 		bool operator<=(const vec4& lhs) const noexcept
@@ -249,14 +252,17 @@ namespace deckard::math::sse
 
 		float operator[](const int index) const noexcept
 		{
-
 			switch (index)
 			{
 				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
-				default: dbg::panic("vec4: indexing out-of-bound");
+				default:
+				{
+					dbg::trace(std::source_location::current());
+					dbg::panic("vec4: indexing out-of-bound");
+				}
 			}
 		}
 
