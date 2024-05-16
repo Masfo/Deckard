@@ -301,7 +301,6 @@ private:
 int main()
 {
 
-	u32 inff = std::bit_cast<u32>(std::numeric_limits<float>::infinity());
 
 	dbg::println();
 

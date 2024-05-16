@@ -4,6 +4,8 @@ export module deckard.math.vec.generic;
 import std;
 import deckard.debug;
 import deckard.as;
+import deckard.assert;
+import deckard.helpers;
 import deckard.math.utility;
 
 namespace deckard::math
@@ -20,11 +22,7 @@ namespace deckard::math
 
 		constexpr vec_n() = default;
 
-		constexpr vec_n(T scalar) noexcept
-		requires(N >= 2)
-		{
-			m_data.fill(scalar);
-		}
+		constexpr vec_n(T scalar) noexcept { m_data.fill(scalar); }
 
 		constexpr vec_n(T x, T y) noexcept
 		requires(N >= 2)
@@ -100,7 +98,11 @@ namespace deckard::math
 
 		constexpr T& operator[](size_t index) noexcept { return m_data[index]; }
 
-		constexpr const T& operator[](size_t index) const noexcept { return m_data[index]; }
+		constexpr const T& operator[](size_t index) const noexcept
+		{
+			assert::if_true(index < N, "indexing out-of-bounds");
+			return m_data[index];
+		}
 
 		constexpr bool has_zero() const noexcept
 		{
@@ -591,3 +593,39 @@ namespace deckard::math
 
 
 } // namespace deckard::math
+
+namespace std
+{
+	using namespace deckard::math;
+
+	template<arithmetic T, size_t N>
+	struct hash<vec_n<T, N>>
+	{
+		size_t operator()(const vec_n<T, N>& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+
+	template<arithmetic T, size_t N>
+	struct formatter<vec_n<T, N>>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const vec_n<T, N>& vec, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "vec{}(", N);
+
+			if constexpr (std::is_integral_v<T>)
+			{
+				for (size_t i = 0; i < N; ++i)
+					std::format_to(ctx.out(), "{}{}", vec[i], i < N - 1 ? "," : "");
+			}
+			else
+			{
+				for (size_t i = 0; i < N; ++i)
+					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < N - 1 ? ", " : "");
+			}
+
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+} // namespace std
