@@ -12,7 +12,7 @@ export import deckard.filemonitor;
 export import deckard.file;
 
 // Math
-export import deckard.math.utility;
+export import deckard.math.utils;
 export import deckard.math.matrix;
 export import deckard.math.vec;
 export import deckard.math.vec.sse.generic;

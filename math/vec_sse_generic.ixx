@@ -9,21 +9,11 @@ module;
 export module deckard.math.vec.sse.generic;
 
 // import deckard.debug;
+import deckard.math.utils;
 
 namespace deckard::math::sse
 {
 #if 1
-
-	__m128 horizontal_add(const __m128& lhs) noexcept
-	{
-		__m128 shuf = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(2, 3, 0, 1)); // [ C D | A B ]
-		__m128 sums = _mm_add_ps(lhs, shuf);                             // sums = [ D+C C+D | B+A A+B ]
-		shuf        = _mm_movehl_ps(shuf, sums); //  [   C   D | D+C C+D ]  // let the compiler avoid a mov by reusing shuf
-		sums        = _mm_add_ss(sums, shuf);
-		return sums;
-	};
-
-	float horizontal_addf(const __m128& lhs) noexcept { return _mm_cvtss_f32(horizontal_add(lhs)); };
 
 	export template<size_t N>
 	struct alignas(16) vec_n_sse

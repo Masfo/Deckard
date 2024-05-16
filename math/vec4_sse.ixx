@@ -7,7 +7,8 @@ module;
 export module deckard.math.vec4.sse;
 
 import deckard.math.vec3.sse;
-import deckard.math.utility;
+import deckard.math.utils;
+
 import deckard.debug;
 
 namespace deckard::math::sse
