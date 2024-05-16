@@ -191,6 +191,8 @@ namespace deckard::math::sse
 		}
 
 		// has / is
+		bool is_invalid() const noexcept { return has_zero() or has_inf() or has_nan(); }
+
 		bool has_zero() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero));
@@ -207,12 +209,24 @@ namespace deckard::math::sse
 		bool has_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
-			return mask <= 0xF;
+			return mask != 0;
 		}
 
 		bool is_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(_mm_mul_ps(reg, inf_xyzmask), inf));
+			return mask == 0xF;
+		}
+
+		bool has_nan() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, nan));
+			return mask != 0;
+		}
+
+		bool is_nan() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(_mm_mul_ps(reg, inf_xyzmask), nan));
 			return mask == 0xF;
 		}
 
@@ -276,6 +290,7 @@ namespace deckard::math::sse
 		inline static __m128 neg_one = _mm_set_ps1(-1.0f);
 
 		inline static __m128 inf = _mm_set_ps1(inf_float);
+		inline static __m128 nan = _mm_set_ps1(nan_float);
 
 
 		__m128 reg;

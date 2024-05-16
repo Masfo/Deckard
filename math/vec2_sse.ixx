@@ -103,8 +103,6 @@ namespace deckard::math::sse
 		}
 
 		// cross
-
-
 		float cross(const vec_type& lhs) const noexcept
 		{
 			__m128 tmp0 = _mm_shuffle_ps(lhs.reg, lhs.reg, _MM_SHUFFLE(0, 1, 0, 1));
@@ -145,7 +143,7 @@ namespace deckard::math::sse
 
 		[[nodiscard("Use the angle value")]] float angle(const vec_type& other) const noexcept
 		{
-			if (has_zero() or other.has_zero() or has_inf())
+			if (is_invalid() or other.is_invalid())
 			{
 				// TODO
 				// dbg::trace("cannot take angle between zero vectors: {} / {}", *this, other);
@@ -173,7 +171,7 @@ namespace deckard::math::sse
 		// divide - non panicking
 		[[nodiscard("Use the divide vector")]] vec_type safe_divide(const vec_type& other) const noexcept
 		{
-			if (other.has_zero())
+			if (other.is_invalid())
 				return vec_type(inf);
 
 			return *this / other;
@@ -188,6 +186,8 @@ namespace deckard::math::sse
 		}
 
 		// has / is
+		bool is_invalid() const noexcept { return has_zero() or has_inf() or has_nan(); }
+
 		bool has_zero() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero));
@@ -204,12 +204,24 @@ namespace deckard::math::sse
 		bool has_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
-			return mask != 0x0;
+			return mask != 0;
 		}
 
 		bool is_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(_mm_mul_ps(reg, inf_xymask), inf));
+			return mask == 0xF;
+		}
+
+		bool has_nan() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, nan));
+			return mask != 0;
+		}
+
+		bool is_nan() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(_mm_mul_ps(reg, inf_xymask), nan));
 			return mask == 0xF;
 		}
 
@@ -274,6 +286,7 @@ namespace deckard::math::sse
 		inline static __m128 neg_one = _mm_set_ps1(-1.0f);
 
 		inline static __m128 inf = _mm_set_ps1(inf_float);
+		inline static __m128 nan = _mm_set_ps1(nan_float);
 
 
 		__m128 reg;

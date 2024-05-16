@@ -122,7 +122,7 @@ namespace deckard::math::sse
 			return _mm_sub_ps(tmp3, tmp4);
 		}
 
-		// only use xyz
+		// dot
 		float dot(const vec4& lhs) const noexcept
 		{
 			__m128 mul = _mm_mul_ps(reg, lhs.reg);
@@ -132,7 +132,7 @@ namespace deckard::math::sse
 		// divide - non panicking
 		[[nodiscard("Use the divide vector")]] vec4 safe_divide(const vec4& other) const noexcept
 		{
-			if (other.has_zero())
+			if (other.is_invalid())
 			{
 				return vec4(inf);
 			}
@@ -149,10 +149,12 @@ namespace deckard::math::sse
 		}
 
 		// has / is
+		bool is_invalid() const noexcept { return has_zero() or has_inf() or has_nan(); }
+
 		bool has_zero() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero));
-			return mask <= 0xF;
+			return mask != 0;
 		}
 
 		bool is_zero() const noexcept
@@ -164,12 +166,24 @@ namespace deckard::math::sse
 		bool has_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
-			return mask <= 0xF;
+			return mask != 0;
 		}
 
 		bool is_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
+			return mask == 0xF;
+		}
+
+		bool has_nan() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, nan));
+			return mask != 0;
+		}
+
+		bool is_nan() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, nan));
 			return mask == 0xF;
 		}
 
@@ -219,6 +233,9 @@ namespace deckard::math::sse
 			}
 		}
 
+		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
+		inline static float inf_float = std::numeric_limits<float>::infinity();
+
 		inline static __m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
 		inline static __m128 zero     = _mm_set_ps1(0.0f);
 		inline static __m128 neg_zero = _mm_set_ps1(-0.0f);
@@ -226,7 +243,8 @@ namespace deckard::math::sse
 		inline static __m128 one     = _mm_set_ps1(1.0f);
 		inline static __m128 neg_one = _mm_set_ps1(-1.0f);
 
-		inline static __m128 inf = _mm_set_ps1(std::numeric_limits<float>::infinity());
+		inline static __m128 inf = _mm_set_ps1(inf_float);
+		inline static __m128 nan = _mm_set_ps1(nan_float);
 
 
 		__m128 reg;
