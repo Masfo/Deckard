@@ -311,13 +311,6 @@ int main()
 #endif
 
 
-	sse::vec4 v4(1.0f);
-	sse::vec3 v2(6.0f, 2.0f, 9.0f);
-
-	sse::vec4 v = sse::vec4{v2, -1.0f};
-
-	int k = 0;
-
 	{
 		archive::file f("sqlite3.db");
 		f.exec("create table if not exists dummy(id integer primary  key, email TEXT not null unique)");

@@ -138,7 +138,8 @@ set(DECKARD_SRCS
         math/matrix.ixx
         math/math_utility.ixx
         math/vec.ixx
-        "math/vec_generic.ixx"
+        math/vec_generic.ixx
+        math/vec_sse_generic.ixx
         math/vec2_sse.ixx
         math/vec3_sse.ixx
         math/vec4_sse.ixx

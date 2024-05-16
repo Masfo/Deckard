@@ -12,6 +12,7 @@ import deckard.debug;
 
 namespace deckard::math::sse
 {
+#if 0
 
 	__m128 horizontal_add(const __m128& lhs) noexcept
 	{
@@ -311,7 +312,11 @@ namespace deckard::math::sse
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
-				default: return -1;
+				default:
+				{
+					dbg::trace(std::source_location::current());
+					dbg::panic("vec4: indexing out-of-bound");
+				}
 			}
 		}
 
@@ -323,20 +328,27 @@ namespace deckard::math::sse
 				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
-				default: return -1;
+				default:
+				{
+					dbg::trace(std::source_location::current());
+					dbg::panic("vec3: indexing out-of-bound");
+				}
 			}
 		}
 
 		float operator[](const int index) const noexcept
 		requires(N == 2)
 		{
-			// switch (index)
-			//{
-			//	case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
-			//	case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
-			//	default: return -1;
-			// }
-			return -1;
+			switch (index)
+			{
+				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
+				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
+				default:
+				{
+					dbg::trace(std::source_location::current());
+					dbg::panic("vec2: indexing out-of-bound");
+				}
+			}
 		}
 
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
@@ -534,5 +546,6 @@ namespace deckard::math::sse
 		return v.rotate(axis, angle);
 	}
 
+#endif
 
 } // namespace deckard::math::sse
