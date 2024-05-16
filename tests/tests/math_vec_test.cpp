@@ -16,7 +16,7 @@ using namespace deckard::math;
 TEST_CASE("vec 2", "[vec][vec2][math]")
 {
 	//
-#if 0
+
 	SECTION("constructor")
 	{
 		vec2 v{1.0f};
@@ -121,9 +121,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const auto angle_between = angle(angleA, angleB);
 		REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
 	}
-#endif
 }
-#if 0
 
 // vec3
 TEST_CASE("vec 3", "[vec][vec3][math]")
@@ -450,27 +448,26 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 // Format
 TEST_CASE("vec_n format", "[vec][math]")
 {
-	// SECTION("vec2")
-	// {
-	// 	const vec2 v{2.123f, 3.141f};
-	//
-	// 	std::string result = std::format("{}", v);
-	// 	REQUIRE(result == "vec2(2.123, 3.141)"s);
-	// }
-	// SECTION("vec3")
-	// {
-	// 	const vec3 v{2.123f, 3.141f, 4.169f};
-	//
-	// 	std::string result = std::format("{}", v);
-	// 	REQUIRE(result == "vec3(2.123, 3.141, 4.169)"s);
-	// }
+	SECTION("vec2")
+	{
+		const vec2 v{2.123f, 3.141f};
 
-	// SECTION("vec4")
-	//{
-	//	const vec4 v{2.123f, 3.141f, 4.169f, 5.f};
-	//
-	//	std::string result = std::format("{}", v);
-	//	REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
-	// }
+		std::string result = std::format("{}", v);
+		REQUIRE(result == "vec2(2.123, 3.141)"s);
+	}
+	SECTION("vec3")
+	{
+		const vec3 v{2.123f, 3.141f, 4.169f};
+
+		std::string result = std::format("{}", v);
+		REQUIRE(result == "vec3(2.123, 3.141, 4.169)"s);
+	}
+
+	SECTION("vec4")
+	{
+		const vec4 v{2.123f, 3.141f, 4.169f, 5.f};
+
+		std::string result = std::format("{}", v);
+		REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
+	}
 }
-#endif

@@ -82,26 +82,25 @@ export namespace std
 
 	// sse vec4
 
-#if 0
-	 template<>
-	 struct hash<sse::vec_n_sse<4>>
+	template<>
+	struct hash<vec4>
 	{
-		size_t operator()(const sse::vec_n_sse<4>& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
 	};
-	
-	 template<>
-	 struct formatter<sse::vec_n_sse<4>>
+
+	template<>
+	struct formatter<vec4>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-	
-		auto format(const sse::vec_n_sse<4>& vec, std::format_context& ctx) const
+
+		auto format(const vec4& vec, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "vec4(");
-	
+
 			for (int i = 0; i < 4; ++i)
 				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < 3 ? ", " : "");
-	
+
 			return std::format_to(ctx.out(), ")");
 		}
 	};
@@ -154,5 +153,4 @@ export namespace std
 		}
 	};
 
-#endif
 } // namespace std
