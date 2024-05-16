@@ -65,6 +65,8 @@ namespace deckard::math::sse
 
 		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
+		void operator<<(float* v) noexcept { reg = _mm_load_ps(v); }
+
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
 
 		vec_type max(const vec_type& lhs) const noexcept { return _mm_max_ps(reg, lhs.reg); }
