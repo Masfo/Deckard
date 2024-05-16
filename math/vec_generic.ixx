@@ -611,13 +611,13 @@ namespace std
 
 			if constexpr (std::is_integral_v<T>)
 			{
-				for (size_t i = 0; i < N; ++i)
-					std::format_to(ctx.out(), "{}{}", vec[i], i < N - 1 ? "," : "");
+				for (int i = N - 1; i > -1; i--)
+					std::format_to(ctx.out(), "{}{}", vec[i], i > 0 ? "," : "");
 			}
 			else
 			{
-				for (size_t i = 0; i < N; ++i)
-					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < N - 1 ? ", " : "");
+				for (int i = N - 1; i > -1; i--)
+					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i > 0 ? ", " : "");
 			}
 
 			return std::format_to(ctx.out(), ")");

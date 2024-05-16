@@ -5,6 +5,9 @@
 import deckard.math.vec;
 
 import deckard.math.utils;
+import deckard.math.vec4.sse;
+import deckard.math.vec.generic;
+
 import std;
 
 using namespace Catch::Matchers;
@@ -470,4 +473,58 @@ TEST_CASE("vec_n format", "[vec][math]")
 		std::string result = std::format("{}", v);
 		REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
 	}
+}
+
+TEST_CASE("vec4 benchmark", "[vec][benchmark]")
+{
+#if 0
+	using namespace deckard::math;
+
+	std::mt19937                          mt{};
+	std::uniform_real_distribution<float> dist{-1'024.0f, 1'024.0f};
+
+
+	std::vector<sse::vec4>       sses;
+	std::vector<vec_n<float, 4>> vecns;
+
+	constexpr int width = 1'000'000;
+	mt.seed(123);
+	for (int i = 0; i < width; i++)
+	{
+		sse::vec4 v(dist(mt), dist(mt), dist(mt), dist(mt));
+		sses.emplace_back(v);
+
+		vec_n<float, 4> v{dist(mt), dist(mt), dist(mt), dist(mt)};
+		vecns.emplace_back(v);
+	}
+
+
+	BENCHMARK("generic vec4")
+	{
+		auto result = *vecns.begin();
+
+		for (const auto& v : vecns)
+		{
+			result += v;
+			result *= v;
+			result -= v;
+			result /= v;
+		}
+		return result[0];
+	};
+
+
+	BENCHMARK("sse vec4")
+	{
+		auto result = *sses.begin();
+		for (const auto& v : sses)
+		{
+			result += v;
+			result *= v;
+			result -= v;
+			result /= v;
+		}
+		return result[0];
+	};
+#endif
 }
