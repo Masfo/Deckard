@@ -3,11 +3,11 @@ export module deckard.math.matrix;
 namespace deckard::math
 {
 
-	class matrix33
+	class mat3
 	{
 	};
 
-	class matrix44
+	class mat4
 	{
 	};
 
