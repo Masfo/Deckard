@@ -121,12 +121,15 @@ namespace std
 		}
 	};
 
-#if 0
+#if 1
 	// vec_n_sse formatter
 	template<size_t N>
 	struct hash<sse::vec_n_sse<N>>
 	{
-		size_t operator()(const vec_n_sse<>& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const sse::vec_n_sse<N>& value) const
+		{
+			return deckard::utils::hash_values(value[0], value[1], value[2], value[3]);
+		}
 	};
 
 	template<size_t N>

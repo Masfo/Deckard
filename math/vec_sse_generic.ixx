@@ -8,11 +8,11 @@ module;
 
 export module deckard.math.vec.sse.generic;
 
-import deckard.debug;
+// import deckard.debug;
 
 namespace deckard::math::sse
 {
-#if 0
+#if 1
 
 	__m128 horizontal_add(const __m128& lhs) noexcept
 	{
@@ -55,18 +55,13 @@ namespace deckard::math::sse
 		vec_n_sse(float x, float y, float z, float w) { reg = _mm_set_ps(w, z, y, x); }
 
 		vec_n_sse(const vec_n_sse<3>& v, float w)
-		requires(N == 4)
 		{
 			reg       = v.reg;
 			auto tmp0 = _mm_shuffle_ps(_mm_set_ps1(w), v.reg, _MM_SHUFFLE(3, 2, 0, 0));
 			reg       = _mm_shuffle_ps(reg, tmp0, _MM_SHUFFLE(0, 2, 1, 0));
 		}
 
-		vec_n_sse(const vec_n_sse<2>& v, float w)
-		requires(N == 3)
-		{
-			reg = _mm_shuffle_ps(v.reg, _mm_set_ps1(w), _MM_SHUFFLE(0, 0, 1, 0));
-		}
+		vec_n_sse(const vec_n_sse<2>& v, float w) { reg = _mm_shuffle_ps(v.reg, _mm_set_ps1(w), _MM_SHUFFLE(0, 0, 1, 0)); }
 
 		using vec_type = vec_n_sse;
 
@@ -313,10 +308,11 @@ namespace deckard::math::sse
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
 				default:
-				{
-					dbg::trace(std::source_location::current());
-					dbg::panic("vec4: indexing out-of-bound");
-				}
+					std::unreachable();
+					{
+						// dbg::trace(std::source_location::current());
+						// dbg::panic("vec4: indexing out-of-bound");
+					}
 			}
 		}
 
@@ -329,10 +325,11 @@ namespace deckard::math::sse
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
 				default:
-				{
-					dbg::trace(std::source_location::current());
-					dbg::panic("vec3: indexing out-of-bound");
-				}
+					std::unreachable();
+					{
+						// dbg::trace(std::source_location::current());
+						// dbg::panic("vec3: indexing out-of-bound");
+					}
 			}
 		}
 
@@ -344,10 +341,11 @@ namespace deckard::math::sse
 				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				default:
-				{
-					dbg::trace(std::source_location::current());
-					dbg::panic("vec2: indexing out-of-bound");
-				}
+					std::unreachable();
+					{
+						// dbg::trace(std::source_location::current());
+						// dbg::panic("vec2: indexing out-of-bound");
+					}
 			}
 		}
 
