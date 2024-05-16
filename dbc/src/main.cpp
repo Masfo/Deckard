@@ -6,6 +6,9 @@ import deckard;
 import deckard.types;
 import deckard.helpers;
 import deckard.win32;
+import deckard.math.vec4.sse;
+import deckard.math.vec.generic;
+
 
 #ifndef _DEBUG
 import dbc;

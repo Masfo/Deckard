@@ -79,6 +79,7 @@ if(MSVC)
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
         set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
+
         target_compile_options(tests  PRIVATE /JMC)    # Just my debugging
         target_compile_definitions(tests PRIVATE -DDEBUG)
 
