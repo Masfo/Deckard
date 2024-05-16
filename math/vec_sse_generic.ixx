@@ -545,7 +545,6 @@ namespace deckard::math::sse
 	{
 		return v.rotate(axis, angle);
 	}
-
 #endif
 
 } // namespace deckard::math::sse

@@ -6,7 +6,7 @@ import deckard.assert;
 import deckard.types;
 import deckard.debug;
 import deckard.math.utility;
-import deckard.helpers;
+import deckard.utils.hash;
 
 import deckard.math.vec.generic;
 import deckard.math.vec.sse.generic;
@@ -53,7 +53,7 @@ namespace std
 	template<>
 	struct hash<sse::vec2>
 	{
-		size_t operator()(const sse::vec2& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const sse::vec2& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
@@ -77,7 +77,7 @@ namespace std
 	template<>
 	struct hash<sse::vec3>
 	{
-		size_t operator()(const sse::vec3& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const sse::vec3& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
@@ -101,7 +101,7 @@ namespace std
 	template<>
 	struct hash<sse::vec4>
 	{
-		size_t operator()(const sse::vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const sse::vec4& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
@@ -121,5 +121,30 @@ namespace std
 		}
 	};
 
+#if 0
+	// vec_n_sse formatter
+	template<size_t N>
+	struct hash<sse::vec_n_sse<N>>
+	{
+		size_t operator()(const vec_n_sse<>& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+
+	template<size_t N>
+	struct formatter<sse::vec_n_sse<N>>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const sse::vec_n_sse<N>& vec, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "vec{}(", N);
+
+			for (size_t i = 0; i < N; ++i)
+				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < N - 1 ? ", " : "");
+
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+#endif
 
 } // namespace std

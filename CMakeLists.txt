@@ -149,6 +149,7 @@ set(DECKARD_SRCS
 
         utils/base64.ixx
         utils/scope_exit.ixx
+        utils/hash.ixx
         utils/helpers.ixx
         utils/generator.ixx     # Remove when MSVC has it
         utils/uuid.ixx

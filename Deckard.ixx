@@ -25,6 +25,7 @@ export import deckard.math.vec4.sse;
 export import deckard.base64;
 export import deckard.generator;
 export import deckard.helpers;
+export import deckard.utils.hash;
 export import deckard.scope_exit;
 export import deckard.uuid;
 export import deckard.sha2;

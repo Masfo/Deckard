@@ -353,11 +353,7 @@ namespace deckard::math::sse
 		return v.rotate(axis, angle);
 	}
 
-	export [[nodiscard("Use the divided value")]] vec2 safe_divide(const vec2& lhs, const vec2& rhs)
-	{
-		return lhs.safe_divide(rhs);
-		;
-	}
+	export [[nodiscard("Use the divided value")]] vec2 safe_divide(const vec2& lhs, const vec2& rhs) { return lhs.safe_divide(rhs); }
 
 	export [[nodiscard("Use the divided value")]] vec2 safe_divide(const vec2& lhs, const float scalar) { return lhs.safe_divide(scalar); }
 

@@ -5,7 +5,7 @@ import std;
 import deckard.debug;
 import deckard.as;
 import deckard.assert;
-import deckard.helpers;
+import deckard.utils.hash;
 import deckard.math.utility;
 
 namespace deckard::math
@@ -601,7 +601,7 @@ namespace std
 	template<arithmetic T, size_t N>
 	struct hash<vec_n<T, N>>
 	{
-		size_t operator()(const vec_n<T, N>& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const vec_n<T, N>& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<arithmetic T, size_t N>
