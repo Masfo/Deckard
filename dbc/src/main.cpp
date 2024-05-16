@@ -309,6 +309,7 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+
 	{
 		archive::file f("sqlite3.db");
 		f.exec("create table if not exists dummy(id integer primary  key, email TEXT not null unique)");

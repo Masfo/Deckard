@@ -307,7 +307,7 @@ namespace deckard::math
 			for (size_t i = 0; i < N; ++i)
 				result += m_data[i] * m_data[i];
 
-			return std::sqrt(result);
+			return sse_sqrt(result);
 		}
 
 		// normalize
@@ -343,7 +343,7 @@ namespace deckard::math
 				U tmp = as<U>(std::abs(m_data[i] - other[i]));
 				result += tmp * tmp;
 			}
-			return std::sqrt(result);
+			return sse_sqrt(result);
 		}
 
 		// clamp

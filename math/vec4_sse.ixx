@@ -14,7 +14,6 @@ import deckard.debug;
 namespace deckard::math::sse
 {
 
-
 	export struct alignas(16) vec4
 	{
 		vec4()

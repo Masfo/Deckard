@@ -476,6 +476,54 @@ TEST_CASE("vec_n format", "[vec][math]")
 	}
 }
 
+TEST_CASE("sqrt test", "[math]")
+{
+#if 0
+	using namespace deckard;
+
+	std::vector<float> sse;
+	std::vector<float> generic;
+
+	std::mt19937                          mt{};
+	std::uniform_real_distribution<float> dist{0.0f, 1024.0f};
+
+	mt.seed(123);
+	constexpr int width = 100'000;
+	for (auto _ : upto(width))
+	{
+		_;
+		sse.emplace_back(dist(mt));
+	}
+	mt.seed(123);
+
+	for (auto _ : upto(width))
+	{
+		_;
+		generic.emplace_back(dist(mt));
+	}
+
+	BENCHMARK("generic sqrt")
+	{
+		float result = 0.0f;
+		for (float v : generic)
+		{
+			result += std::sqrtf(v);
+		}
+		return result;
+	};
+
+	BENCHMARK("sse sqrt")
+	{
+		float result = 0.0f;
+		for (float v : sse)
+		{
+			result += sse_sqrt(v);
+		}
+		return result;
+	};
+#endif
+}
+
 TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 {
 #if 0

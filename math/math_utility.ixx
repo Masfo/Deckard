@@ -55,5 +55,7 @@ export namespace deckard::math
 
 	float horizontal_addf(const __m128& lhs) noexcept { return _mm_cvtss_f32(horizontal_add(lhs)); };
 
+	export float sse_sqrt(float f) noexcept { return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f))); }
+
 
 } // namespace deckard::math
