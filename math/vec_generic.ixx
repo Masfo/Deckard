@@ -150,13 +150,12 @@ namespace deckard::math
 			return true;
 		};
 
-		constexpr vec_type& operator+=(const vec_type& other) noexcept
+		constexpr void operator+=(const vec_type& other) noexcept
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
 				m_data[i] += other[i];
 			}
-			return *this;
 		}
 
 		constexpr vec_type operator+(const vec_type& other) const noexcept
@@ -167,13 +166,12 @@ namespace deckard::math
 		}
 
 		// sub
-		constexpr vec_type& operator-=(const vec_type& other) noexcept
+		constexpr void operator-=(const vec_type& other) noexcept
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
 				m_data[i] -= other[i];
 			}
-			return *this;
 		}
 
 		constexpr vec_type operator-(const vec_type& other) const noexcept
@@ -184,13 +182,12 @@ namespace deckard::math
 		}
 
 		// mul
-		constexpr vec_type& operator*=(const vec_type& other) noexcept
+		constexpr void operator*=(const vec_type& other) noexcept
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
 				m_data[i] *= other[i];
 			}
-			return *this;
 		}
 
 		constexpr vec_type operator*(const vec_type& other) const noexcept
@@ -200,15 +197,13 @@ namespace deckard::math
 			return result;
 		}
 
-		constexpr vec_type& operator/=(const vec_type& other) noexcept
+		constexpr void operator/=(const vec_type& other) noexcept
 		{
 			if (other.has_zero())
 				dbg::panic("divide by zero: {} / {}", *this, other);
 
 			for (size_t i = 0; i < N; ++i)
 				m_data[i] /= other[i];
-
-			return *this;
 		}
 
 		// div
