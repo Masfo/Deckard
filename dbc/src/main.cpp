@@ -304,9 +304,6 @@ private:
 int main()
 {
 
-
-	dbg::println();
-
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
