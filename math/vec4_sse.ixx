@@ -29,8 +29,6 @@ namespace deckard::math::sse
 
 		void operator=(const vec4& lhs) noexcept { reg = lhs.reg; }
 
-		operator __m128() const { return reg; }
-
 		vec4(float scalar) noexcept { reg = _mm_set_ps1(scalar); }
 
 		vec4(float x, float y)
@@ -69,6 +67,8 @@ namespace deckard::math::sse
 		vec4 operator/(const vec4& lhs) const noexcept { return vec4(_mm_div_ps(reg, lhs.reg)); }
 
 		vec4 operator-() noexcept { return vec4(_mm_mul_ps(reg, neg_one)); }
+
+		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
 		// operations
 		vec4 min(const vec4& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
