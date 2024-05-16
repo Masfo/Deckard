@@ -309,6 +309,12 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	sse::vec3  v;
+	std::array jk{1.0f, 2.0f, 3.0f, 4.0f};
+
+	v >> jk.data();
+	v << jk.data();
+
 
 	{
 		archive::file f("sqlite3.db");
