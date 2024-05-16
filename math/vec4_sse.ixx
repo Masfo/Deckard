@@ -29,17 +29,9 @@ namespace deckard::math::sse
 		vec4(__m128 r)
 			: reg(r){};
 
-		vec4& operator=(const __m128& lhs) noexcept
-		{
-			reg = lhs;
-			return *this;
-		}
+		void operator=(const __m128& lhs) noexcept { reg = lhs; }
 
-		vec4& operator=(const vec4& lhs) noexcept
-		{
-			reg = lhs.reg;
-			return *this;
-		}
+		void operator=(const vec4& lhs) noexcept { reg = lhs.reg; }
 
 		operator __m128() const { return reg; }
 
@@ -64,64 +56,25 @@ namespace deckard::math::sse
 			reg       = _mm_shuffle_ps(reg, tmp0, _MM_SHUFFLE(0, 2, 1, 0));
 		}
 
-		vec4& operator+=(const vec4& lhs) noexcept
-		{
-			reg = _mm_add_ps(reg, lhs.reg);
-			return *this;
-		}
+		void operator+=(const vec4& lhs) noexcept { reg = _mm_add_ps(reg, lhs.reg); }
 
-		vec4 operator+(const vec4& lhs) const noexcept
-		{
-			auto result = *this;
-			result += lhs;
-			return result;
-		}
+		void operator-=(const vec4& lhs) noexcept { reg = _mm_sub_ps(reg, lhs.reg); }
 
-		vec4& operator-=(const vec4& lhs) noexcept
-		{
-			reg = _mm_sub_ps(reg, lhs.reg);
-			return *this;
-		}
+		void operator*=(const vec4& lhs) noexcept { reg = _mm_mul_ps(reg, lhs.reg); }
 
-		vec4 operator-(const vec4& lhs) const noexcept
-		{
-			auto result = *this;
-			result -= lhs;
-			return result;
-		}
+		void operator/=(const vec4& lhs) noexcept { reg = _mm_div_ps(reg, lhs.reg); }
 
-		vec4& operator*=(const vec4& lhs) noexcept
-		{
-			reg = _mm_mul_ps(reg, lhs.reg);
-			return *this;
-		}
+		vec4 operator+(const vec4& lhs) const noexcept { return vec4(_mm_add_ps(reg, lhs.reg)); }
 
-		vec4 operator*(const vec4& lhs) const noexcept
-		{
-			auto result = *this;
-			result *= lhs;
-			return result;
-		}
+		vec4 operator-(const vec4& lhs) const noexcept { return vec4(_mm_sub_ps(reg, lhs.reg)); }
 
-		vec4& operator/=(const vec4& lhs) noexcept
-		{
-			reg = _mm_div_ps(reg, lhs.reg);
-			return *this;
-		}
+		vec4 operator*(const vec4& lhs) const noexcept { return vec4(_mm_mul_ps(reg, lhs.reg)); }
 
-		vec4 operator/(const vec4& lhs) const noexcept
-		{
-			auto result = *this;
-			result /= lhs;
-			return result;
-		}
+		vec4 operator/(const vec4& lhs) const noexcept { return vec4(_mm_div_ps(reg, lhs.reg)); }
 
-		vec4& operator-() noexcept
-		{
-			*this *= vec4(neg_one);
-			return *this;
-		}
+		vec4 operator-() noexcept { return vec4(_mm_mul_ps(reg, neg_one)); }
 
+		// operations
 		vec4 min(const vec4& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
 
 		vec4 max(const vec4& lhs) const noexcept { return _mm_max_ps(reg, lhs.reg); }
