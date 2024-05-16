@@ -4,7 +4,7 @@
 
 import deckard.math.vec;
 
-import deckard.math.utility;
+import deckard.math.utils;
 import std;
 
 using namespace Catch::Matchers;
