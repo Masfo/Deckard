@@ -3,8 +3,9 @@
 
 
 import deckard.math.vec;
-
+import deckard.debug;
 import deckard.math.utils;
+import deckard.helpers;
 import deckard.math.vec4.sse;
 import deckard.math.vec.generic;
 
@@ -478,53 +479,52 @@ TEST_CASE("vec_n format", "[vec][math]")
 TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 {
 #if 0
+	using namespace deckard;
 	using namespace deckard::math;
 
 	std::mt19937                          mt{};
 	std::uniform_real_distribution<float> dist{-1'024.0f, 1'024.0f};
 
+	std::vector<sse::vec4>       sse;
+	std::vector<vec_n<float, 4>> generic;
 
-	std::vector<sse::vec4>       sses;
-	std::vector<vec_n<float, 4>> vecns;
-
-	constexpr int width = 1;
-	mt.seed(123);
-	for (int i = 0; i < width; i++)
+	constexpr int width = 1'000;
+	for (auto _ : upto(width))
 	{
-		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
-		sses.emplace_back(v1);
-	
-		vec_n<float, 4> v2{dist(mt), dist(mt), dist(mt), dist(mt)};
-		vecns.emplace_back(v2);
-	}
+		_;
 
+		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
+		sse.emplace_back(v1);
+
+		vec_n<float, 4> v2{dist(mt), dist(mt), dist(mt), dist(mt)};
+		generic.emplace_back(v2);
+	}
 
 	BENCHMARK("generic vec4")
 	{
-		auto result = *vecns.begin();
+		auto result = *generic.begin();
 
-		for (const auto& v : vecns)
+		for (const auto& v : generic)
 		{
 			result += v;
 			result *= v;
 			result -= v;
 			result /= v;
 		}
-		return result[0];
+		return result;
 	};
-
 
 	BENCHMARK("sse vec4")
 	{
-		auto result = *sses.begin();
-		for (const auto& v : sses)
+		auto result = *sse.begin();
+		for (const auto& v : sse)
 		{
 			result += v;
 			result *= v;
 			result -= v;
 			result /= v;
 		}
-		return result[0];
+		return result;
 	};
 #endif
 }
