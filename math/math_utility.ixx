@@ -54,4 +54,6 @@ export namespace deckard::math
 	};
 
 	float horizontal_addf(const __m128& lhs) noexcept { return _mm_cvtss_f32(horizontal_add(lhs)); };
+
+
 } // namespace deckard::math

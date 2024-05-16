@@ -9,6 +9,8 @@ import deckard.math.utility;
 import deckard.helpers;
 
 import deckard.math.vec.generic;
+import deckard.math.vec.sse.generic;
+
 import deckard.math.vec2.sse;
 import deckard.math.vec3.sse;
 import deckard.math.vec4.sse;
@@ -21,9 +23,10 @@ namespace deckard::math
 {
 
 #if 1
-	export using vec4 = sse::vec4;
-	export using vec3 = sse::vec3;
-	export using vec2 = sse::vec2;
+	// TODO: swich to generic SSE vec when compiler is happy
+	export using vec4 = sse::vec4; // sse::vec_n_sse<4>;
+	export using vec3 = sse::vec3; // sse::vec_n_sse<3>;
+	export using vec2 = sse::vec2; // sse::vec_n_sse<2>;
 #else
 	export using vec4 = vec_n<float, 4>;
 	export using vec3 = vec_n<float, 3>;
@@ -78,25 +81,27 @@ export namespace std
 	};
 
 	// sse vec4
-	template<>
-	struct hash<vec4>
-	{
-		size_t operator()(const vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
-	};
 
-	template<>
-	struct formatter<vec4>
+#if 0
+	 template<>
+	 struct hash<sse::vec_n_sse<4>>
+	{
+		size_t operator()(const sse::vec_n_sse<4>& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+	
+	 template<>
+	 struct formatter<sse::vec_n_sse<4>>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-
-		auto format(const vec4& vec, std::format_context& ctx) const
+	
+		auto format(const sse::vec_n_sse<4>& vec, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "vec4(");
-
+	
 			for (int i = 0; i < 4; ++i)
 				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < 3 ? ", " : "");
-
+	
 			return std::format_to(ctx.out(), ")");
 		}
 	};
@@ -149,5 +154,5 @@ export namespace std
 		}
 	};
 
-
+#endif
 } // namespace std

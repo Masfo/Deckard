@@ -13,11 +13,6 @@ import deckard.debug;
 namespace deckard::math::sse
 {
 
-	export template<typename T, size_t N>
-	struct alignas(16) vec_sse_n
-	{
-		__m128 reg;
-	};
 
 	export struct alignas(16) vec4
 	{
@@ -100,7 +95,11 @@ namespace deckard::math::sse
 			return _mm_cvtss_f32(_mm_sqrt_ps(horizontal_add(sqr)));
 		}
 
-		vec4 clamp(float cmin, float cmax) const noexcept { return vec4(_mm_min_ps(_mm_max_ps(reg, vec4(cmin)), vec4(cmax))); }
+		vec4 clamp(float cmin, float cmax) const noexcept
+		{
+			__m128 tmp0 = _mm_min_ps(_mm_max_ps(reg, _mm_set_ps1(cmin)), _mm_set_ps1(cmax));
+			return vec4(tmp0);
+		}
 
 		bool equals(const vec4& lhs) const noexcept { return is_close_enough(lhs); }
 

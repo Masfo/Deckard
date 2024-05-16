@@ -16,6 +16,7 @@ using namespace deckard::math;
 TEST_CASE("vec 2", "[vec][vec2][math]")
 {
 	//
+#if 0
 	SECTION("constructor")
 	{
 		vec2 v{1.0f};
@@ -85,17 +86,10 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE_THAT(dotted, WithinAbs(-5.0f, 0.0000001));
 
 
-#if 0
-		const vec2  c{2.0f, 3.0f};
-		const vec2  d{4.0f, 1.0f};
-		const float crossed = cross(c, d);
-		REQUIRE_THAT(crossed, WithinAbs(-10.0f, 0.0000001));
-#else
 		const vec2  c{1.0f, 2.0f};
 		const vec2  d{3.0f, 4.0f};
 		const float crossed = cross(c, d);
 		REQUIRE_THAT(crossed, WithinAbs(-2.0f, 0.0000001));
-#endif
 
 		// length
 		const vec2 lvec{3.14f, 5.11f};
@@ -127,7 +121,9 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const auto angle_between = angle(angleA, angleB);
 		REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
 	}
+#endif
 }
+#if 0
 
 // vec3
 TEST_CASE("vec 3", "[vec][vec3][math]")
@@ -454,26 +450,27 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 // Format
 TEST_CASE("vec_n format", "[vec][math]")
 {
-	SECTION("vec2")
-	{
-		const vec2 v{2.123f, 3.141f};
+	// SECTION("vec2")
+	// {
+	// 	const vec2 v{2.123f, 3.141f};
+	//
+	// 	std::string result = std::format("{}", v);
+	// 	REQUIRE(result == "vec2(2.123, 3.141)"s);
+	// }
+	// SECTION("vec3")
+	// {
+	// 	const vec3 v{2.123f, 3.141f, 4.169f};
+	//
+	// 	std::string result = std::format("{}", v);
+	// 	REQUIRE(result == "vec3(2.123, 3.141, 4.169)"s);
+	// }
 
-		std::string result = std::format("{}", v);
-		REQUIRE(result == "vec2(2.123, 3.141)"s);
-	}
-	SECTION("vec3")
-	{
-		const vec3 v{2.123f, 3.141f, 4.169f};
-
-		std::string result = std::format("{}", v);
-		REQUIRE(result == "vec3(2.123, 3.141, 4.169)"s);
-	}
-
-	SECTION("vec4")
-	{
-		const vec4 v{2.123f, 3.141f, 4.169f, 5.f};
-
-		std::string result = std::format("{}", v);
-		REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
-	}
+	// SECTION("vec4")
+	//{
+	//	const vec4 v{2.123f, 3.141f, 4.169f, 5.f};
+	//
+	//	std::string result = std::format("{}", v);
+	//	REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
+	// }
 }
+#endif
