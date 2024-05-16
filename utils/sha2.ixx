@@ -24,7 +24,7 @@ public:
 	generic_sha2_digest(std::string_view string_hash)
 	{
 
-		assert::if_true(string_hash.size() == binary.size() * sizeof(type) * 2, "Hash parameter not correct size for sha256");
+		assert::check(string_hash.size() == binary.size() * sizeof(type) * 2, "Hash parameter not correct size for sha256");
 		constexpr size_t wordsize = sizeof(type) * 2;
 
 		u32 count{0};
@@ -46,7 +46,7 @@ public:
 
 	generic_sha2_digest(const std::initializer_list<Type>& digits)
 	{
-		assert::if_true(digits.size() == binary.size(), "Initializer-list must be same size as digest");
+		assert::check(digits.size() == binary.size(), "Initializer-list must be same size as digest");
 
 		std::copy(digits.begin(), digits.end(), binary.begin());
 	};
@@ -60,7 +60,7 @@ public:
 
 	Type operator[](int index) const noexcept
 	{
-		assert::if_true(index < binary.size(), "Indexing out-of-bounds");
+		assert::check(index < binary.size(), "Indexing out-of-bounds");
 		return binary[index];
 	}
 

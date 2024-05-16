@@ -6,7 +6,7 @@ import deckard.debug;
 import deckard.as;
 import deckard.assert;
 import deckard.utils.hash;
-import deckard.math.utility;
+import deckard.math.utils;
 
 namespace deckard::math
 {
@@ -100,7 +100,7 @@ namespace deckard::math
 
 		constexpr const T& operator[](size_t index) const noexcept
 		{
-			assert::if_true(index < N, "indexing out-of-bounds");
+			assert::check(index < N, "indexing out-of-bounds");
 			return m_data[index];
 		}
 
