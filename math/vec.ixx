@@ -5,7 +5,7 @@ import deckard.as;
 import deckard.assert;
 import deckard.types;
 import deckard.debug;
-import deckard.math.utility;
+import deckard.math.utils;
 import deckard.utils.hash;
 
 import deckard.math.vec.generic;

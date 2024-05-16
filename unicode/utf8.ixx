@@ -157,7 +157,7 @@ namespace deckard::utf8
 	private:
 		type read_byte(u8 byte) noexcept
 		{
-			assert::if_true(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
+			assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
 
 			u32 type = utf8_table[byte];
 
