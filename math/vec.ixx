@@ -79,18 +79,18 @@ export namespace std
 
 	// sse vec4
 	template<>
-	struct hash<sse::vec4>
+	struct hash<vec4>
 	{
 		size_t operator()(const vec4& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
-	struct formatter<sse::vec4>
+	struct formatter<vec4>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const sse::vec4& vec, std::format_context& ctx) const
+		auto format(const vec4& vec, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "vec4(");
 
@@ -103,18 +103,18 @@ export namespace std
 
 	// sse vec3
 	template<>
-	struct hash<sse::vec3>
+	struct hash<vec3>
 	{
 		size_t operator()(const vec3& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
-	struct formatter<sse::vec3>
+	struct formatter<vec3>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const sse::vec3& vec, std::format_context& ctx) const
+		auto format(const vec3& vec, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "vec3(");
 
@@ -127,13 +127,13 @@ export namespace std
 
 	// sse vec2
 	template<>
-	struct hash<sse::vec2>
+	struct hash<vec2>
 	{
 		size_t operator()(const vec2& value) const { return deckard::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
-	struct formatter<sse::vec2>
+	struct formatter<vec2>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
