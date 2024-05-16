@@ -477,7 +477,7 @@ TEST_CASE("vec_n format", "[vec][math]")
 
 TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 {
-#if 1
+#if 0
 	using namespace deckard::math;
 
 	std::mt19937                          mt{};
