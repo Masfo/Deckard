@@ -23,6 +23,8 @@ namespace deckard::math::sse
 		{
 		}
 
+		vec_n_sse(const float* v) { reg = _mm_load_ps(v); }
+
 		vec_n_sse()
 			: vec_n_sse(0.0f)
 		{
@@ -74,6 +76,8 @@ namespace deckard::math::sse
 		vec_type operator/(const vec_type& lhs) const noexcept { return _mm_div_ps(reg, lhs.reg); }
 
 		vec_type operator-() noexcept { return vec_type(_mm_mul_ps(reg, neg_one)); }
+
+		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
 		// operations
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }

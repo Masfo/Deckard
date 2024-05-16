@@ -25,10 +25,6 @@ namespace deckard::math::sse
 		vec4(__m128 r)
 			: reg(r){};
 
-		void operator=(const __m128& lhs) noexcept { reg = lhs; }
-
-		void operator=(const vec4& lhs) noexcept { reg = lhs.reg; }
-
 		vec4(float scalar) noexcept { reg = _mm_set_ps1(scalar); }
 
 		vec4(float x, float y)
@@ -49,6 +45,10 @@ namespace deckard::math::sse
 			auto tmp0 = _mm_shuffle_ps(_mm_set_ps1(w), v.reg, _MM_SHUFFLE(3, 2, 0, 0));
 			reg       = _mm_shuffle_ps(reg, tmp0, _MM_SHUFFLE(0, 2, 1, 0));
 		}
+
+		void operator=(const __m128& lhs) noexcept { reg = lhs; }
+
+		void operator=(const vec4& lhs) noexcept { reg = lhs.reg; }
 
 		void operator+=(const vec4& lhs) noexcept { reg = _mm_add_ps(reg, lhs.reg); }
 

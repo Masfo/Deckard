@@ -22,92 +22,46 @@ namespace deckard::math::sse
 		{
 		}
 
+		vec2(const float* v) { reg = _mm_load_ps(v); }
+
 		vec2(__m128 r)
 			: reg(r){};
-
-		vec2& operator=(const __m128& lhs) noexcept
-		{
-			reg = lhs;
-			return *this;
-		}
-
-		vec2& operator=(const vec2& lhs) noexcept
-		{
-			reg = lhs.reg;
-			return *this;
-		}
-
-		operator __m128() const { return reg; }
 
 		vec2(float s) noexcept { reg = _mm_set_ps(1.0f, 1.0f, s, s); }
 
 		vec2(float x, float y) { reg = _mm_set_ps(1.0f, 1.0f, y, x); }
 
-		vec2& operator+=(const vec2& lhs) noexcept
-		{
-			reg = _mm_add_ps(reg, lhs.reg);
-			return *this;
-		}
+		using vec_type = vec2;
 
-		vec2 operator+(const vec2& lhs) const noexcept
-		{
-			auto result = *this;
-			result += lhs;
+		void operator=(const __m128& lhs) noexcept { reg = lhs; }
 
-			return result;
-		}
+		void operator=(const vec_type& lhs) noexcept { reg = lhs.reg; }
 
-		vec2& operator-=(const vec2& lhs) noexcept
-		{
-			reg = _mm_sub_ps(reg, lhs.reg);
-			return *this;
-		}
+		void operator+=(const vec_type& lhs) noexcept { reg = _mm_add_ps(reg, lhs.reg); }
 
-		vec2 operator-(const vec2& lhs) const noexcept
-		{
-			auto result = *this;
-			result -= lhs;
-			return result;
-		}
+		void operator-=(const vec_type& lhs) noexcept { reg = _mm_sub_ps(reg, lhs.reg); }
 
-		vec2& operator*=(const vec2& lhs) noexcept
-		{
-			reg = _mm_mul_ps(reg, lhs.reg);
-			return *this;
-		}
+		void operator*=(const vec_type& lhs) noexcept { reg = _mm_mul_ps(reg, lhs.reg); }
 
-		vec2 operator*(const vec2& lhs) const noexcept
-		{
-			auto result = *this;
-			result *= lhs;
-			return result;
-		}
+		void operator/=(const vec_type& lhs) noexcept { reg = _mm_div_ps(reg, lhs.reg); }
 
-		vec2& operator/=(const vec2& lhs) noexcept
-		{
-			reg = _mm_div_ps(reg, lhs.reg);
+		vec_type operator+(const vec_type& lhs) const noexcept { return _mm_add_ps(reg, lhs.reg); }
 
-			return *this;
-		}
+		vec_type operator-(const vec_type& lhs) const noexcept { return _mm_sub_ps(reg, lhs.reg); }
 
-		vec2 operator/(const vec2& lhs) const noexcept
-		{
-			auto result = *this;
-			result /= lhs;
-			return result;
-		}
+		vec_type operator*(const vec_type& lhs) const noexcept { return _mm_mul_ps(reg, lhs.reg); }
 
-		vec2& operator-() noexcept
-		{
-			reg = _mm_mul_ps(reg, neg_one);
-			return *this;
-		}
+		vec_type operator/(const vec_type& lhs) const noexcept { return _mm_div_ps(reg, lhs.reg); }
 
-		vec2 min(const vec2& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
+		vec_type operator-() noexcept { return vec_type(_mm_mul_ps(reg, neg_one)); }
 
-		vec2 max(const vec2& lhs) const noexcept { return _mm_max_ps(reg, lhs.reg); }
+		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
-		vec2 abs() const noexcept { return _mm_andnot_ps(neg_zero, reg); }
+		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
+
+		vec_type max(const vec_type& lhs) const noexcept { return _mm_max_ps(reg, lhs.reg); }
+
+		vec_type abs() const noexcept { return _mm_andnot_ps(neg_zero, reg); }
 
 		float length() const noexcept
 		{
@@ -118,25 +72,29 @@ namespace deckard::math::sse
 			return result;
 		}
 
-		vec2 normalized() const noexcept { return *this / length(); }
+		vec_type normalized() const noexcept { return *this / length(); }
 
 		void normalize() noexcept { *this = normalized(); }
 
-		float distance(const vec2& lhs) const noexcept
+		float distance(const vec_type& lhs) const noexcept
 		{
 			__m128 tmp = _mm_sub_ps(reg, lhs.reg);
 			__m128 sqr = _mm_mul_ps(tmp, tmp);
 			return _mm_cvtss_f32(_mm_sqrt_ps(horizontal_add(sqr)));
 		}
 
-		vec2 clamp(float cmin, float cmax) const noexcept { return vec2(_mm_min_ps(_mm_max_ps(reg, vec2(cmin)), vec2(cmax))); }
-
-		bool equals(const vec2& lhs) const noexcept { return is_close_enough(lhs); }
-
-		bool is_close_enough(const vec2& lhs, float epsilon = 0.0000001f) const noexcept
+		vec_type clamp(float cmin, float cmax) const noexcept
 		{
-			auto masked_this = *this * vec2(xymask);
-			auto masked_lhs  = lhs * vec2(xymask);
+			__m128 tmp0 = _mm_min_ps(_mm_max_ps(reg, _mm_set_ps1(cmin)), _mm_set_ps1(cmax));
+			return vec_type(tmp0);
+		}
+
+		bool equals(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
+
+		bool is_close_enough(const vec_type& lhs, float epsilon = 0.0000001f) const noexcept
+		{
+			auto masked_this = *this * vec_type(xymask);
+			auto masked_lhs  = lhs * vec_type(xymask);
 
 			auto diff   = masked_this - masked_lhs;
 			auto result = _mm_cmple_ps(diff.abs().reg, _mm_set_ps1(epsilon));
@@ -147,7 +105,7 @@ namespace deckard::math::sse
 		// cross
 
 
-		float cross(const vec2& lhs) const noexcept
+		float cross(const vec_type& lhs) const noexcept
 		{
 			__m128 tmp0 = _mm_shuffle_ps(lhs.reg, lhs.reg, _MM_SHUFFLE(0, 1, 0, 1));
 			__m128 tmp1 = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 0, 1, 0));
@@ -159,7 +117,7 @@ namespace deckard::math::sse
 		}
 
 		// dot
-		float dot(const vec2& lhs) const noexcept
+		float dot(const vec_type& lhs) const noexcept
 		{
 			__m128 masked_reg = _mm_mul_ps(reg, xymask);
 			__m128 masked_lhs = _mm_mul_ps(lhs.reg, xymask);
@@ -168,14 +126,14 @@ namespace deckard::math::sse
 			return horizontal_addf(mul);
 		}
 
-		[[nodiscard("Use the projected vector")]] vec2 project(const vec2& other) const noexcept
+		[[nodiscard("Use the projected vector")]] vec_type project(const vec_type& other) const noexcept
 		{
 
 			if (other.has_zero())
 			{
 				// TODO:
 				// dbg::trace("cannot project onto a zero vector: {} / {}", *this, other);
-				return vec2(inf);
+				return vec_type(inf);
 			}
 
 			auto dot_ab   = dot(other);
@@ -185,7 +143,7 @@ namespace deckard::math::sse
 			return other * projection_scalar;
 		}
 
-		[[nodiscard("Use the angle value")]] float angle(const vec2& other) const noexcept
+		[[nodiscard("Use the angle value")]] float angle(const vec_type& other) const noexcept
 		{
 			if (has_zero() or other.has_zero() or has_inf())
 			{
@@ -200,10 +158,10 @@ namespace deckard::math::sse
 			return std::acos(cosTheta) * 180.0f / std::numbers::pi_v<float>;
 		}
 
-		[[nodiscard("Use the rotated vector")]] vec2 rotate(const vec2& axis, const float rad) const noexcept
+		[[nodiscard("Use the rotated vector")]] vec_type rotate(const vec_type& axis, const float rad) const noexcept
 		{
-			const vec2 axis_norm = axis.normalized();
-			const vec2 v         = *this;
+			const vec_type axis_norm = axis.normalized();
+			const vec_type v         = *this;
 
 			float cosTheta         = std::cos(rad);
 			float sinTheta         = std::sin(rad);
@@ -213,20 +171,20 @@ namespace deckard::math::sse
 		}
 
 		// divide - non panicking
-		[[nodiscard("Use the divide vector")]] vec2 safe_divide(const vec2& other) const noexcept
+		[[nodiscard("Use the divide vector")]] vec_type safe_divide(const vec_type& other) const noexcept
 		{
 			if (other.has_zero())
-				return vec2(inf);
+				return vec_type(inf);
 
 			return *this / other;
 		}
 
-		[[nodiscard("Use the divide scalar")]] vec2 safe_divide(const float scalar) const noexcept
+		[[nodiscard("Use the divide scalar")]] vec_type safe_divide(const float scalar) const noexcept
 		{
 			if (scalar == 0.0f)
-				return vec2(inf);
+				return vec_type(inf);
 
-			return *this / vec2(scalar);
+			return *this / vec_type(scalar);
 		}
 
 		// has / is
@@ -256,33 +214,33 @@ namespace deckard::math::sse
 		}
 
 		// cmp
-		bool operator==(const vec2& lhs) const noexcept
+		bool operator==(const vec_type& lhs) const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, lhs.reg));
 			return mask == 0xF;
 		}
 
 		//
-		bool operator<=(const vec2& lhs) const noexcept
+		bool operator<=(const vec_type& lhs) const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmple_ps(reg, lhs.reg));
 			return mask != 0;
 		}
 
-		bool operator>=(const vec2& lhs) const noexcept
+		bool operator>=(const vec_type& lhs) const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpge_ps(reg, lhs.reg));
 			return mask != 0;
 		}
 
 		//
-		bool operator>(const vec2& lhs) const noexcept
+		bool operator>(const vec_type& lhs) const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpgt_ps(reg, lhs.reg));
 			return mask != 0;
 		}
 
-		bool operator<(const vec2& lhs) const noexcept
+		bool operator<(const vec_type& lhs) const noexcept
 		{
 			auto cmp  = _mm_cmplt_ps(reg, lhs.reg);
 			auto mask = _mm_movemask_ps(cmp);
@@ -296,7 +254,7 @@ namespace deckard::math::sse
 			{
 				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
-				default: dbg::panic("vec2: indexing out-of-bound");
+				default: dbg::panic("vec_type: indexing out-of-bound");
 			}
 		}
 
