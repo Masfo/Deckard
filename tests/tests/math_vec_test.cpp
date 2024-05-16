@@ -477,7 +477,7 @@ TEST_CASE("vec_n format", "[vec][math]")
 
 TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 {
-#if 0
+#if 1
 	using namespace deckard::math;
 
 	std::mt19937                          mt{};
@@ -487,15 +487,15 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	std::vector<sse::vec4>       sses;
 	std::vector<vec_n<float, 4>> vecns;
 
-	constexpr int width = 1'000'000;
+	constexpr int width = 1;
 	mt.seed(123);
 	for (int i = 0; i < width; i++)
 	{
-		sse::vec4 v(dist(mt), dist(mt), dist(mt), dist(mt));
-		sses.emplace_back(v);
+		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
+		sses.emplace_back(v1);
 
-		vec_n<float, 4> v{dist(mt), dist(mt), dist(mt), dist(mt)};
-		vecns.emplace_back(v);
+		vec_n<float, 4> v2{dist(mt), dist(mt), dist(mt), dist(mt)};
+		vecns.emplace_back(v2);
 	}
 
 
