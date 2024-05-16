@@ -5,23 +5,24 @@ module;
 #include <cstdint>
 
 export module dbc;
+
 export namespace dbc::build
 {
-	 // You can modify major and minor
+	// You can modify major and minor
 	constexpr uint32_t major = 0;
 	constexpr uint32_t minor = 0;
 
-	 // Do not modify these
-	constexpr uint32_t patch = 2616;
-	
-	constexpr uint32_t version = major * 100000 + minor * 10000 + patch;
-	constexpr uint64_t random_seed = 0xd7b74ede08decef4;
-	
-	constexpr char version_string[] = "v0.0.2616";
-	constexpr char build_time_string[] = "2024-05-16 20:56:09";
-	constexpr char phrase[] = "rework-dance-habitable";
-	constexpr char calver[] = "2024.20.2616";
-	constexpr char uuid[] = "B7564A32-CBC2-4C6D-8577-8813960266AD";
+	// Do not modify these
+	constexpr uint32_t patch = 2'612;
+
+	constexpr uint32_t version     = major * 100'000 + minor * 10'000 + patch;
+	constexpr uint64_t random_seed = 0xbe3'b4f3'839a'fc6b;
+
+	constexpr char version_string[]    = "v0.0.2612";
+	constexpr char build_time_string[] = "2024-05-16 20:38:26";
+	constexpr char phrase[]            = "vibes-chewer-opposite";
+	constexpr char calver[]            = "2024.20.2612";
+	constexpr char uuid[]              = "B4A58B52-D72F-40B0-8416-007BB00D682A";
 
 	// Copy paste to import to your project
 	/*
@@ -30,11 +31,11 @@ export namespace dbc::build
 		constexpr auto patch = dbc::patch;
 		constexpr auto version = dbc::version;
 		constexpr auto random_seed = dbc::random_seed;
-			
+
 		constexpr auto version_string = dbc::version_string;
 		constexpr auto build_time_string = dbc::build_time_string;
 		constexpr auto phrase = dbc::phrase;
 		constexpr auto calver = dbc::calver;
 		constexpr auto uuid = dbc::uuid;
 	*/
-}
+} // namespace dbc::build

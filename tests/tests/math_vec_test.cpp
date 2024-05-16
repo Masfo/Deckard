@@ -493,7 +493,7 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	{
 		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
 		sses.emplace_back(v1);
-
+	
 		vec_n<float, 4> v2{dist(mt), dist(mt), dist(mt), dist(mt)};
 		vecns.emplace_back(v2);
 	}
