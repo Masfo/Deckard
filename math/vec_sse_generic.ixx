@@ -8,13 +8,11 @@ module;
 
 export module deckard.math.vec.sse.generic;
 
-// import deckard.debug;
+import deckard.debug;
 import deckard.math.utils;
 
 namespace deckard::math::sse
 {
-#if 1
-
 	export template<size_t N>
 	struct alignas(16) vec_n_sse
 	{
@@ -533,6 +531,5 @@ namespace deckard::math::sse
 	{
 		return v.rotate(axis, angle);
 	}
-#endif
 
 } // namespace deckard::math::sse
