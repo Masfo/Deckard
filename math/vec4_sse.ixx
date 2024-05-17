@@ -116,8 +116,8 @@ namespace deckard::math::sse
 		float length() const noexcept
 		{
 			m128  a      = _mm_mul_ps(reg, reg);
-			auto  rc     = _mm_sqrt_ps(horizontal_add(a));
-			float result = _mm_cvtss_f32(rc);
+			auto  inv    = _mm_rsqrt_ps(horizontal_add(a));
+			float result = _mm_cvtss_f32(_mm_mul_ps(reg, inv));
 			return result;
 		}
 
