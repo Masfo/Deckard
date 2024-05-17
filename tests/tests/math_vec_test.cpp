@@ -350,6 +350,15 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(v9[1] == 2.0f);
 		REQUIRE(v9[2] == 9.0f);
 		REQUIRE(v9[3] == -1.0f);
+
+		std::array<float, 4> vo{2.0f, 4.0f, 6.0f, 8.0f};
+		vec4                 v10;
+		v10 <<= vo.data();
+		REQUIRE(v10 == vec4(2.0f, 4.0f, 6.0f, 8.0f));
+
+		std::array<float, 4> vo2{};
+		v10 >> vo2.data();
+		REQUIRE(v10 == vec4(2.0f, 4.0f, 6.0f, 8.0f));
 	}
 
 	SECTION("basic math")
