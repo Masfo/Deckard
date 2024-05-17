@@ -216,19 +216,19 @@ namespace deckard::math::sse
 		bool is_zero() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero_reg));
-			return mask == 0xF;
+			return mask == 0x3; // 0, 0, X, X
 		}
 
 		bool is_nan() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, reg));
-			return mask == 0;
+			return mask == 0xC; // nan, nan, X,X
 		}
 
 		bool is_inf() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf_reg));
-			return mask == 0xF;
+			return mask == 0x3; // inf, inf, X, X
 		}
 
 		// cmp
@@ -279,6 +279,11 @@ namespace deckard::math::sse
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
 		inline static float inf_float = std::numeric_limits<float>::infinity();
 
+		static inline vec_type nan() noexcept { return vec_type(nan_float); }
+
+		static inline vec_type inf() noexcept { return vec_type(inf_float); }
+
+		static inline vec_type zero() noexcept { return vec_type(); }
 
 		inline static m128 xymask     = _mm_set_ps(0, 0, 1, 1);
 		inline static m128 nan_xymask = _mm_set_ps(nan_float, nan_float, 1, 1);

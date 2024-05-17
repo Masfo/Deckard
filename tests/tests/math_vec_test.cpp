@@ -35,6 +35,28 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		v3 = -v3;
 		REQUIRE(v3[0] == -1.0f);
 		REQUIRE(v3[1] == -2.0f);
+
+
+		// inf
+		vec2 vinf = vec2::inf();
+		REQUIRE(vinf.is_inf() == true);
+
+		vinf = vec2(0, std::numeric_limits<float>::infinity());
+		REQUIRE(vinf.has_inf() == true);
+
+		// nan
+		vec2 vnan = vec2::nan();
+		REQUIRE(vnan.is_nan() == true);
+
+		vec2 vnan2(0, std::numeric_limits<float>::quiet_NaN());
+		REQUIRE(vnan2.has_nan() == true);
+
+		// zero
+		vec2 vzero = vec2::zero();
+		REQUIRE(vzero.is_zero() == true);
+
+		vzero = vec2(0, 1);
+		REQUIRE(vzero.has_zero() == true);
 	}
 
 	SECTION("basic math")
