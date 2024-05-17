@@ -16,6 +16,15 @@ namespace deckard::math::sse
 {
 	using m128 = __m128;
 
+	/*
+	template <int index>
+	inline m128 Broadcast(const m128 & a)
+	{
+		// _mm_cast is for compile only, no opcodes generated
+		return _mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(a), index * 0x55));
+	}
+	*/
+
 	export struct alignas(16) vec4
 	{
 		vec4()
@@ -161,7 +170,7 @@ namespace deckard::math::sse
 		{
 			if (other.is_invalid())
 			{
-				return vec_type(inf);
+				return vec_type(inf_reg);
 			}
 
 			return *this / other;
@@ -170,7 +179,7 @@ namespace deckard::math::sse
 		[[nodiscard("Use the divide scalar")]] vec_type safe_divide(const float scalar) const noexcept
 		{
 			if (scalar == 0.0f)
-				return vec_type(inf);
+				return vec_type(inf_reg);
 
 			return *this / vec_type(scalar);
 		}
@@ -178,39 +187,41 @@ namespace deckard::math::sse
 		// has / is
 		bool is_invalid() const noexcept { return has_zero() or has_inf() or has_nan(); }
 
+		// has_
 		bool has_zero() const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero));
-			return mask != 0;
-		}
-
-		bool is_zero() const noexcept
-		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero));
-			return mask == 0xF;
-		}
-
-		bool has_inf() const noexcept
-		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
-			return mask != 0;
-		}
-
-		bool is_inf() const noexcept
-		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf));
-			return mask == 0xF;
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero_reg));
+			return mask > 0;
 		}
 
 		bool has_nan() const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, nan));
-			return mask != 0;
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, reg));
+			return mask > 0;
+		}
+
+		bool has_inf() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf_reg));
+			return mask > 0;
+		}
+
+		// is_
+		bool is_zero() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, zero_reg));
+			return mask == 0xF;
 		}
 
 		bool is_nan() const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, nan));
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, reg));
+			return mask == 0;
+		}
+
+		bool is_inf() const noexcept
+		{
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, inf_reg));
 			return mask == 0xF;
 		}
 
@@ -260,18 +271,24 @@ namespace deckard::math::sse
 			}
 		}
 
+		static inline vec_type nan() noexcept { return vec_type(nan_float); }
+
+		static inline vec_type inf() noexcept { return vec_type(inf_float); }
+
+		static inline vec_type zero() noexcept { return vec_type(); }
+
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
 		inline static float inf_float = std::numeric_limits<float>::infinity();
 
 		inline static m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
-		inline static m128 zero     = _mm_set_ps1(0.0f);
 		inline static m128 neg_zero = _mm_set_ps1(-0.0f);
 
 		inline static m128 one     = _mm_set_ps1(1.0f);
 		inline static m128 neg_one = _mm_set_ps1(-1.0f);
 
-		inline static m128 inf = _mm_set_ps1(inf_float);
-		inline static m128 nan = _mm_set_ps1(nan_float);
+		inline static m128 zero_reg = _mm_set_ps1(0.0f);
+		inline static m128 inf_reg  = _mm_set_ps1(inf_float);
+		inline static m128 nan_reg  = _mm_set_ps1(nan_float);
 
 
 		m128 reg;

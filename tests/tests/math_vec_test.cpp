@@ -499,6 +499,27 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 h{2.0, 1.0, 1.0, 1.0};
 		REQUIRE(h >= g);
 		REQUIRE(h > g);
+
+		// inf
+		vec4 vinf = vec4::inf();
+		REQUIRE(vinf.is_inf() == true);
+
+		vinf = vec4(0, 1, 2, std::numeric_limits<float>::infinity());
+		REQUIRE(vinf.has_inf() == true);
+
+		// nan
+		vec4 vnan = vec4::nan();
+		REQUIRE(vnan.is_nan() == true);
+
+		vec4 vnan2(0, 1, 3, std::numeric_limits<float>::quiet_NaN());
+		REQUIRE(vnan2.has_nan() == true);
+
+		// zero
+		vec4 vzero = vec4::zero();
+		REQUIRE(vzero.is_zero() == true);
+
+		vzero = vec4(0, 1, 1, 1);
+		REQUIRE(vzero.has_zero() == true);
 	}
 }
 
