@@ -283,12 +283,15 @@ namespace deckard::math
 
 		void operator<<(T* v) noexcept
 		{
+			assert::check(v != nullptr, "input buffer null");
+
 			for (size_t i = 0; i < N; ++i)
 				m_data[i] = v[i];
 		}
 
 		void operator<<=(T* v) noexcept
 		{
+			assert::check(v != nullptr, "input buffer null");
 			for (size_t i = 0; i < N; ++i)
 				m_data[i] = v[i];
 		}
