@@ -271,14 +271,14 @@ namespace deckard::math::sse
 			}
 		}
 
+		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
+		inline static float inf_float = std::numeric_limits<float>::infinity();
+
 		static inline vec_type nan() noexcept { return vec_type(nan_float); }
 
 		static inline vec_type inf() noexcept { return vec_type(inf_float); }
 
 		static inline vec_type zero() noexcept { return vec_type(); }
-
-		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
-		inline static float inf_float = std::numeric_limits<float>::infinity();
 
 		inline static m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
 		inline static m128 neg_zero = _mm_set_ps1(-0.0f);
