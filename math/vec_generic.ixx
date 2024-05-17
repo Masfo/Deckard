@@ -107,16 +107,30 @@ namespace deckard::math
 		constexpr bool has_zero() const noexcept
 		{
 			for (int i = 0; i < N; ++i)
+			{
 				if (m_data[i] == T{0})
 					return true;
+			}
 			return false;
 		};
 
 		constexpr bool is_zero() const noexcept
 		{
 			for (int i = 0; i < N; ++i)
+			{
 				if (m_data[i] != T{0})
 					return false;
+			}
+			return true;
+		}
+
+		bool is_nan() const noexcept
+		{
+			for (int i = 0; i < N; ++i)
+			{
+				if (std::isnan(m_data[i]) == false)
+					return false;
+			}
 			return true;
 		}
 
@@ -542,6 +556,16 @@ namespace deckard::math
 		}
 
 		std::array<T, N> m_data{T{}};
+
+
+		inline static T nan_value = std::numeric_limits<T>::quiet_NaN();
+		inline static T inf_value = std::numeric_limits<T>::infinity();
+
+		static inline vec_type nan() noexcept { return vec_type(nan_value); }
+
+		static inline vec_type inf() noexcept { return vec_type(inf_value); }
+
+		static inline vec_type zero() noexcept { return vec_type(T{0}); }
 	};
 
 	static_assert(sizeof(vec_n<float, 4>) == 16);
