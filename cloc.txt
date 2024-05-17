@@ -1,0 +1,52 @@
+github.com/AlDanial/cloc v 1.98  T=0.14 s (322.2 files/s, 59155.8 lines/s)
+---------------------------------------------------------------------------------------------
+File                                                      blank        comment           code
+---------------------------------------------------------------------------------------------
+.\math\vec_generic.ixx                                      130             22            573
+.\tests\tests\math_vec_test.cpp                             164             43            554
+.\math\vec_sse_generic.ixx                                  129             38            414
+.\dbc\src\main.cpp                                          121             33            369
+.\utils\cpuid.ixx                                           106             16            362
+.\utils\sha2.ixx                                             88              8            336
+.\math\vec3_sse.ixx                                         101             14            254
+.\math\vec2_sse.ixx                                         100             15            249
+.\math\vec4_sse.ixx                                          84             22            219
+.\std.ixx                                                    20             11            208
+.\unicode\utf8.ixx                                           50             23            183
+.\file\FileMonitor.ixx                                       38              7            154
+.\utils\helpers.ixx                                          50              9            153
+.\utils\base64.ixx                                           28              0            141
+.\utils\generator.ixx                                        42              1            140
+.\win32\win32.ixx                                            44              1            136
+.\debug\debug.ixx                                            29              9            128
+.\win32\DTE.ixx                                              33              6            118
+.\tests\tests\utf8_test.cpp                                  25             23            114
+.\math\math_formatter.ixx                                    27              9            105
+.\file\File.ixx                                              38              0             99
+.\tests\tests\sha2_test.cpp                                  26              6             87
+.\types\enum_flags.ixx                                       26             36             78
+.\math\matrix.ixx                                            21              4             76
+.\tests\tests\enumflag_test.cpp                              29             20             74
+.\archive\archive.ixx                                        21              7             70
+.\types\as.ixx                                               14              5             66
+.\utils\scope_exit.ixx                                       12              0             52
+.\types\types.ixx                                            35             39             49
+.\tests\tests\to_hex_test.cpp                                15              0             44
+.\graphs\binarytree.ixx                                      11             12             43
+.\math\math_utility.ixx                                      14              4             43
+.\math\vec.ixx                                               14              2             37
+.\utils\hash.ixx                                              8              0             36
+.\tests\tests\base64_test.cpp                                 9              8             35
+.\Deckard.ixx                                                13              7             33
+.\debug\assert.ixx                                           11              0             25
+.\types\HelperTypes.ixx                                      12              3             24
+.\buildnumber.ixx                                             7             17             16
+.\dbc\src\buildnumber.ixx                                     7             17             16
+.\tests\tests\scripting\tokenizer_test.cpp                    5              3             11
+.\utils\uuid.ixx                                              4              0             10
+.\utils\system_win32.ixx                                      6              0              8
+.\scripting\tokenizer.ixx                                    11             15              4
+.\tests\test-main.cpp                                         9             12              3
+---------------------------------------------------------------------------------------------
+SUM:                                                       1787            527           5949
+---------------------------------------------------------------------------------------------
