@@ -332,6 +332,9 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(v5[2] == -3.0f);
 		REQUIRE(v5[3] == -4.0f);
 
+		v5 = +v5;
+		REQUIRE(v5 == v5);
+
 		vec4 v6(0.0f);
 		REQUIRE(v6.has_zero() == true);
 		REQUIRE(v6.is_zero() == true);

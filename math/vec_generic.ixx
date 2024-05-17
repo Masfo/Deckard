@@ -275,6 +275,10 @@ namespace deckard::math
 
 		constexpr vec_type& operator+() const noexcept { return *this; }
 
+		void operator>>(float* v) noexcept { }
+
+		void operator<<(float* v) noexcept { assert::check(v != nullptr); }
+
 		constexpr auto operator<=>(const vec_type& other) const noexcept = default;
 
 		constexpr bool operator==(const vec_type& other) const noexcept { return equals(other, T{}); }

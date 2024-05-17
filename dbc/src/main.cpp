@@ -310,11 +310,6 @@ int main()
 #endif
 
 
-	{
-		archive::file f("sqlite3.db");
-		f.exec("create table if not exists dummy(id integer primary  key, email TEXT not null unique)");
-	}
-
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(4, 1));
 	dbg::println("{:08b}", bitmask(2));

@@ -55,9 +55,15 @@ namespace deckard::math::sse
 
 		vec_type operator-() noexcept { return vec_type(_mm_mul_ps(reg, neg_one)); }
 
+		vec_type operator+() const noexcept { return *this; }
+
 		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
-		void operator<<(float* v) noexcept { reg = _mm_load_ps(v); }
+		void operator<<(float* v) noexcept
+		{
+			if (v != nullptr)
+				reg = _mm_load_ps(v);
+		}
 
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
 
