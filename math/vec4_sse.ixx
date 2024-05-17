@@ -10,6 +10,7 @@ import deckard.assert;
 import deckard.math.vec3.sse;
 import deckard.math.utils;
 import deckard.debug;
+import deckard.assert;
 
 namespace deckard::math::sse
 {
@@ -81,9 +82,19 @@ namespace deckard::math::sse
 
 		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
-		void operator<<(float* v) noexcept { reg = _mm_load_ps(v); }
+		void operator<<(float* v) noexcept
+		{
+			// TODO: assert
+			// assert::check(v != nullptr);
+			reg = _mm_load_ps(v);
+		}
 
-		void operator<<=(float* v) noexcept { reg = _mm_load_ps(v); }
+		void operator<<=(float* v) noexcept
+		{
+			// TODO: assert
+			// assert::check(v!=nullptr);
+			reg = _mm_load_ps(v);
+		}
 
 		// operations
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
