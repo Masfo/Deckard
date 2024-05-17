@@ -67,6 +67,15 @@ namespace deckard::math::sse
 
 		void operator/=(const vec_type& lhs) noexcept { reg = _mm_div_ps(reg, lhs.reg); }
 
+		// operator = scalar
+		void operator+=(const float scalar) noexcept { reg = _mm_add_ps(reg, _mm_set_ps1(scalar)); }
+
+		void operator-=(const float scalar) noexcept { reg = _mm_sub_ps(reg, _mm_set_ps1(scalar)); }
+
+		void operator*=(const float scalar) noexcept { reg = _mm_mul_ps(reg, _mm_set_ps1(scalar)); }
+
+		void operator/=(const float scalar) noexcept { reg = _mm_div_ps(reg, _mm_set_ps1(scalar)); }
+
 		vec_type operator+(const vec_type& lhs) const noexcept { return _mm_add_ps(reg, lhs.reg); }
 
 		vec_type operator-(const vec_type& lhs) const noexcept { return _mm_sub_ps(reg, lhs.reg); }

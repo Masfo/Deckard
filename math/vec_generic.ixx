@@ -174,6 +174,38 @@ namespace deckard::math
 			}
 		}
 
+		void operator+=(const float scalar) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				m_data[i] += scalar;
+			}
+		}
+
+		void operator-=(const float scalar) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				m_data[i] -= scalar;
+			}
+		}
+
+		void operator*=(const float scalar) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				m_data[i] *= scalar;
+			}
+		}
+
+		void operator/=(const float scalar) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				m_data[i] /= scalar;
+			}
+		}
+
 		constexpr vec_type operator-(const vec_type& other) const noexcept
 		{
 			vec_type result = *this;
@@ -248,10 +280,34 @@ namespace deckard::math
 		constexpr bool operator==(const vec_type& other) const noexcept { return equals(other, T{}); }
 
 		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const noexcept
+		requires(std::floating_point<T>)
+		{
+			return is_close_enough(other, epsilon);
+		}
+
+		constexpr bool equals(const vec_type& other, const T epsilon = 0) const noexcept
+		requires(std::integral<T>)
+		{
+			return is_close_enough(other, epsilon);
+		}
+
+		constexpr bool is_close_enough(const vec_type& lhs, float epsilon = 0.0000001f) const noexcept
+		requires(std::floating_point<T>)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
-				if (not is_close_enough(m_data[i], other[i], epsilon))
+				if (not math::is_close_enough(m_data[i], lhs[i], epsilon))
+					return false;
+			}
+			return true;
+		}
+
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const noexcept
+		requires(std::integral<T>)
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				if (not math::is_close_enough(m_data[i], lhs[i], epsilon))
 					return false;
 			}
 			return true;
@@ -350,7 +406,6 @@ namespace deckard::math
 		template<typename U = T>
 		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const U cmin, const U cmax) const noexcept
 		{
-
 			vec_type result{0};
 			for (size_t i = 0; i < N; ++i)
 				result[i] = std::clamp(m_data[i], cmin, cmax);
@@ -393,7 +448,6 @@ namespace deckard::math
 		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const noexcept
 		requires(N == 2 or N == 3)
 		{
-
 			if (other.has_zero())
 			{
 				dbg::trace("cannot project onto a zero vector: {} / {}", *this, other);
@@ -611,13 +665,13 @@ namespace std
 
 			if constexpr (std::is_integral_v<T>)
 			{
-				for (int i = N - 1; i > -1; i--)
-					std::format_to(ctx.out(), "{}{}", vec[i], i > 0 ? "," : "");
+				for (int i = 0; i < N; ++i)
+					std::format_to(ctx.out(), "{}{}", vec[i], i < N - 1 ? ", " : "");
 			}
 			else
 			{
-				for (int i = N - 1; i > -1; i--)
-					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i > 0 ? ", " : "");
+				for (int i = 0; i < N; ++i)
+					std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < N - 1 ? ", " : "");
 			}
 
 			return std::format_to(ctx.out(), ")");

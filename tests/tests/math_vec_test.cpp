@@ -56,6 +56,17 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(true == sub.equals(sub_result));
 		REQUIRE(true == mul.equals(mul_result));
 		REQUIRE(true == div.equals(div_result));
+
+
+		vec2 sres(4.0);
+		sres /= 2.0f;
+		REQUIRE(sres.equals(vec2(2.0f)));
+		sres *= 3.0f;
+		REQUIRE(sres.equals(vec2(6.0f)));
+		sres += 1.0f;
+		REQUIRE(sres.equals(vec2(7.0f)));
+		sres -= 5.0f;
+		REQUIRE(sres.equals(vec2(2.0f)));
 	}
 
 	SECTION("vec2 other functions")
@@ -192,6 +203,17 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == sub.equals(sub_result));
 		REQUIRE(true == mul.equals(mul_result));
 		REQUIRE(true == div.equals(div_result));
+
+
+		vec3 sres(4.0);
+		sres /= 2.0f;
+		REQUIRE(sres.equals(vec3(2.0f)));
+		sres *= 3.0f;
+		REQUIRE(sres.equals(vec3(6.0f)));
+		sres += 1.0f;
+		REQUIRE(sres.equals(vec3(7.0f)));
+		sres -= 5.0f;
+		REQUIRE(sres.equals(vec3(2.0f)));
 	}
 
 
@@ -348,11 +370,23 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == mul.equals(mul_result));
 		REQUIRE(true == div.equals(div_result));
 
+		// v op equ scalar
+		vec4 sres(4.0);
+		sres /= 2.0f;
+		REQUIRE(sres.equals(vec4(2.0f)));
+		sres *= 3.0f;
+		REQUIRE(sres.equals(vec4(6.0f)));
+		sres += 1.0f;
+		REQUIRE(sres.equals(vec4(7.0f)));
+		sres -= 5.0f;
+		REQUIRE(sres.equals(vec4(2.0f)));
+
 		// scalar
 		const vec4 add_scalar = v1 + 4;
 		const vec4 sub_scalar = v1 - 4;
 		const vec4 mul_scalar = v1 * 4;
 		const vec4 div_scalar = v1 / 4;
+
 
 		const vec4 add_scalar_result{6.0f, 6.0f, 6.0f, 6.0f};
 		const vec4 sub_scalar_result{-2.0f, -2.0f, -2.0f, -2.0f};
@@ -537,15 +571,20 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	std::vector<vec_n<float, 4>> generic;
 
 	constexpr int width = 1'000;
+	mt.seed(123);
 	for (auto _ : upto(width))
 	{
 		_;
-
 		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
 		sse.emplace_back(v1);
 
-		vec_n<float, 4> v2{dist(mt), dist(mt), dist(mt), dist(mt)};
-		generic.emplace_back(v2);
+	}
+	mt.seed(123);
+	for (auto _ : upto(width))
+	{
+		_;
+		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
+		sse.emplace_back(v1);
 	}
 
 	BENCHMARK("generic vec4")
