@@ -1,12 +1,12 @@
 {
-  "name": "deckard",
+  "name": "glmtest",
   "version": "1.0.0",
   "description": ".",
   "homepage": "https://",
   "vcpkg-configuration": {
     "default-registry": {
       "kind": "git",
-      "baseline": "f4456c1b974131b8467c7371a3c302b7f58a99f2",
+      "baseline": "de9557b47b1f5610403eab25e59220ccba3f8d8d",
       "repository": "https://github.com/Microsoft/vcpkg"
     }
   },

@@ -32,6 +32,7 @@ target_compile_options(tests PRIVATE /Zc:__cplusplus)
 
 target_compile_options(tests PRIVATE /W4)
 
+target_compile_options(tests PRIVATE /arch:SSE2)
 
 
 target_sources(tests PUBLIC
@@ -64,7 +65,7 @@ set_target_properties(tests PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
 
     PDB_NAME tests
-    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/pdb"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/pdb"
 )
 
 
@@ -88,6 +89,8 @@ if(MSVC)
         target_compile_options(tests  PRIVATE /RTC1)
         target_compile_options(tests  PRIVATE /GS)
         target_compile_options(tests  PRIVATE /Zi)     # /ZI edit/continue
+        target_link_options(tests PRIVATE /INCREMENTAL)
+
 
         target_link_options(tests PRIVATE /DEBUG)
         #target_link_options(tests PRIVATE /ALIGN:16)

@@ -20,7 +20,7 @@ set_target_properties(deckard PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
 
     PDB_NAME deckard
-    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/pdb"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/pdb"
 )
 
 

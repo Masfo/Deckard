@@ -309,6 +309,9 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	mat4 m = mat4::identity();
+	dbg::println("{}", m);
+
 
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(4, 1));
