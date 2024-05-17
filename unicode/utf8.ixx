@@ -176,13 +176,21 @@ namespace deckard::utf8
 
 	export constexpr u32 codepoint_width(char32_t codepoint) noexcept
 	{
-		if (codepoint < 128)
+
+		if (codepoint < 0x80)
 			return 1;
-		if (codepoint < 2'048)
+		if (codepoint < 0x800)
 			return 2;
-		if (codepoint < 65'536)
+		if (codepoint < 0xFFFF)
 			return 3;
-		return 4;
+		if (codepoint < 0x20000)
+			return 4;
+		if (codepoint < 0x400'0000)
+			return 5;
+		if (codepoint < 0x8000'0000)
+			return 6;
+
+		return 7;
 	}
 
 	export constexpr bool is_bom(char32_t codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }

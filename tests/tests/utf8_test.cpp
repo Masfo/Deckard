@@ -7,6 +7,17 @@ using namespace deckard;
 
 TEST_CASE("utf8 decode to codepoints", "[utf8]")
 {
+	SECTION("widths")
+	{
+		utf8::codepoints decoder;
+
+		decoder.reload("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
+		REQUIRE(utf8::codepoint_width(decoder.next()) == 1);
+		REQUIRE(utf8::codepoint_width(decoder.next()) == 2);
+		REQUIRE(utf8::codepoint_width(decoder.next()) == 3);
+		REQUIRE(utf8::codepoint_width(decoder.next()) == 4);
+	}
+
 	SECTION("valid codepoints")
 	{
 		utf8::codepoints decoder;
@@ -39,6 +50,7 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(test[1] == 0xC4);
 		REQUIRE(test[2] == 0x21A5);
 		REQUIRE(test[3] == 0x1F30D);
+
 
 		// u+FFFF
 		decoder.reload("\xEF\xBF\xBF");
