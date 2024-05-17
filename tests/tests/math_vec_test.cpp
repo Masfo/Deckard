@@ -59,6 +59,36 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(vzero.has_zero() == true);
 	}
 
+
+	SECTION("compares")
+	{
+		// lt
+		const vec2 a{0.0, 0.0};
+		const vec2 b{1.0, 1.0};
+
+		REQUIRE(a < b);
+		REQUIRE(a != b);
+
+		const vec2 c{2.0, 2.0};
+		const vec2 d{2.0, 2.0};
+		REQUIRE((c < d) == false);
+		REQUIRE(c == d);
+
+		const vec2 e{1.0, 1.0};
+		const vec2 f{1.0, 1.0};
+		REQUIRE(false == (e < f));
+		REQUIRE(true == (e <= f));
+		REQUIRE(false == (e > f));
+		REQUIRE(true == (e >= f));
+		REQUIRE(e == f);
+
+		const vec2 g{1.0, 1.0};
+		const vec2 h{2.0, 1.0};
+		REQUIRE(h >= g);
+		REQUIRE(h > g);
+	}
+
+
 	SECTION("basic math")
 	{
 		const vec2 v1{2.0f};
@@ -262,6 +292,33 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(sres.equals(vec3(2.0f)));
 	}
 
+	SECTION("compares")
+	{
+		// lt
+		const vec3 a{0.0, 0.0, 0.0};
+		const vec3 b{1.0, 1.0, 1.0};
+
+		REQUIRE(a < b);
+		REQUIRE(a != b);
+
+		const vec3 c{2.0, 2.0, 2.0};
+		const vec3 d{2.0, 2.0, 2.0};
+		REQUIRE((c < d) == false);
+		REQUIRE(c == d);
+
+		const vec3 e{1.0, 1.0, 1.0};
+		const vec3 f{1.0, 1.0, 1.0};
+		REQUIRE(false == (e < f));
+		REQUIRE(true == (e <= f));
+		REQUIRE(false == (e > f));
+		REQUIRE(true == (e >= f));
+		REQUIRE(e == f);
+
+		const vec3 g{1.0, 1.0, 1.0};
+		const vec3 h{2.0, 1.0, 1.0};
+		REQUIRE(h >= g);
+		REQUIRE(h > g);
+	}
 
 	SECTION("vec3 other functions")
 	{

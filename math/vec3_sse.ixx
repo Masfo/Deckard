@@ -23,7 +23,11 @@ namespace deckard::math::sse
 		{
 		}
 
-		vec3(const float* v) { reg = _mm_load_ps(v); }
+		vec3(const float* v)
+		{
+			// mask xyz
+			reg = _mm_load_ps(v);
+		}
 
 		vec3(m128 r)
 			: reg(r){};
@@ -67,7 +71,11 @@ namespace deckard::math::sse
 
 		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
-		void operator<<(float* v) noexcept { reg = _mm_load_ps(v); }
+		void operator<<(float* v) noexcept
+		{
+			// mask xyz
+			reg = _mm_load_ps(v);
+		}
 
 		void operator<<=(float* v) noexcept { reg = _mm_load_ps(v); }
 
@@ -240,33 +248,47 @@ namespace deckard::math::sse
 		// cmp
 		bool operator==(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xyzmask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xyzmask);
+
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg_mask, lhs_mask));
 			return mask == 0xF;
 		}
 
 		//
 		bool operator<=(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmple_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xyzmask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xyzmask);
+
+			auto mask = _mm_movemask_ps(_mm_cmple_ps(reg_mask, lhs_mask));
 			return mask != 0;
 		}
 
 		bool operator>=(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpge_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xyzmask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xyzmask);
+
+			auto mask = _mm_movemask_ps(_mm_cmpge_ps(reg_mask, lhs_mask));
 			return mask != 0;
 		}
 
 		//
 		bool operator>(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpgt_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xyzmask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xyzmask);
+			auto mask     = _mm_movemask_ps(_mm_cmpgt_ps(reg_mask, lhs_mask));
 			return mask != 0;
 		}
 
 		bool operator<(const vec_type& lhs) const noexcept
 		{
-			auto cmp  = _mm_cmplt_ps(reg, lhs.reg);
+			auto reg_mask = _mm_mul_ps(reg, xyzmask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xyzmask);
+
+			auto cmp  = _mm_cmplt_ps(reg_mask, lhs_mask);
 			auto mask = _mm_movemask_ps(cmp);
 			return mask != 0;
 		}

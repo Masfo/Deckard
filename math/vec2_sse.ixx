@@ -22,7 +22,11 @@ namespace deckard::math::sse
 		{
 		}
 
-		vec2(const float* v) { reg = _mm_load_ps(v); }
+		vec2(const float* v)
+		{
+			// TODO: mask xy
+			reg = _mm_load_ps(v);
+		}
 
 		vec2(m128 r)
 			: reg(r){};
@@ -59,7 +63,11 @@ namespace deckard::math::sse
 
 		void operator>>(float* v) noexcept { _mm_store_ps(v, reg); }
 
-		void operator<<(float* v) noexcept { reg = _mm_load_ps(v); }
+		void operator<<(float* v) noexcept
+		{
+			// mask xy
+			reg = _mm_load_ps(v);
+		}
 
 		void operator<<=(float* v) noexcept { reg = _mm_load_ps(v); }
 
@@ -234,32 +242,47 @@ namespace deckard::math::sse
 		// cmp
 		bool operator==(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xymask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xymask);
+
+			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg_mask, lhs_mask));
 			return mask == 0xF;
 		}
 
 		//
 		bool operator<=(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmple_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xymask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xymask);
+
+			auto mask = _mm_movemask_ps(_mm_cmple_ps(reg_mask, lhs_mask));
 			return mask != 0;
 		}
 
 		bool operator>=(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpge_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xymask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xymask);
+
+			auto mask = _mm_movemask_ps(_mm_cmpge_ps(reg_mask, lhs_mask));
 			return mask != 0;
 		}
 
 		//
 		bool operator>(const vec_type& lhs) const noexcept
 		{
-			auto mask = _mm_movemask_ps(_mm_cmpgt_ps(reg, lhs.reg));
+			auto reg_mask = _mm_mul_ps(reg, xymask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xymask);
+
+			auto mask = _mm_movemask_ps(_mm_cmpgt_ps(reg_mask, lhs_mask));
 			return mask != 0;
 		}
 
 		bool operator<(const vec_type& lhs) const noexcept
 		{
+			auto reg_mask = _mm_mul_ps(reg, xymask);
+			auto lhs_mask = _mm_mul_ps(lhs.reg, xymask);
+
 			auto cmp  = _mm_cmplt_ps(reg, lhs.reg);
 			auto mask = _mm_movemask_ps(cmp);
 			return mask != 0;
@@ -267,7 +290,6 @@ namespace deckard::math::sse
 
 		float operator[](const int index) const noexcept
 		{
-
 			switch (index)
 			{
 				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
