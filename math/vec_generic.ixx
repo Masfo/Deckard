@@ -273,11 +273,25 @@ namespace deckard::math
 			return *this;
 		}
 
-		constexpr vec_type& operator+() const noexcept { return *this; }
+		constexpr vec_type operator+() const noexcept { return *this; }
 
-		void operator>>(float* v) noexcept { }
+		void operator>>(T* v) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+				v[i] = m_data[i];
+		}
 
-		void operator<<(float* v) noexcept { assert::check(v != nullptr); }
+		void operator<<(T* v) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+				m_data[i] = v[i];
+		}
+
+		void operator<<=(T* v) noexcept
+		{
+			for (size_t i = 0; i < N; ++i)
+				m_data[i] = v[i];
+		}
 
 		constexpr auto operator<=>(const vec_type& other) const noexcept = default;
 
