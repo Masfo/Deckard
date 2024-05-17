@@ -167,8 +167,10 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 
 
 		vec3 v5(0.0f);
-		REQUIRE(v5.has_zero() == true);
 		REQUIRE(v5.is_zero() == true);
+
+		v5 = vec3(0.0f, 2.0f, 3.0);
+		REQUIRE(v5.has_zero() == true);
 
 
 		vec3 v6 = vec3(1.0f).safe_divide(v5);
