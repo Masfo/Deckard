@@ -90,6 +90,7 @@ if(MSVC)
         target_compile_options(tests  PRIVATE /GS)
         target_compile_options(tests  PRIVATE /Zi)     # /ZI edit/continue
         target_link_options(tests PRIVATE /INCREMENTAL)
+        target_link_options(tests PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/tests.ilk)
 
 
         target_link_options(tests PRIVATE /DEBUG)

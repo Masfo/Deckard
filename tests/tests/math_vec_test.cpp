@@ -8,6 +8,7 @@ import deckard.math.utils;
 import deckard.helpers;
 import deckard.math.vec4.sse;
 import deckard.math.vec.generic;
+import deckard.math.formatter;
 
 import std;
 
