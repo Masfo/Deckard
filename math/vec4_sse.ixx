@@ -146,10 +146,11 @@ namespace deckard::math::sse
 
 		float length() const noexcept
 		{
-			m128  a      = _mm_mul_ps(reg, reg);
-			auto  inv    = _mm_sqrt_ps(horizontal_add(a));
-			float result = _mm_cvtss_f32(inv);
-			return result;
+			m128 sqr    = _mm_mul_ps(reg, reg);
+			auto sum    = horizontal_add(sqr);
+			auto result = _mm_sqrt_ps(sum);
+
+			return _mm_cvtss_f32(result);
 		}
 
 		vec_type normalized() const noexcept { return *this / length(); }
