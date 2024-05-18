@@ -5,10 +5,10 @@ module;
 #include <xmmintrin.h>
 
 export module deckard.math:vec4_sse;
+import :vec3_sse;
+import :utils;
 
 import deckard.assert;
-import :vec3_sse;
-import deckard.math.utils;
 import deckard.debug;
 import deckard.assert;
 

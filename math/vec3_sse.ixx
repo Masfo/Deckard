@@ -10,7 +10,7 @@ export module deckard.math:vec3_sse;
 
 import deckard.debug;
 import :vec2_sse;
-import deckard.math.utils;
+import :utils;
 
 namespace deckard::math::sse
 {
