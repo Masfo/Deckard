@@ -55,6 +55,17 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 
 		vzero = vec2(0, 1);
 		REQUIRE(vzero.has_zero() == true);
+
+
+		// ++ --
+		vec2 ppv(1, 2);
+		REQUIRE(ppv == vec2(1, 2));
+		ppv++;
+		++ppv;
+		REQUIRE(ppv == vec2(3, 4));
+		ppv--;
+		--ppv;
+		REQUIRE(ppv == vec2(1, 2));
 	}
 
 
@@ -288,6 +299,16 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(sres.equals(vec3(7.0f)));
 		sres -= 5.0f;
 		REQUIRE(sres.equals(vec3(2.0f)));
+
+		// ++ --
+		vec3 ppv(1, 2, 3);
+		REQUIRE(ppv == vec3(1, 2, 3));
+		ppv++;
+		++ppv;
+		REQUIRE(ppv == vec3(3, 4, 5));
+		ppv--;
+		--ppv;
+		REQUIRE(ppv == vec3(1, 2, 3));
 	}
 
 	SECTION("compares")
@@ -522,6 +543,16 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 div_s_zero = safe_divide(v1, 0.0f);
 		REQUIRE(true == div_v_zero.has_inf());
 		REQUIRE(true == div_s_zero.has_inf());
+
+		// ++ --
+		vec4 ppv(1, 2, 3, 4);
+		REQUIRE(ppv == vec4(1, 2, 3, 4));
+		ppv++;
+		++ppv;
+		REQUIRE(ppv == vec4(3, 4, 5, 6));
+		ppv--;
+		--ppv;
+		REQUIRE(ppv == vec4(1, 2, 3, 4));
 	}
 
 	SECTION("vec4 other functions")

@@ -71,6 +71,32 @@ namespace deckard::math::sse
 
 		void operator<<=(float* v) noexcept { reg = _mm_load_ps(v); }
 
+		vec_type& operator++() noexcept
+		{
+			reg = _mm_add_ps(reg, one);
+			return *this;
+		}
+
+		vec_type operator++(int) noexcept
+		{
+			m128 tmp = reg;
+			reg      = _mm_add_ps(reg, one);
+			return vec_type(tmp);
+		}
+
+		vec_type& operator--() noexcept
+		{
+			reg = _mm_sub_ps(reg, one);
+			return *this;
+		}
+
+		vec_type operator--(int) noexcept
+		{
+			m128 tmp = reg;
+			reg      = _mm_sub_ps(reg, one);
+			return vec_type(tmp);
+		}
+
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
 
 		vec_type max(const vec_type& lhs) const noexcept { return _mm_max_ps(reg, lhs.reg); }
@@ -102,6 +128,8 @@ namespace deckard::math::sse
 			m128 tmp0 = _mm_min_ps(_mm_max_ps(reg, _mm_set_ps1(cmin)), _mm_set_ps1(cmax));
 			return vec_type(tmp0);
 		}
+
+		bool operator==(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
 
 		bool equals(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
 
@@ -240,14 +268,7 @@ namespace deckard::math::sse
 		}
 
 		// cmp
-		bool operator==(const vec_type& lhs) const noexcept
-		{
-			auto reg_mask = _mm_mul_ps(reg, xymask);
-			auto lhs_mask = _mm_mul_ps(lhs.reg, xymask);
 
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg_mask, lhs_mask));
-			return mask == 0xF;
-		}
 
 		//
 		bool operator<=(const vec_type& lhs) const noexcept

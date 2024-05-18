@@ -162,6 +162,32 @@ namespace deckard::math
 			return true;
 		};
 
+		constexpr vec_type& operator++() noexcept
+		{
+			*this += vec_type(1);
+			return *this;
+		}
+
+		constexpr vec_type operator++(int) noexcept
+		{
+			vec_type tmp = *this;
+			*this += vec_type(1);
+			return tmp;
+		}
+
+		constexpr vec_type& operator--() noexcept
+		{
+			*this -= vec_type(1);
+			return *this;
+		}
+
+		constexpr vec_type operator--(int) noexcept
+		{
+			vec_type tmp = *this;
+			*this -= vec_type(1);
+			return tmp;
+		}
+
 		constexpr void operator+=(const vec_type& other) noexcept
 		{
 			for (size_t i = 0; i < N; ++i)
