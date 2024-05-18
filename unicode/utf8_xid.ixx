@@ -1,6 +1,6 @@
 export module deckard.utf8:xid;
 
-import :codepoints;
+import :ascii;
 
 namespace deckard::utf8
 {
