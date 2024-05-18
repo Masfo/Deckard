@@ -1,5 +1,5 @@
 
-export module deckard.math:vec_generic;
+export module deckard.math:vec.generic;
 import :utils;
 
 import std;
@@ -10,8 +10,6 @@ import deckard.utils.hash;
 
 namespace deckard::math
 {
-	template<typename T>
-	concept arithmetic = std::integral<T> or std::floating_point<T>;
 
 	export template<arithmetic T, size_t N>
 	requires(N > 1)

@@ -9,8 +9,9 @@ export module deckard.math:utils;
 
 export namespace deckard::math
 {
-	template<class T>
-	concept number = std::integral<T> && std::floating_point<T>;
+
+	template<typename T>
+	concept arithmetic = std::integral<T> or std::floating_point<T>;
 
 
 	template<std::floating_point T = float>
@@ -31,7 +32,7 @@ export namespace deckard::math
 	}
 
 	// lerp
-	template<number T, number U>
+	template<arithmetic T, arithmetic U>
 	[[nodiscard]] constexpr T lerp(const T& A, const T& B, const U& Alpha) noexcept
 	{
 		return static_cast<T>(A + Alpha * (B - A));

@@ -1,6 +1,6 @@
 export module deckard.math:formatter;
 
-import :vec_generic;
+import :vec.generic;
 import :vec2_sse;
 import :vec3_sse;
 import :vec4_sse;

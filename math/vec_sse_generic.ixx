@@ -140,7 +140,20 @@ namespace deckard::math::sse
 
 		bool is_close_enough(const vec_type& lhs, float epsilon = 0.0000001f) const noexcept
 		{
-			auto diff   = *this - lhs;
+			// TODO: mask vec3 xyz, mask2 xy
+			auto masked_this = *this;
+			auto masked_lhs  = lhs;
+			if constexpr (N == 2)
+			{
+				masked_this = *this * vec_type(xymask);
+				masked_lhs  = lhs * vec_type(xymask);
+			}
+			else if constexpr (N == 3)
+			{
+				masked_this = *this * vec_type(xyzmask);
+				masked_lhs  = lhs * vec_type(xyzmask);
+			}
+			auto diff   = masked_this - masked_lhs;
 			auto result = _mm_cmple_ps(diff.abs().reg, _mm_set_ps1(epsilon));
 			auto mask   = _mm_movemask_ps(result);
 			return mask == 0xF;
