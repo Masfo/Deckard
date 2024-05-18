@@ -259,6 +259,8 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		// nan
 		vec3 vnan = vec3::nan();
 		REQUIRE(vnan.is_nan() == true);
+		vnan = vec3(std::numeric_limits<float>::quiet_NaN(), 1, 2);
+		REQUIRE(vnan.has_nan() == true);
 
 		vec3 vnan2(0, 1, std::numeric_limits<float>::quiet_NaN());
 		REQUIRE(vnan2.has_nan() == true);
@@ -267,8 +269,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		vec3 vzero = vec3::zero();
 		REQUIRE(vzero.is_zero() == true);
 
+
 		vzero = vec3(1, 0, 1);
 		REQUIRE(vzero.has_zero() == true);
+
+		REQUIRE(vec3(1.0).is_nan() == false);
+		REQUIRE(vec3(1.0).has_nan() == false);
 	}
 
 	SECTION("basic math")
@@ -653,6 +659,9 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		// nan
 		vec4 vnan = vec4::nan();
 		REQUIRE(vnan.is_nan() == true);
+
+		vnan = vec4(std::numeric_limits<float>::quiet_NaN(), 1, 2, 3);
+		REQUIRE(vnan.has_nan() == true);
 
 		REQUIRE(vec4(1.0).is_nan() == false);
 		REQUIRE(vec4(1.0).has_nan() == false);

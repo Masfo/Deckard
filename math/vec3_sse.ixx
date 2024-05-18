@@ -252,7 +252,7 @@ namespace deckard::math::sse
 		bool has_nan() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, reg));
-			return mask > 0;
+			return mask != 0xF;
 		}
 
 		bool has_inf() const noexcept
@@ -271,7 +271,7 @@ namespace deckard::math::sse
 		bool is_nan() const noexcept
 		{
 			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg, reg));
-			return mask >= 0x7; // nan,nan,nan, X
+			return mask != 0xF; 
 		}
 
 		bool is_inf() const noexcept
