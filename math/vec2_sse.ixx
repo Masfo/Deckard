@@ -103,11 +103,18 @@ namespace deckard::math::sse
 
 		vec_type abs() const noexcept { return _mm_andnot_ps(neg_zero, reg); }
 
+		m128 dot(m128 rhs) const noexcept
+		{
+			m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
+			m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
+			return tmp1;
+		}
+
 		float length() const noexcept
 		{
 			m128 a       = _mm_mul_ps(reg, reg);
 			a            = _mm_mul_ps(a, xymask);
-			auto  rc     = _mm_sqrt_ps(horizontal_add(a));
+			auto  rc     = _mm_sqrt_ps(dot(a));
 			float result = _mm_cvtss_f32(rc);
 			return result;
 		}
@@ -120,7 +127,7 @@ namespace deckard::math::sse
 		{
 			m128 tmp = _mm_sub_ps(reg, lhs.reg);
 			m128 sqr = _mm_mul_ps(tmp, tmp);
-			return _mm_cvtss_f32(_mm_sqrt_ps(horizontal_add(sqr)));
+			return _mm_cvtss_f32(_mm_sqrt_ps(dot(sqr)));
 		}
 
 		vec_type clamp(float cmin, float cmax) const noexcept
@@ -163,7 +170,7 @@ namespace deckard::math::sse
 			m128 masked_lhs = _mm_mul_ps(lhs.reg, xymask);
 
 			m128 mul = _mm_mul_ps(masked_reg, masked_lhs);
-			return horizontal_addf(mul);
+			return _mm_cvtss_f32((dot(mul)));
 		}
 
 		[[nodiscard("Use the projected vector")]] vec_type project(const vec_type& other) const noexcept

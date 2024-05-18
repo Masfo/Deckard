@@ -45,7 +45,7 @@ export namespace deckard::math
 	}
 
 	// sse
-	__m128 horizontal_add(const __m128& rhs) noexcept
+	__m128 dot(const __m128& rhs) noexcept
 	{
 #if 0
 		// SSE3
@@ -59,10 +59,10 @@ export namespace deckard::math
 #endif
 	};
 
-	float horizontal_addf(const __m128& lhs) noexcept
+	float dotf(const __m128& lhs) noexcept
 	{
 		//
-		return _mm_cvtss_f32(horizontal_add(lhs));
+		return _mm_cvtss_f32(dot(lhs));
 	};
 
 	export float sse_sqrt(float f) noexcept

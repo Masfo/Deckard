@@ -368,7 +368,6 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(true == absolute.equals({9.0f, 1.0f, 4.0f}));
 
 		const auto dist = distance(v1, v2);
-		// 12.0??
 		REQUIRE_THAT(dist, WithinAbs(7.8740077f, 0.0000001));
 
 		const vec3 clamped = clamp(v2, 2.0f, 3.0f);

@@ -13,12 +13,14 @@ import deckard.math.utils;
 
 namespace deckard::math::sse
 {
+	using m128 = __m128;
+
 	export template<size_t N>
 	struct alignas(16) vec_n_sse
 	{
-		__m128 reg;
+		m128 reg;
 
-		vec_n_sse(const __m128 r)
+		vec_n_sse(const m128 r)
 			: reg(r)
 		{
 		}
@@ -55,7 +57,7 @@ namespace deckard::math::sse
 
 		using vec_type = vec_n_sse;
 
-		void operator=(const __m128& lhs) noexcept { reg = lhs; }
+		void operator=(const m128& lhs) noexcept { reg = lhs; }
 
 		void operator=(const vec_type& lhs) noexcept { reg = lhs.reg; }
 
@@ -119,13 +121,20 @@ namespace deckard::math::sse
 
 		vec_type abs() const noexcept { return _mm_andnot_ps(neg_zero, reg); }
 
+		m128 dot(m128 rhs) const noexcept
+		{
+			m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
+			m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
+			return tmp1;
+		}
+
 		float length() const noexcept
 		{
 			// TODO: mask xyz/xy
 
-			__m128 a      = _mm_mul_ps(reg, reg);
-			auto   rc     = _mm_sqrt_ps(horizontal_add(a));
-			float  result = _mm_cvtss_f32(rc);
+			m128  a      = _mm_mul_ps(reg, reg);
+			auto  rc     = _mm_sqrt_ps(dot(a));
+			float result = _mm_cvtss_f32(rc);
 			return result;
 		}
 
@@ -135,14 +144,14 @@ namespace deckard::math::sse
 
 		float distance(const vec_type& lhs) const noexcept
 		{
-			__m128 tmp = _mm_sub_ps(reg, lhs.reg);
-			__m128 sqr = _mm_mul_ps(tmp, tmp);
-			return _mm_cvtss_f32(_mm_sqrt_ps(horizontal_add(sqr)));
+			m128 tmp = _mm_sub_ps(reg, lhs.reg);
+			m128 sqr = _mm_mul_ps(tmp, tmp);
+			return _mm_cvtss_f32(_mm_sqrt_ps(dot(sqr)));
 		}
 
 		vec_type clamp(float cmin, float cmax) const noexcept
 		{
-			__m128 tmp0 = _mm_min_ps(_mm_max_ps(reg, _mm_set_ps1(cmin)), _mm_set_ps1(cmax));
+			m128 tmp0 = _mm_min_ps(_mm_max_ps(reg, _mm_set_ps1(cmin)), _mm_set_ps1(cmax));
 			return vec_type(tmp0);
 		}
 
@@ -171,22 +180,22 @@ namespace deckard::math::sse
 
 		vec_type cross(const vec_type& lhs) const noexcept
 		{
-			__m128 tmp0 = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 0, 2, 1));
-			__m128 tmp1 = _mm_shuffle_ps(lhs.reg, lhs.reg, _MM_SHUFFLE(3, 1, 0, 2));
-			__m128 tmp2 = _mm_mul_ps(tmp0, lhs.reg);
-			__m128 tmp3 = _mm_mul_ps(tmp0, tmp1);
-			__m128 tmp4 = _mm_shuffle_ps(tmp2, tmp2, _MM_SHUFFLE(3, 0, 2, 1));
+			m128 tmp0 = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 0, 2, 1));
+			m128 tmp1 = _mm_shuffle_ps(lhs.reg, lhs.reg, _MM_SHUFFLE(3, 1, 0, 2));
+			m128 tmp2 = _mm_mul_ps(tmp0, lhs.reg);
+			m128 tmp3 = _mm_mul_ps(tmp0, tmp1);
+			m128 tmp4 = _mm_shuffle_ps(tmp2, tmp2, _MM_SHUFFLE(3, 0, 2, 1));
 			return vec_type(_mm_sub_ps(tmp3, tmp4));
 		}
 
 		float cross(const vec_type& lhs) const noexcept
 		requires(N == 2)
 		{
-			__m128 tmp0 = _mm_shuffle_ps(lhs.reg, lhs.reg, _MM_SHUFFLE(0, 1, 0, 1));
-			__m128 tmp1 = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 0, 1, 0));
-			tmp0        = _mm_mul_ps(tmp0, tmp1);
-			tmp1        = _mm_shuffle_ps(tmp0, tmp0, _MM_SHUFFLE(0, 1, 0, 1));
-			tmp0        = _mm_sub_ps(tmp0, tmp1);
+			m128 tmp0 = _mm_shuffle_ps(lhs.reg, lhs.reg, _MM_SHUFFLE(0, 1, 0, 1));
+			m128 tmp1 = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 0, 1, 0));
+			tmp0      = _mm_mul_ps(tmp0, tmp1);
+			tmp1      = _mm_shuffle_ps(tmp0, tmp0, _MM_SHUFFLE(0, 1, 0, 1));
+			tmp0      = _mm_sub_ps(tmp0, tmp1);
 
 			return _mm_cvtss_f32(tmp0);
 		}
@@ -195,28 +204,28 @@ namespace deckard::math::sse
 		float dot(const vec_type& lhs) const noexcept
 		requires(N == 4)
 		{
-			__m128 mul = _mm_mul_ps(reg, lhs.reg);
-			return horizontal_addf(mul);
+			m128 mul = _mm_mul_ps(reg, lhs.reg);
+			return _mm_cvtss_f32(dot(mul));
 		}
 
 		float dot(const vec_n_sse<3>& lhs) const noexcept
 		requires(N == 3)
 		{
-			__m128 masked_reg = _mm_mul_ps(reg, xyzmask);
-			__m128 masked_lhs = _mm_mul_ps(lhs.reg, xyzmask);
+			m128 masked_reg = _mm_mul_ps(reg, xyzmask);
+			m128 masked_lhs = _mm_mul_ps(lhs.reg, xyzmask);
 
-			__m128 mul = _mm_mul_ps(masked_reg, masked_lhs);
-			return horizontal_addf(mul);
+			m128 mul = _mm_mul_ps(masked_reg, masked_lhs);
+			return _mm_cvtss_f32(dot(mul));
 		}
 
 		float dot(const vec_n_sse<2>& lhs) const noexcept
 		requires(N == 2)
 		{
-			__m128 masked_reg = _mm_mul_ps(reg, xymask);
-			__m128 masked_lhs = _mm_mul_ps(lhs.reg, xymask);
+			m128 masked_reg = _mm_mul_ps(reg, xymask);
+			m128 masked_lhs = _mm_mul_ps(lhs.reg, xymask);
 
-			__m128 mul = _mm_mul_ps(masked_reg, masked_lhs);
-			return horizontal_addf(mul);
+			m128 mul = _mm_mul_ps(masked_reg, masked_lhs);
+			return _mm_cvtss_f32(dot(mul));
 		}
 
 		// divide - non panicking
@@ -409,18 +418,18 @@ namespace deckard::math::sse
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
 		inline static float inf_float = std::numeric_limits<float>::infinity();
 
-		inline static __m128 xymask     = _mm_set_ps(0, 0, 1, 1);
-		inline static __m128 nan_xymask = _mm_set_ps(nan_float, nan_float, 1, 1);
-		inline static __m128 inf_xymask = _mm_set_ps(inf_float, inf_float, 1, 1);
+		inline static m128 xymask     = _mm_set_ps(0, 0, 1, 1);
+		inline static m128 nan_xymask = _mm_set_ps(nan_float, nan_float, 1, 1);
+		inline static m128 inf_xymask = _mm_set_ps(inf_float, inf_float, 1, 1);
 
-		inline static __m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
-		inline static __m128 zero     = _mm_set_ps1(0.0f);
-		inline static __m128 neg_zero = _mm_set_ps1(-0.0f);
+		inline static m128 xyzmask  = _mm_set_ps(0, 1, 1, 1);
+		inline static m128 zero     = _mm_set_ps1(0.0f);
+		inline static m128 neg_zero = _mm_set_ps1(-0.0f);
 
-		inline static __m128 one     = _mm_set_ps1(1.0f);
-		inline static __m128 neg_one = _mm_set_ps1(-1.0f);
+		inline static m128 one     = _mm_set_ps1(1.0f);
+		inline static m128 neg_one = _mm_set_ps1(-1.0f);
 
-		inline static __m128 inf = _mm_set_ps1(std::numeric_limits<float>::infinity());
+		inline static m128 inf = _mm_set_ps1(std::numeric_limits<float>::infinity());
 	};
 
 	// Free functions

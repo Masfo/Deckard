@@ -312,6 +312,7 @@ int main()
 	mat4 m = mat4::identity();
 	dbg::println("mat4: {}", m);
 
+	sse::test();
 
 	utf8::is_xid_start(0);
 
