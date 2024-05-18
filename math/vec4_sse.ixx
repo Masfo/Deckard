@@ -14,6 +14,11 @@ import deckard.assert;
 
 namespace deckard::math::sse
 {
+	export void test()
+	{
+		//
+	}
+
 	using m128 = __m128;
 
 	/*

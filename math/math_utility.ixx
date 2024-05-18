@@ -2,7 +2,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <numbers>
-
+#include <pmmintrin.h>
 #include <xmmintrin.h>
 
 export module deckard.math:utils;
@@ -45,18 +45,31 @@ export namespace deckard::math
 	}
 
 	// sse
-	__m128 horizontal_add(const __m128& lhs) noexcept
+	__m128 horizontal_add(const __m128& rhs) noexcept
 	{
-		__m128 shuf = _mm_shuffle_ps(lhs, lhs, _MM_SHUFFLE(2, 3, 0, 1)); // [ C D | A B ]
-		__m128 sums = _mm_add_ps(lhs, shuf);                             // sums = [ D+C C+D | B+A A+B ]
-		shuf        = _mm_movehl_ps(shuf, sums); //  [   C   D | D+C C+D ]  // let the compiler avoid a mov by reusing shuf
-		sums        = _mm_add_ss(sums, shuf);
-		return sums;
+#if 0
+		// SSE3
+		__m128 tmp0 = _mm_hadd_ps(rhs, rhs);
+		__m128 tmp1 = _mm_hadd_ps(tmp0, tmp0);
+		return tmp1;
+#else
+		__m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
+		__m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
+		return tmp1;
+#endif
 	};
 
-	float horizontal_addf(const __m128& lhs) noexcept { return _mm_cvtss_f32(horizontal_add(lhs)); };
+	float horizontal_addf(const __m128& lhs) noexcept
+	{
+		//
+		return _mm_cvtss_f32(horizontal_add(lhs));
+	};
 
-	export float sse_sqrt(float f) noexcept { return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f))); }
+	export float sse_sqrt(float f) noexcept
+	{
+		//
+		return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f)));
+	}
 
 
 } // namespace deckard::math

@@ -18,6 +18,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 {
 	//
 
+
 	SECTION("constructor")
 	{
 		vec2 v{1.0f};
