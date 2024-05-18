@@ -15,7 +15,7 @@ import deckard.types;
 namespace deckard::math
 {
 
-#if 1
+#if 0
 	// TODO: swich to generic SSE vec when compiler is happy
 	export using vec4 = sse::vec4; // sse::vec_n_sse<4>;
 	export using vec3 = sse::vec3; // sse::vec_n_sse<3>;

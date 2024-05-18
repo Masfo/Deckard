@@ -550,6 +550,13 @@ namespace deckard::math
 			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
 		}
 
+		[[nodiscard("Use the reflected vector")]] constexpr vec_type reflect(const vec_type& other) const noexcept
+		{
+			//
+			const vec_type v(*this);
+			return v - (other * v.dot(other) * 2);
+		}
+
 		// divide - non panicking
 		[[nodiscard("Use the divide vector")]] constexpr vec_type safe_divide(const vec_type& other) const noexcept
 		requires(std::floating_point<T>)
@@ -681,6 +688,12 @@ namespace deckard::math
 	[[nodiscard("Use the projected vector")]] constexpr vec_n<T, N> project(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.project(rhs);
+	}
+
+	export template<typename T, size_t N>
+	[[nodiscard("Use the reflected vector")]] constexpr vec_n<T, N> reflect(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.reflect(rhs);
 	}
 
 	export template<typename T, size_t N>

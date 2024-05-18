@@ -593,7 +593,7 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));
 	}
 
-	SECTION("vec4 cross/dot/length/normal/project")
+	SECTION("vec4 cross/dot/length/normal/project/reflect")
 	{
 		// cross
 		const vec4 a{3.0, -3.0, 1.0, 2.0};
@@ -619,6 +619,11 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		vec4 normalize_inplace = lvec;
 		normalize_inplace.normalize();
 		REQUIRE(normalize_inplace == normalized);
+
+		const vec4 refvec1{9.0f, -1.0f, 4.0f, -7.0f};
+		const vec4 refvec2{3.14f, 5.11f, -1.34f, 8.1f};
+		vec4       reflected = reflect(refvec1, refvec2);
+		REQUIRE(reflected == vec4(253.354828f, 396.660248f, -100.278816f, 623.342102f));
 	}
 
 	SECTION("compares")
@@ -750,7 +755,7 @@ TEST_CASE("sqrt test", "[math]")
 
 TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 {
-#if 1
+#if 0
 	using namespace deckard;
 	using namespace deckard::math;
 
