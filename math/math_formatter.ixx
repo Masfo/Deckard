@@ -1,15 +1,17 @@
-export module deckard.math.formatter;
+export module deckard.math:formatter;
+
+import :vec_generic;
+import :vec2_sse;
+import :vec3_sse;
+import :vec4_sse;
+import :vec_sse_generic;
+import :matrix;
+
 
 import std;
-import deckard.math.matrix;
-import deckard.math.vec2.sse;
-import deckard.math.vec3.sse;
-import deckard.math.vec4.sse;
-import deckard.math.vec.generic;
-import deckard.math.vec.sse.generic;
+
 
 import deckard.utils.hash;
-export void MyFunc();
 
 namespace std
 {

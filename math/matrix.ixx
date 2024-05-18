@@ -2,11 +2,11 @@ module;
 #include <array>
 #include <xmmintrin.h>
 
-export module deckard.math.matrix;
+export module deckard.math:matrix;
+import :vec4_sse;
 
 import deckard.assert;
 import deckard.utils.hash;
-import deckard.math.vec4.sse;
 
 namespace deckard::math
 {

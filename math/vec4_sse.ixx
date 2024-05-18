@@ -4,10 +4,10 @@ module;
 #include <limits>
 #include <xmmintrin.h>
 
-export module deckard.math.vec4.sse;
+export module deckard.math:vec4_sse;
 
 import deckard.assert;
-import deckard.math.vec3.sse;
+import :vec3_sse;
 import deckard.math.utils;
 import deckard.debug;
 import deckard.assert;

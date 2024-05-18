@@ -1,4 +1,10 @@
-export module deckard.math.vec;
+export module deckard.math:vec;
+
+import :vec2_sse;
+import :vec3_sse;
+import :vec4_sse;
+import :vec_sse_generic;
+import :vec_generic;
 
 import std;
 import deckard.as;
@@ -7,13 +13,6 @@ import deckard.types;
 import deckard.debug;
 import deckard.math.utils;
 import deckard.utils.hash;
-
-import deckard.math.vec.generic;
-import deckard.math.vec.sse.generic;
-
-import deckard.math.vec2.sse;
-import deckard.math.vec3.sse;
-import deckard.math.vec4.sse;
 
 
 template<typename T>

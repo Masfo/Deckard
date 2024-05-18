@@ -5,7 +5,7 @@ module;
 
 #include <xmmintrin.h>
 
-export module deckard.math.utils;
+export module deckard.math:utils;
 
 export namespace deckard::math
 {

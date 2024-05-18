@@ -2,13 +2,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 
-import deckard.math.vec;
 import deckard.debug;
-import deckard.math.utils;
 import deckard.helpers;
-import deckard.math.vec4.sse;
-import deckard.math.vec.generic;
-import deckard.math.formatter;
+import deckard.math;
 
 import std;
 

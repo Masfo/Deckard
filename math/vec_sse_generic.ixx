@@ -6,7 +6,7 @@ module;
 #include <numbers>
 #include <xmmintrin.h>
 
-export module deckard.math.vec.sse.generic;
+export module deckard.math:vec_sse_generic;
 
 import deckard.debug;
 import deckard.math.utils;

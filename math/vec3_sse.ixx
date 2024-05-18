@@ -6,10 +6,10 @@ module;
 #include <xmmintrin.h>
 
 
-export module deckard.math.vec3.sse;
+export module deckard.math:vec3_sse;
 
 import deckard.debug;
-import deckard.math.vec2.sse;
+import :vec2_sse;
 import deckard.math.utils;
 
 namespace deckard::math::sse

@@ -1,12 +1,12 @@
 
-export module deckard.math.vec.generic;
+export module deckard.math:vec_generic;
+import :utils;
 
 import std;
 import deckard.debug;
 import deckard.as;
 import deckard.assert;
 import deckard.utils.hash;
-import deckard.math.utils;
 
 namespace deckard::math
 {
