@@ -55,17 +55,6 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 
 		vzero = vec2(0, 1);
 		REQUIRE(vzero.has_zero() == true);
-
-
-		// ++ --
-		vec2 ppv(1, 2);
-		REQUIRE(ppv == vec2(1, 2));
-		ppv++;
-		++ppv;
-		REQUIRE(ppv == vec2(3, 4));
-		ppv--;
-		--ppv;
-		REQUIRE(ppv == vec2(1, 2));
 	}
 
 
@@ -128,6 +117,20 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(sres.equals(vec2(7.0f)));
 		sres -= 5.0f;
 		REQUIRE(sres.equals(vec2(2.0f)));
+
+		// ++ --
+		vec2 ppv(1, 2);
+		REQUIRE(ppv == vec2(1, 2));
+		vec2 post = ppv++;
+		REQUIRE(post == vec2(1, 2));
+		vec2 pre = ++ppv;
+		REQUIRE(pre == vec2(3, 4));
+
+
+		post = ppv--;
+		REQUIRE(post == vec2(3, 4));
+		pre = --ppv;
+		REQUIRE(pre == vec2(1, 2));
 	}
 
 	SECTION("vec2 other functions")
@@ -303,12 +306,16 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		// ++ --
 		vec3 ppv(1, 2, 3);
 		REQUIRE(ppv == vec3(1, 2, 3));
-		ppv++;
-		++ppv;
-		REQUIRE(ppv == vec3(3, 4, 5));
-		ppv--;
-		--ppv;
-		REQUIRE(ppv == vec3(1, 2, 3));
+		vec3 post = ppv++;
+		REQUIRE(post == vec3(1, 2, 3));
+		vec3 pre = ++ppv;
+		REQUIRE(pre == vec3(3, 4, 5));
+
+
+		post = ppv--;
+		REQUIRE(post == vec3(3, 4, 5));
+		pre = --ppv;
+		REQUIRE(pre == vec3(1, 2, 3));
 	}
 
 	SECTION("compares")
@@ -547,12 +554,16 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		// ++ --
 		vec4 ppv(1, 2, 3, 4);
 		REQUIRE(ppv == vec4(1, 2, 3, 4));
-		ppv++;
-		++ppv;
-		REQUIRE(ppv == vec4(3, 4, 5, 6));
-		ppv--;
-		--ppv;
-		REQUIRE(ppv == vec4(1, 2, 3, 4));
+		vec4 post = ppv++;
+		REQUIRE(post == vec4(1, 2, 3, 4));
+		vec4 pre = ++ppv;
+		REQUIRE(pre == vec4(3, 4, 5, 6));
+
+
+		post = ppv--;
+		REQUIRE(post == vec4(3, 4, 5, 6));
+		pre = --ppv;
+		REQUIRE(pre == vec4(1, 2, 3, 4));
 	}
 
 	SECTION("vec4 other functions")
