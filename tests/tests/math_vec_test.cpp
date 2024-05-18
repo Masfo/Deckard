@@ -723,13 +723,8 @@ TEST_CASE("sqrt test", "[math]")
 		_;
 		sse.emplace_back(dist(mt));
 	}
-	mt.seed(123);
 
-	for (auto _ : upto(width))
-	{
-		_;
-		generic.emplace_back(dist(mt));
-	}
+	generic = sse;
 
 	BENCHMARK("generic sqrt")
 	{
@@ -755,7 +750,7 @@ TEST_CASE("sqrt test", "[math]")
 
 TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 {
-#if 0
+#if 1
 	using namespace deckard;
 	using namespace deckard::math;
 
@@ -772,14 +767,13 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 		_;
 		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
 		sse.emplace_back(v1);
-
 	}
 	mt.seed(123);
 	for (auto _ : upto(width))
 	{
 		_;
-		sse::vec4 v1(dist(mt), dist(mt), dist(mt), dist(mt));
-		sse.emplace_back(v1);
+		vec_n<float, 4> v1(dist(mt), dist(mt), dist(mt), dist(mt));
+		generic.emplace_back(v1);
 	}
 
 	BENCHMARK("generic vec4")
