@@ -52,7 +52,7 @@ namespace deckard::math::sse
 		{
 		}
 
-		vec4(float x, float y, float z, float w) { reg = _mm_set_ps(w, z, y, x); }
+		vec4(float x, float y, float z, float w) { reg = _mm_setr_ps(x, y, z, w); }
 
 		vec4(const vec3& v, float w)
 		{
