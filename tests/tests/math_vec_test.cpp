@@ -654,6 +654,10 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		vec4 vnan = vec4::nan();
 		REQUIRE(vnan.is_nan() == true);
 
+		REQUIRE(vec4(1.0).is_nan() == false);
+		REQUIRE(vec4(1.0).has_nan() == false);
+
+
 		vec4 vnan2(0, 1, 3, std::numeric_limits<float>::quiet_NaN());
 		REQUIRE(vnan2.has_nan() == true);
 
