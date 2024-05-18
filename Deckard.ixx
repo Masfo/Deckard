@@ -11,14 +11,9 @@ export import deckard.helpertypes;
 export import deckard.filemonitor;
 export import deckard.file;
 
+
 // Math
-export import deckard.math.utils;
-export import deckard.math.matrix;
-export import deckard.math.vec;
-export import deckard.math.vec.sse.generic;
-export import deckard.math.vec2.sse;
-export import deckard.math.vec3.sse;
-export import deckard.math.vec4.sse;
+export import deckard.math;
 
 
 // Utils

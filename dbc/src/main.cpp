@@ -6,8 +6,8 @@ import deckard;
 import deckard.types;
 import deckard.helpers;
 import deckard.win32;
-import deckard.math.vec4.sse;
-import deckard.math.vec.generic;
+import deckard.math;
+import deckard.utf8;
 
 
 #ifndef _DEBUG
@@ -310,8 +310,10 @@ int main()
 #endif
 
 	mat4 m = mat4::identity();
-	dbg::println("{}", m);
+	dbg::println("mat4: {}", m);
 
+
+	utf8::is_xid_start(0);
 
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(4, 1));

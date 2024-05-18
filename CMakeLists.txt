@@ -46,6 +46,7 @@ if(MSVC)
     target_compile_options(deckard PRIVATE /std:c++latest)
     target_compile_options(deckard PRIVATE /Zc:__cplusplus /Zc:alignedNew)
     target_compile_options(deckard PRIVATE /utf-8)
+    target_compile_options(deckard PRIVATE /experimental:module)
 
 
     target_compile_options(deckard PRIVATE /fp:precise)
@@ -137,10 +138,10 @@ set(DECKARD_SRCS
 		file/FileMonitor.ixx
 
         # Math
+        math/math.ixx
         math/math_formatter.ixx
         math/matrix.ixx
         math/math_utility.ixx
-        math/vec.ixx
         math/vec_generic.ixx
         math/vec_sse_generic.ixx
         math/vec2_sse.ixx
@@ -160,6 +161,11 @@ set(DECKARD_SRCS
         utils/cpuid.ixx
 
         unicode/utf8.ixx
+        unicode/utf8_codepoints.ixx
+        unicode/utf8_xid.ixx
+        unicode/utf8_ascii.ixx
+
+
 
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
         

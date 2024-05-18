@@ -14,7 +14,6 @@ set_property(TARGET dbc PROPERTY CXX_STANDARD 			23)
 set_property(TARGET dbc PROPERTY CXX_STANDARD_REQUIRED 	ON)
 set_property(TARGET dbc PROPERTY CXX_STANDARD_EXTENSIONS OFF)
 
-set_target_properties(dbc PROPERTIES DEBUG_POSTFIX "d")
 
 set_target_properties(dbc PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
@@ -55,22 +54,27 @@ if(MSVC)
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
+        #set_target_properties(dbc PROPERTIES DEBUG_POSTFIX "d")
+
+
         set_target_properties(dbc PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
         set_target_properties(dbc PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
 
         target_compile_definitions(dbc PRIVATE -DDEBUG)
+        target_compile_options(dbc PRIVATE /W4)
 
         target_compile_options(dbc PRIVATE /JMC)    # Just my debugging
         target_compile_options(dbc PRIVATE /Od)
         target_compile_options(dbc PRIVATE /RTC1)
         target_compile_options(dbc PRIVATE /GS)
-        target_link_options(dbc PRIVATE /INCREMENTAL)
-
         target_compile_options(dbc PRIVATE /Zi)     # /ZI edit/continue
-    
+
+
         target_link_options(dbc PRIVATE /DEBUG)
+        target_link_options(dbc PRIVATE /INCREMENTAL)
+        target_link_options(dbc PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/dbc.ilk)
 
     endif()
     

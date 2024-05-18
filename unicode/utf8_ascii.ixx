@@ -1,27 +1,27 @@
 export module deckard.utf8:ascii;
 
-namespace deckard::utf8
+export namespace deckard::utf8
 {
 
 
-	export constexpr bool is_ascii_uppercase(char32_t codepoint) noexcept { return ((codepoint >= 'A') and (codepoint <= 'Z')); }
+	constexpr bool is_ascii_uppercase(char32_t codepoint) noexcept { return ((codepoint >= 'A') and (codepoint <= 'Z')); }
 
-	export constexpr bool is_ascii_lowercase(char32_t codepoint) noexcept { return ((codepoint >= 'a') and (codepoint <= 'z')); }
+	constexpr bool is_ascii_lowercase(char32_t codepoint) noexcept { return ((codepoint >= 'a') and (codepoint <= 'z')); }
 
-	export constexpr bool is_digit(char32_t codepoint) noexcept { return ((codepoint >= '0') and (codepoint <= '9')); }
+	constexpr bool is_digit(char32_t codepoint) noexcept { return ((codepoint >= '0') and (codepoint <= '9')); }
 
-	export constexpr bool is_ascii_alphabet(char32_t codepoint) noexcept
+	constexpr bool is_ascii_alphabet(char32_t codepoint) noexcept
 	{
 		return ((codepoint >= 'A') and (codepoint <= 'Z')) or ((codepoint >= 'a') and (codepoint <= 'z'));
 	}
 
-	export constexpr bool is_ascii_alphanumeric(char32_t codepoint) noexcept
+	constexpr bool is_ascii_alphanumeric(char32_t codepoint) noexcept
 	{
 		return ((codepoint >= 'A') and (codepoint <= 'Z')) or ((codepoint >= 'a') and (codepoint <= 'z')) or
 			   ((codepoint >= '0') and (codepoint <= '9'));
 	}
 
-	export constexpr bool is_whitespace(char32_t codepoint)
+	constexpr bool is_whitespace(char32_t codepoint)
 	{
 		// PropList-15.1.0.txt
 		return (

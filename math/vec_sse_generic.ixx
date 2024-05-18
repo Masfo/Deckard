@@ -105,14 +105,24 @@ namespace deckard::math::sse
 		}
 
 		// operations
-		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
+		vec_type min(const vec_type& lhs) const noexcept
+		{
+			// TODO: mask xyz/xy
+			return _mm_min_ps(reg, lhs.reg);
+		}
 
-		vec_type max(const vec_type& lhs) const noexcept { return _mm_max_ps(reg, lhs.reg); }
+		vec_type max(const vec_type& lhs) const noexcept
+		{
+			// TODO: mask xyz/xy
+			return _mm_max_ps(reg, lhs.reg);
+		}
 
 		vec_type abs() const noexcept { return _mm_andnot_ps(neg_zero, reg); }
 
 		float length() const noexcept
 		{
+			// TODO: mask xyz/xy
+
 			__m128 a      = _mm_mul_ps(reg, reg);
 			auto   rc     = _mm_sqrt_ps(horizontal_add(a));
 			float  result = _mm_cvtss_f32(rc);
