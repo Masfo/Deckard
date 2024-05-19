@@ -776,8 +776,12 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 
 	std::vector<sse::vec4>       sse;
 	std::vector<vec_n<float, 4>> generic;
+#ifndef _DEBUG
+	constexpr int width = 100'000;
+#else
+	constexpr int width = 100;
+#endif
 
-	constexpr int width = 1'000;
 	mt.seed(123);
 	for (auto _ : upto(width))
 	{
@@ -793,31 +797,43 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 		generic.emplace_back(v1);
 	}
 
+	auto gen_result = *generic.begin();
 	BENCHMARK("generic vec4")
 	{
-		auto result = *generic.begin();
 
 		for (const auto& v : generic)
 		{
-			result += v;
-			result *= v;
-			result -= v;
-			result /= v;
+			gen_result += v;
+			gen_result *= v;
+			gen_result -= v;
+			gen_result /= v;
+			gen_result = reflect(gen_result, vec_n<float, 4>(1.0, 0.0, 1.0, 0.0));
+			gen_result.normalize();
 		}
-		return result;
+		return gen_result;
 	};
 
+	auto sse_result = *sse.begin();
 	BENCHMARK("sse vec4")
 	{
-		auto result = *sse.begin();
 		for (const auto& v : sse)
 		{
-			result += v;
-			result *= v;
-			result -= v;
-			result /= v;
+			sse_result += v;
+			sse_result *= v;
+			sse_result -= v;
+			sse_result /= v;
+			sse_result = reflect(sse_result, vec4(1.0, 0.0, 1.0, 0.0));
+			sse_result.normalize();
 		}
-		return result;
+
+		return sse_result;
 	};
+
+	REQUIRE(gen_result[0] == sse_result[0]);
+	REQUIRE(gen_result[1] == sse_result[1]);
+	REQUIRE(gen_result[2] == sse_result[2]);
+	REQUIRE(gen_result[3] == sse_result[3]);
+
+
 #endif
 }
