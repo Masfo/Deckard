@@ -199,6 +199,12 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 angleB{2.0f, -1.0f};
 		const auto angle_between = angle(angleA, angleB);
 		REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
+
+		// reflected
+		const vec2 dir{9.0f, -1.0f};
+		const vec2 normal{3.14f, 5.11f};
+		vec2       reflected = reflect(dir, normal);
+		REQUIRE(reflected == vec2(-136.382004f, -237.593002f));
 	}
 }
 
@@ -425,6 +431,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 
 		const vec3 rotated2 = rotate(vec3{0.0f, 1.0f, 0.0f}, vec3{0.0f, 0.0f, 1.0f}, to_radians<float>(180));
 		REQUIRE(true == rotated2.equals(vec3{0.0f, -1.0f, 0.0f}));
+
+		// reflected
+		const vec3 dir{9.0f, -1.0f, 4.0f};
+		const vec3 normal{3.14f, 5.11f, -1.34f};
+		vec3       reflected = reflect(dir, normal);
+		REQUIRE(reflected == vec3(-102.721199f, -182.813797f, 51.677200f));
 	}
 }
 
@@ -620,9 +632,9 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		normalize_inplace.normalize();
 		REQUIRE(normalize_inplace == normalized);
 
-		const vec4 refvec1{9.0f, -1.0f, 4.0f, -7.0f};
-		const vec4 refvec2{3.14f, 5.11f, -1.34f, 8.1f};
-		vec4       reflected = reflect(refvec1, refvec2);
+		const vec4 dir{9.0f, -1.0f, 4.0f, -7.0f};
+		const vec4 normal{3.14f, 5.11f, -1.34f, 8.1f};
+		vec4       reflected = reflect(dir, normal);
 		REQUIRE(reflected == vec4(253.354828f, 396.660248f, -100.278816f, 623.342102f));
 	}
 

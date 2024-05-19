@@ -199,6 +199,12 @@ namespace deckard::math::sse
 			return _mm_sub_ps(tmp3, tmp4);
 		}
 
+		vec_type reflect(const vec_type& normal) const noexcept
+		{
+			const vec_type v(*this);
+			return v - (normal * v.dot(normal) * 2);
+		}
+
 		// dot
 		float dot(const vec_type& lhs) const noexcept
 		{
@@ -354,6 +360,8 @@ namespace deckard::math::sse
 	export [[nodiscard("Use the normalized value")]] auto normalized(const vec4& rhs) { return rhs.normalized(); }
 
 	export [[nodiscard("Use the projected vector")]] vec4 cross(const vec4& lhs, const vec4& rhs) { return lhs.cross(rhs); }
+
+	export [[nodiscard("Use the reflected vector")]] vec4 reflect(const vec4& dir, const vec4& normal) { return dir.reflect(normal); }
 
 	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const vec4& rhs) { return lhs.safe_divide(rhs); }
 

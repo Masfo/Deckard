@@ -229,6 +229,13 @@ namespace deckard::math::sse
 			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
 		}
 
+		// reflect
+		vec_type reflect(const vec_type& normal) const noexcept
+		{
+			const vec_type v(*this);
+			return v - (normal * v.dot(normal) * 2);
+		}
+
 		// divide - non panicking
 		[[nodiscard("Use the divide vector")]] vec_type safe_divide(const vec_type& other) const noexcept
 		{
@@ -396,6 +403,8 @@ namespace deckard::math::sse
 	{
 		return v.rotate(axis, angle);
 	}
+
+	export [[nodiscard("Use the reflected vector")]] vec3 reflect(const vec3& dir, const vec3& normal) { return dir.reflect(normal); }
 
 	export [[nodiscard("Use the divided value")]] vec3 safe_divide(const vec3& lhs, const vec3& rhs) { return lhs.safe_divide(rhs); }
 
