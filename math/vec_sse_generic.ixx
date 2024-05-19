@@ -16,6 +16,7 @@ namespace deckard::math::sse
 	using m128 = __m128;
 
 	export template<size_t N>
+	requires(N >= 2 or N <= 4)
 	struct alignas(16) vec_n_sse
 	{
 		m128 reg;
@@ -290,6 +291,12 @@ namespace deckard::math::sse
 			float oneMinusCosTheta = 1.0f - cosTheta;
 
 			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
+		}
+
+		vec_type reflect(const vec_type& normal) const noexcept
+		{
+			const vec_type v(*this);
+			return v - (normal * v.dot(normal) * 2);
 		}
 
 		// has / is
@@ -609,5 +616,22 @@ namespace deckard::math::sse
 	{
 		return v.rotate(axis, angle);
 	}
+
+	// reflect ------------------------
+	export [[nodiscard("Use the reflected vector")]] vec_n_sse<2> reflect(const vec_n_sse<2>& dir, const vec_n_sse<2>& normal)
+	{
+		return dir.reflect(normal);
+	}
+
+	export [[nodiscard("Use the reflected vector")]] vec_n_sse<3> reflect(const vec_n_sse<3>& dir, const vec_n_sse<3>& normal)
+	{
+		return dir.reflect(normal);
+	}
+
+	export [[nodiscard("Use the reflected vector")]] vec_n_sse<4> reflect(const vec_n_sse<4>& dir, const vec_n_sse<4>& normal)
+	{
+		return dir.reflect(normal);
+	}
+
 
 } // namespace deckard::math::sse
