@@ -1,7 +1,5 @@
 module;
-
 #include <windows.h>
-
 
 export module deckard.file;
 
@@ -11,11 +9,9 @@ import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.helpers;
-import deckard.enums;
 
 namespace deckard
 {
-
 
 	export class file
 	{
@@ -98,13 +94,15 @@ namespace deckard
 
 		bool is_open() const noexcept { return raw_address != nullptr; }
 
-		void save() { FlushViewOfFile(raw_address, 0); }
+		void save() { flush(); }
+
+		void flush() { FlushViewOfFile(raw_address, 0); }
 
 		void write(std::filesystem::path filename) { }
 
 		void close() noexcept
 		{
-			FlushViewOfFile(raw_address, 0);
+			flush();
 			UnmapViewOfFile(raw_address);
 
 			raw_address = nullptr;
