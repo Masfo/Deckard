@@ -7,7 +7,7 @@ struct MonitorHash
 {
 	using is_transparent = void;
 
-	std::size_t operator()(const std::string &r) const { return std::hash<std::string>{}(r); }
+	std::size_t operator()(const std::string& r) const { return std::hash<std::string>{}(r); }
 };
 
 export namespace deckard
@@ -41,7 +41,7 @@ export namespace deckard
 
 		bool empty() const { return path.empty(); };
 
-		bool operator==(const MonitorData &rhs) const { return path == rhs.path; }
+		bool operator==(const MonitorData& rhs) const { return path == rhs.path; }
 
 		std::string_view typestring() const
 		{
@@ -75,10 +75,10 @@ export namespace deckard
 
 	export class Monitor
 	{
-		using UserFunction = void(const MonitorData &);
+		using UserFunction = void(const MonitorData&);
 
 	public:
-		explicit Monitor(const std::filesystem::path &path) noexcept
+		explicit Monitor(const std::filesystem::path& path) noexcept
 			: m_current_path(path)
 		{
 		}
@@ -91,18 +91,18 @@ export namespace deckard
 		bool filter(std::string_view) const noexcept { return false; }
 
 		// Copy
-		Monitor(Monitor const &)            = delete;
-		Monitor &operator=(Monitor const &) = delete;
+		Monitor(Monitor const&)            = delete;
+		Monitor& operator=(Monitor const&) = delete;
 		// Move
-		Monitor(Monitor &&)            = delete;
-		Monitor &operator=(Monitor &&) = delete;
+		Monitor(Monitor&&)            = delete;
+		Monitor& operator=(Monitor&&) = delete;
 
 		~Monitor() noexcept = default;
 
 		template<typename Callable>
 		void start(Callable func, const std::chrono::milliseconds update_time = std::chrono::milliseconds{1'000}) noexcept
 		{
-			static_assert(std::is_convertible_v<Callable &&, std::function<UserFunction>>, "Wrong callback signature");
+			static_assert(std::is_convertible_v<Callable&&, std::function<UserFunction>>, "Wrong callback signature");
 			m_callback = func;
 
 			start_thread(update_time);
@@ -113,32 +113,32 @@ export namespace deckard
 		{
 
 			m_monitor_thread = std::jthread(
-							[&, update_time](std::stop_token token)
-							{
-								// First scan
-								for (const auto &file : std::filesystem::recursive_directory_iterator(
-													 m_current_path, std::filesystem::directory_options::skip_permission_denied))
-									update_file(file, StatusFlag::Created);
+			  [&, update_time](std::stop_token token)
+			  {
+				  // First scan
+				  for (const auto& file : std::filesystem::recursive_directory_iterator(
+						 m_current_path, std::filesystem::directory_options::skip_permission_denied))
+					  update_file(file, StatusFlag::Created);
 
-								while (!token.stop_requested())
-								{
-									std::this_thread::sleep_for(update_time);
-									update_files();
-								}
-							});
+				  while (!token.stop_requested())
+				  {
+					  std::this_thread::sleep_for(update_time);
+					  update_files();
+				  }
+			  });
 		}
 
-		void callback(const MonitorData &data) const noexcept
+		void callback(const MonitorData& data) const noexcept
 		{
 			//
 			m_callback(data);
 		}
 
-		bool contains(const std::string &sv) const noexcept { return m_files.contains(sv); }
+		bool contains(const std::string& sv) const noexcept { return m_files.contains(sv); }
 
-		void update_file(const std::filesystem::directory_entry &path, StatusFlag flag) noexcept
+		void update_file(const std::filesystem::directory_entry& path, StatusFlag flag) noexcept
 		{
-			const auto &str         = path.path().string();
+			const auto& str         = path.path().string();
 			m_files[str].path       = path;
 			m_files[str].directory  = std::filesystem::is_directory(path);
 			m_files[str].statuscode = flag;
@@ -149,7 +149,7 @@ export namespace deckard
 		{
 			// Delete files
 			std::erase_if(m_files,
-						  [&](auto &it)
+						  [&](auto& it)
 						  {
 							  if (!std::filesystem::exists(it.first))
 							  {
@@ -163,10 +163,10 @@ export namespace deckard
 
 		void update_files() noexcept
 		{
-			for (const auto &file :
+			for (const auto& file :
 				 std::filesystem::recursive_directory_iterator(m_current_path, std::filesystem::directory_options::skip_permission_denied))
 			{
-				const auto &filestring = file.path().string();
+				const auto& filestring = file.path().string();
 
 				if (!contains(filestring))
 				{
@@ -192,7 +192,7 @@ export namespace deckard
 		std::unordered_map<std::string, MonitorData, MonitorHash, std::equal_to<>> m_files;
 		std::filesystem::path                                                      m_current_path;
 		std::jthread                                                               m_monitor_thread;
-		UserFunction                                                              *m_callback{nullptr};
+		UserFunction*                                                              m_callback{nullptr};
 		unsigned int                                                               m_filter{0};
 	};
 
