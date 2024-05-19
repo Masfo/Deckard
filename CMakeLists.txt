@@ -134,8 +134,8 @@ set(DECKARD_SRCS
 
 		debug/debug.ixx
 		debug/assert.ixx
-		file/File.ixx
-		file/FileMonitor.ixx
+		file/file.ixx
+		file/fileMonitor.ixx
 
         # Math
         math/math.ixx

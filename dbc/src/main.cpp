@@ -122,7 +122,7 @@ bool IPv6Address::fromString(const char* addrstr)
 		if (addrstr[i] == ':' || addrstr[i] == '\0')
 		{
 			_address[pos]     = accumulator >> 8;
-			_address[pos + 1] = accumulator;
+			_address[pos + 1] = (u8)accumulator;
 			accumulator       = 0;
 
 			if (colon_count && i && addrstr[i - 1] == ':')
@@ -196,9 +196,9 @@ public:
 
 	IpAddress() = default;
 
-	IpAddress(std::string_view ip_string) { }
+	IpAddress(std::string_view) { }
 
-	std::string as_string(size_t truncated = 0) const { return {}; }
+	std::string as_string(size_t) const { return {}; }
 
 	std::array<u16, 8> address{0};
 	u16                port_num{0};
@@ -278,7 +278,7 @@ public:
 	void reserve(u32 size) noexcept { data.reserve(size); }
 
 	template<typename T>
-	void write(const T value, u32 bitwidth = 0) noexcept
+	void write(const T, u32 bitwidth = 0) noexcept
 	{
 		using type = LeastUnsignedType<sizeof(T)>::type;
 
@@ -286,11 +286,11 @@ public:
 			bitwidth = sizeof(type) * 8;
 
 
-		const type input_be   = std::bit_cast<type>(value);
-		const type input_word = std::byteswap(std::bit_cast<type>(value));
+		//		const type input_be   = std::bit_cast<type>(value);
+		// const type input_word = std::byteswap(std::bit_cast<type>(value));
 
 
-		int j = 0;
+		// int j = 0;
 	}
 
 private:
@@ -309,7 +309,32 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	mat4 m = mat4::identity();
+
+	file f("fview.txt", file::access::readwrite);
+
+	if (f.is_open())
+	{
+
+		f[0] = f[0] + 1;
+		std::vector<u8> ds;
+		ds.assign_range(*f.data());
+
+
+		f.close();
+		file::write("fview.txt", ds, file::access::createnew);
+	}
+
+	// filemonitor fmon("folder");
+	//
+	// fmon.add("folder2");
+	// fmon.callback([](const status s, const fs::path &file
+	//  - status: created, deleted, modified,
+
+	std::filesystem::path we;
+	we.
+
+
+	  mat4 m = mat4::identity();
 	dbg::println("mat4: {}", m);
 
 	sse::test();
@@ -358,21 +383,16 @@ int main()
 	adata.push_back(0x5566'7788);
 
 
-	auto bbs2 = std::as_bytes(std::span{adata});
-	auto bbs3 = std::as_writable_bytes(std::span{adata});
-
-	auto header = std::as_bytes(std::span{bbs3.first(4)});
-	u64  hhe    = load_as<u32>(header);
-	u64  hhe2   = load_as<u32>(header.data());
+	// auto bbs2 = std::as_bytes(std::span{adata});
+	// auto bbs3 = std::as_writable_bytes(std::span{adata});
+	//
+	// auto header = std::as_bytes(std::span{bbs3.first(4)});
+	// u64  hhe    = load_as<u32>(header);
+	// u64  hhe2   = load_as<u32>(header.data());
 
 	// load_as<char, 16>(header); //
 	// subspan => string
 
-
-	bbs3[5] = 0xFF_byte;
-
-
-	int j = 0;
 
 	auto count_colons = [](std::string_view input) -> i32
 	{
@@ -414,7 +434,7 @@ int main()
 			if (digit == '0')
 			{
 				if (current_zeros == 0)
-					current_zeros_index = i;
+					current_zeros_index = as<i32>(i);
 				current_zeros += 1;
 			}
 			else
