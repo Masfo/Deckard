@@ -199,11 +199,7 @@ namespace deckard::math::sse
 			return _mm_sub_ps(tmp3, tmp4);
 		}
 
-		vec_type reflect(const vec_type& normal) const noexcept
-		{
-			const vec_type v(*this);
-			return v - (normal * v.dot(normal) * 2);
-		}
+		vec_type reflect(const vec_type& normal) const noexcept { return *this - (normal * dot(normal) * 2); }
 
 		// dot
 		float dot(const vec_type& lhs) const noexcept

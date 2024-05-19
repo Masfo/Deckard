@@ -230,11 +230,7 @@ namespace deckard::math::sse
 		}
 
 		// reflect
-		vec_type reflect(const vec_type& normal) const noexcept
-		{
-			const vec_type v(*this);
-			return v - (normal * v.dot(normal) * 2);
-		}
+		vec_type reflect(const vec_type& normal) const noexcept { return *this - (normal * dot(normal) * 2); }
 
 		// divide - non panicking
 		[[nodiscard("Use the divide vector")]] vec_type safe_divide(const vec_type& other) const noexcept
