@@ -179,15 +179,17 @@ set(DECKARD_SRCS
         types/enum_flags.ixx
         types/helpertypes.ixx
 
-         $<$<PLATFORM_ID:Windows>:win32/win32.ixx>
-		#win32/DTE.ixx
+        $<$<PLATFORM_ID:Windows>:win32/win32.ixx>
+		# win32/DTE.ixx
 
         archive/archive.ixx
 
         std.ixx
 )
 
-
+# $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
+# $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
+# $<$<NOT:$<PLATFORM_ID:Windows>>:file.cpp>
 
 
 target_sources(deckard PUBLIC
@@ -266,7 +268,6 @@ target_compile_options(deckard PRIVATE
 #####################################
 #####################################
 if(DECKARD_SCRIPT)
-#add_subdirectory(sc)
 add_subdirectory(dbc)
 endif()
 
