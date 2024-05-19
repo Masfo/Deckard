@@ -28,6 +28,8 @@ namespace deckard
 		file& operator=(const file&) = delete;
 		file& operator=(file&&)      = delete;
 
+		~file() { close(); }
+
 		file(const std::filesystem::path filename, access flag = access::read) { open(filename, flag); }
 
 		std::optional<std::span<u8>> open(std::filesystem::path const filename, access flag = access::read) noexcept
