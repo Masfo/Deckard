@@ -6,131 +6,121 @@ module;
 export module deckard.file;
 
 import std;
+import deckard.debug;
 import deckard.as;
 import deckard.types;
 import deckard.assert;
+import deckard.helpers;
+import deckard.enums;
 
-export namespace deckard
+namespace deckard
 {
 
-	enum class FileAccess : u8
-	{
-		Read,
-		ReadWrite,
-	};
 
-	class Fileview
+	export class file
 	{
 	public:
-		Fileview() = default;
-
-
-		Fileview(Fileview&&) noexcept        = delete;
-		Fileview(const Fileview&)            = delete;
-		Fileview& operator=(const Fileview&) = delete;
-		Fileview& operator=(Fileview&&)      = delete;
-
-		explicit Fileview(std::filesystem::path const filename, FileAccess rw = FileAccess::Read) noexcept { open(filename, rw); }
-
-		bool open(std::filesystem::path const filename, FileAccess rw = FileAccess::Read) noexcept
+		enum class access : u8
 		{
-			m_access_flag      = rw;
-			DWORD access       = GENERIC_READ;
-			DWORD page_protect = PAGE_READONLY;
+			read,
+			readwrite,
+		};
 
-			if (m_access_flag == FileAccess::ReadWrite)
+		file()                       = default;
+		file(file&&) noexcept        = delete;
+		file(const file&)            = delete;
+		file& operator=(const file&) = delete;
+		file& operator=(file&&)      = delete;
+
+		file(const std::filesystem::path filename, access flag = access::read) { open(filename, flag); }
+
+		std::optional<std::span<u8>> open(std::filesystem::path const filename, access flag = access::read) noexcept
+		{
+			flags = flag;
+
+			DWORD rw          = GENERIC_READ;
+			DWORD page        = PAGE_READONLY;
+			DWORD filemapping = FILE_MAP_READ;
+
+			if (flags == access::readwrite)
 			{
-				access |= GENERIC_WRITE;
-				page_protect = PAGE_READWRITE;
+				rw |= GENERIC_WRITE;
+				page = PAGE_READWRITE;
+				filemapping |= FILE_MAP_WRITE;
 			}
 
-			m_filehandle =
-			  CreateFile(filename.wstring().c_str(), access, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-			m_mappinghandle = CreateFileMapping(m_filehandle, nullptr, page_protect, 0, 0, nullptr);
+			handle = CreateFile(filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
-			assert::check(m_mappinghandle != 0, "Could not open file mapping");
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				close();
 
-			map();
+				dbg::println("Could not open file '{}'", filename.string());
+				return {};
+			}
 
-			return is_open();
-		}
-
-		bool is_open() const noexcept { return m_mappinghandle != 0; }
-
-		operator bool() const noexcept { return is_open(); }
-
-		void close() noexcept { unmap(); }
-
-		u64 size() const noexcept
-		{
 			LARGE_INTEGER fs;
-			if (GetFileSizeEx(m_filehandle, &fs) != 0)
-				return as<u64>(fs.QuadPart);
-			return 0;
+			if (GetFileSizeEx(handle, &fs) != 0)
+				filesize = as<u64>(fs.QuadPart);
+
+
+			mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
+			if (mapping == nullptr)
+			{
+				close();
+
+				dbg::println("Could not create mapping for file '{}' ({})", filename.string(), PrettyBytes(filesize));
+				return {};
+			}
+
+
+			addr = MapViewOfFile(mapping, filemapping, 0, 0, 0);
+			if (addr == nullptr)
+			{
+				close();
+
+				dbg::println("Could not map file '{}'", filename.string());
+				return {};
+			}
+
+			view = std::span<u8>{as<u8*>(addr), size()};
+			return view;
 		}
 
-		template<typename T, typename U>
-		T as_type() noexcept
+		auto data() const noexcept { return view; }
+
+		u64 size() const noexcept { return filesize; }
+
+		bool is_open() const noexcept { return (handle != nullptr and mapping != nullptr && addr != nullptr); }
+
+		void save() { FlushViewOfFile(addr, 0); }
+
+		void write(std::filesystem::path filename) { }
+
+		void close() noexcept
 		{
-			if (auto* addr = as<U*>(map()); addr != nullptr)
-				return T{addr, size()};
+			FlushViewOfFile(addr, 0);
+			UnmapViewOfFile(addr);
 
-			return {};
+			CloseHandle(mapping);
+			CloseHandle(handle);
+
+			addr = handle = mapping = nullptr;
 		}
 
-		auto as_stringview() noexcept { return as_type<std::string_view, char>(); }
-
-		auto as_span() noexcept { return as_type<std::span<char>, char>(); }
-
-		auto& operator[](u64 index) noexcept
+		u8& operator[](u64 index) const noexcept
 		{
-			assert::check(is_open(), "File view is not open");
-
-			auto ptr = static_cast<char*>(map());
-			return ptr[index];
+			assert::check(is_open(), "indexing a closed file");
+			assert::check(index < filesize, std::format("indexing out-of-bounds: {} out of {}", index + 1, filesize));
+			return view[index];
 		}
 
-		~Fileview() { close(); }
-
-		bool operator==(const Fileview& other) const = default;
-
-	private:
-		void* map() noexcept
-		{
-			assert::check(m_mappinghandle != 0, "File mapping is not open");
-
-			if (m_addr != nullptr)
-				return m_addr;
-
-			DWORD access = FILE_MAP_READ;
-			if (m_access_flag == FileAccess::ReadWrite)
-				access |= FILE_MAP_WRITE;
-
-			m_addr = MapViewOfFile(m_mappinghandle, access, 0, 0, 0);
-
-			assert::check(m_addr != nullptr, "Map view is not valid");
-			return m_addr;
-		}
-
-		void unmap() noexcept
-		{
-			FlushViewOfFile(m_addr, 0);
-			UnmapViewOfFile(m_addr);
-			CloseHandle(m_mappinghandle);
-			CloseHandle(m_filehandle);
-			m_addr = m_filehandle = m_mappinghandle = 0;
-		}
-
-		HANDLE     m_filehandle{0};
-		HANDLE     m_mappinghandle{0};
-		void*      m_addr{nullptr};
-		FileAccess m_access_flag{FileAccess::Read};
-	};
-
-	class TextFile final
-	{
-	public:
-		Fileview m_file;
+		HANDLE        handle{nullptr};
+		HANDLE        mapping{nullptr};
+		void*         addr{nullptr};
+		u64           filesize{0};
+		access        flags{access::read};
+		std::span<u8> view;
 	};
 
 

@@ -3,7 +3,7 @@
 
 	<!-- Files -->
 	<File Name="types.ixx"/>
-	<File Name="_as.ixx"/>
+	<File Name="as.ixx"/>
 	<File Name="enum_flags.ixx"/>
 
 
@@ -16,6 +16,7 @@
 	<File Name="sha2.ixx"/>
 	<File Name="_tokenizer.ixx"/>
 
+	<File Name="file.ixx"/>
 
 
 
