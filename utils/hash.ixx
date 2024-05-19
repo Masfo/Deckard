@@ -16,14 +16,15 @@ namespace deckard::utils
 	u32 distribute(const u32& n)
 	{
 		u32 p = 0x5555'5555ul;
-		u32 c = 3'423'571'495ul;
+		u32 c = 0xCC0F'8E27ul;
 		return c * xorshift(p * xorshift(n, 16), 16);
 	}
 
 	u64 distribute(const u64& n)
 	{
 		u64 p = 0x5555'5555'5555'5555ull;
-		u64 c = 17'316'035'218'449'499'591ull;
+		u64 c = 0xF04E'EA49'71D6'05C7ull;
+
 		return c * xorshift(p * xorshift(n, 32), 32);
 	}
 
