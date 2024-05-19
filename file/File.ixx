@@ -88,6 +88,7 @@ namespace deckard
 			CloseHandle(mapping);
 			mapping = nullptr;
 
+
 			view = std::span<u8>{as<u8*>(raw_address), filesize};
 			return view;
 		}
@@ -102,8 +103,6 @@ namespace deckard
 		u64 size() const noexcept { return view.size_bytes(); }
 
 		bool is_open() const noexcept { return not view.empty(); }
-
-		void save() { flush(); }
 
 		void flush() { FlushViewOfFile(view.data(), 0); }
 
@@ -132,6 +131,7 @@ namespace deckard
 			}
 
 			auto& data = content.value();
+
 
 			DWORD mode = CREATE_ALWAYS;
 			if (flag == access::overwrite)
