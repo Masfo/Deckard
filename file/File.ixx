@@ -36,20 +36,20 @@ namespace deckard
 
 		std::optional<std::span<u8>> open(std::filesystem::path const filename, access flag = access::read) noexcept
 		{
-			flags = flag;
 
 			DWORD rw          = GENERIC_READ;
 			DWORD page        = PAGE_READONLY;
 			DWORD filemapping = FILE_MAP_READ;
 
-			if (flags == access::readwrite)
+			if (flag == access::readwrite)
 			{
 				rw |= GENERIC_WRITE;
 				page = PAGE_READWRITE;
 				filemapping |= FILE_MAP_WRITE;
 			}
 
-			handle = CreateFile(filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			HANDLE handle =
+			  CreateFile(filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (handle == INVALID_HANDLE_VALUE)
 			{
@@ -64,7 +64,7 @@ namespace deckard
 				filesize = as<u64>(fs.QuadPart);
 
 
-			mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
+			HANDLE mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
 			if (mapping == nullptr)
 			{
 				close();
@@ -73,6 +73,8 @@ namespace deckard
 				return {};
 			}
 
+			CloseHandle(handle);
+			handle = nullptr;
 
 			addr = MapViewOfFile(mapping, filemapping, 0, 0, 0);
 			if (addr == nullptr)
@@ -83,6 +85,9 @@ namespace deckard
 				return {};
 			}
 
+			CloseHandle(mapping);
+			mapping = nullptr;
+
 			view = std::span<u8>{as<u8*>(addr), size()};
 			return view;
 		}
@@ -91,7 +96,7 @@ namespace deckard
 
 		u64 size() const noexcept { return filesize; }
 
-		bool is_open() const noexcept { return (handle != nullptr and mapping != nullptr && addr != nullptr); }
+		bool is_open() const noexcept { return addr != nullptr; }
 
 		void save() { FlushViewOfFile(addr, 0); }
 
@@ -102,10 +107,7 @@ namespace deckard
 			FlushViewOfFile(addr, 0);
 			UnmapViewOfFile(addr);
 
-			CloseHandle(mapping);
-			CloseHandle(handle);
-
-			addr = handle = mapping = nullptr;
+			addr = nullptr;
 		}
 
 		u8& operator[](u64 index) const noexcept
@@ -115,12 +117,9 @@ namespace deckard
 			return view[index];
 		}
 
-		HANDLE        handle{nullptr};
-		HANDLE        mapping{nullptr};
+		std::span<u8> view;
 		void*         addr{nullptr};
 		u64           filesize{0};
-		access        flags{access::read};
-		std::span<u8> view;
 	};
 
 
