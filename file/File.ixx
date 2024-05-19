@@ -76,8 +76,8 @@ namespace deckard
 			CloseHandle(handle);
 			handle = nullptr;
 
-			addr = MapViewOfFile(mapping, filemapping, 0, 0, 0);
-			if (addr == nullptr)
+			raw_address = as<u8*>(MapViewOfFile(mapping, filemapping, 0, 0, 0));
+			if (raw_address == nullptr)
 			{
 				close();
 
@@ -88,7 +88,7 @@ namespace deckard
 			CloseHandle(mapping);
 			mapping = nullptr;
 
-			view = std::span<u8>{as<u8*>(addr), size()};
+			view = std::span<u8>{as<u8*>(raw_address), size()};
 			return view;
 		}
 
@@ -96,18 +96,18 @@ namespace deckard
 
 		u64 size() const noexcept { return filesize; }
 
-		bool is_open() const noexcept { return addr != nullptr; }
+		bool is_open() const noexcept { return raw_address != nullptr; }
 
-		void save() { FlushViewOfFile(addr, 0); }
+		void save() { FlushViewOfFile(raw_address, 0); }
 
 		void write(std::filesystem::path filename) { }
 
 		void close() noexcept
 		{
-			FlushViewOfFile(addr, 0);
-			UnmapViewOfFile(addr);
+			FlushViewOfFile(raw_address, 0);
+			UnmapViewOfFile(raw_address);
 
-			addr = nullptr;
+			raw_address = nullptr;
 		}
 
 		u8& operator[](u64 index) const noexcept
@@ -118,7 +118,7 @@ namespace deckard
 		}
 
 		std::span<u8> view;
-		void*         addr{nullptr};
+		u8*           raw_address{nullptr};
 		u64           filesize{0};
 	};
 
