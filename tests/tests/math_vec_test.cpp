@@ -731,7 +731,7 @@ TEST_CASE("sin/cos benchmark")
 	std::vector<float> values;
 
 	std::mt19937                          mt{};
-	std::uniform_real_distribution<float> dist{-1024.0f, 1024.0f};
+	std::uniform_real_distribution<float> dist{-10240.0f, 10240.0f};
 
 	mt.seed(123);
 	constexpr int width = 100'000;
@@ -748,8 +748,8 @@ TEST_CASE("sin/cos benchmark")
 		sin_diff += std::sinf(v) - sse::sin(v);
 		cos_diff += std::cosf(v) - sse::cos(v);
 	}
-	REQUIRE_THAT(sin_diff, WithinAbs(0.0f, 0.00005));
-	REQUIRE_THAT(cos_diff, WithinAbs(0.0f, 0.00005));
+	REQUIRE_THAT(sin_diff, WithinAbs(0.0f, 0.00002));
+	REQUIRE_THAT(cos_diff, WithinAbs(0.0f, 0.00002));
 
 
 	BENCHMARK("std::sin")

@@ -75,9 +75,10 @@ export namespace deckard::math
 		}
 
 		// ~2x faster than std::sin
-		export float sin(float f) noexcept { return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f))); }
+		// export float sin(float f) noexcept { return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f))); }
 
-		export float cos(float f) noexcept { return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f))); }
+		//
+		// export float cos(float f) noexcept { return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f))); }
 
 	} // namespace sse
 } // namespace deckard::math
