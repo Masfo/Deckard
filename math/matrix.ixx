@@ -15,6 +15,12 @@ namespace deckard::math
 	class mat4_generic
 	{
 	public:
+		struct fill
+		{
+		};
+
+		inline static fill fill{};
+
 		mat4_generic()
 			: mat4_generic(1.0f)
 		{
@@ -22,6 +28,8 @@ namespace deckard::math
 
 		// identity
 		mat4_generic(const float v) { data[0] = data[5] = data[10] = data[15] = v; }
+
+		mat4_generic(const float v, struct fill) { data.fill(v); }
 
 		mat4_generic(float f1, float f2, float f3, float f4, float f5, float f6, float f7, float f8, float f9, float f10, float f11,
 					 float f12, float f13, float f14, float f15, float f16)
@@ -43,6 +51,8 @@ namespace deckard::math
 			data[14] = f15;
 			data[15] = f16;
 		}
+
+		mat4_generic(const std::array<float, 16>& v) { data = v; }
 
 		mat4_generic(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
 
