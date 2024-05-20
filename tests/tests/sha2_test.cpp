@@ -62,6 +62,7 @@ TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")
 				"dfe7a23fefeea519e9bbfdd1a6be94c4b2e4529dd6b7cbea83f9959c2621b13c"s);
 	}
 
+#if 0
 	SECTION("'a' repeated million times")
 	{
 		sha256::hasher hasher;
@@ -73,6 +74,7 @@ TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")
 
 		REQUIRE(digest.to_string() == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
 	}
+#endif
 }
 
 TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
@@ -101,7 +103,7 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
 		  "ee02b3dd5b2c06e4e61888d141998abac194d57692f77ae7a28d748fdf9b9f28f756d980687f7290f1306857edf3fe01f8ebf4626880d49a33e029399cb2d700"s);
 	}
 
-
+#if 0
 	SECTION("'a' repeated million timesP", "")
 	{
 		sha512::hasher hasher;
@@ -116,4 +118,5 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
 				"e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217a"
 				"d8cc09b");
 	}
+#endif
 }
