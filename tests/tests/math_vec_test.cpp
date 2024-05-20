@@ -6,6 +6,7 @@ import deckard.debug;
 import deckard.helpers;
 import deckard.math;
 
+
 import std;
 
 using namespace Catch::Matchers;
@@ -720,6 +721,77 @@ TEST_CASE("vec_n format", "[vec][math]")
 		std::string result = std::format("{}", v);
 		REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
 	}
+}
+
+TEST_CASE("sin/cos benchmark")
+{
+#if 0
+	using namespace deckard;
+
+	std::vector<float> values;
+
+	std::mt19937                          mt{};
+	std::uniform_real_distribution<float> dist{-1024.0f, 1024.0f};
+
+	mt.seed(123);
+	constexpr int width = 100'000;
+	for (auto _ : upto(width))
+	{
+		_;
+		values.emplace_back(dist(mt));
+	}
+
+	float sin_diff = 0.0f;
+	float cos_diff = 0.0f;
+	for (const auto& v : values)
+	{
+		sin_diff += std::sinf(v) - sse::sin(v);
+		cos_diff += std::cosf(v) - sse::cos(v);
+	}
+	REQUIRE_THAT(sin_diff, WithinAbs(0.0f, 0.00005));
+	REQUIRE_THAT(cos_diff, WithinAbs(0.0f, 0.00005));
+
+
+	BENCHMARK("std::sin")
+	{
+		float std_result = 0.0f;
+		for (float v : values)
+		{
+			std_result += std::sinf(v);
+		}
+		return std_result;
+	};
+
+	BENCHMARK("std::cos")
+	{
+		float std_result = 0.0f;
+		for (float v : values)
+		{
+			std_result += std::cosf(v);
+		}
+		return std_result;
+	};
+
+	BENCHMARK("sse::sin")
+	{
+		float sse_result = 0.0f;
+		for (float v : values)
+		{
+			sse_result += sse::sin(v);
+		}
+		return sse_result;
+	};
+
+	BENCHMARK("sse::cos")
+	{
+		float sse_result = 0.0f;
+		for (float v : values)
+		{
+			sse_result += sse::cos(v);
+		}
+		return sse_result;
+	};
+#endif
 }
 
 TEST_CASE("sqrt test", "[math]")
