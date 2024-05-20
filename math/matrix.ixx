@@ -33,6 +33,12 @@ namespace deckard::math
 			return data[index];
 		}
 
+		float& operator[](int index) noexcept
+		{
+			assert::check(index < 16, "mat4: indexing out-of-bounds");
+			return data[index];
+		}
+
 		bool operator==(const mat4& lhs) const noexcept { return data == lhs.data; }
 
 		static mat4 identity() noexcept { return mat4(1.0f); }
@@ -42,7 +48,7 @@ namespace deckard::math
 	};
 
 	// multiply mat4 by mat4
-	export mat4 operator*(const mat4& lhs, const mat4& rhs)
+	export mat4 operator*(const mat4& lhs, const mat4& rhs) noexcept
 	{
 		std::array<float, 16> tmp{0.0f};
 
@@ -59,6 +65,28 @@ namespace deckard::math
 		}
 		return mat4(tmp.data());
 	}
+
+	export mat4 operator+(const mat4& lhs, const mat4& rhs) noexcept
+	{
+		mat4 result(1.0f);
+		for (int i = 0; i < 16; ++i)
+			result[i] = lhs[i] + rhs[i];
+		return result;
+	}
+
+	export mat4 operator-(const mat4& lhs, const mat4& rhs) noexcept
+	{
+		mat4 result(1.0f);
+		for (int i = 0; i < 16; ++i)
+			result[i] = lhs[i] - rhs[i];
+		return result;
+	}
+
+	export void operator*=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs * rhs; }
+
+	export void operator+=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs + rhs; }
+
+	export void operator-=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs - rhs; }
 
 	//  0  1  2  3
 	//  4  5  6  7
