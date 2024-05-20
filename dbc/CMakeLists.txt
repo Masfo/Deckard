@@ -102,6 +102,15 @@ if(MSVC)
 
     endif()
 
+
+    # Manifest
+    if(EXISTS "${CMAKE_SOURCE_DIR}/manifest.txt")
+        target_link_options(dbc PRIVATE /MANIFEST:EMBED)
+        target_link_options(dbc PRIVATE /MANIFESTINPUT:${CMAKE_SOURCE_DIR}/manifest.txt)
+    endif()
+
+
+
 endif()
 
 
