@@ -30,6 +30,26 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(m[14] == 0.0f);
 
 		REQUIRE(m == mat4(1.0f));
+
+		m[0] = 2.0f;
+		REQUIRE(m[0] == 2.0f);
+
+		REQUIRE(m[5] == 1.0f);
+		REQUIRE(m[10] == 1.0f);
+		REQUIRE(m[15] == 1.0f);
+
+		REQUIRE(m[1] == 0.0f);
+		REQUIRE(m[2] == 0.0f);
+		REQUIRE(m[3] == 0.0f);
+		REQUIRE(m[4] == 0.0f);
+		REQUIRE(m[6] == 0.0f);
+		REQUIRE(m[7] == 0.0f);
+		REQUIRE(m[8] == 0.0f);
+		REQUIRE(m[9] == 0.0f);
+		REQUIRE(m[11] == 0.0f);
+		REQUIRE(m[12] == 0.0f);
+		REQUIRE(m[13] == 0.0f);
+		REQUIRE(m[14] == 0.0f);
 	}
 
 	SECTION("multiply")
@@ -91,6 +111,8 @@ TEST_CASE("matrix generic", "[matrix]")
 		m /= mat4(1.0f);
 		REQUIRE(m == half);
 	}
+
+	SECTION("direct access") { }
 
 	SECTION("format")
 	{
