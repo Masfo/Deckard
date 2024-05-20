@@ -166,7 +166,7 @@ namespace deckard::math
 	{
 		using vec3 = vec_n<float, 3>;
 
-		if (is_close_enough(mat.determinant(), 0.000001f))
+		if (is_close_enough(mat.determinant(), 0.0f))
 			return {};
 
 		const vec3&  a = vec3(mat(0, 0), mat(1, 0), mat(2, 0));
@@ -224,8 +224,14 @@ namespace deckard::math
 		  vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3)));
 	}
 
-	// TODO: benchmark mat4 transpose, using sse swaps/shuffle
-	//		 vs. just indexing and rearrange
+	// translate
+	// rotate around unit vector
+	// rotate x,y,z
+	// scale
+	// perspective
+	// orthographic
+	// lookat
+
 	/*
 	export struct alignas(16) sse_mat4
 	{
