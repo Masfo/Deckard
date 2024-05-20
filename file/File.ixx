@@ -130,7 +130,7 @@ namespace deckard
 				return bytes_written;
 			}
 
-			auto& data = content.value();
+			const auto& data = content.value();
 
 
 			DWORD mode = CREATE_ALWAYS;
