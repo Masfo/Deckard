@@ -14,12 +14,33 @@ import deckard.assert;
 
 namespace deckard::math::sse
 {
+	using m128 = __m128;
+
 	export void test()
 	{
-		//
-	}
+		m128 a0{7, 14, 15, 6};
+		m128 a1{4, 8, 12, 3};
+		m128 a2{14, 21, 6, 9};
+		m128 a3{13, 7, 6, 4};
 
-	using m128 = __m128;
+		m128 b0{5, 7, 14, 2};
+		m128 b1{8, 16, 4, 9};
+		m128 b2{13, 6, 8, 4};
+		m128 b3{6, 3, 2, 4};
+
+		_MM_TRANSPOSE4_PS(b0, b1, b2, b3);
+
+		b0 = _mm_mul_ps(a0, b0);
+		b1 = _mm_mul_ps(a1, b1);
+		b2 = _mm_mul_ps(a2, b2);
+		b3 = _mm_mul_ps(a3, b3);
+
+		m128 tmp0 = _mm_add_ps(b0, _mm_movehl_ps(b0, b0));
+		m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
+
+
+		int x = 0;
+	}
 
 	/*
 	template <int index>

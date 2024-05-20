@@ -26,6 +26,8 @@ namespace deckard::math
 	//  3  7 11 15
 	//
 
+	// TODO: benchmark mat4 transpose, using sse swaps/shuffle
+	//		 vs. just indexing and rearrange
 
 	export struct alignas(16) mat4
 	{
