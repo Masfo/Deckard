@@ -33,6 +33,11 @@ namespace deckard::math
 			return data[index];
 		}
 
+#ifdef __cpp_multidimensional_subscript
+#error("use mdspan")
+		// constexpr float& operator[](std::size_t z, std::size_t y, std::size_t x) noexcept { return 0.0f; }
+#endif
+
 		float& operator[](int index) noexcept
 		{
 			assert::check(index < 16, "mat4: indexing out-of-bounds");
@@ -88,17 +93,6 @@ namespace deckard::math
 
 	export void operator-=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs - rhs; }
 
-	//  0  1  2  3
-	//  4  5  6  7
-	//  8  9 10 11
-	// 12 13 14 15
-	//
-	//  0  4  8 12
-	//  1  5  9 13
-	//  2  6 10 14
-	//  3  7 11 15
-	//
-
 	// TODO: benchmark mat4 transpose, using sse swaps/shuffle
 	//		 vs. just indexing and rearrange
 	/*
@@ -122,10 +116,7 @@ namespace deckard::math
 			return m_data[index];
 		}
 
-#ifdef __cpp_multidimensional_subscript
-#error("use mdspan")
-		// constexpr float& operator[](std::size_t z, std::size_t y, std::size_t x) noexcept { return 0.0f; }
-#endif
+
 
 		// mdspan
 		std::array<float, 16> m_data{0};
