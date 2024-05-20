@@ -36,7 +36,6 @@ TEST_CASE("matrix generic", "[matrix]")
 	{
 		const mat4 result{
 		  90.0f, 100.0f, 110.0f, 120.0f, 202.0f, 228.0f, 254.0f, 280.0f, 314.0f, 356.0f, 398.0f, 440.0f, 426.0f, 484.0f, 542.0f, 600.0f};
-
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 
 		mat4 m2 = m;
@@ -87,6 +86,9 @@ TEST_CASE("matrix generic", "[matrix]")
 
 		m /= mat4(8.0f);
 
+		REQUIRE(m == half);
+
+		m /= mat4(1.0f);
 		REQUIRE(m == half);
 	}
 
