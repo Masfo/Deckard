@@ -104,4 +104,18 @@ TEST_CASE("matrix generic", "[matrix]")
 
 		REQUIRE(m == half);
 	}
+
+	SECTION("format")
+	{
+		const mat4 m(1.0f);
+		auto       fmt = std::format("{}", m);
+
+		std::string test(
+		  "mat4((1.00000, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 1.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, 1.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, 0.00000, 1.00000))");
+
+		REQUIRE(fmt == test);
+	}
 }

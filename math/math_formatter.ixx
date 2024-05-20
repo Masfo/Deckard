@@ -120,18 +120,18 @@ namespace std
 
 
 	template<>
-	struct hash<mat4>
+	struct hash<mat4_generic>
 	{
-		size_t operator()(const mat4& value) const { return deckard::utils::hash_values(value); }
+		size_t operator()(const mat4_generic& value) const { return deckard::utils::hash_values(value); }
 	};
 
 	template<>
-	struct formatter<mat4>
+	struct formatter<mat4_generic>
 	{
 		// TODO: Parse single or multi row?
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const mat4& m, std::format_context& ctx) const
+		auto format(const mat4_generic& m, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "mat4(({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[0], m[1], m[2], m[3]);
 			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[4], m[5], m[6], m[7]);

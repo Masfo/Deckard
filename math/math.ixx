@@ -34,5 +34,9 @@ namespace deckard::math
 	export using ivec3 = vec_n<i32, 3>;
 	export using ivec4 = vec_n<i32, 4>;
 
+	// matrix
+
+	export using mat4 = mat4_generic;
+
 
 } // namespace deckard::math

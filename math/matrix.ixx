@@ -12,19 +12,19 @@ namespace deckard::math
 {
 
 
-	export class mat4
+	class mat4_generic
 	{
 	public:
-		mat4()
-			: mat4(1.0f)
+		mat4_generic()
+			: mat4_generic(1.0f)
 		{
 		}
 
 		// identity
-		mat4(const float v) { data[0] = data[5] = data[10] = data[15] = v; }
+		mat4_generic(const float v) { data[0] = data[5] = data[10] = data[15] = v; }
 
-		mat4(float f1, float f2, float f3, float f4, float f5, float f6, float f7, float f8, float f9, float f10, float f11, float f12,
-			 float f13, float f14, float f15, float f16)
+		mat4_generic(float f1, float f2, float f3, float f4, float f5, float f6, float f7, float f8, float f9, float f10, float f11,
+					 float f12, float f13, float f14, float f15, float f16)
 		{
 			data[0]  = f1;
 			data[1]  = f2;
@@ -44,7 +44,7 @@ namespace deckard::math
 			data[15] = f16;
 		}
 
-		mat4(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
+		mat4_generic(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
 
 		const float& operator()(int i, int j) const { return data[j * 4 + i]; }
 
@@ -82,20 +82,20 @@ namespace deckard::math
 
 		float& operator[](int index) noexcept
 		{
-			assert::check(index < 16, "mat4: indexing out-of-bounds");
+			assert::check(index < 16, "mat4_generic: indexing out-of-bounds");
 			return data[index];
 		}
 
-		bool operator==(const mat4& lhs) const noexcept { return data == lhs.data; }
+		bool operator==(const mat4_generic& lhs) const noexcept { return data == lhs.data; }
 
-		static mat4 identity() noexcept { return mat4(1.0f); }
+		static mat4_generic identity() noexcept { return mat4_generic(1.0f); }
 
 	private:
 		std::array<float, 16> data{0.0f};
 	};
 
-	// multiply mat4 by mat4
-	export mat4 operator*(const mat4& lhs, const mat4& rhs) noexcept
+	// multiply mat4_generic by mat4_generic
+	export mat4_generic operator*(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
 	{
 		std::array<float, 16> tmp{0.0f};
 
@@ -110,38 +110,38 @@ namespace deckard::math
 				tmp[row + col * 4] = sum;
 			}
 		}
-		return mat4(tmp.data());
+		return mat4_generic(tmp.data());
 	}
 
-	export mat4 operator+(const mat4& lhs, const mat4& rhs) noexcept
+	export mat4_generic operator+(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
 	{
-		mat4 result(1.0f);
+		mat4_generic result(1.0f);
 		for (int i = 0; i < 16; ++i)
 			result[i] = lhs[i] + rhs[i];
 		return result;
 	}
 
-	export mat4 operator-(const mat4& lhs, const mat4& rhs) noexcept
+	export mat4_generic operator-(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
 	{
-		mat4 result(1.0f);
+		mat4_generic result(1.0f);
 		for (int i = 0; i < 16; ++i)
 			result[i] = lhs[i] - rhs[i];
 		return result;
 	}
 
-	export mat4 inverse(const mat4& mat) noexcept;
+	export mat4_generic inverse(const mat4_generic& mat) noexcept;
 
-	export mat4 operator/(const mat4& lhs, const mat4& rhs) noexcept { return lhs * inverse(rhs); }
+	export mat4_generic operator/(const mat4_generic& lhs, const mat4_generic& rhs) noexcept { return lhs * inverse(rhs); }
 
-	export void operator*=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs * rhs; }
+	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs * rhs; }
 
-	export void operator/=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs / rhs; }
+	export void operator/=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs / rhs; }
 
-	export void operator+=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs + rhs; }
+	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs + rhs; }
 
-	export void operator-=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs - rhs; }
+	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs - rhs; }
 
-	export mat4 inverse(const mat4& mat) noexcept
+	export mat4_generic inverse(const mat4_generic& mat) noexcept
 	{
 		using vec3 = vec_n<float, 3>;
 
@@ -174,7 +174,7 @@ namespace deckard::math
 		const vec3 r2 = cross(d, u) + s * w;
 		const vec3 r3 = cross(u, c) - s * z;
 
-		return (mat4(
+		return (mat4_generic(
 		  r0[0],
 		  r0[1],
 		  r0[2],
