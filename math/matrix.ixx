@@ -1,19 +1,62 @@
-module;
-#include <array>
-#include <xmmintrin.h>
 
 export module deckard.math:matrix;
-import :vec4_sse;
+import :vec.generic;
 
+import std;
+import deckard.assert;
+import deckard.debug;
 import deckard.assert;
 import deckard.utils.hash;
 
 namespace deckard::math
 {
 
-	export class mat3
+
+	export class mat4
 	{
+	public:
+		mat4()
+			: mat4(1.0f)
+		{
+		}
+
+		// identity
+		mat4(const float v) { data[0] = data[5] = data[10] = data[15] = v; }
+
+		mat4(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
+
+		const float& operator()(int i, int j) const { return data[j * 4 + i]; }
+
+		const float& operator[](int index) const noexcept
+		{
+			assert::check(index < 16, "mat4: indexing out-of-bounds");
+			return data[index];
+		}
+
+		bool operator==(const mat4& lhs) const noexcept { return data == lhs.data; }
+
+
+	private:
+		std::array<float, 16> data{0.0f};
 	};
+
+	export mat4 operator*(const mat4& lhs, const mat4& rhs)
+	{
+		std::array<float, 16> tmp{0.0f};
+
+		for (int col = 0; col < 4; ++col)
+		{
+			for (int row = 0; row < 4; ++row)
+			{
+				float sum{0.0f};
+				for (int i = 0; i < 4; ++i)
+					sum += lhs(row, i) * rhs(i, col);
+
+				tmp[row + col * 4] = sum;
+			}
+		}
+		return mat4(tmp.data());
+	}
 
 	//  0  1  2  3
 	//  4  5  6  7
@@ -28,8 +71,8 @@ namespace deckard::math
 
 	// TODO: benchmark mat4 transpose, using sse swaps/shuffle
 	//		 vs. just indexing and rearrange
-
-	export struct alignas(16) mat4
+	/*
+	export struct alignas(16) sse_mat4
 	{
 		mat4() = default;
 
@@ -101,6 +144,6 @@ inline void transpose_block_SSE4x4(float *A, float *B, const int n, const int m,
 	}
 }
 */
-	}
+
 
 } // namespace deckard::math
