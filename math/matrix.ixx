@@ -23,6 +23,27 @@ namespace deckard::math
 		// identity
 		mat4(const float v) { data[0] = data[5] = data[10] = data[15] = v; }
 
+		mat4(float f1, float f2, float f3, float f4, float f5, float f6, float f7, float f8, float f9, float f10, float f11, float f12,
+			 float f13, float f14, float f15, float f16)
+		{
+			data[0]  = f1;
+			data[1]  = f2;
+			data[2]  = f3;
+			data[3]  = f4;
+			data[4]  = f5;
+			data[5]  = f6;
+			data[6]  = f7;
+			data[7]  = f8;
+			data[8]  = f9;
+			data[9]  = f10;
+			data[10] = f11;
+			data[11] = f12;
+			data[12] = f13;
+			data[13] = f14;
+			data[14] = f15;
+			data[15] = f16;
+		}
+
 		mat4(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
 
 		const float& operator()(int i, int j) const { return data[j * 4 + i]; }
@@ -32,6 +53,27 @@ namespace deckard::math
 			assert::check(index < 16, "mat4: indexing out-of-bounds");
 			return data[index];
 		}
+
+		float determinant() const
+		{
+			auto& m = *this;
+
+			const float a0 = m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
+			const float a1 = m(0, 0) * m(1, 2) - m(0, 2) * m(1, 0);
+			const float a2 = m(0, 0) * m(1, 3) - m(0, 3) * m(1, 0);
+			const float a3 = m(0, 1) * m(1, 2) - m(0, 2) * m(1, 1);
+			const float a4 = m(0, 1) * m(1, 3) - m(0, 3) * m(1, 1);
+			const float a5 = m(0, 2) * m(1, 3) - m(0, 3) * m(1, 2);
+			const float b0 = m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0);
+			const float b1 = m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0);
+			const float b2 = m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0);
+			const float b3 = m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1);
+			const float b4 = m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1);
+			const float b5 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
+
+			return (a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0);
+		}
+
 
 #ifdef __cpp_multidimensional_subscript
 #error("use mdspan")
@@ -87,11 +129,69 @@ namespace deckard::math
 		return result;
 	}
 
+	export mat4 inverse(const mat4& mat) noexcept;
+
+	export mat4 operator/(const mat4& lhs, const mat4& rhs) noexcept { return lhs * inverse(rhs); }
+
 	export void operator*=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs * rhs; }
+
+	export void operator/=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs / rhs; }
 
 	export void operator+=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs + rhs; }
 
 	export void operator-=(mat4& lhs, const mat4& rhs) noexcept { lhs = lhs - rhs; }
+
+	export mat4 inverse(const mat4& mat) noexcept
+	{
+		using vec3 = vec_n<float, 3>;
+
+		if (is_close_enough(mat.determinant(), 0.000001f))
+			return {};
+
+
+		const vec3&  a = vec3(mat(0, 0), mat(1, 0), mat(2, 0));
+		const vec3&  b = vec3(mat(0, 1), mat(1, 1), mat(2, 1));
+		const vec3&  c = vec3(mat(0, 2), mat(1, 2), mat(2, 2));
+		const vec3&  d = vec3(mat(0, 3), mat(1, 3), mat(2, 3));
+		const float& x = mat(3, 0);
+		const float& y = mat(3, 1);
+		const float& z = mat(3, 2);
+		const float& w = mat(3, 3);
+
+		vec3 s = cross(a, b);
+		vec3 t = cross(c, d);
+		vec3 u = a * y - b * x;
+		vec3 v = c * w - d * z;
+
+		const float invDet = 1.0f / (dot(s, v) + dot(t, u));
+		s *= invDet;
+		t *= invDet;
+		u *= invDet;
+		v *= invDet;
+
+		const vec3 r0 = cross(b, v) + t * y;
+		const vec3 r1 = cross(v, a) - t * x;
+		const vec3 r2 = cross(d, u) + s * w;
+		const vec3 r3 = cross(u, c) - s * z;
+
+		return (mat4(
+		  r0[0],
+		  r0[1],
+		  r0[2],
+		  -dot(b, t),
+		  r1[0],
+		  r1[1],
+		  r1[2],
+		  dot(a, t),
+		  r2[0],
+		  r2[1],
+		  r2[2],
+		  -dot(d, s),
+		  r3[0],
+		  r3[1],
+		  r3[2],
+		  dot(c, s)));
+	}
 
 	// TODO: benchmark mat4 transpose, using sse swaps/shuffle
 	//		 vs. just indexing and rearrange

@@ -66,16 +66,42 @@ TEST_CASE("matrix generic", "[matrix]")
 		mul_eq *= mat2;
 
 		REQUIRE(mul_eq == meq16);
+	}
 
-
+	SECTION("add/sub")
+	{
 		// sub
-		const std::array<float, 16> meq_18res{18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18};
-		const mat4                  meq18(meq_18res.data());
+		const std::array<float, 16> twos{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+		const mat4                  mat2(twos.data());
+
+		const std::array<float, 16> meq_4res{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+		const mat4                  meq4(meq_4res.data());
+
+		mat4 mul_eq(mat2);
 		mul_eq += mat2;
 
-		REQUIRE(mul_eq == meq18);
+		REQUIRE(mul_eq == meq4);
 
 		mul_eq -= mat2;
-		REQUIRE(mul_eq == meq16);
+		REQUIRE(mul_eq == mat2);
+	}
+
+
+	SECTION("div")
+	{
+		// sub
+		const std::array<float, 16> r8{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+		const mat4                  m8(r8.data());
+
+		const std::array<float, 16> result_arr{
+		  0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f};
+		const mat4 half(result_arr.data());
+
+		mat4 m(m8);
+
+		m /= mat4(8.0f);
+
+
+		REQUIRE(m == half);
 	}
 }
