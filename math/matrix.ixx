@@ -35,11 +35,13 @@ namespace deckard::math
 
 		bool operator==(const mat4& lhs) const noexcept { return data == lhs.data; }
 
+		static mat4 identity() noexcept { return mat4(1.0f); }
 
 	private:
 		std::array<float, 16> data{0.0f};
 	};
 
+	// multiply mat4 by mat4
 	export mat4 operator*(const mat4& lhs, const mat4& rhs)
 	{
 		std::array<float, 16> tmp{0.0f};

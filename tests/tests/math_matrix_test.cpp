@@ -9,7 +9,8 @@ TEST_CASE("matrix generic", "[matrix]")
 {
 	SECTION("identity")
 	{
-		mat4 m(1.0f);
+		mat4 m = mat4::identity();
+
 		REQUIRE(m[0] == 1.0f);
 		REQUIRE(m[5] == 1.0f);
 		REQUIRE(m[10] == 1.0f);
@@ -27,6 +28,8 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(m[12] == 0.0f);
 		REQUIRE(m[13] == 0.0f);
 		REQUIRE(m[14] == 0.0f);
+
+		REQUIRE(m == mat4(1.0f));
 	}
 
 	SECTION("multiply")
