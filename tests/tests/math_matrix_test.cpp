@@ -40,10 +40,11 @@ TEST_CASE("matrix generic", "[matrix]")
 		mat4                  m(arr.data());
 		mat4                  m2 = m;
 
-
 		mat4 mul = m * m2;
-
-
 		REQUIRE(mul == result);
+
+
+		mat4 mul_ident = mul * mat4(1.0f);
+		REQUIRE(mul_ident == result);
 	}
 }
