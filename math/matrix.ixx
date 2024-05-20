@@ -129,14 +129,6 @@ inline void transpose_block_SSE4x4(float *A, float *B, const int n, const int m,
 				col[3] = _mm_mul_ps(col[3], lhs.col[3]);
 			}
 
-			void operator/=(const mat4& lhs) noexcept
-			{
-				col[0] = _mm_div_ps(col[0], lhs.col[0]);
-				col[1] = _mm_div_ps(col[1], lhs.col[1]);
-				col[2] = _mm_div_ps(col[2], lhs.col[2]);
-				col[3] = _mm_div_ps(col[3], lhs.col[3]);
-			}
-
 			m128 col[4];
 		};
 	} // namespace sse

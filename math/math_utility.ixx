@@ -44,32 +44,34 @@ export namespace deckard::math
 		return angle * pi180<T>;
 	}
 
-	// sse
-	__m128 dot(const __m128& rhs) noexcept
+	namespace sse
 	{
+		// sse
+		__m128 dot(const __m128& rhs) noexcept
+		{
 #if 0
 		// SSE3
 		__m128 tmp0 = _mm_hadd_ps(rhs, rhs);
 		__m128 tmp1 = _mm_hadd_ps(tmp0, tmp0);
 		return tmp1;
 #else
-		__m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
-		__m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
-		return tmp1;
+			__m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
+			__m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
+			return tmp1;
 #endif
-	};
+		};
 
-	float dotf(const __m128& lhs) noexcept
-	{
-		//
-		return _mm_cvtss_f32(dot(lhs));
-	};
+		float dotf(const __m128& lhs) noexcept
+		{
+			//
+			return _mm_cvtss_f32(dot(lhs));
+		};
 
-	export float sse_sqrt(float f) noexcept
-	{
-		//
-		return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f)));
-	}
+		export float sqrt(float f) noexcept
+		{
+			//
+			return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f)));
+		}
 
-
+	} // namespace sse
 } // namespace deckard::math

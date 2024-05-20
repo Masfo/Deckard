@@ -331,10 +331,9 @@ int main()
 	//  - status: created, deleted, modified,
 
 	std::filesystem::path we;
-	we.
 
 
-	  mat4 m = mat4::identity();
+	mat4 m = mat4::identity();
 	dbg::println("mat4: {}", m);
 
 	sse::test();
@@ -462,7 +461,6 @@ int main()
 	dbg::println("{}", system::GetGPU());
 
 	dbg::println("RAM: {}", system::GetRAMString());
-
 
 	dbg::println("OS: {}", system::GetOS());
 
