@@ -112,7 +112,13 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(m == half);
 	}
 
-	SECTION("direct access") { }
+	SECTION("negate")
+	{
+		const mat4 a(-4, mat4::fill);
+		mat4       m(4, mat4::fill);
+
+		REQUIRE(a == -m);
+	}
 
 	SECTION("format")
 	{

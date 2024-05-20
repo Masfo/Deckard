@@ -15,6 +15,8 @@ namespace deckard::math
 	class mat4_generic
 	{
 	public:
+		using vec4 = vec_n<float, 4>;
+
 		struct fill
 		{
 		};
@@ -55,6 +57,11 @@ namespace deckard::math
 		mat4_generic(const std::array<float, 16>& v) { data = v; }
 
 		mat4_generic(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
+
+		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3)
+		{
+			//
+		}
 
 		const float& operator()(int i, int j) const { return data[j * 4 + i]; }
 
@@ -151,13 +158,16 @@ namespace deckard::math
 
 	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs - rhs; }
 
+	export mat4_generic operator-(const mat4_generic& lhs) noexcept { return lhs * mat4_generic(-1.0f); }
+
+	export mat4_generic operator+(const mat4_generic& lhs) noexcept { return lhs; }
+
 	export mat4_generic inverse(const mat4_generic& mat) noexcept
 	{
 		using vec3 = vec_n<float, 3>;
 
 		if (is_close_enough(mat.determinant(), 0.000001f))
 			return {};
-
 
 		const vec3&  a = vec3(mat(0, 0), mat(1, 0), mat(2, 0));
 		const vec3&  b = vec3(mat(0, 1), mat(1, 1), mat(2, 1));
@@ -201,6 +211,17 @@ namespace deckard::math
 		  r3[1],
 		  r3[2],
 		  dot(c, s)));
+	}
+
+	inline mat4_generic transpose(const mat4_generic& mat)
+	{
+		using vec4 = vec_n<float, 4>;
+
+		return mat4_generic(
+		  vec4(mat(0, 0), mat(1, 0), mat(2, 0), mat(3, 0)),
+		  vec4(mat(0, 1), mat(1, 1), mat(2, 1), mat(3, 1)),
+		  vec4(mat(0, 2), mat(1, 2), mat(2, 2), mat(3, 2)),
+		  vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3)));
 	}
 
 	// TODO: benchmark mat4 transpose, using sse swaps/shuffle
