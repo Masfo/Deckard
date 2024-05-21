@@ -78,20 +78,20 @@ namespace deckard::math
 
 		const f32& operator()(u32 i, u32 j) const
 		{
-			assert::check(j < 16, "mat4: indexing out-of-bounds");
+			assert::check(i < data.size() or j < data.size(), "mat4: indexing out-of-bounds");
 
 			return data[j * 4 + i];
 		}
 
 		f32& operator[](int index) noexcept
 		{
-			// assert::check(index < 16, "mat4: indexing out-of-bounds");
+			assert::check(index < data.size(), "mat4: indexing out-of-bounds");
 			return data[index];
 		}
 
 		const f32& operator[](u32 index) const noexcept
 		{
-			assert::check(index < 16u, "mat4_generic: indexing out-of-bounds");
+			assert::check(index < data.size(), "mat4_generic: indexing out-of-bounds");
 			return data[index];
 		}
 
