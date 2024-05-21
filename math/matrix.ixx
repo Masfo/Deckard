@@ -58,7 +58,22 @@ namespace deckard::math
 
 		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3)
 		{
-			//
+			data[0]  = v0[0];
+			data[1]  = v0[1];
+			data[2]  = v0[2];
+			data[3]  = v0[3];
+			data[4]  = v1[0];
+			data[5]  = v1[1];
+			data[6]  = v1[2];
+			data[7]  = v1[3];
+			data[8]  = v2[0];
+			data[9]  = v2[1];
+			data[10] = v2[2];
+			data[11] = v2[3];
+			data[12] = v3[0];
+			data[13] = v3[1];
+			data[14] = v3[2];
+			data[15] = v3[3];
 		}
 
 		const f32& operator()(u32 i, u32 j) const
