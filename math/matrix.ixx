@@ -4,6 +4,7 @@ import :vec.generic;
 
 import std;
 import deckard.assert;
+import deckard.types;
 import deckard.debug;
 import deckard.assert;
 import deckard.utils.hash;
@@ -11,17 +12,14 @@ import deckard.utils.hash;
 namespace deckard::math
 {
 
-
 	class mat4_generic
 	{
 	public:
-		using vec4 = vec_n<float, 4>;
+		using vec4 = vec_n<f32, 4>;
 
 		struct fill
 		{
-		};
-
-		inline static fill fill{};
+		} inline static fill;
 
 		mat4_generic()
 			: mat4_generic(1.0f)
@@ -29,12 +27,12 @@ namespace deckard::math
 		}
 
 		// identity
-		mat4_generic(const float v) { data[0] = data[5] = data[10] = data[15] = v; }
+		mat4_generic(const f32 v) { data[0] = data[5] = data[10] = data[15] = v; }
 
-		mat4_generic(const float v, struct fill) { data.fill(v); }
+		mat4_generic(const f32 v, struct fill) { data.fill(v); }
 
-		mat4_generic(float f1, float f2, float f3, float f4, float f5, float f6, float f7, float f8, float f9, float f10, float f11,
-					 float f12, float f13, float f14, float f15, float f16)
+		mat4_generic(f32 f1, f32 f2, f32 f3, f32 f4, f32 f5, f32 f6, f32 f7, f32 f8, f32 f9, f32 f10, f32 f11, f32 f12, f32 f13, f32 f14,
+					 f32 f15, f32 f16)
 		{
 			data[0]  = f1;
 			data[1]  = f2;
@@ -54,39 +52,68 @@ namespace deckard::math
 			data[15] = f16;
 		}
 
-		mat4_generic(const std::array<float, 16>& v) { data = v; }
+		mat4_generic(const std::array<f32, 16>& v) { data = v; }
 
-		mat4_generic(const float* v) { std::ranges::copy_n(v, 16, data.begin()); }
+		mat4_generic(const f32* v) { std::ranges::copy_n(v, 16, data.begin()); }
 
 		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3)
 		{
 			//
 		}
 
-		const float& operator()(int i, int j) const { return data[j * 4 + i]; }
-
-		const float& operator[](int index) const noexcept
+		const f32& operator()(u32 i, u32 j) const
 		{
-			assert::check(index < 16, "mat4: indexing out-of-bounds");
+			assert::check(j < 16, "mat4: indexing out-of-bounds");
+
+			return data[j * 4 + i];
+		}
+
+		f32& operator[](int index) noexcept
+		{
+			// assert::check(index < 16, "mat4: indexing out-of-bounds");
 			return data[index];
 		}
 
-		float determinant() const
+		const f32& operator[](u32 index) const noexcept
+		{
+			assert::check(index < 16u, "mat4_generic: indexing out-of-bounds");
+			return data[index];
+		}
+
+		mat4_generic operator*(const mat4_generic& rhs) noexcept
+		{
+			std::array<f32, 16> tmp{0.0f};
+
+			for (int col = 0; col < 4; ++col)
+			{
+				for (int row = 0; row < 4; ++row)
+				{
+					f32 sum{0.0f};
+					for (int i = 0; i < 4; ++i)
+						sum += this->operator()(row, i) * rhs(i, col);
+
+					tmp[row + col * 4] = sum;
+				}
+			}
+			return mat4_generic(tmp.data());
+		}
+
+		f32 determinant() const
 		{
 			auto& m = *this;
 
-			const float a0 = m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
-			const float a1 = m(0, 0) * m(1, 2) - m(0, 2) * m(1, 0);
-			const float a2 = m(0, 0) * m(1, 3) - m(0, 3) * m(1, 0);
-			const float a3 = m(0, 1) * m(1, 2) - m(0, 2) * m(1, 1);
-			const float a4 = m(0, 1) * m(1, 3) - m(0, 3) * m(1, 1);
-			const float a5 = m(0, 2) * m(1, 3) - m(0, 3) * m(1, 2);
-			const float b0 = m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0);
-			const float b1 = m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0);
-			const float b2 = m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0);
-			const float b3 = m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1);
-			const float b4 = m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1);
-			const float b5 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
+			const f32 a0 = m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
+			const f32 a1 = m(0, 0) * m(1, 2) - m(0, 2) * m(1, 0);
+			const f32 a2 = m(0, 0) * m(1, 3) - m(0, 3) * m(1, 0);
+			const f32 a3 = m(0, 1) * m(1, 2) - m(0, 2) * m(1, 1);
+			const f32 a4 = m(0, 1) * m(1, 3) - m(0, 3) * m(1, 1);
+			const f32 a5 = m(0, 2) * m(1, 3) - m(0, 3) * m(1, 2);
+			const f32 b0 = m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0);
+			const f32 b1 = m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0);
+			const f32 b2 = m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0);
+			const f32 b3 = m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1);
+			const f32 b4 = m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1);
+			const f32 b5 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
 
 			return (a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0);
 		}
@@ -94,33 +121,38 @@ namespace deckard::math
 
 #ifdef __cpp_multidimensional_subscript
 #error("use mdspan")
-		// constexpr float& operator[](std::size_t z, std::size_t y, std::size_t x) noexcept { return 0.0f; }
+		// constexpr f32& operator[](std::size_t z, std::size_t y, std::size_t x) noexcept { return 0.0f; }
 #endif
 
-		float& operator[](int index) noexcept
+
+		mat4_generic operator-() const noexcept
 		{
-			assert::check(index < 16, "mat4_generic: indexing out-of-bounds");
-			return data[index];
+			mat4_generic m(*this);
+
+			m = m * mat4_generic(-1.0f);
+			return m;
 		}
+
+		mat4_generic operator+() const noexcept { return *this; }
 
 		bool operator==(const mat4_generic& lhs) const noexcept { return data == lhs.data; }
 
 		static mat4_generic identity() noexcept { return mat4_generic(1.0f); }
 
 	private:
-		std::array<float, 16> data{0.0f};
+		std::array<f32, 16> data{0.0f};
 	};
 
 	// multiply mat4_generic by mat4_generic
 	export mat4_generic operator*(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
 	{
-		std::array<float, 16> tmp{0.0f};
+		std::array<f32, 16> tmp{0.0f};
 
 		for (int col = 0; col < 4; ++col)
 		{
 			for (int row = 0; row < 4; ++row)
 			{
-				float sum{0.0f};
+				f32 sum{0.0f};
 				for (int i = 0; i < 4; ++i)
 					sum += lhs(row, i) * rhs(i, col);
 
@@ -158,32 +190,28 @@ namespace deckard::math
 
 	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs - rhs; }
 
-	export mat4_generic operator-(const mat4_generic& lhs) noexcept { return lhs * mat4_generic(-1.0f); }
-
-	export mat4_generic operator+(const mat4_generic& lhs) noexcept { return lhs; }
-
 	export mat4_generic inverse(const mat4_generic& mat) noexcept
 	{
-		using vec3 = vec_n<float, 3>;
+		using vec3 = vec_n<f32, 3>;
 
 		if (is_close_enough(mat.determinant(), 0.0f))
 			return {};
 
-		const vec3&  a = vec3(mat(0, 0), mat(1, 0), mat(2, 0));
-		const vec3&  b = vec3(mat(0, 1), mat(1, 1), mat(2, 1));
-		const vec3&  c = vec3(mat(0, 2), mat(1, 2), mat(2, 2));
-		const vec3&  d = vec3(mat(0, 3), mat(1, 3), mat(2, 3));
-		const float& x = mat(3, 0);
-		const float& y = mat(3, 1);
-		const float& z = mat(3, 2);
-		const float& w = mat(3, 3);
+		const vec3& a = vec3(mat(0, 0), mat(1, 0), mat(2, 0));
+		const vec3& b = vec3(mat(0, 1), mat(1, 1), mat(2, 1));
+		const vec3& c = vec3(mat(0, 2), mat(1, 2), mat(2, 2));
+		const vec3& d = vec3(mat(0, 3), mat(1, 3), mat(2, 3));
+		const f32&  x = mat(3, 0);
+		const f32&  y = mat(3, 1);
+		const f32&  z = mat(3, 2);
+		const f32&  w = mat(3, 3);
 
 		vec3 s = cross(a, b);
 		vec3 t = cross(c, d);
 		vec3 u = a * y - b * x;
 		vec3 v = c * w - d * z;
 
-		const float invDet = 1.0f / (dot(s, v) + dot(t, u));
+		const f32 invDet = 1.0f / (dot(s, v) + dot(t, u));
 		s *= invDet;
 		t *= invDet;
 		u *= invDet;
@@ -213,9 +241,9 @@ namespace deckard::math
 		  dot(c, s)));
 	}
 
-	inline mat4_generic transpose(const mat4_generic& mat)
+	mat4_generic transpose(const mat4_generic& mat)
 	{
-		using vec4 = vec_n<float, 4>;
+		using vec4 = vec_n<f32, 4>;
 
 		return mat4_generic(
 		  vec4(mat(0, 0), mat(1, 0), mat(2, 0), mat(3, 0)),
@@ -228,6 +256,7 @@ namespace deckard::math
 	// rotate around unit vector
 	// rotate x,y,z
 	// scale
+	// reflection
 	// perspective
 	// orthographic
 	// lookat
