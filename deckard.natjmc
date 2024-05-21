@@ -8,6 +8,7 @@
 
 
 
+
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
 	<File Name="helpers.ixx"/>
@@ -24,6 +25,13 @@
 
 	<File Name="sqlite3.c"/>
 	<File Name="catch_*.*"/>
+
+	<File Name="utf8.ixx"/>
+	<File Name="utf8_ascii.ixx"/>
+	<File Name="utf8_codepoints.ixx"/>
+	<File Name="utf8_xid.ixx"/>
+
+
 
 
 
