@@ -3,6 +3,7 @@
 
 import std;
 import deckard;
+import deckard.as;
 import deckard.types;
 import deckard.helpers;
 import deckard.win32;
@@ -310,19 +311,8 @@ int main()
 #endif
 
 
-	file f("fview.txt", file::access::readwrite);
+	sse::test();
 
-	if (f.is_open())
-	{
-
-		f[0] = f[0] + 1;
-		std::vector<u8> ds;
-		ds.assign_range(*f.data());
-
-
-		f.close();
-		file::write("fview.txt", ds, file::access::createnew);
-	}
 
 	// filemonitor fmon("folder");
 	//
@@ -330,15 +320,6 @@ int main()
 	// fmon.callback([](const status s, const fs::path &file
 	//  - status: created, deleted, modified,
 
-	std::filesystem::path we;
-
-
-	mat4 m = mat4::identity();
-	dbg::println("mat4: {}", m);
-
-	sse::test();
-
-	utf8::is_xid_start(0);
 
 	dbg::println("{:08b}", bitmask(4));
 	dbg::println("{:08b}", bitmask(4, 1));

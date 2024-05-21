@@ -54,11 +54,11 @@ if(MSVC)
 
     target_compile_options(deckard PRIVATE /arch:SSE2)
 
+    set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
-        set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
@@ -75,13 +75,13 @@ if(MSVC)
 
         #target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
     
-        target_link_options(deckard PRIVATE /DEBUG)
 
     endif()
     
     # Release
-    if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+    if (${CMAKE_BUILD_TYPE} MATCHES "Release" OR ${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
     
+        target_link_options(deckard PRIVATE /DEBUG)
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
         set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
         set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
@@ -132,7 +132,7 @@ endif()
 
 set(DECKARD_SRCS
 		deckard.ixx
-         $<$<CONFIG:Release>:buildnumber.ixx>
+         $<$<CONFIG:RelWithDebInfo,Release>:buildnumber.ixx>
 
 		debug/debug.ixx
 		debug/assert.ixx
@@ -257,7 +257,7 @@ target_compile_options(deckard PRIVATE
 
 ###################################
  find_program(BUILDINC_TOOL "buildinc")
- if(BUILDINC_TOOL)
+ if(BUILDINC_TOOL AND BUILDINC)
  add_custom_command(TARGET deckard
                     PRE_BUILD
                     COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckard_build -q -m 

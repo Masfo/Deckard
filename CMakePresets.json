@@ -16,7 +16,9 @@
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 //"CMAKE_CXX_COMPILER_LAUNCHER": "sccache",
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "BUILDINC": true
+
 
             },
             "architecture": {
@@ -63,6 +65,20 @@
             }
         },
         {
+            "name": "x64-reldebug",
+            "hidden": false,
+            "displayName": "x64 Release with debug",
+            "inherits": [ "windows-base" ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "DECKARD_TESTS": false,
+                "DECKARD_SCRIPT": true
+
+
+            }
+        },
+        {
             "name": "x86-debug",
             "hidden": true,
             "displayName": "x86 Debug",
@@ -73,7 +89,7 @@
             },
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "VCPKG_TARGET_TRIPLET": "x86-windows-static",
+                "VCPKG_TARGET_TRIPLET": "x86-windows-static"
 
             }
         },
@@ -98,6 +114,11 @@
             "name": "releasex64",
             "configurePreset": "x64-release",
             "displayName": "Release(x64)"
+        },
+        {
+            "name": "reldebugx64",
+            "configurePreset": "x64-reldebug",
+            "displayName": "Release(x64) debug"
         }
     ]
 }

@@ -122,7 +122,7 @@ target_sources(dbc
     ${CMAKE_SOURCE_DIR}
 
 	FILES 
-    $<$<CONFIG:Release>:src/buildnumber.ixx>
+    $<$<CONFIG:RelWithDebInfo,Release>:src/buildnumber.ixx>
 )
 
 # Sources
