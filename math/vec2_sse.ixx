@@ -77,25 +77,15 @@ namespace deckard::math::sse
 			return *this;
 		}
 
-		vec_type operator++(int) noexcept
-		{
-			m128 tmp = reg;
-			reg      = _mm_add_ps(reg, one);
-			return vec_type(tmp);
-		}
-
 		vec_type& operator--() noexcept
 		{
 			reg = _mm_sub_ps(reg, one);
 			return *this;
 		}
 
-		vec_type operator--(int) noexcept
-		{
-			m128 tmp = reg;
-			reg      = _mm_sub_ps(reg, one);
-			return vec_type(tmp);
-		}
+		vec_type operator++(int) noexcept { return vec_type(std::exchange(reg, _mm_add_ps(reg, one))); }
+
+		vec_type operator--(int) noexcept { return vec_type(std::exchange(reg, _mm_sub_ps(reg, one))); }
 
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
 
