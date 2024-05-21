@@ -2,6 +2,7 @@ export module deckard.as;
 
 import std;
 import deckard.debug;
+import deckard.types;
 
 namespace deckard
 {
@@ -16,7 +17,7 @@ namespace deckard
 #endif
 	}
 
-	export template<typename Ret, typename U>
+	export template<typename Ret = void*, typename U>
 	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
 	{
 #ifdef _DEBUG
@@ -81,5 +82,12 @@ namespace deckard
 			return static_cast<Ret>(u);
 		}
 	}
+
+	export template<typename T = u64, typename U>
+	T address(const U* address)
+	{
+		return std::bit_cast<T>(address);
+	}
+
 
 } // namespace deckard
