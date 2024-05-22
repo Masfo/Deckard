@@ -75,6 +75,7 @@ export namespace deckard
 	}
 
 	// ScopeTimer
+	template<typename R = std::milli>
 	class ScopeTimer
 	{
 	public:
@@ -90,7 +91,7 @@ export namespace deckard
 
 		void stop() noexcept
 		{
-			std::chrono::duration<double, std::milli> duration(clock_now() - start_time);
+			std::chrono::duration<double, R> duration(clock_now() - start_time);
 			dbg::println("{} took {}", name, duration);
 		}
 
