@@ -168,7 +168,7 @@ namespace deckard::math::sse
 
 			if (other.has_zero())
 			{
-				dbg::trace("vec4: divide by zero");
+				dbg::trace("vec2: divide by zero");
 				return vec_type(inf_reg);
 			}
 
@@ -183,7 +183,7 @@ namespace deckard::math::sse
 		{
 			if (has_zero() or other.has_zero())
 			{
-				dbg::trace("vec4: divide by zero");
+				dbg::trace("vec2: divide by zero");
 				return std::numeric_limits<float>::infinity();
 			}
 
@@ -212,7 +212,11 @@ namespace deckard::math::sse
 		[[nodiscard("Use the divide vector")]] vec_type safe_divide(const vec_type& other) const noexcept
 		{
 			if (other.is_invalid())
+			{
+				dbg::trace("vec2: divide by zero");
+
 				return vec_type(inf_reg);
+			}
 
 			return *this / other;
 		}
@@ -220,7 +224,11 @@ namespace deckard::math::sse
 		[[nodiscard("Use the divide scalar")]] vec_type safe_divide(const float scalar) const noexcept
 		{
 			if (scalar == 0.0f)
+			{
+				dbg::trace("vec2: divide by zero");
+
 				return vec_type(inf_reg);
+			}
 
 			return *this / vec_type(scalar);
 		}

@@ -238,6 +238,9 @@ namespace deckard::math
 
 		void operator/=(const float scalar) noexcept
 		{
+			if (math::is_close_enough(scalar, 0.0f))
+				dbg::panic("divide by zero: {} / {}", *this, scalar);
+
 			for (size_t i = 0; i < N; ++i)
 			{
 				m_data[i] /= scalar;

@@ -226,7 +226,11 @@ namespace deckard::math::sse
 		[[nodiscard("Use the divide vector")]] vec_type safe_divide(const vec_type& other) const noexcept
 		{
 			if (other.has_zero())
+			{
+				dbg::trace("vec3: divide by zero");
+
 				return vec_type(inf_reg);
+			}
 
 			return *this / other;
 		}
