@@ -59,10 +59,21 @@ namespace deckard::utf8
 		{
 		}
 
+		codepoints(std::optional<std::span<u8>> input)
+		{
+			if (input.has_value())
+				buffer = *input;
+		}
+
 		codepoints(std::span<u8> input)
 			: buffer(input)
 		{
 		}
+
+		// TODO: begin, end, for-range loop
+		auto begin() const noexcept { return buffer.begin(); }
+
+		auto end() const noexcept { return buffer.end(); }
 
 		void reset() noexcept
 		{

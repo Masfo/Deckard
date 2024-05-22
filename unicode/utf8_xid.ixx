@@ -12,8 +12,10 @@ namespace deckard::utf8
 	constexpr bool is_in_range(char32_t codepoint, const Range range) noexcept
 	{
 		// 10x slower in debug
-		//return range.end() !=
-		//	   std::ranges::find_if(range, [&](const char32_range& p) { return (codepoint >= p.start) and (codepoint <= p.end); });
+		// return range.end() != std::ranges::find_if(range, [&](const char32_range& p)
+		// {
+		//      return (codepoint >= p.start) and (codepoint <= p.end);
+		// });
 
 		size_t low    = 0;
 		size_t high   = range.size() - 1;
