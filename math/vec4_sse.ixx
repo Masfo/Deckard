@@ -8,7 +8,7 @@ module;
 export module deckard.math:vec4_sse;
 import :vec3_sse;
 import :utils;
-
+import std;
 import deckard.assert;
 import deckard.debug;
 import deckard.assert;
@@ -137,15 +137,13 @@ namespace deckard::math::sse
 
 		void operator<<(float* v) noexcept
 		{
-			// TODO: assert
-			// assert::check(v != nullptr);
+			assert::check(v != nullptr);
 			reg = _mm_load_ps(v);
 		}
 
 		void operator<<=(float* v) noexcept
 		{
-			// TODO: assert
-			// assert::check(v!=nullptr);
+			assert::check(v != nullptr);
 			reg = _mm_load_ps(v);
 		}
 
@@ -225,6 +223,7 @@ namespace deckard::math::sse
 		{
 			if (other.is_invalid())
 			{
+				dbg::trace("vec4: divide by zero");
 				return vec_type(inf_reg);
 			}
 
@@ -234,7 +233,11 @@ namespace deckard::math::sse
 		[[nodiscard("Use the divide scalar")]] vec_type safe_divide(const float scalar) const noexcept
 		{
 			if (scalar == 0.0f)
+			{
+				dbg::trace("vec4: divide by zero");
+
 				return vec_type(inf_reg);
+			}
 
 			return *this / vec_type(scalar);
 		}
@@ -317,7 +320,7 @@ namespace deckard::math::sse
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
 				default:
 				{
-					dbg::trace(std::source_location::current());
+					// dbg::trace();
 					dbg::panic("vec4: indexing out-of-bound");
 				}
 			}

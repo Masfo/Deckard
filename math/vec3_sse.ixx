@@ -182,7 +182,6 @@ namespace deckard::math::sse
 
 			if (other.has_zero())
 			{
-				// dbg::trace("cannot project onto a zero vector: {} / {}", *this, other);
 				return vec_type(inf_reg);
 			}
 
@@ -197,8 +196,7 @@ namespace deckard::math::sse
 		{
 			if (other.has_zero())
 			{
-				// dbg::trace("cannot take angle between zero vectors: {} / {}", *this, other);
-				return std::numeric_limits<float>::infinity();
+				return inf_float;
 			}
 
 			float cosTheta = dot(other) / (length() * other.length());
