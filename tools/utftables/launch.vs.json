@@ -1,0 +1,20 @@
+{
+    "version": "0.2.1",
+    "defaults": {},
+    "configurations": [
+        {
+            "type": "debug",
+            "project": "CMakeLists.txt",
+            "currentDir": "${workspaceRoot}\\bin",
+            "name": "Debug w/ argument(s)",
+            "args": [ "debug" ]
+        },
+        {
+            "type": "debug",
+            "project": "CMakeLists.txt",
+            "currentDir": "${workspaceRoot}\\bin",
+            "name": "Debug w/o arguments",
+            "args": []
+        }
+    ]
+}
