@@ -2,15 +2,19 @@ export module deckard.utf8:xid;
 import :ascii;
 import :xid_tables;
 
+import deckard.debug;
+import deckard.types;
 import deckard.helpers;
 import std;
 
 namespace deckard::utf8
 {
 
-	template<typename Range>
-	bool is_in_range(unsigned int codepoint, const Range range) noexcept
+	template<size_t N>
+	bool is_in_range(char32_t codepoint, const std::array<char32_range, N>& range) noexcept
 	{
+#if 1
+		// ~20-40% faster (depends on input)
 		size_t low    = 0;
 		size_t high   = range.size() - 1;
 		size_t middle = 0;
@@ -24,10 +28,23 @@ namespace deckard::utf8
 			else if (codepoint > range[middle].end)
 				low = middle + 1;
 			else
+			{
 				return true;
+			}
 		}
-
 		return false;
+
+#else
+		auto it = std::lower_bound(
+		  range.begin(),
+		  range.end(),
+		  codepoint,
+		  [](const char32_range& r, const char32_t& value) //
+		  {                                                //
+			  return value > r.end;
+		  });
+		return (codepoint >= (*it).start) and (codepoint <= (*it).end);
+#endif
 	}
 
 	export constexpr bool is_xid_start(char32_t codepoint) noexcept
