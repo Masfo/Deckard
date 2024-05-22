@@ -422,7 +422,7 @@ namespace deckard::math
 			for (size_t i = 0; i < N; ++i)
 				result += m_data[i] * m_data[i];
 
-			return sse_sqrt(result);
+			return sse::sqrt(result);
 		}
 
 		// normalize

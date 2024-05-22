@@ -734,7 +734,11 @@ TEST_CASE("sin/cos benchmark")
 	std::uniform_real_distribution<float> dist{-10240.0f, 10240.0f};
 
 	mt.seed(123);
+#ifndef _DEBUG
 	constexpr int width = 100'000;
+#else
+	constexpr int width = 100;
+#endif
 	for (auto _ : upto(width))
 	{
 		_;
@@ -806,7 +810,11 @@ TEST_CASE("sqrt test", "[math]")
 	std::uniform_real_distribution<float> dist{0.0f, 1024.0f};
 
 	mt.seed(123);
+#ifndef _DEBUG
 	constexpr int width = 100'000;
+#else
+	constexpr int width = 100;
+#endif
 	for (auto _ : upto(width))
 	{
 		_;
@@ -830,7 +838,7 @@ TEST_CASE("sqrt test", "[math]")
 		float result = 0.0f;
 		for (float v : sse)
 		{
-			result += sse_sqrt(v);
+			result += sse::sqrt(v);
 		}
 		return result;
 	};
@@ -905,7 +913,5 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	REQUIRE(gen_result[1] == sse_result[1]);
 	REQUIRE(gen_result[2] == sse_result[2]);
 	REQUIRE(gen_result[3] == sse_result[3]);
-
-
 #endif
 }
