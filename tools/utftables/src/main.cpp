@@ -99,8 +99,10 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 		f << std::format("{:#0x}, {:#0x}", start, end);
 		f << "},\n";
 	}
-	f << "}};\n\n";
+	f << "}};\n";
 
+	// constexpr char32_t max_xid_start = xid_start[742].end;
+	f << std::format("constexpr char32_t max_{} = {}[{}].end;\n\n", ctable_name, ctable_name, table.size() - 1);
 
 	f.close();
 }
