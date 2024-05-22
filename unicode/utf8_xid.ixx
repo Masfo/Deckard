@@ -9,14 +9,8 @@ namespace deckard::utf8
 {
 
 	template<typename Range>
-	constexpr bool is_in_range(char32_t codepoint, const Range range) noexcept
+	bool is_in_range(unsigned int codepoint, const Range range) noexcept
 	{
-		// 10x slower in debug
-		// return range.end() != std::ranges::find_if(range, [&](const char32_range& p)
-		// {
-		//      return (codepoint >= p.start) and (codepoint <= p.end);
-		// });
-
 		size_t low    = 0;
 		size_t high   = range.size() - 1;
 		size_t middle = 0;
@@ -26,17 +20,11 @@ namespace deckard::utf8
 			middle = (low + high) / 2;
 
 			if (codepoint < range[middle].start)
-			{
 				high = middle - 1;
-			}
 			else if (codepoint > range[middle].end)
-			{
 				low = middle + 1;
-			}
 			else
-			{
 				return true;
-			}
 		}
 
 		return false;

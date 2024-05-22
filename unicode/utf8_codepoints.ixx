@@ -52,6 +52,7 @@ namespace deckard::utf8
 	public:
 		using type = char32_t;
 
+
 		codepoints() = default;
 
 		codepoints(std::string_view input)
@@ -70,10 +71,7 @@ namespace deckard::utf8
 		{
 		}
 
-		// TODO: begin, end, for-range loop
-		auto begin() const noexcept { return buffer.begin(); }
-
-		auto end() const noexcept { return buffer.end(); }
+		// TODO: Begin end iterator, for-range loop
 
 		void reset() noexcept
 		{
@@ -116,6 +114,8 @@ namespace deckard::utf8
 
 			return count;
 		}
+
+		bool has_next() const noexcept { return index < buffer.size(); }
 
 		// next() - returns the next codepoint
 		type next() noexcept
@@ -164,6 +164,7 @@ namespace deckard::utf8
 			return points;
 		}
 
+		std::span<u8> buffer;
 
 	private:
 		type read_byte(u8 byte) noexcept
@@ -177,12 +178,10 @@ namespace deckard::utf8
 			return state;
 		}
 
-	private:
-		std::span<u8> buffer;
-		type          decoded_point{0};
-		type          state{UTF8_ACCEPT};
-		u32           index{0};
-		u32           unused{};
+		type decoded_point{0};
+		type state{UTF8_ACCEPT};
+		u32  index{0};
+		u32  unused{};
 	};
 
 	export constexpr u32 codepoint_width(char32_t codepoint) noexcept
