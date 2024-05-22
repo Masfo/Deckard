@@ -2,6 +2,7 @@ export module deckard.utf8:xid;
 import :ascii;
 import :xid_tables;
 
+import deckard.helpers;
 import std;
 
 namespace deckard::utf8
@@ -37,6 +38,9 @@ namespace deckard::utf8
 
 	export constexpr bool is_xid_start(char32_t codepoint) noexcept
 	{
+		if (codepoint > max_xid_start)
+			return false;
+
 		if (codepoint < 128)
 		{
 			return is_ascii_alphabet(codepoint) or codepoint == '_' or codepoint == '$';
@@ -47,6 +51,9 @@ namespace deckard::utf8
 
 	export constexpr bool is_xid_continue(char32_t codepoint) noexcept
 	{
+		if (codepoint > max_xid_continue)
+			return false;
+
 		if (codepoint < 128)
 		{
 			return is_ascii_alphanumeric(codepoint) or codepoint == '_' or codepoint == '$';
