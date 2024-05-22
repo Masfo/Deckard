@@ -9,7 +9,7 @@ using namespace std::string_view_literals;
 
 void output_message(const std::string_view message) noexcept
 {
-	std::print(std::cerr, "{}"sv, message);
+	std::print(std::cout, "{}"sv, message);
 #ifdef _DEBUG
 
 	OutputDebugStringA(message.data());
