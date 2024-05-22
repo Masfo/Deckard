@@ -8,7 +8,6 @@ module;
 export module deckard.math:vec4_sse;
 import :vec3_sse;
 import :utils;
-import std;
 import deckard.assert;
 import deckard.debug;
 import deckard.assert;
@@ -235,7 +234,6 @@ namespace deckard::math::sse
 			if (scalar == 0.0f)
 			{
 				dbg::trace("vec4: divide by zero");
-
 				return vec_type(inf_reg);
 			}
 
@@ -320,7 +318,7 @@ namespace deckard::math::sse
 				case 3: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 3, 3, 3)));
 				default:
 				{
-					// dbg::trace();
+					dbg::trace();
 					dbg::panic("vec4: indexing out-of-bound");
 				}
 			}

@@ -182,6 +182,7 @@ namespace deckard::math::sse
 
 			if (other.has_zero())
 			{
+				dbg::trace("vec3: divide by zero");
 				return vec_type(inf_reg);
 			}
 
@@ -196,6 +197,7 @@ namespace deckard::math::sse
 		{
 			if (other.has_zero())
 			{
+				dbg::trace("vec3: divide by zero");
 				return inf_float;
 			}
 
@@ -327,7 +329,11 @@ namespace deckard::math::sse
 				case 0: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(0, 0, 0, 0)));
 				case 1: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1)));
 				case 2: return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2)));
-				default: dbg::panic("vec_type: indexing out-of-bound");
+				default:
+				{
+					dbg::trace();
+					dbg::panic("vec2: indexing out-of-bound");
+				}
 			}
 		}
 
