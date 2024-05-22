@@ -76,6 +76,13 @@ namespace deckard::math
 			data[15] = v3[3];
 		}
 
+
+#ifdef __cpp_multidimensional_subscript
+#error("use mdspan")
+		// const f32& operator[](std::size_t z, std::size_t y) const noexcept { return 0.0f; }
+#endif
+
+
 		const f32& operator()(u32 i, u32 j) const
 		{
 			assert::check(i < data.size() or j < data.size(), "mat4: indexing out-of-bounds");
@@ -132,13 +139,6 @@ namespace deckard::math
 
 			return (a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0);
 		}
-
-
-#ifdef __cpp_multidimensional_subscript
-#error("use mdspan")
-		// constexpr f32& operator[](std::size_t z, std::size_t y, std::size_t x) noexcept { return 0.0f; }
-#endif
-
 
 		mat4_generic operator-() const noexcept
 		{

@@ -165,7 +165,9 @@ set(DECKARD_SRCS
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
         unicode/utf8_xid.ixx
+        unicode/utf8_xid_tables.ixx
         unicode/utf8_ascii.ixx
+
 
 
 
