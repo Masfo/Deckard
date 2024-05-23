@@ -75,8 +75,9 @@ namespace deckard::utf8
 
 		void reset() noexcept
 		{
-			idx   = 0;
-			state = UTF8_ACCEPT;
+			idx             = 0;
+			state           = UTF8_ACCEPT;
+			codepoint_count = 0;
 		}
 
 		void reload(std::span<u8> input) noexcept
@@ -97,22 +98,24 @@ namespace deckard::utf8
 		// count - returns the number of codepoints in the buffer
 		u32 count() noexcept
 		{
+			if (codepoint_count != 0)
+				return codepoint_count;
+
 			u32 old_index = idx;
 			u32 old_state = state;
 
 			reset();
 
-			u32 count{0};
 			while (has_data())
 			{
 				if (next())
-					count += 1;
+					codepoint_count += 1;
 			}
 
 			idx   = old_index;
 			state = old_state;
 
-			return count;
+			return codepoint_count;
 		}
 
 		bool has_next() const noexcept { return idx < buffer.size(); }
@@ -183,7 +186,7 @@ namespace deckard::utf8
 		type decoded_point{0};
 		type state{UTF8_ACCEPT};
 		u32  idx{0};
-		u32  unused{};
+		u32  codepoint_count{};
 	};
 
 	export constexpr u32 codepoint_width(char32_t codepoint) noexcept
