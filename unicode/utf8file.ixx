@@ -27,21 +27,7 @@ namespace deckard::utf8
 
 			const value_type operator*() const { return current; }
 
-			// Prefix increment
-			iterator& operator++()
-			{
-				if (index >= 0 and p and p->has_next())
-				{
-					current = p->next();
-					index += 1;
-					return *this;
-				}
-				index = -1;
-				return *this;
-			}
-
-			// Postfix increment
-			iterator operator++(int)
+			const iterator& operator++()
 			{
 				if (index >= 0 and p and p->has_next())
 				{
@@ -59,6 +45,7 @@ namespace deckard::utf8
 			value_type  current{REPLACEMENT_CHARACTER};
 			i32         index{0};
 		};
+
 
 	public:
 		utf8file(fs::path filename)
