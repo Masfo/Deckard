@@ -15,10 +15,10 @@
 
 	<File Name="base64.ixx"/>
 	<File Name="sha2.ixx"/>
-	<File Name="_tokenizer.ixx"/>
 
 	<File Name="_file.ixx"/>
 
+	<File Name="_lexer.ixx"/>
 
 
 	<File Name="win32.ixx"/>

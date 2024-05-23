@@ -1,6 +1,6 @@
-export module deckard.tokenizer;
+export module deckard.lexer;
 
-namespace deckard::tokenizer
+namespace deckard::lexer
 {
 	/*
 	* General tokenizer, with keyword support

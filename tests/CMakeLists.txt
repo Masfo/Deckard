@@ -37,15 +37,27 @@ target_compile_options(tests PRIVATE /arch:SSE2)
 
 target_sources(tests PUBLIC
     test-main.cpp
+
+    # Convert to
+    tests/to_hex_test.cpp
     tests/sha2_test.cpp
     tests/base64_test.cpp
+
     
-    tests/scripting/tokenizer_test.cpp
-    tests/enumflag_test.cpp 
+    # Scripting
+    tests/scripting/lexer_test.cpp
+    tests/scripting/parser_test.cpp
+
+    # Math
     tests/math_vec_test.cpp
     tests/math_matrix_test.cpp
-    tests/to_hex_test.cpp
+
+
+    # UTF8
     tests/utf8_test.cpp
+
+    # Misc
+    tests/enumflag_test.cpp 
 )
 
 

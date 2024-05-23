@@ -32,10 +32,15 @@ export import deckard.utf8;
 export import deckard.graph;
 
 // Scripting
-export import deckard.tokenizer;
+export import deckard.lexer;
+export import deckard.parser;
+
 
 // DB
 export import deckard.archive;
+
+// Net
+// Clumsy network simulator
 
 
 // export import deckard.DTE;
