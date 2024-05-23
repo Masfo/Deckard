@@ -9,18 +9,13 @@ namespace fs = std::filesystem;
 
 namespace deckard::utf8
 {
-	// TODO: forward/output iterator
-	// deref, ++
 
 	export class utf8file
 	{
 		struct Iterator
 		{
 			using iterator_category = std::forward_iterator_tag;
-			using difference_type   = std::ptrdiff_t;
 			using value_type        = char32_t;
-			using pointer           = value_type*;
-			using reference         = value_type;
 
 			Iterator(codepoints* ptr, i32 i)
 				: p(ptr)
@@ -30,7 +25,7 @@ namespace deckard::utf8
 					current = p->next();
 			}
 
-			reference operator*() const { return current; }
+			value_type operator*() const { return current; }
 
 			// Prefix increment
 			Iterator& operator++()
