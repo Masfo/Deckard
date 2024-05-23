@@ -167,6 +167,7 @@ set(DECKARD_SRCS
         unicode/utf8_xid.ixx
         unicode/utf8_xid_tables.ixx
         unicode/utf8_ascii.ixx
+        unicode/utf8file.ixx
 
 
 
@@ -175,7 +176,9 @@ set(DECKARD_SRCS
         
 
         # Scripting
-        scripting/tokenizer.ixx
+        scripting/lexer/lexer.ixx
+        scripting/parser/parser.ixx
+
 
 
 		types/types.ixx
