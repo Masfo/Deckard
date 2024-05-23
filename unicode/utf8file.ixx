@@ -21,7 +21,7 @@ namespace deckard::utf8
 				: p(ptr)
 				, index(i)
 			{
-				if (i == 0 and p->has_data())
+				if (i == 0 and p and p->has_data())
 					current = p->next();
 			}
 
@@ -30,7 +30,7 @@ namespace deckard::utf8
 			// Prefix increment
 			Iterator& operator++()
 			{
-				if (p->has_next())
+				if (index >= 0 && p && p->has_next())
 				{
 					current = p->next();
 					index += 1;
@@ -43,7 +43,7 @@ namespace deckard::utf8
 			// Postfix increment
 			Iterator operator++(int)
 			{
-				if (p->has_next())
+				if (index >= 0 && p && p->has_next())
 				{
 					current = p->next();
 					index += 1;
