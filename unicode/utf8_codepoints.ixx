@@ -75,7 +75,7 @@ namespace deckard::utf8
 
 		void reset() noexcept
 		{
-			index = 0;
+			idx   = 0;
 			state = UTF8_ACCEPT;
 		}
 
@@ -97,7 +97,7 @@ namespace deckard::utf8
 		// count - returns the number of codepoints in the buffer
 		u32 count() noexcept
 		{
-			u32 old_index = index;
+			u32 old_index = idx;
 			u32 old_state = state;
 
 			reset();
@@ -109,13 +109,13 @@ namespace deckard::utf8
 					count += 1;
 			}
 
-			index = old_index;
+			idx   = old_index;
 			state = old_state;
 
 			return count;
 		}
 
-		bool has_next() const noexcept { return index < buffer.size(); }
+		bool has_next() const noexcept { return idx < buffer.size(); }
 
 		// next() - returns the next codepoint
 		type next() noexcept
@@ -123,18 +123,18 @@ namespace deckard::utf8
 
 			u8 byte = 0;
 
-			for (state = 0; index < buffer.size(); index++)
+			for (state = 0; idx < buffer.size(); idx++)
 			{
-				byte = buffer[index];
+				byte = buffer[idx];
 
 				if (!read_byte(byte))
 				{
-					index += 1;
+					idx += 1;
 					return decoded_point;
 				}
 				else if (state == UTF8_REJECT)
 				{
-					index += 1;
+					idx += 1;
 					return REPLACEMENT_CHARACTER;
 				}
 			}
@@ -148,7 +148,7 @@ namespace deckard::utf8
 			return decoded_point;
 		}
 
-		bool has_data() const noexcept { return index < buffer.size(); }
+		bool has_data() const noexcept { return idx < buffer.size(); }
 
 		// data() - collects all codepoints to a vector
 		std::vector<type> data() noexcept
@@ -163,6 +163,8 @@ namespace deckard::utf8
 
 			return points;
 		}
+
+		u32 index() const { return idx; };
 
 		std::span<u8> buffer;
 
@@ -180,7 +182,7 @@ namespace deckard::utf8
 
 		type decoded_point{0};
 		type state{UTF8_ACCEPT};
-		u32  index{0};
+		u32  idx{0};
 		u32  unused{};
 	};
 
