@@ -20,6 +20,7 @@ using namespace deckard;
 using namespace deckard::utils;
 using namespace deckard::system;
 using namespace deckard::math;
+using namespace deckard::utf8;
 
 
 enum class ConvertEpoch : u64
@@ -305,25 +306,11 @@ private:
 int main()
 {
 
+
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
-
-	std::vector<float> values;
-
-	std::mt19937                  mt{};
-	std::uniform_int_distribution dist{0x0000, 0xFFFF};
-
-	for (int i : upto(1'000))
-	{
-		auto c  = dist(mt);
-		bool xs = utf8::is_xid_start(c);
-
-		bool xc = utf8::is_xid_continue(c);
-
-		dbg::println("U+{:06X} ({}, {})\n", c, xs, xc);
-	}
 
 
 	sse::test();
