@@ -10,7 +10,7 @@ set_target_properties(sqlite3 PROPERTIES
 
 )
 if(MSVC)
-set_target_properties(sqlite3 PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_target_properties(sqlite3 PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
 endif()
 
 

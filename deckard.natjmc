@@ -18,22 +18,26 @@
 
 	<File Name="_file.ixx"/>
 
-	<File Name="_lexer.ixx"/>
 
 
 	<File Name="win32.ixx"/>
 
+	<!-- UTF8 -->
+	<File Name="_utf8.ixx"/>
+	<File Name="_utf8_ascii.ixx"/>
+	<File Name="_utf8_codepoints.ixx"/>
+	<File Name="_utf8_xid.ixx"/>
+	<File Name="_utf8file.ixx"/>
+
+	<!-- Scripring -->
+	<File Name="_lexer.ixx"/>
+	<File Name="_parser.ixx"/>
+
+
+
+	<!-- Externals -->
 	<File Name="sqlite3.c"/>
 	<File Name="catch_*.*"/>
-
-	<File Name="utf8.ixx"/>
-	<File Name="utf8_ascii.ixx"/>
-	<File Name="utf8_codepoints.ixx"/>
-	<File Name="sutf8_xid.ixx"/>
-
-
-
-
 
 	<!-- Functions -->
 	<Function Name="std\:\:.*" />
