@@ -305,6 +305,8 @@ private:
 
 int main()
 {
+	archive::file f("okd.db");
+
 
 
 #ifndef _DEBUG
