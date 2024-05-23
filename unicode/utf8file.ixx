@@ -12,12 +12,12 @@ namespace deckard::utf8
 
 	export class utf8file
 	{
-		struct Iterator
+		struct iterator
 		{
 			using iterator_category = std::forward_iterator_tag;
 			using value_type        = char32_t;
 
-			Iterator(codepoints* ptr, i32 i)
+			iterator(codepoints* ptr, i32 i)
 				: p(ptr)
 				, index(i)
 			{
@@ -25,12 +25,12 @@ namespace deckard::utf8
 					current = p->next();
 			}
 
-			value_type operator*() const { return current; }
+			const value_type operator*() const { return current; }
 
 			// Prefix increment
-			Iterator& operator++()
+			iterator& operator++()
 			{
-				if (index >= 0 && p && p->has_next())
+				if (index >= 0 and p and p->has_next())
 				{
 					current = p->next();
 					index += 1;
@@ -41,9 +41,9 @@ namespace deckard::utf8
 			}
 
 			// Postfix increment
-			Iterator operator++(int)
+			iterator operator++(int)
 			{
-				if (index >= 0 && p && p->has_next())
+				if (index >= 0 and p and p->has_next())
 				{
 					current = p->next();
 					index += 1;
@@ -53,7 +53,7 @@ namespace deckard::utf8
 				return *this;
 			}
 
-			friend bool operator==(const Iterator& a, const Iterator& b) { return a.index == b.index; };
+			friend bool operator==(const iterator& a, const iterator& b) { return a.index == b.index; };
 
 			codepoints* p{nullptr};
 			value_type  current{REPLACEMENT_CHARACTER};
@@ -67,9 +67,9 @@ namespace deckard::utf8
 			points = file.data();
 		}
 
-		Iterator begin() { return Iterator(&points, 0); }
+		iterator begin() { return iterator(&points, 0); }
 
-		Iterator end() { return Iterator(&points, -1); }
+		iterator end() { return iterator(&points, -1); }
 
 	private:
 		file       file;
