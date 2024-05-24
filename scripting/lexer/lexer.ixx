@@ -216,6 +216,7 @@ export namespace deckard::lexer
 					continue;
 				}
 
+				cursor += 1;
 				index += 1;
 			}
 
