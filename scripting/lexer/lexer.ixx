@@ -1,4 +1,6 @@
 export module deckard.lexer;
+import deckard.utf8file;
+import std;
 
 namespace deckard::lexer
 {
@@ -26,5 +28,9 @@ namespace deckard::lexer
 
 	 */
 
-
-}
+	class lexer
+	{
+	public:
+	private:
+	};
+} // namespace deckard::lexer
