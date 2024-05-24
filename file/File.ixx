@@ -9,6 +9,7 @@ import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.helpers;
+namespace fs = std::filesystem;
 
 namespace deckard
 {
@@ -24,18 +25,19 @@ namespace deckard
 			overwrite,
 		};
 
-		file() = delete;
+		file() = default;
 
-		file(file&&) noexcept        = delete;
-		file(const file&)            = delete;
-		file& operator=(const file&) = delete;
-		file& operator=(file&&)      = delete;
+		// file(file&&) noexcept = delete;
+		// file(const file&)     = delete;
+
+		// file& operator=(const file&) = delete;
+		// file& operator=(file&&)      = delete;
 
 		~file() { close(); }
 
 		explicit file(const std::filesystem::path file, access flag = access::read) { open(file, flag); }
 
-		std::optional<std::span<u8>> open(std::filesystem::path const file, access flag = access::read) noexcept
+		std::optional<std::span<u8>> open(fs::path const file, access flag = access::read) noexcept
 		{
 			DWORD rw          = GENERIC_READ;
 			DWORD page        = PAGE_READONLY;

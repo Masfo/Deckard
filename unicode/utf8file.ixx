@@ -12,6 +12,7 @@ namespace deckard::utf8
 
 	export class utf8file
 	{
+	private:
 		struct iterator
 		{
 			using iterator_category = std::forward_iterator_tag;
@@ -48,19 +49,33 @@ namespace deckard::utf8
 
 
 	public:
+		utf8file() = default;
+
 		utf8file(fs::path filename)
-			: file(filename)
+			: m_file(filename)
+			, m_filename(filename)
 		{
-			points = file.data();
+			points = m_file.data();
 		}
 
 		iterator begin() { return iterator(&points, 0); }
 
 		iterator end() { return iterator(&points, -1); }
 
+		std::span<u8> data() const
+		{
+			if (m_file.data())
+				return m_file.data().value();
+			return {};
+		}
+
+		fs::path filename() const { return m_filename; }
+
 	private:
-		file       file;
+		file       m_file;
+		fs::path   m_filename;
 		codepoints points;
 	};
 
+	export utf8file operator""_utf8file(const char* filename, size_t) noexcept { return utf8file{filename}; }
 } // namespace deckard::utf8

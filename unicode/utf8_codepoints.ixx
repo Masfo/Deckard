@@ -1,5 +1,5 @@
 export module deckard.utf8:codepoints;
-
+import :xid;
 
 import std;
 import deckard.as;
@@ -46,12 +46,51 @@ namespace deckard::utf8
 	constexpr u32 UTF8_REJECT{12};
 
 	export constexpr char32_t REPLACEMENT_CHARACTER{0xFFFD};
+	export constexpr char32_t EOF_CHARACTER{0xFFFF};
 
 	export class codepoints
 	{
+	private:
+		struct iterator
+		{
+			using iterator_category = std::forward_iterator_tag;
+			using value_type        = char32_t;
+
+			iterator(codepoints* ptr, i32 i)
+				: p(ptr)
+				, index(i)
+			{
+				if (i == 0 and p and p->has_data())
+					current = p->next();
+			}
+
+			const value_type operator*() const { return current; }
+
+			const iterator& operator++()
+			{
+				if (index >= 0 and p and p->has_next())
+				{
+					current = p->next();
+					index += 1;
+					return *this;
+				}
+				index = -1;
+				return *this;
+			}
+
+			friend bool operator==(const iterator& a, const iterator& b) { return a.index == b.index; };
+
+			codepoints* p{nullptr};
+			value_type  current{REPLACEMENT_CHARACTER};
+			i32         index{0};
+		};
+
 	public:
 		using type = char32_t;
 
+		iterator begin() { return iterator(this, idx); }
+
+		iterator end() { return iterator(this, -1); }
 
 		codepoints() = default;
 
@@ -154,7 +193,7 @@ namespace deckard::utf8
 		bool has_data() const noexcept { return idx < buffer.size(); }
 
 		// data() - collects all codepoints to a vector
-		std::vector<type> data() noexcept
+		std::vector<type> data(bool eof) noexcept
 		{
 			std::vector<type> points;
 			points.reserve(buffer.size());
@@ -164,6 +203,10 @@ namespace deckard::utf8
 				points.push_back(next());
 			}
 
+			reset();
+
+			if (eof)
+				points.push_back(utf8::EOF_CHARACTER);
 			return points;
 		}
 
@@ -210,7 +253,7 @@ namespace deckard::utf8
 
 	export constexpr bool is_bom(char32_t codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
-	constexpr bool is_whitespace(char32_t codepoint)
+	export constexpr bool is_whitespace(char32_t codepoint) noexcept
 	{
 		// PropList-15.1.0.txt
 		return (
@@ -226,6 +269,16 @@ namespace deckard::utf8
 		  (codepoint == 0x205F) or                             // MEDIUM MATHEMATICAL SPACE
 		  (codepoint == 0x2060) or                             // WORD JOINER (like U+00A0)
 		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
+	}
+
+	export constexpr bool is_identifier_start(char32_t codepoint) noexcept
+	{
+		return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint);
+	}
+
+	export constexpr bool is_identifier_continue(char32_t codepoint) noexcept
+	{
+		return is_ascii_identifier_continue(codepoint) or is_xid_continue(codepoint);
 	}
 
 } // namespace deckard::utf8

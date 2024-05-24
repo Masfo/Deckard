@@ -1,10 +1,16 @@
 export module deckard.lexer;
-import deckard.types;
-import deckard.as;
-import deckard.utf8;
 import std;
+import deckard.utf8;
+import deckard.as;
+import deckard.debug;
+import deckard.assert;
+import deckard.types;
 
-namespace deckard::lexer
+namespace fs = std::filesystem;
+using namespace std::string_view_literals;
+using namespace deckard::utf8;
+
+export namespace deckard::lexer
 {
 	/*
 	* General tokenizer, with keyword support
@@ -30,7 +36,7 @@ namespace deckard::lexer
 
 	 */
 
-	enum class token_type : u8
+	enum class Token : u8
 	{
 		INTEGER,        //
 		FLOATING_POINT, //
@@ -40,16 +46,19 @@ namespace deckard::lexer
 		STRING,         // "abc"
 
 		// Op
-		PLUS,       // +
-		MINUS,      // -
-		STAR,       // *
-		SLASH,      // /
-		PERCENT,    // %
+		PLUS,        // +
+		MINUS,       // -
+		STAR,        // *
+		SLASH,       // /
+		PERCENT,     // %
 
-		BACK_SLASH, // '\'
-		BANG,       // !
+		BACK_SLASH,  // '\'
+		BANG,        // !
+		SLASH_SLASH, // //
+		SLASH_STAR,  // /*
+		STAR_SLASH,  // */
 
-		EQUAL,      // =
+		EQUAL,       // =
 
 		// Compare
 		EQUAL_EQUAL,   // ==
@@ -66,10 +75,12 @@ namespace deckard::lexer
 
 
 		// Delimeters
-		DOT,
-		COMMA,
-		COLON,
-		SEMI_COLON,
+		DOT,        // .
+		COMMA,      // ,
+		COLON,      // :
+		SEMI_COLON, // ;
+		HASH,       // #
+		PIPE,       // |
 
 		// Brackets
 		LEFT_PAREN,    // (
@@ -80,31 +91,250 @@ namespace deckard::lexer
 		RIGHT_BRACKET, // ]
 
 		//
+		NOP, //
 		EOL,
 		EOF,
 	};
 
+	using literals = std::vector<char32_t>;
+
 	struct token
 	{
-		std::string_view literal;
-		std::string_view filename;
-		token_type       type;
-		u32              line{0};
-		u32              cursor{0}; // cursor pos in line
+		literals    literal_codepoints;
+		std::string str_literal;
+		u32         line{0};
+		u32         cursor{0}; // cursor pos in line
+		Token       type;
 	};
+
+	struct registered_symbol
+	{
+		char32_t literal;
+		Token    type;
+	};
+
+	// TODO: constexpr map?
+	constexpr std::array<registered_symbol, 21> rsymbols = {{
+	  // Compare
+	  {'=', Token::EQUAL},
+	  {'+', Token::PLUS},
+	  {'-', Token::MINUS},
+	  {'*', Token::STAR},
+	  {'/', Token::SLASH},
+	  {'%', Token::PERCENT},
+	  {'<', Token::LESSER},
+	  {'>', Token::GREATER},
+	  {'|', Token::PIPE},
+
+	  // Separators
+	  {'(', Token::LEFT_PAREN},
+	  {')', Token::RIGHT_PAREN},
+	  {'[', Token::LEFT_BRACKET},
+	  {']', Token::RIGHT_BRACKET},
+	  {'{', Token::LEFT_BRACE},
+	  {'}', Token::RIGHT_BRACE},
+	  {'.', Token::DOT},
+	  {',', Token::COMMA},
+	  {':', Token::COLON},
+	  {';', Token::SEMI_COLON},
+	  {'#', Token::HASH},
+	  //
+	  {'\\', Token::BACK_SLASH},
+	}};
 
 	class lexer
 	{
 	public:
-		lexer(std::string_view i) { input = std::span{as<u8*>(i.data()), i.size()}; }
+		using tokens = std::vector<token>;
 
-		lexer(std::span<u8> i)
-			: input(i)
+		lexer() = default;
+
+		lexer(codepoints cp) noexcept { codepoints = cp.data(true); }
+
+		lexer(fs::path f) noexcept
+			: input(f)
 		{
+			utf8::codepoints cps = input.data();
+			codepoints           = cps.data(true);
+			m_tokens.reserve(codepoints.size());
+			filename = input.filename().string();
+		}
+
+		explicit lexer(std::string_view str) noexcept
+		{
+			utf8::codepoints cps(str.data());
+			codepoints = cps.data(true);
+			m_tokens.reserve(codepoints.size());
+			filename = "";
+		}
+
+		bool has_data(u32 offset = 0) const noexcept { return (index + offset) < codepoints.size(); }
+
+		char32_t peek(u32 offset = 0) noexcept { return next(offset); }
+
+		bool eof() noexcept { return has_data() && peek() == utf8::EOF_CHARACTER; }
+
+		char32_t next(u32 offset = 1) noexcept
+		{
+			if (has_data(offset))
+			{
+				cursor += offset;
+				index += offset;
+				return codepoints[index - offset];
+			}
+			return utf8::EOF_CHARACTER;
+		}
+
+		tokens tokenize() noexcept
+		{
+			while (has_data())
+			{
+
+				if (utf8::is_whitespace(peek()))
+				{
+					read_whitespace();
+					continue;
+				}
+
+				if (utf8::is_ascii_digit(peek()))
+				{
+					read_number();
+					continue;
+				}
+
+
+				if (utf8::is_identifier_start(peek()))
+				{
+					read_identifier();
+					continue;
+				}
+
+
+				if (utf8::is_ascii(peek()))
+				{
+					read_symbol();
+					continue;
+				}
+
+				index += 1;
+			}
+
+			insert_token(Token::EOF, {0});
+
+			return m_tokens;
+		}
+
+		void read_whitespace() noexcept
+		{
+			//
+			while (utf8::is_whitespace(peek()))
+			{
+				// TODO: emit EOL
+				if (utf8::is_ascii_newline(peek(0)) and utf8::is_ascii_newline(peek(1)))
+				{
+					next(2);
+					line += 1;
+					cursor = 0;
+					continue;
+				}
+
+				if (utf8::is_ascii_newline(peek(0)) and not utf8::is_ascii_newline(peek(1)))
+				{
+					next(1);
+					line += 1;
+					cursor = 0;
+					continue;
+				}
+				next();
+			}
+		}
+
+		void read_number() noexcept
+		{
+			literals lit;
+			while (not eof())
+			{
+				if (auto n = peek(); utf8::is_ascii_digit(n))
+				{
+					lit.push_back(next());
+				}
+				else
+					break;
+			}
+
+			insert_token(Token::INTEGER, lit);
+		}
+
+		void read_identifier() noexcept
+		{
+			literals lit;
+
+			lit.push_back(next());
+
+			while (not eof())
+			{
+				if (auto n = peek(); utf8::is_identifier_continue(n))
+					lit.push_back(next());
+				else
+					break;
+			}
+			insert_token(Token::IDENTIFIER, lit);
+		}
+
+		void read_symbol() noexcept
+		{
+			//
+			literals lit;
+			Token    type   = Token::EOF;
+			auto     symbol = next();
+
+			for (const auto& rs : rsymbols)
+			{
+				if (symbol == rs.literal)
+				{
+					type = rs.type;
+					lit.push_back(symbol);
+					break;
+				}
+			}
+
+			assert::check(type != Token::EOF);
+
+			insert_token(type, lit);
+		}
+
+		void insert_token(Token type, const literals& literal) noexcept
+		{
+			std::string s;
+			for (const auto& c : literal)
+				s += (char)c;
+
+			token t{
+			  //
+			  .literal_codepoints = literal,
+			  .str_literal        = s,
+			  .line               = line,
+			  .cursor             = cursor,
+			  .type               = type
+			  //
+			};
+
+			m_tokens.emplace_back(t);
 		}
 
 
 	private:
-		std::span<u8> input;
+		utf8file              input;
+		std::vector<char32_t> codepoints;
+		u32                   index{0};
+		tokens                m_tokens;
+		std::string           filename;
+
+		u32 line{0};
+		u32 cursor{0};
+
+
+		// TODO: utf8 keywords
+		std::vector<std::string> keywords;
 	};
 } // namespace deckard::lexer
