@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 using namespace std::string_view_literals;
 using namespace deckard::utf8;
 
-export namespace deckard::lexer
+namespace deckard::lexer
 {
 	/*
 	* General tokenizer, with keyword support
@@ -36,8 +36,7 @@ export namespace deckard::lexer
 
 	 */
 
-	enum class Token : u8
-	{
+	export enum class Token : u8 {
 		INTEGER,        //
 		FLOATING_POINT, //
 		KEYWORD,        //
@@ -51,6 +50,7 @@ export namespace deckard::lexer
 		STAR,        // *
 		SLASH,       // /
 		PERCENT,     // %
+		QUESTION,    // ?
 
 		BACK_SLASH,  // '\'
 		BANG,        // !
@@ -98,7 +98,7 @@ export namespace deckard::lexer
 
 	using literals = std::vector<char32_t>;
 
-	struct token
+	export struct token
 	{
 		literals    literal_codepoints;
 		std::string str_literal;
@@ -114,7 +114,7 @@ export namespace deckard::lexer
 	};
 
 	// TODO: constexpr map?
-	constexpr std::array<registered_symbol, 21> rsymbols = {{
+	constexpr std::array<registered_symbol, 22> rsymbols = {{
 	  // Compare
 	  {'=', Token::EQUAL},
 	  {'+', Token::PLUS},
@@ -125,6 +125,8 @@ export namespace deckard::lexer
 	  {'<', Token::LESSER},
 	  {'>', Token::GREATER},
 	  {'|', Token::PIPE},
+	  {'?', Token::QUESTION},
+
 
 	  // Separators
 	  {'(', Token::LEFT_PAREN},
@@ -142,16 +144,16 @@ export namespace deckard::lexer
 	  {'\\', Token::BACK_SLASH},
 	}};
 
-	class lexer
+	export class tokenizer
 	{
 	public:
 		using tokens = std::vector<token>;
 
-		lexer() = default;
+		tokenizer() = default;
 
-		lexer(codepoints cp) noexcept { codepoints = cp.data(true); }
+		tokenizer(codepoints cp) noexcept { codepoints = cp.data(true); }
 
-		lexer(fs::path f) noexcept
+		tokenizer(fs::path f) noexcept
 			: input(f)
 		{
 			utf8::codepoints cps = input.data();
@@ -160,7 +162,7 @@ export namespace deckard::lexer
 			filename = input.filename().string();
 		}
 
-		explicit lexer(std::string_view str) noexcept
+		explicit tokenizer(std::string_view str) noexcept
 		{
 			utf8::codepoints cps(str.data());
 			codepoints = cps.data(true);
@@ -199,6 +201,12 @@ export namespace deckard::lexer
 				if (utf8::is_ascii_digit(peek()))
 				{
 					read_number();
+					continue;
+				}
+
+				if (peek() == '\"')
+				{
+					read_string();
 					continue;
 				}
 
@@ -266,6 +274,20 @@ export namespace deckard::lexer
 			insert_token(Token::INTEGER, lit);
 		}
 
+		void read_string() noexcept
+		{
+			//
+			literals lit;
+			next();
+			while (not eof() and peek() != '\"')
+			{
+				lit.push_back(next());
+			}
+			next();
+
+			insert_token(Token::STRING, lit);
+		}
+
 		void read_identifier() noexcept
 		{
 			literals lit;
@@ -299,7 +321,7 @@ export namespace deckard::lexer
 				}
 			}
 
-			assert::check(type != Token::EOF);
+			assert::check(type != Token::EOF, "Unknown symbol");
 
 			insert_token(type, lit);
 		}

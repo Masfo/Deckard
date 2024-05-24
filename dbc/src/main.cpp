@@ -9,6 +9,7 @@ import deckard.helpers;
 import deckard.win32;
 import deckard.math;
 import deckard.utf8;
+import deckard.lexer;
 
 
 #ifndef _DEBUG
@@ -314,6 +315,14 @@ int main()
 
 
 	sse::test();
+
+
+	// lexer::lexer l("fn λ = π * π ?"sv);
+	lexer::tokenizer l2("let x = \"hello\";"sv);
+
+	const auto tokens = l2.tokenize();
+
+	int x = 0;
 
 
 	// filemonitor fmon("folder");
