@@ -227,8 +227,6 @@ namespace deckard::math::sse
 		{
 			if (other.has_zero())
 			{
-				dbg::trace("vec3: divide by zero");
-
 				return vec_type(inf_reg);
 			}
 

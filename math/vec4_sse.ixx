@@ -222,7 +222,6 @@ namespace deckard::math::sse
 		{
 			if (other.is_invalid())
 			{
-				dbg::trace("vec4: divide by zero");
 				return vec_type(inf_reg);
 			}
 
@@ -233,7 +232,6 @@ namespace deckard::math::sse
 		{
 			if (scalar == 0.0f)
 			{
-				dbg::trace("vec4: divide by zero");
 				return vec_type(inf_reg);
 			}
 
