@@ -15,6 +15,7 @@ import deckard.lexer;
 #ifndef _DEBUG
 import dbc;
 #endif
+namespace fs = std::filesystem;
 
 using namespace std::string_view_literals;
 using namespace deckard;
@@ -318,6 +319,8 @@ int main()
 
 	std::string s("π");
 
+	lexer::tokenizer l1(fs::path{"lexer_data/simple04.txt"});
+	auto             tokl1 = l1.tokenize();
 
 	lexer::tokenizer l2(R"(π = "three")"sv);
 

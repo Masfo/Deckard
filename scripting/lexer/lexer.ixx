@@ -51,10 +51,10 @@ namespace deckard::lexer
 		SLASH,       // /
 		PERCENT,     // %
 		QUESTION,    // ?
+		BANG,        // !
 
 
 		BACK_SLASH,  // '\'
-		BANG,        // !
 		SLASH_SLASH, // //
 		SLASH_STAR,  // /*
 		STAR_SLASH,  // */
@@ -62,29 +62,33 @@ namespace deckard::lexer
 		EQUAL,       // =
 
 		// Compare
-		EQUAL_EQUAL,   // ==
-		LESSER,        // <
-		GREATER,       // >
-		LESSER_EQUAL,  // <=
-		GREATER_EQUAL, // >=
-		PLUS_EQUAL,    // +=
-		MINUS_EQUAL,   // -=
-		STAR_EQUAL,    // *=
-		SLASH_EQUAL,   // /=
-		PERCENT_EQUAL, // %=
-		BANG_EQUAL,    // !=
+		LESSER,         // <
+		GREATER,        // >
+		LESSER_EQUAL,   // <=
+		GREATER_EQUAL,  // >=
+		EQUAL_EQUAL,    // ==
+		PLUS_EQUAL,     // +=
+		MINUS_EQUAL,    // -=
+		STAR_EQUAL,     // *=
+		SLASH_EQUAL,    // /=
+		PERCENT_EQUAL,  // %=
+		BANG_EQUAL,     // !=
+		XOR_EQUAL,      // ^=
+		QUESTION_EQUAL, // ?=
 
-
-		// Delimeters
+		//
 		DOT,        // .
+		ELLIPSIS,   // ...
 		COMMA,      // ,
 		COLON,      // :
 		SEMI_COLON, // ;
 		HASH,       // #
+		ARROW,      // ->
 
 		PIPE,       // |
 		AND,        // &
 		XOR,        // ^
+		TILDE,      // ~
 
 		// Brackets
 		LEFT_PAREN,    // (
@@ -118,13 +122,13 @@ namespace deckard::lexer
 	};
 
 	// TODO: constexpr map?
-	constexpr std::array<registered_symbol, 25> rsymbols = {{
-	  // Compare
+	constexpr std::array<registered_symbol, 27> rsymbols = {{
 	  {'=', Token::EQUAL},
 	  {'+', Token::PLUS},
 	  {'-', Token::MINUS},
 	  {'*', Token::STAR},
 	  {'/', Token::SLASH},
+	  {'\\', Token::BACK_SLASH},
 	  {'%', Token::PERCENT},
 	  {'<', Token::LESSER},
 	  {'>', Token::GREATER},
@@ -133,21 +137,23 @@ namespace deckard::lexer
 	  {'|', Token::PIPE},
 	  {'&', Token::AND},
 	  {'^', Token::XOR},
+	  {'~', Token::TILDE},
 
-	  // Separators
+	  //
 	  {'(', Token::LEFT_PAREN},
 	  {')', Token::RIGHT_PAREN},
 	  {'[', Token::LEFT_BRACKET},
 	  {']', Token::RIGHT_BRACKET},
 	  {'{', Token::LEFT_BRACE},
 	  {'}', Token::RIGHT_BRACE},
+	  //
 	  {'.', Token::DOT},
+	  {'...', Token::ELLIPSIS},
 	  {',', Token::COMMA},
 	  {':', Token::COLON},
 	  {';', Token::SEMI_COLON},
 	  {'#', Token::HASH},
 	  //
-	  {'\\', Token::BACK_SLASH},
 	}};
 
 	export class tokenizer
@@ -159,7 +165,7 @@ namespace deckard::lexer
 
 		tokenizer(codepoints cp) noexcept { codepoints = cp.data(true); }
 
-		tokenizer(fs::path f) noexcept
+		explicit tokenizer(fs::path f) noexcept
 			: input(f)
 		{
 			utf8::codepoints cps = input.data();
@@ -178,7 +184,14 @@ namespace deckard::lexer
 
 		bool has_data(u32 offset = 0) const noexcept { return (index + offset) < codepoints.size(); }
 
-		char32_t peek(u32 offset = 0) noexcept { return next(offset); }
+		char32_t peek(u32 offset = 0) noexcept
+		{
+			if (has_data(offset))
+			{
+				return codepoints[index + offset];
+			}
+			return utf8::EOF_CHARACTER;
+		}
 
 		bool eof() noexcept { return has_data() && peek() == utf8::EOF_CHARACTER; }
 
@@ -197,8 +210,17 @@ namespace deckard::lexer
 		{
 			init_default_keyword();
 
-			while (has_data())
+			while (not eof())
 			{
+				const auto p  = peek(0);
+				const auto p2 = peek(1);
+				if (p == '\r' and p2 == '\n')
+				{
+					next(2);
+					cursor = 0;
+					line += 1;
+					continue;
+				}
 
 				if (utf8::is_whitespace(peek()))
 				{
@@ -231,9 +253,6 @@ namespace deckard::lexer
 					read_symbol();
 					continue;
 				}
-
-				cursor += 1;
-				index += 1;
 			}
 
 			insert_token(Token::EOF, {0});
@@ -246,22 +265,6 @@ namespace deckard::lexer
 			//
 			while (utf8::is_whitespace(peek()))
 			{
-				// TODO: emit EOL
-				if (utf8::is_ascii_newline(peek(0)) and utf8::is_ascii_newline(peek(1)))
-				{
-					next(2);
-					line += 1;
-					cursor = 0;
-					continue;
-				}
-
-				if (utf8::is_ascii_newline(peek(0)) and not utf8::is_ascii_newline(peek(1)))
-				{
-					next(1);
-					line += 1;
-					cursor = 0;
-					continue;
-				}
 				next();
 			}
 		}
@@ -300,7 +303,6 @@ namespace deckard::lexer
 		{
 			literals lit;
 
-			lit.push_back(next());
 
 			while (not eof())
 			{
@@ -309,6 +311,7 @@ namespace deckard::lexer
 				else
 					break;
 			}
+
 			Token type = Token::IDENTIFIER;
 			if (is_keyword(lit))
 				type = Token::KEYWORD;

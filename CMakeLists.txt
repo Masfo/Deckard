@@ -74,7 +74,7 @@ if(MSVC)
         target_link_options(deckard PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
 
 
-        #target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
+        target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
     
 
     endif()
