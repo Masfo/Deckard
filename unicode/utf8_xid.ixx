@@ -21,7 +21,7 @@ namespace deckard::utf8
 
 		while (low <= high)
 		{
-			middle = (low + high) / 2;
+			middle = low + ((high - low) / 2);
 
 			if (codepoint < range[middle].start)
 				high = middle - 1;
