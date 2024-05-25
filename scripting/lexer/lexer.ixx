@@ -214,7 +214,14 @@ namespace deckard::lexer
 			{
 				const auto p  = peek(0);
 				const auto p2 = peek(1);
-				if (p == '\r' and p2 == '\n')
+				if (p == '\n' or p == '\r') // linux/mac
+				{
+					next(1);
+					cursor = 0;
+					line += 1;
+					continue;
+				}
+				if (p == '\r' and p2 == '\n') // windows
 				{
 					next(2);
 					cursor = 0;
