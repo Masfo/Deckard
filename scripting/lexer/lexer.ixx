@@ -100,11 +100,11 @@ namespace deckard::lexer
 
 	export struct token
 	{
-		literals    literal_codepoints;
-		std::string str_literal;
-		u32         line{0};
-		u32         cursor{0}; // cursor pos in line
-		Token       type;
+		literals     literal_codepoints;
+		std::wstring str_literal;
+		u32          line{0};
+		u32          cursor{0}; // cursor pos in line
+		Token        type;
 	};
 
 	struct registered_symbol
@@ -189,6 +189,8 @@ namespace deckard::lexer
 
 		tokens tokenize() noexcept
 		{
+			init_default_keyword();
+
 			while (has_data())
 			{
 
@@ -301,7 +303,11 @@ namespace deckard::lexer
 				else
 					break;
 			}
-			insert_token(Token::IDENTIFIER, lit);
+			Token type = Token::IDENTIFIER;
+			if (is_keyword(lit))
+				type = Token::KEYWORD;
+
+			insert_token(type, lit);
 		}
 
 		void read_symbol() noexcept
@@ -323,15 +329,15 @@ namespace deckard::lexer
 
 			assert::check(type != Token::EOF, "Unknown symbol");
 
+
 			insert_token(type, lit);
 		}
 
 		void insert_token(Token type, const literals& literal) noexcept
 		{
-			std::string s;
+			std::wstring s;
 			for (const auto& c : literal)
-				s += (char)c;
-
+				s += (char32_t)c;
 			token t{
 			  //
 			  .literal_codepoints = literal,
@@ -345,19 +351,42 @@ namespace deckard::lexer
 			m_tokens.emplace_back(t);
 		}
 
+		bool is_keyword(const literals& literal)
+		{
+			std::string str;
+			for (const auto& c : literal)
+				str += (char)c;
+
+			for (const auto& word : keywords)
+			{
+				if (word == str)
+					return true;
+			}
+			return false;
+		}
+
 
 	private:
+		void init_default_keyword()
+		{
+			keywords.push_back("fn");
+			keywords.push_back("if");
+			keywords.push_back("let");
+			keywords.push_back("return");
+		}
+
 		utf8file              input;
 		std::vector<char32_t> codepoints;
-		u32                   index{0};
-		tokens                m_tokens;
-		std::string           filename;
+
+
+		u32         index{0};
+		tokens      m_tokens;
+		std::string filename;
 
 		u32 line{0};
 		u32 cursor{0};
 
 
-		// TODO: utf8 keywords
 		std::vector<std::string> keywords;
 	};
 } // namespace deckard::lexer

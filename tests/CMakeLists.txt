@@ -86,8 +86,8 @@ set_target_properties(tests PROPERTIES
 
 
 if(MSVC)
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
-
+   # set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
     # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -163,3 +163,4 @@ target_compile_options(tests PRIVATE
     #/wd5246 # the initialization of a subobject should be wrapped in braces
     /wd4273 # inconsistent dll linkage
 )
+
