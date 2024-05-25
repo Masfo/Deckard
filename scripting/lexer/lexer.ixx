@@ -104,11 +104,11 @@ namespace deckard::lexer
 		EOF,
 	};
 
-	using literals = std::vector<char32_t>;
+	using lexeme = std::vector<char32_t>;
 
 	export struct token
 	{
-		literals     literal_codepoints;
+		lexeme       lexeme;
 		std::wstring str_literal;
 		u32          line{0};
 		u32          cursor{0}; // cursor pos in line
@@ -278,7 +278,7 @@ namespace deckard::lexer
 
 		void read_number() noexcept
 		{
-			literals lit;
+			lexeme lit;
 			while (not eof())
 			{
 				if (auto n = peek(); utf8::is_ascii_digit(n))
@@ -295,7 +295,7 @@ namespace deckard::lexer
 		void read_string() noexcept
 		{
 			//
-			literals lit;
+			lexeme lit;
 			next();
 			while (not eof() and peek() != '\"')
 			{
@@ -308,7 +308,7 @@ namespace deckard::lexer
 
 		void read_identifier() noexcept
 		{
-			literals lit;
+			lexeme lit;
 
 
 			while (not eof())
@@ -329,9 +329,9 @@ namespace deckard::lexer
 		void read_symbol() noexcept
 		{
 			//
-			literals lit;
-			Token    type   = Token::EOF;
-			auto     symbol = next();
+			lexeme lit;
+			Token  type   = Token::EOF;
+			auto   symbol = next();
 
 			for (const auto& rs : rsymbols)
 			{
@@ -349,25 +349,25 @@ namespace deckard::lexer
 			insert_token(type, lit);
 		}
 
-		void insert_token(Token type, const literals& literal) noexcept
+		void insert_token(Token type, const lexeme& literal) noexcept
 		{
 			std::wstring s;
 			for (const auto& c : literal)
 				s += (char32_t)c;
 			token t{
 			  //
-			  .literal_codepoints = literal,
-			  .str_literal        = s,
-			  .line               = line,
-			  .cursor             = cursor,
-			  .type               = type
+			  .lexeme      = literal,
+			  .str_literal = s,
+			  .line        = line,
+			  .cursor      = cursor,
+			  .type        = type
 			  //
 			};
 
 			m_tokens.emplace_back(t);
 		}
 
-		bool is_keyword(const literals& literal)
+		bool is_keyword(const lexeme& literal)
 		{
 			std::string str;
 			for (const auto& c : literal)
