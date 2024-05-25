@@ -55,6 +55,7 @@ if(MSVC)
     target_compile_options(deckard PRIVATE /arch:SSE2)
 
     set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+    #set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")

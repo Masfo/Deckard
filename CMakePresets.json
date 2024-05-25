@@ -15,7 +15,7 @@
                 "CMAKE_C_COMPILER": "cl.exe",
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                //"CMAKE_CXX_COMPILER_LAUNCHER": "sccache",
+                //"CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                 "BUILDINC": true
 
