@@ -52,6 +52,7 @@ namespace deckard::lexer
 		PERCENT,     // %
 		QUESTION,    // ?
 
+
 		BACK_SLASH,  // '\'
 		BANG,        // !
 		SLASH_SLASH, // //
@@ -80,7 +81,10 @@ namespace deckard::lexer
 		COLON,      // :
 		SEMI_COLON, // ;
 		HASH,       // #
+
 		PIPE,       // |
+		AND,        // &
+		XOR,        // ^
 
 		// Brackets
 		LEFT_PAREN,    // (
@@ -114,7 +118,7 @@ namespace deckard::lexer
 	};
 
 	// TODO: constexpr map?
-	constexpr std::array<registered_symbol, 22> rsymbols = {{
+	constexpr std::array<registered_symbol, 25> rsymbols = {{
 	  // Compare
 	  {'=', Token::EQUAL},
 	  {'+', Token::PLUS},
@@ -126,7 +130,9 @@ namespace deckard::lexer
 	  {'>', Token::GREATER},
 	  {'|', Token::PIPE},
 	  {'?', Token::QUESTION},
-
+	  {'|', Token::PIPE},
+	  {'&', Token::AND},
+	  {'^', Token::XOR},
 
 	  // Separators
 	  {'(', Token::LEFT_PAREN},
