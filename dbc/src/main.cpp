@@ -316,9 +316,10 @@ int main()
 
 	sse::test();
 
+	std::string s("π");
 
-	// lexer::lexer l("fn λ = π * π ?"sv);
-	lexer::tokenizer l2("let x = \"hello\";"sv);
+
+	lexer::tokenizer l2(R"(π = "three")"sv);
 
 	const auto tokens = l2.tokenize();
 
