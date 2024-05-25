@@ -28,6 +28,19 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[0], Token::EOF, L""));
 	}
 
+	SECTION("newlines")
+	{
+		tokenizer  l("1\r\n2\n3\r4"sv);
+		const auto tokens = l.tokenize();
+		REQUIRE(tokens.size() == 5);
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"1"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens[2], Token::INTEGER, L"3"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"4"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
+
 	SECTION("integers")
 	{
 		tokenizer l("1 2"sv);
