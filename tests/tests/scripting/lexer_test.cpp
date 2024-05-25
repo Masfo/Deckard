@@ -50,7 +50,7 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(tokens.size() == 3);
 		REQUIRE(check_token(tokens[0], Token::INTEGER, L"1"));
 		REQUIRE(check_token(tokens[1], Token::INTEGER, L"2"));
-		REQUIRE(check_token(tokens[2], Token::EOF, L""));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
 	SECTION("string")
@@ -63,7 +63,7 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[0], Token::IDENTIFIER, L"π"));
 		REQUIRE(check_token(tokens[1], Token::EQUAL, L"="));
 		REQUIRE(check_token(tokens[2], Token::STRING, L"three"));
-		REQUIRE(check_token(tokens[3], Token::EOF, L""));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
 
@@ -83,6 +83,6 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[6], Token::STRING, L"three"));
 		REQUIRE(check_token(tokens[7], Token::SEMI_COLON, L";"));
 		REQUIRE(check_token(tokens[8], Token::RIGHT_BRACE, L"}"));
-		REQUIRE(check_token(tokens[9], Token::EOF, L""));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 }
