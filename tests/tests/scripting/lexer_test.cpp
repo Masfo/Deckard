@@ -40,6 +40,41 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
+	SECTION("multisymbols")
+	{
+		tokenizer  l("== != += -= *= /= %= ^= &= |= && || ->"sv);
+		const auto tokens = l.tokenize();
+		REQUIRE(tokens.size() == 14);
+		REQUIRE(check_token(tokens[0], Token::EQUAL_EQUAL, L"=="));
+		REQUIRE(check_token(tokens[1], Token::BANG_EQUAL, L"!="));
+		REQUIRE(check_token(tokens[2], Token::PLUS_EQUAL, L"+="));
+		REQUIRE(check_token(tokens[3], Token::MINUS_EQUAL, L"-="));
+		REQUIRE(check_token(tokens[4], Token::STAR_EQUAL, L"*="));
+		REQUIRE(check_token(tokens[5], Token::SLASH_EQUAL, L"/="));
+		REQUIRE(check_token(tokens[6], Token::PERCENT_EQUAL, L"%="));
+		REQUIRE(check_token(tokens[7], Token::XOR_EQUAL, L"^="));
+		REQUIRE(check_token(tokens[8], Token::AND_EQUAL, L"&="));
+		REQUIRE(check_token(tokens[9], Token::OR_EQUAL, L"|="));
+		REQUIRE(check_token(tokens[10], Token::AND_AND, L"&&"));
+		REQUIRE(check_token(tokens[11], Token::OR_OR, L"||"));
+		REQUIRE(check_token(tokens[12], Token::ARROW, L"->"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
+	SECTION("paren_bracket_brace")
+	{
+		tokenizer  l("()[]{}"sv);
+		const auto tokens = l.tokenize();
+		REQUIRE(tokens.size() == 7);
+		REQUIRE(check_token(tokens[0], Token::LEFT_PAREN, L"("));
+		REQUIRE(check_token(tokens[1], Token::RIGHT_PAREN, L")"));
+		REQUIRE(check_token(tokens[2], Token::LEFT_BRACKET, L"["));
+		REQUIRE(check_token(tokens[3], Token::RIGHT_BRACKET, L"]"));
+		REQUIRE(check_token(tokens[4], Token::LEFT_BRACE, L"{"));
+		REQUIRE(check_token(tokens[5], Token::RIGHT_BRACE, L"}"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
 
 	SECTION("integers")
 	{
