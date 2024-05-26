@@ -17,6 +17,11 @@ export namespace deckard::utf8
 		return ((codepoint >= 'A') and (codepoint <= 'Z')) or ((codepoint >= 'a') and (codepoint <= 'z'));
 	}
 
+	constexpr bool is_ascii_hex_digit(char32_t codepoint) noexcept
+	{
+		return is_ascii_digit(codepoint) or ((codepoint >= 'A') and (codepoint <= 'F')) or ((codepoint >= 'a') and (codepoint <= 'f'));
+	}
+
 	constexpr bool is_ascii_alphanumeric(char32_t codepoint) noexcept
 	{
 		return ((codepoint >= 'A') and (codepoint <= 'Z')) or ((codepoint >= 'a') and (codepoint <= 'z')) or
