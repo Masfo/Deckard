@@ -37,15 +37,16 @@ namespace deckard::lexer
 	 */
 
 	export enum class Token : u8 {
-		INTEGER,        // 1
-		FLOATING_POINT, // 3.14
-		KEYWORD,        // if, else
-		IDENTIFIER,     // a123, _123
-		CHARACTER,      // 'a'
-		STRING,         // "abc"
+		INTEGER,          // -1
+		UNSIGNED_INTEGER, // 1
+		FLOATING_POINT,   // 3.14
+		KEYWORD,          // if, else
+		IDENTIFIER,       // a123, _123
+		CHARACTER,        // 'a'
+		STRING,           // "abc"
 
-		TYPE,           // builtin type: i32, f32
-		USER_TYPE,      // struct <type>
+		TYPE,             // builtin type: i32, f32
+		USER_TYPE,        // struct <type>
 
 		// Op
 		PLUS,        // +
@@ -111,13 +112,16 @@ namespace deckard::lexer
 		//
 		UNKNOWN,
 		INVALID,
+		INVALID_CHAR,
+		INVALID_HEX,
+		INVALID_FLOATING_POINT,
 		EOL,
 		EOF,
 	};
 
 	using lexeme = std::vector<char32_t>;
 
-	using number = std::variant<double, i64, u64>;
+	using number = std::variant<std::monostate, double, i64, u64>;
 
 	export struct token
 	{
@@ -127,6 +131,20 @@ namespace deckard::lexer
 		u32          line{0};
 		u32          cursor{0}; // cursor pos in line
 		Token        type;
+
+		template<typename T>
+		std::optional<T> get() const
+		{
+			if (std::holds_alternative<T>(num))
+				return std::get<T>(num);
+			return {};
+		}
+
+		auto as_i64() const { return get<i64>(); }
+
+		auto as_u64() const { return get<u64>(); }
+
+		auto as_double() const { return get<double>(); }
 	};
 
 	export class tokenizer
@@ -209,12 +227,18 @@ namespace deckard::lexer
 					continue;
 				}
 
-
-				if (utf8::is_ascii_digit(peek()))
+				if (utf8::is_ascii_digit(current_char))
 				{
 					read_number();
 					continue;
 				}
+				if ((current_char == '.' and utf8::is_ascii_digit(next_char)) or
+					((current_char == '-' or current_char == '+') and (next_char == '.' or utf8::is_ascii_digit(next_char))))
+				{
+					read_number();
+					continue;
+				}
+
 
 				if (current_char == '\'')
 				{
@@ -252,18 +276,94 @@ namespace deckard::lexer
 
 		void read_number() noexcept
 		{
-			lexeme lit;
-			while (not eof())
+			// 123
+			// 123.
+			// .1415
+			// 0x400
+			// 0X400
+			bool                   hex      = false;
+			bool                   dot      = false;
+			bool                   negative = false;
+			bool                   first    = false;
+			lexeme                 lit;
+			std::string            s;
+			std::from_chars_result result;
+			Token                  type = Token::INTEGER;
+
+
+			while (not eof() and not is_whitespace(peek()))
 			{
-				if (auto n = peek(); utf8::is_ascii_digit(n))
+				auto current   = peek(0);
+				auto next_char = peek(1);
+
+				if (current == '-')
 				{
-					lit.push_back(next());
+					negative = true;
 				}
-				else
-					break;
+
+				if (current == '.')
+				{
+					dot = true;
+				}
+				if (current == '0' and next_char == 'x')
+				{
+					hex = true;
+
+					auto v = next();
+					lit.push_back(v);
+
+					v = next();
+					lit.push_back(v);
+
+					continue;
+				}
+
+				auto v = next();
+				lit.push_back(v);
+				s += (char)v;
+				first = true;
 			}
 
-			insert_token(Token::INTEGER, lit);
+			i64 i_value{0};
+			u64 u_value{0};
+			f64 f_value{0};
+
+
+			if (dot)
+			{
+				type   = Token::FLOATING_POINT;
+				result = std::from_chars(s.data(), s.data() + s.length(), f_value);
+				if (result.ec != std::errc{})
+				{
+					type = Token::INVALID_FLOATING_POINT;
+				}
+
+				insert_token(type, lit, dot ? f_value : i_value);
+			}
+			else
+			{
+				if (negative)
+				{
+					type   = Token::INTEGER;
+					result = std::from_chars(s.data(), s.data() + s.length(), i_value, hex ? 16 : 10);
+					if (result.ec != std::errc{})
+					{
+						type = Token::INVALID_HEX;
+					}
+					insert_token(type, lit, i_value);
+				}
+				else
+				{
+					type   = Token::UNSIGNED_INTEGER;
+					result = std::from_chars(s.data(), s.data() + s.length(), u_value, hex ? 16 : 10);
+					if (result.ec != std::errc{})
+					{
+						type = Token::INVALID_HEX;
+					}
+
+					insert_token(type, lit, u_value);
+				}
+			}
 		}
 
 		void read_char() noexcept
@@ -276,7 +376,7 @@ namespace deckard::lexer
 			lit.push_back(next());
 
 			if (peek() != '\'')
-				type = Token::INVALID;
+				type = Token::INVALID_CHAR;
 			else
 				next();
 
@@ -649,7 +749,7 @@ namespace deckard::lexer
 			insert_token(type, lit);
 		}
 
-		void insert_token(Token type, const lexeme& literal) noexcept
+		void insert_token(Token type, const lexeme& literal, number num = 0) noexcept
 		{
 			std::wstring s;
 			for (const auto& c : literal)
@@ -658,6 +758,7 @@ namespace deckard::lexer
 			  //
 			  .lexeme      = literal,
 			  .str_literal = s,
+			  .num         = num,
 			  .line        = line,
 			  .cursor      = cursor,
 			  .type        = type
