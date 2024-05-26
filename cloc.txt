@@ -1,24 +1,25 @@
-github.com/AlDanial/cloc v 1.98  T=0.06 s (651.6 files/s, 121126.8 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.09 s (487.9 files/s, 100180.0 lines/s)
 --------------------------------------------------------------------------------
 File                                         blank        comment           code
 --------------------------------------------------------------------------------
 .\math\vec_generic.ixx                         137             23            605
+.\scripting\lexer\lexer.ixx                    148             31            587
 .\math\vec_sse_generic.ixx                     137             43            457
+.\dbc\src\main.cpp                             124             47            365
 .\unicode\utf8_xid_tables.ixx                    6              3            365
 .\utils\cpuid.ixx                              106             16            362
-.\dbc\src\main.cpp                             120             47            360
 .\utils\sha2.ixx                                88              8            336
-.\math\vec3_sse.ixx                            111             13            283
+.\math\vec3_sse.ixx                            110             13            282
 .\math\vec2_sse.ixx                            110             12            275
-.\math\vec4_sse.ixx                             99             18            263
+.\math\vec4_sse.ixx                             99             18            261
 .\math\matrix.ixx                               67             69            215
-.\unicode\utf8_codepoints.ixx                   47             22            162
+.\unicode\utf8_codepoints.ixx                   56             22            206
 .\file\filemonitor.ixx                          38              7            154
 .\utils\helpers.ixx                             50              9            154
 .\utils\base64.ixx                              28              0            141
 .\utils\generator.ixx                           42              1            140
 .\win32\win32.ixx                               44              1            136
-.\file\file.ixx                                 47              0            135
+.\file\file.ixx                                 48              4            132
 .\debug\debug.ixx                               29              9            128
 .\win32\DTE.ixx                                 33              6            118
 .\math\math_formatter.ixx                       30              9            104
@@ -26,24 +27,23 @@ File                                         blank        comment           code
 .\types\as.ixx                                  16              5             72
 .\archive\archive.ixx                           21              7             70
 .\unicode\utf8_xid.ixx                          12              1             62
+.\unicode\utf8file.ixx                          19              0             62
 .\math\math_utility.ixx                         15              9             60
 .\utils\scope_exit.ixx                          12              0             52
-.\unicode\utf8file.ixx                          16              0             50
 .\types\types.ixx                               35             39             49
 .\graphs\binarytree.ixx                         11             12             43
 .\utils\hash.ixx                                 9              0             36
 .\math\math.ixx                                 11              2             29
 .\Deckard.ixx                                   16             10             27
+.\unicode\utf8_ascii.ixx                        11              0             26
 .\debug\assert.ixx                              11              0             25
 .\types\HelperTypes.ixx                         12              3             24
 .\buildnumber.ixx                                7             17             16
 .\dbc\src\buildnumber.ixx                        7             17             16
-.\unicode\utf8_ascii.ixx                         9              0             16
-.\scripting\lexer\lexer.ixx                     10             15             11
 .\utils\uuid.ixx                                 4              0             10
 .\utils\system_win32.ixx                         6              0              8
 .\unicode\utf8.ixx                               0              0              6
 .\scripting\parser\parser.ixx                   11             15              4
 --------------------------------------------------------------------------------
-SUM:                                          1646            504           5657
+SUM:                                          1802            524           6298
 --------------------------------------------------------------------------------
