@@ -37,14 +37,15 @@ namespace deckard::lexer
 	 */
 
 	export enum class Token : u8 {
-		INTEGER,        //
-		FLOATING_POINT, //
-		KEYWORD,        //
-		IDENTIFIER,     //
+		INTEGER,        // 1
+		FLOATING_POINT, // 3.14
+		KEYWORD,        // if, else
+		IDENTIFIER,     // a123, _123
 		CHARACTER,      // 'a'
-		TYPE,           //
-		USER_TYPE,      //
 		STRING,         // "abc"
+
+		TYPE,           // builtin type: i32, f32
+		USER_TYPE,      // struct <type>
 
 		// Op
 		PLUS,        // +
@@ -55,6 +56,7 @@ namespace deckard::lexer
 		QUESTION,    // ?
 		BANG,        // !
 		AT,          // @
+		UNDERSCORE,  // _
 
 
 		BACK_SLASH,  // '\'
@@ -107,7 +109,7 @@ namespace deckard::lexer
 		RIGHT_BRACKET, // ]
 
 		//
-		NOP,
+		UNKNOWN,
 		EOL,
 		EOF,
 	};
@@ -125,56 +127,57 @@ namespace deckard::lexer
 
 	struct registered_symbol
 	{
-		char32_t literal;
-		Token    type;
+		std::string_view literal{};
+		Token            type;
 	};
 
-	// TODO: constexpr map?
 	constexpr std::array<registered_symbol, 40> rsymbols = {{
-	  {'=', Token::EQUAL},
-	  {'+', Token::PLUS},
-	  {'-', Token::MINUS},
-	  {'*', Token::STAR},
-	  {'/', Token::SLASH},
-	  {'\\', Token::BACK_SLASH},
-	  {'%', Token::PERCENT},
-	  {'<', Token::LESSER},
-	  {'>', Token::GREATER},
-	  {'?', Token::QUESTION},
-	  {'|', Token::OR},
-	  {'&', Token::AND},
-	  {'^', Token::XOR},
-	  {'~', Token::TILDE},
-	  {'&&', Token::AND_AND},
-	  {'||', Token::OR_OR},
+	  {"=", Token::EQUAL},
+	  {"+", Token::PLUS},
+	  {"-", Token::MINUS},
+	  {"_", Token::UNDERSCORE},
+	  {"*", Token::STAR},
+	  {"/", Token::SLASH},
+	  {"%", Token::PERCENT},
 
+	  {"<", Token::LESSER},
+	  {">", Token::GREATER},
+	  {"?", Token::QUESTION},
+	  {"|", Token::OR},
+	  {"&", Token::AND},
+	  {"^", Token::XOR},
+	  {"~", Token::TILDE},
+	  {"&&", Token::AND_AND},
+	  {"||", Token::OR_OR},
+
+	  {"\\", Token::BACK_SLASH},
 
 	  //
-	  {'(', Token::LEFT_PAREN},
-	  {')', Token::RIGHT_PAREN},
-	  {'[', Token::LEFT_BRACKET},
-	  {']', Token::RIGHT_BRACKET},
-	  {'{', Token::LEFT_BRACE},
-	  {'}', Token::RIGHT_BRACE},
+	  {"(", Token::LEFT_PAREN},
+	  {")", Token::RIGHT_PAREN},
+	  {"[", Token::LEFT_BRACKET},
+	  {"]", Token::RIGHT_BRACKET},
+	  {"{", Token::LEFT_BRACE},
+	  {"}", Token::RIGHT_BRACE},
 	  //
-	  {'.', Token::DOT},
-	  {'..', Token::ELLIPSIS}, // 1..3, 1..=3
-	  {',', Token::COMMA},
-	  {':', Token::COLON},
-	  {';', Token::SEMI_COLON},
-	  {'#', Token::HASH},
-	  {'@', Token::AT},
+	  {".", Token::DOT},
+	  {"..", Token::ELLIPSIS},
+	  {",", Token::COMMA},
+	  {":", Token::COLON},
+	  {";", Token::SEMI_COLON},
+	  {"#", Token::HASH},
+	  {"@", Token::AT},
 	  //
-	  {'<=', Token::LESSER_EQUAL},
-	  {'>=', Token::GREATER_EQUAL},
-	  {'+=', Token::PLUS_EQUAL},
-	  {'-=', Token::MINUS_EQUAL},
-	  {'*=', Token::STAR_EQUAL},
-	  {'/=', Token::SLASH_EQUAL},
-	  {'%=', Token::PERCENT_EQUAL},
-	  {'^=', Token::XOR_EQUAL},
-	  {'&=', Token::AND_EQUAL},
-	  {'|=', Token::OR_EQUAL},
+	  {"<=", Token::LESSER_EQUAL},
+	  {">=", Token::GREATER_EQUAL},
+	  {"+=", Token::PLUS_EQUAL},
+	  {"-=", Token::MINUS_EQUAL},
+	  {"*=", Token::STAR_EQUAL},
+	  {"/=", Token::SLASH_EQUAL},
+	  {"%=", Token::PERCENT_EQUAL},
+	  {"^=", Token::XOR_EQUAL},
+	  {"&=", Token::AND_EQUAL},
+	  {"|=", Token::OR_EQUAL},
 
 
 	}};
@@ -235,16 +238,17 @@ namespace deckard::lexer
 
 			while (not eof())
 			{
-				const auto p  = peek(0);
-				const auto p2 = peek(1);
-				if (p == '\n' or p == '\r') // linux/mac
+				const auto current_char = peek(0);
+				const auto next_char    = peek(1);
+
+				if (current_char == '\n' or current_char == '\r') // linux/mac
 				{
 					next(1);
 					cursor = 0;
 					line += 1;
 					continue;
 				}
-				if (p == '\r' and p2 == '\n') // windows
+				if (current_char == '\r' and next_char == '\n') // windows
 				{
 					next(2);
 					cursor = 0;
@@ -254,9 +258,10 @@ namespace deckard::lexer
 
 				if (utf8::is_whitespace(peek()))
 				{
-					read_whitespace();
+					next();
 					continue;
 				}
+
 
 				if (utf8::is_ascii_digit(peek()))
 				{
@@ -288,15 +293,6 @@ namespace deckard::lexer
 			insert_token(Token::EOF, {0});
 
 			return m_tokens;
-		}
-
-		void read_whitespace() noexcept
-		{
-			//
-			while (utf8::is_whitespace(peek()))
-			{
-				next();
-			}
 		}
 
 		void read_number() noexcept
@@ -341,10 +337,17 @@ namespace deckard::lexer
 				else
 					break;
 			}
+			// TODO: max len ident
 
 			Token type = Token::IDENTIFIER;
+
+			if (lit.size() == 1 and lit[0] == '_')
+				type = Token::UNDERSCORE;
+
 			if (is_keyword(lit))
 				type = Token::KEYWORD;
+
+			// TODO: type/usertype detection
 
 			insert_token(type, lit);
 		}
@@ -353,21 +356,319 @@ namespace deckard::lexer
 		{
 			//
 			lexeme lit;
-			Token  type   = Token::EOF;
-			auto   symbol = next();
+			Token  type        = Token::UNKNOWN;
+			auto   current     = peek(0);
+			auto   next_char   = peek(1);
+			int    symbol_size = 1;
 
-			for (const auto& rs : rsymbols)
+
+			switch (current)
 			{
-				if (symbol == rs.literal)
+				case '=':
 				{
-					type = rs.type;
-					lit.push_back(symbol);
+					type = Token::EQUAL;
+
+					if (next_char == '=')
+					{
+						type        = Token::EQUAL_EQUAL;
+						symbol_size = 2;
+					}
+
 					break;
+				}
+
+				case '+':
+				{
+					type = Token::PLUS;
+
+					if (next_char == '=')
+					{
+						type        = Token::PLUS_EQUAL;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '-':
+				{
+					type = Token::MINUS;
+
+					if (next_char == '=')
+					{
+						type        = Token::MINUS_EQUAL;
+						symbol_size = 2;
+					}
+					if (next_char == '>')
+					{
+						type        = Token::ARROW;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '*':
+				{
+					type = Token::STAR;
+
+					if (next_char == '=')
+					{
+						type        = Token::STAR_EQUAL;
+						symbol_size = 2;
+					}
+					if (next_char == '/')
+					{
+						type        = Token::STAR_SLASH;
+						symbol_size = 2;
+					}
+					break;
+				}
+				case '/':
+				{
+					type = Token::SLASH;
+
+					if (next_char == '/')
+					{
+						type        = Token::SLASH_SLASH;
+						symbol_size = 2;
+					}
+					if (next_char == '=')
+					{
+						type        = Token::SLASH_EQUAL;
+						symbol_size = 2;
+					}
+					if (next_char == '*')
+					{
+						type        = Token::SLASH_STAR;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '%':
+				{
+					type = Token::PERCENT;
+
+					if (next_char == '=')
+					{
+						type        = Token::PERCENT_EQUAL;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '_':
+				{
+					type = Token::UNDERSCORE;
+					break;
+				}
+
+				case '?':
+				{
+					type = Token::QUESTION;
+					break;
+				}
+
+
+				case '&':
+				{
+					type = Token::AND;
+					if (next_char == '=')
+					{
+						type        = Token::AND_EQUAL;
+						symbol_size = 2;
+					}
+					if (next_char == '&')
+					{
+						type        = Token::AND_AND;
+						symbol_size = 2;
+					}
+					break;
+				}
+
+
+				case '|':
+				{
+					type = Token::OR;
+					if (next_char == '=')
+					{
+						type        = Token::OR_EQUAL;
+						symbol_size = 2;
+					}
+					if (next_char == '|')
+					{
+						type        = Token::OR_OR;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '^':
+				{
+					type = Token::XOR;
+					if (next_char == '=')
+					{
+						type        = Token::XOR_EQUAL;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '\\':
+				{
+					type = Token::BACK_SLASH;
+
+					break;
+				}
+
+				case '~':
+				{
+					type = Token::TILDE;
+					break;
+				}
+
+				case '<':
+				{
+					type = Token::LESSER;
+					if (next_char == '=')
+					{
+						type        = Token::LESSER_EQUAL;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+				case '>':
+				{
+					type = Token::GREATER;
+					if (next_char == '=')
+					{
+						type        = Token::GREATER_EQUAL;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case '.':
+				{
+					type = Token::DOT;
+					if (next_char == '.')
+					{
+						type        = Token::ELLIPSIS;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case ',':
+				{
+					type = Token::COMMA;
+
+					break;
+				}
+
+				case ':':
+				{
+					type = Token::COLON;
+
+					break;
+				}
+
+				case '!':
+				{
+					type = Token::BANG;
+					if (next_char == '=')
+					{
+						type        = Token::BANG_EQUAL;
+						symbol_size = 2;
+					}
+
+					break;
+				}
+
+				case ';':
+				{
+					type = Token::SEMI_COLON;
+
+					break;
+				}
+
+				case '#':
+				{
+					type = Token::HASH;
+
+					break;
+				}
+
+				case '@':
+				{
+					type = Token::AT;
+
+					break;
+				}
+
+				case '(':
+				{
+					type = Token::LEFT_PAREN;
+
+					break;
+				}
+				case ')':
+				{
+					type = Token::RIGHT_PAREN;
+
+					break;
+				}
+
+				case '[':
+				{
+					type = Token::LEFT_BRACKET;
+
+					break;
+				}
+				case ']':
+				{
+					type = Token::RIGHT_BRACKET;
+
+					break;
+				}
+
+				case '{':
+				{
+					type = Token::LEFT_BRACE;
+
+					break;
+				}
+				case '}':
+				{
+					type = Token::RIGHT_BRACE;
+
+					break;
+				}
+
+
+				default:
+				{
+					dbg::println("Unknown symbol: '{:c}'", as<u32>(current));
+					type = Token::UNKNOWN;
 				}
 			}
 
-			assert::check(type != Token::EOF, "Unknown symbol");
 
+			assert::check(type != Token::UNKNOWN, "Unknown symbol");
+
+			lit.push_back(current);
+			if (symbol_size == 2)
+				lit.push_back(next_char);
+
+			next(symbol_size);
 
 			insert_token(type, lit);
 		}
@@ -398,13 +699,20 @@ namespace deckard::lexer
 
 			for (const auto& word : keywords)
 			{
-				if (word.size() == str.size() && word == str)
+				if (word.size() <= longest_keyword and word.size() == str.size() && word == str)
 					return true;
 			}
+
+
 			return false;
 		}
 
-		void add_keyword(const std::string& word) noexcept { keywords.push_back(word); }
+		void add_keyword(const std::string& word) noexcept
+		{
+			longest_keyword = std::max(longest_keyword, word.size());
+			keywords.push_back(word);
+			std::ranges::sort(keywords);
+		}
 
 		void add_type(const std::string& type) noexcept { builtin_types.push_back(type); }
 
@@ -425,6 +733,7 @@ namespace deckard::lexer
 
 			add_keyword("struct");
 			add_keyword("enum");
+
 
 			// Builtin types
 			add_type("i8");
@@ -450,7 +759,7 @@ namespace deckard::lexer
 		u32 line{0};
 		u32 cursor{0};
 
-
+		size_t                   longest_keyword{0};
 		std::vector<std::string> keywords;
 		std::vector<std::string> builtin_types;
 	};
