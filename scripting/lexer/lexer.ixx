@@ -86,7 +86,7 @@ namespace deckard::lexer
 
 		//
 		DOT,        // .
-		ELLIPSIS,   // ...
+		ELLIPSIS,   // ..
 		COMMA,      // ,
 		COLON,      // :
 		SEMI_COLON, // ;
@@ -116,10 +116,13 @@ namespace deckard::lexer
 
 	using lexeme = std::vector<char32_t>;
 
+	using number = std::variant<double, i64, u64>;
+
 	export struct token
 	{
 		lexeme       lexeme;
 		std::wstring str_literal;
+		number       num;
 		u32          line{0};
 		u32          cursor{0}; // cursor pos in line
 		Token        type;
@@ -288,6 +291,8 @@ namespace deckard::lexer
 					read_symbol();
 					continue;
 				}
+
+				dbg::panic("what is this?");
 			}
 
 			insert_token(Token::EOF, {0});

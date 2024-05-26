@@ -40,9 +40,36 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
+	SECTION("symbols")
+	{
+		tokenizer  l("@ ! = + - * / _  % < > ? | & ^ ~ \\"sv);
+		const auto tokens = l.tokenize();
+		int        count  = 0;
+		REQUIRE(check_token(tokens[count++], Token::AT, L"@"));
+		REQUIRE(check_token(tokens[count++], Token::BANG, L"!"));
+		REQUIRE(check_token(tokens[count++], Token::EQUAL, L"="));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::STAR, L"*"));
+		REQUIRE(check_token(tokens[count++], Token::SLASH, L"/"));
+		REQUIRE(check_token(tokens[count++], Token::UNDERSCORE, L"_"));
+		REQUIRE(check_token(tokens[count++], Token::PERCENT, L"%"));
+		REQUIRE(check_token(tokens[count++], Token::LESSER, L"<"));
+		REQUIRE(check_token(tokens[count++], Token::GREATER, L">"));
+		REQUIRE(check_token(tokens[count++], Token::QUESTION, L"?"));
+		REQUIRE(check_token(tokens[count++], Token::OR, L"|"));
+		REQUIRE(check_token(tokens[count++], Token::AND, L"&"));
+		REQUIRE(check_token(tokens[count++], Token::XOR, L"^"));
+		REQUIRE(check_token(tokens[count++], Token::TILDE, L"~"));
+		REQUIRE(check_token(tokens[count++], Token::BACK_SLASH, L"\\"));
+
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
 	SECTION("multisymbols")
 	{
-		tokenizer  l("== != += -= *= /= %= ^= &= |= && || -> .."sv);
+		tokenizer  l("== != += -= *= /= %= ^= &= |= && || -> .. /* */"sv);
 		const auto tokens = l.tokenize();
 		int        count  = 0;
 		REQUIRE(check_token(tokens[count++], Token::EQUAL_EQUAL, L"=="));
@@ -59,6 +86,10 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[count++], Token::OR_OR, L"||"));
 		REQUIRE(check_token(tokens[count++], Token::ARROW, L"->"));
 		REQUIRE(check_token(tokens[count++], Token::ELLIPSIS, L".."));
+		REQUIRE(check_token(tokens[count++], Token::SLASH_STAR, L"/*"));
+		REQUIRE(check_token(tokens[count++], Token::STAR_SLASH, L"*/"));
+
+
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
 	}
