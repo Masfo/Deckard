@@ -110,6 +110,7 @@ namespace deckard::lexer
 
 		//
 		UNKNOWN,
+		INVALID,
 		EOL,
 		EOF,
 	};
@@ -215,7 +216,13 @@ namespace deckard::lexer
 					continue;
 				}
 
-				if (peek() == '\"')
+				if (current_char == '\'')
+				{
+					read_char();
+					continue;
+				}
+
+				if (current_char == '\"')
 				{
 					read_string();
 					continue;
@@ -259,18 +266,39 @@ namespace deckard::lexer
 			insert_token(Token::INTEGER, lit);
 		}
 
+		void read_char() noexcept
+		{
+			lexeme lit;
+			Token  type = Token::CHARACTER;
+
+			next();
+
+			lit.push_back(next());
+
+			if (peek() != '\'')
+				type = Token::INVALID;
+			else
+				next();
+
+			insert_token(type, lit);
+		}
+
 		void read_string() noexcept
 		{
 			//
 			lexeme lit;
+			Token  type = Token::STRING;
+
 			next();
+
+			// TODO: escape chars
 			while (not eof() and peek() != '\"')
 			{
 				lit.push_back(next());
 			}
 			next();
 
-			insert_token(Token::STRING, lit);
+			insert_token(type, lit);
 		}
 
 		void read_identifier() noexcept
@@ -529,6 +557,13 @@ namespace deckard::lexer
 					break;
 				}
 
+				case ';':
+				{
+					type = Token::SEMI_COLON;
+
+					break;
+				}
+
 				case '!':
 				{
 					type = Token::BANG;
@@ -537,13 +572,6 @@ namespace deckard::lexer
 						type        = Token::BANG_EQUAL;
 						symbol_size = 2;
 					}
-
-					break;
-				}
-
-				case ';':
-				{
-					type = Token::SEMI_COLON;
 
 					break;
 				}

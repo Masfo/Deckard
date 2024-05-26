@@ -153,6 +153,18 @@ TEST_CASE("tokens", "[lexer]")
 #endif
 	}
 
+	SECTION("character")
+	{
+		tokenizer l(R"('a' 'c)"sv);
+
+		const auto tokens = l.tokenize();
+
+		REQUIRE(tokens.size() == 3);
+		REQUIRE(check_token(tokens[0], Token::CHARACTER, L"a"));
+		REQUIRE(check_token(tokens[1], Token::INVALID, L"c"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
 
 	SECTION("string")
 	{
