@@ -78,7 +78,7 @@ namespace deckard::math
 
 
 #ifdef __cpp_multidimensional_subscript
-#error("use mdspan")
+#error("use multisubscript")
 		// const f32& operator[](std::size_t z, std::size_t y) const noexcept { return 0.0f; }
 #endif
 

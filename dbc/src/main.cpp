@@ -317,12 +317,8 @@ int main()
 
 	sse::test();
 
-	std::string s("π");
 
-	lexer::tokenizer l1(fs::path{"lexer_data/simple05.txt"});
-	auto             tokl1 = l1.tokenize();
-
-	lexer::tokenizer l2(R"(π = "three")"sv);
+	lexer::tokenizer l2(R"(_ *= "three")"sv);
 
 	const auto tokens = l2.tokenize();
 
