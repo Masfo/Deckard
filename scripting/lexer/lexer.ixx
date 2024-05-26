@@ -42,6 +42,8 @@ namespace deckard::lexer
 		KEYWORD,        //
 		IDENTIFIER,     //
 		CHARACTER,      // 'a'
+		TYPE,           //
+		USER_TYPE,      //
 		STRING,         // "abc"
 
 		// Op
@@ -52,6 +54,7 @@ namespace deckard::lexer
 		PERCENT,     // %
 		QUESTION,    // ?
 		BANG,        // !
+		AT,          // @
 
 
 		BACK_SLASH,  // '\'
@@ -75,6 +78,9 @@ namespace deckard::lexer
 		BANG_EQUAL,     // !=
 		XOR_EQUAL,      // ^=
 		QUESTION_EQUAL, // ?=
+		AND_EQUAL,      // &=
+		OR_EQUAL,       // |=
+
 
 		//
 		DOT,        // .
@@ -85,7 +91,7 @@ namespace deckard::lexer
 		HASH,       // #
 		ARROW,      // ->
 
-		PIPE,       // |
+		OR,         // |
 		AND,        // &
 		XOR,        // ^
 		TILDE,      // ~
@@ -122,7 +128,7 @@ namespace deckard::lexer
 	};
 
 	// TODO: constexpr map?
-	constexpr std::array<registered_symbol, 27> rsymbols = {{
+	constexpr std::array<registered_symbol, 38> rsymbols = {{
 	  {'=', Token::EQUAL},
 	  {'+', Token::PLUS},
 	  {'-', Token::MINUS},
@@ -132,9 +138,8 @@ namespace deckard::lexer
 	  {'%', Token::PERCENT},
 	  {'<', Token::LESSER},
 	  {'>', Token::GREATER},
-	  {'|', Token::PIPE},
 	  {'?', Token::QUESTION},
-	  {'|', Token::PIPE},
+	  {'|', Token::OR},
 	  {'&', Token::AND},
 	  {'^', Token::XOR},
 	  {'~', Token::TILDE},
@@ -148,12 +153,25 @@ namespace deckard::lexer
 	  {'}', Token::RIGHT_BRACE},
 	  //
 	  {'.', Token::DOT},
-	  {'...', Token::ELLIPSIS},
+	  {'..', Token::ELLIPSIS}, // 1..3, 1..=3
 	  {',', Token::COMMA},
 	  {':', Token::COLON},
 	  {';', Token::SEMI_COLON},
 	  {'#', Token::HASH},
+	  {'@', Token::AT},
 	  //
+	  {'<=', Token::LESSER_EQUAL},
+	  {'>=', Token::GREATER_EQUAL},
+	  {'+=', Token::PLUS_EQUAL},
+	  {'-=', Token::MINUS_EQUAL},
+	  {'*=', Token::STAR_EQUAL},
+	  {'/=', Token::SLASH_EQUAL},
+	  {'%=', Token::PERCENT_EQUAL},
+	  {'^=', Token::XOR_EQUAL},
+	  {'&=', Token::AND_EQUAL},
+	  {'|=', Token::OR_EQUAL},
+
+
 	}};
 
 	export class tokenizer
@@ -208,7 +226,7 @@ namespace deckard::lexer
 
 		tokens tokenize() noexcept
 		{
-			init_default_keyword();
+			init_defaults();
 
 			while (not eof())
 			{
@@ -367,7 +385,7 @@ namespace deckard::lexer
 			m_tokens.emplace_back(t);
 		}
 
-		bool is_keyword(const lexeme& literal)
+		bool is_keyword(const lexeme& literal) noexcept
 		{
 			std::string str;
 			for (const auto& c : literal)
@@ -375,20 +393,45 @@ namespace deckard::lexer
 
 			for (const auto& word : keywords)
 			{
-				if (word == str)
+				if (word.size() == str.size() && word == str)
 					return true;
 			}
 			return false;
 		}
 
+		void add_keyword(const std::string& word) noexcept { keywords.push_back(word); }
+
+		void add_type(const std::string& type) noexcept { builtin_types.push_back(type); }
+
 
 	private:
-		void init_default_keyword()
+		void init_defaults() noexcept
 		{
-			keywords.push_back("fn");
-			keywords.push_back("if");
-			keywords.push_back("let");
-			keywords.push_back("return");
+			// Keywords
+			add_keyword("let");
+			add_keyword("fn");
+			add_keyword("return");
+
+			add_keyword("if");
+			add_keyword("else");
+
+			add_keyword("true");
+			add_keyword("false");
+
+			add_keyword("struct");
+			add_keyword("enum");
+
+			// Builtin types
+			add_type("i8");
+			add_type("u8");
+			add_type("i16");
+			add_type("u16");
+			add_type("i32");
+			add_type("u32");
+			add_type("i64");
+			add_type("u64");
+			add_type("f32");
+			add_type("f64");
 		}
 
 		utf8file              input;
@@ -404,5 +447,6 @@ namespace deckard::lexer
 
 
 		std::vector<std::string> keywords;
+		std::vector<std::string> builtin_types;
 	};
 } // namespace deckard::lexer
