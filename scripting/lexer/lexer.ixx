@@ -128,63 +128,6 @@ namespace deckard::lexer
 		Token        type;
 	};
 
-	struct registered_symbol
-	{
-		std::string_view literal{};
-		Token            type;
-	};
-
-	constexpr std::array<registered_symbol, 40> rsymbols = {{
-	  {"=", Token::EQUAL},
-	  {"+", Token::PLUS},
-	  {"-", Token::MINUS},
-	  {"_", Token::UNDERSCORE},
-	  {"*", Token::STAR},
-	  {"/", Token::SLASH},
-	  {"%", Token::PERCENT},
-
-	  {"<", Token::LESSER},
-	  {">", Token::GREATER},
-	  {"?", Token::QUESTION},
-	  {"|", Token::OR},
-	  {"&", Token::AND},
-	  {"^", Token::XOR},
-	  {"~", Token::TILDE},
-	  {"&&", Token::AND_AND},
-	  {"||", Token::OR_OR},
-
-	  {"\\", Token::BACK_SLASH},
-
-	  //
-	  {"(", Token::LEFT_PAREN},
-	  {")", Token::RIGHT_PAREN},
-	  {"[", Token::LEFT_BRACKET},
-	  {"]", Token::RIGHT_BRACKET},
-	  {"{", Token::LEFT_BRACE},
-	  {"}", Token::RIGHT_BRACE},
-	  //
-	  {".", Token::DOT},
-	  {"..", Token::ELLIPSIS},
-	  {",", Token::COMMA},
-	  {":", Token::COLON},
-	  {";", Token::SEMI_COLON},
-	  {"#", Token::HASH},
-	  {"@", Token::AT},
-	  //
-	  {"<=", Token::LESSER_EQUAL},
-	  {">=", Token::GREATER_EQUAL},
-	  {"+=", Token::PLUS_EQUAL},
-	  {"-=", Token::MINUS_EQUAL},
-	  {"*=", Token::STAR_EQUAL},
-	  {"/=", Token::SLASH_EQUAL},
-	  {"%=", Token::PERCENT_EQUAL},
-	  {"^=", Token::XOR_EQUAL},
-	  {"&=", Token::AND_EQUAL},
-	  {"|=", Token::OR_EQUAL},
-
-
-	}};
-
 	export class tokenizer
 	{
 	public:

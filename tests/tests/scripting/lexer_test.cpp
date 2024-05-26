@@ -54,7 +54,7 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("symbols")
 	{
-		tokenizer  l("# @ ! = + - * / _  % < > ? | & ^ ~ \\"sv);
+		tokenizer  l("# @ ! = + - * / _  % < > ? | & ^ ~ \\ : ; . ,"sv);
 		const auto tokens = l.tokenize();
 		int        count  = 0;
 		REQUIRE(check_token(tokens[count++], Token::HASH, L"#"));
@@ -75,6 +75,10 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[count++], Token::XOR, L"^"));
 		REQUIRE(check_token(tokens[count++], Token::TILDE, L"~"));
 		REQUIRE(check_token(tokens[count++], Token::BACK_SLASH, L"\\"));
+		REQUIRE(check_token(tokens[count++], Token::COLON, L":"));
+		REQUIRE(check_token(tokens[count++], Token::SEMI_COLON, L";"));
+		REQUIRE(check_token(tokens[count++], Token::DOT, L"."));
+		REQUIRE(check_token(tokens[count++], Token::COMMA, L","));
 
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
