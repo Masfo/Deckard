@@ -137,6 +137,23 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
+
+	SECTION("floating point")
+	{
+#if 0
+		tokenizer l("3.14 .123 3.0"sv);
+
+		const auto tokens = l.tokenize();
+
+		REQUIRE(tokens.size() == 4);
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"1"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+#endif
+	}
+
+
 	SECTION("string")
 	{
 		tokenizer l(R"(π = "three")"sv);
