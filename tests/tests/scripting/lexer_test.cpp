@@ -54,9 +54,10 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("symbols")
 	{
-		tokenizer  l("@ ! = + - * / _  % < > ? | & ^ ~ \\"sv);
+		tokenizer  l("# @ ! = + - * / _  % < > ? | & ^ ~ \\"sv);
 		const auto tokens = l.tokenize();
 		int        count  = 0;
+		REQUIRE(check_token(tokens[count++], Token::HASH, L"#"));
 		REQUIRE(check_token(tokens[count++], Token::AT, L"@"));
 		REQUIRE(check_token(tokens[count++], Token::BANG, L"!"));
 		REQUIRE(check_token(tokens[count++], Token::EQUAL, L"="));
