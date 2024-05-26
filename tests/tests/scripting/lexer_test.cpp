@@ -81,7 +81,7 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("multisymbols")
 	{
-		tokenizer  l("== != += -= *= /= %= ^= &= |= && || -> .. /* */"sv);
+		tokenizer  l("== != += -= *= /= %= ^= &= |= && || -> .. /* */ //"sv);
 		const auto tokens = l.tokenize();
 		int        count  = 0;
 		REQUIRE(check_token(tokens[count++], Token::EQUAL_EQUAL, L"=="));
@@ -100,8 +100,7 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[count++], Token::ELLIPSIS, L".."));
 		REQUIRE(check_token(tokens[count++], Token::SLASH_STAR, L"/*"));
 		REQUIRE(check_token(tokens[count++], Token::STAR_SLASH, L"*/"));
-
-
+		REQUIRE(check_token(tokens[count++], Token::SLASH_SLASH, L"//"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
 	}
