@@ -107,7 +107,7 @@ namespace deckard::lexer
 		RIGHT_BRACKET, // ]
 
 		//
-		NOP, //
+		NOP,
 		EOL,
 		EOF,
 	};
