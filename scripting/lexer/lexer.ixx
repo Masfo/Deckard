@@ -392,13 +392,56 @@ namespace deckard::lexer
 			u32    current_cursor = cursor;
 
 			next();
-
-			// TODO: escape chars
-			while (not eof() and peek() != '\"')
+			bool end_quote = false;
+			while (not eof())
 			{
-				lit.push_back(next());
+
+				if (end_quote)
+					break;
+
+				auto current = peek();
+				switch (current)
+				{
+					case '\"':
+					{
+						end_quote = true;
+						next();
+						break;
+					}
+					case '\\':
+					{
+						next();
+						current = peek();
+						switch (current)
+						{
+							case '\'':
+								lit.push_back('\'');
+								break;
+
+
+								// TODO: hex
+								// case 'x': lit.push_back('\n'); break;
+
+							case 'n': lit.push_back('\n'); break;
+							case 'r': lit.push_back('\r'); break;
+							case 't': lit.push_back('\t'); break;
+							case '\\': lit.push_back('\\'); break;
+							case '\"': lit.push_back('\"'); break;
+
+							default:
+							{
+								dbg::println("Invalid escape sequence");
+							}
+						}
+						next();
+						current = peek();
+
+						break;
+					}
+					default: lit.push_back(next()); break;
+				}
 			}
-			next();
+			auto current = peek();
 
 			insert_token(type, lit, current_cursor);
 		}

@@ -212,6 +212,17 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
+	SECTION("string escapes")
+	{
+		tokenizer  l(R"("\"hello\t\"" key "\tworld")"sv);
+		const auto tokens = l.tokenize();
+
+		REQUIRE(tokens.size() == 4);
+		REQUIRE(check_token(tokens[0], Token::STRING, L"\"hello\t\""));
+		REQUIRE(check_token(tokens[1], Token::IDENTIFIER, L"key"));
+		REQUIRE(check_token(tokens[2], Token::STRING, L"\tworld"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
 
 	SECTION("keyword")
 	{
