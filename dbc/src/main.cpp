@@ -314,8 +314,20 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	double                                         oo = -.1234;
+	std::variant<std::monostate, double, i64, u64> koaa;
+
 
 	sse::test();
+
+	std::string_view xq{".2"};
+	f32              vq = 0;
+	// xq.remove_prefix(2);
+	auto [ptr, ec] = std::from_chars(xq.data(), xq.data() + xq.size(), vq);
+
+	lexer::tokenizer l("1\r"sv);
+
+	const auto tokensl1 = l.tokenize();
 
 
 	lexer::tokenizer l2(R"(_ *= "three")"sv);
