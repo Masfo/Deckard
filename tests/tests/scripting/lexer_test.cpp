@@ -165,8 +165,7 @@ TEST_CASE("tokens", "[lexer]")
 	SECTION("floating point")
 	{
 #if 1
-		tokenizer l("3.14 .123 3. -.678"sv);
-
+		tokenizer  l("3.14 .123 3. -.678"sv);
 		const auto tokens = l.tokenize();
 
 		REQUIRE(tokens.size() == 5);

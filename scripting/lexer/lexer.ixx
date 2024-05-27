@@ -269,7 +269,7 @@ namespace deckard::lexer
 				dbg::panic("what is this?");
 			}
 
-			insert_token(Token::EOF, {0});
+			insert_token(Token::EOF, {0}, cursor);
 
 			return m_tokens;
 		}
@@ -290,6 +290,7 @@ namespace deckard::lexer
 			std::from_chars_result result;
 			Token                  type = Token::INTEGER;
 
+			u32 current_cursor = cursor;
 
 			while (not eof() and not is_whitespace(peek()))
 			{
@@ -338,7 +339,7 @@ namespace deckard::lexer
 					type = Token::INVALID_FLOATING_POINT;
 				}
 
-				insert_token(type, lit, dot ? f_value : i_value);
+				insert_token(type, lit, current_cursor, f_value);
 			}
 			else
 			{
@@ -350,7 +351,7 @@ namespace deckard::lexer
 					{
 						type = Token::INVALID_HEX;
 					}
-					insert_token(type, lit, i_value);
+					insert_token(type, lit, current_cursor, i_value);
 				}
 				else
 				{
@@ -361,7 +362,7 @@ namespace deckard::lexer
 						type = Token::INVALID_HEX;
 					}
 
-					insert_token(type, lit, u_value);
+					insert_token(type, lit, current_cursor, u_value);
 				}
 			}
 		}
@@ -369,8 +370,8 @@ namespace deckard::lexer
 		void read_char() noexcept
 		{
 			lexeme lit;
-			Token  type = Token::CHARACTER;
-
+			Token  type           = Token::CHARACTER;
+			u32    current_cursor = cursor;
 			next();
 
 			lit.push_back(next());
@@ -380,14 +381,15 @@ namespace deckard::lexer
 			else
 				next();
 
-			insert_token(type, lit);
+			insert_token(type, lit, current_cursor);
 		}
 
 		void read_string() noexcept
 		{
 			//
 			lexeme lit;
-			Token  type = Token::STRING;
+			Token  type           = Token::STRING;
+			u32    current_cursor = cursor;
 
 			next();
 
@@ -398,13 +400,13 @@ namespace deckard::lexer
 			}
 			next();
 
-			insert_token(type, lit);
+			insert_token(type, lit, current_cursor);
 		}
 
 		void read_identifier() noexcept
 		{
 			lexeme lit;
-
+			u32    current_cursor = cursor;
 
 			while (not eof())
 			{
@@ -425,18 +427,18 @@ namespace deckard::lexer
 
 			// TODO: type/usertype detection
 
-			insert_token(type, lit);
+			insert_token(type, lit, current_cursor);
 		}
 
 		void read_symbol() noexcept
 		{
 			//
 			lexeme lit;
-			Token  type        = Token::UNKNOWN;
-			auto   current     = peek(0);
-			auto   next_char   = peek(1);
-			int    symbol_size = 1;
-
+			Token  type           = Token::UNKNOWN;
+			auto   current        = peek(0);
+			auto   next_char      = peek(1);
+			int    symbol_size    = 1;
+			u32    current_cursor = cursor;
 
 			switch (current)
 			{
@@ -746,10 +748,10 @@ namespace deckard::lexer
 
 			next(symbol_size);
 
-			insert_token(type, lit);
+			insert_token(type, lit, current_cursor);
 		}
 
-		void insert_token(Token type, const lexeme& literal, number num = 0) noexcept
+		void insert_token(Token type, const lexeme& literal, u32 current_cursor, number num = 0) noexcept
 		{
 			std::wstring s;
 			for (const auto& c : literal)
@@ -760,7 +762,7 @@ namespace deckard::lexer
 			  .str_literal = s,
 			  .num         = num,
 			  .line        = line,
-			  .cursor      = cursor,
+			  .cursor      = current_cursor,
 			  .type        = type
 			  //
 			};
