@@ -434,7 +434,6 @@ namespace deckard::lexer
 							}
 						}
 						next();
-						current = peek();
 
 						break;
 					}
