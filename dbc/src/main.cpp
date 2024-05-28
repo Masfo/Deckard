@@ -1,5 +1,7 @@
 #include <Windows.h>
+#include <emmintrin.h>
 #include <xmmintrin.h>
+
 
 import std;
 import deckard;
@@ -307,35 +309,20 @@ private:
 
 int main()
 {
-
-
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	double                                         oo = -.1234;
-	std::variant<std::monostate, double, i64, u64> koaa;
-
-
-	sse::test();
-
-	std::string_view xq{".2"};
-	f32              vq = 0;
-	// xq.remove_prefix(2);
-	auto [ptr, ec] = std::from_chars(xq.data(), xq.data() + xq.size(), vq);
 
 	lexer::tokenizer l("1\r"sv);
 
 	const auto tokensl1 = l.tokenize();
 
 
-	lexer::tokenizer l2(R"(_ *= "three")"sv);
+	lexer::tokenizer l2(R"("\x34" "\"hello\"" key "world")"sv);
 
 	const auto tokens = l2.tokenize();
-
-	int x = 0;
-
 
 	// filemonitor fmon("folder");
 	//
