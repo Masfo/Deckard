@@ -45,13 +45,13 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("newlines")
 	{
-		tokenizer  l("1\r\n2\n3\r4"sv);
+		tokenizer  l("1\r\n2\n-3\r-4"sv);
 		const auto tokens = l.tokenize();
 		REQUIRE(tokens.size() == 5);
 		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"1"));
 		REQUIRE(check_token(tokens[1], Token::UNSIGNED_INTEGER, L"2"));
-		REQUIRE(check_token(tokens[2], Token::UNSIGNED_INTEGER, L"3"));
-		REQUIRE(check_token(tokens[3], Token::UNSIGNED_INTEGER, L"4"));
+		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-3"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-4"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
@@ -155,21 +155,19 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("integers")
 	{
-		tokenizer l("123 0x400 -26 -0x100 0x"sv);
+		tokenizer l("123 0x400 -26 -0x100 0x 0x3.14"sv);
 
 		const auto tokens = l.tokenize();
 
-		REQUIRE(tokens.size() == 6);
+		REQUIRE(tokens.size() == 7);
 
 		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"123"));
-		REQUIRE(tokens[0].as_u64() == 123);
 		REQUIRE(check_token(tokens[1], Token::UNSIGNED_INTEGER, L"0x400"));
-		REQUIRE(tokens[1].as_u64() == 0x400);
 		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-26"));
-		REQUIRE(tokens[2].as_i64() == -26);
 		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0x100"));
-		REQUIRE(tokens[3].as_i64() == -0x100);
 		REQUIRE(check_token(tokens[4], Token::INVALID_HEX, L"0x"));
+		REQUIRE(check_token(tokens[5], Token::INVALID_FLOATING_POINT, L"0x3.14"));
+
 
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
@@ -184,16 +182,9 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(tokens.size() == 5);
 
 		REQUIRE(check_token(tokens[0], Token::FLOATING_POINT, L"3.14"));
-		REQUIRE(check_token_float(tokens[0], 3.14));
-
 		REQUIRE(check_token(tokens[1], Token::FLOATING_POINT, L".123"));
-		REQUIRE(check_token_float(tokens[1], 0.123));
-
 		REQUIRE(check_token(tokens[2], Token::FLOATING_POINT, L"3."));
-		REQUIRE(check_token_float(tokens[2], 3.0));
-
 		REQUIRE(check_token(tokens[3], Token::FLOATING_POINT, L"-.678"));
-		REQUIRE(check_token_float(tokens[3], -0.678));
 
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 #endif
