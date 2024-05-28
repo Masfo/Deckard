@@ -117,7 +117,6 @@ namespace deckard::lexer
 		INVALID,
 		INVALID_CHAR,
 		INVALID_HEX,
-		INVALID_FLOATING_POINT,
 		EOL,
 		EOF,
 	};
@@ -284,8 +283,7 @@ namespace deckard::lexer
 			// .1415
 			// 0x400
 			// 0X400
-			bool   hex      = false;
-			bool   negative = false;
+			bool   hex = false;
 			lexeme lit;
 			Token  type = Token::UNSIGNED_INTEGER;
 
@@ -321,7 +319,7 @@ namespace deckard::lexer
 				if (n == '.')
 					type = Token::FLOATING_POINT;
 				if (n == '.' and hex == true)
-					type = Token::INVALID_FLOATING_POINT;
+					type = Token::INVALID_HEX;
 
 				lit.push_back(next());
 			}
@@ -405,7 +403,6 @@ namespace deckard::lexer
 					default: lit.push_back(next()); break;
 				}
 			}
-			auto current = peek();
 
 			insert_token(type, lit, current_cursor);
 		}

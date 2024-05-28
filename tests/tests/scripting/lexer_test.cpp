@@ -168,7 +168,7 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-26"));
 		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0x100"));
 		REQUIRE(check_token(tokens[4], Token::INVALID_HEX, L"0x"));
-		REQUIRE(check_token(tokens[5], Token::INVALID_FLOATING_POINT, L"0x3.14"));
+		REQUIRE(check_token(tokens[5], Token::INVALID_HEX, L"0x3.14"));
 
 
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
