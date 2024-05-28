@@ -354,6 +354,8 @@ namespace deckard::lexer
 			Token  type           = Token::STRING;
 			u32    current_cursor = cursor;
 
+			// TODO: multiline string
+
 			next();
 			bool end_quote = false;
 			while (not eof())

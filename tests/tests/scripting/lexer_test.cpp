@@ -230,6 +230,18 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
+
+	SECTION("multiline string")
+	{
+		tokenizer l("\"hello \\\r\n\tanother \\\r\n\tline\""sv);
+
+		// const auto tokens = l.tokenize();
+		//
+		// REQUIRE(tokens.size() == 2);
+		// REQUIRE(check_token(tokens[0], Token::STRING, L"hello \r\n\tanother \r\n\tline"));
+		// REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
 	SECTION("keyword")
 	{
 		tokenizer l(R"(fn π()  { return "three"; })"sv);
