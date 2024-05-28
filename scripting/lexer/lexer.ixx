@@ -284,90 +284,52 @@ namespace deckard::lexer
 			// .1415
 			// 0x400
 			// 0X400
-			bool                   hex      = false;
-			bool                   dot      = false;
-			bool                   negative = false;
-			bool                   first    = false;
-			lexeme                 lit;
-			std::string            s;
-			std::from_chars_result result;
-			Token                  type = Token::INTEGER;
+			bool   hex      = false;
+			bool   negative = false;
+			lexeme lit;
+			Token  type = Token::UNSIGNED_INTEGER;
 
-			u32 current_cursor = cursor;
+			auto current_char   = peek(0);
+			auto next_char      = peek(1);
+			u32  current_cursor = cursor;
 
-			while (not eof() and not is_whitespace(peek()))
+			if (current_char == '-' or next_char == '+')
 			{
-				auto current   = peek(0);
-				auto next_char = peek(1);
-
-				if (current == '-')
+				if (current_char == '-')
 				{
-					negative = true;
+					type = Token::INTEGER;
 				}
 
-				if (current == '.')
-				{
-					dot = true;
-				}
-				if (current == '0' and next_char == 'x')
-				{
-					hex = true;
-
-					auto v = next();
-					lit.push_back(v);
-
-					v = next();
-					lit.push_back(v);
-
-					continue;
-				}
-
-				auto v = next();
-				lit.push_back(v);
-				s += (char)v;
-				first = true;
+				lit.push_back(next());
 			}
 
-			i64 i_value{0};
-			u64 u_value{0};
-			f64 f_value{0};
+			current_char = peek(0);
+			next_char    = peek(1);
 
-
-			if (dot)
+			if (current_char == '0' and next_char == 'x')
 			{
-				type   = Token::FLOATING_POINT;
-				result = std::from_chars(s.data(), s.data() + s.length(), f_value);
-				if (result.ec != std::errc{})
-				{
+				hex = true;
+				lit.push_back(next());
+				lit.push_back(next());
+			}
+
+			auto diff = cursor - current_cursor;
+
+			while (not eof() and utf8::is_ascii_hex_digit(peek()) or peek() == '.')
+			{
+				auto n = peek();
+				if (n == '.')
+					type = Token::FLOATING_POINT;
+				if (n == '.' and hex == true)
 					type = Token::INVALID_FLOATING_POINT;
-				}
 
-				insert_token(type, lit, current_cursor, f_value);
+				lit.push_back(next());
 			}
-			else
-			{
-				if (negative)
-				{
-					type   = Token::INTEGER;
-					result = std::from_chars(s.data(), s.data() + s.length(), i_value, hex ? 16 : 10);
-					if (result.ec != std::errc{})
-					{
-						type = Token::INVALID_HEX;
-					}
-					insert_token(type, lit, current_cursor, i_value);
-				}
-				else
-				{
-					type   = Token::UNSIGNED_INTEGER;
-					result = std::from_chars(s.data(), s.data() + s.length(), u_value, hex ? 16 : 10);
-					if (result.ec != std::errc{})
-					{
-						type = Token::INVALID_HEX;
-					}
 
-					insert_token(type, lit, current_cursor, u_value);
-				}
-			}
+			if (hex == true and diff == cursor - current_cursor)
+				type = Token::INVALID_HEX;
+
+			insert_token(type, lit, current_cursor);
 		}
 
 		void read_char() noexcept
