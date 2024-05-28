@@ -1,7 +1,12 @@
+module;
+#include <emmintrin.h>
+#include <xmmintrin.h>
+
 export module deckard.utils.hash;
 
 
 import deckard.types;
+import deckard.as;
 import std;
 
 namespace deckard::utils
@@ -47,4 +52,72 @@ namespace deckard::utils
 		hash_combine(seed, args...);
 		return seed;
 	}
+
+	static u64 U8TO64_LE(const unsigned char* p) { return *(const u64*)p; }
+
+	export u64 siphash(const unsigned char key[16], std::span<u8> m)
+	{
+		u64    mi{0};
+		size_t i{0}, blocks{0};
+
+		u64 k0 = U8TO64_LE(key + 0);
+		u64 k1 = U8TO64_LE(key + 8);
+		u64 v0 = k0 ^ 0x736f'6d65'7073'6575ull;
+		u64 v1 = k1 ^ 0x646f'7261'6e64'6f6dull;
+		u64 v2 = k0 ^ 0x6c79'6765'6e65'7261ull;
+		u64 v3 = k1 ^ 0x7465'6462'7974'6573ull;
+
+		u64 last7 = (u64)(m.size() & 0xff) << 56;
+
+#define sipcompress()                                                                                                                      \
+	v0 += v1;                                                                                                                              \
+	v2 += v3;                                                                                                                              \
+	v1 = std::rotl(v1, 13);                                                                                                                \
+	v3 = std::rotl(v3, 16);                                                                                                                \
+	v1 ^= v0;                                                                                                                              \
+	v3 ^= v2;                                                                                                                              \
+	v0 = std::rotl(v0, 32);                                                                                                                \
+	v2 += v1;                                                                                                                              \
+	v0 += v3;                                                                                                                              \
+	v1 = std::rotl(v1, 17);                                                                                                                \
+	v3 = std::rotl(v3, 21);                                                                                                                \
+	v1 ^= v2;                                                                                                                              \
+	v3 ^= v0;                                                                                                                              \
+	v2 = std::rotl(v2, 32);
+
+		for (i = 0, blocks = (m.size() & ~7); i < blocks; i += 8)
+		{
+			mi = U8TO64_LE(m.data() + i);
+			v3 ^= mi;
+			sipcompress() sipcompress() v0 ^= mi;
+		}
+
+		switch (m.size() - blocks)
+		{
+			case 7: last7 |= (uint64_t)m[i + 6] << 48;
+			case 6: last7 |= (uint64_t)m[i + 5] << 40;
+			case 5: last7 |= (uint64_t)m[i + 4] << 32;
+			case 4: last7 |= (uint64_t)m[i + 3] << 24;
+			case 3: last7 |= (uint64_t)m[i + 2] << 16;
+			case 2: last7 |= (uint64_t)m[i + 1] << 8;
+			case 1: last7 |= (uint64_t)m[i + 0];
+			case 0:
+			default:;
+		};
+		v3 ^= last7;
+		sipcompress() sipcompress() v0 ^= last7;
+		v2 ^= 0xff;
+		sipcompress() sipcompress() sipcompress() sipcompress() return static_cast<size_t>(v0 ^ v1 ^ v2 ^ v3);
+#undef sipcompress
+	}
+
+	export u64 siphash(std::string_view str)
+	{
+		// key from random.org
+		const unsigned char key[16] = {0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
+
+		return siphash(key, {as<u8*>(str.data()), str.length()});
+	}
+
+
 } // namespace deckard::utils
