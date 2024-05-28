@@ -125,6 +125,19 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(tokens.size() == ++count);
 	}
 
+
+	SECTION("multisymbols 2")
+	{
+		tokenizer  l("++ --"sv);
+		const auto tokens = l.tokenize();
+		int        count  = 0;
+		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+
 	SECTION("paren_bracket_brace")
 	{
 		tokenizer  l("()[]{}"sv);
