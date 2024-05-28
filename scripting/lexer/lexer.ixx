@@ -770,6 +770,7 @@ namespace deckard::lexer
 			if (symbol_size == 2)
 				lit.push_back(next_char);
 
+
 			next(symbol_size);
 
 			insert_token(type, lit, current_cursor);

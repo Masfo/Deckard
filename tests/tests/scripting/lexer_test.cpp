@@ -260,4 +260,26 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[8], Token::RIGHT_BRACE, L"}"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
+
+	SECTION("keyword 2")
+	{
+		tokenizer l(R"(let fn return if else true false struct enum)"sv);
+
+		const auto tokens = l.tokenize();
+
+		int count = 0;
+
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"let"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"fn"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"return"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"if"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"else"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"true"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"false"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"struct"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"enum"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+
+		REQUIRE(tokens.size() == ++count);
+	}
 }
