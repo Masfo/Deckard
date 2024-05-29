@@ -332,7 +332,7 @@ namespace deckard::lexer
 				dbg::panic("what is this?");
 			}
 
-			insert_token(Token::EOF, {0}, cursor);
+			insert_token(Token::EOF, {}, cursor);
 
 			return m_tokens;
 		}
