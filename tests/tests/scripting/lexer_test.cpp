@@ -43,6 +43,22 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[0], Token::EOF, L""));
 	}
 
+	SECTION("identifiers")
+	{
+		tokenizer l(R"(hello)"sv);
+		auto      tokens = l.tokenize();
+		REQUIRE(tokens.size() == 2);
+		REQUIRE(check_token(tokens[0], Token::IDENTIFIER, L"hello"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+
+
+		l      = "hello.with.dots"sv;
+		tokens = l.tokenize({.dot_identifier = true});
+		REQUIRE(tokens.size() == 2);
+		REQUIRE(check_token(tokens[0], Token::IDENTIFIER, L"hello.with.dots"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
 	SECTION("newlines")
 	{
 		tokenizer  l("1\r\n2\n-3\r-4"sv);
@@ -258,17 +274,18 @@ TEST_CASE("tokens", "[lexer]")
 
 		const auto tokens = l.tokenize();
 
-		REQUIRE(tokens.size() == 10);
-		REQUIRE(check_token(tokens[0], Token::KEYWORD, L"fn"));
-		REQUIRE(check_token(tokens[1], Token::IDENTIFIER, L"π"));
-		REQUIRE(check_token(tokens[2], Token::LEFT_PAREN, L"("));
-		REQUIRE(check_token(tokens[3], Token::RIGHT_PAREN, L")"));
-		REQUIRE(check_token(tokens[4], Token::LEFT_BRACE, L"{"));
-		REQUIRE(check_token(tokens[5], Token::KEYWORD, L"return"));
-		REQUIRE(check_token(tokens[6], Token::STRING, L"three"));
-		REQUIRE(check_token(tokens[7], Token::SEMI_COLON, L";"));
-		REQUIRE(check_token(tokens[8], Token::RIGHT_BRACE, L"}"));
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"fn"));
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"π"));
+		REQUIRE(check_token(tokens[count++], Token::LEFT_PAREN, L"("));
+		REQUIRE(check_token(tokens[count++], Token::RIGHT_PAREN, L")"));
+		REQUIRE(check_token(tokens[count++], Token::LEFT_BRACE, L"{"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"return"));
+		REQUIRE(check_token(tokens[count++], Token::STRING, L"three"));
+		REQUIRE(check_token(tokens[count++], Token::SEMI_COLON, L";"));
+		REQUIRE(check_token(tokens[count++], Token::RIGHT_BRACE, L"}"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
 	}
 
 	SECTION("keyword 2")

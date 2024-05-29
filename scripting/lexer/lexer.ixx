@@ -167,21 +167,31 @@ namespace deckard::lexer
 		tokenizer(codepoints cp) noexcept { codepoints = cp.data(true); }
 
 		explicit tokenizer(fs::path f) noexcept
-			: input(f)
+			: input_file(f)
 		{
-			utf8::codepoints cps = input.data();
+			utf8::codepoints cps = input_file.data();
 			codepoints           = cps.data(true);
 			m_tokens.reserve(codepoints.size());
-			filename = input.filename().string();
+			filename = input_file.filename().string();
 		}
 
 		explicit tokenizer(std::string_view str) noexcept
 		{
-			utf8::codepoints cps(str.data());
+			*this = str;
+			// utf8::codepoints cps(str.data());
+			// codepoints = cps.data(true);
+			// m_tokens.reserve(codepoints.size());
+			// filename = "";
+		}
+
+		void operator=(std::string_view input)
+		{
+			reset();
+			utf8::codepoints cps(input.data());
 			codepoints = cps.data(true);
 			m_tokens.reserve(codepoints.size());
 			filename = "";
-		}
+		};
 
 		void setconfig(tokenizer_config c) noexcept { config = c; }
 
@@ -194,6 +204,14 @@ namespace deckard::lexer
 				return codepoints[index + offset];
 			}
 			return utf8::EOF_CHARACTER;
+		}
+
+		void reset() noexcept
+		{
+			m_tokens.clear();
+			index  = 0;
+			line   = 0;
+			cursor = 0;
 		}
 
 		bool eof() noexcept { return has_data() && peek() == utf8::EOF_CHARACTER; }
@@ -242,7 +260,6 @@ namespace deckard::lexer
 
 				if (current_char == '\n' or current_char == '\r') // linux/mac
 				{
-					// TODO: optional EOL, set flag
 					if (config.output_eol)
 						insert_token(Token::EOL, {}, cursor);
 
@@ -253,7 +270,6 @@ namespace deckard::lexer
 				}
 				if (current_char == '\r' and next_char == '\n') // windows
 				{
-					// TODO: optional EOL
 					if (config.output_eol)
 						insert_token(Token::EOL, {}, cursor);
 
@@ -353,6 +369,8 @@ namespace deckard::lexer
 				lit.push_back(next());
 				lit.push_back(next());
 			}
+
+			// TODO: switch for digit type, dec,bin,hex
 
 			auto diff = cursor - current_cursor;
 
@@ -457,11 +475,9 @@ namespace deckard::lexer
 			lexeme lit;
 			u32    current_cursor = cursor;
 
-			// TODO: have dot(.) be optional, so can use in other langs, like ini
 
 			while (not eof())
 			{
-				auto next_char = peek();
 				if (auto n = peek();
 					config.dot_identifier == true ? n == '.' or utf8::is_identifier_continue(n) : utf8::is_identifier_continue(n))
 					lit.push_back(next());
@@ -899,7 +915,7 @@ namespace deckard::lexer
 			add_type("f64");
 		}
 
-		utf8file              input;
+		utf8file              input_file;
 		std::vector<char32_t> codepoints;
 
 
