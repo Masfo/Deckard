@@ -230,12 +230,19 @@ TEST_CASE("tokens", "[lexer]")
 	{
 		tokenizer l(R"('a' 'c)"sv);
 
-		const auto tokens = l.tokenize();
+		auto tokens = l.tokenize();
 
-		REQUIRE(tokens.size() == 3);
 		REQUIRE(check_token(tokens[0], Token::CHARACTER, L"a"));
 		REQUIRE(check_token(tokens[1], Token::INVALID_CHAR, L"c"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == 3);
+
+
+		l      = "'ABCD'"sv;
+		tokens = l.tokenize();
+		REQUIRE(check_token(tokens[0], Token::CHARACTER, L"ABCD"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == 2);
 	}
 
 

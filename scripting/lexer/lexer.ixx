@@ -435,8 +435,6 @@ namespace deckard::lexer
 				}
 			}
 
-			// TODO: switch for digit type, dec,bin,hex
-
 
 			if (diff == cursor - current_cursor)
 			{
@@ -451,17 +449,28 @@ namespace deckard::lexer
 
 		void read_char() noexcept
 		{
+			// TODO: multicharacters, 'ABCD' => 0x41424344;
 			lexeme lit;
 			Token  type           = Token::CHARACTER;
 			u32    current_cursor = cursor;
-			next();
+			auto   current_char   = peek();
+			next(); // '
 
-			lit.push_back(next());
+			auto diff = cursor - current_cursor;
+
+
+			while (not eof() and peek() != '\'')
+				lit.push_back(next());
 
 			if (peek() != '\'')
 				type = Token::INVALID_CHAR;
 			else
-				next();
+				next(); // '
+
+			if (diff == cursor - current_cursor)
+			{
+				type = Token::INVALID_CHAR;
+			}
 
 			insert_token(type, lit, current_cursor);
 		}
