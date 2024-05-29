@@ -149,6 +149,14 @@ namespace deckard::lexer
 		auto as_double() const { return get<double>(); }
 	};
 
+	struct tokenizer_config
+	{
+		char32_t digit_separator{'\''};
+		char32_t line_comment{'#'};
+		bool     output_eol{false};
+		bool     dot_identifier{false};
+	};
+
 	export class tokenizer
 	{
 	public:
@@ -174,6 +182,8 @@ namespace deckard::lexer
 			m_tokens.reserve(codepoints.size());
 			filename = "";
 		}
+
+		void setconfig(tokenizer_config c) noexcept { config = c; }
 
 		bool has_data(u32 offset = 0) const noexcept { return (index + offset) < codepoints.size(); }
 
@@ -208,8 +218,28 @@ namespace deckard::lexer
 				const auto current_char = peek(0);
 				const auto next_char    = peek(1);
 
+				if ((current_char == '\\' and next_char == '\n'))
+				{
+					// Any sequence of backslash (\) immediately followed by a new line is deleted,
+					// resulting in splicing lines together.
+					// \\n
+					next(2);
+					continue;
+				}
+
+				if ((current_char == '\\' and next_char == '\r' and peek(2) == '\n'))
+				{
+					// \ \r\n
+					next(3);
+					continue;
+				}
+
 				if (current_char == '\n' or current_char == '\r') // linux/mac
 				{
+					// TODO: optional EOL, set flag
+					if (config.output_eol)
+						insert_token(Token::EOL, {}, cursor);
+
 					next(1);
 					cursor = 0;
 					line += 1;
@@ -217,11 +247,20 @@ namespace deckard::lexer
 				}
 				if (current_char == '\r' and next_char == '\n') // windows
 				{
+					// TODO: optional EOL
+					if (config.output_eol)
+						insert_token(Token::EOL, {}, cursor);
+
 					next(2);
 					cursor = 0;
 					line += 1;
 					continue;
 				}
+
+				// TODO: line comment, user selected char // ; #
+
+
+				// TODO: block comment, nested
 
 				if (utf8::is_whitespace(peek()))
 				{
@@ -278,11 +317,9 @@ namespace deckard::lexer
 
 		void read_number() noexcept
 		{
-			// 123
-			// 123.
-			// .1415
-			// 0x400
-			// 0X400
+			// TODO: binary 0b00000
+			// TODO: digit separator
+			// TODO: integer suffix	none i32/i64, u/U u32/u64, l/L i64,	ul/UL u64
 			bool   hex = false;
 			lexeme lit;
 			Token  type = Token::UNSIGNED_INTEGER;
@@ -413,6 +450,8 @@ namespace deckard::lexer
 		{
 			lexeme lit;
 			u32    current_cursor = cursor;
+
+			// TODO: have dot(.) be optional, so can use in other langs, like ini
 
 			while (not eof())
 			{
@@ -856,9 +895,10 @@ namespace deckard::lexer
 		std::vector<char32_t> codepoints;
 
 
-		u32         index{0};
-		tokens      m_tokens;
-		std::string filename;
+		u32              index{0};
+		tokens           m_tokens;
+		std::string      filename;
+		tokenizer_config config;
 
 		u32 line{0};
 		u32 cursor{0};

@@ -55,6 +55,16 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
+	SECTION("newlines - eat síngle backslash and newline")
+	{
+		tokenizer  l("hello \\\n\"another line\""sv);
+		const auto tokens = l.tokenize();
+		REQUIRE(tokens.size() == 3);
+		REQUIRE(check_token(tokens[0], Token::IDENTIFIER, L"hello"));
+		REQUIRE(check_token(tokens[1], Token::STRING, L"another line"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+	}
+
 	SECTION("whitespaces")
 	{
 		tokenizer  l("1\t\n2 3 \t 4"sv);
