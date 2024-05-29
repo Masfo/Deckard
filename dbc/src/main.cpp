@@ -328,14 +328,14 @@ int main()
 	callAll([] { dbg::println("first"); }, &second);
 
 
-	lexer::tokenizer btest("1+2*3"sv);
+	lexer::tokenizer btest("1--5"sv);
 	auto             bintok = btest.tokenize();
 
 	dbg::println("{} ", fs::current_path().string());
 
 	// clang-format off
 	int C = 0;
-	int A = C++-.1*1.;
+	int A = 1+ ++C;
 	// clang-format on
 
 	utf8file file("input.ini");
