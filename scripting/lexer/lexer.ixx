@@ -316,19 +316,21 @@ namespace deckard::lexer
 				}
 
 
-				if (utf8::is_identifier_start(peek()))
+				if (utf8::is_identifier_start(current_char))
 				{
 					read_identifier();
 					continue;
 				}
 
 
-				if (utf8::is_ascii(peek()))
+				if (utf8::is_ascii(current_char))
 				{
 					read_symbol();
 					continue;
 				}
 
+				dbg::println("Unknown: {}", (u32)current_char);
+				dbg::trace();
 				dbg::panic("what is this?");
 			}
 
