@@ -314,13 +314,47 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	utf8file file("input.ini");
 
-	lexer::tokenizer l("1\r"sv);
+	lexer::tokenizer initok(file.data());
+	auto             initokens = initok.tokenize();
 
+	using inivalue = std::variant<std::monostate, bool, i64, u64, double, std::string>;
+
+	struct values
+	{
+		std::string_view section;
+		std::string_view key;
+		std::string_view comment;
+		inivalue         value;
+	};
+
+	/*
+	 * ini["section"]["key"] = "new string"s;
+	 * ini["section", "key"]
+	 * ini("section", "key")
+	 * ini("section", "key", "new value")
+	 *
+	 * ini("section.key") = "new";
+	 * ini["section.key"] = 10;			# section.subsection.key [section.subsection]
+	 *
+	 *	auto &ref = init("section","key");
+	 * ref = 10;
+	 * ref = 3.14;
+	 * ref = "new string";
+	 * ref = true;
+	 *
+	 */
+
+
+	int x = 0;
+
+	lexer::tokenizer l("[section] #comment\nkey=value\n"sv);
+	l.setconfig({.output_eol = true});
 	const auto tokensl1 = l.tokenize();
 
 
-	lexer::tokenizer l2(R"("\x34" "\"hello\"" key "world")"sv);
+	lexer::tokenizer l2(R"([section.name])"sv);
 
 	const auto tokens = l2.tokenize();
 
