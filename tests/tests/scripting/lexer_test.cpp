@@ -209,6 +209,15 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[3], Token::UNSIGNED_INTEGER, L"5"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == 5);
+
+		l      = "0b10..=-0x5"sv;
+		tokens = l.tokenize();
+		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"0b10"));
+		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
+		REQUIRE(check_token(tokens[2], Token::EQUAL, L"="));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0x5"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == 5);
 	}
 
 
