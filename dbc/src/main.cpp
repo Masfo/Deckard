@@ -307,12 +307,30 @@ private:
 	u8 acc{0};
 };
 
+void second() { dbg::println("second"); }
+
+template<typename... Funcs>
+void callAll(Funcs&&... funcs)
+{
+	(std::forward<Funcs>(funcs)(), ...);
+}
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+
+	dbg::println("{}", std::this_thread::get_id());
+
+	callAll([] { dbg::println("first"); }, &second);
+
+
+	lexer::tokenizer btest("0b10..=-0b1010"sv);
+	auto             bintok = btest.tokenize();
+
 
 	utf8file file("input.ini");
 
@@ -347,16 +365,13 @@ int main()
 	 */
 
 
-	int x = 0;
-
-	lexer::tokenizer l("[section] #comment\nkey=value\n"sv);
-	l.setconfig({.output_eol = true});
-	const auto tokensl1 = l.tokenize();
-
-
-	lexer::tokenizer l2(R"([section.name])"sv);
-
-	const auto tokens = l2.tokenize();
+	lexer::tokenizer l2(R"(
+[section.name]
+key=value
+key2=123
+)"sv);
+	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
+	int              x      = 0;
 
 	// filemonitor fmon("folder");
 	//
