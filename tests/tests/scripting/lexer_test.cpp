@@ -183,7 +183,7 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("integers")
 	{
-		tokenizer l("123 0x400 -26 -0x100 0x 0x3.14"sv);
+		tokenizer l("123 0x400 -26 -0X100 0x 0x3.14"sv);
 
 		const auto tokens = l.tokenize();
 
@@ -192,7 +192,7 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"123"));
 		REQUIRE(check_token(tokens[1], Token::UNSIGNED_INTEGER, L"0x400"));
 		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-26"));
-		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0x100"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0X100"));
 		REQUIRE(check_token(tokens[4], Token::INVALID_HEX, L"0x"));
 		REQUIRE(check_token(tokens[5], Token::INVALID_HEX, L"0x3.14"));
 
@@ -203,19 +203,27 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("floating point")
 	{
-#if 1
-		tokenizer  l("3.14 .123 3. -.678"sv);
-		const auto tokens = l.tokenize();
-
-		REQUIRE(tokens.size() == 5);
+		tokenizer l("3.14 .123 3. -.678"sv);
+		auto      tokens = l.tokenize();
 
 		REQUIRE(check_token(tokens[0], Token::FLOATING_POINT, L"3.14"));
 		REQUIRE(check_token(tokens[1], Token::FLOATING_POINT, L".123"));
 		REQUIRE(check_token(tokens[2], Token::FLOATING_POINT, L"3."));
 		REQUIRE(check_token(tokens[3], Token::FLOATING_POINT, L"-.678"));
-
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-#endif
+		REQUIRE(tokens.size() == 5);
+	}
+
+	SECTION("binary integer")
+	{
+		tokenizer l("0b101010 0b -0B1010"sv);
+		auto      tokens = l.tokenize();
+
+		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"0b101010"));
+		REQUIRE(check_token(tokens[1], Token::INVALID_BINARY, L"0b"));
+		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-0B1010"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == 4);
 	}
 
 	SECTION("character")

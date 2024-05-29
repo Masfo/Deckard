@@ -117,6 +117,8 @@ namespace deckard::lexer
 		INVALID,
 		INVALID_CHAR,
 		INVALID_HEX,
+		INVALID_FLOATING_POINT,
+		INVALID_BINARY,
 		EOL,
 		EOF,
 	};
@@ -284,7 +286,7 @@ namespace deckard::lexer
 
 				// TODO: block comment, nested
 
-				if (utf8::is_whitespace(peek()))
+				if (utf8::is_whitespace(current_char))
 				{
 					next();
 					continue;
@@ -341,10 +343,12 @@ namespace deckard::lexer
 
 		void read_number() noexcept
 		{
-			// TODO: binary 0b00000
 			// TODO: digit separator
 			// TODO: integer suffix	none i32/i64, u/U u32/u64, l/L i64,	ul/UL u64
-			bool   hex = false;
+			bool hex      = false;
+			bool binary   = false;
+			bool negative = false;
+
 			lexeme lit;
 			Token  type = Token::UNSIGNED_INTEGER;
 
@@ -355,40 +359,92 @@ namespace deckard::lexer
 			if (current_char == '-' or next_char == '+')
 			{
 				if (current_char == '-')
-				{
-					type = Token::INTEGER;
-				}
+					negative = true;
 
 				lit.push_back(next());
 			}
 
+
 			current_char = peek(0);
 			next_char    = peek(1);
+			type         = negative ? Token::INTEGER : Token::UNSIGNED_INTEGER;
 
-			if (current_char == '0' and next_char == 'x')
+
+			auto diff = cursor - current_cursor;
+
+			if (utf8::is_ascii_digit(current_char) or current_char == '.')
 			{
-				hex = true;
-				lit.push_back(next());
-				lit.push_back(next());
+				switch (next_char)
+				{
+					case 'b': [[fallthrough]];
+					case 'B':
+
+					{
+						binary = true;
+						lit.push_back(next());
+						lit.push_back(next());
+						diff = cursor - current_cursor;
+						while (not eof() and utf8::is_ascii_binary_digit(peek()))
+						{
+							lit.push_back(next());
+						}
+						break;
+					}
+					case 'x': [[fallthrough]];
+					case 'X':
+					{
+						hex = true;
+						lit.push_back(next());
+						lit.push_back(next());
+						diff = cursor - current_cursor;
+
+						while (not eof() and utf8::is_ascii_hex_digit(peek()) or peek() == '.')
+						{
+							if (peek() == '.')
+								type = Token::INVALID_HEX;
+
+							lit.push_back(next());
+						}
+						break;
+					}
+
+					default:
+					{
+						u32 dotcount = 0;
+						while (not eof() and (utf8::is_ascii_digit(peek()) or peek() == '.'))
+						{
+							if (peek() == '.' and dotcount == 0)
+							{
+								type = Token::FLOATING_POINT;
+								dotcount += 1;
+								lit.push_back(next());
+								continue;
+							}
+
+							if (peek() == '.' and dotcount >= 1)
+							{
+								type = Token::INVALID_FLOATING_POINT;
+								lit.push_back(next());
+								continue;
+							}
+
+							lit.push_back(next());
+						}
+						break;
+					}
+				}
 			}
 
 			// TODO: switch for digit type, dec,bin,hex
 
-			auto diff = cursor - current_cursor;
 
-			while (not eof() and utf8::is_ascii_hex_digit(peek()) or peek() == '.')
+			if (diff == cursor - current_cursor)
 			{
-				auto n = peek();
-				if (n == '.')
-					type = Token::FLOATING_POINT;
-				if (n == '.' and hex == true)
+				if (hex)
 					type = Token::INVALID_HEX;
-
-				lit.push_back(next());
+				if (binary)
+					type = Token::INVALID_BINARY;
 			}
-
-			if (hex == true and diff == cursor - current_cursor)
-				type = Token::INVALID_HEX;
 
 			insert_token(type, lit, current_cursor);
 		}
