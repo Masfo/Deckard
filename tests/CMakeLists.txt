@@ -65,9 +65,7 @@ target_link_libraries(tests PRIVATE Catch2::Catch2WithMain deckard)
 
 include(CTest)
 include(Catch)
-catch_discover_tests(tests
-WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
-)
+catch_discover_tests(tests)
 
 
 set_target_properties(tests PROPERTIES 
