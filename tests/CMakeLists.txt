@@ -67,6 +67,8 @@ include(CTest)
 include(Catch)
 catch_discover_tests(tests)
 
+target_compile_definitions(tests PRIVATE -DTEST_PATH="${CMAKE_SOURCE_DIR}/bin/tests/")
+
 
 set_target_properties(tests PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin

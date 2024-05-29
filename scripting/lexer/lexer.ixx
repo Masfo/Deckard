@@ -37,16 +37,15 @@ namespace deckard::lexer
 	 */
 
 	export enum class Token : u8 {
-		INTEGER,          // -1
-		UNSIGNED_INTEGER, // 1
-		FLOATING_POINT,   // 3.14
-		KEYWORD,          // if, else
-		IDENTIFIER,       // a123, _123
-		CHARACTER,        // 'a'
-		STRING,           // "abc"
+		INTEGER,        // 1, -1
+		FLOATING_POINT, // 3.14
+		KEYWORD,        // if, else
+		IDENTIFIER,     // a123, _123
+		CHARACTER,      // 'a'
+		STRING,         // "abc"
 
-		TYPE,             // builtin type: i32, f32
-		USER_TYPE,        // struct <type>
+		TYPE,           // builtin type: i32, f32
+		USER_TYPE,      // struct <type>
 
 		// Op
 		PLUS,        // +
@@ -292,15 +291,13 @@ namespace deckard::lexer
 					continue;
 				}
 
-				if (utf8::is_ascii_digit(current_char))
+				if (utf8::is_ascii_digit(current_char) or (current_char == '.' and utf8::is_ascii_digit(next_char)))
 				{
 					read_number();
 					continue;
 				}
 
-
-				if ((current_char == '.' and utf8::is_ascii_digit(next_char)) or
-					((current_char == '-' or current_char == '+') and (next_char == '.' or utf8::is_ascii_digit(next_char))))
+				if (utf8::is_ascii_digit(current_char))
 				{
 					read_number();
 					continue;
@@ -352,24 +349,11 @@ namespace deckard::lexer
 			bool negative = false;
 
 			lexeme lit;
-			Token  type = Token::UNSIGNED_INTEGER;
+			Token  type = Token::INTEGER;
 
 			auto current_char   = peek(0);
 			auto next_char      = peek(1);
 			u32  current_cursor = cursor;
-
-			if (current_char == '-' or current_char == '+')
-			{
-				if (current_char == '-')
-					negative = true;
-
-				lit.push_back(next());
-			}
-
-
-			current_char = peek(0);
-			next_char    = peek(1);
-			type         = negative ? Token::INTEGER : Token::UNSIGNED_INTEGER;
 
 
 			auto diff = cursor - current_cursor;

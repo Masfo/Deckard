@@ -328,11 +328,14 @@ int main()
 	callAll([] { dbg::println("first"); }, &second);
 
 
-	lexer::tokenizer btest("0b10..=-0b1010"sv);
+	lexer::tokenizer btest("1+2*3"sv);
 	auto             bintok = btest.tokenize();
 
 	dbg::println("{} ", fs::current_path().string());
 
+	// clang-format off
+	double fff = 1.+.1;
+	// clang-format on
 
 	utf8file file("input.ini");
 

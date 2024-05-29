@@ -40,11 +40,11 @@ TEST_CASE("tokens", "[lexer]")
 	SECTION("file")
 	{
 		//
-		auto      input = fs::current_path() / "tests" / "simple01.txt";
-		tokenizer tok(input);
-		auto      tokens = tok.tokenize();
-
-		int k = 0;
+		// fs::path  input = fs::path{TEST_PATH} / "simple01.txt";
+		// tokenizer tok(input);
+		// auto      tokens = tok.tokenize();
+		//
+		// int k = 0;
 	}
 
 	SECTION("eof")
@@ -54,6 +54,7 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(tokens.size() == 1);
 		REQUIRE(check_token(tokens[0], Token::EOF, L""));
 	}
+
 
 	SECTION("identifiers")
 	{
@@ -75,11 +76,13 @@ TEST_CASE("tokens", "[lexer]")
 	{
 		tokenizer  l("1\r\n2\n-3\r-4"sv);
 		const auto tokens = l.tokenize();
-		REQUIRE(tokens.size() == 5);
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"1"));
-		REQUIRE(check_token(tokens[1], Token::UNSIGNED_INTEGER, L"2"));
-		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-3"));
-		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-4"));
+		REQUIRE(tokens.size() == 7);
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"1"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens[2], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"3"));
+		REQUIRE(check_token(tokens[4], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[5], Token::INTEGER, L"4"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
@@ -98,10 +101,10 @@ TEST_CASE("tokens", "[lexer]")
 		tokenizer  l("1\t\n2 3 \t 4"sv);
 		const auto tokens = l.tokenize();
 		REQUIRE(tokens.size() == 5);
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"1"));
-		REQUIRE(check_token(tokens[1], Token::UNSIGNED_INTEGER, L"2"));
-		REQUIRE(check_token(tokens[2], Token::UNSIGNED_INTEGER, L"3"));
-		REQUIRE(check_token(tokens[3], Token::UNSIGNED_INTEGER, L"4"));
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"1"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens[2], Token::INTEGER, L"3"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"4"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 	}
 
@@ -182,9 +185,9 @@ TEST_CASE("tokens", "[lexer]")
 		tokenizer l(R"(0..5)"sv);
 		auto      tokens = l.tokenize();
 
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"0"));
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"0"));
 		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
-		REQUIRE(check_token(tokens[2], Token::UNSIGNED_INTEGER, L"5"));
+		REQUIRE(check_token(tokens[2], Token::INTEGER, L"5"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == 4);
 
@@ -192,7 +195,7 @@ TEST_CASE("tokens", "[lexer]")
 		tokens = l.tokenize();
 		REQUIRE(check_token(tokens[0], Token::FLOATING_POINT, L"3.14"));
 		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
-		REQUIRE(check_token(tokens[2], Token::UNSIGNED_INTEGER, L"0b101010"));
+		REQUIRE(check_token(tokens[2], Token::INTEGER, L"0b101010"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == 4);
 
@@ -201,53 +204,59 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[0], Token::FLOATING_POINT, L"3.14"));
 		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
 		REQUIRE(check_token(tokens[2], Token::EQUAL, L"="));
-		REQUIRE(check_token(tokens[3], Token::FLOATING_POINT, L"-1.234"));
+		REQUIRE(check_token(tokens[3], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[4], Token::FLOATING_POINT, L"1.234"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 5);
+		REQUIRE(tokens.size() == 6);
 
 
 		l      = "-0b10..-0b100"sv;
 		tokens = l.tokenize();
-		REQUIRE(check_token(tokens[0], Token::INTEGER, L"-0b10"));
-		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
-		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-0b100"));
+		REQUIRE(check_token(tokens[0], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"0b10"));
+		REQUIRE(check_token(tokens[2], Token::ELLIPSIS, L".."));
+		REQUIRE(check_token(tokens[3], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[4], Token::INTEGER, L"0b100"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 4);
+		REQUIRE(tokens.size() == 6);
 
 		l      = "-0x10..0x200"sv;
 		tokens = l.tokenize();
-		REQUIRE(check_token(tokens[0], Token::INTEGER, L"-0x10"));
-		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
-		REQUIRE(check_token(tokens[2], Token::UNSIGNED_INTEGER, L"0x200"));
+		REQUIRE(check_token(tokens[0], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"0x10"));
+		REQUIRE(check_token(tokens[2], Token::ELLIPSIS, L".."));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"0x200"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 4);
+		REQUIRE(tokens.size() == 5);
 
 		l      = "-0b..0x"sv;
 		tokens = l.tokenize();
-		REQUIRE(check_token(tokens[0], Token::INVALID_BINARY, L"-0b"));
-		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
-		REQUIRE(check_token(tokens[2], Token::INVALID_HEX, L"0x"));
+		REQUIRE(check_token(tokens[0], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[1], Token::INVALID_BINARY, L"0b"));
+		REQUIRE(check_token(tokens[2], Token::ELLIPSIS, L".."));
+		REQUIRE(check_token(tokens[3], Token::INVALID_HEX, L"0x"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 4);
+		REQUIRE(tokens.size() == 5);
 
 
 		l      = "0..=5"sv;
 		tokens = l.tokenize();
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"0"));
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"0"));
 		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
 		REQUIRE(check_token(tokens[2], Token::EQUAL, L"="));
-		REQUIRE(check_token(tokens[3], Token::UNSIGNED_INTEGER, L"5"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"5"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == 5);
 
 		l      = "0b10..=-0x5"sv;
 		tokens = l.tokenize();
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"0b10"));
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"0b10"));
 		REQUIRE(check_token(tokens[1], Token::ELLIPSIS, L".."));
 		REQUIRE(check_token(tokens[2], Token::EQUAL, L"="));
-		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0x5"));
+		REQUIRE(check_token(tokens[3], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[4], Token::INTEGER, L"0x5"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 5);
+		REQUIRE(tokens.size() == 6);
 	}
 
 
@@ -272,17 +281,16 @@ TEST_CASE("tokens", "[lexer]")
 
 		const auto tokens = l.tokenize();
 
-		REQUIRE(tokens.size() == 7);
-
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"123"));
-		REQUIRE(check_token(tokens[1], Token::UNSIGNED_INTEGER, L"0x400"));
-		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-26"));
-		REQUIRE(check_token(tokens[3], Token::INTEGER, L"-0X100"));
-		REQUIRE(check_token(tokens[4], Token::INVALID_HEX, L"0x"));
-		REQUIRE(check_token(tokens[5], Token::INVALID_HEX, L"0x3.14"));
-
-
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"123"));
+		REQUIRE(check_token(tokens[1], Token::INTEGER, L"0x400"));
+		REQUIRE(check_token(tokens[2], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"26"));
+		REQUIRE(check_token(tokens[4], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[5], Token::INTEGER, L"0X100"));
+		REQUIRE(check_token(tokens[6], Token::INVALID_HEX, L"0x"));
+		REQUIRE(check_token(tokens[7], Token::INVALID_HEX, L"0x3.14"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == 9);
 	}
 
 
@@ -294,9 +302,10 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[0], Token::FLOATING_POINT, L"3.14"));
 		REQUIRE(check_token(tokens[1], Token::FLOATING_POINT, L".123"));
 		REQUIRE(check_token(tokens[2], Token::FLOATING_POINT, L"3."));
-		REQUIRE(check_token(tokens[3], Token::FLOATING_POINT, L"-.678"));
+		REQUIRE(check_token(tokens[3], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[4], Token::FLOATING_POINT, L".678"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 5);
+		REQUIRE(tokens.size() == 6);
 	}
 
 	SECTION("binary integer")
@@ -304,11 +313,12 @@ TEST_CASE("tokens", "[lexer]")
 		tokenizer l("0b101010 0b -0B1010"sv);
 		auto      tokens = l.tokenize();
 
-		REQUIRE(check_token(tokens[0], Token::UNSIGNED_INTEGER, L"0b101010"));
+		REQUIRE(check_token(tokens[0], Token::INTEGER, L"0b101010"));
 		REQUIRE(check_token(tokens[1], Token::INVALID_BINARY, L"0b"));
-		REQUIRE(check_token(tokens[2], Token::INTEGER, L"-0B1010"));
+		REQUIRE(check_token(tokens[2], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[3], Token::INTEGER, L"0B1010"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 4);
+		REQUIRE(tokens.size() == 5);
 	}
 
 	SECTION("character")
@@ -407,6 +417,74 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"enum"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 
+		REQUIRE(tokens.size() == ++count);
+	}
+}
+
+TEST_CASE("longer examples", "[lexer]")
+{
+
+	SECTION("simple integer math tokens ")
+	{
+		tokenizer l(R"(1+2*3/4=7)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"1"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens[count++], Token::STAR, L"*"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"3"));
+		REQUIRE(check_token(tokens[count++], Token::SLASH, L"/"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"4"));
+		REQUIRE(check_token(tokens[count++], Token::EQUAL, L"="));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"7"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+	SECTION("simple negative integer math token")
+	{
+		tokenizer l(R"(-1+-5)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"1"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"5"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+	SECTION("simple negative integer and idents")
+	{
+		tokenizer l(R"(--X+-5)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"X"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"5"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+	SECTION("simple negative float and idents")
+	{
+		tokenizer l(R"(--X+-.5)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"X"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::FLOATING_POINT, L".5"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
 	}
 }
