@@ -22,6 +22,8 @@ export namespace deckard::utf8
 		return is_ascii_digit(codepoint) or ((codepoint >= 'A') and (codepoint <= 'F')) or ((codepoint >= 'a') and (codepoint <= 'f'));
 	}
 
+	constexpr bool is_ascii_binary_digit(char32_t codepoint) noexcept { return codepoint == '0' or codepoint == '1'; }
+
 	constexpr bool is_ascii_alphanumeric(char32_t codepoint) noexcept
 	{
 		return ((codepoint >= 'A') and (codepoint <= 'Z')) or ((codepoint >= 'a') and (codepoint <= 'z')) or
