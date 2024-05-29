@@ -615,7 +615,7 @@ namespace deckard::lexer
 
 				case '-':
 				{
-						type = Token::MINUS;
+					type = Token::MINUS;
 
 					if (next_char == '=')
 					{

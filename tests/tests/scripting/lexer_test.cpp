@@ -519,4 +519,62 @@ TEST_CASE("longer examples", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
 	}
+
+
+	SECTION("triple neg")
+	{
+		tokenizer l(R"(C---2)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+
+	SECTION("triple neg")
+	{
+		tokenizer l(R"(C- --2)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+	SECTION("triple plus")
+	{
+		tokenizer l(R"(C+++2)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
+
+	SECTION("triple plus")
+	{
+		tokenizer l(R"(C+ ++2)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
 }
