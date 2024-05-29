@@ -615,14 +615,7 @@ namespace deckard::lexer
 
 				case '-':
 				{
-					type = Token::MINUS;
-
-					if (next_char == '-')
-					{
-						type        = Token::MINUS_MINUS;
-						symbol_size = 2;
-						break;
-					}
+						type = Token::MINUS;
 
 					if (next_char == '=')
 					{
@@ -633,6 +626,12 @@ namespace deckard::lexer
 					if (next_char == '>')
 					{
 						type        = Token::ARROW;
+						symbol_size = 2;
+						break;
+					}
+					if (next_char == '-')
+					{
+						type        = Token::MINUS_MINUS;
 						symbol_size = 2;
 						break;
 					}
