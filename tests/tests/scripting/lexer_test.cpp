@@ -4,15 +4,17 @@
 import deckard.lexer;
 import deckard.math;
 import deckard.utf8;
+import deckard.debug;
 import std;
 #undef EOF
 
 using namespace Catch::Matchers;
-
+namespace fs = std::filesystem;
 using namespace std::string_view_literals;
 using namespace deckard::lexer;
 using namespace deckard::math;
 using namespace deckard::utf8;
+using namespace deckard;
 
 bool check_token(token t, enum Token type, const std::wstring& str)
 {
@@ -35,6 +37,16 @@ bool check_token_float(token t, double value)
 
 TEST_CASE("tokens", "[lexer]")
 {
+	SECTION("file")
+	{
+		//
+		auto      input = fs::current_path() / "tests" / "simple01.txt";
+		tokenizer tok(input);
+		auto      tokens = tok.tokenize();
+
+		int k = 0;
+	}
+
 	SECTION("eof")
 	{
 		tokenizer  l(R"()"sv);
