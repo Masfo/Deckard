@@ -358,7 +358,7 @@ namespace deckard::lexer
 			auto next_char      = peek(1);
 			u32  current_cursor = cursor;
 
-			if (current_char == '-' or next_char == '+')
+			if (current_char == '-' or current_char == '+')
 			{
 				if (current_char == '-')
 					negative = true;
@@ -497,6 +497,8 @@ namespace deckard::lexer
 			u32    current_cursor = cursor;
 
 			// TODO: multiline string
+
+			// TODO: python triple """ string, read all until second """
 
 			next();
 			bool end_quote = false;
