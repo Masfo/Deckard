@@ -331,6 +331,8 @@ int main()
 	lexer::tokenizer btest("0b10..=-0b1010"sv);
 	auto             bintok = btest.tokenize();
 
+	dbg::println("{} ", fs::current_path().string());
+
 
 	utf8file file("input.ini");
 
