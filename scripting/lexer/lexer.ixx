@@ -149,12 +149,12 @@ namespace deckard::lexer
 		auto as_double() const { return get<double>(); }
 	};
 
-	struct tokenizer_config
+	export struct tokenizer_config
 	{
-		char32_t digit_separator{'\''};
-		char32_t line_comment{'#'};
-		bool     output_eol{false};
-		bool     dot_identifier{false};
+		std::string_view digit_separator{"\'"};
+		std::string_view line_comment{"//"};
+		bool             dot_identifier{false};
+		bool             output_eol{false};
 	};
 
 	export class tokenizer
@@ -209,8 +209,12 @@ namespace deckard::lexer
 			return utf8::EOF_CHARACTER;
 		}
 
-		tokens tokenize() noexcept
+		tokens tokenize() noexcept { return tokenize(config); }
+
+		tokens tokenize(const tokenizer_config& cfg) noexcept
 		{
+			setconfig(cfg);
+
 			init_defaults();
 
 			while (not eof())
@@ -220,6 +224,8 @@ namespace deckard::lexer
 
 				if ((current_char == '\\' and next_char == '\n'))
 				{
+					// TODO: any whitespace between slash and newline
+
 					// Any sequence of backslash (\) immediately followed by a new line is deleted,
 					// resulting in splicing lines together.
 					// \\n
@@ -455,7 +461,9 @@ namespace deckard::lexer
 
 			while (not eof())
 			{
-				if (auto n = peek(); utf8::is_identifier_continue(n))
+				auto next_char = peek();
+				if (auto n = peek();
+					config.dot_identifier == true ? n == '.' or utf8::is_identifier_continue(n) : utf8::is_identifier_continue(n))
 					lit.push_back(next());
 				else
 					break;
