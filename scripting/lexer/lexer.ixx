@@ -388,6 +388,7 @@ namespace deckard::lexer
 						diff = cursor - current_cursor;
 						while (not eof() and utf8::is_ascii_binary_digit(peek()) or peek() == '.')
 						{
+							// ellipsis
 							if (peek(0) == '.' and peek(1) == '.')
 								break;
 
@@ -405,6 +406,7 @@ namespace deckard::lexer
 
 						while (not eof() and utf8::is_ascii_hex_digit(peek()) or peek() == '.')
 						{
+							// ellipsis
 							if (peek(0) == '.' and peek(1) == '.')
 								break;
 
@@ -421,11 +423,9 @@ namespace deckard::lexer
 						u32 dotcount = 0;
 						while (not eof() and (utf8::is_ascii_digit(peek()) or peek() == '.'))
 						{
-							// range
+							// ellipsis
 							if (peek(0) == '.' and peek(1) == '.')
-							{
 								break;
-							}
 
 							if (peek() == '.' and dotcount == 0)
 							{
