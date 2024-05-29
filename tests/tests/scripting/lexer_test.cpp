@@ -487,4 +487,36 @@ TEST_CASE("longer examples", "[lexer]")
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
 	}
+
+	SECTION("mix math hex/bin/dec/float/idents")
+	{
+		tokenizer l(R"(C++---.1*1.^0b10/ 0X42+--C == "value"('ABCD'); // comment)"sv);
+		auto      tokens = l.tokenize();
+
+		int count = 0;
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
+		REQUIRE(check_token(tokens[count++], Token::FLOATING_POINT, L".1"));
+		REQUIRE(check_token(tokens[count++], Token::STAR, L"*"));
+		REQUIRE(check_token(tokens[count++], Token::FLOATING_POINT, L"1."));
+		REQUIRE(check_token(tokens[count++], Token::XOR, L"^"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"0b10"));
+		REQUIRE(check_token(tokens[count++], Token::SLASH, L"/"));
+		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"0X42"));
+		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
+		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
+		REQUIRE(check_token(tokens[count++], Token::EQUAL_EQUAL, L"=="));
+		REQUIRE(check_token(tokens[count++], Token::STRING, L"value"));
+		REQUIRE(check_token(tokens[count++], Token::LEFT_PAREN, L"("));
+		REQUIRE(check_token(tokens[count++], Token::CHARACTER, L"ABCD"));
+		REQUIRE(check_token(tokens[count++], Token::RIGHT_PAREN, L")"));
+		REQUIRE(check_token(tokens[count++], Token::SEMI_COLON, L";"));
+		REQUIRE(check_token(tokens[count++], Token::SLASH_SLASH, L"//"));
+		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"comment"));
+		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
+		REQUIRE(tokens.size() == ++count);
+	}
 }

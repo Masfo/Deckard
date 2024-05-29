@@ -334,7 +334,8 @@ int main()
 	dbg::println("{} ", fs::current_path().string());
 
 	// clang-format off
-	double fff = 1.+.1;
+	int C = 0;
+	int A = C++-.1*1.;
 	// clang-format on
 
 	utf8file file("input.ini");
