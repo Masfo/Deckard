@@ -297,6 +297,8 @@ namespace deckard::lexer
 					read_number();
 					continue;
 				}
+
+
 				if ((current_char == '.' and utf8::is_ascii_digit(next_char)) or
 					((current_char == '-' or current_char == '+') and (next_char == '.' or utf8::is_ascii_digit(next_char))))
 				{
@@ -384,8 +386,11 @@ namespace deckard::lexer
 						lit.push_back(next());
 						lit.push_back(next());
 						diff = cursor - current_cursor;
-						while (not eof() and utf8::is_ascii_binary_digit(peek()))
+						while (not eof() and utf8::is_ascii_binary_digit(peek()) or peek() == '.')
 						{
+							if (peek(0) == '.' and peek(1) == '.')
+								break;
+
 							lit.push_back(next());
 						}
 						break;
@@ -400,6 +405,9 @@ namespace deckard::lexer
 
 						while (not eof() and utf8::is_ascii_hex_digit(peek()) or peek() == '.')
 						{
+							if (peek(0) == '.' and peek(1) == '.')
+								break;
+
 							if (peek() == '.')
 								type = Token::INVALID_HEX;
 
@@ -413,6 +421,12 @@ namespace deckard::lexer
 						u32 dotcount = 0;
 						while (not eof() and (utf8::is_ascii_digit(peek()) or peek() == '.'))
 						{
+							// range
+							if (peek(0) == '.' and peek(1) == '.')
+							{
+								break;
+							}
+
 							if (peek() == '.' and dotcount == 0)
 							{
 								type = Token::FLOATING_POINT;
