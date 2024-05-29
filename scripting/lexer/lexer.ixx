@@ -176,14 +176,7 @@ namespace deckard::lexer
 			filename = input_file.filename().string();
 		}
 
-		explicit tokenizer(std::string_view str) noexcept
-		{
-			*this = str;
-			// utf8::codepoints cps(str.data());
-			// codepoints = cps.data(true);
-			// m_tokens.reserve(codepoints.size());
-			// filename = "";
-		}
+		explicit tokenizer(std::string_view str) noexcept { *this = str; }
 
 		void operator=(std::string_view input)
 		{
