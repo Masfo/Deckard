@@ -167,19 +167,6 @@ TEST_CASE("tokens", "[lexer]")
 	}
 
 
-	SECTION("multisymbols 2")
-	{
-		tokenizer  l("X++ --Y"sv);
-		const auto tokens = l.tokenize();
-		int        count  = 0;
-		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"X"));
-		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
-		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"Y"));
-		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == ++count);
-	}
-
 	SECTION("ellipsis ranges exclusive/inclusive")
 	{
 		tokenizer l(R"(0..5)"sv);
@@ -460,11 +447,10 @@ TEST_CASE("longer examples", "[lexer]")
 
 	SECTION("simple negative integer and idents")
 	{
-		tokenizer l(R"(--X+-5)"sv);
+		tokenizer l(R"(X+-5)"sv);
 		auto      tokens = l.tokenize();
 
 		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
 		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"X"));
 		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
 		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
@@ -475,11 +461,10 @@ TEST_CASE("longer examples", "[lexer]")
 
 	SECTION("simple negative float and idents")
 	{
-		tokenizer l(R"(--X+-.5)"sv);
+		tokenizer l(R"(X+-.5)"sv);
 		auto      tokens = l.tokenize();
 
 		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
 		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"X"));
 		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
 		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
@@ -490,13 +475,11 @@ TEST_CASE("longer examples", "[lexer]")
 
 	SECTION("mix math hex/bin/dec/float/idents")
 	{
-		tokenizer l(R"(C++---.1*1.^0b10/ 0X42+--C == "value"('ABCD'); // comment)"sv);
+		tokenizer l(R"(C-.1*1.^0b10/ 0X42+C == "value"('ABCD'); // comment)"sv);
 		auto      tokens = l.tokenize();
 
 		int count = 0;
 		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
-		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
 		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
 		REQUIRE(check_token(tokens[count++], Token::FLOATING_POINT, L".1"));
 		REQUIRE(check_token(tokens[count++], Token::STAR, L"*"));
@@ -506,7 +489,6 @@ TEST_CASE("longer examples", "[lexer]")
 		REQUIRE(check_token(tokens[count++], Token::SLASH, L"/"));
 		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"0X42"));
 		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
 		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
 		REQUIRE(check_token(tokens[count++], Token::EQUAL_EQUAL, L"=="));
 		REQUIRE(check_token(tokens[count++], Token::STRING, L"value"));
@@ -516,64 +498,6 @@ TEST_CASE("longer examples", "[lexer]")
 		REQUIRE(check_token(tokens[count++], Token::SEMI_COLON, L";"));
 		REQUIRE(check_token(tokens[count++], Token::SLASH_SLASH, L"//"));
 		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"comment"));
-		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == ++count);
-	}
-
-
-	SECTION("triple neg")
-	{
-		tokenizer l(R"(C---2)"sv);
-		auto      tokens = l.tokenize();
-
-		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
-		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
-		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == ++count);
-	}
-
-
-	SECTION("triple neg")
-	{
-		tokenizer l(R"(C- --2)"sv);
-		auto      tokens = l.tokenize();
-
-		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS, L"-"));
-		REQUIRE(check_token(tokens[count++], Token::MINUS_MINUS, L"--"));
-		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
-		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == ++count);
-	}
-
-	SECTION("triple plus")
-	{
-		tokenizer l(R"(C+++2)"sv);
-		auto      tokens = l.tokenize();
-
-		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
-		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
-		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
-		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
-		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == ++count);
-	}
-
-	SECTION("triple plus")
-	{
-		tokenizer l(R"(C+ ++2)"sv);
-		auto      tokens = l.tokenize();
-
-		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"C"));
-		REQUIRE(check_token(tokens[count++], Token::PLUS, L"+"));
-		REQUIRE(check_token(tokens[count++], Token::PLUS_PLUS, L"++"));
-		REQUIRE(check_token(tokens[count++], Token::INTEGER, L"2"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 		REQUIRE(tokens.size() == ++count);
 	}

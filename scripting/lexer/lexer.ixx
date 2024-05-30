@@ -58,9 +58,6 @@ namespace deckard::lexer
 		AT,          // @
 		UNDERSCORE,  // _
 
-		PLUS_PLUS,   //++
-		MINUS_MINUS, // --
-
 
 		BACK_SLASH,  // '\'
 		SLASH_SLASH, // //
@@ -596,13 +593,6 @@ namespace deckard::lexer
 						break;
 					}
 
-					if (next_char == '+')
-					{
-						type        = Token::PLUS_PLUS;
-						symbol_size = 2;
-						break;
-					}
-
 					break;
 				}
 
@@ -619,12 +609,6 @@ namespace deckard::lexer
 					if (next_char == '>')
 					{
 						type        = Token::ARROW;
-						symbol_size = 2;
-						break;
-					}
-					if (next_char == '-')
-					{
-						type        = Token::MINUS_MINUS;
 						symbol_size = 2;
 						break;
 					}
