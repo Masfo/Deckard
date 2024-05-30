@@ -35,5 +35,7 @@ export namespace deckard
 
 	auto MakeBox = []<typename T>(T value) -> Box<T> { return std::make_unique<T>(value); };
 
+	// at_compile
+	consteval decltype(auto) at_compile(auto&& arg) { return std::forward<decltype(arg)>(arg); }
 
 } // namespace deckard
