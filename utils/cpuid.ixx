@@ -7,6 +7,7 @@ export module deckard.cpuid;
 import std;
 import deckard.types;
 import deckard.helpers;
+import deckard.as;
 
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
@@ -83,26 +84,26 @@ namespace deckard::cpuid
 	};
 
 	const std::array<Features, std::to_underlying(Feature::MAX_FEATURE)> g_features = {{
-		{"MMX", 1, cpu_register::edx, 23},
+	  {"MMX", 1, cpu_register::edx, 23},
 
-		{"SSE", 1, cpu_register::edx, 25},
-		{"SSE2", 1, cpu_register::edx, 26},
-		{"SSE3", 1, cpu_register::ecx, 0},
-		{"SSE4.1", 1, cpu_register::ecx, 19},
-		{"SSE4.2", 1, cpu_register::ecx, 20},
-		{"SSE4a", 0x8000'0001, cpu_register::ecx, 6},
+	  {"SSE", 1, cpu_register::edx, 25},
+	  {"SSE2", 1, cpu_register::edx, 26},
+	  {"SSE3", 1, cpu_register::ecx, 0},
+	  {"SSE4.1", 1, cpu_register::ecx, 19},
+	  {"SSE4.2", 1, cpu_register::ecx, 20},
+	  {"SSE4a", 0x8000'0001, cpu_register::ecx, 6},
 
-		{"AVX", 1, cpu_register::ecx, 28},
-		{"AVX2", 7, cpu_register::ebx, 5},
-		{"AVX512", 7, cpu_register::ebx, 16},
+	  {"AVX", 1, cpu_register::ecx, 28},
+	  {"AVX2", 7, cpu_register::ebx, 5},
+	  {"AVX512", 7, cpu_register::ebx, 16},
 
-		{"SHA", 7, cpu_register::ebx, 29},
-		{"AES", 1, cpu_register::ecx, 25},
+	  {"SHA", 7, cpu_register::ebx, 29},
+	  {"AES", 1, cpu_register::ecx, 25},
 
-		{"RDRAND", 1, cpu_register::ecx, 30},
-		{"RDSEED", 7, cpu_register::ebx, 18},
+	  {"RDRAND", 1, cpu_register::ecx, 30},
+	  {"RDSEED", 7, cpu_register::ebx, 18},
 
-		//{"HTT", 1, cpu_register::edx, 28},
+	  //{"HTT", 1, cpu_register::edx, 28},
 	}};
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
@@ -110,14 +111,14 @@ namespace deckard::cpuid
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
 		std::array<u32, 4> regs{0};
-		__cpuid(std::bit_cast<i32 *>(regs.data()), id);
+		__cpuid(std::bit_cast<i32*>(regs.data()), id);
 		return regs;
 	}
 
 	export auto cpuidex(int id, int leaf) -> std::array<u32, 4>
 	{
 		std::array<u32, 4> regs{0};
-		__cpuidex(std::bit_cast<i32 *>(regs.data()), id, leaf);
+		__cpuidex(std::bit_cast<i32*>(regs.data()), id, leaf);
 		return regs;
 	}
 
@@ -161,7 +162,7 @@ namespace deckard::cpuid
 
 		bool has(Feature f) const noexcept
 		{
-			const auto &feature = g_features[std::to_underlying(f)];
+			const auto& feature = g_features[std::to_underlying(f)];
 			CPUID       id(feature.id);
 
 			return is_bit_set(id[feature.reg], feature.bit);
@@ -172,7 +173,7 @@ namespace deckard::cpuid
 			std::string ret;
 			ret.reserve(64);
 
-			for (const auto &feature : g_features)
+			for (const auto& feature : g_features)
 			{
 				CPUID id(feature.id);
 				if (is_bit_set(id[feature.reg], feature.bit))
@@ -206,9 +207,9 @@ namespace deckard::cpuid
 
 			CPUID id(0);
 
-			ret += std::string(std::bit_cast<const char *>(&id.EBX()), 4);
-			ret += std::string(std::bit_cast<const char *>(&id.EDX()), 4);
-			ret += std::string(std::bit_cast<const char *>(&id.ECX()), 4);
+			ret += std::string(std::bit_cast<const char*>(&id.EBX()), 4);
+			ret += std::string(std::bit_cast<const char*>(&id.EDX()), 4);
+			ret += std::string(std::bit_cast<const char*>(&id.ECX()), 4);
 
 			return ret;
 		}
@@ -222,9 +223,9 @@ namespace deckard::cpuid
 				std::string ret;
 				ret.resize(48);
 #if defined(_MSC_VER)
-				__cpuidex(std::bit_cast<int *>(&ret[0] + 00), 0x8000'0002, 0);
-				__cpuidex(std::bit_cast<int *>(&ret[0] + 16), 0x8000'0003, 0);
-				__cpuidex(std::bit_cast<int *>(&ret[0] + 32), 0x8000'0004, 0);
+				__cpuidex(std::bit_cast<int*>(&ret[0] + 00), 0x8000'0002, 0);
+				__cpuidex(std::bit_cast<int*>(&ret[0] + 16), 0x8000'0003, 0);
+				__cpuidex(std::bit_cast<int*>(&ret[0] + 32), 0x8000'0004, 0);
 #endif
 				// Remove whitespace in the end
 				return ret.substr(0, ret.find_last_not_of(" \0"sv) + 1);
@@ -234,19 +235,28 @@ namespace deckard::cpuid
 
 		u32 speed_in_mhz() const noexcept
 		{
-			u32 time_variable = 1'000'000;
 
-			u64  cycle = 0;
+			size_t hz_count = 0;
+			int    cycles   = 5;
+
 			auto start = std::chrono::high_resolution_clock::now();
+			for (int i = 0; i < cycles; ++i)
+			{
+				auto cycle_end   = std::chrono::high_resolution_clock::now() + 20ms;
+				auto cycle_start = __rdtsc();
 
-			auto current_cycle = __rdtsc();
-			while (cycle <= time_variable)
-				cycle = __rdtsc() - current_cycle;
+				while (start <= cycle_end)
+				{
+					start = std::chrono::high_resolution_clock::now();
+				}
 
-			std::chrono::duration<f64, std::milli> total_time(std::chrono::high_resolution_clock::now() - start);
 
-			// return static_cast<u32>(std::round((1000.0 / total_time.count()) * (time_variable / 1'000'000.0)));
-			return static_cast<u32>(std::round(total_time.count() * time_variable));
+				auto temp = (__rdtsc() - cycle_start) * 50;
+				hz_count += temp;
+			}
+
+			size_t hz_avg = (hz_count / cycles);
+			return as<u32>(hz_avg / 1'000'000);
 		}
 
 		[[deprecated("On Intel does not work")]] u32 logical_cores() const noexcept
@@ -452,19 +462,19 @@ namespace deckard::cpuid
 			CPU_Info    i = info();
 			std::string ret;
 			ret.reserve(256);
-			ret =
-				std::format("{} ({}MHz)\nCores: {}, Threads {}\nFamily: {:X}, Ext. Family: {:X}\nModel: {:X}, Ext. Model: {:X}\nStepping: "
-							"{:X}\nFeatures: {}",
-							i.brand_string,
-							i.speed_in_mhz,
-							i.cores,
-							i.threads,
-							i.family,
-							i.exfamily,
-							i.model,
-							i.exmodel,
-							i.stepping,
-							i.features_string);
+			ret = std::format(
+			  "{} ({}MHz)\nCores: {}, Threads {}\nFamily: {:X}, Ext. Family: {:X}\nModel: {:X}, Ext. Model: {:X}\nStepping: "
+			  "{:X}\nFeatures: {}",
+			  i.brand_string,
+			  i.speed_in_mhz,
+			  i.cores,
+			  i.threads,
+			  i.family,
+			  i.exfamily,
+			  i.model,
+			  i.exmodel,
+			  i.stepping,
+			  i.features_string);
 
 			//
 			return ret;
@@ -472,13 +482,13 @@ namespace deckard::cpuid
 
 		u32 operator[](enum class cpu_register index) const noexcept { return regs[u32(index)]; }
 
-		const u32 &EAX() const noexcept { return regs[0]; }
+		const u32& EAX() const noexcept { return regs[0]; }
 
-		const u32 &EBX() const noexcept { return regs[1]; }
+		const u32& EBX() const noexcept { return regs[1]; }
 
-		const u32 &ECX() const noexcept { return regs[2]; }
+		const u32& ECX() const noexcept { return regs[2]; }
 
-		const u32 &EDX() const noexcept { return regs[3]; }
+		const u32& EDX() const noexcept { return regs[3]; }
 	};
 
 } // namespace deckard::cpuid
