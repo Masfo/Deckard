@@ -140,6 +140,9 @@ set(DECKARD_SRCS
 		file/file.ixx
 		file/fileMonitor.ixx
 
+        # Config
+        config/ini.ixx
+
         # Math
         math/math.ixx
         math/math_formatter.ixx

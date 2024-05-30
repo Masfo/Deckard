@@ -338,6 +338,8 @@ int main()
 	int A = 1+ ++C;
 	// clang-format on
 
+	// INTEGER PLUS _ PLUS_PLUS IDENT
+	// INTEGER PLUS_PLUS PLUS IDENT
 	utf8file file("input.ini");
 
 	lexer::tokenizer initok(file.data());
@@ -347,10 +349,9 @@ int main()
 
 	struct values
 	{
-		std::string_view section;
-		std::string_view key;
-		std::string_view comment;
 		inivalue         value;
+		std::string_view key; // section.key
+		std::string_view comment;
 	};
 
 	/*
