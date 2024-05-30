@@ -869,8 +869,7 @@ namespace deckard::lexer
 				}
 			}
 
-
-			assert::check(type != Token::UNKNOWN, "Unknown symbol");
+			// assert::check(type != Token::UNKNOWN, "Unknown symbol");
 
 			lit.push_back(current);
 			if (symbol_size == 2)

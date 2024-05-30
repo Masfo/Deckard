@@ -54,7 +54,7 @@ namespace deckard::utf8
 
 		if (codepoint < 128)
 		{
-			return is_ascii_alphabet(codepoint) or codepoint == '_' or codepoint == '$';
+			return is_ascii_identifier_start(codepoint);
 		}
 
 		return is_in_range(codepoint, xid_start);
@@ -67,7 +67,7 @@ namespace deckard::utf8
 
 		if (codepoint < 128)
 		{
-			return is_ascii_alphanumeric(codepoint) or codepoint == '_' or codepoint == '$';
+			return is_ascii_identifier_continue(codepoint);
 		}
 		return is_in_range(codepoint, xid_continue);
 	}
