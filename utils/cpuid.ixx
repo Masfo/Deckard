@@ -235,28 +235,19 @@ namespace deckard::cpuid
 
 		u32 speed_in_mhz() const noexcept
 		{
+			const auto delay = 20ms;
 
-			size_t hz_count = 0;
-			int    cycles   = 5;
-
-			auto start = std::chrono::high_resolution_clock::now();
-			for (int i = 0; i < cycles; ++i)
-			{
-				auto cycle_end   = std::chrono::high_resolution_clock::now() + 20ms;
-				auto cycle_start = __rdtsc();
-
-				while (start <= cycle_end)
-				{
-					start = std::chrono::high_resolution_clock::now();
-				}
+			auto       timer_start = std::chrono::high_resolution_clock::now();
+			const auto timer_end   = timer_start + delay;
 
 
-				auto temp = (__rdtsc() - cycle_start) * 50;
-				hz_count += temp;
-			}
+			auto cycle_start = __rdtsc();
+			while (timer_start <= timer_end)
+				timer_start = std::chrono::high_resolution_clock::now();
 
-			size_t hz_avg = (hz_count / cycles);
-			return as<u32>(hz_avg / 1'000'000);
+			u32 hz_count = as<u32>((__rdtsc() - cycle_start) * (1'000 / delay.count()));
+
+			return hz_count / std::mega::num;
 		}
 
 		[[deprecated("On Intel does not work")]] u32 logical_cores() const noexcept
