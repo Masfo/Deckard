@@ -67,6 +67,7 @@ include(CTest)
 include(Catch)
 catch_discover_tests(tests)
 
+# This is for because of Test Explorer, it runs the tests.exe from the out directory
 target_compile_definitions(tests PRIVATE -DTEST_PATH="${CMAKE_SOURCE_DIR}/bin/tests/")
 
 
