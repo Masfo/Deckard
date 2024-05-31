@@ -18,6 +18,7 @@ import deckard.lexer;
 import dbc;
 #endif
 namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 
 using namespace std::string_view_literals;
 using namespace deckard;
@@ -307,14 +308,6 @@ private:
 	u8 acc{0};
 };
 
-void second() { dbg::println("second"); }
-
-template<typename... Funcs>
-void callAll(Funcs&&... funcs)
-{
-	(std::forward<Funcs>(funcs)(), ...);
-}
-
 int main()
 {
 #ifndef _DEBUG
@@ -322,24 +315,24 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	float x1 = 0.0f;
+	float x2 = 10.0f;
 
-	dbg::println("{}", std::this_thread::get_id());
+	for (float x = 0.0f; x < 1.0f; x += 0.01f)
+	{
+		float dt = x;
+		dbg::println(
+		  "dt({:.5f}). lerp({:.5f}), d({:.5f}), ss({:.5f}, ssr({:.5f})",
+		  dt,
+		  lerp(x1, x2, smoothstep(bounce_ease_out(dt))),
+		  lerp(x1, x2, smoothstep(dt)),
+		  lerp(x1, x2, bounce_ease_in(dt)),
+		  lerp(x1, x2, sine_ease_inout(dt))
 
-	callAll([] { dbg::println("first"); }, &second);
+		);
+	}
 
 
-	lexer::tokenizer btest("1--5"sv);
-	auto             bintok = btest.tokenize();
-
-	dbg::println("{} ", fs::current_path().string());
-
-	// clang-format off
-	int C = 0;
-	int A = 1+ ++C;
-	// clang-format on
-
-	// INTEGER PLUS _ PLUS_PLUS IDENT
-	// INTEGER PLUS_PLUS PLUS IDENT
 	utf8file file("input.ini");
 
 	lexer::tokenizer initok(file.data());
@@ -353,24 +346,6 @@ int main()
 		std::string_view key; // section.key
 		std::string_view comment;
 	};
-
-	/*
-	 * ini["section"]["key"] = "new string"s;
-	 * ini["section", "key"]
-	 * ini("section", "key")
-	 * ini("section", "key", "new value")
-	 *
-	 * ini("section.key") = "new";
-	 * ini["section.key"] = 10;			# section.subsection.key [section.subsection]
-	 *
-	 *	auto &ref = init("section","key");
-	 * ref = 10;
-	 * ref = 3.14;
-	 * ref = "new string";
-	 * ref = true;
-	 *
-	 */
-
 
 	lexer::tokenizer l2(R"(
 [section.name]

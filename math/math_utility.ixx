@@ -1,12 +1,13 @@
 module;
-#include <cmath>
-#include <concepts>
+#include <algorithm>
+#include <functional>
 #include <immintrin.h>
-#include <numbers>
 #include <pmmintrin.h>
 #include <xmmintrin.h>
 
+
 export module deckard.math:utils;
+import std;
 
 export namespace deckard::math
 {
@@ -17,6 +18,16 @@ export namespace deckard::math
 
 	template<std::floating_point T = float>
 	inline constexpr T pi180 = std::numbers::pi_v<T> / T{180};
+
+	template<arithmetic T>
+	[[nodiscard]] constexpr bool clamp01(const T x, const T lowerlimit = T{0}, const T upperlimit = T{1})
+	{
+		if (x < lowerlimit)
+			return lowerlimit;
+		if (x > upperlimit)
+			return upperlimit;
+		return x;
+	}
 
 	// is_close_enough
 	template<std::floating_point T>
@@ -30,13 +41,6 @@ export namespace deckard::math
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{0})
 	{
 		return std::abs(A - B) == error;
-	}
-
-	// lerp
-	template<arithmetic T, arithmetic U>
-	[[nodiscard]] constexpr T lerp(const T& A, const T& B, const U& Alpha) noexcept
-	{
-		return static_cast<T>(A + Alpha * (B - A));
 	}
 
 	template<typename T>

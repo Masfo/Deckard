@@ -145,6 +145,7 @@ set(DECKARD_SRCS
 
         # Math
         math/math.ixx
+        math/ease_functions.ixx
         math/math_formatter.ixx
         math/matrix.ixx
         math/math_utility.ixx
