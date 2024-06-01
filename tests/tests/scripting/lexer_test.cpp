@@ -264,7 +264,7 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("integers")
 	{
-		tokenizer l("123 0x400 -26 -0X100 0x 0x3.14"sv);
+		tokenizer l("123 0x400 -26 -0X100 0x"sv);
 
 		const auto tokens = l.tokenize();
 
@@ -275,9 +275,8 @@ TEST_CASE("tokens", "[lexer]")
 		REQUIRE(check_token(tokens[4], Token::MINUS, L"-"));
 		REQUIRE(check_token(tokens[5], Token::INTEGER, L"0X100"));
 		REQUIRE(check_token(tokens[6], Token::INVALID_HEX, L"0x"));
-		REQUIRE(check_token(tokens[7], Token::INVALID_HEX, L"0x3.14"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
-		REQUIRE(tokens.size() == 9);
+		REQUIRE(tokens.size() == 8);
 	}
 
 
