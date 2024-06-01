@@ -205,7 +205,7 @@ namespace deckard::lexer
 			cursor = 0;
 		}
 
-		bool eof() noexcept { return has_data() && peek() == utf8::EOF_CHARACTER; }
+		bool eof() noexcept { return peek() == utf8::EOF_CHARACTER; }
 
 		char32_t next(u32 offset = 1) noexcept
 		{
@@ -230,6 +230,14 @@ namespace deckard::lexer
 			{
 				const auto current_char = peek(0);
 				const auto next_char    = peek(1);
+
+
+				if (utf8::is_whitespace(current_char))
+				{
+					next();
+					continue;
+				}
+
 
 				if ((current_char == '\\' and next_char == '\n'))
 				{
@@ -275,11 +283,6 @@ namespace deckard::lexer
 
 				// TODO: block comment, nested
 
-				if (utf8::is_whitespace(current_char))
-				{
-					next();
-					continue;
-				}
 
 				if (utf8::is_ascii_digit(current_char) or (current_char == '.' and utf8::is_ascii_digit(next_char)))
 				{
@@ -334,9 +337,8 @@ namespace deckard::lexer
 		{
 			// TODO: digit separator
 			// TODO: integer suffix	none i32/i64, u/U u32/u64, l/L i64,	ul/UL u64
-			bool hex      = false;
-			bool binary   = false;
-			bool negative = false;
+			bool hex    = false;
+			bool binary = false;
 
 			lexeme lit;
 			Token  type = Token::INTEGER;
@@ -360,11 +362,8 @@ namespace deckard::lexer
 						lit.push_back(next());
 						lit.push_back(next());
 						diff = cursor - current_cursor;
-						while (not eof() and utf8::is_ascii_binary_digit(peek()) or peek() == '.')
+						while (not eof() and utf8::is_ascii_binary_digit(peek()))
 						{
-							// ellipsis
-							if (peek(0) == '.' and peek(1) == '.')
-								break;
 
 							lit.push_back(next());
 						}
@@ -378,15 +377,8 @@ namespace deckard::lexer
 						lit.push_back(next());
 						diff = cursor - current_cursor;
 
-						while (not eof() and utf8::is_ascii_hex_digit(peek()) or peek() == '.')
+						while (not eof() and utf8::is_ascii_hex_digit(peek()))
 						{
-							// ellipsis
-							if (peek(0) == '.' and peek(1) == '.')
-								break;
-
-							if (peek() == '.')
-								type = Token::INVALID_HEX;
-
 							lit.push_back(next());
 						}
 						break;
@@ -441,7 +433,6 @@ namespace deckard::lexer
 			lexeme lit;
 			Token  type           = Token::CHARACTER;
 			u32    current_cursor = cursor;
-			auto   current_char   = peek();
 			next(); // '
 
 			auto diff = cursor - current_cursor;
