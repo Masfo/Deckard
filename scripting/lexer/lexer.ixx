@@ -44,8 +44,17 @@ namespace deckard::lexer
 		CHARACTER,      // 'a'
 		STRING,         // "abc"
 
-		TYPE,           // builtin type: i32, f32
-		USER_TYPE,      // struct <type>
+		// keywords
+		KEYWORD_TRUE,  // true
+		KEYWORD_FALSE, // false
+		KEYWORD_IF,    //
+		KEYWORD_ELSE,  //
+		KEYWORD_FN,    //
+		KEYWORD_LET,   //
+
+
+		TYPE,          // builtin type: i32, f32
+		USER_TYPE,     // struct <type>
 
 		// Op
 		PLUS,        // +
@@ -119,7 +128,16 @@ namespace deckard::lexer
 		EOF,
 	};
 
+	struct keyword
+	{
+		std::wstring_view word;
+		Token             token;
+
+		bool operator<(const keyword& lhs) const noexcept { return word < lhs.word; }
+	};
+
 	using lexeme = std::vector<char32_t>;
+
 
 	using number = std::variant<std::monostate, double, i64, u64>;
 
@@ -540,7 +558,9 @@ namespace deckard::lexer
 				type = Token::UNDERSCORE;
 
 			if (is_keyword(lit))
-				type = Token::KEYWORD;
+			{
+				type = to_token(lit);
+			}
 
 			// TODO: type/usertype detection
 
@@ -877,6 +897,7 @@ namespace deckard::lexer
 			std::wstring s;
 			for (const auto& c : literal)
 				s += (char32_t)c;
+
 			token t{
 			  //
 			  .lexeme      = literal,
@@ -891,48 +912,39 @@ namespace deckard::lexer
 			m_tokens.emplace_back(t);
 		}
 
+	private:
 		bool is_keyword(const lexeme& literal) noexcept
 		{
-			std::string str;
-			for (const auto& c : literal)
-				str += (char)c;
-
 			for (const auto& word : keywords)
 			{
-				if (word.size() <= longest_keyword and word.size() == str.size() && word == str)
+				if (word.token == to_token(literal))
 					return true;
 			}
-
 
 			return false;
 		}
 
-		void add_keyword(const std::string& word) noexcept
+		void add_keyword(std::wstring_view word) noexcept
 		{
 			longest_keyword = std::max(longest_keyword, word.size());
-			keywords.push_back(word);
-			std::ranges::sort(keywords);
+			keywords.push_back({word, to_token(word)});
+			std::ranges::sort(keywords, std::less{});
 		}
 
 		void add_type(const std::string& type) noexcept { builtin_types.push_back(type); }
 
-
-	private:
 		void init_defaults() noexcept
 		{
 			// Keywords
-			add_keyword("let");
-			add_keyword("fn");
-			add_keyword("return");
-
-			add_keyword("if");
-			add_keyword("else");
-
-			add_keyword("true");
-			add_keyword("false");
-
-			add_keyword("struct");
-			add_keyword("enum");
+			add_keyword(L"let");
+			add_keyword(L"fn");
+			add_keyword(L"return");
+			add_keyword(L"if");
+			add_keyword(L"else");
+			add_keyword(L"true");
+			add_keyword(L"false");
+			add_keyword(L"struct");
+			add_keyword(L"enum");
 
 
 			// Builtin types
@@ -948,6 +960,25 @@ namespace deckard::lexer
 			add_type("f64");
 		}
 
+		Token to_token(std::wstring_view keyword)
+		{
+			for (const auto& word : keywords)
+			{
+				if (word.word == keyword)
+					return word.token;
+			}
+			return Token::UNKNOWN;
+		}
+
+		Token to_token(lexeme lex)
+		{
+			std::wstring wstr;
+			for (const auto& c : lex)
+				wstr += c;
+
+			return to_token(wstr);
+		}
+
 		utf8file              input_file;
 		std::vector<char32_t> codepoints;
 
@@ -961,7 +992,7 @@ namespace deckard::lexer
 		u32 cursor{0};
 
 		size_t                   longest_keyword{0};
-		std::vector<std::string> keywords;
+		std::vector<keyword>     keywords;
 		std::vector<std::string> builtin_types;
 	};
 } // namespace deckard::lexer
