@@ -31,6 +31,8 @@ module;
 #include <wchar.h>
 #include <wctype.h>
 
+#include <intrin.h>
+
 export module std;
 
 #pragma warning(push)

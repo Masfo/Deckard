@@ -69,7 +69,10 @@ std::vector<std::string> split(const std::string_view str, const std::string_vie
 std::vector<std::string> read_lines(fs::path file)
 {
 	if (not fs::exists(file))
+	{
+		std::println("File {} does not exist", file.string());
 		return {};
+	}
 
 	std::vector<std::string> lines;
 
@@ -90,7 +93,8 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 
 	auto ctable_name = table_name;
 
-	std::transform(ctable_name.begin(), ctable_name.end(), ctable_name.begin(), [](unsigned char c) { return std::tolower(c); });
+	std::transform(
+		ctable_name.begin(), ctable_name.end(), ctable_name.begin(), [](unsigned char c) { return (unsigned char)std::tolower(c); });
 
 	f << std::format("inline constexpr std::array<char32_range, {}> {}{{{{\n", table.size(), ctable_name);
 	for (const auto [start, end] : table)
@@ -106,9 +110,12 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	f.close();
 }
 
-int main()
+void process_core_properties()
 {
 	auto lines = read_lines("DerivedCoreProperties.txt");
+
+	if (lines.empty())
+		return;
 
 	Tables tables;
 
@@ -175,6 +182,12 @@ int main()
 
 	write_lines(tables, "XID_Start", "xid_start.ixx");
 	write_lines(tables, "XID_Continue", "xid_continue.ixx");
+}
+
+int main()
+{
+
+	process_core_properties();
 
 	return 0;
 }

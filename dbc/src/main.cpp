@@ -336,24 +336,42 @@ int main()
 	utf8file file("input.ini");
 
 	lexer::tokenizer initok(file.data());
-	auto             initokens = initok.tokenize();
+	{
+		ScopeTimer _("ini tokenizer took");
+		auto       initokens = initok.tokenize();
+	}
 
 	using inivalue = std::variant<std::monostate, bool, i64, u64, double, std::string>;
 
-	struct values
+	struct value
 	{
-		inivalue         value;
-		std::string_view key; // section.key
+		inivalue         v;
+		std::string_view key; // section@key, section cannot have @ sign
 		std::string_view comment;
 	};
+
+	std::vector<value> values;
+	// read in-order to vector, store section@key
+	// when writing back to file, for-loop, detect section name changes.
 
 	lexer::tokenizer l2(R"(
 [section.name]
 key=value
 key2=123
+
+[section2]
+width=1920
+fullscreen=true
 )"sv);
 	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
-	int              x      = 0;
+
+
+	lexer::tokenizer l1("fn main() -> i32 { return false;}"sv);
+	tokens = l1.tokenize();
+
+
+	int x = 0;
+
 
 	// filemonitor fmon("folder");
 	//
