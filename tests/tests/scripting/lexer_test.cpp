@@ -371,12 +371,12 @@ TEST_CASE("tokens", "[lexer]")
 		const auto tokens = l.tokenize();
 
 		int count = 0;
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"fn"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_FN, L"fn"));
 		REQUIRE(check_token(tokens[count++], Token::IDENTIFIER, L"π"));
 		REQUIRE(check_token(tokens[count++], Token::LEFT_PAREN, L"("));
 		REQUIRE(check_token(tokens[count++], Token::RIGHT_PAREN, L")"));
 		REQUIRE(check_token(tokens[count++], Token::LEFT_BRACE, L"{"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"return"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_RETURN, L"return"));
 		REQUIRE(check_token(tokens[count++], Token::STRING, L"three"));
 		REQUIRE(check_token(tokens[count++], Token::SEMI_COLON, L";"));
 		REQUIRE(check_token(tokens[count++], Token::RIGHT_BRACE, L"}"));
@@ -392,15 +392,15 @@ TEST_CASE("tokens", "[lexer]")
 
 		int count = 0;
 
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"let"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"fn"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"return"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"if"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"else"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"true"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"false"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"struct"));
-		REQUIRE(check_token(tokens[count++], Token::KEYWORD, L"enum"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_LET, L"let"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_FN, L"fn"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_RETURN, L"return"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_IF, L"if"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_ELSE, L"else"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_TRUE, L"true"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_FALSE, L"false"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_STRUCT, L"struct"));
+		REQUIRE(check_token(tokens[count++], Token::KEYWORD_ENUM, L"enum"));
 		REQUIRE(check_token(tokens.back(), Token::EOF, L""));
 
 		REQUIRE(tokens.size() == ++count);

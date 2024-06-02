@@ -4,6 +4,7 @@ import deckard.utf8;
 import deckard.as;
 import deckard.debug;
 import deckard.assert;
+import deckard.helpers;
 import deckard.types;
 
 namespace fs = std::filesystem;
@@ -45,16 +46,19 @@ namespace deckard::lexer
 		STRING,         // "abc"
 
 		// keywords
-		KEYWORD_TRUE,  // true
-		KEYWORD_FALSE, // false
-		KEYWORD_IF,    //
-		KEYWORD_ELSE,  //
-		KEYWORD_FN,    //
-		KEYWORD_LET,   //
+		KEYWORD_TRUE,   // true
+		KEYWORD_FALSE,  // false
+		KEYWORD_IF,     //
+		KEYWORD_ELSE,   //
+		KEYWORD_FN,     //
+		KEYWORD_LET,    //
+		KEYWORD_STRUCT, //
+		KEYWORD_ENUM,   //
+		KEYWORD_RETURN, //
 
 
-		TYPE,          // builtin type: i32, f32
-		USER_TYPE,     // struct <type>
+		TYPE,           // builtin type: i32, f32
+		USER_TYPE,      // struct <type>
 
 		// Op
 		PLUS,        // +
@@ -150,6 +154,10 @@ namespace deckard::lexer
 		u32          cursor{0}; // cursor pos in line
 		Token        type;
 
+		// in codepoints
+		u32 lexeme_index{0};
+		u32 lexeme_length{0};
+
 		template<typename T>
 		std::optional<T> get() const
 		{
@@ -236,6 +244,16 @@ namespace deckard::lexer
 			return utf8::EOF_CHARACTER;
 		}
 
+		token create_token() const
+		{
+			token t;
+			t.line         = line;
+			t.cursor       = cursor;
+			t.lexeme_index = index;
+
+			return t;
+		}
+
 		tokens tokenize() noexcept { return tokenize(config); }
 
 		tokens tokenize(const tokenizer_config& cfg) noexcept
@@ -303,12 +321,6 @@ namespace deckard::lexer
 
 
 				if (utf8::is_ascii_digit(current_char) or (current_char == '.' and utf8::is_ascii_digit(next_char)))
-				{
-					read_number();
-					continue;
-				}
-
-				if (utf8::is_ascii_digit(current_char))
 				{
 					read_number();
 					continue;
@@ -924,10 +936,10 @@ namespace deckard::lexer
 			return false;
 		}
 
-		void add_keyword(std::wstring_view word) noexcept
+		void add_keyword(std::wstring_view word, Token tok) noexcept
 		{
 			longest_keyword = std::max(longest_keyword, word.size());
-			keywords.push_back({word, to_token(word)});
+			keywords.push_back({word, tok});
 			std::ranges::sort(keywords, std::less{});
 		}
 
@@ -936,15 +948,15 @@ namespace deckard::lexer
 		void init_defaults() noexcept
 		{
 			// Keywords
-			add_keyword(L"let");
-			add_keyword(L"fn");
-			add_keyword(L"return");
-			add_keyword(L"if");
-			add_keyword(L"else");
-			add_keyword(L"true");
-			add_keyword(L"false");
-			add_keyword(L"struct");
-			add_keyword(L"enum");
+			add_keyword(L"let", Token::KEYWORD_LET);
+			add_keyword(L"fn", Token::KEYWORD_FN);
+			add_keyword(L"return", Token::KEYWORD_RETURN);
+			add_keyword(L"if", Token::KEYWORD_IF);
+			add_keyword(L"else", Token::KEYWORD_ELSE);
+			add_keyword(L"true", Token::KEYWORD_TRUE);
+			add_keyword(L"false", Token::KEYWORD_FALSE);
+			add_keyword(L"struct", Token::KEYWORD_STRUCT);
+			add_keyword(L"enum", Token::KEYWORD_ENUM);
 
 
 			// Builtin types
