@@ -184,7 +184,7 @@ void process_core_properties()
 	write_lines(tables, "XID_Continue", "xid_continue.ixx");
 }
 
-enum GeneralCategory
+enum GeneralCategory : int
 {
 	Lu, // Letter, Uppercase
 	Ll, // Letter, Lowercase
@@ -228,29 +228,28 @@ struct Field
 
 void process_unicode_data()
 {
-	// 0.	Code value
-	// 1.	Character name
-	// 2.	General category
-	// 3.	Canonical combining classes
-	// 4.	Bidirectional category
-	// 5.	Character decomposition mapping
-	// 6.	Decimal digit value
-	// 7.	Digit value
-	// 8.	Numeric value
-	// 8.	Mirrored
-	// 10.	Unicode 1.0 Name
-	// 11.	1'0646 comment field
-	// 12.	Uppercase mapping
-	// 13.	Lowercase mapping
-	// 14.	Titlecase mapping
 	//  41	LATIN CAPITAL LETTER A	Lu	0	L					N				61
 	//  61	LATIN SMALL LETTER A	Ll	0	L					N			41		41
+	auto lines = read_lines("UnicodeData.txt");
+
+	if (lines.empty())
+		return;
+}
+
+void process_casefolding()
+{
+	auto lines = read_lines("CaseFolding.txt");
+
+	if (lines.empty())
+		return;
 }
 
 int main()
 {
 
 	process_core_properties();
+	process_unicode_data();
+	process_casefolding();
 
 	return 0;
 }

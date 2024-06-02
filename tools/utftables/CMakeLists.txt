@@ -216,4 +216,10 @@ file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
 message(STATUS Downloaded latest UnicodeData.txt)
 endif()
 
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/bin/CaseFolding.txt)
+file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
+        ${CMAKE_SOURCE_DIR}/bin/CaseFolding.txt)
+message(STATUS Downloaded latest CaseFolding.txt)
+endif()
+
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
