@@ -210,4 +210,10 @@ file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/DerivedCorePropertie
 message(STATUS Downloaded latest DerivedCoreProperties.txt)
 endif()
 
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/bin/UnicodeData.txt)
+file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
+        ${CMAKE_SOURCE_DIR}/bin/UnicodeData.txt)
+message(STATUS Downloaded latest UnicodeData.txt)
+endif()
+
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
