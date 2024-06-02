@@ -184,6 +184,69 @@ void process_core_properties()
 	write_lines(tables, "XID_Continue", "xid_continue.ixx");
 }
 
+enum GeneralCategory
+{
+	Lu, // Letter, Uppercase
+	Ll, // Letter, Lowercase
+	Lt, // Letter,Titlecase
+	Mn, // Mark, Non-spacing
+	Mc, // Mark, Spacing Combining
+	Me, // Mark, Enclosing
+	Nd, // Number, Decimal Digit
+	Nl, // Number, Letter
+	No, // Number, Other
+	Zs, // Separator, Space
+	Zl, // Seprarator, Line
+	Zp, // Separator, Paragraph
+	Cc, // Other, Control
+	Cf, // Other, Format
+	Cs, // Other, Surrogate
+	Co, // Other, Private Use
+	Cn, // Other, Not Assigned
+};
+
+struct Field
+{
+	int             code_value{-1};                      // 0
+	std::string     character_name;                      // 1
+	GeneralCategory category;                            // 2
+	int             canonical_combining_classes{-1};     // 3
+	int             bidirectional_category{-1};          // 4
+	int             character_decomposition_mapping{-1}; // 5
+	int             decimal_digit_value{-1};             // 6
+	int             digit_value{-1};                     // 7
+	int             numeric_value{-1};                   // 8
+	int             mirrored{-1};                        // 9
+	std::string     unicode10_name;                      // 10. unicode 1.0 name
+	std::string     comment;                             // 11. 10646 comment field
+	int             uppercase_mapping{-1};               // 12.
+	int             lowercase_mapping{-1};               // 13
+	int             titlecase_mapping{-1};               // 14
+};
+
+// 0041;LATIN CAPITAL LETTER A;Lu;0;L;;;;;N;;;;0061;
+
+void process_unicode_data()
+{
+	// 0.	Code value
+	// 1.	Character name
+	// 2.	General category
+	// 3.	Canonical combining classes
+	// 4.	Bidirectional category
+	// 5.	Character decomposition mapping
+	// 6.	Decimal digit value
+	// 7.	Digit value
+	// 8.	Numeric value
+	// 8.	Mirrored
+	// 10.	Unicode 1.0 Name
+	// 11.	1'0646 comment field
+	// 12.	Uppercase mapping
+	// 13.	Lowercase mapping
+	// 14.	Titlecase mapping
+	//  41	LATIN CAPITAL LETTER A	Lu	0	L					N				61
+	//  61	LATIN SMALL LETTER A	Ll	0	L					N			41		41
+}
+
 int main()
 {
 
