@@ -282,6 +282,12 @@ class bitstream
 
 {
 public:
+	struct byte_index
+	{
+		u64 index{0};
+		u8  remainder{0};
+	};
+
 	void reserve(u32 size) noexcept { data.reserve(size); }
 
 	template<typename T>
@@ -300,9 +306,11 @@ public:
 		// int j = 0;
 	}
 
+	byte_index calculate_position() const noexcept { return {as<u64>(bitposition / 8), as<u8>(bitposition % 8)}; }
+
 private:
 	std::vector<u8> data;
-	size_t          bitposition{0};
+	u64             bitposition{0};
 
 	u8 acc_remaining{0};
 	u8 acc{0};
@@ -339,6 +347,7 @@ int main()
 	{
 		ScopeTimer _("ini tokenizer took");
 		auto       initokens = initok.tokenize();
+		dbg::println("ini tokens: {}", initokens.size());
 	}
 
 	using inivalue = std::variant<std::monostate, bool, i64, u64, double, std::string>;
