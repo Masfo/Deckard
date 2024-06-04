@@ -210,4 +210,24 @@ export namespace deckard
 		return to_hex_string(std::span{as<u8*>(input.data()), input.size()}, options);
 	}
 
+	// epoch
+	template<typename T = std::chrono::seconds>
+	auto epoch() noexcept
+	{
+		auto now = std::chrono::system_clock::now();
+
+		if constexpr (std::is_same_v<T, std::chrono::seconds>)
+			return std::chrono::duration_cast<T>(now.time_since_epoch()).count() & 0xFFFF'FFFF_u32;
+		if constexpr (std::is_same_v<T, std::chrono::milliseconds>)
+			return std::chrono::duration_cast<T>(now.time_since_epoch()).count() & 0xFFFF'FFFF'FFFF'FFFF_u64;
+	}
+
+	template<typename T>
+	std::string epoch_string(T epoch) noexcept
+	{
+		const auto nowtime = epoch;
+		 //std::chrono::system_clock::now();
+		const auto t       = std::chrono::current_zone()->to_local(nowtime);
+		return std::format("{0:%F} {0:%T}", t);
+	}
 } // namespace deckard
