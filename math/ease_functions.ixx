@@ -154,6 +154,7 @@ export namespace deckard::math
 		return 1 - std::exp(-lambda * dt);
 	}
 
-	//
+
+
 
 } // namespace deckard::math
