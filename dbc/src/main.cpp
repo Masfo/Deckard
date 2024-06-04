@@ -330,12 +330,11 @@ int main()
 	{
 		float dt = x;
 		dbg::println(
-		  "dt({:.5f}). lerp({:.5f}), d({:.5f}), ss({:.5f}, ssr({:.5f})",
+		  "dt({:.5f}). lerp({:.5f}), d({:.5f}), ss({:.5f}",
 		  dt,
 		  lerp(x1, x2, smoothstep(bounce_ease_out(dt))),
 		  lerp(x1, x2, smoothstep(dt)),
-		  lerp(x1, x2, bounce_ease_in(dt)),
-		  lerp(x1, x2, sine_ease_inout(dt))
+		  lerp(x1, x2, bounce_ease_in(dt))
 
 		);
 	}
@@ -575,7 +574,6 @@ fullscreen=true
 
 	dbg::println("ms {:>14} => {}", ms_epoch, from_epoch(ms_epoch, ConvertEpoch::Milliseconds));
 	dbg::println(" s {:>14} => {}", s_epoch, from_epoch(s_epoch, ConvertEpoch::Seconds));
-	dbg::println("v7 {:>14} => {}", 0x018f'0ad8'1600, from_epoch(0x018f'0ad8'1600, ConvertEpoch::Milliseconds));
 	dbg::println();
 
 	auto const time     = std::chrono::current_zone()->to_local(nowTime);
@@ -586,6 +584,16 @@ fullscreen=true
 	dbg::println(" 1 {0:>14} => {1:%Y}-{1:%m}-{1:%d} {1:%OH}:{1:%M}:{1:%OS}", "", time);
 	dbg::println(" 2 {0:>14} => {1:%F} {1:%T}", "", time);
 	dbg::println(" 3 {:>14} => {} - {}", "", zone.abbrev, zonename);
+
+	auto nowtime = std::chrono::system_clock::now();
+	auto tp{std::chrono::system_clock::from_time_t(nowtime.time_since_epoch().count())};
+
+	auto nowtime2 = nowtime;
+
+
+	dbg::println("4. {}", epoch_string(nowtime));
+	dbg::println("5. {}", epoch_string(nowtime2));
+
 
 	std::println("Script Compiler v5");
 
