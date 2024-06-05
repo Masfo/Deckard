@@ -222,12 +222,10 @@ export namespace deckard
 			return std::chrono::duration_cast<T>(now.time_since_epoch()).count() & 0xFFFF'FFFF'FFFF'FFFF_u64;
 	}
 
-	template<typename T>
-	std::string epoch_string(T epoch) noexcept
+	std::string current_date_and_time() noexcept
 	{
-		const auto nowtime = epoch;
-		 //std::chrono::system_clock::now();
-		const auto t       = std::chrono::current_zone()->to_local(nowtime);
-		return std::format("{0:%F} {0:%T}", t);
+		auto epoch = std::chrono::system_clock::now();
+		return std::format("{0:%F} {0:%T}", std::chrono::current_zone()->to_local(epoch));
 	}
+
 } // namespace deckard
