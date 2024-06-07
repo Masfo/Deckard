@@ -14,7 +14,7 @@ namespace deckard::ini
 	struct value
 	{
 		inivalue         value;
-		std::string_view key; // section.key
+		std::string_view sectionkey; // section.key
 		std::string_view comment;
 	};
 
@@ -57,7 +57,9 @@ namespace deckard::ini
 		void write() { }
 
 	private:
-		std::unordered_map<std::string_view, value> kv_map;
+		std::vector<value> kv_map;
 	};
+
+	// TODO: read to vector so writeback doesnt change order.
 
 } // namespace deckard::ini
