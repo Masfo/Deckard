@@ -45,13 +45,11 @@ namespace deckard::ini
 		value& operator[](std::string_view key) noexcept
 		{
 			//
-			return kv_map.at(key);
 		}
 
 		value operator[](std::string_view key) const noexcept
 		{
 			//
-			return kv_map.at(key);
 		}
 
 		void write() { }

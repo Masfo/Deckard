@@ -947,7 +947,6 @@ namespace deckard::lexer
 
 		void init_defaults() noexcept
 		{
-			// Keywords
 			add_keyword(L"let", Token::KEYWORD_LET);
 			add_keyword(L"fn", Token::KEYWORD_FN);
 			add_keyword(L"return", Token::KEYWORD_RETURN);
