@@ -381,6 +381,25 @@ fullscreen=true
 	int x = 0;
 
 
+	constexpr auto sv_to_int = [](std::string_view str) -> u32
+	{
+		u32 ret{0};
+
+		for (int i = 0; i < std::min(sizeof(u32), str.size()); i++)
+		{
+			ret *= 256;
+			ret += str[i];
+		}
+		return ret;
+	};
+
+	u32 kw_return = sv_to_int("return"sv);
+	u32 kw_else   = sv_to_int("else"sv);
+	u32 kw_if     = sv_to_int("if"sv);
+
+
+	int kx = 0;
+
 	// filemonitor fmon("folder");
 	//
 	// fmon.add("folder2");
@@ -561,38 +580,10 @@ fullscreen=true
 	addr.fromString("::1");
 	addr.print();
 
-	u8 C1 = 0b1000'1010;
-	u8 L1 = 0b1100'1111;
-	dbg::println("{:0b} - {}", C1, std::countl_one(C1));
-	dbg::println("{:0b} - {}", L1, std::countl_one(L1));
 
-	auto nowTime = std::chrono::system_clock::now();
-
-	u64 ms_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(nowTime.time_since_epoch()).count() & 0xFFFF'FFFF'FFFF;
-	u32 s_epoch  = std::chrono::duration_cast<std::chrono::seconds>(nowTime.time_since_epoch()).count() & 0xFFFF'FFFF;
-
-
-	dbg::println("ms {:>14} => {}", ms_epoch, from_epoch(ms_epoch, ConvertEpoch::Milliseconds));
-	dbg::println(" s {:>14} => {}", s_epoch, from_epoch(s_epoch, ConvertEpoch::Seconds));
-	dbg::println();
-
-	auto const time     = std::chrono::current_zone()->to_local(nowTime);
-	auto       zone     = std::chrono::current_zone()->get_info(nowTime);
-	auto       zonename = std::chrono::current_zone()->name();
-
-	dbg::println(" n {:>14} => {} # {}", "", nowTime.time_since_epoch().count(), time);
-	dbg::println(" 1 {0:>14} => {1:%Y}-{1:%m}-{1:%d} {1:%OH}:{1:%M}:{1:%OS}", "", time);
-	dbg::println(" 2 {0:>14} => {1:%F} {1:%T}", "", time);
-	dbg::println(" 3 {:>14} => {} - {}", "", zone.abbrev, zonename);
-
-	auto nowtime = std::chrono::system_clock::now();
-	auto tp{std::chrono::system_clock::from_time_t(nowtime.time_since_epoch().count())};
-
-	auto nowtime2 = nowtime;
-
-
-	dbg::println("4. {}", epoch_string(nowtime));
-	dbg::println("5. {}", epoch_string(nowtime2));
+	dbg::println("{}", time_as_string());
+	dbg::println("{}", date_as_string());
+	dbg::println("{}", timezone());
 
 
 	std::println("Script Compiler v5");

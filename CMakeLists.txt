@@ -184,6 +184,9 @@ set(DECKARD_SRCS
         scripting/lexer/lexer.ixx
         scripting/parser/parser.ixx
 
+        # App
+        app/app.ixx
+        app/window.ixx
 
 
 		types/types.ixx
