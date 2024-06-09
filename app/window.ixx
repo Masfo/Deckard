@@ -1,5 +1,1 @@
-export module deckard.app:window
-
-  namespace deckard::app
-{
-}
+export module deckard.app:window;

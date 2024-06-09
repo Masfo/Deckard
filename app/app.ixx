@@ -1,3 +1,2 @@
-export module app;
-
-export void MyFunc();
+export module deckard.app;
+export import :window;

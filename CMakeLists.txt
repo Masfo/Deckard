@@ -185,8 +185,8 @@ set(DECKARD_SRCS
         scripting/parser/parser.ixx
 
         # App
-        app/app.ixx
         app/window.ixx
+        app/app.ixx
 
 
 		types/types.ixx
