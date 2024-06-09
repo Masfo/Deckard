@@ -1,4 +1,4 @@
-export module ideckard.ini;
+export module deckard.ini;
 
 
 import std;
