@@ -132,10 +132,13 @@ namespace deckard::lexer
 		EOF,
 	};
 
+
+	constexpr auto keyword_to_i64_hash = [](std::wstring_view str) -> i64 { return std::hash<std::wstring_view>{}(str); };
+
 	struct keyword
 	{
-		std::wstring_view word;
-		Token             token;
+		i64   word;
+		Token token;
 
 		bool operator<(const keyword& lhs) const noexcept { return word < lhs.word; }
 	};
@@ -149,7 +152,7 @@ namespace deckard::lexer
 	{
 		lexeme       lexeme;
 		std::wstring str_literal;
-		number       num;
+		number       numeric_value;
 		u32          line{0};
 		u32          cursor{0}; // cursor pos in line
 		Token        type;
@@ -161,8 +164,8 @@ namespace deckard::lexer
 		template<typename T>
 		std::optional<T> get() const
 		{
-			if (std::holds_alternative<T>(num))
-				return std::get<T>(num);
+			if (std::holds_alternative<T>(numeric_value))
+				return std::get<T>(numeric_value);
 			return {};
 		}
 
@@ -567,14 +570,13 @@ namespace deckard::lexer
 			Token type = Token::IDENTIFIER;
 
 			if (lit.size() == 1 and lit[0] == '_')
-				type = Token::UNDERSCORE;
-
-			if (is_keyword(lit))
 			{
-				type = to_token(lit);
+				type = Token::UNDERSCORE;
+				insert_token(type, lit, current_cursor);
+				return;
 			}
 
-			// TODO: type/usertype detection
+			type = identifier_to_token(lit);
 
 			insert_token(type, lit, current_cursor);
 		}
@@ -892,7 +894,7 @@ namespace deckard::lexer
 				}
 			}
 
-			// assert::check(type != Token::UNKNOWN, "Unknown symbol");
+			assert::check(type != Token::UNKNOWN, "Unknown symbol");
 
 			lit.push_back(current);
 			if (symbol_size == 2)
@@ -912,34 +914,23 @@ namespace deckard::lexer
 
 			token t{
 			  //
-			  .lexeme      = literal,
-			  .str_literal = s,
-			  .num         = num,
-			  .line        = line,
-			  .cursor      = current_cursor,
-			  .type        = type
+			  .lexeme        = literal,
+			  .str_literal   = s,
+			  .numeric_value = num,
+			  .line          = line,
+			  .cursor        = current_cursor,
+			  .type          = type
 			  //
 			};
 
-			m_tokens.emplace_back(t);
+			m_tokens.push_back(t);
 		}
 
 	private:
-		bool is_keyword(const lexeme& literal) noexcept
-		{
-			for (const auto& word : keywords)
-			{
-				if (word.token == to_token(literal))
-					return true;
-			}
-
-			return false;
-		}
-
 		void add_keyword(std::wstring_view word, Token tok) noexcept
 		{
 			longest_keyword = std::max(longest_keyword, word.size());
-			keywords.push_back({word, tok});
+			keywords.push_back({keyword_to_i64_hash(word), tok});
 			std::ranges::sort(keywords, std::less{});
 		}
 
@@ -947,6 +938,7 @@ namespace deckard::lexer
 
 		void init_defaults() noexcept
 		{
+			// struct
 			add_keyword(L"let", Token::KEYWORD_LET);
 			add_keyword(L"fn", Token::KEYWORD_FN);
 			add_keyword(L"return", Token::KEYWORD_RETURN);
@@ -971,23 +963,24 @@ namespace deckard::lexer
 			add_type("f64");
 		}
 
-		Token to_token(std::wstring_view keyword)
+		Token identifier_to_token(std::wstring_view keyword)
 		{
+			const auto hash = keyword_to_i64_hash(keyword);
 			for (const auto& word : keywords)
 			{
-				if (word.word == keyword)
+				if (word.word == hash)
 					return word.token;
 			}
-			return Token::UNKNOWN;
+			return Token::IDENTIFIER;
 		}
 
-		Token to_token(lexeme lex)
+		Token identifier_to_token(lexeme lex)
 		{
 			std::wstring wstr;
 			for (const auto& c : lex)
 				wstr += c;
 
-			return to_token(wstr);
+			return identifier_to_token(wstr);
 		}
 
 		utf8file              input_file;
