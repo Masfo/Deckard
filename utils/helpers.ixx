@@ -85,19 +85,32 @@ export namespace deckard
 			start();
 		}
 
-		~ScopeTimer() { stop(); }
+		~ScopeTimer()
+		{
+			if (not stopped)
+				now();
+		}
 
 		void start() noexcept { start_time = clock_now(); }
 
 		void stop() noexcept
 		{
-			std::chrono::duration<double, R> duration(clock_now() - start_time);
-			dbg::println("{} took {}", name, duration);
+			now();
+			stopped = true;
+		}
+
+		void now() noexcept { dbg::println("{} took {}", name, duration()); }
+
+		auto duration() noexcept
+		{
+			std::chrono::duration<float, R> dur(clock_now() - start_time);
+			return dur;
 		}
 
 	private:
 		std::string                           name;
 		std::chrono::steady_clock::time_point start_time{};
+		bool                                  stopped{false};
 	};
 
 	// Prettys
