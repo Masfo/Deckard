@@ -54,12 +54,20 @@ if(MSVC)
 
     target_compile_options(deckard PRIVATE /arch:SSE2)
 
-    set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
     #set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+
+    # Enable Hot Reload for MSVC compilers if supported.
+
+
 
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
+        #set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        if (POLICY CMP0141)
+          cmake_policy(SET CMP0141 NEW)
+          set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+        endif()
 
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
@@ -68,6 +76,8 @@ if(MSVC)
 
         target_compile_options(deckard PRIVATE /JMC)    # Just my debugging
         target_compile_options(deckard PRIVATE /Od)
+        target_compile_options(deckard PRIVATE /DEBUG)
+
         target_compile_options(deckard PRIVATE /RTC1)
         target_compile_options(deckard PRIVATE /GS)
         target_link_options(deckard PRIVATE /INCREMENTAL)
