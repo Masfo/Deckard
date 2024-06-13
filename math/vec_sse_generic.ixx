@@ -13,6 +13,7 @@ import :utils;
 
 namespace deckard::math::sse
 {
+#if 0
 	using m128 = __m128;
 
 	export template<size_t N>
@@ -633,5 +634,5 @@ namespace deckard::math::sse
 		return dir.reflect(normal);
 	}
 
-
+#endif
 } // namespace deckard::math::sse

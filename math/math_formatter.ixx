@@ -89,7 +89,7 @@ namespace std
 		}
 	};
 
-#if 1
+#if 0
 	// vec_n_sse formatter
 	template<size_t N>
 	struct hash<sse::vec_n_sse<N>>
