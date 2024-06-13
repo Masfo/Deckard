@@ -232,6 +232,7 @@ add_dependencies(deckard sqlite3)
 set(THIRD_PARTY_LIBS
     dxgi.lib
     sqlite3
+    Shcore.lib      # SetProcessDpiAwareness
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

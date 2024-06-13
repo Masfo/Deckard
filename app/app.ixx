@@ -5,17 +5,26 @@ namespace deckard
 {
 	namespace app
 	{
-		class app
+		export class app
 		{
 		public:
 			void run() noexcept;
 
 		private:
-			window m_window;
+			window wnd;
 		};
 
 		// impl
-		void app::run() noexcept { }
+		void app::run() noexcept
+		{
+			wnd.create();
+
+			while (wnd.loop())
+			{
+			}
+
+			wnd.destroy();
+		}
 
 
 	} // namespace app
