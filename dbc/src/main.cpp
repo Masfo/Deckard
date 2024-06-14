@@ -13,6 +13,8 @@ import deckard.math;
 import deckard.utf8;
 import deckard.lexer;
 
+import deckard.app;
+
 
 #ifndef _DEBUG
 import dbc;
@@ -323,6 +325,13 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	{
+		app::app app01;
+
+		app01.run();
+	}
+
+
 	float x1 = 0.0f;
 	float x2 = 10.0f;
 
@@ -340,11 +349,11 @@ int main()
 	}
 
 
-	utf8file file("input.ini");
+	utf8file file("func.txt");
 
 	lexer::tokenizer initok(file.data());
 	{
-		ScopeTimer _("ini tokenizer took");
+		ScopeTimer _("func tokenizer took");
 		auto       initokens = initok.tokenize();
 		dbg::println("ini tokens: {}", initokens.size());
 	}
@@ -374,31 +383,9 @@ fullscreen=true
 	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
 
 
-	lexer::tokenizer l1("fn main() -> i32 { return false;}"sv);
+	lexer::tokenizer l1("float returning{0.0}"sv);
 	tokens = l1.tokenize();
 
-
-	int x = 0;
-
-
-	constexpr auto sv_to_int = [](std::string_view str) -> u32
-	{
-		u32 ret{0};
-
-		for (int i = 0; i < std::min(sizeof(u32), str.size()); i++)
-		{
-			ret *= 256;
-			ret += str[i];
-		}
-		return ret;
-	};
-
-	u32 kw_return = sv_to_int("return"sv);
-	u32 kw_else   = sv_to_int("else"sv);
-	u32 kw_if     = sv_to_int("if"sv);
-
-
-	int kx = 0;
 
 	// filemonitor fmon("folder");
 	//
