@@ -138,6 +138,28 @@ namespace deckard::system
 		  "Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
 	}
 
+	struct BuildInfo
+	{
+		//
+		u32 major{0};
+		u32 minor{0};
+		u32 build{0};
+	};
+
+	export BuildInfo OSBuildInfo()
+	{
+		//
+
+		constexpr u32 KUSER_SHARED_DATA_PTR = 0x7FFE'0000u;
+		u32           major                 = *(u32*)(KUSER_SHARED_DATA_PTR + 0x026C); // NtMajorVersion, 4.0+
+		u32           minor                 = *(u32*)(KUSER_SHARED_DATA_PTR + 0x0270); // NtMinorVersion, 4.0+
+
+		u32 build = 0;
+		if (major >= 10)
+			build = *(u32*)(KUSER_SHARED_DATA_PTR + 0x0260); // NtBuildNumber, 10.0+
+		return {major, minor, build};
+	}
+
 	export u64 GetRAM() noexcept
 	{
 		MEMORYSTATUSEX status{};
