@@ -67,16 +67,27 @@ namespace deckard::app
 			wc.style         = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
 			wc.lpszClassName = L"DeckardWindowClass";
 			wc.hInstance     = GetModuleHandle(nullptr);
-			wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
+			wc.hbrBackground = (HBRUSH)30;
 
 			wc.lpfnWndProc = [](HWND hWnd, uint32_t message, WPARAM wParam, LPARAM lParam) -> LRESULT
 			{
-				window* parent{reinterpret_cast<window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA))};
-
-				if (parent)
+				// https://devblogs.microsoft.com/oldnewthing/20191014-00/?p=102992
+				window* self{nullptr};
+				if (message == WM_NCCREATE)
 				{
-					parent->handle = hWnd;
-					return parent->WndProc(hWnd, message, wParam, lParam);
+					LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
+					self                = static_cast<window*>(lpcs->lpCreateParams);
+					self->handle        = hWnd;
+					SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+				}
+				else
+				{
+					self = reinterpret_cast<window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+				}
+
+				if (self)
+				{
+					return self->WndProc(hWnd, message, wParam, lParam);
 				}
 
 				return DefWindowProc(hWnd, message, wParam, lParam);
@@ -109,7 +120,7 @@ namespace deckard::app
 			}
 
 
-			SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+			// SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
 
 			adjust_window_size();
@@ -156,14 +167,14 @@ namespace deckard::app
 			RECT monitorRect{0, 0, (LONG)(dev.dmPelsWidth), (LONG)(dev.dmPelsHeight)};
 
 			// If same as desktop resolution, switch to windowed fullscreen
-			bool adjust{true};
-			if (window_size.width >= (u32)dev.dmPelsWidth && window_size.height >= (u32)dev.dmPelsHeight)
-				adjust = false;
+			bool adjust = window_size.width >= (u32)dev.dmPelsWidth && window_size.height >= (u32)dev.dmPelsHeight;
 
 			RECT wr{0l, 0l, (LONG)(window_size.width), (LONG)(window_size.height)};
 
 			client_size.width  = window_size.width;
 			client_size.height = window_size.height;
+			dbg::println("before adjust: {}x{}", client_size.width, client_size.height);
+
 
 			u32   dpi = USER_DEFAULT_SCREEN_DPI;
 			float scale{static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI};
@@ -198,6 +209,7 @@ namespace deckard::app
 
 			i32 adjustedWidth{wr.right - wr.left};
 			i32 adjustedHeight{wr.bottom - wr.top};
+			dbg::println("Adjusted size: {}x{}", adjustedWidth, adjustedHeight);
 
 
 			SetWindowPos(
@@ -307,24 +319,32 @@ namespace deckard::app
 
 				case WM_DPICHANGED:
 				{
-					u32  DPI      = HIWORD(wParam);
-					auto new_rect = reinterpret_cast<LPRECT>(lParam);
+					u32    dpi      = HIWORD(wParam);
+					LPRECT new_rect = reinterpret_cast<LPRECT>(lParam);
 
-					assert::check(new_rect != nullptr);
 
-					if (!SetWindowPos(
-						  hWnd,
-						  nullptr,
-						  new_rect->left,
-						  new_rect->top,
-						  new_rect->right - new_rect->left,
-						  new_rect->bottom - new_rect->top,
-						  SWP_NOZORDER | SWP_NOACTIVATE))
+					f32 scale = as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
+
+					f32 fWidth  = as<f32>(window_size.width * scale);
+					f32 fHeight = as<f32>(window_size.height * scale);
+
+					RECT r{0, 0, (LONG)(fWidth), (LONG)(fHeight)};
+					if (!AdjustWindowRectExForDpi(&r, style, false, 0, dpi))
 					{
 						return 1;
 					}
 
-					dbg::trace("New DPI {}, {}x{}", DPI, new_rect->right - new_rect->left, new_rect->bottom - new_rect->top);
+					if (!SetWindowPos(hWnd, NULL, 0, 0, r.right - r.left, r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE))
+						return 1;
+
+					dbg::println("New DPI {}, {}x{}", dpi, r.right - r.left, r.bottom - r.top);
+
+					GetClientRect(hWnd, new_rect);
+
+					i32 adjustedWidth{new_rect->right - new_rect->left};
+					i32 adjustedHeight{new_rect->bottom - new_rect->top};
+					dbg::println("Adjusted client rect: {}x{}", adjustedWidth, adjustedHeight);
+
 					return 0;
 				}
 
@@ -370,7 +390,7 @@ namespace deckard::app
 				case WM_ENDSESSION:
 				case WM_CLOSE:
 				{
-					dbg::trace("WM_CLOSE");
+					dbg::println("WM_CLOSE");
 
 
 					// Save states here
@@ -379,7 +399,7 @@ namespace deckard::app
 
 				case WM_DESTROY:
 				{
-					dbg::trace("WM_DESTROY");
+					dbg::println("WM_DESTROY");
 
 					// if (m_DeviceNotify)
 					//	UnregisterDeviceNotification(m_DeviceNotify);
@@ -391,7 +411,7 @@ namespace deckard::app
 				}
 				case WM_QUIT:
 				{
-					dbg::trace("WM_QUIT");
+					dbg::println("WM_QUIT");
 					is_running = false;
 					break;
 				}
@@ -410,101 +430,100 @@ namespace deckard::app
 					return 0;
 				}
 
-#if 0
-            // Mouse
-        case WM_MOUSEMOVE:
-        {
-            m_mouseVK = static_cast<uint32_t>(wParam);
+#if 1
+					// Mouse
+				case WM_MOUSEMOVE:
+				{
+					// m_mouseVK = static_cast<uint32_t>(wParam);
 
-            int x = GET_X_LPARAM(lParam);
-            int y = GET_Y_LPARAM(lParam);
+					int x = GET_X_LPARAM(lParam);
+					int y = GET_Y_LPARAM(lParam);
 
-            m_mouseWindowCoord.x = x;
-            m_mouseWindowCoord.y = y;
+					// m_mouseWindowCoord.x = x;
+					// m_mouseWindowCoord.y = y;
 
-            return 0;
-        }
-
-
-        case WM_SYSCHAR:
-        {
-            auto vk = static_cast<int>(wParam);
-
-            const int scancode = (lParam >> 16) & 0xff;
-
-            dbg::trace("SysChar {}: {} - scancode {}", m_appname, vk, scancode);
+					return 0;
+				}
 
 
-            return 0;
-        }
+				case WM_SYSCHAR:
+				{
+					auto vk = static_cast<int>(wParam);
 
-        // Sys key
-        case WM_SYSKEYDOWN:
-        {
-            auto vk = static_cast<int>(wParam);
+					const int scancode = (lParam >> 16) & 0xff;
 
-            const int scancode = (lParam >> 16) & 0xff;
+					dbg::trace("SysChar {}: {} - scancode {}", "DeckardApp>", vk, scancode);
 
 
-            dbg::trace("SysKeyDown {}: {} - scancode {}", m_appname, vk, scancode);
-            return 0;
-        }
+					return 0;
+				}
 
-        case WM_SYSKEYUP:
-        {
-            auto vk = static_cast<int>(wParam);
+				// Sys key
+				case WM_SYSKEYDOWN:
+				{
+					auto vk = static_cast<int>(wParam);
 
-            const int scancode = (lParam >> 16) & 0xff;
-
-
-            dbg::trace("SysKeyUp {}: {} - scancode {}", m_appname, vk, scancode);
-
-            return 0;
-        }
+					const int scancode = (lParam >> 16) & 0xff;
 
 
-        // Key
-        case WM_KEYDOWN:
-        {
-            auto vk = static_cast<int>(wParam);
+					dbg::trace("SysKeyDown {}: {} - scancode {}", "DeckardApp", vk, scancode);
+					return 0;
+				}
+
+				case WM_SYSKEYUP:
+				{
+					auto vk = static_cast<int>(wParam);
+
+					const int scancode = (lParam >> 16) & 0xff;
 
 
+					dbg::trace("SysKeyUp {}: {} - scancode {}", "DeckardApp", vk, scancode);
 
-            dbg::trace("KeyDown {}: {}", m_appname, vk);
-
-            return 0;
-        }
-
-
-        case WM_KEYUP:
-        {
-            auto vk = static_cast<int>(wParam);
+					return 0;
+				}
 
 
-            dbg::trace("KeyUp {}: {}", m_appname, vk);
+				// Key
+				case WM_KEYDOWN:
+				{
+					auto vk = static_cast<int>(wParam);
 
-            if (vk == VK_ESCAPE)
-            {
-               is_running = false;
-            }
 
-            return 0;
-        }
+					dbg::trace("KeyDown {}: {}", "DeckardApp", vk);
+
+					return 0;
+				}
+
+
+				case WM_KEYUP:
+				{
+					auto vk = static_cast<int>(wParam);
+
+
+					dbg::trace("KeyUp {}: {}", "DeckardApp", vk);
+
+					if (vk == VK_ESCAPE)
+					{
+						is_running = false;
+					}
+
+					return 0;
+				}
 #endif
 				case WM_MOUSEWHEEL:
 				{
-#if 0
-                auto xPos   = GET_X_LPARAM(lParam);
-                auto yPos   = GET_Y_LPARAM(lParam);
-                auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
+#if 1
+					auto xPos   = GET_X_LPARAM(lParam);
+					auto yPos   = GET_Y_LPARAM(lParam);
+					auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
 
-                int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-                if (delta > 0)
-                    dbg::trace("[Mouse wheel] up {}", delta);
-                else
-                    dbg::trace("[Mouse wheel] down {}", delta);
+					int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+					if (delta > 0)
+						dbg::trace("[Mouse wheel] up {}", delta);
+					else
+						dbg::trace("[Mouse wheel] down {}", delta);
 
-                dbg::trace("[Mouse wheel] keys {}, xpos {}, ypos {}", fwKeys, xPos, yPos);
+					dbg::trace("[Mouse wheel] keys {}, xpos {}, ypos {}", fwKeys, xPos, yPos);
 #endif
 					return 0;
 				}
