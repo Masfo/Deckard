@@ -1,8 +1,10 @@
 module;
 #include <Windows.h>
 #include <dbt.h>
+#include <dwmapi.h>
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
+
 #include <windowsx.h>
 
 
@@ -23,9 +25,11 @@ namespace deckard::app
 	{
 		u32 width{1'920};
 		u32 height{1'080};
+		f32 aspect{1.777f};
 	};
 
 	export class window
+
 	{
 	public:
 		window() = default;
@@ -61,13 +65,14 @@ namespace deckard::app
 
 			window_size.width  = width;
 			window_size.height = height;
+			window_size.aspect = (f32)width / (f32)height;
 
 			WNDCLASSEX wc{};
 			wc.cbSize        = sizeof(WNDCLASSEX);
 			wc.style         = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
 			wc.lpszClassName = L"DeckardWindowClass";
 			wc.hInstance     = GetModuleHandle(nullptr);
-			wc.hbrBackground = (HBRUSH)30;
+			wc.hbrBackground = CreateSolidBrush(RGB(0, 128, 196));
 
 			wc.lpfnWndProc = [](HWND hWnd, uint32_t message, WPARAM wParam, LPARAM lParam) -> LRESULT
 			{
@@ -103,7 +108,7 @@ namespace deckard::app
 			handle = CreateWindowEx(
 			  ex_style,
 			  wc.lpszClassName,
-			  L"",
+			  L"Deckard Window",
 			  style,
 			  CW_USEDEFAULT,
 			  CW_USEDEFAULT,
@@ -120,16 +125,38 @@ namespace deckard::app
 			}
 
 
-			// SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-
-
 			adjust_window_size();
 
 
 			// Init renderer
 
 			ShowWindow(handle, SW_SHOW);
+			RedrawWindow(handle, nullptr, nullptr, RDW_INTERNALPAINT);
 
+
+			auto [major, minor, build] = system::OSBuildInfo();
+
+			if (IsWindows10OrGreater() && build >= 22'621)
+			{
+				const auto DWMSBT_DISABLE         = 1; // Default
+				const auto DWMSBT_MAINWINDOW      = 2; // Mica
+				const auto DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
+				const auto DWMSBT_TABBEDWINDOW    = 4; // Tabbed
+				auto       DWMSBT_set             = DWMSBT_DISABLE;
+
+				::DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
+
+
+				BOOL value = TRUE;
+				::DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+			}
+			//
+			if (IsWindowsVistaOrGreater())
+			{
+				// DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_ROUNDSMALL;
+				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
+				::DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+			}
 			// OnInit
 
 
@@ -171,20 +198,13 @@ namespace deckard::app
 
 			RECT wr{0l, 0l, (LONG)(window_size.width), (LONG)(window_size.height)};
 
-			client_size.width  = window_size.width;
-			client_size.height = window_size.height;
-			dbg::println("before adjust: {}x{}", client_size.width, client_size.height);
-
-
-			u32   dpi = USER_DEFAULT_SCREEN_DPI;
-			float scale{static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI};
 
 			if (windowed == true)
 			{
 				if (IsWindows10OrGreater())
 				{
-					dpi   = handle ? GetDpiForWindow(handle) : USER_DEFAULT_SCREEN_DPI;
-					scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
+					u32 dpi   = handle ? GetDpiForWindow(handle) : USER_DEFAULT_SCREEN_DPI;
+					f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
 
 					f32 fWidth  = as<f32>(window_size.width * scale);
 					f32 fHeight = as<f32>(window_size.height * scale);
@@ -192,8 +212,12 @@ namespace deckard::app
 					u32 scaledWidth  = as<u32>(std::min((f32)dev.dmPelsWidth, fWidth));
 					u32 scaledHeight = as<u32>(std::min((f32)dev.dmPelsHeight, fHeight));
 
-					client_size.width  = scaledWidth;
-					client_size.height = scaledHeight;
+					wr = {0, 0, (LONG)(scaledWidth), (LONG)(scaledHeight)};
+
+					AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
+					scaledWidth  = wr.right - wr.left;
+					scaledHeight = wr.bottom - wr.top;
+
 
 					wr = {0, 0, (LONG)(scaledWidth), (LONG)(scaledHeight)};
 
@@ -209,7 +233,6 @@ namespace deckard::app
 
 			i32 adjustedWidth{wr.right - wr.left};
 			i32 adjustedHeight{wr.bottom - wr.top};
-			dbg::println("Adjusted size: {}x{}", adjustedWidth, adjustedHeight);
 
 
 			SetWindowPos(
@@ -221,6 +244,8 @@ namespace deckard::app
 
 			switch (uMsg)
 			{
+
+
 				case WM_CREATE:
 				{
 					return 0;
@@ -329,47 +354,92 @@ namespace deckard::app
 					f32 fHeight = as<f32>(window_size.height * scale);
 
 					RECT r{0, 0, (LONG)(fWidth), (LONG)(fHeight)};
-					if (!AdjustWindowRectExForDpi(&r, style, false, 0, dpi))
+					if (!AdjustWindowRectExForDpi(&r, style, false, ex_style, dpi))
 					{
 						return 1;
 					}
 
-					if (!SetWindowPos(hWnd, NULL, 0, 0, r.right - r.left, r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE))
+					i32 adjustedWidth{r.right - r.left};
+					i32 adjustedHeight{r.bottom - r.top};
+
+					if (!SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE))
 						return 1;
 
-					dbg::println("New DPI {}, {}x{}", dpi, r.right - r.left, r.bottom - r.top);
-
-					GetClientRect(hWnd, new_rect);
-
-					i32 adjustedWidth{new_rect->right - new_rect->left};
-					i32 adjustedHeight{new_rect->bottom - new_rect->top};
-					dbg::println("Adjusted client rect: {}x{}", adjustedWidth, adjustedHeight);
 
 					return 0;
 				}
 
 
-				case WM_SIZE:
+					// case WM_SIZE:
+					//{
+					//	auto client_width  = (u32)LOWORD(lParam);
+					//	auto client_height = (u32)HIWORD(lParam);
+					//
+					//
+					//	if (windowed)
+					//	{
+					//
+					//		RECT windowRect{};
+					//		GetWindowRect(hWnd, &windowRect);
+					//
+					//		RECT inverseRect{0};
+					//		// DPI HERE?
+					//		if (AdjustWindowRectEx(&inverseRect, style, false, ex_style) == 1)
+					//		{
+					//			windowRect.left -= inverseRect.left;
+					//			windowRect.top -= inverseRect.top;
+					//			windowRect.right -= inverseRect.right;
+					//			windowRect.bottom -= inverseRect.bottom;
+					//		}
+					//	}
+					//	return 0;
+					// }
+
+				case WM_SIZING:
 				{
-					auto client_width  = (u32)LOWORD(lParam);
-					auto client_height = (u32)HIWORD(lParam);
+					being_dragged = wParam;
+					return 0;
+				}
 
+				case WM_WINDOWPOSCHANGING:
+				{
+					WINDOWPOS* winPos = (WINDOWPOS*)lParam;
 
-					if (windowed)
+					// Adjust window dimensions to maintain aspect ratio
+					switch (being_dragged)
 					{
+						case WMSZ_BOTTOM:
+						case WMSZ_TOPRIGHT: winPos->cx = (int)((double)winPos->cy * window_size.aspect); break;
 
-						RECT windowRect{};
-						GetWindowRect(hWnd, &windowRect);
+						case WMSZ_RIGHT:
+						case WMSZ_BOTTOMLEFT:
+						case WMSZ_BOTTOMRIGHT: winPos->cy = (int)((double)winPos->cx / window_size.aspect); break;
 
-						RECT inverseRect{0};
-						// DPI HERE?
-						if (AdjustWindowRectEx(&inverseRect, style, false, ex_style) == 1)
+						case WMSZ_TOP:
 						{
-							windowRect.left -= inverseRect.left;
-							windowRect.top -= inverseRect.top;
-							windowRect.right -= inverseRect.right;
-							windowRect.bottom -= inverseRect.bottom;
+							// Adjust the x position of the window to make it appear
+							// that the bottom right side is anchored
+							WINDOWPOS old = *winPos;
+
+							winPos->cx = (int)((double)winPos->cy * window_size.aspect);
+
+							winPos->x += old.cx - winPos->cx;
+							;
 						}
+						break;
+
+						case WMSZ_LEFT:
+						case WMSZ_TOPLEFT:
+						{
+							// Adjust the y position of the window to make it appear
+							// the bottom right side is anchored. TOPLEFT resizing
+							// will move the window around if you don't do this
+							WINDOWPOS old = *winPos;
+							winPos->cy    = (int)((double)winPos->cx / window_size.aspect);
+
+							winPos->y += old.cy - winPos->cy;
+						}
+						break;
 					}
 					return 0;
 				}
@@ -622,13 +692,13 @@ namespace deckard::app
 		}
 
 		WindowSize      window_size;
-		WindowSize      client_size;
 		HWND            handle{nullptr};
 		DWORD           style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
 		DWORD           ex_style{WS_EX_APPWINDOW};
 		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
 		bool            is_running{false};
 		bool            windowed{true};
+		int             being_dragged{false};
 	};
 
 } // namespace deckard::app
