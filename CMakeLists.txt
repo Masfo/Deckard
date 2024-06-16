@@ -233,6 +233,7 @@ set(THIRD_PARTY_LIBS
     dxgi.lib
     sqlite3
     Shcore.lib      # SetProcessDpiAwareness
+    Dwmapi.lib      # DwmSetWindowAttribute
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

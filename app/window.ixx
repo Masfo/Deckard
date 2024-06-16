@@ -104,6 +104,7 @@ namespace deckard::app
 				return;
 			}
 
+			style &= ~WS_SIZEBOX;
 
 			handle = CreateWindowEx(
 			  ex_style,
@@ -158,6 +159,8 @@ namespace deckard::app
 				::DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}
 			// OnInit
+
+			SetTimer(handle, 0, 16, 0);
 
 
 			is_running = true;
@@ -234,9 +237,46 @@ namespace deckard::app
 			i32 adjustedWidth{wr.right - wr.left};
 			i32 adjustedHeight{wr.bottom - wr.top};
 
+			// window_size.width  = adjustedWidth;
+			// window_size.height = adjustedHeight;
+
 
 			SetWindowPos(
 			  handle, nullptr, 0, 0, adjustedWidth, adjustedHeight, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+		}
+
+		void toggle_fullscreen()
+		{
+			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
+
+
+			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
+			if (dwStyle & WS_OVERLAPPEDWINDOW)
+			{
+				MONITORINFO mi = {sizeof(mi)};
+				if (GetWindowPlacement(handle, &wp) && GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
+				{
+					SetWindowLong(handle, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+					SetWindowPos(
+					  handle,
+					  HWND_TOP,
+					  mi.rcMonitor.left,
+					  mi.rcMonitor.top,
+					  mi.rcMonitor.right - mi.rcMonitor.left,
+					  mi.rcMonitor.bottom - mi.rcMonitor.top,
+					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				}
+				windowed = false;
+			}
+			else
+			{
+				windowed = true;
+				SetWindowLong(handle, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
+				SetWindowPlacement(handle, &wp);
+				SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			}
+
+			dbg::println("toggle: {}x{}", window_size.width, window_size.height);
 		}
 
 		LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
@@ -245,6 +285,16 @@ namespace deckard::app
 			switch (uMsg)
 			{
 
+				case WM_TIMER:
+				{
+					RECT wr{};
+					GetClientRect(handle, &wr);
+					SetWindowTextA(
+					  handle,
+					  std::format("{}x{}, {}x{}", window_size.width, window_size.height, wr.right - wr.left, wr.bottom - wr.top).c_str());
+					//
+					break;
+				};
 
 				case WM_CREATE:
 				{
@@ -310,6 +360,7 @@ namespace deckard::app
 					int xPos = GET_X_LPARAM(lParam);
 					int yPos = GET_Y_LPARAM(lParam);
 
+
 					dbg::trace("WM_MOUSEHOVER: [{}x{}] | VK: {:#X}", xPos, yPos, (uint32_t)wParam);
 					return 0;
 				}
@@ -320,11 +371,6 @@ namespace deckard::app
 					return 0;
 				}
 
-				case WM_SETTINGCHANGE:
-				{
-
-					return 0;
-				}
 
 				case WM_DISPLAYCHANGE:
 				{
@@ -342,8 +388,37 @@ namespace deckard::app
 					return 0;
 				}
 
+					// case WM_GETDPISCALEDSIZE:
+					//{
+					//	UINT  dpi         = (UINT)wParam;
+					//	SIZE* scaled_size = (SIZE*)lParam;
+					//	dbg::println("getdpiscaled: {}x{}", scaled_size->cx, scaled_size->cy);
+					//
+					//	RECT window_rect{};
+					//	window_rect.right  = MulDiv(160 * 4, dpi, USER_DEFAULT_SCREEN_DPI);
+					//	window_rect.bottom = MulDiv(144 * 4, dpi, USER_DEFAULT_SCREEN_DPI);
+					//	// AdjustWindowRectExForDpi(&window_rect, style, false, ex_style, dpi);
+					//
+					//	scaled_size->cx = window_rect.right - window_rect.left;
+					//	scaled_size->cy = window_rect.bottom - window_rect.top;
+					//	return TRUE;
+					// }
+
 				case WM_DPICHANGED:
 				{
+
+#if 0
+					const LPRECT prcNewWindow = (LPRECT)lParam;
+					SetWindowPos(
+					  handle,
+					  NULL,
+					  prcNewWindow->left,
+					  prcNewWindow->top,
+					  prcNewWindow->right - prcNewWindow->left,
+					  prcNewWindow->bottom - prcNewWindow->top,
+					  SWP_NOZORDER | SWP_NOACTIVATE);
+#else
+
 					u32    dpi      = HIWORD(wParam);
 					LPRECT new_rect = reinterpret_cast<LPRECT>(lParam);
 
@@ -362,41 +437,48 @@ namespace deckard::app
 					i32 adjustedWidth{r.right - r.left};
 					i32 adjustedHeight{r.bottom - r.top};
 
+
 					if (!SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE))
 						return 1;
-
+#endif
 
 					return 0;
 				}
 
 
-					// case WM_SIZE:
+#if 0
+				case WM_SIZE:
+				{
+					auto client_width  = (u32)LOWORD(lParam);
+					auto client_height = (u32)HIWORD(lParam);
+					dbg::println("wm_size: {}x{}", client_width, client_height);
+					/// window_size.width  = client_width;
+					/// window_size.height = client_height;
+
+					// if (windowed)
 					//{
-					//	auto client_width  = (u32)LOWORD(lParam);
-					//	auto client_height = (u32)HIWORD(lParam);
+					//	u32 dpi = handle ? GetDpiForWindow(handle) : USER_DEFAULT_SCREEN_DPI;
 					//
 					//
-					//	if (windowed)
+					//	RECT windowRect{};
+					//	GetWindowRect(hWnd, &windowRect);
+					//
+					//	RECT inverseRect{0};
+					//	// DPI HERE?
+					//	if (AdjustWindowRectExForDpi(&inverseRect, style, false, ex_style, dpi) == 1)
 					//	{
-					//
-					//		RECT windowRect{};
-					//		GetWindowRect(hWnd, &windowRect);
-					//
-					//		RECT inverseRect{0};
-					//		// DPI HERE?
-					//		if (AdjustWindowRectEx(&inverseRect, style, false, ex_style) == 1)
-					//		{
-					//			windowRect.left -= inverseRect.left;
-					//			windowRect.top -= inverseRect.top;
-					//			windowRect.right -= inverseRect.right;
-					//			windowRect.bottom -= inverseRect.bottom;
-					//		}
+					//		windowRect.left -= inverseRect.left;
+					//		windowRect.top -= inverseRect.top;
+					//		windowRect.right -= inverseRect.right;
+					//		windowRect.bottom -= inverseRect.bottom;
 					//	}
-					//	return 0;
 					// }
+					return 0;
+				}
 
 				case WM_SIZING:
 				{
+
 					being_dragged = wParam;
 					return 0;
 				}
@@ -443,7 +525,7 @@ namespace deckard::app
 					}
 					return 0;
 				}
-
+#endif
 					// Applications running on Windows Vista and Windows Server 2008 should adhere to these guidelines
 					// to ensure that the Restart Manager can shut down and restart applications if necessary to install
 					// updates.
@@ -461,11 +543,45 @@ namespace deckard::app
 				case WM_CLOSE:
 				{
 					dbg::println("WM_CLOSE");
-
+					is_running = false;
 
 					// Save states here
-					break;
+
+					return 0;
 				}
+
+#if 1
+				case WM_SYSCOMMAND:
+				{
+					u32 command = as<u32>(wParam);
+
+					switch (command)
+					{
+						case SC_SCREENSAVE:
+						{
+							dbg::println("Screensaver");
+							break;
+						};
+						case SC_MONITORPOWER:
+						{
+							i32 state = as<i32>(lParam);
+
+							switch (state)
+							{
+								case -1: dbg::println("Monitor off"); break;
+								case 0: dbg::println("Monitor lowpower"); break;
+								case 1: dbg::println("Monitor shutdown"); break;
+								default: break;
+							}
+
+							break;
+						}
+						default: break;
+					}
+
+					return DefWindowProc(handle, uMsg, wParam, lParam);
+				}
+#endif
 
 				case WM_DESTROY:
 				{
@@ -522,7 +638,7 @@ namespace deckard::app
 
 					const int scancode = (lParam >> 16) & 0xff;
 
-					dbg::trace("SysChar {}: {} - scancode {}", "DeckardApp>", vk, scancode);
+					dbg::trace("SysChar {}: {} - scancode {}", "DeckardApp", vk, scancode);
 
 
 					return 0;
@@ -531,12 +647,15 @@ namespace deckard::app
 				// Sys key
 				case WM_SYSKEYDOWN:
 				{
-					auto vk = static_cast<int>(wParam);
-
+					auto      vk       = static_cast<int>(wParam);
 					const int scancode = (lParam >> 16) & 0xff;
 
+					// alt-enter
+					if (vk == VK_RETURN and (lParam & 0x6000'0000) == 0x2000'0000)
+					{
+						toggle_fullscreen();
+					}
 
-					dbg::trace("SysKeyDown {}: {} - scancode {}", "DeckardApp", vk, scancode);
 					return 0;
 				}
 
@@ -545,9 +664,6 @@ namespace deckard::app
 					auto vk = static_cast<int>(wParam);
 
 					const int scancode = (lParam >> 16) & 0xff;
-
-
-					dbg::trace("SysKeyUp {}: {} - scancode {}", "DeckardApp", vk, scancode);
 
 					return 0;
 				}
@@ -559,8 +675,6 @@ namespace deckard::app
 					auto vk = static_cast<int>(wParam);
 
 
-					dbg::trace("KeyDown {}: {}", "DeckardApp", vk);
-
 					return 0;
 				}
 
@@ -570,12 +684,42 @@ namespace deckard::app
 					auto vk = static_cast<int>(wParam);
 
 
-					dbg::trace("KeyUp {}: {}", "DeckardApp", vk);
-
 					if (vk == VK_ESCAPE)
 					{
 						is_running = false;
+						break;
 					}
+
+
+					if (vk == VK_F1)
+					{
+						toggle_fullscreen();
+						RECT r{};
+						GetClientRect(handle, &r);
+						window_size.width  = r.right - r.left;
+						window_size.height = r.bottom - r.top;
+						break;
+					}
+
+					if (vk == VK_F2)
+					{
+						window_size.width  = 1'920;
+						window_size.height = 1'080;
+						adjust_window_size();
+						break;
+					}
+					if (vk == VK_F3)
+					{
+						window_size.width  = 1'280;
+						window_size.height = 720;
+						adjust_window_size();
+						break;
+					}
+
+					if (vk == VK_F4)
+					{
+					}
+
 
 					return 0;
 				}
@@ -675,6 +819,7 @@ namespace deckard::app
 					return 0;
 				}
 
+
 				case WM_APPCOMMAND:
 				{
 					auto cmd     = GET_APPCOMMAND_LPARAM(lParam);
@@ -686,6 +831,31 @@ namespace deckard::app
 					return 0;
 				}
 
+				case WM_POWERBROADCAST:
+				{
+					// System is suspending operation.
+					// Operation is resuming from a low-power state.
+					// Operation is resuming automatically from a low-power state.
+					switch (wParam)
+					{
+						case PBT_APMSUSPEND:
+							dbg::println("System is suspending operation.");
+							{
+								break;
+							}
+						case PBT_APMRESUMESUSPEND:
+						[[fallthrough]]
+						case PBT_APMRESUMEAUTOMATIC:
+						{
+							dbg::println("Operation is resuming from a low-power state. ");
+							break;
+						}
+
+						case PBT_APMPOWERSTATUSCHANGE: dbg::println("Power status changed"); break;
+						default: break;
+					}
+					return 1;
+				}
 #endif
 			}
 			return DefWindowProc(handle, uMsg, wParam, lParam);
