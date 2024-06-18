@@ -376,3 +376,5 @@ namespace deckard::math::sse
 
 
 } // namespace deckard::math::sse
+
+export using vec4 = deckard::math::sse::vec4;

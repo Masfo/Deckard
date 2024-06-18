@@ -403,3 +403,5 @@ namespace deckard::math::sse
 	export [[nodiscard("Use the divided value")]] vec3 safe_divide(const vec3& lhs, const float scalar) { return lhs.safe_divide(scalar); }
 
 } // namespace deckard::math::sse
+
+export using vec3 = deckard::math::sse::vec3;

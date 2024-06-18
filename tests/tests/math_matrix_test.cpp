@@ -1,9 +1,11 @@
+#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
 import std;
 import deckard.math;
 using namespace deckard::math;
+using namespace Catch::Matchers;
 
 TEST_CASE("matrix generic", "[matrix]")
 {
@@ -119,6 +121,39 @@ TEST_CASE("matrix generic", "[matrix]")
 
 		REQUIRE(a == -m);
 	}
+
+	SECTION("lookat_rh")
+	{
+		mat4 lat = lookat_rh(
+		  vec3(4, 10, 3), //
+		  vec3(0, 0, 0),  //
+		  vec3(0, 1, 0)   //
+		);
+
+		auto        fmt = std::format("{}", lat);
+		std::string test(
+		  "mat4((0.60000, -0.71554, 0.35777, 0.00000),\n"
+		  "     (0.00000, 0.44721, 0.89443, 0.00000),\n"
+		  "     (-0.80000, -0.53666, 0.26833, 0.00000),\n"
+		  "     (0.00000, -0.00000, -11.18034, 1.00000))");
+
+		REQUIRE(fmt == test);
+	}
+
+	SECTION("transpose")
+	{
+		//
+		mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		m               = transpose(m);
+		auto        fmt = std::format("{}", m);
+		std::string test(
+		  "mat4((1.00000, 5.00000, 9.00000, 13.00000),\n"
+		  "     (2.00000, 6.00000, 10.00000, 14.00000),\n"
+		  "     (3.00000, 7.00000, 11.00000, 15.00000),\n"
+		  "     (4.00000, 8.00000, 12.00000, 16.00000))");
+		REQUIRE(fmt == test);
+	}
+
 
 	SECTION("format")
 	{

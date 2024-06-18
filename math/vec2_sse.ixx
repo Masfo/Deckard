@@ -395,3 +395,5 @@ namespace deckard::math::sse
 	export [[nodiscard("Use the divided value")]] vec2 safe_divide(const vec2& lhs, const float scalar) { return lhs.safe_divide(scalar); }
 
 } // namespace deckard::math::sse
+
+export using vec2 = deckard::math::sse::vec2;

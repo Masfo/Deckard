@@ -5,6 +5,7 @@ import :utils;
 import std;
 import deckard.debug;
 import deckard.as;
+import deckard.types;
 import deckard.assert;
 import deckard.utils.hash;
 
@@ -602,10 +603,6 @@ namespace deckard::math
 		static inline vec_type zero() noexcept { return vec_type(T{0}); }
 	};
 
-	static_assert(sizeof(vec_n<float, 4>) == 16);
-	static_assert(sizeof(vec_n<float, 3>) == 12);
-	static_assert(sizeof(vec_n<float, 2>) == 8);
-
 	// Free functions
 	export template<typename T, size_t N>
 	[[nodiscard("Use the maximum value")]] constexpr vec_n<T, N> min(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
@@ -727,6 +724,19 @@ namespace deckard::math
 
 
 } // namespace deckard::math
+
+using namespace deckard;
+export using uvec2 = deckard::math::vec_n<u32, 2>;
+export using uvec3 = deckard::math::vec_n<u32, 3>;
+export using uvec4 = deckard::math::vec_n<u32, 4>;
+
+export using ivec2 = deckard::math::vec_n<i32, 2>;
+export using ivec3 = deckard::math::vec_n<i32, 3>;
+export using ivec4 = deckard::math::vec_n<i32, 4>;
+
+static_assert(sizeof(deckard::math::vec_n<f32, 4>) == 16);
+static_assert(sizeof(deckard::math::vec_n<f32, 3>) == 12);
+static_assert(sizeof(deckard::math::vec_n<f32, 2>) == 8);
 
 namespace std
 {

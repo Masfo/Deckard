@@ -1,6 +1,9 @@
 
 export module deckard.math:matrix;
 import :vec.generic;
+import :vec2_sse;
+import :vec3_sse;
+import :vec4_sse;
 
 import std;
 import deckard.assert;
@@ -15,8 +18,6 @@ namespace deckard::math
 	class mat4_generic
 	{
 	public:
-		using vec4 = vec_n<f32, 4>;
-
 		struct fill
 		{
 		} inline static fill;
@@ -207,7 +208,6 @@ namespace deckard::math
 
 	export mat4_generic inverse(const mat4_generic& mat) noexcept
 	{
-		using vec3 = vec_n<f32, 3>;
 
 		if (is_close_enough(mat.determinant(), 0.0f))
 			return {};
@@ -256,15 +256,29 @@ namespace deckard::math
 		  dot(c, s)));
 	}
 
-	mat4_generic transpose(const mat4_generic& mat)
+	export mat4_generic transpose(const mat4_generic& mat) noexcept
 	{
-		using vec4 = vec_n<f32, 4>;
+		return mat4_generic(
+		  vec4(mat(0, 0), mat(0, 1), mat(0, 2), mat(0, 3)),
+		  vec4(mat(1, 0), mat(1, 1), mat(1, 2), mat(1, 3)),
+		  vec4(mat(2, 0), mat(2, 1), mat(2, 2), mat(2, 3)),
+		  vec4(mat(3, 0), mat(3, 1), mat(3, 2), mat(3, 3)));
+	}
+
+	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up) noexcept
+	{
+		//
+		vec3 f = normalized(center - eye);
+
+		vec3 s = normalized(cross(f, up));
+
+		vec3 u = cross(s, f);
 
 		return mat4_generic(
-		  vec4(mat(0, 0), mat(1, 0), mat(2, 0), mat(3, 0)),
-		  vec4(mat(0, 1), mat(1, 1), mat(2, 1), mat(3, 1)),
-		  vec4(mat(0, 2), mat(1, 2), mat(2, 2), mat(3, 2)),
-		  vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3)));
+		  vec4(s[0], u[0], -f[0], 0.0f), //
+		  vec4(s[1], u[1], -f[1], 0.0f), //
+		  vec4(s[2], u[2], -f[2], 0.0f), //
+		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 	}
 
 	// translate
@@ -349,3 +363,5 @@ inline void transpose_block_SSE4x4(float *A, float *B, const int n, const int m,
 
 
 } // namespace deckard::math
+
+export using mat4 = deckard::math::mat4_generic;
