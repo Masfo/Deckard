@@ -154,6 +154,26 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(fmt == test);
 	}
 
+	SECTION("scale")
+	{
+		// clang-format off
+	mat4 scal{
+		    1, 2, 4, 8,
+			0.2f, 0.4f, 0.6f, 0.8f, 
+			1.2f, 2.4f, 3.6f, 4.8f, 
+			8, 8, 8,8};
+	// clang-format off
+
+		scal               = scale(scal, vec3(2.0f, 3.0f, 4.0f));
+		auto        fmt = std::format("{}", scal);
+		std::string test(
+		  "mat4((2.00000, 4.00000, 8.00000, 16.00000),\n"
+		  "     (0.60000, 1.20000, 1.80000, 2.40000),\n"
+		  "     (4.80000, 9.60000, 14.40000, 19.20000),\n"
+		  "     (8.00000, 8.00000, 8.00000, 8.00000))");
+		REQUIRE(fmt == test);
+	}
+
 
 	SECTION("format")
 	{

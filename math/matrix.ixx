@@ -269,9 +269,7 @@ namespace deckard::math
 	{
 		//
 		vec3 f = normalized(center - eye);
-
 		vec3 s = normalized(cross(f, up));
-
 		vec3 u = cross(s, f);
 
 		return mat4_generic(
@@ -281,14 +279,21 @@ namespace deckard::math
 		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 	}
 
+	export mat4_generic scale(const mat4_generic& mat, const vec3& scale) noexcept
+	{
+		return mat4_generic(
+		  vec4(mat(0, 0) * scale[0], mat(1, 0) * scale[0], mat(2, 0) * scale[0], mat(3, 0) * scale[0]),
+		  vec4(mat(0, 1) * scale[1], mat(1, 1) * scale[1], mat(2, 1) * scale[1], mat(3, 1) * scale[1]),
+		  vec4(mat(0, 2) * scale[2], mat(1, 2) * scale[2], mat(2, 2) * scale[2], mat(3, 2) * scale[2]),
+		  vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3)));
+	}
+
 	// translate
 	// rotate around unit vector
 	// rotate x,y,z
-	// scale
 	// reflection
 	// perspective
 	// orthographic
-	// lookat
 
 	/*
 	export struct alignas(16) sse_mat4
