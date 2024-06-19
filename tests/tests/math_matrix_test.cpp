@@ -174,6 +174,28 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(fmt == test);
 	}
 
+	
+	SECTION("translate")
+	{
+		// clang-format off
+		mat4 transl{
+				1,1,1,1,
+				2,2,2,2,
+				3,3,3,3,
+				10,10,10,10
+		};
+	// clang-format off
+
+		transl               = translate(transl, vec3(2.0f, 30.0f, 4.0f));
+		auto        fmt = std::format("{}", transl);
+		std::string test(
+		  "mat4((1.00000, 1.00000, 1.00000, 1.00000),\n"
+		  "     (2.00000, 2.00000, 2.00000, 2.00000),\n"
+		  "     (3.00000, 3.00000, 3.00000, 3.00000),\n"
+		  "     (84.00000, 84.00000, 84.00000, 84.00000))");
+		REQUIRE(fmt == test);
+	}
+
 
 	SECTION("format")
 	{
