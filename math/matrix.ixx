@@ -306,7 +306,17 @@ namespace deckard::math
 		  v);
 	}
 
-	// translate
+	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far) noexcept
+	{
+		f32 const tanHalfFovy = std::tan(fov / 2.0f);
+
+		return mat4_generic(
+		  vec4(1.0f / (aspect * tanHalfFovy), 0.0f, 0.0f, 0.0f),
+		  vec4(0.0f, 1.0f / tanHalfFovy, 0.0f, 0.0f),
+		  vec4(0.0f, 0.0f, -(far + near) / (far - near), -1.0f),
+		  vec4(0.0f, 0.0f, -(2.0f * far * near) / (far - near), 0.0f));
+	}
+
 	// rotate around unit vector
 	// rotate x,y,z
 	// reflection

@@ -197,6 +197,22 @@ TEST_CASE("matrix generic", "[matrix]")
 	}
 
 
+		SECTION("perspective")
+	{
+		// clang-format off
+		auto persp = perspective(to_radians(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
+	// clang-format off
+
+		auto        fmt = std::format("{}", persp);
+		std::string test(
+		  "mat4((0.61386, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 1.09131, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, -1.00200, -1.00000),\n"
+		  "     (0.00000, 0.00000, -0.20020, 0.00000))");
+		REQUIRE(fmt == test);
+	}
+
+
 	SECTION("format")
 	{
 		const mat4 m(1.0f);
