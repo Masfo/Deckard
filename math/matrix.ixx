@@ -317,11 +317,19 @@ namespace deckard::math
 		  vec4(0.0f, 0.0f, -(2.0f * far * near) / (far - near), 0.0f));
 	}
 
+	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) noexcept
+	{
+		return mat4_generic(
+		  vec4(2 / (right - left), 0.0f, 0.0f, 0.0f),
+		  vec4(0.0f, 2 / (top - bottom), 0.0f, 0.0f),
+		  vec4(0.0f, 0.0f, -(2 / (far - near)), 0.0f),
+		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
+	}
+
 	// rotate around unit vector
 	// rotate x,y,z
+
 	// reflection
-	// perspective
-	// orthographic
 
 	/*
 	export struct alignas(16) sse_mat4

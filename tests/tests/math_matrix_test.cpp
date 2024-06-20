@@ -197,11 +197,9 @@ TEST_CASE("matrix generic", "[matrix]")
 	}
 
 
-		SECTION("perspective")
+	SECTION("perspective")
 	{
-		// clang-format off
 		auto persp = perspective(to_radians(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
-	// clang-format off
 
 		auto        fmt = std::format("{}", persp);
 		std::string test(
@@ -209,6 +207,19 @@ TEST_CASE("matrix generic", "[matrix]")
 		  "     (0.00000, 1.09131, 0.00000, 0.00000),\n"
 		  "     (0.00000, 0.00000, -1.00200, -1.00000),\n"
 		  "     (0.00000, 0.00000, -0.20020, 0.00000))");
+		REQUIRE(fmt == test);
+	}
+
+	SECTION("ortho")
+	{
+		auto orthopers = ortho( 0, 400, 0, 400, -1, 1 );
+
+		auto        fmt = std::format("{}", orthopers);
+		std::string test(
+		  "mat4((0.00500, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00500, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, -1.00000, 0.00000),\n"
+		  "     (-1.00000, -1.00000, -0.00000, 1.00000))");
 		REQUIRE(fmt == test);
 	}
 
