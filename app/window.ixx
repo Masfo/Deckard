@@ -81,7 +81,7 @@ namespace deckard::app
 			{
 				// https://devblogs.microsoft.com/oldnewthing/20191014-00/?p=102992
 				window* self{nullptr};
-				if (message == WM_NCCREATE)
+				if (message == WM_CREATE)
 				{
 					LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
 					self                = static_cast<window*>(lpcs->lpCreateParams);
@@ -227,7 +227,6 @@ namespace deckard::app
 		{
 			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
 
-
 			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
 			if (dwStyle & WS_OVERLAPPEDWINDOW)
 			{
@@ -250,8 +249,8 @@ namespace deckard::app
 			{
 				windowed = true;
 				SetWindowLong(handle, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
-				SetWindowPlacement(handle, &wp);
 				SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				SetWindowPlacement(handle, &wp);
 			}
 
 			dbg::println("toggle: {}x{}", client_size.width, client_size.height);
@@ -386,8 +385,19 @@ namespace deckard::app
 				{
 
 #if 0
-					const LPRECT prcNewWindow = (LPRECT)lParam;
-					SetWindowPos(handle, NULL, 0, 0, client_size.width, client_size.height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+					RECT* const rect = (RECT*)lParam;
+					// auto rect = *reinterpret_cast<RECT *>(lParam);
+					SetWindowPos(
+					  hWnd,
+					  0, // or NULL
+					  rect->left,
+					  rect->top,
+					  rect->right - rect->left,
+					  rect->bottom - rect->top,
+					  SWP_NOSIZE | SWP_NOMOVE);
+
+					// const LPRECT prcNewWindow = (LPRECT)lParam;
+					// SetWindowPos(handle, NULL, 0, 0, client_size.width, client_size.height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 #else
 
 					u32 dpi         = HIWORD(wParam);
@@ -395,8 +405,8 @@ namespace deckard::app
 
 					LPRECT new_rect = reinterpret_cast<LPRECT>(lParam);
 
-					u32 new_width  = new_rect->right - new_rect->left;
-					u32 new_height = new_rect->bottom - new_rect->top;
+					u32 new_width  = client_size.width;  // new_rect->right - new_rect->left;
+					u32 new_height = client_size.height; // new_rect->bottom - new_rect->top;
 
 
 					f32 scale = as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
@@ -404,20 +414,15 @@ namespace deckard::app
 					f32 fWidth  = as<f32>(new_width * scale);
 					f32 fHeight = as<f32>(new_height * scale);
 
-					RECT r{0, 0, (LONG)(client_size.width), (LONG)(client_size.height)};
-					if (!AdjustWindowRectExForDpi(&r, style, false, ex_style, dpi))
-					{
-						return 1;
-					}
+					RECT r{0, 0, (LONG)(fWidth), (LONG)(fHeight)};
+					AdjustWindowRectExForDpi(&r, style, false, ex_style, dpi);
 
 					i32 adjustedWidth{r.right - r.left};
 					i32 adjustedHeight{r.bottom - r.top};
 
 
-					if (!SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE))
-						return 1;
+					SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 #endif
-
 					return 0;
 				}
 
@@ -427,8 +432,8 @@ namespace deckard::app
 					auto client_width  = (u32)LOWORD(lParam);
 					auto client_height = (u32)HIWORD(lParam);
 					dbg::println("wm_size: {}x{}", client_width, client_height);
-					client_size.width  = client_width;
-					client_size.height = client_height;
+					//client_size.width  = client_width;
+					//client_size.height = client_height;
 
 					// if (windowed)
 					//{
@@ -692,6 +697,7 @@ namespace deckard::app
 
 					if (vk == VK_F4)
 					{
+						break;
 					}
 
 
