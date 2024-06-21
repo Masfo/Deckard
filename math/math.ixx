@@ -9,6 +9,7 @@ export import :vec3_sse;
 export import :vec4_sse;
 export import :vec_sse_generic;
 export import :matrix;
+export import :quaternion;
 export import :easing;
 
 import deckard.types;

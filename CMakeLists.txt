@@ -164,6 +164,7 @@ set(DECKARD_SRCS
         math/vec2_sse.ixx
         math/vec3_sse.ixx
         math/vec4_sse.ixx
+        math/quaternion.ixx
 
 
         graphs/binarytree.ixx
