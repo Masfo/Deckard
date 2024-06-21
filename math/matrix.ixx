@@ -291,7 +291,7 @@ namespace deckard::math
 	export mat4_generic translate(const mat4_generic& mat, const vec3& translate) noexcept
 	{
 
-		vec4 v(mat(0, 0), mat(1, 0), mat(2, 0), mat(3, 0));
+		vec4 v(mat(0, 0), mat(1, 0), mat(2, 0), 1);
 
 		v *= translate[0];
 		v += vec4(mat(0, 1), mat(1, 1), mat(2, 1), mat(3, 1)) * translate[1];
@@ -328,79 +328,6 @@ namespace deckard::math
 
 	// rotate around unit vector
 	// rotate x,y,z
-
-	// reflection
-
-	/*
-	export struct alignas(16) sse_mat4
-	{
-		mat4() = default;
-
-		mat4(float scalar) { m_data.fill(scalar); }
-
-		// mat4(1.0) = identity
-
-		float operator[](size_t index) const noexcept
-		{
-			assert::check(index < 16, "mat4: indexing out-of-bounds");
-			return m_data[index];
-		}
-
-		float& operator[](size_t index) noexcept
-		{
-			assert::check(index < 16, "mat4: indexing out-of-bounds");
-			return m_data[index];
-		}
-
-
-
-		// mdspan
-		std::array<float, 16> m_data{0};
-
-		static mat4 identity() noexcept
-		{
-			mat4 ret;
-			ret[0]  = 1.0f;
-			ret[5]  = 1.0f;
-			ret[10] = 1.0f;
-			ret[15] = 1.0f;
-
-			return ret;
-		}
-	};
-
-	static_assert(sizeof(mat4) == 16 * sizeof(float), "Matrix 4x4 should be 16x4 bytes");
-
-	namespace sse
-	{
-		/*
-		 inline void transpose4x4_SSE(float *A, float *B, const int lda, const int ldb) {
-	__m128 row1 = _mm_load_ps(&A[0*lda]);
-	__m128 row2 = _mm_load_ps(&A[1*lda]);
-	__m128 row3 = _mm_load_ps(&A[2*lda]);
-	__m128 row4 = _mm_load_ps(&A[3*lda]);
-	 _MM_TRANSPOSE4_PS(row1, row2, row3, row4);
-	 _mm_store_ps(&B[0*ldb], row1);
-	 _mm_store_ps(&B[1*ldb], row2);
-	 _mm_store_ps(&B[2*ldb], row3);
-	 _mm_store_ps(&B[3*ldb], row4);
-}
-
-inline void transpose_block_SSE4x4(float *A, float *B, const int n, const int m, const int lda, const int ldb ,const int block_size) {
-	#pragma omp parallel for
-	for(int i=0; i<n; i+=block_size) {
-		for(int j=0; j<m; j+=block_size) {
-			int max_i2 = i+block_size < n ? i + block_size : n;
-			int max_j2 = j+block_size < m ? j + block_size : m;
-			for(int i2=i; i2<max_i2; i2+=4) {
-				for(int j2=j; j2<max_j2; j2+=4) {
-					transpose4x4_SSE(&A[i2*lda +j2], &B[j2*ldb + i2], lda, ldb);
-				}
-			}
-		}
-	}
-}
-*/
 
 
 } // namespace deckard::math
