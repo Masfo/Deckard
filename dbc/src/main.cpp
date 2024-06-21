@@ -325,11 +325,13 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+#if 1
 	{
 		app::app app01;
 
 		app01.run();
 	}
+#else
 
 
 	float x1 = 0.0f;
@@ -574,6 +576,6 @@ fullscreen=true
 
 
 	std::println("Script Compiler v5");
-
+#endif
 	return 0;
 }
