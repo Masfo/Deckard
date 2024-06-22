@@ -326,11 +326,12 @@ int main()
 #endif
 
 #if 1
-	{
-		app::app app01;
+	app::app app01;
 
-		app01.run();
-	}
+	app01.run();
+
+	int k = 0;
+
 #else
 
 

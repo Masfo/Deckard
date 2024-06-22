@@ -1,6 +1,8 @@
 export module deckard.app;
 export import :window;
 
+using namespace std::chrono_literals;
+
 namespace deckard
 {
 	namespace app
@@ -17,13 +19,19 @@ namespace deckard
 		// impl
 		void app::run() noexcept
 		{
-			wnd.create();
+			std::jthread t(
+			  [&]
+			  {
+				  wnd.create();
 
-			while (wnd.loop())
-			{
-			}
+				  while (wnd.loop())
+				  {
+				  }
 
-			wnd.destroy();
+				  wnd.destroy();
+			  });
+			std::this_thread::sleep_for(500ms);
+			t.detach();
 		}
 
 
