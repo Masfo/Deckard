@@ -30,8 +30,6 @@ namespace deckard
 
 				  wnd.destroy();
 			  });
-			std::this_thread::sleep_for(500ms);
-			t.detach();
 		}
 
 

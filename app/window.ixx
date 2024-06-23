@@ -381,17 +381,17 @@ namespace deckard::app
 					//	return TRUE;
 					// }
 
+
 				case WM_DPICHANGED:
 				{
-
 #if 0
 					RECT* const rect = (RECT*)lParam;
 					// auto rect = *reinterpret_cast<RECT *>(lParam);
 					SetWindowPos(
 					  hWnd,
 					  0, // or NULL
-					  rect->left,
-					  rect->top,
+					  0,
+					  0,
 					  rect->right - rect->left,
 					  rect->bottom - rect->top,
 					  SWP_NOSIZE | SWP_NOMOVE);
@@ -399,17 +399,28 @@ namespace deckard::app
 					// const LPRECT prcNewWindow = (LPRECT)lParam;
 					// SetWindowPos(handle, NULL, 0, 0, client_size.width, client_size.height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 #else
+					int const dpi2 = ::GetDpiForWindow(hWnd);
+					dbg::println("GetDpiForWindow: {}", dpi2);
 
-					u32 dpi         = HIWORD(wParam);
+
+					u32       dpi         = HIWORD(wParam);
+					int const previousDpi = LOWORD(wParam);
+					dbg::println("DPI {}, old {}", dpi, previousDpi);
+
 					client_size.dpi = dpi;
 
 					LPRECT new_rect = reinterpret_cast<LPRECT>(lParam);
 
-					u32 new_width  = client_size.width;  // new_rect->right - new_rect->left;
-					u32 new_height = client_size.height; // new_rect->bottom - new_rect->top;
+#if 1
+					u32 new_width  = client_size.width;
+					u32 new_height = client_size.height;
+#else
+					u32 new_width  = new_rect->right - new_rect->left;
+					u32 new_height = new_rect->bottom - new_rect->top;
+#endif
 
-
-					f32 scale = as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
+					f32 scale = 1.0f;
+					// as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
 
 					f32 fWidth  = as<f32>(new_width * scale);
 					f32 fHeight = as<f32>(new_height * scale);
@@ -426,14 +437,59 @@ namespace deckard::app
 					return 0;
 				}
 
+				case WM_GETDPISCALEDSIZE:
+				{
+					break;
+					UINT  dpi            = static_cast<UINT>(wParam);
+					float scaling_factor = static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
+
+					RECT client_area;
+
+					if (!GetClientRect(hWnd, &client_area))
+					{
+						// Error handling
+						return 0;
+					}
+
+					client_area.right  = static_cast<LONG>(client_area.right * scaling_factor);
+					client_area.bottom = static_cast<LONG>(client_area.bottom * scaling_factor);
+
+					if (!AdjustWindowRectExForDpi(&client_area, style, false, ex_style, dpi))
+					{
+						// Error handling
+						return 0;
+					}
+
+					SIZE* new_size = reinterpret_cast<SIZE*>(lParam);
+					new_size->cx   = client_area.right - client_area.left;
+					new_size->cy   = client_area.bottom - client_area.top;
+					SetWindowPos(handle, NULL, 0, 0, new_size->cx, new_size->cy, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+
+					return 1;
+				}
+
 
 				case WM_SIZE:
 				{
 					auto client_width  = (u32)LOWORD(lParam);
 					auto client_height = (u32)HIWORD(lParam);
 					dbg::println("wm_size: {}x{}", client_width, client_height);
-					//client_size.width  = client_width;
-					//client_size.height = client_height;
+					client_size.width  = client_width;
+					client_size.height = client_height;
+
+					RECT client_area{};
+
+					if (!GetClientRect(hWnd, &client_area))
+					{
+						// Error handling
+						return 0;
+					}
+					client_size.width = client_area.right - client_area.left;
+					;
+					client_size.height = client_area.bottom - client_area.top;
+
+					client_area.right  = static_cast<LONG>(client_area.right);
+					client_area.bottom = static_cast<LONG>(client_area.bottom);
 
 					// if (windowed)
 					//{
@@ -514,6 +570,7 @@ namespace deckard::app
 
 				case WM_QUERYENDSESSION:
 				{
+					// User logging off
 					is_running = false;
 					// Save states here
 
