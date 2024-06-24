@@ -437,6 +437,7 @@ namespace deckard::app
 					return 0;
 				}
 
+#if 0
 				case WM_GETDPISCALEDSIZE:
 				{
 					break;
@@ -467,6 +468,7 @@ namespace deckard::app
 
 					return 1;
 				}
+#endif
 
 
 				case WM_SIZE:
