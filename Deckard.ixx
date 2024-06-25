@@ -37,6 +37,9 @@ export import deckard.graph;
 export import deckard.lexer;
 export import deckard.parser;
 
+// Taskpool
+export import deckard.taskpool;
+
 
 // DB
 export import deckard.archive;

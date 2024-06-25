@@ -166,6 +166,12 @@ set(DECKARD_SRCS
         math/vec4_sse.ixx
         math/quaternion.ixx
 
+        # Net
+        net/net.ixx
+       
+        # Taskpool
+        taskpool/taskpool.ixx
+
 
         graphs/binarytree.ixx
 
