@@ -199,7 +199,7 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("perspective")
 	{
-		auto persp = perspective(to_radians(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
+		auto persp = perspective(to_rad(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
 
 		auto        fmt = std::format("{}", persp);
 		std::string test(

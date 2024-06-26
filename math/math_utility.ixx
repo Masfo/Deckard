@@ -37,17 +37,27 @@ export namespace deckard::math
 	}
 
 	// is_close_enough
-	template<std::integral T>
+	template<arithmetic T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{0})
 	{
 		return std::abs(A - B) == error;
 	}
 
-	template<typename T>
-	[[nodiscard]] constexpr T to_radians(const T& angle) noexcept
+	template<arithmetic T>
+	[[nodiscard]] constexpr T to_rad(const T& rad) noexcept
 	{
-		return angle * pi180<T>;
+		return static_cast<T>(rad * pi180<T>);
 	}
+
+	template<arithmetic T>
+	[[nodiscard]] constexpr T to_deg(const T& degree) noexcept
+	{
+		return static_cast<T>((degree * T{180}) / std::numbers::pi_v<T>);
+	}
+
+	constexpr float operator""_rad(long double deg) { return to_rad<float>((float)deg); }
+
+	constexpr float operator""_deg(long double rad) { return to_deg<float>((float)rad); }
 
 	namespace sse
 	{

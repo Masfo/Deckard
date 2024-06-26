@@ -425,12 +425,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		const vec3 rotateA(1.0f, 0.0, 0.0f);
 		const vec3 axis(0.0f, 0.0, 1.0f);
 
-		float angle = to_radians<float>(180.0f);
+		float angle = to_rad<float>(180.0f);
 
 		const vec3 rotated = rotate(rotateA, axis, angle);
 		REQUIRE(true == rotated.equals(vec3{-1.0f, 0.00000000f, 0.0f}));
 
-		const vec3 rotated2 = rotate(vec3{0.0f, 1.0f, 0.0f}, vec3{0.0f, 0.0f, 1.0f}, to_radians<float>(180));
+		const vec3 rotated2 = rotate(vec3{0.0f, 1.0f, 0.0f}, vec3{0.0f, 0.0f, 1.0f}, to_rad<float>(180));
 		REQUIRE(true == rotated2.equals(vec3{0.0f, -1.0f, 0.0f}));
 
 		// reflected
