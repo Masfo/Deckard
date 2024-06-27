@@ -43,7 +43,19 @@ namespace deckard::app
 		window(const window&)            = delete;
 		window& operator=(const window&) = delete;
 
-		void destroy() noexcept { }
+		void destroy() noexcept
+		{
+			//
+			is_running = false;
+			if (not windowed)
+			{
+				toggle_fullscreen();
+			}
+
+			DestroyWindow(handle);
+			UnregisterClass(L"DeckardWindowClass", GetModuleHandle(0));
+			PostQuitMessage(0);
+		}
 
 		void create() noexcept { create(1'280, 720); }
 
@@ -101,17 +113,19 @@ namespace deckard::app
 				return DefWindowProc(hWnd, message, wParam, lParam);
 			};
 
+#if 1
 			if (RegisterClassEx(&wc) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
 			{
 				destroy();
 				return;
 			}
+#endif
 
 			// style &= ~WS_SIZEBOX;
 
 			handle = CreateWindowEx(
 			  ex_style,
-			  wc.lpszClassName,
+			  L"DeckardWindowClass",
 			  L"Deckard Window",
 			  style,
 			  CW_USEDEFAULT,
@@ -221,6 +235,10 @@ namespace deckard::app
 
 			return is_running;
 		}
+
+		HWND get_handle() const noexcept { return handle; };
+
+		bool running() const noexcept { return is_running; };
 
 	private:
 		void toggle_fullscreen()
