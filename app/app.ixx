@@ -28,8 +28,9 @@ namespace deckard
 		void app::init_inputs() noexcept
 		{
 			// Keyboard
-			raw_inputs[0].usUsage     = 0x06; // Keyboard
-			raw_inputs[0].dwFlags     = RIDEV_APPKEYS | RIDEV_DEVNOTIFY | RIDEV_NOLEGACY | RIDEV_NOHOTKEYS;
+			raw_inputs[0].usUsage = 0x06; // Keyboard
+			raw_inputs[0].dwFlags = RIDEV_APPKEYS | RIDEV_DEVNOTIFY | RIDEV_NOLEGACY;
+			//| RIDEV_NOHOTKEYS;
 			raw_inputs[0].usUsagePage = 0x01;
 			raw_inputs[0].hwndTarget  = wnd.get_handle();
 

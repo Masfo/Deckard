@@ -240,6 +240,136 @@ namespace deckard::app
 
 		bool running() const noexcept { return is_running; };
 
+		void handle_input(const HRAWINPUT input) noexcept
+		{
+			uint32_t dwSize = 0;
+			if (GetRawInputData(input, RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER)) != 0)
+				return;
+
+			rawinput_buffer.resize(as<size_t>(dwSize));
+
+
+			if (GetRawInputData(input, RID_INPUT, &rawinput_buffer[0], &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+				return;
+
+			RAWINPUT* rawInput = reinterpret_cast<RAWINPUT*>(rawinput_buffer.data());
+
+
+			handle_keyboard(&rawInput->data.keyboard);
+			// handleMouse(&rawInput->data.mouse);
+
+			DefRawInputProc(&rawInput, 2, sizeof(RAWINPUTHEADER));
+		}
+
+		void handle_keyboard(const RAWKEYBOARD* kb) noexcept
+		{
+			unsigned short vkey     = kb->VKey;
+			unsigned short scancode = kb->MakeCode;
+			unsigned short flags    = kb->Flags;
+			unsigned int   message  = kb->Message;
+			unsigned int   extra    = kb->ExtraInformation;
+
+
+			bool up    = ((flags & RI_KEY_BREAK) == RI_KEY_BREAK);
+			bool down  = !up;
+			bool right = ((flags & RI_KEY_E0) == RI_KEY_E0);
+			bool e1    = ((flags & RI_KEY_E1) == RI_KEY_E1);
+			bool wm_up = (message == WM_KEYUP);
+
+			u32 key = (scancode << 16) | ((flags & RI_KEY_E0) << 24);
+
+			int k = 0;
+
+			if (vkey || scancode)
+			{
+				dbg::println("VK: {}, ScanCode: {}, Message: {}, Flags: {}, Up: {}", vkey, scancode, message, flags, wm_up);
+				dbg::println("Up: {}, Down: {}, Right: {}, E1: {}", up, down, right, e1);
+				// Log::Write("Key: ", buffer, ", Unicode: ", cBuf, "\n");
+			}
+			if ((vkey || scancode) && up == true)
+			{
+
+
+				/*	m_unicodeString.append(cBuf);
+					if(count == 1)
+					{
+						m_asciiBuffer.push_back(cbuf2[0]);
+						m_asciicount++;
+					}
+
+
+
+					std::string s = m_asciiBuffer.data();
+
+
+					Log::Write("\n###\nBUFFERED: ", m_unicodeString, "\n###\n");
+					Log::Write("\n###\nASCII: ", s.substr(0, m_asciicount), "\n###ASCIICOUNT: ", m_asciicount, "\n");
+				*/
+
+
+				switch (vkey)
+				{
+						/*			case VK_BACK:
+									{
+										m_unicodeString = m_unicodeString.substr(0, m_unicodeString.size()-1);
+										m_asciiBuffer.pop_back();
+										m_asciicount--;
+										break;
+									}*/
+
+
+					case VK_ESCAPE:
+					{
+						is_running = false;
+						break;
+					}
+
+					case VK_F1:
+					{
+						toggle_fullscreen();
+						RECT r{};
+						GetClientRect(handle, &r);
+						client_size.width  = r.right - r.left;
+						client_size.height = r.bottom - r.top;
+						break;
+					}
+
+					case VK_F2:
+					{
+						client_size.width  = 1'920;
+						client_size.height = 1'080;
+						break;
+					}
+
+
+					case VK_F3:
+					{
+						client_size.width  = 1'280;
+						client_size.height = 720;
+						break;
+					};
+
+					case VK_F4:
+					{
+						break;
+					}
+
+
+					case VK_F11:
+					{
+						toggle_fullscreen();
+						break;
+					}
+
+
+					default:
+					{
+						break;
+					}
+				}
+			}
+		}
+
 	private:
 		void toggle_fullscreen()
 		{
@@ -641,6 +771,7 @@ namespace deckard::app
 				}
 #endif
 
+
 				case WM_DESTROY:
 				{
 					dbg::println("WM_DESTROY");
@@ -816,13 +947,14 @@ namespace deckard::app
 
 				case WM_INPUT:
 				{
-					const HRAWINPUT raw{reinterpret_cast<HRAWINPUT>(lParam)};
+					const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
+
 
 					// bool foreground = GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT;
 					//  if (foreground)
-					//	HandleRawInput(raw);
+					handle_input(raw);
 
-					DefWindowProc(hWnd, uMsg, wParam, lParam);
+					// DefWindowProc(hWnd, uMsg, wParam, lParam);
 					return 0;
 				}
 
@@ -918,14 +1050,15 @@ namespace deckard::app
 			return DefWindowProc(handle, uMsg, wParam, lParam);
 		}
 
-		WindowSize      client_size;
-		HWND            handle{nullptr};
-		DWORD           style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD           ex_style{WS_EX_APPWINDOW};
-		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
-		bool            is_running{false};
-		bool            windowed{true};
-		int             being_dragged{false};
+		WindowSize        client_size;
+		HWND              handle{nullptr};
+		DWORD             style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
+		DWORD             ex_style{WS_EX_APPWINDOW};
+		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
+		std::vector<char> rawinput_buffer;
+		bool              is_running{false};
+		bool              windowed{true};
+		int               being_dragged{false};
 	};
 
 } // namespace deckard::app
