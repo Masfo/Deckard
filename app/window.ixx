@@ -27,7 +27,21 @@ namespace deckard::app
 		u32 height{1'080};
 		f32 aspect{1.777f};
 		u32 dpi{USER_DEFAULT_SCREEN_DPI};
+
+		f32 update_aspect() noexcept
+		{
+			aspect = (f32)width / (f32)height;
+			return aspect;
+		}
 	};
+
+	struct Size
+	{
+		u32 width{};
+		u32 height{};
+	};
+
+	auto RectToSize(const RECT& r) noexcept -> Size { return {(u32)r.right - r.left, (u32)r.bottom - r.top}; }
 
 	export class window
 
@@ -79,8 +93,8 @@ namespace deckard::app
 
 			client_size.width  = width;
 			client_size.height = height;
-			client_size.aspect = (f32)width / (f32)height;
-			client_size.dpi    = USER_DEFAULT_SCREEN_DPI;
+			client_size.update_aspect();
+			client_size.dpi = USER_DEFAULT_SCREEN_DPI;
 
 			WNDCLASSEX wc{};
 			wc.cbSize        = sizeof(WNDCLASSEX);
@@ -161,18 +175,17 @@ namespace deckard::app
 				wr = {0, 0, (LONG)(scaledWidth), (LONG)(scaledHeight)};
 				// scale dpi
 				AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
-				scaledWidth  = wr.right - wr.left;
-				scaledHeight = wr.bottom - wr.top;
 
-				wr = {0, 0, (LONG)(scaledWidth), (LONG)(scaledHeight)};
+				auto [swidth, sheight] = RectToSize(wr);
+
+				wr = {0, 0, (LONG)(swidth), (LONG)(sheight)};
 			}
 			else
 			{
 				AdjustWindowRectEx(&wr, style, FALSE, ex_style);
 			}
 
-			i32 adjustedWidth{wr.right - wr.left};
-			i32 adjustedHeight{wr.bottom - wr.top};
+			auto [adjustedWidth, adjustedHeight] = RectToSize(wr);
 
 			SetWindowPos(
 			  handle, nullptr, 0, 0, adjustedWidth, adjustedHeight, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
@@ -547,40 +560,71 @@ namespace deckard::app
 					// const LPRECT prcNewWindow = (LPRECT)lParam;
 					// SetWindowPos(handle, NULL, 0, 0, client_size.width, client_size.height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 #else
+					{
+						auto newdpi     = HIWORD(wParam);
+						f32  scale      = (f32)newdpi / (f32)client_size.dpi;
+						client_size.dpi = newdpi;
+
+						RECT old{};
+						GetWindowRect(handle, &old);
+
+						f32 fWidth  = (old.right - old.left) * scale;
+						f32 fHeight = (old.bottom - old.top) * scale;
+						dbg::println("f: {}x{}", fWidth, fHeight);
+
+
+						u32 width  = std::round((old.right - old.left) * scale);
+						u32 height = std::round((old.bottom - old.top) * scale);
+
+						RECT cr{};
+						GetClientRect(hWnd, &cr);
+						auto [sw, sh] = RectToSize(cr);
+						dbg::println("{}x{} # {} - client {}x{}", width, height, scale, sw, sh);
+
+						SetWindowPos(handle, nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+						return 0;
+					}
+
 					int const dpi2 = ::GetDpiForWindow(hWnd);
 					dbg::println("GetDpiForWindow: {}", dpi2);
 
 
 					u32       dpi         = HIWORD(wParam);
+					f32       dpi3        = (f32)LOWORD(wParam) / (f32)USER_DEFAULT_SCREEN_DPI;
 					int const previousDpi = LOWORD(wParam);
-					dbg::println("DPI {}, old {}", dpi, previousDpi);
+					dbg::println("DPI {}, old {}, manual {}", dpi, previousDpi, dpi3);
 
 					client_size.dpi = dpi;
 
 					LPRECT new_rect = reinterpret_cast<LPRECT>(lParam);
 
-#if 1
+#if 0
 					u32 new_width  = client_size.width;
 					u32 new_height = client_size.height;
 #else
-					u32 new_width  = new_rect->right - new_rect->left;
-					u32 new_height = new_rect->bottom - new_rect->top;
+					auto [new_width, new_height] = RectToSize(*new_rect);
 #endif
 
-					f32 scale = 1.0f;
+					f32 scale = dpi3;
 					// as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
 
 					f32 fWidth  = as<f32>(new_width * scale);
 					f32 fHeight = as<f32>(new_height * scale);
 
-					RECT r{0, 0, (LONG)(fWidth), (LONG)(fHeight)};
-					AdjustWindowRectExForDpi(&r, style, false, ex_style, dpi);
+					// RECT r{0, 0, (LONG)(fWidth), (LONG)(fHeight)};
+					RECT r{0, 0, (LONG)(new_width), (LONG)(new_height)};
+
+					AdjustWindowRectExForDpi(&r, style, false, ex_style, dpi2);
 
 					i32 adjustedWidth{r.right - r.left};
 					i32 adjustedHeight{r.bottom - r.top};
+					u32 nw = std::floor(fWidth);
+					u32 nh = std::floor(fHeight);
+					dbg::println("Setting {}x{} => {}x{}", fWidth, fHeight, nw, nh);
 
+					// SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+					SetWindowPos(hWnd, NULL, 0, 0, new_width, new_height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 
-					SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 #endif
 					return 0;
 				}
@@ -618,9 +662,11 @@ namespace deckard::app
 				}
 #endif
 
-
+#if 0
 				case WM_SIZE:
 				{
+					return DefWindowProc(hWnd, uMsg, wParam, lParam);
+
 					auto client_width  = (u32)LOWORD(lParam);
 					auto client_height = (u32)HIWORD(lParam);
 					dbg::println("wm_size: {}x{}", client_width, client_height);
@@ -661,6 +707,7 @@ namespace deckard::app
 					// }
 					return 0;
 				}
+#endif
 
 #if 0
 				case WM_SIZING:
