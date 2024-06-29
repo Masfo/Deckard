@@ -425,11 +425,23 @@ namespace deckard::app
 
 				case WM_TIMER:
 				{
+					RECT cr{};
+					GetClientRect(handle, &cr);
+
 					RECT wr{};
-					GetClientRect(handle, &wr);
+					GetWindowRect(handle, &wr);
+
 					SetWindowTextA(
 					  handle,
-					  std::format("{}x{}, {}x{}", client_size.width, client_size.height, wr.right - wr.left, wr.bottom - wr.top).c_str());
+					  std::format(
+						"client_size: {}x{}, window {}x{}, client {}x{}",
+						client_size.width,
+						client_size.height,
+						wr.right - wr.left,
+						wr.bottom - wr.top,
+						cr.right - cr.left,
+						cr.bottom - cr.top)
+						.c_str());
 					//
 					break;
 				};
@@ -561,6 +573,22 @@ namespace deckard::app
 					// SetWindowPos(handle, NULL, 0, 0, client_size.width, client_size.height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 #else
 					{
+						dbg::println("<DPI_CHANGE>");
+						{
+							RECT cr{};
+							GetClientRect(handle, &cr);
+
+							RECT wr{};
+							GetWindowRect(handle, &wr);
+							dbg::println(
+							  "client_size: {}x{}, window {}x{}, client {}x{}",
+							  client_size.width,
+							  client_size.height,
+							  wr.right - wr.left,
+							  wr.bottom - wr.top,
+							  cr.right - cr.left,
+							  cr.bottom - cr.top);
+						}
 						auto newdpi     = HIWORD(wParam);
 						f32  scale      = (f32)newdpi / (f32)client_size.dpi;
 						client_size.dpi = newdpi;
@@ -568,20 +596,33 @@ namespace deckard::app
 						RECT old{};
 						GetWindowRect(handle, &old);
 
-						f32 fWidth  = (old.right - old.left) * scale;
-						f32 fHeight = (old.bottom - old.top) * scale;
-						dbg::println("f: {}x{}", fWidth, fHeight);
+
+						f32 width  = old.right - old.left;
+						f32 height = old.bottom - old.top;
+						dbg::println("pre scale({}): {}x{}", scale, width, height);
+
+						width *= scale;
+						height *= scale;
+
+						u32 cwidth  = std::ceil(width);
+						u32 cheight = std::ceil(height);
+
+						dbg::println("post scale({}): {}x{}", scale, cwidth, cheight);
 
 
-						u32 width  = std::round((old.right - old.left) * scale);
-						u32 height = std::round((old.bottom - old.top) * scale);
+						SetWindowPos(handle, nullptr, 0, 0, cwidth, cheight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 
-						RECT cr{};
+						RECT cr{}, wr;
 						GetClientRect(hWnd, &cr);
 						auto [sw, sh] = RectToSize(cr);
-						dbg::println("{}x{} # {} - client {}x{}", width, height, scale, sw, sh);
 
-						SetWindowPos(handle, nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+						GetWindowRect(hWnd, &wr);
+						auto [cw, ch] = RectToSize(wr);
+
+						dbg::println("{}x{} # {} - client {}x{}, window {}x{}", width, height, scale, sw, sh, cw, ch);
+
+						dbg::println("</DPI_CHANGE>");
+
 						return 0;
 					}
 
@@ -626,6 +667,7 @@ namespace deckard::app
 					SetWindowPos(hWnd, NULL, 0, 0, new_width, new_height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 
 #endif
+
 					return 0;
 				}
 
