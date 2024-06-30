@@ -121,7 +121,7 @@ namespace deckard::system
 		return "";
 	}
 
-	export std::string GetOS() noexcept
+	export std::string GetOSVersionString() noexcept
 	{
 		const std::string key("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
 
@@ -136,6 +136,21 @@ namespace deckard::system
 
 		return std::format(
 		  "Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
+	}
+
+	bool IsWindowsVersion(u32 major, u32 minor, u32 build) noexcept
+	{
+		OSVERSIONINFOEXW osvi             = {sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0};
+		DWORDLONG const  dwlConditionMask = VerSetConditionMask(
+          VerSetConditionMask(VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL), VER_MINORVERSION, VER_GREATER_EQUAL),
+          VER_BUILDNUMBER,
+          VER_GREATER_EQUAL);
+
+		osvi.dwMajorVersion = major;
+		osvi.dwMinorVersion = minor;
+		osvi.dwBuildNumber  = build;
+
+		return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, dwlConditionMask) != FALSE;
 	}
 
 	struct BuildInfo
