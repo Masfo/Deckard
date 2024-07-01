@@ -7,6 +7,8 @@ export import deckard.assert;
 export import deckard.types;
 export import deckard.as;
 export import deckard.helpertypes;
+export import deckard.uuid;
+
 // File
 export import deckard.filemonitor;
 export import deckard.file;

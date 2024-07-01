@@ -325,6 +325,15 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+
+	auto v1 = std::format("ms_epoch : {}", epoch<std::chrono::milliseconds>());
+	auto v2 = std::format("ms_epoch : {}", epoch());
+
+	auto v7 = uuid::v7::to_string();
+
+	auto v4 = uuid::v4::to_string();
+	// 1719746457
+
 #if 1
 
 
