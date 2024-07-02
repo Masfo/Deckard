@@ -11,3 +11,5 @@ bin
 /lib
 /tools/utftables/.vs
 /tools/utftables/out/build/x64-debug
+/external/zstd/zstd-v*
+/external/zstd/*.zip

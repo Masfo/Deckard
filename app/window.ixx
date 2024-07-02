@@ -538,25 +538,40 @@ namespace deckard::app
 					return 0;
 				}
 
-					// case WM_GETDPISCALEDSIZE:
-					//{
-					//	UINT  dpi         = (UINT)wParam;
-					//	SIZE* scaled_size = (SIZE*)lParam;
-					//	dbg::println("getdpiscaled: {}x{}", scaled_size->cx, scaled_size->cy);
-					//
-					//	RECT window_rect{};
-					//	window_rect.right  = MulDiv(160 * 4, dpi, USER_DEFAULT_SCREEN_DPI);
-					//	window_rect.bottom = MulDiv(144 * 4, dpi, USER_DEFAULT_SCREEN_DPI);
-					//	// AdjustWindowRectExForDpi(&window_rect, style, false, ex_style, dpi);
-					//
-					//	scaled_size->cx = window_rect.right - window_rect.left;
-					//	scaled_size->cy = window_rect.bottom - window_rect.top;
-					//	return TRUE;
-					// }
+				case WM_GETDPISCALEDSIZE:
+				{
+					RECT  source = {0}, target = {0};
+					SIZE* size = (SIZE*)lParam;
+
+					AdjustWindowRectExForDpi(&source, style, FALSE, ex_style, GetDpiForWindow(handle));
+					AdjustWindowRectExForDpi(&target, style, FALSE, ex_style, LOWORD(wParam));
+
+					client_size.width = target.right - target.left;
+
+					UINT dpi = (UINT)wParam;
+					dbg::println("getdpiscaled: {}x{}", size->cx, size->cy);
+
+
+					return TRUE;
+				}
 
 
 				case WM_DPICHANGED:
 				{
+#if 0
+					{
+						RECT* suggested = (RECT*)lParam;
+						SetWindowPos(
+						  handle,
+						  nullptr,
+						  0,
+						  0,
+						  suggested->right - suggested->left,
+						  suggested->bottom - suggested->top,
+						  SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOZORDER);
+						break;
+					}
+#endif
 #if 0
 					RECT* const rect = (RECT*)lParam;
 					// auto rect = *reinterpret_cast<RECT *>(lParam);

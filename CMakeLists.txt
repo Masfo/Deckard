@@ -215,6 +215,7 @@ set(DECKARD_SRCS
 		# win32/DTE.ixx
 
         archive/archive.ixx
+        compress/zstd.ixx
 
         std.ixx
 )
@@ -234,11 +235,16 @@ target_sources(deckard
 )
 
 add_subdirectory(external/sqlite3)
+#add_subdirectory(external/zstd)
+
+find_package(zstd CONFIG REQUIRED)
+
 add_dependencies(deckard sqlite3)
  
 set(THIRD_PARTY_LIBS
     dxgi.lib
     sqlite3
+    zstd::libzstd
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
    # libcpmtd.lib
