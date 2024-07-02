@@ -37,6 +37,7 @@ if(MSVC)
     target_compile_definitions(deckard PRIVATE NOMINMAX)
     target_compile_definitions(deckard PRIVATE WIN32_LEAN_AND_MEAN)
     target_compile_definitions(deckard PRIVATE WIN32_EXTRA_LEAN)
+    target_compile_definitions(deckard PRIVATE "ZSTD_HEAPMODE=0")
     
     target_compile_options(deckard PRIVATE /W4)
     target_compile_options(deckard PRIVATE /EHsc)
@@ -53,6 +54,11 @@ if(MSVC)
     target_compile_options(deckard PRIVATE /diagnostics:caret)
 
     target_compile_options(deckard PRIVATE /arch:SSE2)
+
+        set_target_properties(
+            deckard
+            PROPERTIES
+            POSITION_INDEPENDENT_CODE ON)
 
     #set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 

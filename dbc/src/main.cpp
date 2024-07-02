@@ -29,6 +29,8 @@ using namespace deckard::system;
 using namespace deckard::math;
 using namespace deckard::utf8;
 
+extern "C" void ___chkstk_ms(ptrdiff_t) { } // ZSTD hack
+
 
 enum class ConvertEpoch : u64
 {
@@ -325,7 +327,11 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	compress::test();
+	std::vector<u8> uncomp;
+	uncomp.resize(1'024);
+	std::ranges::fill(uncomp, 'X');
+
+	dbg::println("ZSTD bound: {}", zstd::bound(uncomp));
 
 
 	auto v1 = std::format("ms_epoch : {}", epoch<std::chrono::milliseconds>());
