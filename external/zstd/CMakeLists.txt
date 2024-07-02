@@ -1,12 +1,12 @@
 cmake_minimum_required (VERSION 3.23)
 
-project(zstd)
-add_library(zstd STATIC IMPORTED)
+#project(zstd)
+#add_library(zstd STATIC IMPORTED)
 
  
-set_target_properties(zstd PROPERTIES 
-    ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
-)
+#set_target_properties(zstd PROPERTIES 
+#    ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
+#)
  
 if(NOT EXISTS  ${CMAKE_CURRENT_LIST_DIR}/zstd.zip)
    # file(DOWNLOAD https://github.com/facebook/zstd/archive/refs/heads/dev.zip  ${CMAKE_CURRENT_LIST_DIR}/zstd.zip)
@@ -19,11 +19,11 @@ if(NOT EXISTS  ${CMAKE_CURRENT_LIST_DIR}/zstd.zip)
 endif()
 
 
-if(MSVC)
-    set_target_properties(zstd PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
-endif()
+#if(MSVC)
+#    set_target_properties(zstd PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
+#endif()
 
- 
-target_include_directories(zstd INTERFACE ${CMAKE_CURRENT_LIST_DIR}/zstd-v1.5.6-win64/include)
-target_link_libraries(zstd INTERFACE ${CMAKE_CURRENT_LIST_DIR}/zstd-v1.5.6-win64/static/libzstd_static.lib)
+ target_link_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/zstd-v1.5.6-win64/static)
+target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/zstd-v1.5.6-win64/include)
+#target_link_libraries(zstd INTERFACE ${CMAKE_CURRENT_LIST_DIR}/zstd-v1.5.6-win64/static/libzstd_static.lib)
 
