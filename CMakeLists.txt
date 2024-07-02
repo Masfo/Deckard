@@ -238,6 +238,7 @@ add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
 
 
+
 add_dependencies(deckard sqlite3)
  
 set(THIRD_PARTY_LIBS
