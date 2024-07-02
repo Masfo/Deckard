@@ -30,7 +30,7 @@ export namespace deckard::archive
 		bool open(fs::path dbfile) noexcept
 		{
 			int rc = sqlite3_open(dbfile.string().c_str(), &m_db);
-			if (rc)
+			if (rc != SQLITE_OK)
 			{
 				dbg::println("SQLite3 open error: {}", sqlite3_errmsg(m_db));
 				return false;

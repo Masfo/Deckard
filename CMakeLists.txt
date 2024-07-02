@@ -215,6 +215,7 @@ set(DECKARD_SRCS
 		# win32/DTE.ixx
 
         archive/archive.ixx
+        compress/zstd.ixx
 
         std.ixx
 )
@@ -234,6 +235,11 @@ target_sources(deckard
 )
 
 add_subdirectory(external/sqlite3)
+add_subdirectory(external/zstd)
+target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/zstd/zstd-v1.5.6-win64/include)
+target_link_libraries(deckard INTERFACE ${CMAKE_CURRENT_LIST_DIR}/external/zstd/zstd-v1.5.6-win64/static/libzstd_static.lib)
+
+
 add_dependencies(deckard sqlite3)
  
 set(THIRD_PARTY_LIBS

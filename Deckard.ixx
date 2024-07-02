@@ -46,6 +46,9 @@ export import deckard.taskpool;
 // DB
 export import deckard.archive;
 
+// ZSTD
+export import deckard.zstd;
+
 // Net
 // Clumsy network simulator
 
