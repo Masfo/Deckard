@@ -20,7 +20,6 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
     
     # Remove temp
     file(REMOVE_RECURSE   ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME_NOEXT})
-
 endif()
 
 target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR})
