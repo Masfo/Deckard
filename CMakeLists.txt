@@ -37,7 +37,6 @@ if(MSVC)
     target_compile_definitions(deckard PRIVATE NOMINMAX)
     target_compile_definitions(deckard PRIVATE WIN32_LEAN_AND_MEAN)
     target_compile_definitions(deckard PRIVATE WIN32_EXTRA_LEAN)
-    target_compile_definitions(deckard PRIVATE "ZSTD_HEAPMODE=0")
     
     target_compile_options(deckard PRIVATE /W4)
     target_compile_options(deckard PRIVATE /EHsc)
@@ -250,7 +249,7 @@ add_dependencies(deckard sqlite3)
 set(THIRD_PARTY_LIBS
     dxgi.lib
     sqlite3
-    libzstd_static
+    zstd
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
    # libcpmtd.lib

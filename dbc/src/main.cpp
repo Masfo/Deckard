@@ -29,7 +29,7 @@ using namespace deckard::system;
 using namespace deckard::math;
 using namespace deckard::utf8;
 
-extern "C" void ___chkstk_ms(ptrdiff_t) { } // ZSTD hack
+// extern "C" void ___chkstk_ms(ptrdiff_t) { } // ZSTD hack
 
 
 enum class ConvertEpoch : u64
@@ -331,8 +331,29 @@ int main()
 	uncomp.resize(1'024);
 	std::ranges::fill(uncomp, 'X');
 
-	dbg::println("ZSTD bound: {}", zstd::bound(uncomp));
+	dbg::println("ZSTD bound: {} => {}", uncomp.size(), zstd::bound(uncomp));
 
+	std::vector<u8> comp;
+	comp.resize(zstd::bound(uncomp));
+	auto ok = zstd::compress(uncomp, comp);
+	if (!ok)
+	{
+		dbg::println("Failed to compress");
+	}
+	else
+		comp.resize(*ok);
+
+
+	std::vector<u8> uncomp2;
+	uncomp2.resize(uncomp.size());
+	ok = zstd::uncompress(comp, uncomp2);
+	if (!ok)
+		dbg::println("Failed to uncompress");
+	else
+	{
+		auto kss = *ok;
+		uncomp2.resize(*ok);
+	}
 
 	auto v1 = std::format("ms_epoch : {}", epoch<std::chrono::milliseconds>());
 	auto v2 = std::format("ms_epoch : {}", epoch());
