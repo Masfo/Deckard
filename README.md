@@ -152,3 +152,36 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	auto digest = hasher512.finalize().to_string();
 	// digest = "ddaf35a193617abacc417349ae20...d454d4423643ce80e2a9ac94fa54ca49f"
 	````
+  - **ZSTD**
+	```cpp
+	import deckard.zstd;
+
+	using namespace deckard;
+	std::vector<u8> buffer;
+	buffer.resize(1'024);
+	std::ranges::fill(buffer, 'X');
+
+	// Compress
+	std::vector<u8> comp;
+	comp.resize(zstd::bound(buffer));
+	auto ok = zstd::compress(buffer, comp);
+	if (!ok)
+	{
+		dbg::println("Failed to compress");
+	}
+	else
+		comp.resize(*ok);
+
+
+	// Uncompress
+	std::vector<u8> uncomp;
+	uncomp.resize(buffer.size());
+	ok = zstd::uncompress(comp, uncomp);
+	if (!ok)
+		dbg::println("Failed to uncompress");
+	else
+	{
+		auto kss = *ok;
+		uncomp.resize(*ok);
+	}
+	````
