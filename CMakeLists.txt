@@ -244,12 +244,12 @@ add_subdirectory(external/zstd)
 
 
 
-add_dependencies(deckard sqlite3)
+add_dependencies(deckard sqlite3 ZSTD)
  
 set(THIRD_PARTY_LIBS
     dxgi.lib
     sqlite3
-    zstd
+    ZSTD
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
    # libcpmtd.lib

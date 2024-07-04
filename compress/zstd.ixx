@@ -54,8 +54,5 @@ namespace deckard::zstd
 		return r;
 	}
 
-	// TODO: include uncompressed size in compressed stream, first/last u32 value?
-	//
-
 
 }; // namespace deckard::zstd
