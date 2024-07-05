@@ -327,6 +327,10 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	int i = 0;
+	i <<= 1;
+
+
 	std::vector<u8> uncomp;
 	uncomp.resize(1'024);
 	std::ranges::fill(uncomp, 'X');
