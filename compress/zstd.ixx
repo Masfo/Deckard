@@ -12,6 +12,17 @@ namespace deckard::zstd
 
 	export size_t bound(std::span<u8> input) { return ZSTD_compressBound(input.size()); }
 
+	export std::optional<size_t> uncompressed_size(std::span<u8> compressed_input)
+	{
+
+		size_t result = ZSTD_getFrameContentSize(compressed_input.data(), compressed_input.size());
+		if (result == ZSTD_CONTENTSIZE_UNKNOWN or result == ZSTD_CONTENTSIZE_ERROR)
+		{
+			return {};
+		}
+		return result;
+	}
+
 	export [[nodiscard]] std::optional<size_t> compress(std::span<u8> input, std::span<u8> output) noexcept
 	{
 		if (output.size() < bound(input))
@@ -31,17 +42,17 @@ namespace deckard::zstd
 
 	export [[nodiscard]] std::optional<size_t> uncompress(std::span<u8> input, std::span<u8> output) noexcept
 	{
-		size_t content_size = ZSTD_getFrameContentSize(input.data(), input.size());
+		auto content_size = uncompressed_size(input);
 
-		if (content_size == ZSTD_CONTENTSIZE_UNKNOWN or content_size == ZSTD_CONTENTSIZE_ERROR)
+		if (!content_size)
 		{
 			dbg::println("ZSTD_decompress: failed to get uncompressed size");
 			return {};
 		}
 
-		if (output.size() < content_size)
+		if (output.size() < *content_size)
 		{
-			dbg::println("ZSTD_decompress: output buffer too small({}), should be atleast {}", output.size(), content_size);
+			dbg::println("ZSTD_decompress: output buffer too small({}), should be atleast {}", output.size(), *content_size);
 			return {};
 		}
 
