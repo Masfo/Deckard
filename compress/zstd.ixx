@@ -23,7 +23,7 @@ namespace deckard::zstd
 		return result;
 	}
 
-	export [[nodiscard]] std::optional<size_t> compress(std::span<u8> input, std::span<u8> output) noexcept
+	export [[nodiscard]] std::optional<size_t> compress(const std::span<u8> input, std::span<u8> output) noexcept
 	{
 		if (output.size() < bound(input))
 		{
@@ -40,7 +40,7 @@ namespace deckard::zstd
 		return r;
 	}
 
-	export [[nodiscard]] std::optional<size_t> uncompress(std::span<u8> input, std::span<u8> output) noexcept
+	export [[nodiscard]] std::optional<size_t> uncompress(const std::span<u8> input, std::span<u8> output) noexcept
 	{
 		auto content_size = uncompressed_size(input);
 
