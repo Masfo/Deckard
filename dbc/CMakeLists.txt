@@ -8,11 +8,15 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 project(dbc LANGUAGES CXX)
 
-add_executable(dbc )
+add_executable(dbc)
 
-set_property(TARGET dbc PROPERTY CXX_STANDARD 			23)
-set_property(TARGET dbc PROPERTY CXX_STANDARD_REQUIRED 	ON)
-set_property(TARGET dbc PROPERTY CXX_STANDARD_EXTENSIONS OFF)
+set_target_properties(dbc PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    CXX_SCAN_FOR_MODULES ON
+    # COMPILE_WARNING_AS_ERROR ON
+)
 
 
 set_target_properties(dbc PROPERTIES 

@@ -1,15 +1,19 @@
 cmake_minimum_required(VERSION 3.28)
 
-set(CMAKE_CXX_STANDARD          23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS        OFF)
-set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
+
 
 find_package(Catch2 CONFIG REQUIRED)
 
 project(tests VERSION 0.0.1 LANGUAGES CXX)
 
 add_executable(tests)
+
+set_target_properties(tests PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    # COMPILE_WARNING_AS_ERROR ON
+)
 
 
 target_compile_definitions(tests PRIVATE UNICODE)

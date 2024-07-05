@@ -1,15 +1,16 @@
 
 cmake_minimum_required (VERSION 3.29)
 
-set(CMAKE_CXX_STANDARD          23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS        OFF)
-set(CMAKE_CXX_SCAN_FOR_MODULES  ON)
-
-
 project(deckard CXX)
 add_library(deckard STATIC)
 
+set_target_properties(deckard PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    CXX_SCAN_FOR_MODULES ON
+    # COMPILE_WARNING_AS_ERROR ON
+)
 set_target_properties(deckard PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin

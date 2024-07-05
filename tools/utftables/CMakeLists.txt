@@ -1,6 +1,6 @@
 
 
-cmake_minimum_required (VERSION 3.29)
+cmake_minimum_required (VERSION 3.25)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -8,11 +8,15 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 project(utftables LANGUAGES CXX)
 
-add_executable(utftables )
+add_executable(utftables)
 
-set_property(TARGET utftables PROPERTY CXX_STANDARD 			23)
-set_property(TARGET utftables PROPERTY CXX_STANDARD_REQUIRED 	ON)
-set_property(TARGET utftables PROPERTY CXX_STANDARD_EXTENSIONS OFF)
+set_target_properties(utftables PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    CXX_SCAN_FOR_MODULES ON
+    # COMPILE_WARNING_AS_ERROR ON
+)
 
 set_target_properties(utftables PROPERTIES DEBUG_POSTFIX "d")
 
@@ -99,22 +103,22 @@ if(MSVC)
         # Undocumented options
         target_link_options(utftables PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
-         # Generate out stub
-        if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-            set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
-            file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
-            # CertUtil has been included since Windows XP
-            execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-            file(REMOVE newstub.txt)
-            set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
-        endif()
-
-        # use our own stub
-        if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-            target_link_options(utftables PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
-        else()
-            message(WARNING "Could not find stub.bin")
-        endif()
+        #  # Generate out stub
+        # if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        #     set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
+        #     file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
+        #     # CertUtil has been included since Windows XP
+        #     execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        #     file(REMOVE newstub.txt)
+        #     set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
+        # endif()
+        # 
+        # # use our own stub
+        # if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        #     target_link_options(utftables PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
+        # else()
+        #     message(WARNING "Could not find stub.bin")
+        # endif()
 
         # Manifest
         if(EXISTS "${CMAKE_SOURCE_DIR}/manifest.txt")
@@ -143,7 +147,8 @@ target_sources(utftables
 	FILES 
 
     $<$<CONFIG:Release>:src/buildnumber.ixx>
-    std.ixx
+    ${CMAKE_CURRENT_LIST_DIR}/std.ixx
+    
 )
 
 # Sources
