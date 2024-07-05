@@ -58,6 +58,7 @@ target_sources(tests PUBLIC
 
     # Misc
     tests/enumflag_test.cpp 
+    tests/zstd_test.cpp
 )
 
 
