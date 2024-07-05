@@ -80,21 +80,23 @@ namespace deckard::lexer
 		EQUAL,       // =
 
 		// Compare
-		LESSER,         // <
-		GREATER,        // >
-		LESSER_EQUAL,   // <=
-		GREATER_EQUAL,  // >=
-		EQUAL_EQUAL,    // ==
-		PLUS_EQUAL,     // +=
-		MINUS_EQUAL,    // -=
-		STAR_EQUAL,     // *=
-		SLASH_EQUAL,    // /=
-		PERCENT_EQUAL,  // %=
-		BANG_EQUAL,     // !=
-		XOR_EQUAL,      // ^=
-		QUESTION_EQUAL, // ?=
-		AND_EQUAL,      // &=
-		OR_EQUAL,       // |=
+		LESSER,                // <
+		GREATER,               // >
+		LESSER_EQUAL,          // <=
+		GREATER_EQUAL,         // >=
+		EQUAL_EQUAL,           // ==
+		LESSER_LESSER_EQUAL,   // <<=
+		GREATER_GREATER_EQUAL, // >>=
+		PLUS_EQUAL,            // +=
+		MINUS_EQUAL,           // -=
+		STAR_EQUAL,            // *=
+		SLASH_EQUAL,           // /=
+		PERCENT_EQUAL,         // %=
+		BANG_EQUAL,            // !=
+		XOR_EQUAL,             // ^=
+		QUESTION_EQUAL,        // ?=
+		AND_EQUAL,             // &=
+		OR_EQUAL,              // |=
 
 
 		//
@@ -585,11 +587,13 @@ namespace deckard::lexer
 		{
 			//
 			lexeme lit;
-			Token  type           = Token::UNKNOWN;
-			auto   current        = peek(0);
-			auto   next_char      = peek(1);
-			int    symbol_size    = 1;
-			u32    current_cursor = cursor;
+			Token  type       = Token::UNKNOWN;
+			auto   current    = peek(0);
+			auto   next_char  = peek(1);
+			auto   next2_char = peek(2);
+
+			int symbol_size    = 1;
+			u32 current_cursor = cursor;
 
 			switch (current)
 			{
@@ -772,8 +776,15 @@ namespace deckard::lexer
 					{
 						type        = Token::LESSER_EQUAL;
 						symbol_size = 2;
+						break;
 					}
 
+					if (next_char == '<' and next2_char == '=')
+					{
+						type        = Token::LESSER_LESSER_EQUAL;
+						symbol_size = 3;
+						break;
+					}
 					break;
 				}
 				case '>':
@@ -783,6 +794,14 @@ namespace deckard::lexer
 					{
 						type        = Token::GREATER_EQUAL;
 						symbol_size = 2;
+						break;
+					}
+
+					if (next_char == '>' and next2_char == '=')
+					{
+						type        = Token::GREATER_GREATER_EQUAL;
+						symbol_size = 3;
+						break;
 					}
 
 					break;
@@ -899,6 +918,11 @@ namespace deckard::lexer
 			lit.push_back(current);
 			if (symbol_size == 2)
 				lit.push_back(next_char);
+			if (symbol_size == 3)
+			{
+				lit.push_back(next_char);
+				lit.push_back(next2_char);
+			}
 
 
 			next(symbol_size);
