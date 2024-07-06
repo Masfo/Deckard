@@ -327,11 +327,25 @@ int main()
 
 
 #if 1
+	lexer::tokenizer l2(R"(
+[section.name]
+key=value
+key2=123
+
+[section2]
+width=1920
+aspect=1.666
+fullscreen=true
+)"sv);
+	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
+
+	int k = 0;
+
 	app::app app01;
 
 	app01.run();
 
-	int k = 0;
+	k = 0;
 #else
 
 
@@ -373,17 +387,6 @@ int main()
 	std::vector<value> values;
 	// read in-order to vector, store section@key
 	// when writing back to file, for-loop, detect section name changes.
-
-	lexer::tokenizer l2(R"(
-[section.name]
-key=value
-key2=123
-
-[section2]
-width=1920
-fullscreen=true
-)"sv);
-	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
 
 
 	lexer::tokenizer l1("float returning{0.0}"sv);

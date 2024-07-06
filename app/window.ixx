@@ -394,7 +394,8 @@ namespace deckard::app
 				MONITORINFO mi = {sizeof(mi)};
 				if (GetWindowPlacement(handle, &wp) && GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
 				{
-					SetWindowLong(handle, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+					const DWORD style = dwStyle & ~WS_OVERLAPPEDWINDOW;
+					SetWindowLong(handle, GWL_STYLE, style);
 					SetWindowPos(
 					  handle,
 					  HWND_TOP,
@@ -408,8 +409,9 @@ namespace deckard::app
 			}
 			else
 			{
-				windowed = true;
-				SetWindowLong(handle, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
+				windowed          = true;
+				const DWORD style = dwStyle | WS_OVERLAPPEDWINDOW;
+				SetWindowLong(handle, GWL_STYLE, style);
 				SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				SetWindowPlacement(handle, &wp);
 			}
