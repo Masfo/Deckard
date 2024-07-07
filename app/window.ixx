@@ -4,8 +4,11 @@ module;
 #include <dwmapi.h>
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
-
 #include <windowsx.h>
+
+#define GL_GLEXT_PROTOTYPES
+#include <glcorearb.h>
+#include <wglext.h>
 
 
 export module deckard.app:window;
@@ -16,6 +19,29 @@ import deckard.types;
 import deckard.assert;
 import deckard.as;
 import deckard.win32;
+
+// GL
+PFNGLCREATESHADERPROC            deckard_glCreateShader;
+PFNGLSHADERSOURCEPROC            deckard_glShaderSource;
+PFNGLCREATEPROGRAMPROC           deckard_glCreateProgram;
+PFNGLCOMPILESHADERPROC           deckard_glCompileShader;
+PFNGLATTACHSHADERPROC            deckard_glAttachShader;
+PFNGLLINKPROGRAMPROC             deckard_glLinkProgram;
+PFNGLGETUNIFORMLOCATIONPROC      deckard_glGetUniformLocation;
+PFNGLUSEPROGRAMPROC              deckard_glUseProgram;
+PFNGLGENVERTEXARRAYSPROC         deckard_glGenVertexArrays;
+PFNGLBINDVERTEXARRAYPROC         deckard_glBindVertexArray;
+PFNGLGENBUFFERSPROC              deckard_glGenBuffers;
+PFNGLBINDBUFFERPROC              deckard_glBindBuffer;
+PFNGLBUFFERDATAPROC              deckard_glBufferData;
+PFNGLVERTEXATTRIBPOINTERPROC     deckard_glVertexAttribPointer;
+PFNGLENABLEVERTEXATTRIBARRAYPROC deckard_glEnableVertexAttribArray;
+PFNGLUNIFORM1FPROC               deckard_glUniform1f;
+// debug
+PFNGLGETPROGRAMIVPROC      deckard_glGetProgramiv;
+PFNGLGETPROGRAMINFOLOGPROC deckard_glGetProgramInfoLog;
+PFNGLGETSHADERIVPROC       deckard_glGetShaderiv;
+PFNGLGETSHADERINFOLOGPROC  deckard_glGetShaderInfoLog;
 
 namespace deckard::app
 {
@@ -191,13 +217,6 @@ namespace deckard::app
 			  handle, nullptr, 0, 0, adjustedWidth, adjustedHeight, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 
 
-			// Init renderer
-
-			//
-			ShowWindow(handle, SW_SHOW);
-			RedrawWindow(handle, nullptr, nullptr, RDW_INTERNALPAINT);
-
-
 			const auto [major, minor, build] = system::OSBuildInfo();
 
 			if (IsWindows10OrGreater() and build >= 22'621)
@@ -227,6 +246,14 @@ namespace deckard::app
 			SetTimer(handle, 0, 16, 0);
 
 
+			// Init renderer
+			dc = GetDC(handle);
+			init_renderer();
+
+			//
+			ShowWindow(handle, SW_SHOW);
+			RedrawWindow(handle, nullptr, nullptr, RDW_INTERNALPAINT);
+
 			is_running = true;
 		}
 
@@ -245,6 +272,7 @@ namespace deckard::app
 		{
 			handle_messages();
 
+			render();
 
 			return is_running;
 		}
@@ -255,32 +283,91 @@ namespace deckard::app
 
 		void handle_input(const HRAWINPUT input) noexcept
 		{
-			uint32_t dwSize = 0;
-			if (GetRawInputData(input, RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER)) != 0)
+			uint32_t size = 0;
+			if (GetRawInputData(input, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0)
 				return;
 
-			rawinput_buffer.resize(as<size_t>(dwSize));
+			RAWINPUT* rawInput = nullptr;
+
+			if (size > 0)
+			{
+
+				rawinput_buffer.resize(as<size_t>(size));
 
 
-			if (GetRawInputData(input, RID_INPUT, &rawinput_buffer[0], &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
-				return;
+				if (GetRawInputData(input, RID_INPUT, &rawinput_buffer[0], &size, sizeof(RAWINPUTHEADER)) != size)
+					return;
 
-			RAWINPUT* rawInput = reinterpret_cast<RAWINPUT*>(rawinput_buffer.data());
+				rawInput = reinterpret_cast<RAWINPUT*>(rawinput_buffer.data());
 
 
-			handle_keyboard(&rawInput->data.keyboard);
-			// handleMouse(&rawInput->data.mouse);
-
+				handle_keyboard(rawInput->data.keyboard);
+				handle_mouse(rawInput->data.mouse);
+			}
 			DefRawInputProc(&rawInput, 2, sizeof(RAWINPUTHEADER));
 		}
 
-		void handle_keyboard(const RAWKEYBOARD* kb) noexcept
+		void handle_mouse(const RAWMOUSE& rawmouse) noexcept
 		{
-			unsigned short vkey     = kb->VKey;
-			unsigned short scancode = kb->MakeCode;
-			unsigned short flags    = kb->Flags;
-			unsigned int   message  = kb->Message;
-			unsigned int   extra    = kb->ExtraInformation;
+
+
+			u16 flags       = rawmouse.usFlags;
+			u16 buttonflags = rawmouse.usButtonFlags;
+			u16 buttonData  = rawmouse.usButtonData;
+			u32 extra       = rawmouse.ulExtraInformation;
+			u32 rawButtons  = rawmouse.ulRawButtons;
+			u32 buttons     = rawmouse.ulButtons;
+
+			float scrollDelta{};
+			bool  isScrollPage = false;
+			if ((rawmouse.usButtonFlags & RI_MOUSE_HWHEEL) == RI_MOUSE_HWHEEL ||
+				(rawmouse.usButtonFlags & RI_MOUSE_WHEEL) == RI_MOUSE_WHEEL)
+			{
+				auto  delta      = (float)(short)rawmouse.usButtonData;
+				float numTicks   = delta / WHEEL_DELTA;
+				bool  horizontal = (rawmouse.usButtonFlags & RI_MOUSE_HWHEEL) == RI_MOUSE_HWHEEL;
+
+				scrollDelta = numTicks;
+
+				if (horizontal)
+				{
+					unsigned long scrollChars = 1;
+					SystemParametersInfoA(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
+					scrollDelta *= static_cast<float>(scrollChars);
+				}
+				else
+				{
+					unsigned long scrollLines = 3;
+
+					SystemParametersInfoA(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
+					if (scrollLines == WHEEL_PAGESCROLL)
+						isScrollPage = true;
+					else
+						scrollDelta *= static_cast<float>(scrollLines);
+				}
+			}
+
+
+			// dbg::println(
+			//   "{:4}{:4} - [MOUSE] flags: {:016b}, buttons flags: {:016b}, button data: {:016b}, extra: {:8x}, rawButtons: {:032b}, "
+			//   "buttons: {:032b}",
+			//   scrollDelta,
+			//   isScrollPage,
+			//   flags,
+			//   buttonflags,
+			//   buttonData,
+			//   extra,
+			//   rawButtons,
+			//   buttons);
+		}
+
+		void handle_keyboard(const RAWKEYBOARD& kb) noexcept
+		{
+			unsigned short vkey     = kb.VKey;
+			unsigned short scancode = kb.MakeCode;
+			unsigned short flags    = kb.Flags;
+			unsigned int   message  = kb.Message;
+			unsigned int   extra    = kb.ExtraInformation;
 
 
 			bool up    = ((flags & RI_KEY_BREAK) == RI_KEY_BREAK);
@@ -453,6 +540,7 @@ namespace deckard::app
 					return 0;
 				}
 
+#if 0
 				case WM_DEVICECHANGE:
 				{
 					auto                           lpDev = reinterpret_cast<PDEV_BROADCAST_HDR>(lParam);
@@ -471,6 +559,10 @@ namespace deckard::app
 							//                         Sleep(10);
 							//                         break;
 							//                     }
+						case DBT_DEVNODES_CHANGED:
+						{
+							break;
+						}
 						case DBT_DEVICEARRIVAL:
 						{
 
@@ -479,7 +571,7 @@ namespace deckard::app
 					}
 					break;
 				}
-
+#endif
 
 				case WM_ACTIVATEAPP:
 				{
@@ -1053,12 +1145,17 @@ namespace deckard::app
 
 				case WM_INPUT:
 				{
-					const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
 
+					if (GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT)
+					{
+						const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
+
+
+						handle_input(raw);
+					}
 
 					// bool foreground = GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT;
 					//  if (foreground)
-					handle_input(raw);
 
 					// DefWindowProc(hWnd, uMsg, wParam, lParam);
 					return 0;
@@ -1069,6 +1166,90 @@ namespace deckard::app
 					auto newDevice = reinterpret_cast<HANDLE>(lParam);
 
 					// HandleRawInputChange(newDevice, (int)GET_RAWINPUT_CODE_WPARAM(wParam));
+					dbg::println("rawinput wparam: {}", (int)GET_RAWINPUT_CODE_WPARAM(wParam));
+
+					dbg::println("WM_INPUT_DEVICE_CHANGE\n");
+
+					switch (wParam)
+					{
+						default: break;
+
+						case GIDC_ARRIVAL:
+						{
+							dbg::println("Input device added\n");
+
+							break;
+						}
+
+						case GIDC_REMOVAL:
+						{
+							dbg::println("Input device removed\n");
+
+							break;
+						}
+					}
+
+					auto hNewDevice = reinterpret_cast<HANDLE>(lParam);
+					char buffer[128]{};
+					u32  buffer_size = sizeof(buffer);
+					auto infoResult  = GetRawInputDeviceInfoA(hNewDevice, RIDI_DEVICENAME, buffer, &buffer_size);
+					if (SUCCEEDED(infoResult))
+					{
+						dbg::println("Device name: {}", buffer);
+					}
+
+					u32             deviceInfoSize = sizeof(RID_DEVICE_INFO);
+					RID_DEVICE_INFO deviceInfo{};
+					deviceInfo.cbSize = deviceInfoSize;
+					auto result       = GetRawInputDeviceInfoA(hNewDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize);
+					if (SUCCEEDED(result))
+					{
+						//					Log::Write("Device handle: ", hNewDevice, "\n");
+
+						if (deviceInfo.dwType == RIM_TYPEKEYBOARD)
+						{
+							// 						Log::Write("Keyboard\n");
+							// 						Log::Write("Keyboard mode: ",
+							// deviceInfo.keyboard.dwKeyboardMode,
+							// "\n"); 						Log::Write("Function keys: ",
+							// deviceInfo.keyboard.dwNumberOfFunctionKeys,
+							// "\n"); 						Log::Write("Indicators: ",
+							// deviceInfo.keyboard.dwNumberOfIndicators,
+							// "\n"); 						Log::Write("Total keys: ",
+							// deviceInfo.keyboard.dwNumberOfKeysTotal,
+							// "\n"); 						Log::Write("Type: ",
+							// deviceInfo.keyboard.dwType,
+							// "\n"); Log::Write("Sub type: ", deviceInfo.keyboard.dwSubType,
+							// "\n");
+						}
+
+						if (deviceInfo.dwType == RIM_TYPEMOUSE)
+						{
+							// 						Log::Write("Mouse\n");
+							// 						Log::Write("ID: ", deviceInfo.mouse.dwId, "\n");
+							// 						Log::Write("Number of buttons: ",
+							// deviceInfo.mouse.dwNumberOfButtons,
+							// "\n"); 						Log::Write("Sample rate: ",
+							// deviceInfo.mouse.dwSampleRate,
+							// "\n"); 						Log::Write("Horizonal wheel: ",
+							// deviceInfo.mouse.fHasHorizontalWheel ? "true" : "false",
+							// "\n");
+						}
+
+						if (deviceInfo.dwType == RIM_TYPEHID)
+						{
+							// 						Log::Write("HID\n");
+							// 						Log::Write("Product ID: ", deviceInfo.hid.dwProductId,
+							// "\n"); 						Log::Write("Vendor ID: ",
+							// deviceInfo.hid.dwVendorId,
+							// "\n"); 						Log::Write("Version: ",
+							// deviceInfo.hid.dwVersionNumber,
+							// "\n"); 						Log::Write("Usage: ", deviceInfo.hid.usUsage,
+							// "\n"); 						Log::Write("Usage page: ", deviceInfo.hid.usUsagePage,
+							// "\n");
+						}
+					}
+
 					return 0;
 				}
 
@@ -1153,18 +1334,152 @@ namespace deckard::app
 				}
 #endif
 			}
+
 			return DefWindowProc(handle, uMsg, wParam, lParam);
 		}
 
-		WindowSize        client_size;
+		GLuint compile_shader(GLenum type, const char* source)
+		{
+			GLuint shader = deckard_glCreateShader(type);
+			deckard_glShaderSource(shader, 1, &source, NULL);
+			deckard_glCompileShader(shader);
+
+			return shader;
+		}
+
+		GLuint link_program(GLuint vert, GLuint frag)
+		{
+			//
+			GLuint program = deckard_glCreateProgram();
+			deckard_glAttachShader(program, vert);
+			deckard_glAttachShader(program, frag);
+			deckard_glLinkProgram(program);
+			return program;
+		}
+
+		void init_renderer() noexcept
+		{
+			PIXELFORMATDESCRIPTOR pdf = {
+			  .nSize        = sizeof(pdf),
+			  .nVersion     = 1,
+			  .dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+			  .iPixelType   = PFD_TYPE_RGBA,
+			  .cColorBits   = 32,
+			  .cDepthBits   = 24,
+			  .cStencilBits = 8,
+			  .iLayerType   = PFD_MAIN_PLANE,
+			};
+			SetPixelFormat(dc, ChoosePixelFormat(dc, &pdf), &pdf);
+			HGLRC old = wglCreateContext(dc);
+			wglMakeCurrent(dc, old);
+			int attribs[] = {
+			  WGL_CONTEXT_MAJOR_VERSION_ARB,
+			  3,
+			  WGL_CONTEXT_MINOR_VERSION_ARB,
+			  3,
+			  WGL_CONTEXT_PROFILE_MASK_ARB,
+			  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+			  WGL_CONTEXT_FLAGS_ARB,
+			  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+			  0};
+			HGLRC hglrc = ((HGLRC(*)(HDC, HGLRC, int*))(wglGetProcAddress("wglCreateContextAttribsARB")))(dc, old, attribs);
+			wglMakeCurrent(dc, hglrc);
+			wglDeleteContext(old);
+			((BOOL(*)(int))wglGetProcAddress("wglSwapIntervalEXT"))(1);
+			dbg::println("GL: {}", (char*)glGetString(GL_VERSION));
+
+			/* Load OpenGL 3.3 */
+			deckard_glCreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
+			deckard_glShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
+			deckard_glCompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
+			deckard_glCreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
+			deckard_glAttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
+			deckard_glLinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
+			deckard_glGetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
+			deckard_glUseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
+			deckard_glGenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
+			deckard_glBindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
+			deckard_glGenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
+			deckard_glBindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
+			deckard_glBufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
+			deckard_glVertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
+			deckard_glEnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
+			deckard_glUniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
+
+			deckard_glGetShaderiv       = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
+			deckard_glGetShaderInfoLog  = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
+			deckard_glGetProgramiv      = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
+			deckard_glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
+
+			const char* vert_shader =
+			  "#version 330\n"
+			  "layout(location = 0) in vec2 point;\n"
+			  "uniform float angle;\n"
+			  "void main() {\n"
+			  "    mat2 rotate = mat2(cos(angle), -sin(angle),\n"
+			  "                       sin(angle), cos(angle));\n"
+			  "    gl_Position = vec4(0.75 * rotate * point, 0.0, 1.0);\n"
+			  "}\n";
+			const char* frag_shader =
+			  "#version 330\n"
+			  "out vec4 color;\n"
+			  "void main() {\n"
+			  "    color = vec4(0.75, 0.15, 0.15, 0);\n"
+			  "}\n";
+			GLuint vert    = compile_shader(GL_VERTEX_SHADER, vert_shader);
+			GLuint frag    = compile_shader(GL_FRAGMENT_SHADER, frag_shader);
+			GLuint program = link_program(vert, frag);
+			deckard_glUseProgram(program);
+
+			//
+			u_angle = deckard_glGetUniformLocation(program, "angle");
+
+			float  SQUARE[] = {-1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f};
+			GLuint vao_point;
+			deckard_glGenVertexArrays(1, &vao_point);
+			deckard_glBindVertexArray(vao_point);
+
+			GLuint vbo_point;
+			deckard_glGenBuffers(1, &vbo_point);
+			deckard_glBindBuffer(GL_ARRAY_BUFFER, vbo_point);
+			deckard_glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE), SQUARE, GL_STATIC_DRAW);
+			deckard_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			deckard_glEnableVertexAttribArray(0);
+			deckard_glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			gl_init = true;
+		}
+
+		void render()
+		{
+			if (gl_init)
+			{
+				glClearColor(0.1, 0.1, 0.1, 1);
+				glClear(GL_COLOR_BUFFER_BIT);
+				deckard_glUniform1f(u_angle, angle += 0.01);
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+				 SwapBuffers(dc);
+
+			}
+		}
+
+		WindowSize client_size;
+		bool       gl_init{false};
+		GLuint     u_angle{};
+		f32        angle{};
+
 		HWND              handle{nullptr};
+		HDC               dc{nullptr};
 		DWORD             style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
 		DWORD             ex_style{WS_EX_APPWINDOW};
 		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
 		std::vector<char> rawinput_buffer;
-		bool              is_running{false};
-		bool              windowed{true};
-		int               being_dragged{false};
+
+
+		bool is_running{false};
+		bool windowed{true};
+		int  being_dragged{false};
 	};
 
 } // namespace deckard::app

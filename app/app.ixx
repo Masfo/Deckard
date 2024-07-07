@@ -1,6 +1,7 @@
 
 module;
 #include <Windows.h>
+#include <hidusage.h>
 
 export module deckard.app;
 export import :window;
@@ -23,29 +24,37 @@ namespace deckard
 		private:
 			window                        wnd;
 			std::array<RAWINPUTDEVICE, 3> raw_inputs;
+
+			enum RawInputType : uint32_t
+			{
+				Keyboard,
+				Mouse,
+				Pad,
+
+				InputCount
+			};
 		};
 
 		void app::init_inputs() noexcept
 		{
 			// Keyboard
-			raw_inputs[0].usUsage = 0x06; // Keyboard
-			raw_inputs[0].dwFlags = RIDEV_APPKEYS | RIDEV_DEVNOTIFY | RIDEV_NOLEGACY;
-			//| RIDEV_NOHOTKEYS;
-			raw_inputs[0].usUsagePage = 0x01;
-			raw_inputs[0].hwndTarget  = wnd.get_handle();
+			raw_inputs[Keyboard].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+			raw_inputs[Keyboard].dwFlags     = RIDEV_APPKEYS | RIDEV_NOLEGACY; // | RIDEV_NOHOTKEYS;
+			raw_inputs[Keyboard].hwndTarget  = wnd.get_handle();
 
 
 			// Mouse
-			raw_inputs[1].usUsage     = 0x02; // Mouse
-			raw_inputs[1].dwFlags     = 0;
-			raw_inputs[1].usUsagePage = 0x01;
-			raw_inputs[1].hwndTarget  = wnd.get_handle();
+			raw_inputs[Mouse].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
+			raw_inputs[Mouse].dwFlags     = 0;
+			raw_inputs[Mouse].hwndTarget  = wnd.get_handle();
 
 			// Pad
-			raw_inputs[2].usUsage     = 0x05; // Pad
-			raw_inputs[2].dwFlags     = 0;    // RIDEV_DEVNOTIFY;
-			raw_inputs[2].usUsagePage = 0x01;
-			raw_inputs[2].hwndTarget  = wnd.get_handle();
+			raw_inputs[Pad].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
+			raw_inputs[Pad].dwFlags     = RIDEV_DEVNOTIFY;
+			raw_inputs[Pad].hwndTarget  = wnd.get_handle();
 
 			if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
 			{
@@ -112,23 +121,23 @@ namespace deckard
 		void app::destroy_inputs() noexcept
 		{
 			//
-			raw_inputs[0].usUsage     = 0x06; // Keyboard
-			raw_inputs[0].dwFlags     = RIDEV_REMOVE;
-			raw_inputs[0].usUsagePage = 0x01;
-			raw_inputs[0].hwndTarget  = wnd.get_handle();
+			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+			raw_inputs[Keyboard].dwFlags     = RIDEV_REMOVE;
+			raw_inputs[Keyboard].usUsagePage = 0x01;
+			raw_inputs[Keyboard].hwndTarget  = wnd.get_handle();
 
 
 			// Mouse
-			raw_inputs[1].usUsage     = 0x02; // Mouse
-			raw_inputs[1].dwFlags     = RIDEV_REMOVE;
-			raw_inputs[1].usUsagePage = 0x01;
-			raw_inputs[1].hwndTarget  = wnd.get_handle();
+			raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
+			raw_inputs[Mouse].dwFlags     = RIDEV_REMOVE;
+			raw_inputs[Mouse].usUsagePage = 0x01;
+			raw_inputs[Mouse].hwndTarget  = wnd.get_handle();
 
 			// Pad
-			raw_inputs[2].usUsage     = 0x05; // Pad
-			raw_inputs[2].dwFlags     = RIDEV_REMOVE;
-			raw_inputs[2].usUsagePage = 0x01;
-			raw_inputs[2].hwndTarget  = wnd.get_handle();
+			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
+			raw_inputs[Pad].dwFlags     = RIDEV_REMOVE;
+			raw_inputs[Pad].usUsagePage = 0x01;
+			raw_inputs[Pad].hwndTarget  = wnd.get_handle();
 
 			if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
 			{

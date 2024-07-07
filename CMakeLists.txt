@@ -242,6 +242,8 @@ target_sources(deckard
 	FILES ${DECKARD_SRCS}
 )
 
+target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
+
 add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
 
@@ -253,6 +255,7 @@ set(THIRD_PARTY_LIBS
     dxgi.lib
     sqlite3
     ZSTD
+    opengl32.lib
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
    # libcpmtd.lib
