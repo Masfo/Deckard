@@ -37,6 +37,7 @@ PFNGLBUFFERDATAPROC              deckard_glBufferData;
 PFNGLVERTEXATTRIBPOINTERPROC     deckard_glVertexAttribPointer;
 PFNGLENABLEVERTEXATTRIBARRAYPROC deckard_glEnableVertexAttribArray;
 PFNGLUNIFORM1FPROC               deckard_glUniform1f;
+PFNGLDEBUGMESSAGECALLBACKPROC    deckard_glDebugMessageCallback;
 
 
 // debug
@@ -1346,6 +1347,15 @@ namespace deckard::app
 			deckard_glShaderSource(shader, 1, &source, NULL);
 			deckard_glCompileShader(shader);
 
+			GLint param;
+			deckard_glGetShaderiv(shader, GL_COMPILE_STATUS, &param);
+			if (!param)
+			{
+				char log[4'096]{};
+				deckard_glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+				dbg::println("Compile: {}", log);
+			}
+
 			return shader;
 		}
 
@@ -1356,6 +1366,16 @@ namespace deckard::app
 			deckard_glAttachShader(program, vert);
 			deckard_glAttachShader(program, frag);
 			deckard_glLinkProgram(program);
+
+			GLint param;
+			deckard_glGetProgramiv(program, GL_LINK_STATUS, &param);
+			if (!param)
+			{
+				char log[4'096]{};
+				deckard_glGetProgramInfoLog(program, sizeof(log), NULL, log);
+				dbg::println("Link: {}", log);
+			}
+
 			return program;
 		}
 
@@ -1382,13 +1402,18 @@ namespace deckard::app
 			  WGL_CONTEXT_PROFILE_MASK_ARB,
 			  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 			  WGL_CONTEXT_FLAGS_ARB,
-			  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+			  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
+#ifdef _DEBUG
+				| WGL_CONTEXT_DEBUG_BIT_ARB,
+#else,
+#endif
 			  0};
 			HGLRC hglrc = ((HGLRC(*)(HDC, HGLRC, int*))(wglGetProcAddress("wglCreateContextAttribsARB")))(dc, old, attribs);
 			wglMakeCurrent(dc, hglrc);
 			wglDeleteContext(old);
 			((BOOL(*)(int))wglGetProcAddress("wglSwapIntervalEXT"))(1);
 			dbg::println("GL: {}", (char*)glGetString(GL_VERSION));
+
 
 			/* Load OpenGL 3.3 */
 			deckard_glCreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
@@ -1408,10 +1433,33 @@ namespace deckard::app
 			deckard_glEnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
 			deckard_glUniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
 
+			deckard_glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
+
+
 			deckard_glGetShaderiv       = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
 			deckard_glGetShaderInfoLog  = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
 			deckard_glGetProgramiv      = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
 			deckard_glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
+
+			int flags{};
+			glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+			if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+			{
+
+
+				glEnable(GL_DEBUG_OUTPUT);
+				deckard_glDebugMessageCallback(
+				  [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+				  {
+					  dbg::println(
+						"GL CALLBACK: {} type, = {:0x}, severity = {:0x}, message = {}",
+						(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+						type,
+						severity,
+						message);
+				  },
+				  0);
+			}
 
 
 			const char* vert_shader =
@@ -1449,14 +1497,12 @@ namespace deckard::app
 			deckard_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 			deckard_glEnableVertexAttribArray(0);
 			deckard_glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-			gl_init = true;
 		}
 
 		void render()
 		{
 			{
-				glClearColor(0.1, 0.1, 0.1, 1);
+				glClearColor(0.0f, 0.5f, 0.75f, 1);
 				glClear(GL_COLOR_BUFFER_BIT);
 				deckard_glUniform1f(u_angle, angle += 0.01);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1466,14 +1512,13 @@ namespace deckard::app
 		}
 
 		WindowSize client_size;
-		bool       gl_init{false};
 		GLuint     u_angle{};
 		f32        angle{};
 
 		HWND              handle{nullptr};
 		HDC               dc{nullptr};
 		DWORD             style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD             ex_style{WS_EX_APPWINDOW};
+		DWORD             ex_style{0};
 		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
 		std::vector<char> rawinput_buffer;
 
