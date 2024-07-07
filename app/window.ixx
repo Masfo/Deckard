@@ -6,7 +6,6 @@ module;
 #include <versionhelpers.h>
 #include <windowsx.h>
 
-#define GL_GLEXT_PROTOTYPES
 #include <glcorearb.h>
 #include <wglext.h>
 
@@ -21,27 +20,33 @@ import deckard.as;
 import deckard.win32;
 
 // GL
-PFNGLCREATESHADERPROC            deckard_glCreateShader;
-PFNGLSHADERSOURCEPROC            deckard_glShaderSource;
-PFNGLCREATEPROGRAMPROC           deckard_glCreateProgram;
-PFNGLCOMPILESHADERPROC           deckard_glCompileShader;
-PFNGLATTACHSHADERPROC            deckard_glAttachShader;
-PFNGLLINKPROGRAMPROC             deckard_glLinkProgram;
-PFNGLGETUNIFORMLOCATIONPROC      deckard_glGetUniformLocation;
-PFNGLUSEPROGRAMPROC              deckard_glUseProgram;
-PFNGLGENVERTEXARRAYSPROC         deckard_glGenVertexArrays;
-PFNGLBINDVERTEXARRAYPROC         deckard_glBindVertexArray;
-PFNGLGENBUFFERSPROC              deckard_glGenBuffers;
-PFNGLBINDBUFFERPROC              deckard_glBindBuffer;
-PFNGLBUFFERDATAPROC              deckard_glBufferData;
-PFNGLVERTEXATTRIBPOINTERPROC     deckard_glVertexAttribPointer;
-PFNGLENABLEVERTEXATTRIBARRAYPROC deckard_glEnableVertexAttribArray;
-PFNGLUNIFORM1FPROC               deckard_glUniform1f;
+PFNGLCREATESHADERPROC            glCreateShader;
+PFNGLSHADERSOURCEPROC            glShaderSource;
+PFNGLCREATEPROGRAMPROC           glCreateProgram;
+PFNGLCOMPILESHADERPROC           glCompileShader;
+PFNGLATTACHSHADERPROC            glAttachShader;
+PFNGLLINKPROGRAMPROC             glLinkProgram;
+PFNGLGETUNIFORMLOCATIONPROC      glGetUniformLocation;
+PFNGLUSEPROGRAMPROC              glUseProgram;
+PFNGLGENVERTEXARRAYSPROC         glGenVertexArrays;
+PFNGLBINDVERTEXARRAYPROC         glBindVertexArray;
+PFNGLGENBUFFERSPROC              glGenBuffers;
+PFNGLBINDBUFFERPROC              glBindBuffer;
+PFNGLBUFFERDATAPROC              glBufferData;
+PFNGLVERTEXATTRIBPOINTERPROC     glVertexAttribPointer;
+PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
+PFNGLUNIFORM1FPROC               glUniform1f;
+
+PFNGLGETSTRINGPROC  glGetString;
+PFNGLCLEARPROC      glClear;
+PFNGLCLEARCOLORPROC glClearColor;
+PFNGLDRAWARRAYSPROC glDrawArrays;
+
 // debug
-PFNGLGETPROGRAMIVPROC      deckard_glGetProgramiv;
-PFNGLGETPROGRAMINFOLOGPROC deckard_glGetProgramInfoLog;
-PFNGLGETSHADERIVPROC       deckard_glGetShaderiv;
-PFNGLGETSHADERINFOLOGPROC  deckard_glGetShaderInfoLog;
+PFNGLGETPROGRAMIVPROC      glGetProgramiv;
+PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog;
+PFNGLGETSHADERIVPROC       glGetShaderiv;
+PFNGLGETSHADERINFOLOGPROC  glGetShaderInfoLog;
 
 namespace deckard::app
 {
@@ -1340,9 +1345,9 @@ namespace deckard::app
 
 		GLuint compile_shader(GLenum type, const char* source)
 		{
-			GLuint shader = deckard_glCreateShader(type);
-			deckard_glShaderSource(shader, 1, &source, NULL);
-			deckard_glCompileShader(shader);
+			GLuint shader = glCreateShader(type);
+			glShaderSource(shader, 1, &source, NULL);
+			glCompileShader(shader);
 
 			return shader;
 		}
@@ -1350,10 +1355,10 @@ namespace deckard::app
 		GLuint link_program(GLuint vert, GLuint frag)
 		{
 			//
-			GLuint program = deckard_glCreateProgram();
-			deckard_glAttachShader(program, vert);
-			deckard_glAttachShader(program, frag);
-			deckard_glLinkProgram(program);
+			GLuint program = glCreateProgram();
+			glAttachShader(program, vert);
+			glAttachShader(program, frag);
+			glLinkProgram(program);
 			return program;
 		}
 
@@ -1386,31 +1391,36 @@ namespace deckard::app
 			wglMakeCurrent(dc, hglrc);
 			wglDeleteContext(old);
 			((BOOL(*)(int))wglGetProcAddress("wglSwapIntervalEXT"))(1);
-			dbg::println("GL: {}", (char*)glGetString(GL_VERSION));
 
 			/* Load OpenGL 3.3 */
-			deckard_glCreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
-			deckard_glShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
-			deckard_glCompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
-			deckard_glCreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
-			deckard_glAttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
-			deckard_glLinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
-			deckard_glGetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
-			deckard_glUseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
-			deckard_glGenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
-			deckard_glBindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
-			deckard_glGenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
-			deckard_glBindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
-			deckard_glBufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
-			deckard_glVertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
-			deckard_glEnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
-			deckard_glUniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
+			glCreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
+			glShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
+			glCompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
+			glCreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
+			glAttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
+			glLinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
+			glGetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
+			glUseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
+			glGenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
+			glBindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
+			glGenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
+			glBindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
+			glBufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
+			glVertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
+			glEnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
+			glUniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
 
-			deckard_glGetShaderiv       = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
-			deckard_glGetShaderInfoLog  = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
-			deckard_glGetProgramiv      = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
-			deckard_glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
+			glGetShaderiv       = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
+			glGetShaderInfoLog  = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
+			glGetProgramiv      = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
+			glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
 
+			glGetString  = (PFNGLGETSTRINGPROC)wglGetProcAddress("glGetString");
+			glClear      = (PFNGLCLEARPROC)wglGetProcAddress("glClear");
+			glClearColor = (PFNGLCLEARCOLORPROC)wglGetProcAddress("glClearColor");
+			glDrawArrays = (PFNGLDRAWARRAYSPROC)wglGetProcAddress("glDrawArrays");
+
+			dbg::println("GL: {}", (char*)glGetString(GL_VERSION));
 			const char* vert_shader =
 			  "#version 330\n"
 			  "layout(location = 0) in vec2 point;\n"
@@ -1429,23 +1439,23 @@ namespace deckard::app
 			GLuint vert    = compile_shader(GL_VERTEX_SHADER, vert_shader);
 			GLuint frag    = compile_shader(GL_FRAGMENT_SHADER, frag_shader);
 			GLuint program = link_program(vert, frag);
-			deckard_glUseProgram(program);
+			glUseProgram(program);
 
 			//
-			u_angle = deckard_glGetUniformLocation(program, "angle");
+			u_angle = glGetUniformLocation(program, "angle");
 
 			float  SQUARE[] = {-1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f};
 			GLuint vao_point;
-			deckard_glGenVertexArrays(1, &vao_point);
-			deckard_glBindVertexArray(vao_point);
+			glGenVertexArrays(1, &vao_point);
+			glBindVertexArray(vao_point);
 
 			GLuint vbo_point;
-			deckard_glGenBuffers(1, &vbo_point);
-			deckard_glBindBuffer(GL_ARRAY_BUFFER, vbo_point);
-			deckard_glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE), SQUARE, GL_STATIC_DRAW);
-			deckard_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-			deckard_glEnableVertexAttribArray(0);
-			deckard_glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glGenBuffers(1, &vbo_point);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_point);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE), SQUARE, GL_STATIC_DRAW);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 			gl_init = true;
 		}
@@ -1456,11 +1466,10 @@ namespace deckard::app
 			{
 				glClearColor(0.1, 0.1, 0.1, 1);
 				glClear(GL_COLOR_BUFFER_BIT);
-				deckard_glUniform1f(u_angle, angle += 0.01);
+				glUniform1f(u_angle, angle += 0.01);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-				 SwapBuffers(dc);
-
+				SwapBuffers(dc);
 			}
 		}
 
