@@ -319,7 +319,7 @@ target_compile_options(deckard PRIVATE
 #####################################
 #####################################
 if(DECKARD_SCRIPT)
-add_subdirectory(dbc)
+add_subdirectory(tools/dbc)
 endif()
 
 
