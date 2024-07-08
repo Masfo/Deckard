@@ -21,30 +21,34 @@ import deckard.as;
 import deckard.win32;
 
 // GL
-PFNGLCREATESHADERPROC            deckard_glCreateShader;
-PFNGLSHADERSOURCEPROC            deckard_glShaderSource;
-PFNGLCREATEPROGRAMPROC           deckard_glCreateProgram;
-PFNGLCOMPILESHADERPROC           deckard_glCompileShader;
-PFNGLATTACHSHADERPROC            deckard_glAttachShader;
-PFNGLLINKPROGRAMPROC             deckard_glLinkProgram;
-PFNGLGETUNIFORMLOCATIONPROC      deckard_glGetUniformLocation;
-PFNGLUSEPROGRAMPROC              deckard_glUseProgram;
-PFNGLGENVERTEXARRAYSPROC         deckard_glGenVertexArrays;
-PFNGLBINDVERTEXARRAYPROC         deckard_glBindVertexArray;
-PFNGLGENBUFFERSPROC              deckard_glGenBuffers;
-PFNGLBINDBUFFERPROC              deckard_glBindBuffer;
-PFNGLBUFFERDATAPROC              deckard_glBufferData;
-PFNGLVERTEXATTRIBPOINTERPROC     deckard_glVertexAttribPointer;
-PFNGLENABLEVERTEXATTRIBARRAYPROC deckard_glEnableVertexAttribArray;
-PFNGLUNIFORM1FPROC               deckard_glUniform1f;
-PFNGLDEBUGMESSAGECALLBACKPROC    deckard_glDebugMessageCallback;
+namespace gl
+{
+	PFNGLCREATESHADERPROC            CreateShader;
+	PFNGLSHADERSOURCEPROC            ShaderSource;
+	PFNGLCREATEPROGRAMPROC           CreateProgram;
+	PFNGLCOMPILESHADERPROC           CompileShader;
+	PFNGLATTACHSHADERPROC            AttachShader;
+	PFNGLLINKPROGRAMPROC             LinkProgram;
+	PFNGLGETUNIFORMLOCATIONPROC      GetUniformLocation;
+	PFNGLUSEPROGRAMPROC              UseProgram;
+	PFNGLGENVERTEXARRAYSPROC         GenVertexArrays;
+	PFNGLBINDVERTEXARRAYPROC         BindVertexArray;
+	PFNGLGENBUFFERSPROC              GenBuffers;
+	PFNGLBINDBUFFERPROC              BindBuffer;
+	PFNGLBUFFERDATAPROC              BufferData;
+	PFNGLVERTEXATTRIBPOINTERPROC     VertexAttribPointer;
+	PFNGLENABLEVERTEXATTRIBARRAYPROC EnableVertexAttribArray;
+	PFNGLUNIFORM1FPROC               Uniform1f;
 
 
-// debug
-PFNGLGETPROGRAMIVPROC      deckard_glGetProgramiv;
-PFNGLGETPROGRAMINFOLOGPROC deckard_glGetProgramInfoLog;
-PFNGLGETSHADERIVPROC       deckard_glGetShaderiv;
-PFNGLGETSHADERINFOLOGPROC  deckard_glGetShaderInfoLog;
+	// debug
+	PFNGLDEBUGMESSAGECONTROLPROC  DebugMessageControl;
+	PFNGLDEBUGMESSAGECALLBACKPROC DebugMessageCallback;
+	PFNGLGETPROGRAMIVPROC         GetProgramiv;
+	PFNGLGETPROGRAMINFOLOGPROC    GetProgramInfoLog;
+	PFNGLGETSHADERIVPROC          GetShaderiv;
+	PFNGLGETSHADERINFOLOGPROC     GetShaderInfoLog;
+} // namespace gl
 
 namespace deckard::app
 {
@@ -95,6 +99,10 @@ namespace deckard::app
 				toggle_fullscreen();
 			}
 
+
+			close_renderer();
+
+			ReleaseDC(handle, dc);
 			DestroyWindow(handle);
 			UnregisterClass(L"DeckardWindowClass", GetModuleHandle(0));
 			PostQuitMessage(0);
@@ -1343,16 +1351,16 @@ namespace deckard::app
 
 		GLuint compile_shader(GLenum type, const char* source)
 		{
-			GLuint shader = deckard_glCreateShader(type);
-			deckard_glShaderSource(shader, 1, &source, NULL);
-			deckard_glCompileShader(shader);
+			GLuint shader = gl::CreateShader(type);
+			gl::ShaderSource(shader, 1, &source, NULL);
+			gl::CompileShader(shader);
 
 			GLint param;
-			deckard_glGetShaderiv(shader, GL_COMPILE_STATUS, &param);
+			gl::GetShaderiv(shader, GL_COMPILE_STATUS, &param);
 			if (!param)
 			{
 				char log[4'096]{};
-				deckard_glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+				gl::GetShaderInfoLog(shader, sizeof(log), NULL, log);
 				dbg::println("Compile: {}", log);
 			}
 
@@ -1362,17 +1370,17 @@ namespace deckard::app
 		GLuint link_program(GLuint vert, GLuint frag)
 		{
 			//
-			GLuint program = deckard_glCreateProgram();
-			deckard_glAttachShader(program, vert);
-			deckard_glAttachShader(program, frag);
-			deckard_glLinkProgram(program);
+			GLuint program = gl::CreateProgram();
+			gl::AttachShader(program, vert);
+			gl::AttachShader(program, frag);
+			gl::LinkProgram(program);
 
 			GLint param;
-			deckard_glGetProgramiv(program, GL_LINK_STATUS, &param);
+			gl::GetProgramiv(program, GL_LINK_STATUS, &param);
 			if (!param)
 			{
 				char log[4'096]{};
-				deckard_glGetProgramInfoLog(program, sizeof(log), NULL, log);
+				gl::GetProgramInfoLog(program, sizeof(log), NULL, log);
 				dbg::println("Link: {}", log);
 			}
 
@@ -1396,18 +1404,20 @@ namespace deckard::app
 			wglMakeCurrent(dc, old);
 			int attribs[] = {
 			  WGL_CONTEXT_MAJOR_VERSION_ARB,
-			  3,
+			  4,
 			  WGL_CONTEXT_MINOR_VERSION_ARB,
-			  3,
+			  6,
 			  WGL_CONTEXT_PROFILE_MASK_ARB,
 			  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 			  WGL_CONTEXT_FLAGS_ARB,
-			  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
 #ifdef _DEBUG
-				| WGL_CONTEXT_DEBUG_BIT_ARB,
-#else,
+			  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | WGL_CONTEXT_DEBUG_BIT_ARB,
+#else
+			  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+
 #endif
 			  0};
+
 			HGLRC hglrc = ((HGLRC(*)(HDC, HGLRC, int*))(wglGetProcAddress("wglCreateContextAttribsARB")))(dc, old, attribs);
 			wglMakeCurrent(dc, hglrc);
 			wglDeleteContext(old);
@@ -1415,42 +1425,44 @@ namespace deckard::app
 			dbg::println("GL: {}", (char*)glGetString(GL_VERSION));
 
 
-			/* Load OpenGL 3.3 */
-			deckard_glCreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
-			deckard_glShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
-			deckard_glCompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
-			deckard_glCreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
-			deckard_glAttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
-			deckard_glLinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
-			deckard_glGetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
-			deckard_glUseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
-			deckard_glGenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
-			deckard_glBindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
-			deckard_glGenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
-			deckard_glBindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
-			deckard_glBufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
-			deckard_glVertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
-			deckard_glEnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
-			deckard_glUniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
-
-			deckard_glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
+			gl::CreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
+			gl::ShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
+			gl::CompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
+			gl::CreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
+			gl::AttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
+			gl::LinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
+			gl::GetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
+			gl::UseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
+			gl::GenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
+			gl::BindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
+			gl::GenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
+			gl::BindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
+			gl::BufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
+			gl::VertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
+			gl::EnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
+			gl::Uniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
 
 
-			deckard_glGetShaderiv       = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
-			deckard_glGetShaderInfoLog  = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
-			deckard_glGetProgramiv      = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
-			deckard_glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
+			gl::DebugMessageControl  = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddress("glDebugMessageControl");
+			gl::DebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
+			gl::GetShaderiv          = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
+			gl::GetShaderInfoLog     = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
+			gl::GetProgramiv         = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
+			gl::GetProgramInfoLog    = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
 
 			int flags{};
 			glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
 			if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
 			{
-
-
 				glEnable(GL_DEBUG_OUTPUT);
-				deckard_glDebugMessageCallback(
+
+				gl::DebugMessageCallback(
 				  [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 				  {
+#if 0
+					  if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+						  return;
+#endif
 					  dbg::println(
 						"GL CALLBACK: {} type, = {:0x}, severity = {:0x}, message = {}",
 						(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
@@ -1459,6 +1471,18 @@ namespace deckard::app
 						message);
 				  },
 				  0);
+#if 1
+				gl::DebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+
+				gl::DebugMessageControl(
+
+				  GL_DEBUG_SEVERITY_NOTIFICATION, // source
+				  GL_DONT_CARE,                   // type
+				  GL_DONT_CARE,                   // severity
+				  0,
+				  0,
+				  GL_FALSE);
+#endif
 			}
 
 
@@ -1480,35 +1504,43 @@ namespace deckard::app
 			GLuint vert    = compile_shader(GL_VERTEX_SHADER, vert_shader);
 			GLuint frag    = compile_shader(GL_FRAGMENT_SHADER, frag_shader);
 			GLuint program = link_program(vert, frag);
-			deckard_glUseProgram(program);
+			gl::UseProgram(program);
 
 			//
-			u_angle = deckard_glGetUniformLocation(program, "angle");
+			u_angle = gl::GetUniformLocation(program, "angle");
 
 			float  SQUARE[] = {-1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f};
 			GLuint vao_point;
-			deckard_glGenVertexArrays(1, &vao_point);
-			deckard_glBindVertexArray(vao_point);
+			gl::GenVertexArrays(1, &vao_point);
+			gl::BindVertexArray(vao_point);
 
 			GLuint vbo_point;
-			deckard_glGenBuffers(1, &vbo_point);
-			deckard_glBindBuffer(GL_ARRAY_BUFFER, vbo_point);
-			deckard_glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE), SQUARE, GL_STATIC_DRAW);
-			deckard_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-			deckard_glEnableVertexAttribArray(0);
-			deckard_glBindBuffer(GL_ARRAY_BUFFER, 0);
+			gl::GenBuffers(1, &vbo_point);
+			gl::BindBuffer(GL_ARRAY_BUFFER, vbo_point);
+			gl::BufferData(GL_ARRAY_BUFFER, sizeof(SQUARE), SQUARE, GL_STATIC_DRAW);
+			gl::VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			gl::EnableVertexAttribArray(0);
+			gl::BindBuffer(GL_ARRAY_BUFFER, 0);
+
+			glClearColor(0.0f, 0.5f, 0.75f, 1);
+		}
+
+		void close_renderer() noexcept
+		{
+			if (auto hglrc = wglGetCurrentContext())
+			{
+				wglMakeCurrent(NULL, NULL);
+				wglDeleteContext(hglrc);
+			}
 		}
 
 		void render()
 		{
-			{
-				glClearColor(0.0f, 0.5f, 0.75f, 1);
-				glClear(GL_COLOR_BUFFER_BIT);
-				deckard_glUniform1f(u_angle, angle += 0.01);
-				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			glClear(GL_COLOR_BUFFER_BIT);
+			gl::Uniform1f(u_angle, angle += 0.01);
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-				SwapBuffers(dc);
-			}
+			SwapBuffers(dc);
 		}
 
 		WindowSize client_size;

@@ -8,6 +8,7 @@ export import :window;
 
 using namespace std::chrono_literals;
 import deckard.as;
+import deckard.system;
 import std;
 
 namespace deckard
@@ -150,6 +151,8 @@ namespace deckard
 			std::jthread t(
 			  [&]
 			  {
+				  system::set_thread_name("App::Run");
+
 				  wnd.create();
 				  if (!wnd.running())
 					  return;
