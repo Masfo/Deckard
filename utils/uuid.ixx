@@ -12,54 +12,83 @@ namespace deckard::uuid
 	namespace v4
 	{
 
-		export std::string to_string() noexcept
+		export struct uuid
 		{
-			u64 ab = (dist(rd) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'4000ULL;
-			u64 cd = (dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL;
+			u64 ab{};
+			u64 cd{};
+			// TODO: serialize to disk
+		};
 
+		export uuid generate() noexcept
+		{
+			return {(dist(rd) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'4000ULL,
+					(dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL};
+		}
+
+		export std::string to_string(uuid id) noexcept
+		{
 			return std::format(
 			  "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}",
-			  (ab >> 32) & 0xFFFF'FFFF,
-			  (ab >> 16) & 0xFFFF,
-			  (ab >> 00) & 0xFFFF,
-			  (cd >> 48) & 0xFFFF,
-			  (cd >> 00) & 0xFFFF'FFFF'FFFF);
+			  (id.ab >> 32) & 0xFFFF'FFFF,
+			  (id.ab >> 16) & 0xFFFF,
+			  (id.ab >> 00) & 0xFFFF,
+			  (id.cd >> 48) & 0xFFFF,
+			  (id.cd >> 00) & 0xFFFF'FFFF'FFFF);
 		}
 
 	} // namespace v4
 
 	namespace v7
 	{
-		struct id
+		export struct uuid
 		{
-			u64 epoch : 48;
-			u64 var : 4;
-			u64 rand_a : 12;
-			u64 var2 : 2;
-			u64 rand_b : 62;
+			u64 ab{};
+			u64 cd{};
+			// TODO: serialize to disk
 		};
 
-		static_assert(sizeof(id) == 16);
-
-		export std::string to_string() noexcept
+		export uuid generate() noexcept
 		{
-			id ret{
-			  .epoch  = deckard::epoch<std::chrono::milliseconds>(),
-			  .rand_a = dist(rd),
-			  .rand_b = dist(rd),
-			};
+			u64 ab = ((deckard::epoch<std::chrono::milliseconds>() << 16) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'7000ULL;
+			ab |= (dist(rd) & 0x0FFF | 0x7000);
+			u64 cd = (dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL;
 
-			return "";
-			// 018aab68-d2dd-7xxx-Yzzz-fcc52619c0e3
-			// FD9AA744-EB77-7B7D-8709-F6B9A2CFA61F
-			// return std::format(
-			//  "{:08X}-{:04X}-7{:03X}-{:04X}-{:012X}",
-			//  (ret.epoch >> 32) & 0xFFFF'FFFF,
-			//  ret.epoch & 0xFFFF,
-			//  (ab >> 00) & 0xFFFF,
-			//  (cd >> 48) & 0xFFFF,
-			//  (cd >> 00) & 0xFFFF'FFFF'FFFF);
+			return {ab, cd};
+		}
+
+		export std::string to_string(const uuid id) noexcept
+		{
+			return std::format(
+			  "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}",
+			  (id.ab >> 32) & 0xFFFF'FFFF,
+			  (id.ab >> 16) & 0xFFFF,
+			  (id.ab >> 00) & 0xFFFF,
+			  (id.cd >> 48) & 0xFFFF,
+			  (id.cd >> 00) & 0xFFFF'FFFF'FFFF);
 		}
 	} // namespace v7
 
 } // namespace deckard::uuid
+
+namespace std
+{
+	using namespace deckard::uuid;
+
+	template<>
+	struct formatter<v4::uuid>
+	{
+		// TODO: parse lower/upper case version
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const v4::uuid& id, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", v4::to_string(id)); }
+	};
+
+	template<>
+	struct formatter<v7::uuid>
+	{
+		// TODO: parse lower/upper case version
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const v7::uuid& id, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", v7::to_string(id)); }
+	};
+} // namespace std
