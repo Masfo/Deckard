@@ -9,6 +9,8 @@ namespace deckard::uuid
 	static std::random_device                 rd;
 	static std::uniform_int_distribution<u64> dist(0);
 
+	using namespace std::string_view_literals;
+
 	namespace v4
 	{
 
@@ -25,10 +27,19 @@ namespace deckard::uuid
 					(dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL};
 		}
 
-		export std::string to_string(uuid id) noexcept
+		export std::string to_string(uuid id, bool uppercase) noexcept
 		{
+			if (uppercase)
+				return std::format(
+				  "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}"sv,
+				  (id.ab >> 32) & 0xFFFF'FFFF,
+				  (id.ab >> 16) & 0xFFFF,
+				  (id.ab >> 00) & 0xFFFF,
+				  (id.cd >> 48) & 0xFFFF,
+				  (id.cd >> 00) & 0xFFFF'FFFF'FFFF);
+
 			return std::format(
-			  "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}",
+			  "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}"sv,
 			  (id.ab >> 32) & 0xFFFF'FFFF,
 			  (id.ab >> 16) & 0xFFFF,
 			  (id.ab >> 00) & 0xFFFF,
@@ -56,10 +67,19 @@ namespace deckard::uuid
 			return {ab, cd};
 		}
 
-		export std::string to_string(const uuid id) noexcept
+		export std::string to_string(const uuid id, bool uppercase) noexcept
 		{
+			if (uppercase)
+				return std::format(
+				  "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}"sv,
+				  (id.ab >> 32) & 0xFFFF'FFFF,
+				  (id.ab >> 16) & 0xFFFF,
+				  (id.ab >> 00) & 0xFFFF,
+				  (id.cd >> 48) & 0xFFFF,
+				  (id.cd >> 00) & 0xFFFF'FFFF'FFFF);
+
 			return std::format(
-			  "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}",
+			  "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}"sv,
 			  (id.ab >> 32) & 0xFFFF'FFFF,
 			  (id.ab >> 16) & 0xFFFF,
 			  (id.ab >> 00) & 0xFFFF,
@@ -77,18 +97,44 @@ namespace std
 	template<>
 	struct formatter<v4::uuid>
 	{
-		// TODO: parse lower/upper case version
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto pos = ctx.begin();
+			while (pos != ctx.end() && *pos != '}')
+			{
+				uppercase_hex = *pos == 'X';
+				++pos;
+			}
+			return pos;
+		}
 
-		auto format(const v4::uuid& id, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", v4::to_string(id)); }
+		auto format(const v4::uuid& id, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", v4::to_string(id, uppercase_hex));
+		}
+
+		bool uppercase_hex{false};
 	};
 
 	template<>
 	struct formatter<v7::uuid>
 	{
-		// TODO: parse lower/upper case version
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto pos = ctx.begin();
+			while (pos != ctx.end() && *pos != '}')
+			{
+				uppercase_hex = *pos == 'X';
+				++pos;
+			}
+			return pos;
+		}
 
-		auto format(const v7::uuid& id, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", v7::to_string(id)); }
+		auto format(const v7::uuid& id, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", v7::to_string(id, uppercase_hex));
+		}
+
+		bool uppercase_hex{false};
 	};
 } // namespace std
