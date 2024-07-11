@@ -28,7 +28,7 @@ export import deckard.uuid;
 export import deckard.sha2;
 export import deckard.cpuid;
 export import deckard.system;
-export import deckard.circularbuffer;
+export import deckard.ringbuffer;
 
 // UTF8
 export import deckard.utf8;

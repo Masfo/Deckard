@@ -192,7 +192,7 @@ set(DECKARD_SRCS
         utils/uuid.ixx
         utils/sha2.ixx
         utils/cpuid.ixx
-        utils/circularbuffer.ixx
+        utils/ringbuffer.ixx
 
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
