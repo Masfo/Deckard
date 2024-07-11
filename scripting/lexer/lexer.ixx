@@ -273,13 +273,6 @@ namespace deckard::lexer
 				const auto next_char    = peek(1);
 
 
-				if (utf8::is_whitespace(current_char))
-				{
-					next();
-					continue;
-				}
-
-
 				if ((current_char == '\\' and next_char == '\n'))
 				{
 					// TODO: any whitespace between slash and newline
@@ -319,6 +312,11 @@ namespace deckard::lexer
 					continue;
 				}
 
+				if (utf8::is_whitespace(current_char))
+				{
+					next();
+					continue;
+				}
 				// TODO: line comment, user selected char // ; #
 
 
