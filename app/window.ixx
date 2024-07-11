@@ -1540,6 +1540,8 @@ namespace deckard::app
 			gl::Uniform1f(u_angle, angle += 0.01);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+			// glMultiDrawArrays, SSBO
+
 			SwapBuffers(dc);
 		}
 

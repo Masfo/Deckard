@@ -10,13 +10,33 @@ namespace fs = std::filesystem;
 
 export namespace deckard::archive
 {
-	// TODO: Pivot to just holding binary data as data pak,
 	// TODO: update from filesystem, check whats changed, update only changed files
 	// TODO: Compress files before
 	// TODO: path, size, compressed size, meta?
 	//
 	// TODO: db->load_folder("level01"); -> gives vector of handles?
 	// TODO: db->load_file("level01/mainscript.txt");
+	/*
+
+	CREATE TABLE IF NOT EXISTS files (
+		id integer PRIMARY KEY,
+		file_name text NOT NULL,
+		file_blob text NOT NULL
+	);
+
+	fsID integer primary key autoincrement
+				- an auto increment ID to uniquely identify a directory or a file
+				  (no two directories or files will have the same ID) (ID number '1'
+				   is reserved for root directory)
+	fsType		- '0' indicates a directory while '1' is a file
+	fsFileSize	- for a directory, it is '0'; for a file, it is the number of
+				  bytes stored in the 'DataBlock' table
+	fsName		- name of file or directory (not full path)
+	fsParent	- fsID of the parent directory
+	fsChild		- for a directory, it is an array of fsIDs of its children (each ID is 4 bytes
+				  in size but can be changed to 8 bytes); for a file, it is a single 'dID',
+				  which is the primary key in the 'DataBlock' table
+	*/
 
 	class file
 	{
