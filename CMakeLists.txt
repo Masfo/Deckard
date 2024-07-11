@@ -183,6 +183,7 @@ set(DECKARD_SRCS
 
         graphs/binarytree.ixx
 
+        # Utils
         utils/base64.ixx
         utils/scope_exit.ixx
         utils/hash.ixx
@@ -191,6 +192,7 @@ set(DECKARD_SRCS
         utils/uuid.ixx
         utils/sha2.ixx
         utils/cpuid.ixx
+        utils/circularbuffer.ixx
 
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
