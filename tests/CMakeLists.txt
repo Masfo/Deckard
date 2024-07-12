@@ -56,6 +56,8 @@ target_sources(tests PUBLIC
     tests/math_vec_test.cpp
     tests/math_matrix_test.cpp
 
+    # Utils
+    tests/ringbuffer.cpp
 
     # UTF8
     tests/utf8_test.cpp

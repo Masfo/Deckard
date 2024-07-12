@@ -7,15 +7,14 @@ import deckard.assert;
 
 namespace deckard
 {
-	template<typename T>
-	class alignas(32) ringbuffer
+	export template<typename T>
+	class ringbuffer
 	{
 		using value_type      = T;
 		using size_type       = u32;
 		using reference       = T&;
-		using array_type      = std::vector<value_type>;
 		using const_reference = const T&;
-
+		using array_type      = std::vector<value_type>;
 
 	public:
 		ringbuffer(size_type size = 8)
@@ -28,15 +27,15 @@ namespace deckard
 			assert::check(m_array_size > 1, "size must be greater than 1");
 		}
 
-		reference front() const noexcept { return m_array[m_head]; }
+		[[nodiscard]] reference front() noexcept { return at(0); }
 
-		reference top() const noexcept { return front(); }
+		[[nodiscard]] reference top() noexcept { return front(); }
 
-		reference back() const noexcept { return m_array[m_tail]; }
+		[[nodiscard]] reference back() noexcept { return at(size() - 1); }
 
-		const_reference front() const noexcept { return m_array[m_head]; }
+		[[nodiscard]] const_reference front() const noexcept { return at(0); }
 
-		const_reference back() const noexcept { return m_array[m_tail]; }
+		[[nodiscard]] const_reference back() const noexcept { return at(size() - 1); }
 
 		void clear() noexcept
 		{
@@ -54,9 +53,21 @@ namespace deckard
 
 		void push(const value_type& item) noexcept { push_back(item); }
 
-		void pop_front() noexcept { increment_head(); }
+		[[nodiscard]] reference pop_front() noexcept
+		{
+			increment_head();
+			return m_array[m_tail];
+		}
 
-		void pop() noexcept { pop_front(); }
+		[[nodiscard]] reference pop() noexcept { return pop_front(); }
+
+		[[nodiscard]] const_reference pop_front() const noexcept
+		{
+			increment_head();
+			return m_array[m_tail];
+		}
+
+		[[nodiscard]] const_reference pop() const noexcept { return pop_front(); }
 
 		[[nodiscard]] size_type size() const noexcept { return m_content_size; }
 
@@ -66,13 +77,30 @@ namespace deckard
 
 		[[nodiscard]] bool full() const noexcept { return m_content_size == m_array_size; }
 
-		reference operator[](size_type index) noexcept { }
+		[[nodiscard]] reference operator[](size_type index) noexcept
+		{
+			index += m_head;
+			index %= m_array_size;
+			return m_array[index];
+		}
 
-		const_reference operator[](size_type index) const noexcept { }
+		[[nodiscard]] const_reference operator[](size_type index) const noexcept
+		{
+			const ringbuffer<T>& constMe = *this;
+			return const_cast<reference>(constMe.operator[](index));
+		}
 
-		reference at(size_type index) { }
+		[[nodiscard]] reference at(size_type index)
+		{
+			assert::check(index < m_content_size, "Indexing out-of-bounds");
+			return this->operator[](index);
+		}
 
-		const_reference at(size_type index) const { }
+		[[nodiscard]] const_reference at(size_type index) const
+		{
+			assert::check(index < m_content_size, "Indexing out-of-bounds");
+			return this->operator[](index);
+		}
 
 
 	private:
@@ -102,8 +130,6 @@ namespace deckard
 		size_type       m_content_size{0};
 		const size_type m_array_size{0};
 	};
-
-	static_assert(sizeof(ringbuffer<u32>) == 64);
 
 	//
 	template<typename T, size_t Size>
