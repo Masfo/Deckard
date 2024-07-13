@@ -143,4 +143,24 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		REQUIRE(rb.size() == 2);
 		REQUIRE(rb.capacity() == 2);
 	}
+
+
+	SECTION("ringbuffer last")
+	{
+		ringbuffer<u32> rb(16);
+
+		for (i32 i = 0; i < 128; i++)
+			rb.push(i);
+
+
+		auto last = rb.last();
+		REQUIRE(last == 127);
+
+		auto last4 = rb.last(4);
+		REQUIRE(last4 == std::vector<u32>{127, 126, 125, 124});
+
+
+		REQUIRE(rb.size() == 16);
+		REQUIRE(rb.capacity() == 16);
+	}
 }

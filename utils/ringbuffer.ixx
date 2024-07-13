@@ -7,6 +7,7 @@ import deckard.assert;
 
 namespace deckard
 {
+
 	export template<typename T>
 	class ringbuffer
 	{
@@ -86,7 +87,7 @@ namespace deckard
 
 		[[nodiscard]] const_reference operator[](size_type index) const noexcept
 		{
-			const ringbuffer<T>& constMe = *this;
+			const ringbuffer<value_type>& constMe = *this;
 			return const_cast<reference>(constMe.operator[](index));
 		}
 
@@ -102,6 +103,45 @@ namespace deckard
 			return this->operator[](index);
 		}
 
+		//
+		[[nodiscard]] reference last() noexcept
+		{
+			size_type pos = m_head - 1;
+			if (pos > m_array_size)
+				pos = m_array_size - 1;
+
+			return m_array[pos];
+		}
+
+		[[nodiscard]] const_reference last() const noexcept
+		{
+			size_type pos = m_head - 1;
+			if (pos > m_array_size)
+				pos = m_array_size - 1;
+
+			return m_array[pos];
+		}
+
+		[[nodiscard]] std::vector<value_type> last(size_type count) const noexcept
+		{
+			assert::check(count - 1 < m_content_size, "Cant get more than max size");
+			if (count - 1 > m_content_size)
+				return {};
+
+			std::vector<value_type> ret;
+			ret.reserve(count);
+			size_type pos = m_head - 1;
+			while (count--)
+			{
+				if (pos > m_array_size)
+					pos = m_array_size - 1;
+
+				ret.push_back(m_array[pos]);
+				pos--;
+			}
+
+			return ret;
+		}
 
 	private:
 		void increment_tail() noexcept
