@@ -159,8 +159,43 @@ namespace deckard
 
 				  init_inputs();
 
+				  LARGE_INTEGER freq{};
+				  QueryPerformanceFrequency(&freq);
+				  LARGE_INTEGER start{}, last{};
+				  LARGE_INTEGER now{};
+				  QueryPerformanceCounter(&start);
+				  last = start;
+
+
+				  unsigned int currentframe{0};
+				  double       framerate{0};
+				  double       oldtime{0};
+				  double       newtime{1};
+				  __int64      counter{1};
+				  __int64      frequency{0};
+				  double       timeperframe{0.0f};
+				  QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
+
+				  double accumulate{0.0f};
+
 				  while (wnd.loop())
 				  {
+					  QueryPerformanceCounter((LARGE_INTEGER*)&counter);
+					  newtime      = (double)counter / (double)frequency;
+					  timeperframe = newtime - oldtime;
+					  framerate    = 1.0 / timeperframe;
+					  oldtime      = newtime;
+					  currentframe++;
+					  accumulate += timeperframe;
+
+					  if (accumulate > 10'000)
+						  accumulate = 1.0;
+
+					  if (accumulate >= 1.0)
+					  {
+						  accumulate -= 1.0;
+						  wnd.set_title(std::format("{:}, {:.3f}, Delta: {:.5f}", currentframe, framerate, timeperframe));
+					  }
 				  }
 
 				  destroy_inputs();
