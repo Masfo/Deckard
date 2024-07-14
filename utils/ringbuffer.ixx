@@ -122,6 +122,7 @@ namespace deckard
 			return m_array[pos];
 		}
 
+		// TODO: iterator instead of copying
 		[[nodiscard]] std::vector<value_type> last(size_type count) const noexcept
 		{
 			assert::check(count - 1 < m_content_size, "Cant get more than max size");

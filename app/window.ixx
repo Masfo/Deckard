@@ -39,6 +39,7 @@ namespace gl
 	PFNGLVERTEXATTRIBPOINTERPROC     VertexAttribPointer;
 	PFNGLENABLEVERTEXATTRIBARRAYPROC EnableVertexAttribArray;
 	PFNGLUNIFORM1FPROC               Uniform1f;
+	PFNGLGETSTRINGIPROC              GetStringi;
 
 
 	// debug
@@ -48,6 +49,12 @@ namespace gl
 	PFNGLGETPROGRAMINFOLOGPROC    GetProgramInfoLog;
 	PFNGLGETSHADERIVPROC          GetShaderiv;
 	PFNGLGETSHADERINFOLOGPROC     GetShaderInfoLog;
+
+	PFNWGLSWAPINTERVALEXTPROC    wglSwapIntervalEXT;
+	PFNWGLGETSWAPINTERVALEXTPROC wglGetSwapIntervalEXT;
+
+	std::string_view                     wgl_extensions;
+	std::unordered_set<std::string_view> extensions;
 } // namespace gl
 
 namespace deckard::app
@@ -75,6 +82,21 @@ namespace deckard::app
 	};
 
 	auto RectToSize(const RECT& r) noexcept -> Size { return {(u32)r.right - r.left, (u32)r.bottom - r.top}; }
+
+	bool has_wgl_extension(std::string_view name) noexcept
+	{
+		static PFNWGLGETEXTENSIONSSTRINGEXTPROC _wglGetExtensionsStringEXT = nullptr;
+
+		if (!_wglGetExtensionsStringEXT)
+		{
+			_wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
+			gl::wgl_extensions         = _wglGetExtensionsStringEXT ? _wglGetExtensionsStringEXT() : "";
+		}
+
+		return gl::wgl_extensions.contains(name);
+	}
+
+	bool has_gl_extension(std::string_view name) noexcept { return gl::extensions.contains(name); }
 
 	export class window
 
@@ -107,6 +129,8 @@ namespace deckard::app
 			UnregisterClass(L"DeckardWindowClass", GetModuleHandle(0));
 			PostQuitMessage(0);
 		}
+
+		void set_title(std::string_view title) const noexcept { SetWindowTextA(handle, title.data()); }
 
 		void create() noexcept { create(1'280, 720); }
 
@@ -437,11 +461,8 @@ namespace deckard::app
 
 					case VK_F1:
 					{
-						toggle_fullscreen();
-						RECT r{};
-						GetClientRect(handle, &r);
-						client_size.width  = r.right - r.left;
-						client_size.height = r.bottom - r.top;
+
+
 						break;
 					}
 
@@ -462,6 +483,11 @@ namespace deckard::app
 
 					case VK_F4:
 					{
+						const int toggle_swap = 1 - gl::wglGetSwapIntervalEXT();
+						gl::wglSwapIntervalEXT(toggle_swap);
+
+						dbg::println("Toggle vsync: {}", toggle_swap);
+
 						break;
 					}
 
@@ -525,6 +551,7 @@ namespace deckard::app
 
 				case WM_TIMER:
 				{
+					break;
 					RECT cr{};
 					GetClientRect(handle, &cr);
 
@@ -1421,8 +1448,6 @@ namespace deckard::app
 			HGLRC hglrc = ((HGLRC(*)(HDC, HGLRC, int*))(wglGetProcAddress("wglCreateContextAttribsARB")))(dc, old, attribs);
 			wglMakeCurrent(dc, hglrc);
 			wglDeleteContext(old);
-			((BOOL(*)(int))wglGetProcAddress("wglSwapIntervalEXT"))(1);
-			dbg::println("GL: {}", (char*)glGetString(GL_VERSION));
 
 
 			gl::CreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
@@ -1441,6 +1466,7 @@ namespace deckard::app
 			gl::VertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
 			gl::EnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
 			gl::Uniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
+			gl::GetStringi              = (PFNGLGETSTRINGIPROC)wglGetProcAddress("glGetStringi");
 
 
 			gl::DebugMessageControl  = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddress("glDebugMessageControl");
@@ -1449,6 +1475,31 @@ namespace deckard::app
 			gl::GetShaderInfoLog     = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
 			gl::GetProgramiv         = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
 			gl::GetProgramInfoLog    = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
+
+			dbg::println("GL Vendor   : {}", (const char*)glGetString(GL_VENDOR));
+			dbg::println("GL Renderer : {}", (const char*)glGetString(GL_RENDERER));
+			dbg::println("GL Version  : {}", (const char*)glGetString(GL_VERSION));
+			dbg::println("GL GLSL     : {}", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+
+			int num_ext{};
+			glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
+			for (int i = 0; i < num_ext; i++)
+			{
+				std::string_view ext = (const char*)gl::GetStringi(GL_EXTENSIONS, i);
+				gl::extensions.insert(ext);
+			}
+
+			if (has_wgl_extension("WGL_EXT_swap_control"))
+			{
+				gl::wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+
+				gl::wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)wglGetProcAddress("wglGetSwapIntervalEXT");
+
+				if (gl::wglSwapIntervalEXT)
+					gl::wglSwapIntervalEXT(1);
+			}
+
 
 			int flags{};
 			glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
