@@ -135,7 +135,7 @@ namespace deckard::sha256
 
 		u32 sig1(u32 x) noexcept { return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10); }
 
-		void transform() noexcept // Process the message in successive 512-bit chunks
+		void transform() noexcept
 		{
 			u32                maj{}, S0{}, ch{}, S1{}, temp1{}, temp2{}, w[ROUNDS]{0};
 			std::array<u32, 8> state;
@@ -150,10 +150,8 @@ namespace deckard::sha256
 				u32 s1 = sig1(w[i - 2]);
 				w[i]   = w[i - 16] + s0 + w[i - 7] + s1;
 			}
-			// Initialize working variables to current hash value
 			state = m_state;
 
-			//  Compression function main loop
 			for (u32 i = 0; i < ROUNDS; i++)
 			{
 
@@ -174,7 +172,6 @@ namespace deckard::sha256
 				state[0] = temp1 + temp2;    // a = temp1 + temp2
 			}
 
-			// Add the compressed chunk to the current hash value
 			for (u32 i = 0; i < 8; i++)
 				m_state[i] += state[i];
 		}
@@ -314,20 +311,17 @@ namespace deckard::sha512
 
 		u64 sig1(u64 x) noexcept { return (std::rotr(x, 19) ^ std::rotr(x, 61) ^ (x >> 6)); }
 
-		void transform() // Process the message in successive 512-bit chunks
+		void transform() noexcept
 		{
 			u64                maj{}, S0{}, ch{}, S1{}, temp1{}, temp2{}, w[ROUNDS]{0};
 			std::array<u64, 8> state;
 
-			// copy chunk into first 16 words w[0..15] of the message schedule array
 			for (u64 i = 0, j = 0; i < 16; i++, j += 8)
 				w[i] = load_as_be<u64>(&m_block[j]);
 
 
-			// Initialize working variables to current hash value
 			state = m_state;
 
-			// Compression function main loop
 			for (u8 i = 0; i < ROUNDS; i++)
 			{
 				if (i >= 16)
@@ -353,7 +347,6 @@ namespace deckard::sha512
 				state[0] = temp1 + temp2;    // a = temp1 + temp2
 			}
 
-			// Add the compressed chunk to the current hash value
 			for (u32 i = 0; i < 8; i++)
 				m_state[i] += state[i];
 		}
