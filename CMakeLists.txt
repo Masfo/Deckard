@@ -155,8 +155,11 @@ set(DECKARD_SRCS
 
 		debug/debug.ixx
 		debug/assert.ixx
+
+        # File
 		file/file.ixx
 		file/fileMonitor.ixx
+        file/qoi.ixx
 
         # Config
         config/ini.ixx
@@ -193,6 +196,7 @@ set(DECKARD_SRCS
         utils/sha2.ixx
         utils/cpuid.ixx
         utils/ringbuffer.ixx
+        utils/serializer.ixx
 
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
