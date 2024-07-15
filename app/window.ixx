@@ -16,9 +16,12 @@ export module deckard.app:window;
 import std;
 import deckard.debug;
 import deckard.types;
+import deckard.helpers;
 import deckard.assert;
 import deckard.as;
 import deckard.win32;
+
+using namespace std::string_view_literals;
 
 // GL
 namespace gl
@@ -50,11 +53,17 @@ namespace gl
 	PFNGLGETSHADERIVPROC          GetShaderiv;
 	PFNGLGETSHADERINFOLOGPROC     GetShaderInfoLog;
 
-	PFNWGLSWAPINTERVALEXTPROC    wglSwapIntervalEXT;
-	PFNWGLGETSWAPINTERVALEXTPROC wglGetSwapIntervalEXT;
+	PFNWGLSWAPINTERVALEXTPROC        wglSwapIntervalEXT;
+	PFNWGLGETSWAPINTERVALEXTPROC     wglGetSwapIntervalEXT;
+	PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtensionsStringEXT;
 
-	std::string_view                     wgl_extensions;
+
 	std::unordered_set<std::string_view> extensions;
+	std::unordered_set<std::string_view> wgl_extensions;
+
+	bool has_gl_extension(std::string_view name) noexcept { return extensions.contains(name); }
+
+	bool has_wgl_extension(std::string_view name) noexcept { return wgl_extensions.contains(name); }
 } // namespace gl
 
 namespace deckard::app
@@ -82,21 +91,6 @@ namespace deckard::app
 	};
 
 	auto RectToSize(const RECT& r) noexcept -> Size { return {(u32)r.right - r.left, (u32)r.bottom - r.top}; }
-
-	bool has_wgl_extension(std::string_view name) noexcept
-	{
-		static PFNWGLGETEXTENSIONSSTRINGEXTPROC _wglGetExtensionsStringEXT = nullptr;
-
-		if (!_wglGetExtensionsStringEXT)
-		{
-			_wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
-			gl::wgl_extensions         = _wglGetExtensionsStringEXT ? _wglGetExtensionsStringEXT() : "";
-		}
-
-		return gl::wgl_extensions.contains(name);
-	}
-
-	bool has_gl_extension(std::string_view name) noexcept { return gl::extensions.contains(name); }
 
 	export class window
 
@@ -1476,6 +1470,16 @@ namespace deckard::app
 			gl::GetProgramiv         = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
 			gl::GetProgramInfoLog    = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
 
+			gl::wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
+			if (gl::wglGetExtensionsStringEXT)
+			{
+
+				const std::string_view extensions = gl::wglGetExtensionsStringEXT();
+				for (const auto& extension : split(extensions))
+					gl::wgl_extensions.insert(extension);
+			}
+
+
 			dbg::println("GL Vendor   : {}", (const char*)glGetString(GL_VENDOR));
 			dbg::println("GL Renderer : {}", (const char*)glGetString(GL_RENDERER));
 			dbg::println("GL Version  : {}", (const char*)glGetString(GL_VERSION));
@@ -1486,11 +1490,11 @@ namespace deckard::app
 			glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
 			for (int i = 0; i < num_ext; i++)
 			{
-				std::string_view ext = (const char*)gl::GetStringi(GL_EXTENSIONS, i);
+				std::string_view ext = as<const char*>(gl::GetStringi(GL_EXTENSIONS, i));
 				gl::extensions.insert(ext);
 			}
 
-			if (has_wgl_extension("WGL_EXT_swap_control"))
+			if (gl::has_wgl_extension("WGL_EXT_swap_control"))
 			{
 				gl::wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 
@@ -1510,26 +1514,56 @@ namespace deckard::app
 				gl::DebugMessageCallback(
 				  [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 				  {
-#if 0
-					  if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
-						  return;
-#endif
-					  dbg::println(
-						"GL CALLBACK: {} type, = {:0x}, severity = {:0x}, message = {}",
-						(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-						type,
-						severity,
-						message);
+					  (length);
+					  (userParam);
+					  (id);
+
+					  std::string_view source_sv{"Unknown"};
+					  switch (source)
+					  {
+						  case GL_DEBUG_SOURCE_API: source_sv = "API"; break;
+						  case GL_DEBUG_SOURCE_WINDOW_SYSTEM: source_sv = "Window system"; break;
+						  case GL_DEBUG_SOURCE_SHADER_COMPILER: source_sv = "Shader compiler"; break;
+						  case GL_DEBUG_SOURCE_THIRD_PARTY: source_sv = "Third party"; break;
+						  case GL_DEBUG_SOURCE_APPLICATION: source_sv = "Application"; break;
+						  case GL_DEBUG_SOURCE_OTHER: source_sv = "Application"; break;
+						  default: break;
+					  }
+
+					  std::string_view type_sv{"Unknown"};
+					  switch (type)
+					  {
+						  case GL_DEBUG_TYPE_ERROR: type_sv = "Error"; break;
+						  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_sv = "Deprecated behavior"; break;
+						  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: type_sv = "Undefined behavior"; break;
+						  case GL_DEBUG_TYPE_PORTABILITY: type_sv = "Portability"; break;
+						  case GL_DEBUG_TYPE_PERFORMANCE: type_sv = "Performance"; break;
+						  case GL_DEBUG_TYPE_OTHER: type_sv = "Other"; break;
+
+						  default: break;
+					  }
+
+					  std::string_view severity_sv{"Unknown"};
+					  switch (severity)
+					  {
+						  case GL_DEBUG_SEVERITY_NOTIFICATION: severity_sv = "Notify"; break;
+						  case GL_DEBUG_SEVERITY_LOW: severity_sv = "Low"; break;
+						  case GL_DEBUG_SEVERITY_MEDIUM: severity_sv = "Medium"; break;
+						  case GL_DEBUG_SEVERITY_HIGH: severity_sv = "High"; break;
+
+						  default: break;
+					  }
+					  dbg::println("{}: {} - {} | {}", source_sv, type_sv, severity_sv, message);
 				  },
 				  0);
-#if 1
 				gl::DebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
 
+#if 1
 				gl::DebugMessageControl(
 
-				  GL_DEBUG_SEVERITY_NOTIFICATION, // source
-				  GL_DONT_CARE,                   // type
-				  GL_DONT_CARE,                   // severity
+				  GL_DEBUG_SOURCE_APPLICATION, // source
+				  GL_DONT_CARE,                // type
+				  GL_DONT_CARE,                // severity
 				  0,
 				  0,
 				  GL_FALSE);
