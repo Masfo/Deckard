@@ -254,4 +254,25 @@ export namespace deckard
 		return std::format("{:%F}", std::chrono::current_zone()->to_local(epoch));
 	}
 
+	// split
+	export std::vector<std::string_view> split(std::string_view strv, std::string_view delims = " ")
+	{
+		std::vector<std::string_view> output;
+		size_t                        first = 0;
+
+		while (first < strv.size())
+		{
+			const auto second = strv.find_first_of(delims, first);
+
+			if (first != second)
+				output.emplace_back(strv.substr(first, second - first));
+
+			if (second == std::string_view::npos)
+				break;
+
+			first = second + 1;
+		}
+
+		return output;
+	}
 } // namespace deckard
