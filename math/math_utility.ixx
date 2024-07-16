@@ -8,6 +8,7 @@ module;
 
 export module deckard.math:utils;
 import std;
+import deckard.types;
 
 export namespace deckard::math
 {
@@ -27,6 +28,15 @@ export namespace deckard::math
 		if (x > upperlimit)
 			return upperlimit;
 		return x;
+	}
+
+	// mod
+	template<std::integral T = i64>
+	T mod(T x, T N) noexcept
+	{
+		if (N == T{0})
+			return 0;
+		return (x % N + N) % N;
 	}
 
 	// is_close_enough
