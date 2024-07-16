@@ -76,6 +76,10 @@ namespace deckard::sha256
 
 	static_assert(sizeof(digest) == 32);
 
+	constexpr u32 CHUNK_SIZE_IN_BITS = 512;
+	constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
+	constexpr u32 ROUNDS             = 64;
+
 	export class hasher
 	{
 	public:
@@ -104,10 +108,6 @@ namespace deckard::sha256
 		}
 
 	private:
-		static constexpr u32 CHUNK_SIZE_IN_BITS = 512;
-		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
-		static constexpr u32 ROUNDS             = 64;
-
 		template<typename T>
 		void generic_update(const std::span<T> data) noexcept
 		{
@@ -243,6 +243,9 @@ namespace deckard::sha512
 	export using digest = generic_sha2_digest<u64>;
 
 	static_assert(sizeof(digest) == 64);
+	constexpr u32 CHUNK_SIZE_IN_BITS = 1'024;
+	constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
+	constexpr u32 ROUNDS             = 80;
 
 	export class hasher
 	{
@@ -280,10 +283,6 @@ namespace deckard::sha512
 		}
 
 	private:
-		static constexpr u32 CHUNK_SIZE_IN_BITS = 1'024;
-		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
-		static constexpr u32 ROUNDS             = 80;
-
 		template<typename T>
 		void generic_update(const std::span<T> data) noexcept
 		{
