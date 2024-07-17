@@ -255,4 +255,12 @@ namespace deckard::system
 #endif
 	}
 
+	export std::string get_windows_error(DWORD error = GetLastError())
+	{
+		char err[256]{0};
+		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)
+			return std::format("Failed to get error from code {:X}", error);
+		return std::string{err};
+	}
+
 } // namespace deckard::system

@@ -20,7 +20,9 @@ import deckard.helpers;
 import deckard.assert;
 import deckard.as;
 import deckard.win32;
+import deckard.system;
 
+using namespace deckard::system;
 using namespace std::string_view_literals;
 
 // GL
@@ -44,7 +46,6 @@ namespace gl
 	PFNGLUNIFORM1FPROC               Uniform1f;
 	PFNGLGETSTRINGIPROC              GetStringi;
 
-
 	// debug
 	PFNGLDEBUGMESSAGECONTROLPROC  DebugMessageControl;
 	PFNGLDEBUGMESSAGECALLBACKPROC DebugMessageCallback;
@@ -53,9 +54,10 @@ namespace gl
 	PFNGLGETSHADERIVPROC          GetShaderiv;
 	PFNGLGETSHADERINFOLOGPROC     GetShaderInfoLog;
 
-	PFNWGLSWAPINTERVALEXTPROC        wglSwapIntervalEXT;
-	PFNWGLGETSWAPINTERVALEXTPROC     wglGetSwapIntervalEXT;
-	PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtensionsStringEXT;
+	PFNWGLSWAPINTERVALEXTPROC         wglSwapIntervalEXT;
+	PFNWGLGETSWAPINTERVALEXTPROC      wglGetSwapIntervalEXT;
+	PFNWGLGETEXTENSIONSSTRINGEXTPROC  wglGetExtensionsStringEXT;
+	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
 
 	std::unordered_set<std::string_view> extensions;
@@ -185,6 +187,8 @@ namespace deckard::app
 #if 1
 			if (RegisterClassEx(&wc) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
 			{
+				dbg::println("RegisterClassEx failed: {}", get_windows_error());
+				destroy();
 				destroy();
 				return;
 			}
@@ -207,6 +211,7 @@ namespace deckard::app
 			  this);
 			if (!handle)
 			{
+				dbg::println("CreateWindowEx failed: {}", get_windows_error());
 				destroy();
 				return;
 			}
@@ -1420,14 +1425,32 @@ namespace deckard::app
 			  .cStencilBits = 8,
 			  .iLayerType   = PFD_MAIN_PLANE,
 			};
-			SetPixelFormat(dc, ChoosePixelFormat(dc, &pdf), &pdf);
+			if (SetPixelFormat(dc, ChoosePixelFormat(dc, &pdf), &pdf) == 0)
+			{
+				dbg::println("SetPixelFormat failed: {}", get_windows_error());
+				return;
+			}
+
 			HGLRC old = wglCreateContext(dc);
-			wglMakeCurrent(dc, old);
+
+			if (old == nullptr)
+			{
+				dbg::println("wglCreateContext failed: {}", get_windows_error());
+				return;
+			}
+
+			if (wglMakeCurrent(dc, old) == 0)
+			{
+				dbg::println("wglMakeCurrent failed: {}", get_windows_error());
+				return;
+			}
+
+
 			int attribs[] = {
-			  WGL_CONTEXT_MAJOR_VERSION_ARB,
-			  4,
-			  WGL_CONTEXT_MINOR_VERSION_ARB,
-			  6,
+			  // WGL_CONTEXT_MAJOR_VERSION_ARB,
+			  // 4,
+			  // WGL_CONTEXT_MINOR_VERSION_ARB,
+			  // 6,
 			  WGL_CONTEXT_PROFILE_MASK_ARB,
 			  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 			  WGL_CONTEXT_FLAGS_ARB,
@@ -1439,9 +1462,29 @@ namespace deckard::app
 #endif
 			  0};
 
-			HGLRC hglrc = ((HGLRC(*)(HDC, HGLRC, int*))(wglGetProcAddress("wglCreateContextAttribsARB")))(dc, old, attribs);
-			wglMakeCurrent(dc, hglrc);
-			wglDeleteContext(old);
+			// wgl
+			gl::wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+			gl::wglGetExtensionsStringEXT  = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
+
+
+			HGLRC hglrc = gl::wglCreateContextAttribsARB(dc, old, attribs);
+			if (hglrc == nullptr)
+			{
+				dbg::println("wglCreateContextAttribs failed: {}", glGetError());
+				return;
+			}
+
+			if (wglMakeCurrent(dc, hglrc) == 0)
+			{
+				dbg::println("wglMakeCurrent failed: {}", get_windows_error());
+				return;
+			}
+
+			if (wglDeleteContext(old) == 0)
+			{
+				dbg::println("wglDeleteContext failed: {}", get_windows_error());
+				return;
+			}
 
 
 			gl::CreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
@@ -1462,7 +1505,6 @@ namespace deckard::app
 			gl::Uniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
 			gl::GetStringi              = (PFNGLGETSTRINGIPROC)wglGetProcAddress("glGetStringi");
 
-
 			gl::DebugMessageControl  = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddress("glDebugMessageControl");
 			gl::DebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
 			gl::GetShaderiv          = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
@@ -1470,10 +1512,8 @@ namespace deckard::app
 			gl::GetProgramiv         = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
 			gl::GetProgramInfoLog    = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
 
-			gl::wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
 			if (gl::wglGetExtensionsStringEXT)
 			{
-
 				const std::string_view extensions = gl::wglGetExtensionsStringEXT();
 				for (const auto& extension : split(extensions))
 					gl::wgl_extensions.insert(extension);
@@ -1608,6 +1648,8 @@ namespace deckard::app
 			gl::BindBuffer(GL_ARRAY_BUFFER, 0);
 
 			glClearColor(0.0f, 0.5f, 0.75f, 1);
+
+			renderer_initialized = true;
 		}
 
 		void close_renderer() noexcept
@@ -1621,6 +1663,10 @@ namespace deckard::app
 
 		void render()
 		{
+#ifdef _DEBUG
+			if (not renderer_initialized)
+				return;
+#endif
 			glClear(GL_COLOR_BUFFER_BIT);
 			gl::Uniform1f(u_angle, angle += 0.01);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1641,7 +1687,7 @@ namespace deckard::app
 		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
 		std::vector<char> rawinput_buffer;
 
-
+		bool renderer_initialized{false};
 		bool is_running{false};
 		bool windowed{true};
 		int  being_dragged{false};
