@@ -12,6 +12,7 @@ import deckard.win32;
 import deckard.math;
 import deckard.utf8;
 import deckard.lexer;
+import deckard.serializer;
 
 import deckard.app;
 
@@ -339,6 +340,17 @@ fullscreen=true
 )"sv);
 	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
 
+	serializer s;
+	s.write_bits(0b0000'1111, 4);
+
+
+	std::string  si = "7595556264018525880784406918290641249515082189298559149176184502808489120000";
+	math::bignum b(si);
+
+
+	dbg::println("{}, {}", si, si.size());
+	// TODO:formatter does not work yet
+	dbg::println("{}, {}", b.print(), 00);
 
 	int k = 0;
 

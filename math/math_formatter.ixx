@@ -140,4 +140,43 @@ namespace std
 			return std::format_to(ctx.out(), ")");
 		}
 	};
+
+	// Big num
+
+	template<>
+	struct hash<deckard::math::bignum>
+	{
+		size_t operator()(const deckard::math::bignum& value) const { return deckard::utils::hash_values(value); }
+	};
+
+	template<>
+	struct formatter<deckard::math::bignum>
+	{
+		// TODO: Parse leading zeros
+		constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+
+		auto format(const deckard::math::bignum& bn, std::format_context& ctx)
+		{
+			for (int i = bn.size() - 1; i >= 0; i--)
+			{
+				if (leading)
+				{
+					std::format_to(ctx.out(), "{}", bn[i]);
+					leading = 0;
+				}
+				else
+				{
+					std::format_to(ctx.out(), "{:09}", bn[i]);
+				}
+			}
+			if (leading)
+			{
+				std::format_to(ctx.out(), "0");
+			}
+		}
+
+		bool leading{true};
+	};
+
+
 } // namespace std
