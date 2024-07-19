@@ -11,6 +11,7 @@ module;
 #include <wglext.h>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
 
 
 export module deckard.app:window;
@@ -1686,6 +1687,67 @@ namespace deckard::app
 
 		void init_vulkan_renderer()
 		{
+
+			// Extensions
+			u32      count{0};
+			VkResult result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
+
+			std::vector<VkExtensionProperties> extensions;
+			extensions.resize(count);
+			result = vkEnumerateInstanceExtensionProperties(0, &count, extensions.data());
+
+			// required extensions
+			std::vector<const char*> required_extensions;
+
+
+			dbg::println("Vulkan extensions: ");
+			for (size_t i = 0; i < count; ++i)
+			{
+				const auto&      ext  = extensions[i];
+				std::string_view name = ext.extensionName;
+
+				if (name.compare(VK_KHR_SURFACE_EXTENSION_NAME) == 0)
+					required_extensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+				if (name.compare(VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0)
+					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+
+
+				dbg::println(
+				  "{:3}{} ({}.{}.{}){}",
+				  " ",
+				  ext.extensionName,
+				  VK_API_VERSION_MAJOR(ext.specVersion),
+				  VK_API_VERSION_MINOR(ext.specVersion),
+				  VK_API_VERSION_PATCH(ext.specVersion),
+				  i < count - 1 ? ", " : "");
+			}
+			dbg::println();
+
+			// Layers
+			uint32_t validator_count{0};
+			vkEnumerateInstanceLayerProperties(&validator_count, nullptr);
+
+			 std::vector<VkLayerProperties> validator_layers(validator_count);
+			vkEnumerateInstanceLayerProperties(&validator_count, validator_layers.data());
+
+			dbg::println("Vulkan validator layers: ");
+			for (size_t i = 0; i < validator_count; ++i)
+			{
+				const auto& layer = validator_layers[i];
+				dbg::println("{:3}{} ({}.{}.{}){}", " ", layer.layerName,
+					 VK_API_VERSION_MAJOR(layer.specVersion),
+				  VK_API_VERSION_MINOR(layer.specVersion),
+				  VK_API_VERSION_PATCH(layer.specVersion),
+				  i < validator_count - 1 ? ", " : "");
+			}
+
+
+			std::vector<const char*> required_layers;
+			required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
+
+
+			//
 			VkApplicationInfo app_info{};
 			app_info.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 			app_info.pNext              = nullptr;
@@ -1700,13 +1762,15 @@ namespace deckard::app
 			instance_create.pNext            = nullptr;
 			instance_create.flags            = 0;
 			instance_create.pApplicationInfo = &app_info;
-
+			// extensions
+			instance_create.enabledExtensionCount   = required_extensions.size();
+			instance_create.ppEnabledExtensionNames = !required_extensions.empty() ? required_extensions.data() : nullptr;
 			// layers
-			instance_create.enabledLayerCount   = 1;
-			instance_create.ppEnabledLayerNames = nullptr;
+			instance_create.enabledLayerCount   = required_layers.size();
+			instance_create.ppEnabledLayerNames = !required_layers.empty() ? required_layers.data() : nullptr;
 
 			VkInstance instance;
-			VkResult   result = vkCreateInstance(&instance_create, nullptr, &instance);
+			result = vkCreateInstance(&instance_create, nullptr, &instance);
 
 
 			int k = 0;
