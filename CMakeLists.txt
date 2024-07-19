@@ -149,6 +149,11 @@ if(MSVC)
 
 endif()
 
+# Vulkan
+find_package(Vulkan REQUIRED)
+target_include_directories(deckard PUBLIC ${Vulkan_INCLUDE_DIRS})
+
+
 set(DECKARD_SRCS
 		deckard.ixx
          $<$<CONFIG:RelWithDebInfo,Release>:buildnumber.ixx>
@@ -255,6 +260,7 @@ add_subdirectory(external/zstd)
 
 
 
+message(STATUS "Vulkan  ${Vulkan_INCLUDE_DIRS}")
 add_dependencies(deckard sqlite3 ZSTD)
  
 set(THIRD_PARTY_LIBS
@@ -264,6 +270,7 @@ set(THIRD_PARTY_LIBS
     opengl32.lib
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
+    Vulkan::Vulkan
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

@@ -10,8 +10,11 @@ module;
 #include <glcorearb.h>
 #include <wglext.h>
 
+#include <vulkan/vulkan.h>
+
 
 export module deckard.app:window;
+
 
 import std;
 import deckard.debug;
@@ -21,6 +24,7 @@ import deckard.assert;
 import deckard.as;
 import deckard.win32;
 import deckard.system;
+
 
 using namespace deckard::system;
 using namespace std::string_view_literals;
@@ -282,7 +286,9 @@ namespace deckard::app
 
 			// Init renderer
 			dc = GetDC(handle);
-			init_renderer();
+
+			init_vulkan_renderer();
+			init_gl_renderer();
 
 			//
 			ShowWindow(handle, SW_SHOW);
@@ -1413,7 +1419,7 @@ namespace deckard::app
 			return program;
 		}
 
-		void init_renderer() noexcept
+		void init_gl_renderer() noexcept
 		{
 			PIXELFORMATDESCRIPTOR pdf = {
 			  .nSize        = sizeof(pdf),
@@ -1674,6 +1680,36 @@ namespace deckard::app
 			// glMultiDrawArrays, SSBO
 
 			SwapBuffers(dc);
+		}
+
+		// Vulkan
+
+		void init_vulkan_renderer()
+		{
+			VkApplicationInfo app_info{};
+			app_info.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+			app_info.pNext              = nullptr;
+			app_info.pApplicationName   = "";
+			app_info.applicationVersion = VK_API_VERSION_1_1;
+			app_info.pEngineName        = "";
+			app_info.engineVersion      = VK_MAKE_VERSION(0, 0, 1);
+			app_info.apiVersion         = 0;
+
+			VkInstanceCreateInfo instance_create{};
+			instance_create.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+			instance_create.pNext            = nullptr;
+			instance_create.flags            = 0;
+			instance_create.pApplicationInfo = &app_info;
+
+			// layers
+			instance_create.enabledLayerCount   = 1;
+			instance_create.ppEnabledLayerNames = nullptr;
+
+			VkInstance instance;
+			VkResult   result = vkCreateInstance(&instance_create, nullptr, &instance);
+
+
+			int k = 0;
 		}
 
 		WindowSize client_size;

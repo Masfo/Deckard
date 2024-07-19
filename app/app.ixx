@@ -176,7 +176,7 @@ namespace deckard
 				  double       timeperframe{0.0f};
 				  QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
 
-				  double accumulate{0.0f};
+				  float accumulate{0.0f};
 
 				  while (wnd.loop())
 				  {
@@ -188,8 +188,7 @@ namespace deckard
 					  currentframe++;
 					  accumulate += timeperframe;
 
-					  if (accumulate > 10'000)
-						  accumulate = 1.0;
+					  accumulate = std::clamp(accumulate, 0.0f, 1.0f);
 
 					  if (accumulate >= 1.0)
 					  {
