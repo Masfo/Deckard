@@ -18,6 +18,7 @@ export module deckard.app:window;
 
 
 import std;
+import deckard;
 import deckard.debug;
 import deckard.types;
 import deckard.helpers;
@@ -25,7 +26,6 @@ import deckard.assert;
 import deckard.as;
 import deckard.win32;
 import deckard.system;
-
 
 using namespace deckard::system;
 using namespace std::string_view_literals;
@@ -260,11 +260,11 @@ namespace deckard::app
 
 			if (IsWindows10OrGreater() and build >= 22'621)
 			{
-				const auto DWMSBT_DISABLE         = 1; // Default
-				const auto DWMSBT_MAINWINDOW      = 2; // Mica
-				const auto DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
-				const auto DWMSBT_TABBEDWINDOW    = 4; // Tabbed
-				auto       DWMSBT_set             = DWMSBT_DISABLE;
+				constexpr auto DWMSBT_DISABLE         = 1; // Default
+				constexpr auto DWMSBT_MAINWINDOW      = 2; // Mica
+				constexpr auto DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
+				constexpr auto DWMSBT_TABBEDWINDOW    = 4; // Tabbed
+				auto           DWMSBT_set             = DWMSBT_DISABLE;
 
 				::DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
 			}
@@ -524,8 +524,8 @@ namespace deckard::app
 				MONITORINFO mi = {sizeof(mi)};
 				if (GetWindowPlacement(handle, &wp) && GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
 				{
-					const DWORD style = dwStyle & ~WS_OVERLAPPEDWINDOW;
-					SetWindowLong(handle, GWL_STYLE, style);
+					const DWORD old_style = dwStyle & ~WS_OVERLAPPEDWINDOW;
+					SetWindowLong(handle, GWL_STYLE, old_style);
 					SetWindowPos(
 					  handle,
 					  HWND_TOP,
@@ -539,9 +539,9 @@ namespace deckard::app
 			}
 			else
 			{
-				windowed          = true;
-				const DWORD style = dwStyle | WS_OVERLAPPEDWINDOW;
-				SetWindowLong(handle, GWL_STYLE, style);
+				windowed              = true;
+				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
+				SetWindowLong(handle, GWL_STYLE, old_style);
 				SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				SetWindowPlacement(handle, &wp);
 			}
@@ -558,6 +558,7 @@ namespace deckard::app
 				case WM_TIMER:
 				{
 					break;
+#if 0
 					RECT cr{};
 					GetClientRect(handle, &cr);
 
@@ -577,6 +578,7 @@ namespace deckard::app
 						.c_str());
 					//
 					break;
+#endif
 				};
 
 				case WM_CREATE:
@@ -750,8 +752,8 @@ namespace deckard::app
 						GetWindowRect(handle, &old);
 
 
-						f32 width  = old.right - old.left;
-						f32 height = old.bottom - old.top;
+						f32 width  = as<f32>(old.right - old.left);
+						f32 height = as<f32>(old.bottom - old.top);
 						dbg::println("pre scale({}): {}x{}", scale, width, height);
 
 						width *= scale;
@@ -789,7 +791,6 @@ namespace deckard::app
 					dbg::println("DPI {}, old {}, manual {}", dpi, previousDpi, dpi3);
 
 					client_size.dpi = dpi;
-
 					LPRECT new_rect = reinterpret_cast<LPRECT>(lParam);
 
 #if 0
@@ -1685,23 +1686,23 @@ namespace deckard::app
 
 		// Vulkan
 
-		void init_vulkan_renderer()
+		bool init_vulkan_renderer()
 		{
 
 			// Extensions
-			u32      count{0};
-			VkResult result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
+			u32      extension_count{0};
+			VkResult result = vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
 
 			std::vector<VkExtensionProperties> extensions;
-			extensions.resize(count);
-			result = vkEnumerateInstanceExtensionProperties(0, &count, extensions.data());
+			extensions.resize(extension_count);
+			result = vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions.data());
 
 			// required extensions
 			std::vector<const char*> required_extensions;
 
 
-			dbg::println("Vulkan extensions: ");
-			for (size_t i = 0; i < count; ++i)
+			dbg::println("Vulkan extensions({}): ", extension_count);
+			for (size_t i = 0; i < extension_count; ++i)
 			{
 				const auto&      ext  = extensions[i];
 				std::string_view name = ext.extensionName;
@@ -1720,7 +1721,7 @@ namespace deckard::app
 				  VK_API_VERSION_MAJOR(ext.specVersion),
 				  VK_API_VERSION_MINOR(ext.specVersion),
 				  VK_API_VERSION_PATCH(ext.specVersion),
-				  i < count - 1 ? ", " : "");
+				  i < extension_count - 1 ? ", " : "");
 			}
 			dbg::println();
 
@@ -1728,15 +1729,18 @@ namespace deckard::app
 			uint32_t validator_count{0};
 			vkEnumerateInstanceLayerProperties(&validator_count, nullptr);
 
-			 std::vector<VkLayerProperties> validator_layers(validator_count);
+			std::vector<VkLayerProperties> validator_layers(validator_count);
 			vkEnumerateInstanceLayerProperties(&validator_count, validator_layers.data());
 
-			dbg::println("Vulkan validator layers: ");
+			dbg::println("Vulkan validator layers({}): ", validator_count);
 			for (size_t i = 0; i < validator_count; ++i)
 			{
 				const auto& layer = validator_layers[i];
-				dbg::println("{:3}{} ({}.{}.{}){}", " ", layer.layerName,
-					 VK_API_VERSION_MAJOR(layer.specVersion),
+				dbg::println(
+				  "{:3}{} ({}.{}.{}){}",
+				  " ",
+				  layer.layerName,
+				  VK_API_VERSION_MAJOR(layer.specVersion),
 				  VK_API_VERSION_MINOR(layer.specVersion),
 				  VK_API_VERSION_PATCH(layer.specVersion),
 				  i < validator_count - 1 ? ", " : "");
@@ -1749,31 +1753,33 @@ namespace deckard::app
 
 			//
 			VkApplicationInfo app_info{};
-			app_info.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-			app_info.pNext              = nullptr;
-			app_info.pApplicationName   = "";
-			app_info.applicationVersion = VK_API_VERSION_1_1;
-			app_info.pEngineName        = "";
-			app_info.engineVersion      = VK_MAKE_VERSION(0, 0, 1);
-			app_info.apiVersion         = 0;
+			app_info.sType      = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+			app_info.pNext      = nullptr;
+			app_info.apiVersion = VK_API_VERSION_1_2;
 
+			app_info.pApplicationName   = "Deckard";
+			app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
+			app_info.pEngineName        = "Deckard";
+#ifndef _DEBUG
+			app_info.engineVersion = VK_MAKE_VERSION(deckard_build::build::major, deckard_build::build::minor, deckard_build::build::patch);
+#endif
 			VkInstanceCreateInfo instance_create{};
 			instance_create.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 			instance_create.pNext            = nullptr;
 			instance_create.flags            = 0;
 			instance_create.pApplicationInfo = &app_info;
 			// extensions
-			instance_create.enabledExtensionCount   = required_extensions.size();
+			instance_create.enabledExtensionCount   = as<u32>(required_extensions.size());
 			instance_create.ppEnabledExtensionNames = !required_extensions.empty() ? required_extensions.data() : nullptr;
 			// layers
-			instance_create.enabledLayerCount   = required_layers.size();
+			instance_create.enabledLayerCount   = as<u32>(required_layers.size());
 			instance_create.ppEnabledLayerNames = !required_layers.empty() ? required_layers.data() : nullptr;
 
 			VkInstance instance;
 			result = vkCreateInstance(&instance_create, nullptr, &instance);
 
 
-			int k = 0;
+			return result == VK_SUCCESS;
 		}
 
 		WindowSize client_size;

@@ -168,12 +168,12 @@ namespace deckard
 
 
 				  unsigned int currentframe{0};
-				  double       framerate{0};
-				  double       oldtime{0};
-				  double       newtime{1};
+				  float        framerate{0};
+				  float        oldtime{0};
+				  float        newtime{1};
 				  __int64      counter{1};
 				  __int64      frequency{0};
-				  double       timeperframe{0.0f};
+				  float        timeperframe{0.0f};
 				  QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
 
 				  float accumulate{0.0f};
@@ -181,9 +181,9 @@ namespace deckard
 				  while (wnd.loop())
 				  {
 					  QueryPerformanceCounter((LARGE_INTEGER*)&counter);
-					  newtime      = (double)counter / (double)frequency;
+					  newtime      = (float)counter / (float)frequency;
 					  timeperframe = newtime - oldtime;
-					  framerate    = 1.0 / timeperframe;
+					  framerate    = 1.0f / timeperframe;
 					  oldtime      = newtime;
 					  currentframe++;
 					  accumulate += timeperframe;
