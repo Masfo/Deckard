@@ -10,9 +10,6 @@ module;
 #include <glcorearb.h>
 #include <wglext.h>
 
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_win32.h>
-
 
 export module deckard.app:window;
 
@@ -26,6 +23,7 @@ import deckard.assert;
 import deckard.as;
 import deckard.win32;
 import deckard.system;
+import deckard.vulkan;
 
 using namespace deckard::system;
 using namespace std::string_view_literals;
@@ -288,7 +286,10 @@ namespace deckard::app
 			// Init renderer
 			dc = GetDC(handle);
 
-			init_vulkan_renderer();
+
+			if (not vulkan.initialize())
+				return;
+
 			init_gl_renderer();
 
 			//
@@ -1684,156 +1685,6 @@ namespace deckard::app
 			SwapBuffers(dc);
 		}
 
-		// Vulkan
-
-		bool init_vulkan_renderer()
-		{
-
-			// Extensions
-			u32      extension_count{0};
-			VkResult result = vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
-
-			std::vector<VkExtensionProperties> extensions;
-			extensions.resize(extension_count);
-			result = vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions.data());
-
-			// required extensions
-			std::vector<const char*> required_extensions;
-
-
-			dbg::println("Vulkan extensions({}): ", extension_count);
-			for (size_t i = 0; i < extension_count; ++i)
-			{
-				const auto&      ext  = extensions[i];
-				std::string_view name = ext.extensionName;
-
-				if (name.compare(VK_KHR_SURFACE_EXTENSION_NAME) == 0)
-					required_extensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
-
-				if (name.compare(VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0)
-					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-
-#ifdef _DEBUG
-				if (name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
-					required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-
-				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-					required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-
-				dbg::println(
-				  "{:>42} (rev {}){}", ext.extensionName, VK_API_VERSION_PATCH(ext.specVersion), i < extension_count - 1 ? ", " : "");
-			}
-			dbg::println();
-
-			// Layers
-			uint32_t validator_count{0};
-			vkEnumerateInstanceLayerProperties(&validator_count, nullptr);
-
-			std::vector<VkLayerProperties> validator_layers(validator_count);
-			vkEnumerateInstanceLayerProperties(&validator_count, validator_layers.data());
-
-			dbg::println("Vulkan validator layers({}): ", validator_count);
-			for (size_t i = 0; i < validator_count; ++i)
-			{
-				const auto& layer = validator_layers[i];
-				dbg::println(
-				  "{:>42} ({}.{}.{}){}",
-				  layer.layerName,
-				  VK_API_VERSION_MAJOR(layer.specVersion),
-				  VK_API_VERSION_MINOR(layer.specVersion),
-				  VK_API_VERSION_PATCH(layer.specVersion),
-				  i < validator_count - 1 ? ", " : "");
-			}
-
-
-			std::vector<const char*> required_layers;
-#ifdef _DEBUG
-			required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
-#endif
-
-
-			//
-			VkApplicationInfo app_info{};
-			app_info.sType      = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-			app_info.apiVersion = VK_API_VERSION_1_2;
-
-			app_info.pApplicationName   = "Deckard";
-			app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
-			app_info.pEngineName        = "Deckard";
-#ifndef _DEBUG
-			app_info.engineVersion = VK_MAKE_VERSION(deckard_build::build::major, deckard_build::build::minor, deckard_build::build::patch);
-#endif
-			VkInstanceCreateInfo instance_create{};
-			instance_create.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-			instance_create.flags            = 0;
-			instance_create.pApplicationInfo = &app_info;
-			// extensions
-			instance_create.enabledExtensionCount   = as<u32>(required_extensions.size());
-			instance_create.ppEnabledExtensionNames = !required_extensions.empty() ? required_extensions.data() : nullptr;
-			// layers
-			instance_create.enabledLayerCount   = as<u32>(required_layers.size());
-			instance_create.ppEnabledLayerNames = !required_layers.empty() ? required_layers.data() : nullptr;
-
-			VkInstance instance;
-			result = vkCreateInstance(&instance_create, nullptr, &instance);
-
-			// debug
-			VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-			createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-			createInfo.messageSeverity =
-			  VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-			  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-			createInfo.messageType =
-			  VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-			  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-			createInfo.pfnUserCallback =
-			  [](VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
-				 VkDebugUtilsMessageTypeFlagsEXT             messageType,
-				 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-				 void*                                       pUserData)
-			{
-				if (pCallbackData->pMessage)
-					dbg::println("{}", pCallbackData->pMessage);
-
-
-				switch (messageSeverity)
-				{
-				}
-				return VK_FALSE;
-			};
-
-			VkDebugUtilsMessengerEXT debugMessenger;
-			auto                     vkCreateDebugUtilsMessengerEXT =
-			  (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-			if (vkCreateDebugUtilsMessengerEXT != nullptr)
-				result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
-
-
-			// Submit error
-			VkDebugUtilsMessengerCallbackDataEXT cbdata{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT};
-			cbdata.pMessage = "hello";
-			auto vkSubmitDebugUtilsMessageEXT =
-			  (PFN_vkSubmitDebugUtilsMessageEXT)vkGetInstanceProcAddr(instance, "vkSubmitDebugUtilsMessageEXT");
-			if (vkSubmitDebugUtilsMessageEXT != nullptr)
-				vkSubmitDebugUtilsMessageEXT(
-				  instance, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT, VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT, &cbdata);
-
-
-			//
-			auto vkDestroyDebugUtilsMessengerEXT =
-			  (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-			if (vkDestroyDebugUtilsMessengerEXT != nullptr)
-			{
-				vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-			}
-
-			vkDestroyInstance(instance, nullptr);
-
-			return result == VK_SUCCESS;
-		}
-
 		WindowSize client_size;
 		GLuint     u_angle{};
 		f32        angle{};
@@ -1844,6 +1695,8 @@ namespace deckard::app
 		DWORD             ex_style{0};
 		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
 		std::vector<char> rawinput_buffer;
+
+		vulkan::vulkan vulkan;
 
 		bool renderer_initialized{false};
 		bool is_running{false};
