@@ -157,6 +157,9 @@ namespace std
 
 		auto format(const deckard::math::bignum& bn, std::format_context& ctx)
 		{
+			return bn.print();
+
+#if 0
 			for (int i = bn.size() - 1; i >= 0; i--)
 			{
 				if (leading)
@@ -173,6 +176,8 @@ namespace std
 			{
 				std::format_to(ctx.out(), "0");
 			}
+			return std::format_to(ctx.out(), "");
+#endif
 		}
 
 		bool leading{true};

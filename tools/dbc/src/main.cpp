@@ -251,74 +251,6 @@ private:
 	int value = 0;
 };
 
-template<i32 size>
-struct LeastUnsignedType
-{
-	static_assert(size == 1 || size == 2 || size == 4 || size == 8, "Invalid size for type");
-};
-
-template<>
-struct LeastUnsignedType<1>
-{
-	using type = u8;
-};
-
-template<>
-struct LeastUnsignedType<2>
-{
-	using type = u16;
-};
-
-template<>
-struct LeastUnsignedType<4>
-{
-	using type = u32;
-};
-
-template<>
-struct LeastUnsignedType<8>
-{
-	using type = u64;
-};
-
-class bitstream
-
-{
-public:
-	struct byte_index
-	{
-		u64 index{0};
-		u8  remainder{0};
-	};
-
-	void reserve(u32 size) noexcept { data.reserve(size); }
-
-	template<typename T>
-	void write(const T, u32 bitwidth = 0) noexcept
-	{
-		using type = LeastUnsignedType<sizeof(T)>::type;
-
-		if (bitwidth == 0)
-			bitwidth = sizeof(type) * 8;
-
-
-		//		const type input_be   = std::bit_cast<type>(value);
-		// const type input_word = std::byteswap(std::bit_cast<type>(value));
-
-
-		// int j = 0;
-	}
-
-	byte_index calculate_position() const noexcept { return {as<u64>(bitposition / 8), as<u8>(bitposition % 8)}; }
-
-private:
-	std::vector<u8> data;
-	u64             bitposition{0};
-
-	u8 acc_remaining{0};
-	u8 acc{0};
-};
-
 int main()
 {
 #ifndef _DEBUG
@@ -344,13 +276,17 @@ fullscreen=true
 	s.write_bits(0b0000'1111, 4);
 
 
-	std::string  si = "7595556264018525880784406918290641249515082189298559149176184502808489120000";
-	math::bignum b(si);
+	bignum a("13221321321321321321321321321321321321");
+	bignum b("4654654654654654654654654654654654654654");
+
+	bignum result = a.add(a, b);
 
 
-	dbg::println("{}, {}", si, si.size());
 	// TODO:formatter does not work yet
-	dbg::println("{}, {}", b.print(), 00);
+	dbg::println("{}, {}", a.print(), 0);
+	dbg::println("{}, {}", b.print(), 0);
+	dbg::println("{}, {}", result.print(), 0);
+	dbg::println("{}", "4667875975975975975975975975975975975975");
 
 	int k = 0;
 

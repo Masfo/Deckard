@@ -172,15 +172,5 @@ namespace deckard
 		const size_type m_array_size{0};
 	};
 
-	//
-	template<typename T, size_t Size>
-	class static_ringbuffer
-	{
-	public:
-		using value_type = T;
-
-	private:
-		std::array<value_type, Size> m_data{};
-	};
 
 } // namespace deckard
