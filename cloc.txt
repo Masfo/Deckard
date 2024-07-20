@@ -1,51 +1,53 @@
-github.com/AlDanial/cloc v 1.98  T=0.08 s (588.8 files/s, 127283.2 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.09 s (584.1 files/s, 130502.6 lines/s)
 --------------------------------------------------------------------------------
 File                                         blank        comment           code
 --------------------------------------------------------------------------------
-.\app\window.ixx                               260             93            815
-.\scripting\lexer\lexer.ixx                    200             44            758
+.\app\window.ixx                               354            145           1208
+.\scripting\lexer\lexer.ixx                    200             44            780
 .\math\vec_generic.ixx                         139             23            613
 .\math\vec_sse_generic.ixx                     136             43            459
-.\dbc\src\main.cpp                             146             51            427
 .\unicode\utf8_xid_tables.ixx                    6              3            365
 .\utils\cpuid.ixx                              107             15            363
-.\utils\sha2.ixx                                88              8            336
+.\utils\sha2.ixx                                87              1            336
 .\math\vec3_sse.ixx                            111             13            283
 .\math\vec2_sse.ixx                            111             12            276
 .\math\matrix.ixx                               64              6            265
 .\math\vec4_sse.ixx                            100             18            262
 .\unicode\utf8_codepoints.ixx                   56             22            206
-.\utils\helpers.ixx                             57             10            190
-.\win32\win32.ixx                               51              3            164
+.\utils\helpers.ixx                             62             11            205
+.\win32\win32.ixx                               58              3            205
+.\app\vulkan.ixx                                65             11            204
+.\math\math_utility.ixx                         42             13            159
+.\app\app.ixx                                   42             10            155
 .\file\filemonitor.ixx                          38              7            154
 .\utils\base64.ixx                              28              0            141
 .\utils\generator.ixx                           42              1            140
+.\math\math_formatter.ixx                       38             11            138
+.\utils\ringbuffer.ixx                          40              2            134
 .\file\file.ixx                                 48              4            132
 .\math\ease_functions.ixx                       23              7            130
 .\debug\debug.ixx                               29              9            128
 .\win32\DTE.ixx                                 33              6            118
-.\app\app.ixx                                   33             11            117
-.\math\math_formatter.ixx                       30              9            104
+.\utils\uuid.ixx                                22              2            116
 .\utils\hash.ixx                                22              1            100
 .\types\enum_flags.ixx                          26             36             78
 .\types\as.ixx                                  16              5             72
-.\math\math_utility.ixx                         19              8             71
-.\archive\archive.ixx                           21              7             70
+.\archive\archive.ixx                           23             25             70
 .\unicode\utf8_xid.ixx                          12              1             62
 .\unicode\utf8file.ixx                          19              0             62
+.\compress\zstd.ixx                             16              0             53
 .\utils\scope_exit.ixx                          12              0             52
 .\types\types.ixx                               35             39             49
-.\utils\uuid.ixx                                11              9             45
-.\compress\zstd.ixx                             14              0             44
 .\graphs\binarytree.ixx                         11             12             43
+.\utils\serializer.ixx                          21              6             43
+.\Deckard.ixx                                   19             12             31
 .\unicode\utf8_ascii.ixx                        13              0             31
-.\Deckard.ixx                                   19             12             30
 .\config\ini.ixx                                14             20             29
 .\debug\assert.ixx                              11              0             25
 .\types\HelperTypes.ixx                         12              4             25
 .\math\math.ixx                                  7              0             20
 .\buildnumber.ixx                                7             17             16
-.\dbc\src\buildnumber.ixx                        7             17             16
+.\file\qoi.ixx                                   3              0             10
 .\math\quaternion.ixx                            1              0              9
 .\taskpool\taskpool.ixx                          2              0              9
 .\utils\system_win32.ixx                         6              0              8
@@ -53,5 +55,5 @@ File                                         blank        comment           code
 .\scripting\parser\parser.ixx                   11             15              4
 .\net\net.ixx                                    0              0              1
 --------------------------------------------------------------------------------
-SUM:                                          2264            621           7923
+SUM:                                          2400            635           8583
 --------------------------------------------------------------------------------

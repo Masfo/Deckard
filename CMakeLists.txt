@@ -223,8 +223,10 @@ set(DECKARD_SRCS
         # App
         app/window.ixx
         app/app.ixx
+        app/vulkan.ixx
 
 
+        # Types
 		types/types.ixx
         types/as.ixx
         types/enum_flags.ixx
