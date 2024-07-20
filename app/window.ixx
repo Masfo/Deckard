@@ -1794,7 +1794,10 @@ namespace deckard::app
 				 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 				 void*                                       pUserData)
 			{
-				dbg::println("{}", pCallbackData->pMessage);
+				if (pCallbackData->pMessage)
+					dbg::println("{}", pCallbackData->pMessage);
+
+
 				switch (messageSeverity)
 				{
 				}
@@ -1802,17 +1805,29 @@ namespace deckard::app
 			};
 
 			VkDebugUtilsMessengerEXT debugMessenger;
-
-			auto vkCreateDebugUtilsMessengerEXT =
+			auto                     vkCreateDebugUtilsMessengerEXT =
 			  (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 			if (vkCreateDebugUtilsMessengerEXT != nullptr)
 				result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
 
+
+			// Submit error
+			VkDebugUtilsMessengerCallbackDataEXT cbdata{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT};
+			cbdata.pMessage = "hello";
 			auto vkSubmitDebugUtilsMessageEXT =
 			  (PFN_vkSubmitDebugUtilsMessageEXT)vkGetInstanceProcAddr(instance, "vkSubmitDebugUtilsMessageEXT");
 			if (vkSubmitDebugUtilsMessageEXT != nullptr)
 				vkSubmitDebugUtilsMessageEXT(
-				  instance, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT, VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT, nullptr);
+				  instance, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT, VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT, &cbdata);
+
+
+			//
+			auto vkDestroyDebugUtilsMessengerEXT =
+			  (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+			if (vkDestroyDebugUtilsMessengerEXT != nullptr)
+			{
+				vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+			}
 
 			vkDestroyInstance(instance, nullptr);
 
