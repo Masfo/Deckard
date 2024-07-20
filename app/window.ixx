@@ -1713,15 +1713,17 @@ namespace deckard::app
 				if (name.compare(VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0)
 					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 
+#ifdef _DEBUG
+				if (name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
+					required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+
+				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+					required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
 
 				dbg::println(
-				  "{:3}{} ({}.{}.{}){}",
-				  " ",
-				  ext.extensionName,
-				  VK_API_VERSION_MAJOR(ext.specVersion),
-				  VK_API_VERSION_MINOR(ext.specVersion),
-				  VK_API_VERSION_PATCH(ext.specVersion),
-				  i < extension_count - 1 ? ", " : "");
+				  "{:>42} (rev {}){}", ext.extensionName, VK_API_VERSION_PATCH(ext.specVersion), i < extension_count - 1 ? ", " : "");
 			}
 			dbg::println();
 
@@ -1737,8 +1739,7 @@ namespace deckard::app
 			{
 				const auto& layer = validator_layers[i];
 				dbg::println(
-				  "{:3}{} ({}.{}.{}){}",
-				  " ",
+				  "{:>42} ({}.{}.{}){}",
 				  layer.layerName,
 				  VK_API_VERSION_MAJOR(layer.specVersion),
 				  VK_API_VERSION_MINOR(layer.specVersion),
@@ -1748,13 +1749,14 @@ namespace deckard::app
 
 
 			std::vector<const char*> required_layers;
+#ifdef _DEBUG
 			required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
+#endif
 
 
 			//
 			VkApplicationInfo app_info{};
 			app_info.sType      = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-			app_info.pNext      = nullptr;
 			app_info.apiVersion = VK_API_VERSION_1_2;
 
 			app_info.pApplicationName   = "Deckard";
@@ -1765,7 +1767,6 @@ namespace deckard::app
 #endif
 			VkInstanceCreateInfo instance_create{};
 			instance_create.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-			instance_create.pNext            = nullptr;
 			instance_create.flags            = 0;
 			instance_create.pApplicationInfo = &app_info;
 			// extensions
@@ -1778,6 +1779,42 @@ namespace deckard::app
 			VkInstance instance;
 			result = vkCreateInstance(&instance_create, nullptr, &instance);
 
+			// debug
+			VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+			createInfo.messageSeverity =
+			  VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+			  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+			createInfo.messageType =
+			  VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+			  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+			createInfo.pfnUserCallback =
+			  [](VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+				 VkDebugUtilsMessageTypeFlagsEXT             messageType,
+				 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+				 void*                                       pUserData)
+			{
+				dbg::println("{}", pCallbackData->pMessage);
+				switch (messageSeverity)
+				{
+				}
+				return VK_FALSE;
+			};
+
+			VkDebugUtilsMessengerEXT debugMessenger;
+
+			auto vkCreateDebugUtilsMessengerEXT =
+			  (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+			if (vkCreateDebugUtilsMessengerEXT != nullptr)
+				result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
+
+			auto vkSubmitDebugUtilsMessageEXT =
+			  (PFN_vkSubmitDebugUtilsMessageEXT)vkGetInstanceProcAddr(instance, "vkSubmitDebugUtilsMessageEXT");
+			if (vkSubmitDebugUtilsMessageEXT != nullptr)
+				vkSubmitDebugUtilsMessageEXT(
+				  instance, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT, VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT, nullptr);
+
+			vkDestroyInstance(instance, nullptr);
 
 			return result == VK_SUCCESS;
 		}
