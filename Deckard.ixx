@@ -8,6 +8,7 @@ export import deckard.types;
 export import deckard.as;
 export import deckard.helpertypes;
 export import deckard.uuid;
+export import deckard.enums;
 
 // File
 export import deckard.filemonitor;
