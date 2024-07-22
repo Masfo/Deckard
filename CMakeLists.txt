@@ -224,6 +224,7 @@ set(DECKARD_SRCS
         app/window.ixx
         app/app.ixx
         app/vulkan.ixx
+        app/vulkan_helpers.ixx
 
 
         # Types
