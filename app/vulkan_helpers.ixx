@@ -15,6 +15,9 @@ namespace deckard::vulkan
 	export std::vector<VkLayerProperties>     validator_layers;
 
 
+	export std::vector<VkExtensionProperties> extensions;
+	export std::vector<VkLayerProperties>     validator_layers;
+
 	export PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT{nullptr};
 	export PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
 	export PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT{nullptr};
