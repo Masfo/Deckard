@@ -83,6 +83,10 @@ namespace deckard::vulkan
 		if (bool init_device = initialize_device(); not init_device)
 			return false;
 
+		if (bool enum_de = enumerate_device_extensions(physicaldevice); not enum_de)
+			return false;
+
+
 		is_initialized = true;
 		return is_initialized;
 	}
@@ -116,9 +120,9 @@ namespace deckard::vulkan
 
 		std::vector<const char*> required_extensions;
 #ifdef _DEBUG
-		dbg::println("Vulkan extensions({}):", extensions.size());
+		dbg::println("Vulkan instance extensions({}):", instance_extensions.size());
 #endif
-		for (const auto extension : extensions)
+		for (const auto extension : instance_extensions)
 		{
 
 			std::string_view name = extension.extensionName;
@@ -150,7 +154,7 @@ namespace deckard::vulkan
 				required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			}
 
-			dbg::println("{:>42}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
+			dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
 
 #endif
 		}
@@ -172,12 +176,12 @@ namespace deckard::vulkan
 			if (name.compare("VK_LAYER_KHRONOS_validation") == 0)
 			{
 				marked = true;
-				//	required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
+				required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
 			}
 
 
 			dbg::println(
-			  "{:>42}{} ({}.{}.{})",
+			  "{:>48}{} ({}.{}.{})",
 			  layer.layerName,
 			  marked ? "*" : " ",
 			  VK_API_VERSION_MAJOR(layer.specVersion),
@@ -292,6 +296,8 @@ namespace deckard::vulkan
 			dbg::println("Vulkan: no suitable GPU");
 			return false;
 		}
+
+		physicaldevice = devices[best_gpu_index];
 
 		const auto& prop = device_properties[best_gpu_index];
 

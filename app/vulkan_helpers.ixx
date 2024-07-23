@@ -5,12 +5,15 @@ module;
 export module deckard.vulkan_helpers;
 import deckard.debug;
 import deckard.types;
+import deckard.as;
 import std;
 
 namespace deckard::vulkan
 {
-	export std::vector<VkExtensionProperties> extensions;
+	export std::vector<VkExtensionProperties> instance_extensions;
+	export std::vector<VkExtensionProperties> device_extensions;
 	export std::vector<VkLayerProperties>     validator_layers;
+
 
 	export PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT{nullptr};
 	export PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
@@ -46,7 +49,7 @@ namespace deckard::vulkan
 			case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
 				return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
 			case VK_ERROR_VALIDATION_FAILED_EXT: return "A validation layer found an error";
-			default: return "ERROR: UNKNOWN VULKAN ERROR";
+			default: return std::format("UNKNOWN VULKAN ERROR: {}", as<i64>(result));
 		}
 	}
 
@@ -57,8 +60,8 @@ namespace deckard::vulkan
 
 		if (result == VK_SUCCESS)
 		{
-			extensions.resize(count);
-			result = vkEnumerateInstanceExtensionProperties(0, &count, extensions.data());
+			instance_extensions.resize(count);
+			result = vkEnumerateInstanceExtensionProperties(0, &count, instance_extensions.data());
 		}
 
 		return result == VK_SUCCESS;
@@ -88,5 +91,35 @@ namespace deckard::vulkan
 		  (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	}
 
+	export bool enumerate_device_extensions(VkPhysicalDevice device)
+	{
+		u32      de_count{0};
+		VkResult result = vkEnumerateDeviceExtensionProperties(device, nullptr, &de_count, nullptr);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate device extensions: {}", result_to_string(result));
+			return false;
+		}
+
+
+		device_extensions.resize(de_count);
+		result = vkEnumerateDeviceExtensionProperties(device, nullptr, &de_count, device_extensions.data());
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate device extensions: {}", result_to_string(result));
+			return false;
+		}
+		std::ranges::sort(device_extensions, {}, &VkExtensionProperties::extensionName);
+
+#ifdef _DEBUG
+		dbg::println("Device extensions({}):", de_count);
+		for (const auto& extension : device_extensions)
+		{
+			dbg::println("{:>48}  (rev {})", extension.extensionName, VK_API_VERSION_PATCH(extension.specVersion));
+		}
+
+#endif
+		return false;
+	}
 
 } // namespace deckard::vulkan
