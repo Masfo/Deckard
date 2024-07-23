@@ -251,12 +251,35 @@ private:
 	int value = 0;
 };
 
+std::string module_filename_from_function(void* function)
+{
+	std::string module_location(MAX_PATH, 0);
+	HMODULE     module_handle{nullptr};
+
+	if (GetModuleHandleExA(
+		  GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (const char*)function, &module_handle) !=
+		0)
+
+	{
+		auto size = GetModuleFileNameA(module_handle, module_location.data(), (DWORD)module_location.size());
+		module_location.resize(size);
+		return module_location;
+	}
+	return {};
+}
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	//
+	LoadLibraryExA("gdi32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+	dbg::println("MsgBox: {}", module_filename_from_function(&MessageBoxA));
+	dbg::println("GMF: {}", module_filename_from_function(&GetModuleFileNameA));
+	dbg::println("main: {}", module_filename_from_function(&main));
 
 
 #if 1
@@ -289,11 +312,11 @@ fullscreen=true
 	dbg::println("{}", "4667875975975975975975975975975975975975");
 
 	int k = 0;
+	{
+		app::app app01;
 
-	app::app app01;
-
-	app01.run();
-
+		app01.run();
+	}
 
 	k = 0;
 #else
