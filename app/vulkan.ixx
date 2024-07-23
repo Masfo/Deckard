@@ -107,8 +107,7 @@ namespace deckard::vulkan
 	bool vulkan::initialize_instance()
 	{
 		VkApplicationInfo app_info{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO};
-		app_info.apiVersion = VK_MAKE_API_VERSION(0, 1, 5, 0);
-		// VK_API_VERSION_1_1;
+		app_info.apiVersion = VK_API_VERSION_1_1;
 
 		app_info.pApplicationName   = "Deckard";
 		app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
@@ -142,17 +141,13 @@ namespace deckard::vulkan
 			}
 
 #ifdef _DEBUG
-			if (name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-			}
 
 			if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 			{
 				marked = true;
 				required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			}
+
 
 			dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
 
@@ -177,6 +172,18 @@ namespace deckard::vulkan
 			{
 				marked = true;
 				required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
+			}
+
+			if (name.compare("VK_LAYER_LUNARG_crash_diagnostic") == 0)
+			{
+				marked = true;
+				required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
+			}
+
+			if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
+			{
+				marked = true;
+				required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
 			}
 
 

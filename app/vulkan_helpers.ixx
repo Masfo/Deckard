@@ -101,7 +101,6 @@ namespace deckard::vulkan
 			return false;
 		}
 
-
 		device_extensions.resize(de_count);
 		result = vkEnumerateDeviceExtensionProperties(device, nullptr, &de_count, device_extensions.data());
 		if (result != VK_SUCCESS)
@@ -117,9 +116,8 @@ namespace deckard::vulkan
 		{
 			dbg::println("{:>48}  (rev {})", extension.extensionName, VK_API_VERSION_PATCH(extension.specVersion));
 		}
-
 #endif
-		return false;
+		return true;
 	}
 
 } // namespace deckard::vulkan
