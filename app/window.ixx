@@ -114,6 +114,8 @@ namespace deckard::app
 		void destroy() noexcept
 		{
 			//
+			vulkan.wait();
+
 			is_running = false;
 			if (not windowed)
 			{
@@ -161,7 +163,7 @@ namespace deckard::app
 			wc.style         = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
 			wc.lpszClassName = L"DeckardWindowClass";
 			wc.hInstance     = GetModuleHandle(nullptr);
-			//wc.hbrBackground = CreateSolidBrush(RGB(0, 128, 196));
+			// wc.hbrBackground = CreateSolidBrush(RGB(0, 128, 196));
 
 			wc.lpfnWndProc = [](HWND hWnd, uint32_t message, WPARAM wParam, LPARAM lParam) -> LRESULT
 			{

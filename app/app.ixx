@@ -197,6 +197,7 @@ namespace deckard
 					  }
 				  }
 
+
 				  destroy_inputs();
 				  wnd.destroy();
 			  });

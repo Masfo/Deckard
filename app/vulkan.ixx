@@ -47,6 +47,8 @@ namespace deckard::vulkan
 
 		bool draw();
 
+		void wait();
+
 	private:
 		// instance
 		bool initialize_instance();
@@ -78,6 +80,7 @@ namespace deckard::vulkan
 
 		VkSemaphore image_available{nullptr};
 		VkSemaphore rendering_finished{nullptr};
+		VkFence     in_flight{nullptr};
 
 		HINSTANCE window_instance{nullptr};
 		HWND      window_handle{nullptr};
@@ -140,6 +143,10 @@ namespace deckard::vulkan
 				command_pool = VK_NULL_HANDLE;
 			}
 
+			if (in_flight != VK_NULL_HANDLE)
+				vkDestroyFence(device, in_flight, nullptr);
+
+
 			if (image_available != VK_NULL_HANDLE)
 				vkDestroySemaphore(device, image_available, nullptr);
 
@@ -201,6 +208,12 @@ namespace deckard::vulkan
 			{
 				marked = true;
 				required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+			}
+
+			if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
+			{
+				marked = true;
+				required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 			}
 
 #ifdef _DEBUG
@@ -266,7 +279,10 @@ namespace deckard::vulkan
 
 		// Instance
 		VkInstanceCreateInfo instance_create{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
-		instance_create.flags            = 0;
+
+
+		instance_create.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+
 		instance_create.pApplicationInfo = &app_info;
 		// extensions
 		instance_create.enabledExtensionCount   = as<u32>(required_extensions.size());
@@ -496,6 +512,15 @@ namespace deckard::vulkan
 			dbg::println("Semaphore creation failed: {}", result_to_string(result));
 			return false;
 		}
+		VkFenceCreateInfo fence_info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+		fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		result = vkCreateFence(device, &fence_info, nullptr, &in_flight);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Fence creation failed: {}", result_to_string(result));
+			return false;
+		}
 
 		VkSurfaceCapabilitiesKHR surface_capabilities;
 		result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, presentation_surface, &surface_capabilities);
@@ -573,10 +598,7 @@ namespace deckard::vulkan
 
 		// surface_capability
 		VkSurfaceTransformFlagBitsKHR transform{VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR};
-		if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-			transform = VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR;
-		else
-			transform = surface_capabilities.currentTransform;
+		transform                     = surface_capabilities.currentTransform;
 		create_swapchain.preTransform = transform;
 
 		create_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -585,8 +607,8 @@ namespace deckard::vulkan
 		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
 
 		std::array<VkPresentModeKHR, 2> try_order{};
-		try_order[0] = VK_PRESENT_MODE_MAILBOX_KHR;
-		try_order[1] = VK_PRESENT_MODE_FIFO_KHR;
+		try_order[1] = VK_PRESENT_MODE_MAILBOX_KHR;
+		try_order[0] = VK_PRESENT_MODE_FIFO_KHR;
 
 		for (const auto& mode : present_modes)
 		{
@@ -629,6 +651,7 @@ namespace deckard::vulkan
 		// command buffers
 		VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
 		cmd_pool_create.queueFamilyIndex = queue_index;
+		cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &command_pool);
 		if (result != VK_SUCCESS)
@@ -665,7 +688,17 @@ namespace deckard::vulkan
 
 		VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
 
-		VkImageSubresourceRange image_subresource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+		VkImageSubresourceRange image_subresource_range = {
+		  VK_IMAGE_ASPECT_COLOR_BIT,
+		  0, // base mip-level
+		  1, // level-count
+		  0, // base array layer
+		  1  // layer count
+		};
+
+		// TODO: no reuse of command yet, record per frame
+		// render pass, framebuffer
+		// viewport, vkCmdDraw
 
 		for (u32 i = 0; i < image_count; ++i)
 		{
@@ -725,7 +758,7 @@ namespace deckard::vulkan
 			  0,
 			  nullptr,
 			  1,
-			  &barrier_from_present_to_clear);
+			  &barrier_from_clear_to_present);
 #endif
 
 			result = vkEndCommandBuffer(command_buffers[i]);
@@ -742,15 +775,40 @@ namespace deckard::vulkan
 
 	bool vulkan::draw()
 	{
-		//
-		u32      image_index{0};
-		VkResult result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, VK_NULL_HANDLE, &image_index);
+		VkResult result;
 
+		// VkResult result = vkWaitForFences(device, 1, &in_flight, VK_TRUE, UINT64_MAX);
+		// if (result != VK_SUCCESS)
+		//{
+		//	return false;
+		// }
+		//
+		u32 image_index{0};
+		result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, VK_NULL_HANDLE, &image_index);
+		switch (result)
+		{
+			case VK_SUCCESS: [[fallthrough]];
+			case VK_TIMEOUT: [[fallthrough]];
+			case VK_SUBOPTIMAL_KHR: break;
+
+			case VK_ERROR_OUT_OF_DATE_KHR:
+			{
+				dbg::println("Resize surface...?");
+				return false;
+			}
+			default:
+			{
+				dbg::println("something wrong on swapchain image acquisition");
+				return false;
+			}
+		}
 		VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
 		VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
+
 		submit_info.waitSemaphoreCount = 1;
 		submit_info.pWaitSemaphores    = &image_available;
+
 		submit_info.pWaitDstStageMask  = &wait_dest_stage_mask;
 		submit_info.commandBufferCount = 1;
 		submit_info.pCommandBuffers    = &command_buffers[image_index];
@@ -758,23 +816,29 @@ namespace deckard::vulkan
 		submit_info.signalSemaphoreCount = 1;
 		submit_info.pSignalSemaphores    = &rendering_finished;
 
-		result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
+
+		result = vkQueueSubmit(queue, 1, &submit_info, in_flight);
 		if (result != VK_SUCCESS)
 			return false;
 
 
 		VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+
 		present_info.waitSemaphoreCount = 1;
 		present_info.pWaitSemaphores    = &rendering_finished;
-		present_info.swapchainCount     = 1;
-		present_info.pSwapchains        = &swapchain;
-		present_info.pImageIndices      = &image_index;
+
+		present_info.swapchainCount = 1;
+		present_info.pSwapchains    = &swapchain;
+		present_info.pImageIndices  = &image_index;
 
 		result = vkQueuePresentKHR(queue, &present_info);
-
+		if (result != VK_SUCCESS)
+			return false;
 
 		return true;
 	}
+
+	void vulkan::wait() { vkDeviceWaitIdle(device); }
 
 	/// ##############################################
 	// Vulkan debug ##################################
