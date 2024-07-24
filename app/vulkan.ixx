@@ -11,6 +11,11 @@ import deckard.vulkan_helpers;
 
 namespace deckard::vulkan
 {
+	// TODO: partial modules for vulkan, like math
+	// instance, device, debug,	queue, surface
+	// all used in main vulkan module
+	// void init()
+	//   create_instance(), create_device(), create_queue(), create_surface()...
 
 	constexpr u32 VENDOR_NVIDIA = 0x10DE;
 
@@ -34,15 +39,20 @@ namespace deckard::vulkan
 
 		~vulkan() { deinitialize(); }
 
-		bool initialize() noexcept;
+		bool initialize(HINSTANCE inst, HWND handle) noexcept;
 
 		void deinitialize() noexcept;
 
 		void logme();
 
+		bool draw();
+
 	private:
 		// instance
 		bool initialize_instance();
+
+		// surface
+		bool initialize_surface();
 
 		// device
 		bool initialize_device();
@@ -57,15 +67,29 @@ namespace deckard::vulkan
 
 		VkInstance               instance{nullptr};
 		VkDevice                 device{nullptr};
-		VkPhysicalDevice         physicaldevice{nullptr};
+		VkPhysicalDevice         physical_device{nullptr};
 		VkDebugUtilsMessengerEXT debug_messenger{nullptr};
+		VkSwapchainKHR           swapchain{nullptr};
+		VkQueue                  queue{nullptr};
+		VkSurfaceKHR             presentation_surface{nullptr};
 
+		std::vector<VkCommandBuffer> command_buffers;
+		VkCommandPool                command_pool{nullptr};
+
+		VkSemaphore image_available{nullptr};
+		VkSemaphore rendering_finished{nullptr};
+
+		HINSTANCE window_instance{nullptr};
+		HWND      window_handle{nullptr};
 
 		bool is_initialized{false};
 	};
 
-	bool vulkan::initialize() noexcept
+	bool vulkan::initialize(HINSTANCE instance, HWND handle) noexcept
 	{
+		window_instance = instance;
+		window_handle   = handle;
+
 		if (bool ext_init = enumerate_instance_extensions(); not ext_init)
 			return false;
 		if (bool layer_init = enumerate_validator_layers(); not layer_init)
@@ -73,6 +97,9 @@ namespace deckard::vulkan
 
 
 		if (bool instance_init = initialize_instance(); not instance_init)
+			return false;
+
+		if (bool surface_init = initialize_surface(); not surface_init)
 			return false;
 
 #ifdef _DEBUG
@@ -83,7 +110,7 @@ namespace deckard::vulkan
 		if (bool init_device = initialize_device(); not init_device)
 			return false;
 
-		if (bool enum_de = enumerate_device_extensions(physicaldevice); not enum_de)
+		if (bool enum_de = enumerate_device_extensions(physical_device); not enum_de)
 			return false;
 
 
@@ -97,8 +124,44 @@ namespace deckard::vulkan
 		if (vkDestroyDebugUtilsMessengerEXT != nullptr)
 			vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
 
-		vkDestroyInstance(instance, nullptr);
-		instance = nullptr;
+		if (device != VK_NULL_HANDLE)
+		{
+			vkDeviceWaitIdle(device);
+
+			if (command_buffers.size() > 0 and command_buffers[0] != VK_NULL_HANDLE)
+			{
+				vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
+				command_buffers.clear();
+			}
+
+			if (command_pool != VK_NULL_HANDLE)
+			{
+				vkDestroyCommandPool(device, command_pool, nullptr);
+				command_pool = VK_NULL_HANDLE;
+			}
+
+			if (image_available != VK_NULL_HANDLE)
+				vkDestroySemaphore(device, image_available, nullptr);
+
+			if (rendering_finished != VK_NULL_HANDLE)
+				vkDestroySemaphore(device, rendering_finished, nullptr);
+
+			if (swapchain != VK_NULL_HANDLE)
+				vkDestroySwapchainKHR(device, swapchain, nullptr);
+
+			vkDestroyDevice(device, nullptr);
+			device = nullptr;
+		}
+
+		if (presentation_surface != VK_NULL_HANDLE)
+			vkDestroySurfaceKHR(instance, presentation_surface, nullptr);
+
+
+		if (instance != VK_NULL_HANDLE)
+		{
+			vkDestroyInstance(instance, nullptr);
+			instance = nullptr;
+		}
 
 		is_initialized = false;
 	}
@@ -180,11 +243,13 @@ namespace deckard::vulkan
 				required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
 			}
 
+#if 0
 			if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
 			{
 				marked = true;
 				required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
 			}
+#endif
 
 
 			dbg::println(
@@ -217,6 +282,25 @@ namespace deckard::vulkan
 			dbg::println("Create vulkan instance failed: {}", result_to_string(result));
 			return false;
 		}
+
+		return true;
+	}
+
+	// ################################
+	// surface
+	bool vulkan::initialize_surface()
+	{
+		VkWin32SurfaceCreateInfoKHR surface_create_info{.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
+		surface_create_info.hinstance = window_instance;
+		surface_create_info.hwnd      = window_handle;
+
+		VkResult result = vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Could not create vulkan surface on window: {}", result_to_string(result));
+			return false;
+		}
+
 
 		return true;
 	}
@@ -304,7 +388,7 @@ namespace deckard::vulkan
 			return false;
 		}
 
-		physicaldevice = devices[best_gpu_index];
+		physical_device = devices[best_gpu_index];
 
 		const auto& prop = device_properties[best_gpu_index];
 
@@ -335,6 +419,314 @@ namespace deckard::vulkan
 					 VK_API_VERSION_PATCH(prop.apiVersion));
 
 
+		// queue
+		u32 queue_families_count = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
+		if (queue_families_count == 0)
+		{
+			dbg::println("Vulkan device has no queue families");
+			return false;
+		}
+
+		i32                                  queue_index{-1};
+		std::vector<VkQueueFamilyProperties> queue_family_properties(queue_families_count);
+
+		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_family_properties.data());
+
+		for (u32 i = 0; i < queue_families_count; i++)
+		{
+			if ((queue_family_properties[i].queueCount > 0) and (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+			{
+				queue_index = i;
+				break;
+			}
+		}
+
+		if (queue_index < 0)
+		{
+			dbg::println("Vulkan device had not required queue family properties");
+			return false;
+		}
+
+		// queue
+		VkDeviceQueueCreateInfo queue_create{.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
+
+		std::array<float, 1> priority{1.0f};
+		queue_create.queueCount       = 1;
+		queue_create.queueFamilyIndex = queue_index;
+		queue_create.pQueuePriorities = &priority[0];
+
+
+		// device
+		std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+		VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+		device_create.queueCreateInfoCount = 1;
+		device_create.pQueueCreateInfos    = &queue_create;
+		// extensions
+		device_create.enabledExtensionCount   = extensions.size();
+		device_create.ppEnabledExtensionNames = extensions.data();
+
+		// https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-1.html
+
+		result = vkCreateDevice(physical_device, &device_create, nullptr, &device);
+
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Vulkan device creation failed: {}", result_to_string(result));
+			return false;
+		}
+
+		vkGetDeviceQueue(device, queue_index, 0, &queue);
+
+		// semaphores
+
+		VkSemaphoreCreateInfo semaphore_create{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+
+		result = vkCreateSemaphore(device, &semaphore_create, nullptr, &image_available);
+		result = vkCreateSemaphore(device, &semaphore_create, nullptr, &rendering_finished);
+
+		VkSurfaceCapabilitiesKHR surface_capabilities;
+		result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, presentation_surface, &surface_capabilities);
+
+
+		u32 formats_count{0};
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, nullptr);
+
+		std::vector<VkSurfaceFormatKHR> surface_formats(formats_count);
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, surface_formats.data());
+
+		// present modes
+		u32 present_mode_count{0};
+		result = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, presentation_surface, &present_mode_count, nullptr);
+
+		std::vector<VkPresentModeKHR> present_modes(present_mode_count);
+		result =
+		  vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, presentation_surface, &present_mode_count, present_modes.data());
+
+
+		//
+		// swapchain
+
+		VkSwapchainCreateInfoKHR create_swapchain{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+		create_swapchain.surface = presentation_surface;
+
+		u32 desired_number_of_images = surface_capabilities.minImageCount + 1;
+		if ((surface_capabilities.maxImageCount > 0) and (desired_number_of_images > surface_capabilities.maxImageCount))
+			desired_number_of_images = surface_capabilities.maxImageCount;
+
+		create_swapchain.minImageCount = desired_number_of_images;
+
+		VkSurfaceFormatKHR desired_format{VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
+		create_swapchain.imageFormat     = desired_format.format;
+		create_swapchain.imageColorSpace = desired_format.colorSpace;
+
+		// extent
+		create_swapchain.imageExtent      = surface_capabilities.currentExtent;
+		create_swapchain.imageArrayLayers = 1;
+
+		VkImageUsageFlags usage{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT};
+		create_swapchain.imageUsage = usage;
+
+		create_swapchain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		create_swapchain.queueFamilyIndexCount = 0;
+		create_swapchain.pQueueFamilyIndices   = nullptr;
+
+		// surface_capability
+		VkSurfaceTransformFlagBitsKHR transform{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
+		create_swapchain.preTransform = surface_capabilities.currentTransform;
+
+		create_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+		// present mode
+		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
+		for (const auto& mode : present_modes)
+		{
+			if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			{
+				present_mode = mode;
+				break;
+			}
+		}
+
+		if (present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
+			for (const auto& mode : present_modes)
+			{
+				if (mode == VK_PRESENT_MODE_FIFO_KHR)
+				{
+					present_mode = mode;
+					break;
+				}
+			}
+		create_swapchain.presentMode = present_mode;
+
+		// clipped
+		create_swapchain.clipped = VK_TRUE;
+
+		VkSwapchainKHR old_swap_chain = swapchain;
+		create_swapchain.oldSwapchain = old_swap_chain;
+
+		result = vkCreateSwapchainKHR(device, &create_swapchain, nullptr, &swapchain);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Vulkan swapchain creation failed: {}", result_to_string(result));
+			return false;
+		}
+
+		if (old_swap_chain != VK_NULL_HANDLE)
+		{
+			vkDestroySwapchainKHR(device, old_swap_chain, nullptr);
+		}
+
+		// command buffers
+		VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+		cmd_pool_create.queueFamilyIndex = queue_index;
+
+		result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &command_pool);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Command pool creation failed: {}", result_to_string(result));
+			return false;
+		}
+
+		//
+
+		u32 image_count{0};
+		result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
+		command_buffers.resize(image_count);
+
+		VkCommandBufferAllocateInfo command_buffer_allocate{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+		command_buffer_allocate.commandPool        = command_pool;
+		command_buffer_allocate.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		command_buffer_allocate.commandBufferCount = image_count;
+
+		result = vkAllocateCommandBuffers(device, &command_buffer_allocate, command_buffers.data());
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Failed to allocate command buffers: {}", result_to_string(result));
+			return false;
+		}
+
+		// record
+		u32                  img_count = as<u32>(command_buffers.size());
+		std::vector<VkImage> swap_chain_images(img_count);
+
+		result = vkGetSwapchainImagesKHR(device, swapchain, &img_count, swap_chain_images.data());
+
+		VkCommandBufferBeginInfo cmd_buffer_begin{
+		  .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT};
+
+		VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
+
+		VkImageSubresourceRange image_subresource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+		for (u32 i = 0; i < img_count; ++i)
+		{
+			VkImageMemoryBarrier barrier_from_present_to_clear = {
+			  VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			  nullptr,
+			  VK_ACCESS_MEMORY_READ_BIT,
+			  VK_ACCESS_TRANSFER_WRITE_BIT,
+			  VK_IMAGE_LAYOUT_UNDEFINED,
+			  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			  VK_QUEUE_FAMILY_IGNORED,
+			  VK_QUEUE_FAMILY_IGNORED,
+			  swap_chain_images[i],
+			  image_subresource_range};
+
+			VkImageMemoryBarrier barrier_from_clear_to_present = {
+			  VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			  nullptr,
+			  VK_ACCESS_TRANSFER_WRITE_BIT,
+			  VK_ACCESS_MEMORY_WRITE_BIT,
+			  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			  VK_QUEUE_FAMILY_IGNORED,
+			  VK_QUEUE_FAMILY_IGNORED,
+			  swap_chain_images[i],
+			  image_subresource_range};
+
+			result = vkBeginCommandBuffer(command_buffers[i], &cmd_buffer_begin);
+
+#if 0
+			vkCmdPipelineBarrier(
+			  command_buffers[i],
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,
+			  0,
+			  0,
+			  nullptr,
+			  0,
+			  nullptr,
+			  1,
+			  &barrier_from_present_to_clear);
+#endif
+
+			//
+			vkCmdClearColorImage(
+			  command_buffers[i], swap_chain_images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_subresource_range);
+
+#if 0
+
+			vkCmdPipelineBarrier(
+			  command_buffers[i],
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,
+			  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			  0,
+			  0,
+			  nullptr,
+			  0,
+			  nullptr,
+			  1,
+			  &barrier_from_present_to_clear);
+#endif
+
+			result = vkEndCommandBuffer(command_buffers[i]);
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("cmd buffer failed");
+				return false;
+			}
+		}
+
+
+		return true;
+	}
+
+	bool vulkan::draw()
+	{
+		//
+		u32      image_index{0};
+		VkResult result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, VK_NULL_HANDLE, &image_index);
+
+		VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+		VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
+		submit_info.waitSemaphoreCount = 1;
+		submit_info.pWaitSemaphores    = &image_available;
+		submit_info.pWaitDstStageMask  = &wait_dest_stage_mask;
+		submit_info.commandBufferCount = 1;
+		submit_info.pCommandBuffers    = &command_buffers[image_index];
+
+		submit_info.signalSemaphoreCount = 1;
+		submit_info.pSignalSemaphores    = &rendering_finished;
+
+		result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
+		if (result != VK_SUCCESS)
+			return false;
+
+
+		VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+		present_info.waitSemaphoreCount = 1;
+		present_info.pWaitSemaphores    = &rendering_finished;
+		present_info.swapchainCount     = 1;
+		present_info.pSwapchains        = &swapchain;
+		present_info.pImageIndices      = &image_index;
+
+		result = vkQueuePresentKHR(queue, &present_info);
+
+
 		return true;
 	}
 
@@ -362,12 +754,15 @@ namespace deckard::vulkan
 		// debug functions
 		initialize_ext_functions(instance);
 
+		u32 severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+		severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+		//
 		// debug
 		VkDebugUtilsMessengerCreateInfoEXT create{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-		create.messageSeverity =
-		  VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-		  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-		create.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+		create.messageSeverity = severity;
+		create.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 							 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 		create.pfnUserCallback = (PFN_vkDebugUtilsMessengerCallbackEXT)debug_callback;
 		create.pUserData       = this;

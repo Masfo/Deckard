@@ -161,7 +161,7 @@ namespace deckard::app
 			wc.style         = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
 			wc.lpszClassName = L"DeckardWindowClass";
 			wc.hInstance     = GetModuleHandle(nullptr);
-			wc.hbrBackground = CreateSolidBrush(RGB(0, 128, 196));
+			//wc.hbrBackground = CreateSolidBrush(RGB(0, 128, 196));
 
 			wc.lpfnWndProc = [](HWND hWnd, uint32_t message, WPARAM wParam, LPARAM lParam) -> LRESULT
 			{
@@ -287,10 +287,10 @@ namespace deckard::app
 			dc = GetDC(handle);
 
 
-			if (not vulkan.initialize())
+			if (not vulkan.initialize(GetModuleHandle(nullptr), handle))
 				return;
 
-			init_gl_renderer();
+			// init_gl_renderer();
 
 			//
 			ShowWindow(handle, SW_SHOW);
@@ -1672,6 +1672,10 @@ namespace deckard::app
 
 		void render()
 		{
+#if 1
+			vulkan.draw();
+#else
+
 #ifdef _DEBUG
 			if (not renderer_initialized)
 				return;
@@ -1683,6 +1687,8 @@ namespace deckard::app
 			// glMultiDrawArrays, SSBO
 
 			SwapBuffers(dc);
+
+#endif
 		}
 
 		WindowSize client_size;
