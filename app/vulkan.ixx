@@ -484,37 +484,72 @@ namespace deckard::vulkan
 		VkSemaphoreCreateInfo semaphore_create{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
 		result = vkCreateSemaphore(device, &semaphore_create, nullptr, &image_available);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Semaphore creation failed: {}", result_to_string(result));
+			return false;
+		}
+
 		result = vkCreateSemaphore(device, &semaphore_create, nullptr, &rendering_finished);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Semaphore creation failed: {}", result_to_string(result));
+			return false;
+		}
 
 		VkSurfaceCapabilitiesKHR surface_capabilities;
 		result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, presentation_surface, &surface_capabilities);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Device surface capabilities query failed: {}", result_to_string(result));
+			return false;
+		}
 
-
-		u32 formats_count{0};
-		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, nullptr);
-
+		u32                             formats_count{0};
 		std::vector<VkSurfaceFormatKHR> surface_formats(formats_count);
-		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, surface_formats.data());
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, nullptr);
+		if (result == VK_SUCCESS)
+		{
+			surface_formats.resize(formats_count);
+
+			result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, surface_formats.data());
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Device surface formats query failed: {}", result_to_string(result));
+				return false;
+			}
+		}
 
 		// present modes
-		u32 present_mode_count{0};
-		result = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, presentation_surface, &present_mode_count, nullptr);
+		u32                           present_mode_count{0};
+		std::vector<VkPresentModeKHR> present_modes;
 
-		std::vector<VkPresentModeKHR> present_modes(present_mode_count);
-		result =
-		  vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, presentation_surface, &present_mode_count, present_modes.data());
+		result = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, presentation_surface, &present_mode_count, nullptr);
+		if (result == VK_SUCCESS)
+		{
+			present_modes.resize(present_mode_count);
+
+			result =
+			  vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, presentation_surface, &present_mode_count, present_modes.data());
+
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Device surface formats query failed: {}", result_to_string(result));
+				return false;
+			}
+		}
 
 
 		//
 		// swapchain
 
 		VkSwapchainCreateInfoKHR create_swapchain{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-		create_swapchain.surface = presentation_surface;
 
 		u32 desired_number_of_images = surface_capabilities.minImageCount + 1;
-		if ((surface_capabilities.maxImageCount > 0) and (desired_number_of_images > surface_capabilities.maxImageCount))
-			desired_number_of_images = surface_capabilities.maxImageCount;
+		desired_number_of_images =
+		  std::clamp(desired_number_of_images, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
 
+		create_swapchain.surface       = presentation_surface;
 		create_swapchain.minImageCount = desired_number_of_images;
 
 		VkSurfaceFormatKHR desired_format{VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
@@ -525,7 +560,10 @@ namespace deckard::vulkan
 		create_swapchain.imageExtent      = surface_capabilities.currentExtent;
 		create_swapchain.imageArrayLayers = 1;
 
-		VkImageUsageFlags usage{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT};
+		VkImageUsageFlags usage{VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM};
+		if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+			usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
 		create_swapchain.imageUsage = usage;
 
 		create_swapchain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -534,16 +572,25 @@ namespace deckard::vulkan
 		create_swapchain.pQueueFamilyIndices   = nullptr;
 
 		// surface_capability
-		VkSurfaceTransformFlagBitsKHR transform{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
-		create_swapchain.preTransform = surface_capabilities.currentTransform;
+		VkSurfaceTransformFlagBitsKHR transform{VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR};
+		if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+			transform = VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR;
+		else
+			transform = surface_capabilities.currentTransform;
+		create_swapchain.preTransform = transform;
 
 		create_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 		// present mode
 		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
+
+		std::array<VkPresentModeKHR, 2> try_order{};
+		try_order[0] = VK_PRESENT_MODE_MAILBOX_KHR;
+		try_order[1] = VK_PRESENT_MODE_FIFO_KHR;
+
 		for (const auto& mode : present_modes)
 		{
-			if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			if (mode == try_order[0])
 			{
 				present_mode = mode;
 				break;
@@ -553,7 +600,7 @@ namespace deckard::vulkan
 		if (present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
 			for (const auto& mode : present_modes)
 			{
-				if (mode == VK_PRESENT_MODE_FIFO_KHR)
+				if (mode == try_order[1])
 				{
 					present_mode = mode;
 					break;
@@ -609,10 +656,9 @@ namespace deckard::vulkan
 		}
 
 		// record
-		u32                  img_count = as<u32>(command_buffers.size());
-		std::vector<VkImage> swap_chain_images(img_count);
+		std::vector<VkImage> swap_chain_images(image_count);
 
-		result = vkGetSwapchainImagesKHR(device, swapchain, &img_count, swap_chain_images.data());
+		result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, swap_chain_images.data());
 
 		VkCommandBufferBeginInfo cmd_buffer_begin{
 		  .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT};
@@ -621,7 +667,7 @@ namespace deckard::vulkan
 
 		VkImageSubresourceRange image_subresource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-		for (u32 i = 0; i < img_count; ++i)
+		for (u32 i = 0; i < image_count; ++i)
 		{
 			VkImageMemoryBarrier barrier_from_present_to_clear = {
 			  VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -649,7 +695,7 @@ namespace deckard::vulkan
 
 			result = vkBeginCommandBuffer(command_buffers[i], &cmd_buffer_begin);
 
-#if 0
+#if 1
 			vkCmdPipelineBarrier(
 			  command_buffers[i],
 			  VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -667,7 +713,7 @@ namespace deckard::vulkan
 			vkCmdClearColorImage(
 			  command_buffers[i], swap_chain_images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_subresource_range);
 
-#if 0
+#if 1
 
 			vkCmdPipelineBarrier(
 			  command_buffers[i],
