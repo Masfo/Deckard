@@ -167,21 +167,22 @@ namespace deckard
 				  last = start;
 
 
-				  unsigned int currentframe{0};
-				  float        framerate{0};
-				  float        oldtime{0};
-				  float        newtime{1};
-				  __int64      counter{1};
-				  __int64      frequency{0};
-				  float        timeperframe{0.0f};
+				  u32   currentframe{0};
+				  float framerate{0};
+				  float oldtime{0};
+				  float newtime{1};
+				  i64   counter{1};
+				  i64   frequency{0};
+				  float timeperframe{0.0f};
 				  QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
+				  float freq1 = 1.0f / frequency;
 
 				  float accumulate{0.0f};
 
 				  while (wnd.loop())
 				  {
 					  QueryPerformanceCounter((LARGE_INTEGER*)&counter);
-					  newtime      = (float)counter / (float)frequency;
+					  newtime      = (float)counter * freq1;
 					  timeperframe = newtime - oldtime;
 					  framerate    = 1.0f / timeperframe;
 					  oldtime      = newtime;
@@ -193,7 +194,8 @@ namespace deckard
 					  if (accumulate >= 1.0)
 					  {
 						  accumulate -= 1.0;
-						  wnd.set_title(std::format("{:}, {:.3f}, Delta: {:.5f}", currentframe, framerate, timeperframe));
+						  wnd.set_title(std::format("{}, {}, Delta: {}", currentframe, framerate, timeperframe));
+						  currentframe = 0;
 					  }
 				  }
 

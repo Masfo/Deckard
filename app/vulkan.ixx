@@ -67,16 +67,21 @@ namespace deckard::vulkan
 		static bool debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 								   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 
-		VkInstance               instance{nullptr};
-		VkDevice                 device{nullptr};
-		VkPhysicalDevice         physical_device{nullptr};
-		VkDebugUtilsMessengerEXT debug_messenger{nullptr};
-		VkSwapchainKHR           swapchain{nullptr};
-		VkQueue                  queue{nullptr};
-		VkSurfaceKHR             presentation_surface{nullptr};
+		VkInstance                      instance{nullptr};
+		VkDevice                        device{nullptr};
+		VkPhysicalDevice                physical_device{nullptr};
+		VkDebugUtilsMessengerEXT        debug_messenger{nullptr};
+		VkSwapchainKHR                  swapchain{nullptr};
+		VkQueue                         queue{nullptr};
+		VkSurfaceKHR                    presentation_surface{nullptr};
+		std::vector<VkSurfaceFormatKHR> surface_formats;
 
 		std::vector<VkCommandBuffer> command_buffers;
 		VkCommandPool                command_pool{nullptr};
+
+		std::vector<VkImage>       swapchain_images{};
+		std::vector<VkImageView>   swapchain_imageviews{};
+		std::vector<VkFramebuffer> swapchain_framebuffers;
 
 		VkSemaphore image_available{nullptr};
 		VkSemaphore rendering_finished{nullptr};
@@ -124,8 +129,12 @@ namespace deckard::vulkan
 	void vulkan::deinitialize() noexcept
 	{
 
-		if (vkDestroyDebugUtilsMessengerEXT != nullptr)
-			vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
+		for (auto& view : swapchain_imageviews)
+			vkDestroyImageView(device, view, nullptr);
+
+		for (auto& framebuffer : swapchain_framebuffers)
+			vkDestroyFramebuffer(device, framebuffer, nullptr);
+
 
 		if (device != VK_NULL_HANDLE)
 		{
@@ -166,6 +175,10 @@ namespace deckard::vulkan
 
 		if (instance != VK_NULL_HANDLE)
 		{
+			if (vkDestroyDebugUtilsMessengerEXT != nullptr)
+				vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
+
+
 			vkDestroyInstance(instance, nullptr);
 			instance = nullptr;
 		}
@@ -250,13 +263,14 @@ namespace deckard::vulkan
 				required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
 			}
 
+
+#if 0
 			if (name.compare("VK_LAYER_LUNARG_crash_diagnostic") == 0)
 			{
 				marked = true;
 				required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
 			}
 
-#if 0
 			if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
 			{
 				marked = true;
@@ -530,8 +544,8 @@ namespace deckard::vulkan
 			return false;
 		}
 
-		u32                             formats_count{0};
-		std::vector<VkSurfaceFormatKHR> surface_formats(formats_count);
+		// surface formats
+		u32 formats_count{0};
 		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, nullptr);
 		if (result == VK_SUCCESS)
 		{
@@ -607,8 +621,8 @@ namespace deckard::vulkan
 		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
 
 		std::array<VkPresentModeKHR, 2> try_order{};
-		try_order[1] = VK_PRESENT_MODE_MAILBOX_KHR;
-		try_order[0] = VK_PRESENT_MODE_FIFO_KHR;
+		try_order[0] = VK_PRESENT_MODE_MAILBOX_KHR;
+		try_order[1] = VK_PRESENT_MODE_FIFO_KHR;
 
 		for (const auto& mode : present_modes)
 		{
@@ -647,6 +661,59 @@ namespace deckard::vulkan
 		{
 			vkDestroySwapchainKHR(device, old_swap_chain, nullptr);
 		}
+
+		// swapchain images
+		u32 swapchain_image_count{};
+		result = vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
+		if (result == VK_SUCCESS)
+		{
+			swapchain_images.resize(swapchain_image_count);
+			result = vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images.data());
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Getting Vulkan swapchain images failed: {}", result_to_string(result));
+				return false;
+			}
+		}
+		else
+		{
+			dbg::println("Getting Vulkan swapchain images failed: {}", result_to_string(result));
+			return false;
+		}
+
+		// swapchain imageviews
+		swapchain_imageviews.resize(swapchain_image_count);
+		for (size_t i = 0; i < swapchain_images.size(); ++i)
+		{
+			VkImageViewCreateInfo iv_create{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+			iv_create.image    = swapchain_images[i];
+			iv_create.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+			// TODO: better format getter
+			iv_create.format = desired_format.format;
+
+			iv_create.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			iv_create.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			iv_create.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			iv_create.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+			iv_create.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+			iv_create.subresourceRange.baseMipLevel   = 0;
+			iv_create.subresourceRange.levelCount     = 1;
+			iv_create.subresourceRange.baseArrayLayer = 0;
+			iv_create.subresourceRange.layerCount     = 1;
+
+			result = vkCreateImageView(device, &iv_create, nullptr, &swapchain_imageviews[i]);
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Vulkan create image view for swapchain failed: {}", result_to_string(result));
+				return false;
+			}
+		}
+
+		// framebuffers
+		swapchain_framebuffers.resize(swapchain_imageviews.size());
+
 
 		// command buffers
 		VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -775,7 +842,10 @@ namespace deckard::vulkan
 
 	bool vulkan::draw()
 	{
-		VkResult result;
+		VkResult result{};
+		result = vkWaitForFences(device, 1, &in_flight, VK_TRUE, UINT64_MAX);
+		result = vkResetFences(device, 1, &in_flight);
+
 
 		// VkResult result = vkWaitForFences(device, 1, &in_flight, VK_TRUE, UINT64_MAX);
 		// if (result != VK_SUCCESS)
@@ -784,7 +854,7 @@ namespace deckard::vulkan
 		// }
 		//
 		u32 image_index{0};
-		result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, VK_NULL_HANDLE, &image_index);
+		result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, nullptr, &image_index);
 		switch (result)
 		{
 			case VK_SUCCESS: [[fallthrough]];
