@@ -82,6 +82,11 @@ namespace deckard::vulkan
 		std::vector<VkImage>       swapchain_images{};
 		std::vector<VkImageView>   swapchain_imageviews{};
 		std::vector<VkFramebuffer> swapchain_framebuffers;
+		VkExtent2D                 swapchain_extent{};
+		VkFormat                   swapchain_format;
+
+		VkRenderPass     renderpass{nullptr};
+		VkPipelineLayout pipeline_layout{nullptr};
 
 		VkSemaphore image_available{nullptr};
 		VkSemaphore rendering_finished{nullptr};
@@ -129,16 +134,23 @@ namespace deckard::vulkan
 	void vulkan::deinitialize() noexcept
 	{
 
-		for (auto& view : swapchain_imageviews)
-			vkDestroyImageView(device, view, nullptr);
-
-		for (auto& framebuffer : swapchain_framebuffers)
-			vkDestroyFramebuffer(device, framebuffer, nullptr);
-
+		vkDeviceWaitIdle(device);
 
 		if (device != VK_NULL_HANDLE)
 		{
-			vkDeviceWaitIdle(device);
+			if (pipeline_layout != nullptr)
+				vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
+
+			if (renderpass != nullptr)
+				vkDestroyRenderPass(device, renderpass, nullptr);
+
+
+			for (auto& view : swapchain_imageviews)
+				vkDestroyImageView(device, view, nullptr);
+
+			for (auto& framebuffer : swapchain_framebuffers)
+				vkDestroyFramebuffer(device, framebuffer, nullptr);
+
 
 			if (command_buffers.size() > 0 and command_buffers[0] != VK_NULL_HANDLE)
 			{
@@ -161,6 +173,7 @@ namespace deckard::vulkan
 
 			if (rendering_finished != VK_NULL_HANDLE)
 				vkDestroySemaphore(device, rendering_finished, nullptr);
+
 
 			if (swapchain != VK_NULL_HANDLE)
 				vkDestroySwapchainKHR(device, swapchain, nullptr);
@@ -497,7 +510,6 @@ namespace deckard::vulkan
 		device_create.enabledExtensionCount   = extensions.size();
 		device_create.ppEnabledExtensionNames = extensions.data();
 
-		// https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-1.html
 
 		result = vkCreateDevice(physical_device, &device_create, nullptr, &device);
 
@@ -536,6 +548,7 @@ namespace deckard::vulkan
 			return false;
 		}
 
+		// surface capabilities
 		VkSurfaceCapabilitiesKHR surface_capabilities;
 		result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, presentation_surface, &surface_capabilities);
 		if (result != VK_SUCCESS)
@@ -543,6 +556,7 @@ namespace deckard::vulkan
 			dbg::println("Device surface capabilities query failed: {}", result_to_string(result));
 			return false;
 		}
+
 
 		// surface formats
 		u32 formats_count{0};
@@ -592,7 +606,9 @@ namespace deckard::vulkan
 		create_swapchain.minImageCount = desired_number_of_images;
 
 		VkSurfaceFormatKHR desired_format{VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
-		create_swapchain.imageFormat     = desired_format.format;
+		swapchain_format             = desired_format.format;
+		create_swapchain.imageFormat = swapchain_format;
+
 		create_swapchain.imageColorSpace = desired_format.colorSpace;
 
 		// extent
@@ -662,6 +678,10 @@ namespace deckard::vulkan
 			vkDestroySwapchainKHR(device, old_swap_chain, nullptr);
 		}
 
+		// extent
+		swapchain_extent = surface_capabilities.currentExtent;
+
+
 		// swapchain images
 		u32 swapchain_image_count{};
 		result = vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
@@ -711,8 +731,69 @@ namespace deckard::vulkan
 			}
 		}
 
+		// renderpass
+		VkAttachmentDescription colorAttachment{};
+		colorAttachment.format         = swapchain_format;
+		colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachment.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorAttachmentRef{};
+		colorAttachmentRef.attachment = 0;
+		colorAttachmentRef.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments    = &colorAttachmentRef;
+
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass    = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass    = 0;
+		dependency.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = 1;
+		renderPassInfo.pAttachments    = &colorAttachment;
+		renderPassInfo.subpassCount    = 1;
+		renderPassInfo.pSubpasses      = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies   = &dependency;
+
+		result = vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderpass);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Vulkan create render pass failed: {}", result_to_string(result));
+			return false;
+		}
+
+
 		// framebuffers
 		swapchain_framebuffers.resize(swapchain_imageviews.size());
+
+		for (size_t i = 0; i < swapchain_imageviews.size(); ++i)
+		{
+			VkImageView attachments[] = {swapchain_imageviews[i]};
+
+			VkFramebufferCreateInfo frambuffer_create{.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+
+			// frambuffer_create.renderPass = renderpass;
+
+			frambuffer_create.width  = swapchain_extent.width;
+			frambuffer_create.height = swapchain_extent.height;
+			frambuffer_create.layers = 1;
+
+			frambuffer_create.attachmentCount = 1;
+			frambuffer_create.pAttachments    = attachments;
+		}
 
 
 		// command buffers
