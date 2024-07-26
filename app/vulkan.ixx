@@ -136,7 +136,7 @@ namespace deckard::vulkan
 
 		vkDeviceWaitIdle(device);
 
-		if (device != VK_NULL_HANDLE)
+		if (device != nullptr)
 		{
 			if (pipeline_layout != nullptr)
 				vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
@@ -152,41 +152,41 @@ namespace deckard::vulkan
 				vkDestroyFramebuffer(device, framebuffer, nullptr);
 
 
-			if (command_buffers.size() > 0 and command_buffers[0] != VK_NULL_HANDLE)
+			if (command_buffers.size() > 0 and command_buffers[0] != nullptr)
 			{
 				vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
 				command_buffers.clear();
 			}
 
-			if (command_pool != VK_NULL_HANDLE)
+			if (command_pool != nullptr)
 			{
 				vkDestroyCommandPool(device, command_pool, nullptr);
-				command_pool = VK_NULL_HANDLE;
+				command_pool = nullptr;
 			}
 
-			if (in_flight != VK_NULL_HANDLE)
+			if (in_flight != nullptr)
 				vkDestroyFence(device, in_flight, nullptr);
 
 
-			if (image_available != VK_NULL_HANDLE)
+			if (image_available != nullptr)
 				vkDestroySemaphore(device, image_available, nullptr);
 
-			if (rendering_finished != VK_NULL_HANDLE)
+			if (rendering_finished != nullptr)
 				vkDestroySemaphore(device, rendering_finished, nullptr);
 
 
-			if (swapchain != VK_NULL_HANDLE)
+			if (swapchain != nullptr)
 				vkDestroySwapchainKHR(device, swapchain, nullptr);
 
 			vkDestroyDevice(device, nullptr);
 			device = nullptr;
 		}
 
-		if (presentation_surface != VK_NULL_HANDLE)
+		if (presentation_surface != nullptr)
 			vkDestroySurfaceKHR(instance, presentation_surface, nullptr);
 
 
-		if (instance != VK_NULL_HANDLE)
+		if (instance != nullptr)
 		{
 			if (vkDestroyDebugUtilsMessengerEXT != nullptr)
 				vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
