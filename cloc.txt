@@ -1,9 +1,10 @@
-github.com/AlDanial/cloc v 1.98  T=0.09 s (584.1 files/s, 130502.6 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.10 s (556.9 files/s, 131913.9 lines/s)
 --------------------------------------------------------------------------------
 File                                         blank        comment           code
 --------------------------------------------------------------------------------
-.\app\window.ixx                               354            145           1208
+.\app\window.ixx                               357            147           1211
 .\scripting\lexer\lexer.ixx                    200             44            780
+.\app\vulkan.ixx                               247             64            757
 .\math\vec_generic.ixx                         139             23            613
 .\math\vec_sse_generic.ixx                     136             43            459
 .\unicode\utf8_xid_tables.ixx                    6              3            365
@@ -16,9 +17,8 @@ File                                         blank        comment           code
 .\unicode\utf8_codepoints.ixx                   56             22            206
 .\utils\helpers.ixx                             62             11            205
 .\win32\win32.ixx                               58              3            205
-.\app\vulkan.ixx                                65             11            204
 .\math\math_utility.ixx                         42             13            159
-.\app\app.ixx                                   42             10            155
+.\app\app.ixx                                   43             10            157
 .\file\filemonitor.ixx                          38              7            154
 .\utils\base64.ixx                              28              0            141
 .\utils\generator.ixx                           42              1            140
@@ -29,9 +29,10 @@ File                                         blank        comment           code
 .\debug\debug.ixx                               29              9            128
 .\win32\DTE.ixx                                 33              6            118
 .\utils\uuid.ixx                                22              2            116
+.\app\vulkan_helpers.ixx                        17              1            105
 .\utils\hash.ixx                                22              1            100
+.\types\as.ixx                                  17              5             84
 .\types\enum_flags.ixx                          26             36             78
-.\types\as.ixx                                  16              5             72
 .\archive\archive.ixx                           23             25             70
 .\unicode\utf8_xid.ixx                          12              1             62
 .\unicode\utf8file.ixx                          19              0             62
@@ -40,7 +41,7 @@ File                                         blank        comment           code
 .\types\types.ixx                               35             39             49
 .\graphs\binarytree.ixx                         11             12             43
 .\utils\serializer.ixx                          21              6             43
-.\Deckard.ixx                                   19             12             31
+.\Deckard.ixx                                   19             12             32
 .\unicode\utf8_ascii.ixx                        13              0             31
 .\config\ini.ixx                                14             20             29
 .\debug\assert.ixx                              11              0             25
@@ -55,5 +56,5 @@ File                                         blank        comment           code
 .\scripting\parser\parser.ixx                   11             15              4
 .\net\net.ixx                                    0              0              1
 --------------------------------------------------------------------------------
-SUM:                                          2400            635           8583
+SUM:                                          2604            691           9259
 --------------------------------------------------------------------------------
