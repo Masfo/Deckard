@@ -47,7 +47,10 @@ namespace deckard::vulkan
 
 		void logme();
 
+		void resize_swapchain();
+
 		bool draw();
+
 
 		void wait();
 
@@ -60,6 +63,10 @@ namespace deckard::vulkan
 
 		// device
 		bool initialize_device();
+
+		void cleanup_swapchain();
+		void create_imageviews();
+		void create_framebuffers();
 
 		// Debug stuff
 		void vulkan_log(std::string_view str, Severity severity = Severity::Info, Type type = Type::General);
@@ -144,13 +151,6 @@ namespace deckard::vulkan
 				vkDestroyRenderPass(device, renderpass, nullptr);
 
 
-			for (auto& view : swapchain_imageviews)
-				vkDestroyImageView(device, view, nullptr);
-
-			for (auto& framebuffer : swapchain_framebuffers)
-				vkDestroyFramebuffer(device, framebuffer, nullptr);
-
-
 			if (command_buffers.size() > 0 and command_buffers[0] != nullptr)
 			{
 				vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
@@ -173,9 +173,7 @@ namespace deckard::vulkan
 			if (rendering_finished != nullptr)
 				vkDestroySemaphore(device, rendering_finished, nullptr);
 
-
-			if (swapchain != nullptr)
-				vkDestroySwapchainKHR(device, swapchain, nullptr);
+			cleanup_swapchain();
 
 			vkDestroyDevice(device, nullptr);
 			device = nullptr;
@@ -235,11 +233,19 @@ namespace deckard::vulkan
 				required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			}
 
+			if (name.compare(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME) == 0)
+			{
+				marked = true;
+				required_extensions.emplace_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+			}
+
+
 			if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
 			{
 				marked = true;
 				required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 			}
+
 
 #ifdef _DEBUG
 
@@ -531,6 +537,8 @@ namespace deckard::vulkan
 		std::vector<const char*> extensions;
 		extensions.reserve(device_extensions.size());
 
+		const auto& c = device_extensions;
+
 		for (const auto& extension : device_extensions)
 		{
 			std::string_view name = extension.extensionName;
@@ -540,6 +548,12 @@ namespace deckard::vulkan
 			if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
 				extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
+			{
+
+
+				if (name.compare(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0)
+					extensions.emplace_back(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
+			}
 
 			// dynamic renderer
 			{
@@ -703,7 +717,7 @@ namespace deckard::vulkan
 		// present mode
 		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
 
-		std::array<VkPresentModeKHR, 2> try_order{};
+		std::array<VkPresentModeKHR, 3> try_order{};
 
 
 		try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
@@ -946,6 +960,31 @@ namespace deckard::vulkan
 
 		return true;
 	}
+
+	void vulkan::resize_swapchain()
+	{
+		vkDeviceWaitIdle(device);
+
+		cleanup_swapchain();
+	}
+
+	void vulkan::cleanup_swapchain()
+	{
+		for (auto& framebuffer : swapchain_framebuffers)
+			vkDestroyFramebuffer(device, framebuffer, nullptr);
+
+		for (auto& view : swapchain_imageviews)
+			vkDestroyImageView(device, view, nullptr);
+
+
+		if (swapchain != nullptr)
+			vkDestroySwapchainKHR(device, swapchain, nullptr);
+		//
+	}
+
+	void vulkan::create_imageviews() { }
+
+	void vulkan::create_framebuffers() { }
 
 	bool vulkan::draw()
 	{
