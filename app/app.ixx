@@ -194,7 +194,7 @@ namespace deckard
 					  if (accumulate >= 1.0)
 					  {
 						  accumulate -= 1.0;
-						  wnd.set_title(std::format("{}, {}, Delta: {}", currentframe, framerate, timeperframe));
+						  // wnd.set_title(std::format("{}, {}, Delta: {}", currentframe, framerate, timeperframe));
 						  currentframe = 0;
 					  }
 				  }

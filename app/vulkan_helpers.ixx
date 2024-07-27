@@ -91,33 +91,5 @@ namespace deckard::vulkan
 		  (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	}
 
-	export bool enumerate_device_extensions(VkPhysicalDevice device)
-	{
-		u32      de_count{0};
-		VkResult result = vkEnumerateDeviceExtensionProperties(device, nullptr, &de_count, nullptr);
-		if (result != VK_SUCCESS)
-		{
-			dbg::println("Enumerate device extensions: {}", result_to_string(result));
-			return false;
-		}
-
-		device_extensions.resize(de_count);
-		result = vkEnumerateDeviceExtensionProperties(device, nullptr, &de_count, device_extensions.data());
-		if (result != VK_SUCCESS)
-		{
-			dbg::println("Enumerate device extensions: {}", result_to_string(result));
-			return false;
-		}
-		std::ranges::sort(device_extensions, {}, &VkExtensionProperties::extensionName);
-
-#ifdef _DEBUG
-		dbg::println("Device extensions({}):", de_count);
-		for (const auto& extension : device_extensions)
-		{
-			dbg::println("{:>48}  (rev {})", extension.extensionName, VK_API_VERSION_PATCH(extension.specVersion));
-		}
-#endif
-		return true;
-	}
 
 } // namespace deckard::vulkan

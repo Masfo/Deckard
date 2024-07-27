@@ -17,6 +17,8 @@ namespace deckard::vulkan
 	// void init()
 	//   create_instance(), create_device(), create_queue(), create_surface()...
 
+	// Vulkan 1.3: https://developer.nvidia.com/blog/advanced-api-performance-vulkan-clearing-and-presenting/
+
 	constexpr u32 VENDOR_NVIDIA = 0x10DE;
 
 	export enum class Severity : u32 {
@@ -98,9 +100,9 @@ namespace deckard::vulkan
 		bool is_initialized{false};
 	};
 
-	bool vulkan::initialize(HINSTANCE instance, HWND handle) noexcept
+	bool vulkan::initialize(HINSTANCE inst, HWND handle) noexcept
 	{
-		window_instance = instance;
+		window_instance = inst;
 		window_handle   = handle;
 
 		if (bool ext_init = enumerate_instance_extensions(); not ext_init)
@@ -121,9 +123,6 @@ namespace deckard::vulkan
 
 
 		if (bool init_device = initialize_device(); not init_device)
-			return false;
-
-		if (bool enum_de = enumerate_device_extensions(physical_device); not enum_de)
 			return false;
 
 
@@ -277,17 +276,11 @@ namespace deckard::vulkan
 			}
 
 
-#if 0
+#if 1
 			if (name.compare("VK_LAYER_LUNARG_crash_diagnostic") == 0)
 			{
 				marked = true;
 				required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
-			}
-
-			if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
-			{
-				marked = true;
-				required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
 			}
 #endif
 
@@ -303,6 +296,10 @@ namespace deckard::vulkan
 		dbg::println();
 #endif
 
+
+#if 1
+		required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
+#endif
 
 		// Instance
 		VkInstanceCreateInfo instance_create{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -433,6 +430,36 @@ namespace deckard::vulkan
 
 		physical_device = devices[best_gpu_index];
 
+
+		// device extensions
+		u32 de_count{0};
+		result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &de_count, nullptr);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate device extensions: {}", result_to_string(result));
+			return false;
+		}
+
+		device_extensions.resize(de_count);
+		result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &de_count, device_extensions.data());
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate device extensions: {}", result_to_string(result));
+			return false;
+		}
+		std::ranges::sort(device_extensions, {}, &VkExtensionProperties::extensionName);
+
+		//
+
+#ifdef _DEBUG
+		dbg::println("Device extensions({}):", de_count);
+		for (const auto& extension : device_extensions)
+		{
+			dbg::println("{:>48}  (rev {})", extension.extensionName, VK_API_VERSION_PATCH(extension.specVersion));
+		}
+#endif
+
+
 		const auto& prop = device_properties[best_gpu_index];
 
 		dbg::println("Device: {}", prop.deviceName);
@@ -500,8 +527,38 @@ namespace deckard::vulkan
 		queue_create.pQueuePriorities = &priority[0];
 
 
-		// device
-		std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+		// required device extensions
+		std::vector<const char*> extensions;
+		extensions.reserve(device_extensions.size());
+
+		for (const auto& extension : device_extensions)
+		{
+			std::string_view name = extension.extensionName;
+
+
+			//
+			if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+				extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+
+			// dynamic renderer
+			{
+				// v1.3
+				if (name.compare(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
+					extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+				if (name.compare(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME) == 0)
+					extensions.emplace_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
+
+				if (name.compare(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) == 0)
+					extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+			}
+
+			// v1.2
+			if (name.compare(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) == 0)
+				extensions.emplace_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+		}
+
 
 		VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 		device_create.queueCreateInfoCount = 1;
@@ -592,6 +649,16 @@ namespace deckard::vulkan
 			}
 		}
 
+		// device driver
+		VkPhysicalDeviceDriverProperties driver_props = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES};
+		VkPhysicalDeviceProperties2      device_props = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+		device_props.pNext                            = &driver_props;
+
+		vkGetPhysicalDeviceProperties2(physical_device, &device_props);
+
+		if (device_props.properties.deviceName and driver_props.driverInfo)
+			dbg::println("GPU: {}({})", device_props.properties.deviceName, driver_props.driverInfo);
+
 
 		//
 		// swapchain
@@ -637,8 +704,12 @@ namespace deckard::vulkan
 		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
 
 		std::array<VkPresentModeKHR, 2> try_order{};
-		try_order[0] = VK_PRESENT_MODE_MAILBOX_KHR;
-		try_order[1] = VK_PRESENT_MODE_FIFO_KHR;
+
+
+		try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
+		try_order[1] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		try_order[0] = VK_PRESENT_MODE_FIFO_KHR;    // vsync
+
 
 		for (const auto& mode : present_modes)
 		{
@@ -731,50 +802,6 @@ namespace deckard::vulkan
 			}
 		}
 
-		// renderpass
-		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format         = swapchain_format;
-		colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments    = &colorAttachmentRef;
-
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass    = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass    = 0;
-		dependency.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments    = &colorAttachment;
-		renderPassInfo.subpassCount    = 1;
-		renderPassInfo.pSubpasses      = &subpass;
-		renderPassInfo.dependencyCount = 1;
-		renderPassInfo.pDependencies   = &dependency;
-
-		result = vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderpass);
-		if (result != VK_SUCCESS)
-		{
-			dbg::println("Vulkan create render pass failed: {}", result_to_string(result));
-			return false;
-		}
-
 
 		// framebuffers
 		swapchain_framebuffers.resize(swapchain_imageviews.size());
@@ -785,7 +812,6 @@ namespace deckard::vulkan
 
 			VkFramebufferCreateInfo frambuffer_create{.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 
-			// frambuffer_create.renderPass = renderpass;
 
 			frambuffer_create.width  = swapchain_extent.width;
 			frambuffer_create.height = swapchain_extent.height;
