@@ -283,21 +283,17 @@ namespace deckard::vulkan
 			}
 
 
-#if 1
 			if (name.compare("VK_LAYER_LUNARG_crash_diagnostic") == 0)
 			{
 				marked = true;
 				required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
 			}
-#endif
 
-#if 1
 			if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
 			{
 				marked = true;
 				required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
 			}
-#endif
 
 
 			dbg::println(
@@ -548,34 +544,8 @@ namespace deckard::vulkan
 		{
 			std::string_view name = extension.extensionName;
 
-
-			//
 			if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
 				extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
-#if 0
-			if (name.compare(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0)
-				extensions.emplace_back(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
-#endif
-
-// dynamic renderer
-#if 0
-			{
-				// v1.3
-				if (name.compare(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
-					extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-
-				if (name.compare(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME) == 0)
-					extensions.emplace_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
-
-				if (name.compare(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) == 0)
-					extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-			}
-#endif
-
-			// v1.2
-			if (name.compare(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) == 0)
-				extensions.emplace_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
 		}
 
 
