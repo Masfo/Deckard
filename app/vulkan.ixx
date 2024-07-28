@@ -200,7 +200,7 @@ namespace deckard::vulkan
 	bool vulkan::initialize_instance()
 	{
 		VkApplicationInfo app_info{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO};
-		app_info.apiVersion = VK_API_VERSION_1_1;
+		app_info.apiVersion = VK_API_VERSION_1_3;
 
 		app_info.pApplicationName   = "Deckard";
 		app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
@@ -217,7 +217,7 @@ namespace deckard::vulkan
 		for (const auto extension : instance_extensions)
 		{
 
-			std::string_view name = extension.extensionName;
+			const std::string_view name = extension.extensionName;
 
 			bool marked = false;
 
@@ -233,12 +233,13 @@ namespace deckard::vulkan
 				required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			}
 
+#if 0
 			if (name.compare(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME) == 0)
 			{
 				marked = true;
 				required_extensions.emplace_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
 			}
-
+#endif
 
 			if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
 			{
@@ -290,6 +291,14 @@ namespace deckard::vulkan
 			}
 #endif
 
+#if 1
+			if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
+			{
+				marked = true;
+				required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
+			}
+#endif
+
 
 			dbg::println(
 			  "{:>48}{} ({}.{}.{})",
@@ -303,15 +312,11 @@ namespace deckard::vulkan
 #endif
 
 
-#if 1
-		required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
-#endif
-
 		// Instance
 		VkInstanceCreateInfo instance_create{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
 
-		instance_create.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+		// instance_create.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 
 		instance_create.pApplicationInfo = &app_info;
 		// extensions
@@ -548,14 +553,13 @@ namespace deckard::vulkan
 			if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
 				extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-			{
+#if 0
+			if (name.compare(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0)
+				extensions.emplace_back(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
+#endif
 
-
-				if (name.compare(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0)
-					extensions.emplace_back(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
-			}
-
-			// dynamic renderer
+// dynamic renderer
+#if 0
 			{
 				// v1.3
 				if (name.compare(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
@@ -567,6 +571,7 @@ namespace deckard::vulkan
 				if (name.compare(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) == 0)
 					extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 			}
+#endif
 
 			// v1.2
 			if (name.compare(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) == 0)
