@@ -1,15 +1,15 @@
 {
+  "vcpkg-configuration": {
+    "default-registry": {
+      "kind": "git",
+      "baseline": "cacf5994341f27e9a14a7b8724b0634b138ecb30",
+      "repository": "https://github.com/Microsoft/vcpkg"
+    }
+  },
   "name": "deckard",
   "version": "1.0.0",
   "description": ".",
   "homepage": "https://",
-  "vcpkg-configuration": {
-    "default-registry": {
-      "kind": "git",
-      "baseline": "3f142d2fc6f6cf10360e89248405057fe771a9ed",
-      "repository": "https://github.com/Microsoft/vcpkg"
-    }
-  },
   "dependencies": [
     "catch2"
   ]

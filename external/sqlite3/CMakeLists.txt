@@ -1,5 +1,43 @@
 cmake_minimum_required (VERSION 3.23)
 
+
+set(SQLITE_ZIP_URL https://www.sqlite.org/2024/sqlite-amalgamation-3460000.zip)
+get_filename_component(SQLITE_ZIP_NAME ${SQLITE_ZIP_URL} NAME)
+get_filename_component(SQLITE_ZIP_NAME_NOEXT ${SQLITE_ZIP_URL} NAME_WLE)
+
+
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME})
+
+    file(DOWNLOAD ${SQLITE_ZIP_URL} ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME})
+    
+    # extract to temp
+    file(ARCHIVE_EXTRACT 
+         INPUT ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME}
+         DESTINATION ${CMAKE_CURRENT_LIST_DIR}
+    )
+
+    set(SQLITE_FILES
+    sqlite3.h
+    sqlite3.c
+    )
+
+    # copy files
+    
+    set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+
+    # Copy the files, create folder 
+    foreach(f IN LISTS SQLITE_FILES)
+       file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME_NOEXT}/${f} ${CMAKE_CURRENT_LIST_DIR}/${f} ONLY_IF_DIFFERENT)
+    endforeach()
+
+    set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+
+        # Remove temp
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME_NOEXT})
+
+endif()
+
+
 project(sqlite3)
 add_library(sqlite3 STATIC sqlite3.c)
 

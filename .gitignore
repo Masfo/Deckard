@@ -13,3 +13,5 @@ bin
 /tools/utftables/.vs
 /tools/utftables/out/build/x64-debug
 /external/zstd/*.zip
+/external/sqlite3/*.zip
+

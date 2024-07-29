@@ -152,6 +152,8 @@ endif()
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_include_directories(deckard PUBLIC ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(deckard INTERFACE Vulkan::Vulkan)
+
 
 
 set(DECKARD_SRCS
@@ -261,9 +263,6 @@ target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
 add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
 
-
-
-message(STATUS "Vulkan  ${Vulkan_INCLUDE_DIRS}")
 add_dependencies(deckard sqlite3 ZSTD)
  
 set(THIRD_PARTY_LIBS
@@ -273,7 +272,6 @@ set(THIRD_PARTY_LIBS
     opengl32.lib
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
-    Vulkan::Vulkan
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib
