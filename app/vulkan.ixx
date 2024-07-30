@@ -705,10 +705,20 @@ namespace deckard::vulkan
 
 		std::array<VkPresentModeKHR, 3> try_order{};
 
+		bool vsync = false;
 
-		try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
-		try_order[1] = VK_PRESENT_MODE_IMMEDIATE_KHR;
-		try_order[0] = VK_PRESENT_MODE_FIFO_KHR;    // vsync
+		if (vsync)
+		{
+			try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
+			try_order[1] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+			try_order[0] = VK_PRESENT_MODE_FIFO_KHR;    // vsync
+		}
+		else
+		{
+			try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
+			try_order[1] = VK_PRESENT_MODE_FIFO_KHR;    // vsync
+			try_order[0] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		}
 
 
 		for (const auto& mode : present_modes)
@@ -945,24 +955,8 @@ namespace deckard::vulkan
 
 			// image layout present
 
-			image_barrier.srcAccessMask = 0;
-			image_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-
 			image_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-			image_barrier.image            = swapchain_images[i];
-			image_barrier.subresourceRange = {
-			  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT, //
-			  .baseMipLevel   = 0,
-			  .levelCount     = 1,
-			  .baseArrayLayer = 0,
-			  .layerCount     = 1};
-
 
 			vkCmdPipelineBarrier(
 			  command_buffers[i],
