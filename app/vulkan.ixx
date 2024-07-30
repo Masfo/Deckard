@@ -233,6 +233,7 @@ namespace deckard::vulkan
 				required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			}
 
+
 #if 0
 			if (name.compare(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME) == 0)
 			{
@@ -313,7 +314,6 @@ namespace deckard::vulkan
 
 
 		// instance_create.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-
 		instance_create.pApplicationInfo = &app_info;
 		// extensions
 		instance_create.enabledExtensionCount   = as<u32>(required_extensions.size());
@@ -340,6 +340,7 @@ namespace deckard::vulkan
 		VkWin32SurfaceCreateInfoKHR surface_create_info{.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
 		surface_create_info.hinstance = window_instance;
 		surface_create_info.hwnd      = window_handle;
+
 
 		VkResult result = vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface);
 		if (result != VK_SUCCESS)
@@ -549,7 +550,14 @@ namespace deckard::vulkan
 		}
 
 
+		// dynamic
+		VkPhysicalDeviceDynamicRenderingFeatures dynamic_feature{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
+		dynamic_feature.dynamicRendering = true;
+
+
 		VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+		device_create.pNext = &dynamic_feature;
+
 		device_create.queueCreateInfoCount = 1;
 		device_create.pQueueCreateInfos    = &queue_create;
 		// extensions
@@ -584,6 +592,9 @@ namespace deckard::vulkan
 			dbg::println("Semaphore creation failed: {}", result_to_string(result));
 			return false;
 		}
+
+
+		// fence
 		VkFenceCreateInfo fence_info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
 		fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
@@ -654,14 +665,12 @@ namespace deckard::vulkan
 
 		VkSwapchainCreateInfoKHR create_swapchain{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 
-		u32 desired_number_of_images = surface_capabilities.minImageCount + 1;
-		desired_number_of_images =
-		  std::clamp(desired_number_of_images, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
+		u32 desired_number_of_images = std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount);
 
 		create_swapchain.surface       = presentation_surface;
 		create_swapchain.minImageCount = desired_number_of_images;
 
-		VkSurfaceFormatKHR desired_format{VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
+		VkSurfaceFormatKHR desired_format{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 		swapchain_format             = desired_format.format;
 		create_swapchain.imageFormat = swapchain_format;
 
@@ -671,9 +680,11 @@ namespace deckard::vulkan
 		create_swapchain.imageExtent      = surface_capabilities.currentExtent;
 		create_swapchain.imageArrayLayers = 1;
 
-		VkImageUsageFlags usage{VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM};
+		VkImageUsageFlags usage{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
 		if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 		create_swapchain.imageUsage = usage;
 
@@ -683,14 +694,14 @@ namespace deckard::vulkan
 		create_swapchain.pQueueFamilyIndices   = nullptr;
 
 		// surface_capability
-		VkSurfaceTransformFlagBitsKHR transform{VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR};
+		VkSurfaceTransformFlagBitsKHR transform{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
 		transform                     = surface_capabilities.currentTransform;
 		create_swapchain.preTransform = transform;
 
 		create_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 		// present mode
-		VkPresentModeKHR present_mode{VK_PRESENT_MODE_MAX_ENUM_KHR};
+		VkPresentModeKHR present_mode{VK_PRESENT_MODE_FIFO_KHR};
 
 		std::array<VkPresentModeKHR, 3> try_order{};
 
@@ -709,7 +720,7 @@ namespace deckard::vulkan
 			}
 		}
 
-		if (present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
+		if (present_mode != try_order[0])
 			for (const auto& mode : present_modes)
 			{
 				if (mode == try_order[1])
@@ -849,15 +860,9 @@ namespace deckard::vulkan
 		VkCommandBufferBeginInfo cmd_buffer_begin{
 		  .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT};
 
+		// #0080c4
 		VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
 
-		VkImageSubresourceRange image_subresource_range = {
-		  VK_IMAGE_ASPECT_COLOR_BIT,
-		  0, // base mip-level
-		  1, // level-count
-		  0, // base array layer
-		  1  // layer count
-		};
 
 		// TODO: no reuse of command yet, record per frame
 		// render pass, framebuffer
@@ -865,64 +870,44 @@ namespace deckard::vulkan
 
 		for (u32 i = 0; i < image_count; ++i)
 		{
-			VkImageMemoryBarrier barrier_from_present_to_clear = {
-			  VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			  nullptr,
-			  VK_ACCESS_MEMORY_READ_BIT,
-			  VK_ACCESS_TRANSFER_WRITE_BIT,
-			  VK_IMAGE_LAYOUT_UNDEFINED,
-			  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			  VK_QUEUE_FAMILY_IGNORED,
-			  VK_QUEUE_FAMILY_IGNORED,
-			  swap_chain_images[i],
-			  image_subresource_range};
-
-			VkImageMemoryBarrier barrier_from_clear_to_present = {
-			  VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			  nullptr,
-			  VK_ACCESS_TRANSFER_WRITE_BIT,
-			  VK_ACCESS_MEMORY_WRITE_BIT,
-			  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			  VK_QUEUE_FAMILY_IGNORED,
-			  VK_QUEUE_FAMILY_IGNORED,
-			  swap_chain_images[i],
-			  image_subresource_range};
 
 			result = vkBeginCommandBuffer(command_buffers[i], &cmd_buffer_begin);
 
-#if 1
-			vkCmdPipelineBarrier(
-			  command_buffers[i],
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,
-			  0,
-			  0,
-			  nullptr,
-			  0,
-			  nullptr,
-			  1,
-			  &barrier_from_present_to_clear);
-#endif
+			const VkRenderingAttachmentInfo color_attachment_info{
+			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			  .imageView   = swapchain_imageviews[i],
+			  .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			  .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			  .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+			  .clearValue  = clear_color,
+			};
 
-			//
-			vkCmdClearColorImage(
-			  command_buffers[i], swap_chain_images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_subresource_range);
+			VkRect2D render_area{{0, 0}, {(uint32_t)swapchain_extent.width, (uint32_t)swapchain_extent.height}};
 
-#if 1
+			const VkRenderingInfo render_info{
+			  .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
+			  .renderArea           = render_area,
+			  .layerCount           = 1,
+			  .colorAttachmentCount = 1,
+			  .pColorAttachments    = &color_attachment_info,
+			  .pDepthAttachment     = nullptr,
+			  .pStencilAttachment   = nullptr,
+			};
 
-			vkCmdPipelineBarrier(
-			  command_buffers[i],
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,
-			  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			  0,
-			  0,
-			  nullptr,
-			  0,
-			  nullptr,
-			  1,
-			  &barrier_from_clear_to_present);
-#endif
+			vkCmdBeginRendering(command_buffers[i], &render_info);
+
+			VkViewport viewport{
+			  .width = (f32)swapchain_extent.width, .height = (f32)swapchain_extent.height, .minDepth = 0.0f, .maxDepth = 1.0f};
+			vkCmdSetViewport(command_buffers[i], 0, 1, &viewport);
+
+			VkRect2D scissor = render_area;
+			vkCmdSetScissor(command_buffers[i], 0, 1, &scissor);
+
+
+			// render pass
+
+			vkCmdEndRendering(command_buffers[i]);
+
 
 			result = vkEndCommandBuffer(command_buffers[i]);
 			if (result != VK_SUCCESS)
