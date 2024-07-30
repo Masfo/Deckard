@@ -873,6 +873,41 @@ namespace deckard::vulkan
 
 			result = vkBeginCommandBuffer(command_buffers[i], &cmd_buffer_begin);
 
+			VkImageMemoryBarrier image_barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+
+			image_barrier.srcAccessMask = 0;
+			image_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+
+			image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			image_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			image_barrier.image            = swapchain_images[i];
+			image_barrier.subresourceRange = {
+			  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT, //
+			  .baseMipLevel   = 0,
+			  .levelCount     = 1,
+			  .baseArrayLayer = 0,
+			  .layerCount     = 1};
+
+
+			// image layout
+			vkCmdPipelineBarrier(
+			  command_buffers[i],
+			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // src
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,    // dst
+			  0,
+			  0,
+			  nullptr,                           // memory barrier
+			  0,
+			  nullptr,                           // buffer memory barrier
+			  1,
+			  &image_barrier);                   // image memory barrier
+
+
 			const VkRenderingAttachmentInfo color_attachment_info{
 			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			  .imageView   = swapchain_imageviews[i],
@@ -908,6 +943,38 @@ namespace deckard::vulkan
 
 			vkCmdEndRendering(command_buffers[i]);
 
+			// image layout present
+
+			image_barrier.srcAccessMask = 0;
+			image_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+
+			image_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			image_barrier.image            = swapchain_images[i];
+			image_barrier.subresourceRange = {
+			  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT, //
+			  .baseMipLevel   = 0,
+			  .levelCount     = 1,
+			  .baseArrayLayer = 0,
+			  .layerCount     = 1};
+
+
+			vkCmdPipelineBarrier(
+			  command_buffers[i],
+			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // src
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,    // dst
+			  VK_DEPENDENCY_DEVICE_GROUP_BIT,
+			  0,
+			  nullptr,                           // memory barrier
+			  0,
+			  nullptr,                           // buffer memory barrier
+			  1,
+			  &image_barrier);                   // image memory barrier
 
 			result = vkEndCommandBuffer(command_buffers[i]);
 			if (result != VK_SUCCESS)
