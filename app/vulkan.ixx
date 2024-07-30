@@ -835,7 +835,7 @@ namespace deckard::vulkan
 		// command buffers
 		VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
 		cmd_pool_create.queueFamilyIndex = queue_index;
-		cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		// cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
 		result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &command_pool);
 		if (result != VK_SUCCESS)
@@ -867,8 +867,7 @@ namespace deckard::vulkan
 
 		result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, swap_chain_images.data());
 
-		VkCommandBufferBeginInfo cmd_buffer_begin{
-		  .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT};
+		VkCommandBufferBeginInfo cmd_buffer_begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = 0};
 
 		// #0080c4
 		VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
@@ -886,7 +885,7 @@ namespace deckard::vulkan
 			VkImageMemoryBarrier image_barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
 
 			image_barrier.srcAccessMask = 0;
-			image_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			image_barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
 
 
 			image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -955,20 +954,23 @@ namespace deckard::vulkan
 
 			// image layout present
 
+			image_barrier.srcAccessMask = 0;
+			image_barrier.dstAccessMask = 0;
+
 			image_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 			vkCmdPipelineBarrier(
 			  command_buffers[i],
-			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // src
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,    // dst
-			  VK_DEPENDENCY_DEVICE_GROUP_BIT,
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,       // src
+			  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dst
 			  0,
-			  nullptr,                           // memory barrier
 			  0,
-			  nullptr,                           // buffer memory barrier
+			  nullptr,                              // memory barrier
+			  0,
+			  nullptr,                              // buffer memory barrier
 			  1,
-			  &image_barrier);                   // image memory barrier
+			  &image_barrier);                      // image memory barrier
 
 			result = vkEndCommandBuffer(command_buffers[i]);
 			if (result != VK_SUCCESS)
