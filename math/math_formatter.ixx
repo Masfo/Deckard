@@ -157,6 +157,7 @@ namespace std
 
 		auto format(const deckard::math::bignum& bn, std::format_context& ctx)
 		{
+			(ctx);
 			return bn.print();
 
 #if 0
