@@ -877,7 +877,7 @@ namespace deckard::app
 					{
 						int width  = lParam & 0xFFFF;
 						int height = (lParam & 0xFFFF'0000) >> 16;
-						// vulkan.resize(width, height);
+						vulkan.resize(width, height);
 					}
 
 					break;
@@ -1696,7 +1696,8 @@ namespace deckard::app
 		void render()
 		{
 #if 1
-			vulkan.draw();
+			if (not vulkan.draw())
+				return;
 #else
 
 #ifdef _DEBUG

@@ -6,6 +6,19 @@ module;
 #include <vulkan/vulkan_win32.h>
 
 export module deckard.vulkan;
+
+export import :instance;
+export import :device;
+export import :queue;
+export import :debug;
+export import :surface;
+export import :swapchain;
+export import :command_buffer;
+export import :semaphore;
+export import :fence;
+export import :images;
+
+
 import std;
 import deckard;
 import deckard.vulkan_helpers;
@@ -53,9 +66,10 @@ namespace deckard::vulkan
 
 		void resize(u32 w, u32 h)
 		{
-			width  = w;
-			height = h;
-			// swapchain_extent = {width, height};
+			width            = w;
+			height           = h;
+			swapchain_extent = {width, height};
+			resize_swapchain();
 		}
 
 		void resize_swapchain();
@@ -690,6 +704,9 @@ namespace deckard::vulkan
 		if (not create_command_buffers())
 			return;
 
+		if(swapchain == nullptr)
+			return;
+
 		u32      image_count{0};
 		VkResult result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
 		command_buffers.resize(image_count);
@@ -863,6 +880,9 @@ namespace deckard::vulkan
 
 	void vulkan::resize_swapchain()
 	{
+		if (not is_initialized)
+			return;
+
 		vkDeviceWaitIdle(device);
 
 
@@ -876,6 +896,8 @@ namespace deckard::vulkan
 
 		if (not create_framebuffers())
 			return;
+
+		record_commands();
 	}
 
 	void vulkan::cleanup_swapchain()
@@ -1115,7 +1137,6 @@ namespace deckard::vulkan
 	{
 		VkResult result{};
 		result = vkWaitForFences(device, 1, &in_flight, VK_TRUE, UINT64_MAX);
-		result = vkResetFences(device, 1, &in_flight);
 
 		u32 image_index{0};
 		result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, nullptr, &image_index);
@@ -1130,6 +1151,7 @@ namespace deckard::vulkan
 			return false;
 		}
 
+		result = vkResetFences(device, 1, &in_flight);
 
 		VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 

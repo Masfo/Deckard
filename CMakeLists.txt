@@ -225,8 +225,26 @@ set(DECKARD_SRCS
         # App
         app/window.ixx
         app/app.ixx
+
+        # Vulkan
         app/vulkan.ixx
-        app/vulkan_helpers.ixx
+
+        app/vulkan/helpers.ixx
+
+        app/vulkan/instance.ixx
+        app/vulkan/device.ixx
+        app/vulkan/queue.ixx
+        app/vulkan/surface.ixx
+        app/vulkan/swapchain.ixx
+        app/vulkan/command_buffer.ixx
+        app/vulkan/fence.ixx
+        app/vulkan/semaphore.ixx
+        app/vulkan/queue.ixx
+        app/vulkan/images.ixx
+        app/vulkan/debug.ixx
+
+
+
 
 
         # Types
