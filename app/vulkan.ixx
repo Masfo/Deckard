@@ -93,7 +93,7 @@ namespace deckard::vulkan
 
 		i32 select_queue() const;
 
-		void cleanup_swapchain();
+		void cleanup_images();
 		void cleanup_command_buffers();
 		bool create_command_buffers();
 		bool create_framebuffers();
@@ -174,6 +174,10 @@ namespace deckard::vulkan
 		if (bool init_device = initialize_device(); not init_device)
 			return false;
 
+		resize_swapchain();
+
+		record_commands();
+
 
 		is_initialized = true;
 		return is_initialized;
@@ -205,7 +209,7 @@ namespace deckard::vulkan
 
 			cleanup_command_buffers();
 
-			cleanup_swapchain();
+			cleanup_images();
 
 			if (swapchain != nullptr)
 				vkDestroySwapchainKHR(device, swapchain, nullptr);
@@ -686,13 +690,6 @@ namespace deckard::vulkan
 			dbg::println("GPU: {}({})", device_props.properties.deviceName, driver_props.driverInfo);
 
 
-		// swapchain
-		resize_swapchain();
-		//
-
-		record_commands();
-
-
 		return true;
 	}
 
@@ -704,7 +701,7 @@ namespace deckard::vulkan
 		if (not create_command_buffers())
 			return;
 
-		if(swapchain == nullptr)
+		if (swapchain == nullptr)
 			return;
 
 		u32      image_count{0};
@@ -880,13 +877,11 @@ namespace deckard::vulkan
 
 	void vulkan::resize_swapchain()
 	{
-		if (not is_initialized)
-			return;
 
 		vkDeviceWaitIdle(device);
 
 
-		cleanup_swapchain();
+		cleanup_images();
 
 		if (not create_swapchain())
 			return;
@@ -896,11 +891,9 @@ namespace deckard::vulkan
 
 		if (not create_framebuffers())
 			return;
-
-		record_commands();
 	}
 
-	void vulkan::cleanup_swapchain()
+	void vulkan::cleanup_images()
 	{
 		for (auto& framebuffer : swapchain_framebuffers)
 			vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -1143,6 +1136,7 @@ namespace deckard::vulkan
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			resize_swapchain();
+			record_commands();
 			resized = true;
 		}
 		else if (result != VK_SUCCESS)
@@ -1186,6 +1180,7 @@ namespace deckard::vulkan
 		if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or resized)
 		{
 			resize_swapchain();
+			record_commands();
 			resized = false;
 		}
 		else if (result != VK_SUCCESS)
@@ -1211,6 +1206,7 @@ namespace deckard::vulkan
 
 		// extent
 		swapchain_extent = surface_capabilities.currentExtent;
+		dbg::println("Surface extent: {}x{}", surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height);
 		// swapchain_extent = {width, height};
 	}
 
