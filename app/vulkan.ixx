@@ -1,6 +1,7 @@
 module;
 #include <windows.h>
 
+#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
 
@@ -50,12 +51,21 @@ namespace deckard::vulkan
 
 		void record_commands();
 
+		void resize(u32 w, u32 h)
+		{
+			width  = w;
+			height = h;
+			// swapchain_extent = {width, height};
+		}
+
 		void resize_swapchain();
 
 		bool draw();
 
 
 		void wait();
+
+		bool resized{false};
 
 	private:
 		// instance
@@ -67,7 +77,11 @@ namespace deckard::vulkan
 		// device
 		bool initialize_device();
 
+		i32 select_queue() const;
+
 		void cleanup_swapchain();
+		void cleanup_command_buffers();
+		bool create_command_buffers();
 		bool create_framebuffers();
 		bool create_imageviews();
 		bool create_swapchain();
@@ -111,6 +125,9 @@ namespace deckard::vulkan
 		VkSemaphore image_available{nullptr};
 		VkSemaphore rendering_finished{nullptr};
 		VkFence     in_flight{nullptr};
+
+		u32 width{0};
+		u32 height{0};
 
 		HINSTANCE window_instance{nullptr};
 		HWND      window_handle{nullptr};
@@ -162,18 +179,6 @@ namespace deckard::vulkan
 				vkDestroyRenderPass(device, renderpass, nullptr);
 
 
-			if (command_buffers.size() > 0 and command_buffers[0] != nullptr)
-			{
-				vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
-				command_buffers.clear();
-			}
-
-			if (command_pool != nullptr)
-			{
-				vkDestroyCommandPool(device, command_pool, nullptr);
-				command_pool = nullptr;
-			}
-
 			if (in_flight != nullptr)
 				vkDestroyFence(device, in_flight, nullptr);
 
@@ -183,6 +188,8 @@ namespace deckard::vulkan
 
 			if (rendering_finished != nullptr)
 				vkDestroySemaphore(device, rendering_finished, nullptr);
+
+			cleanup_command_buffers();
 
 			cleanup_swapchain();
 
@@ -281,7 +288,7 @@ namespace deckard::vulkan
 #endif
 
 
-		// layers
+		// validator layers
 		std::vector<const char*> required_layers;
 
 		dbg::println("Vulkan validators({}):", validator_layers.size());
@@ -340,7 +347,7 @@ namespace deckard::vulkan
 
 		if (result != VK_SUCCESS or instance == nullptr)
 		{
-			dbg::println("Create vulkan instance failed: {}", result_to_string(result));
+			dbg::println("Create vulkan instance failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -359,7 +366,7 @@ namespace deckard::vulkan
 		VkResult result = vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Could not create vulkan surface on window: {}", result_to_string(result));
+			dbg::println("Could not create vulkan surface on window: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -376,7 +383,7 @@ namespace deckard::vulkan
 		VkResult result = vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Enumerate physical devices failed: {}", result_to_string(result));
+			dbg::println("Enumerate physical devices failed: {}", string_VkResult(result));
 
 			return false;
 		}
@@ -387,7 +394,7 @@ namespace deckard::vulkan
 
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("{}", result_to_string(result));
+			dbg::println("{}", string_VkResult(result));
 
 			return false;
 		}
@@ -409,6 +416,11 @@ namespace deckard::vulkan
 
 		for (u32 i = 0; i < device_count; i++)
 		{
+			VkPhysicalDeviceVulkan13Features v13_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+			VkPhysicalDeviceFeatures2        feat2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+			feat2.pNext = &v13_features;
+			vkGetPhysicalDeviceFeatures2(devices[i], &feat2);
+
 
 			vkGetPhysicalDeviceProperties(devices[i], &device_properties[i]);
 
@@ -458,7 +470,7 @@ namespace deckard::vulkan
 		result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &de_count, nullptr);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Enumerate device extensions: {}", result_to_string(result));
+			dbg::println("Enumerate device extensions: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -466,19 +478,20 @@ namespace deckard::vulkan
 		result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &de_count, device_extensions.data());
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Enumerate device extensions: {}", result_to_string(result));
+			dbg::println("Enumerate device extensions: {}", string_VkResult(result));
 			return false;
 		}
 		std::ranges::sort(device_extensions, {}, &VkExtensionProperties::extensionName);
-
 		//
 
 #ifdef _DEBUG
 		dbg::println("Device extensions({}):", de_count);
+#if 0
 		for (const auto& extension : device_extensions)
 		{
 			dbg::println("{:>48}  (rev {})", extension.extensionName, VK_API_VERSION_PATCH(extension.specVersion));
 		}
+#endif
 #endif
 
 
@@ -520,25 +533,8 @@ namespace deckard::vulkan
 			return false;
 		}
 
-		i32                                  queue_index{-1};
-		std::vector<VkQueueFamilyProperties> queue_family_properties(queue_families_count);
 
-		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_family_properties.data());
-
-		for (u32 i = 0; i < queue_families_count; i++)
-		{
-			if ((queue_family_properties[i].queueCount > 0) and (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
-			{
-				queue_index = i;
-				break;
-			}
-		}
-
-		if (queue_index < 0)
-		{
-			dbg::println("Vulkan device had not required queue family properties");
-			return false;
-		}
+		i32 queue_index{select_queue()};
 
 		// queue
 		VkDeviceQueueCreateInfo queue_create{.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
@@ -561,16 +557,26 @@ namespace deckard::vulkan
 
 			if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
 				extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+			if (name.compare(VK_EXT_SHADER_OBJECT_EXTENSION_NAME) == 0)
+				extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 		}
 
-
+		// Requested features
+		//
 		// dynamic
-		VkPhysicalDeviceDynamicRenderingFeatures dynamic_feature{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
-		dynamic_feature.dynamicRendering = true;
+
+		VkPhysicalDeviceVulkan13Features vulkan_features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+		vulkan_features13.synchronization2 = true;
+		vulkan_features13.dynamicRendering = true;
+		//
+		VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
+		shader_features.shaderObject = true;
 
 
 		VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-		device_create.pNext = &dynamic_feature;
+		device_create.pNext     = &vulkan_features13;
+		vulkan_features13.pNext = &shader_features;
 
 		device_create.queueCreateInfoCount = 1;
 		device_create.pQueueCreateInfos    = &queue_create;
@@ -583,7 +589,7 @@ namespace deckard::vulkan
 
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Vulkan device creation failed: {}", result_to_string(result));
+			dbg::println("Vulkan device creation failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -598,14 +604,14 @@ namespace deckard::vulkan
 		result = vkCreateSemaphore(device, &semaphore_create, nullptr, &image_available);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Semaphore creation failed: {}", result_to_string(result));
+			dbg::println("Semaphore creation failed: {}", string_VkResult(result));
 			return false;
 		}
 
 		result = vkCreateSemaphore(device, &semaphore_create, nullptr, &rendering_finished);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Semaphore creation failed: {}", result_to_string(result));
+			dbg::println("Semaphore creation failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -617,7 +623,7 @@ namespace deckard::vulkan
 		result = vkCreateFence(device, &fence_info, nullptr, &in_flight);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Fence creation failed: {}", result_to_string(result));
+			dbg::println("Fence creation failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -632,7 +638,7 @@ namespace deckard::vulkan
 			result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, presentation_surface, &formats_count, surface_formats.data());
 			if (result != VK_SUCCESS)
 			{
-				dbg::println("Device surface formats query failed: {}", result_to_string(result));
+				dbg::println("Device surface formats query failed: {}", string_VkResult(result));
 				return false;
 			}
 		}
@@ -650,7 +656,7 @@ namespace deckard::vulkan
 
 			if (result != VK_SUCCESS)
 			{
-				dbg::println("Device surface formats query failed: {}", result_to_string(result));
+				dbg::println("Device surface formats query failed: {}", string_VkResult(result));
 				return false;
 			}
 		}
@@ -667,50 +673,8 @@ namespace deckard::vulkan
 
 
 		// swapchain
-
-		if (not create_swapchain())
-			return false;
-		if (not create_imageviews())
-			return false;
-		if (not create_framebuffers())
-
-			return false;
-
-
-		// command buffers
-		VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-		cmd_pool_create.queueFamilyIndex = queue_index;
-		cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-		result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &command_pool);
-		if (result != VK_SUCCESS)
-		{
-			dbg::println("Command pool creation failed: {}", result_to_string(result));
-			return false;
-		}
-
+		resize_swapchain();
 		//
-
-		u32 image_count{0};
-		result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
-		command_buffers.resize(image_count);
-
-		VkCommandBufferAllocateInfo command_buffer_allocate{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-		command_buffer_allocate.commandPool        = command_pool;
-		command_buffer_allocate.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		command_buffer_allocate.commandBufferCount = image_count;
-
-		result = vkAllocateCommandBuffers(device, &command_buffer_allocate, command_buffers.data());
-		if (result != VK_SUCCESS)
-		{
-			dbg::println("Failed to allocate command buffers: {}", result_to_string(result));
-			return false;
-		}
-
-		// record
-		std::vector<VkImage> swap_chain_images(image_count);
-
-		result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, swap_chain_images.data());
 
 		record_commands();
 
@@ -720,6 +684,29 @@ namespace deckard::vulkan
 
 	void vulkan::record_commands()
 	{
+		vkDeviceWaitIdle(device);
+
+		cleanup_command_buffers();
+		if (not create_command_buffers())
+			return;
+
+		u32      image_count{0};
+		VkResult result = vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
+		command_buffers.resize(image_count);
+
+
+		VkCommandBufferAllocateInfo command_buffer_allocate{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+		command_buffer_allocate.commandPool        = command_pool;
+		command_buffer_allocate.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		command_buffer_allocate.commandBufferCount = image_count;
+
+		result = vkAllocateCommandBuffers(device, &command_buffer_allocate, command_buffers.data());
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Failed to allocate command buffers: {}", string_VkResult(result));
+			return;
+		}
+
 		VkCommandBufferBeginInfo cmd_buffer_begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = 0};
 
 		// #0080c4
@@ -729,7 +716,6 @@ namespace deckard::vulkan
 		// TODO: no reuse of command yet, record per frame
 		// render pass, framebuffer
 		// viewport, vkCmdDraw
-		VkResult result{};
 
 		for (size_t i = 0; i < command_buffers.size(); ++i)
 		{
@@ -779,6 +765,9 @@ namespace deckard::vulkan
 			  .clearValue  = clear_color,
 			};
 
+			assert::check(swapchain_imageviews[i] != nullptr);
+			assert::check(swapchain_extent.width > 0, "");
+			assert::check(swapchain_extent.height > 0, "");
 
 			VkRect2D              render_area{{0, 0}, {(uint32_t)swapchain_extent.width, (uint32_t)swapchain_extent.height}};
 			const VkRenderingInfo render_info{
@@ -794,14 +783,21 @@ namespace deckard::vulkan
 
 			vkCmdBeginRendering(command_buffers[i], &render_info);
 
+
 			//
-			VkViewport viewport{
-			  .width = (f32)swapchain_extent.width, .height = (f32)swapchain_extent.height, .minDepth = 0.0f, .maxDepth = 1.0f};
-			vkCmdSetViewport(command_buffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = render_area;
-			vkCmdSetScissor(command_buffers[i], 0, 1, &scissor);
-
+			// const VkViewport viewport{
+			//  .x        = 0.0f, //
+			//  .y        = 0.0f,
+			//  .width    = (f32)swapchain_extent.width,
+			//  .height   = (f32)swapchain_extent.height,
+			//  .minDepth = 0.0f,
+			//  .maxDepth = 1.0f};
+			//
+			// vkCmdSetViewport(command_buffers[i], 0, 1, &viewport);
+			//
+			// VkRect2D scissor = render_area;
+			// vkCmdSetScissor(command_buffers[i], 0, 1, &scissor);
+			//
 
 			// render pass
 
@@ -835,17 +831,51 @@ namespace deckard::vulkan
 		}
 	}
 
+	i32 vulkan::select_queue() const
+	{
+		u32 queue_families_count = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
+		if (queue_families_count == 0)
+		{
+			dbg::println("Vulkan device has no queue families");
+			return false;
+		}
+
+		i32                                  queue_index{-1};
+		std::vector<VkQueueFamilyProperties> queue_family_properties(queue_families_count);
+
+		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_family_properties.data());
+
+		for (u32 i = 0; i < queue_families_count; i++)
+		{
+			if ((queue_family_properties[i].queueCount > 0) and (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+			{
+				queue_index = i;
+				break;
+			}
+		}
+
+		if (queue_index < 0)
+			dbg::println("Vulkan device had not required queue family properties");
+
+		return queue_index;
+	}
+
 	void vulkan::resize_swapchain()
 	{
 		vkDeviceWaitIdle(device);
 
+
 		cleanup_swapchain();
 
-		create_swapchain();
-		create_imageviews();
-		create_framebuffers();
+		if (not create_swapchain())
+			return;
 
-		record_commands();
+		if (not create_imageviews())
+			return;
+
+		if (not create_framebuffers())
+			return;
 	}
 
 	void vulkan::cleanup_swapchain()
@@ -855,6 +885,24 @@ namespace deckard::vulkan
 
 		for (auto& view : swapchain_imageviews)
 			vkDestroyImageView(device, view, nullptr);
+	}
+
+	void vulkan::cleanup_command_buffers()
+	{
+
+		if (command_buffers.size() > 0 and command_buffers[0] != nullptr)
+		{
+			vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
+			command_buffers.clear();
+		}
+
+		if (command_pool != nullptr)
+		{
+			vkDestroyCommandPool(device, command_pool, nullptr);
+			command_pool = nullptr;
+		}
+
+		command_buffers.clear();
 	}
 
 	bool vulkan::create_imageviews()
@@ -868,13 +916,13 @@ namespace deckard::vulkan
 			result = vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images.data());
 			if (result != VK_SUCCESS)
 			{
-				dbg::println("Getting Vulkan swapchain images failed: {}", result_to_string(result));
+				dbg::println("Getting Vulkan swapchain images failed: {}", string_VkResult(result));
 				return false;
 			}
 		}
 		else
 		{
-			dbg::println("Getting Vulkan swapchain images failed: {}", result_to_string(result));
+			dbg::println("Getting Vulkan swapchain images failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -903,7 +951,7 @@ namespace deckard::vulkan
 			result = vkCreateImageView(device, &iv_create, nullptr, &swapchain_imageviews[i]);
 			if (result != VK_SUCCESS)
 			{
-				dbg::println("Vulkan create image view for swapchain failed: {}", result_to_string(result));
+				dbg::println("Vulkan create image view for swapchain failed: {}", string_VkResult(result));
 				return false;
 			}
 		}
@@ -1008,7 +1056,7 @@ namespace deckard::vulkan
 		VkResult result = vkCreateSwapchainKHR(device, &create_swapchain, nullptr, &swapchain);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Vulkan swapchain creation failed: {}", result_to_string(result));
+			dbg::println("Vulkan swapchain creation failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -1017,14 +1065,31 @@ namespace deckard::vulkan
 			vkDestroySwapchainKHR(device, oldSwapchain, NULL);
 		}
 
-		// extent
-		swapchain_extent = surface_capabilities.currentExtent;
 
+		return true;
+	}
+
+	bool vulkan::create_command_buffers()
+	{
+		// command buffers
+		VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+		cmd_pool_create.queueFamilyIndex = select_queue();
+		cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+		// | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+		VkResult result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &command_pool);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Command pool creation failed: {}", string_VkResult(result));
+			return false;
+		}
 		return true;
 	}
 
 	bool vulkan::create_framebuffers()
 	{
+
+		update_surface_capabilities();
 
 		// framebuffers
 		swapchain_framebuffers.resize(swapchain_imageviews.size());
@@ -1048,9 +1113,9 @@ namespace deckard::vulkan
 
 	bool vulkan::draw()
 	{
-		bool     resized{false};
 		VkResult result{};
 		result = vkWaitForFences(device, 1, &in_flight, VK_TRUE, UINT64_MAX);
+		result = vkResetFences(device, 1, &in_flight);
 
 		u32 image_index{0};
 		result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, nullptr, &image_index);
@@ -1061,11 +1126,10 @@ namespace deckard::vulkan
 		}
 		else if (result != VK_SUCCESS)
 		{
-			dbg::println("Acquire swapchain image failed: {}", result_to_string(result));
+			dbg::println("Acquire swapchain image failed: {}", string_VkResult(result));
 			return false;
 		}
 
-		result = vkResetFences(device, 1, &in_flight);
 
 		VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
@@ -1104,7 +1168,7 @@ namespace deckard::vulkan
 		}
 		else if (result != VK_SUCCESS)
 		{
-			dbg::println("Vulkan present failed: {}", result_to_string(result));
+			dbg::println("Vulkan present failed: {}", string_VkResult(result));
 			return false;
 		}
 
@@ -1119,8 +1183,13 @@ namespace deckard::vulkan
 		VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, presentation_surface, &surface_capabilities);
 		if (result != VK_SUCCESS)
 		{
-			dbg::println("Device surface capabilities query failed: {}", result_to_string(result));
+			dbg::println("Device surface capabilities query failed: {}", string_VkResult(result));
 		}
+
+
+		// extent
+		swapchain_extent = surface_capabilities.currentExtent;
+		// swapchain_extent = {width, height};
 	}
 
 	/// ##############################################

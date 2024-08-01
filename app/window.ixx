@@ -282,6 +282,10 @@ namespace deckard::app
 			}
 			// OnInit
 
+			minsize.x = GetSystemMetrics(SM_CXMINTRACK);
+			minsize.y = GetSystemMetrics(SM_CYMINTRACK) + 1;
+
+
 			SetTimer(handle, 0, 16, 0);
 
 
@@ -681,6 +685,13 @@ namespace deckard::app
 					return 0;
 				}
 
+					// case WM_GETMINMAXINFO:
+					//{ // set window's minimum size
+					//	((MINMAXINFO*)lParam)->ptMinTrackSize = minsize;
+					//	// vulkan.resized                        = true;
+					//	return 0;
+					// }
+
 				case WM_GETDPISCALEDSIZE:
 				{
 					RECT  source = {0}, target = {0};
@@ -860,7 +871,17 @@ namespace deckard::app
 					return 1;
 				}
 #endif
+				case WM_SIZE:
+				{
+					if (wParam != SIZE_MINIMIZED)
+					{
+						int width  = lParam & 0xFFFF;
+						int height = (lParam & 0xFFFF'0000) >> 16;
+						// vulkan.resize(width, height);
+					}
 
+					break;
+				}
 #if 0
 				case WM_SIZE:
 				{
@@ -1703,6 +1724,7 @@ namespace deckard::app
 		DWORD             ex_style{0};
 		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
 		std::vector<char> rawinput_buffer;
+		POINT             minsize{1, 1};
 
 		vulkan::vulkan vulkan;
 
