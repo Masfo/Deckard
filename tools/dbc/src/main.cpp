@@ -298,6 +298,56 @@ fullscreen=true
 	serializer s;
 	s.write_bits(0b0000'1111, 4);
 
+	std::array<std::array<u32, 3>, 3> grid{1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+	int rows = 3;
+	int cols = 4;
+
+	std::vector<std::vector<int>> grid2(rows, std::vector<int>(cols, 0));
+
+	grid2[0][0] = 10;
+
+#if 1
+	{
+		constexpr int r = 3;
+		constexpr int c = 4;
+
+		// Create a contiguous memory block
+		std::vector<int> data(r * c);
+
+		// Create an mdspan view over the data
+		// std::mdspan<int, 2> grid(data.data(), r, c);
+		auto ms2 = std::mdspan(data.data(), r, c);
+
+		// Write data using 2D view
+		for (std::size_t i = 0; i != ms2.extent(0); i++)
+			for (std::size_t j = 0; j != ms2.extent(1); j++)
+				ms2[std::array{i, j}] = i * 1'000 + j;
+
+		// Read back using 3D view
+		for (std::size_t i = 0; i != ms2.extent(0); i++)
+		{
+			for (std::size_t j = 0; j != ms2.extent(1); j++)
+			{
+				dbg::print("{} ", ms2[std::array{i, j}]);
+			}
+			dbg::println("");
+		}
+
+		// Access and modify elements
+		// grid[1][2] = 5; // Set element at row 1, column 2 to 5
+		//
+		//// Print the grid (for demonstration)
+		// for (int i = 0; i < rows; ++i)
+		//{
+		//	for (int j = 0; j < cols; ++j)
+		//	{
+		//		std::cout << grid[i][j] << " ";
+		//	}
+		//	std::cout << std::endl;
+		// }
+	}
+#endif
 
 	bignum a("13221321321321321321321321321321321321");
 	bignum b("4654654654654654654654654654654654654654");

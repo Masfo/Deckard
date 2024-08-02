@@ -9,7 +9,6 @@ export module deckard.vulkan;
 
 export import :instance;
 export import :device;
-export import :queue;
 export import :debug;
 export import :surface;
 export import :swapchain;
@@ -18,6 +17,45 @@ export import :semaphore;
 export import :fence;
 export import :images;
 
+/*
+module;
+#include <Windows.h>
+#include <vulkan/vk_enum_string_helper.h>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
+
+
+export module deckard.vulkan:queue;
+import deckard.vulkan_helpers;
+
+import std;
+import deckard.debug;
+import deckard.types;
+import deckard.as;
+import deckard.assert;
+
+namespace deckard::vulkan
+{
+	export class queue
+	{
+	public:
+		bool initialize(VkInstance instance, HINSTANCE window_instance, HWND window_handle) noexcept
+		{
+			//
+			return true;
+		}
+
+		void deinitialize(VkInstance instance) noexcept
+		{
+			//
+		}
+
+	private:
+	};
+
+} // namespace deckard::vulkan
+
+*/
 
 import std;
 import deckard;
@@ -33,7 +71,6 @@ namespace deckard::vulkan
 
 	// Vulkan 1.3: https://developer.nvidia.com/blog/advanced-api-performance-vulkan-clearing-and-presenting/
 
-	constexpr u32 VENDOR_NVIDIA = 0x10DE;
 
 	export enum class Severity : u32 {
 		Verbose = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
@@ -226,7 +263,6 @@ namespace deckard::vulkan
 		{
 			if (vkDestroyDebugUtilsMessengerEXT != nullptr)
 				vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
-
 
 			vkDestroyInstance(instance, nullptr);
 			instance = nullptr;
@@ -599,7 +635,7 @@ namespace deckard::vulkan
 		device_create.queueCreateInfoCount = 1;
 		device_create.pQueueCreateInfos    = &queue_create;
 		// extensions
-		device_create.enabledExtensionCount   = extensions.size();
+		device_create.enabledExtensionCount   = as<u32>(extensions.size());
 		device_create.ppEnabledExtensionNames = extensions.data();
 
 
