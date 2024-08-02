@@ -296,6 +296,7 @@ namespace deckard::app
 			if (not vulkan.initialize(GetModuleHandle(nullptr), handle))
 				return;
 
+
 			// init_gl_renderer();
 
 			//
@@ -1727,7 +1728,8 @@ namespace deckard::app
 		std::vector<char> rawinput_buffer;
 		POINT             minsize{1, 1};
 
-		vulkan::vulkan vulkan;
+		vulkan::vulkan  vulkan;
+		vulkan::vulkan2 vulkan2;
 
 		bool renderer_initialized{false};
 		bool is_running{false};

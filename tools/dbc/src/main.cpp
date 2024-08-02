@@ -329,7 +329,7 @@ fullscreen=true
 		{
 			for (std::size_t j = 0; j != ms2.extent(1); j++)
 			{
-				dbg::print("{} ", ms2[std::array{i, j}]);
+				dbg::print("{:4} ", ms2[std::array{i, j}]);
 			}
 			dbg::println("");
 		}

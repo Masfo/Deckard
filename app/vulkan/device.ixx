@@ -23,6 +23,9 @@ namespace deckard::vulkan
 	public:
 		bool initialize(VkInstance instance) noexcept
 		{
+			if (instance == nullptr)
+				return false;
+
 			u32      device_count{0};
 			VkResult result = vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 			if (result != VK_SUCCESS)

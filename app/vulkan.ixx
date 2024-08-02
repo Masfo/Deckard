@@ -85,6 +85,49 @@ namespace deckard::vulkan
 		Performance = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 	};
 
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+
+	export class vulkan2
+	{
+	public:
+		bool initialize(HWND handle);
+		void deinitialize();
+
+
+	private:
+		instance             m_instance;
+		device               m_device;
+		presentation_surface m_surface;
+	};
+
+	bool vulkan2::initialize(HWND handle)
+	{
+		if (not enumerate_instance_extensions())
+			return false;
+		if (not enumerate_validator_layers())
+			return false;
+
+		bool result = m_instance.initialize();
+		result |= m_device.initialize(m_instance);
+		result |= m_surface.initialize(m_instance, handle);
+
+
+		return result;
+	}
+
+	void vulkan2::deinitialize()
+	{
+		m_surface.deinitialize(m_instance);
+		m_device.deinitialize(m_instance);
+		m_instance.deinitialize();
+	}
+
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+
 	export class vulkan
 	{
 	public:

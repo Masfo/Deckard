@@ -20,10 +20,8 @@ namespace deckard::vulkan
 	export class instance
 	{
 	public:
-		bool initialize(HINSTANCE instance, HWND window_handle) noexcept
+		bool initialize() noexcept
 		{
-			windows_instance = instance;
-			handle           = window_handle;
 
 			if (bool ext_init = enumerate_instance_extensions(); not ext_init)
 				return false;
@@ -153,9 +151,9 @@ namespace deckard::vulkan
 			instance_create.enabledLayerCount   = as<u32>(required_layers.size());
 			instance_create.ppEnabledLayerNames = required_layers.data();
 
-			VkResult result = vkCreateInstance(&instance_create, nullptr, &vulkan_instance);
+			VkResult result = vkCreateInstance(&instance_create, nullptr, &m_instance);
 
-			if (result != VK_SUCCESS or vulkan_instance == nullptr)
+			if (result != VK_SUCCESS or m_instance == nullptr)
 			{
 				dbg::println("Create vulkan instance failed: {}", string_VkResult(result));
 				return false;
@@ -166,18 +164,17 @@ namespace deckard::vulkan
 
 		void deinitialize() noexcept
 		{
-			if (vulkan_instance != nullptr)
+			if (m_instance != nullptr)
 			{
-				vkDestroyInstance(vulkan_instance, nullptr);
-				vulkan_instance = nullptr;
+				vkDestroyInstance(m_instance, nullptr);
+				m_instance = nullptr;
 			}
 		}
 
-	private:
-		VkInstance vulkan_instance{nullptr};
+		operator VkInstance() const { return m_instance; }
 
-		HWND      handle{nullptr};
-		HINSTANCE windows_instance{nullptr};
+	private:
+		VkInstance m_instance{nullptr};
 	};
 
 } // namespace deckard::vulkan

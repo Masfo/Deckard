@@ -19,10 +19,10 @@ namespace deckard::vulkan
 	export class presentation_surface
 	{
 	public:
-		bool initialize(VkInstance instance, HINSTANCE window_instance, HWND window_handle) noexcept
+		bool initialize(VkInstance instance, HWND window_handle) noexcept
 		{
 			VkWin32SurfaceCreateInfoKHR surface_create_info{.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
-			surface_create_info.hinstance = window_instance;
+			surface_create_info.hinstance = GetModuleHandle(nullptr);
 			surface_create_info.hwnd      = window_handle;
 
 
