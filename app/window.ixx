@@ -292,6 +292,7 @@ namespace deckard::app
 			// Init renderer
 			dc = GetDC(handle);
 
+			vulkan2.initialize(handle);
 
 			if (not vulkan.initialize(GetModuleHandle(nullptr), handle))
 				return;
@@ -686,12 +687,12 @@ namespace deckard::app
 					return 0;
 				}
 
-					// case WM_GETMINMAXINFO:
-					//{ // set window's minimum size
-					//	((MINMAXINFO*)lParam)->ptMinTrackSize = minsize;
-					//	// vulkan.resized                        = true;
-					//	return 0;
-					// }
+				case WM_GETMINMAXINFO:
+				{ // set window's minimum size
+					((MINMAXINFO*)lParam)->ptMinTrackSize = minsize;
+					// vulkan.resized                        = true;
+					return 0;
+				}
 
 				case WM_GETDPISCALEDSIZE:
 				{

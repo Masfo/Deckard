@@ -89,9 +89,25 @@ namespace deckard::vulkan
 	// ########################################################################
 	// ########################################################################
 
+
 	export class vulkan2
 	{
 	public:
+		vulkan2() = default;
+
+		vulkan2(HWND handle) { initialize(handle); }
+
+		~vulkan2() { deinitialize(); };
+
+		// Copy
+		vulkan2(vulkan2 const&)            = delete;
+		vulkan2& operator=(vulkan2 const&) = delete;
+
+		// Move
+		vulkan2(vulkan2&&)            = delete;
+		vulkan2& operator=(vulkan2&&) = delete;
+
+
 		bool initialize(HWND handle);
 		void deinitialize();
 
@@ -100,21 +116,16 @@ namespace deckard::vulkan
 		instance             m_instance;
 		device               m_device;
 		presentation_surface m_surface;
+		bool                 is_initialized{false};
 	};
 
 	bool vulkan2::initialize(HWND handle)
 	{
-		if (not enumerate_instance_extensions())
-			return false;
-		if (not enumerate_validator_layers())
-			return false;
+		is_initialized = m_instance.initialize();
+		is_initialized &= m_device.initialize(m_instance);
+		is_initialized &= m_surface.initialize(m_instance, handle);
 
-		bool result = m_instance.initialize();
-		result |= m_device.initialize(m_instance);
-		result |= m_surface.initialize(m_instance, handle);
-
-
-		return result;
+		return is_initialized;
 	}
 
 	void vulkan2::deinitialize()
@@ -265,6 +276,7 @@ namespace deckard::vulkan
 
 	void vulkan::deinitialize() noexcept
 	{
+
 
 		vkDeviceWaitIdle(device);
 
