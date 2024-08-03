@@ -19,16 +19,30 @@ namespace deckard::vulkan
 	export class command_buffer
 	{
 	public:
-		bool initialize(VkDevice device) noexcept
+		bool initialize(VkDevice device, u32 queue_index) noexcept
 		{
 			assert::check(device != nullptr);
+
+			// command buffers
+			VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+			cmd_pool_create.queueFamilyIndex = queue_index;
+			cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+			// | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+			VkResult result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &m_command_pool);
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Command pool creation failed: {}", string_VkResult(result));
+				return false;
+			}
+
 
 			VkCommandBufferAllocateInfo command_buffer_allocate{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
 			command_buffer_allocate.commandPool        = m_command_pool;
 			command_buffer_allocate.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			command_buffer_allocate.commandBufferCount = 1;
 
-			VkResult result = vkAllocateCommandBuffers(device, &command_buffer_allocate, &m_command_buffer);
+			result = vkAllocateCommandBuffers(device, &command_buffer_allocate, &m_command_buffer);
 			if (result != VK_SUCCESS)
 			{
 				dbg::println("Failed to allocate command buffers: {}", string_VkResult(result));

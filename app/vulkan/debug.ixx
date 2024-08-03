@@ -1,5 +1,5 @@
 module;
-// #include <vulkan/vk_enum_string_helper.h>
+#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
 export module deckard.vulkan:debug;
@@ -40,9 +40,15 @@ namespace deckard::vulkan
 			create.pfnUserCallback = as<PFN_vkDebugUtilsMessengerCallbackEXT>(debug_callback);
 			create.pUserData       = this;
 
+			VkResult result{};
+			result = vkCreateDebugUtilsMessengerEXT(instance, &create, nullptr, &debug_messenger);
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Creating Vulkan debug messenger failed: {}", string_VkResult(result));
+				return false;
+			}
 
-			if (vkCreateDebugUtilsMessengerEXT != nullptr)
-				vkCreateDebugUtilsMessengerEXT(instance, &create, nullptr, &debug_messenger);
+			return true;
 		}
 
 		void deinitialize(const VkInstance instance) noexcept

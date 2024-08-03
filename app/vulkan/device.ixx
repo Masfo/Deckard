@@ -242,13 +242,15 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void deinitialize(VkInstance instance) noexcept
+		void deinitialize() noexcept
 		{
 			vkDeviceWaitIdle(m_device);
 
-
-			vkDestroyDevice(m_device, nullptr);
-			m_device = nullptr;
+			if (m_device != nullptr)
+			{
+				vkDestroyDevice(m_device, nullptr);
+				m_device = nullptr;
+			}
 		}
 
 		VkResult next_swapchain_image(VkDevice device, VkSwapchainKHR swapchain, VkSemaphore image_available, u32* index)
@@ -270,10 +272,6 @@ namespace deckard::vulkan
 			return vkQueuePresentKHR(m_queue, &present_info);
 		}
 
-		operator VkDevice() const { return m_device; }
-
-
-	private:
 		i32 select_queue() const
 		{
 			u32 queue_families_count = 0;
@@ -304,6 +302,9 @@ namespace deckard::vulkan
 			return queue_index;
 		}
 
+		operator VkDevice() const { return m_device; }
+
+	private:
 		VkDevice         m_device{nullptr};
 		VkPhysicalDevice m_physical_device{nullptr};
 		VkQueue          m_queue{nullptr};

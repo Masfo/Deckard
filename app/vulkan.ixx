@@ -113,6 +113,7 @@ namespace deckard::vulkan
 
 
 	private:
+		debug                m_debug;
 		instance             m_instance;
 		device               m_device;
 		presentation_surface m_surface;
@@ -127,27 +128,31 @@ namespace deckard::vulkan
 
 	bool vulkan2::initialize(HWND handle)
 	{
+
 		is_initialized = m_instance.initialize();
+		is_initialized &= m_debug.initialize(m_instance);
+
 		is_initialized &= m_device.initialize(m_instance);
 		is_initialized &= m_surface.initialize(m_instance, handle);
-		is_initialized &= m_command_buffer.initialize(m_device);
+		is_initialized &= m_command_buffer.initialize(m_device, m_device.select_queue());
 
-		image_available.initialize(m_device);
-		rendering_finished.initialize(m_device);
-		in_flight.initialize(m_device);
-
+		is_initialized &= image_available.initialize(m_device);
+		is_initialized &= rendering_finished.initialize(m_device);
+		is_initialized &= in_flight.initialize(m_device);
 
 		return is_initialized;
 	}
 
 	void vulkan2::deinitialize()
 	{
-		image_available.deinitialize(m_device);
-		rendering_finished.deinitialize(m_device);
 		in_flight.deinitialize(m_device);
+		rendering_finished.deinitialize(m_device);
+		image_available.deinitialize(m_device);
 
+		m_device.deinitialize();
 		m_surface.deinitialize(m_instance);
-		m_device.deinitialize(m_instance);
+
+		m_debug.deinitialize(m_instance);
 		m_instance.deinitialize();
 	}
 
@@ -674,7 +679,6 @@ namespace deckard::vulkan
 		std::vector<const char*> extensions;
 		extensions.reserve(device_extensions.size());
 
-		const auto& c = device_extensions;
 
 		for (const auto& extension : device_extensions)
 		{
