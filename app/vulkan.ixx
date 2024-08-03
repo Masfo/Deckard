@@ -116,7 +116,13 @@ namespace deckard::vulkan
 		instance             m_instance;
 		device               m_device;
 		presentation_surface m_surface;
-		bool                 is_initialized{false};
+		command_buffer       m_command_buffer;
+
+		semaphore image_available;
+		semaphore rendering_finished;
+		fence     in_flight;
+
+		bool is_initialized{false};
 	};
 
 	bool vulkan2::initialize(HWND handle)
@@ -124,12 +130,22 @@ namespace deckard::vulkan
 		is_initialized = m_instance.initialize();
 		is_initialized &= m_device.initialize(m_instance);
 		is_initialized &= m_surface.initialize(m_instance, handle);
+		is_initialized &= m_command_buffer.initialize(m_device);
+
+		image_available.initialize(m_device);
+		rendering_finished.initialize(m_device);
+		in_flight.initialize(m_device);
+
 
 		return is_initialized;
 	}
 
 	void vulkan2::deinitialize()
 	{
+		image_available.deinitialize(m_device);
+		rendering_finished.deinitialize(m_device);
+		in_flight.deinitialize(m_device);
+
 		m_surface.deinitialize(m_instance);
 		m_device.deinitialize(m_instance);
 		m_instance.deinitialize();

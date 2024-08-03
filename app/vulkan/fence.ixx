@@ -31,17 +31,9 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void wait(VkDevice device) noexcept
-		{
-			//
-			VkResult result = vkWaitForFences(device, 1, &m_fence, VK_TRUE, UINT64_MAX);
-		}
+		void wait(VkDevice device) noexcept { VkResult result = vkWaitForFences(device, 1, &m_fence, VK_TRUE, UINT64_MAX); }
 
-		void reset(VkDevice device) noexcept
-		{
-			//
-			VkResult result = vkResetFences(device, 1, &m_fence);
-		}
+		void reset(VkDevice device) noexcept { VkResult result = vkResetFences(device, 1, &m_fence); }
 
 		void deinitialize(VkDevice device) noexcept
 		{

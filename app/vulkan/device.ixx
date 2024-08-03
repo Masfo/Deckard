@@ -23,8 +23,8 @@ namespace deckard::vulkan
 	public:
 		bool initialize(VkInstance instance) noexcept
 		{
-			if (instance == nullptr)
-				return false;
+			assert::check(instance != nullptr);
+
 
 			u32      device_count{0};
 			VkResult result = vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
@@ -269,6 +269,9 @@ namespace deckard::vulkan
 
 			return vkQueuePresentKHR(m_queue, &present_info);
 		}
+
+		operator VkDevice() const { return m_device; }
+
 
 	private:
 		i32 select_queue() const

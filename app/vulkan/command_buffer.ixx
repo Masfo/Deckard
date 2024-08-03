@@ -21,6 +21,7 @@ namespace deckard::vulkan
 	public:
 		bool initialize(VkDevice device) noexcept
 		{
+			assert::check(device != nullptr);
 
 			VkCommandBufferAllocateInfo command_buffer_allocate{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
 			command_buffer_allocate.commandPool        = m_command_pool;
