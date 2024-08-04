@@ -221,12 +221,13 @@ namespace deckard::app
 				return;
 			}
 
+
 			// Adjust to DPI scale
 			RECT wr{0, 0, (LONG)client_size.width, (LONG)client_size.height};
 
 			if (IsWindows10OrGreater())
 			{
-				u32 dpi         = handle ? GetDpiForWindow(handle) : USER_DEFAULT_SCREEN_DPI;
+				u32 dpi         = GetDpiForWindow(handle);
 				f32 scale       = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
 				client_size.dpi = dpi;
 
@@ -292,7 +293,7 @@ namespace deckard::app
 			// Init renderer
 			dc = GetDC(handle);
 
-			vulkan2.initialize(handle);
+			// vulkan2.initialize(handle);
 
 			if (not vulkan.initialize(GetModuleHandle(nullptr), handle))
 				return;
@@ -566,8 +567,10 @@ namespace deckard::app
 
 				case WM_TIMER:
 				{
-					break;
-#if 0
+					//				break;
+#if 1
+					f32  dpi      = GetDpiForWindow(handle);
+					f32  DPIScale = dpi / USER_DEFAULT_SCREEN_DPI;
 					RECT cr{};
 					GetClientRect(handle, &cr);
 
@@ -577,13 +580,14 @@ namespace deckard::app
 					SetWindowTextA(
 					  handle,
 					  std::format(
-						"client_size: {}x{}, window {}x{}, client {}x{}",
+						"client_size: {}x{}, window {}x{}, client {}x{} - {:.3f}",
 						client_size.width,
 						client_size.height,
 						wr.right - wr.left,
 						wr.bottom - wr.top,
 						cr.right - cr.left,
-						cr.bottom - cr.top)
+						cr.bottom - cr.top,
+						DPIScale)
 						.c_str());
 					//
 					break;
@@ -760,9 +764,19 @@ namespace deckard::app
 							  cr.right - cr.left,
 							  cr.bottom - cr.top);
 						}
+
+						RECT* const new_size = (RECT*)lParam;
+
+						u32 new_width = new_size->right - new_size->left;
+
+						u32 new_height = new_size->bottom - new_size->top;
+
+
 						auto newdpi     = HIWORD(wParam);
-						f32  scale      = (f32)newdpi / (f32)client_size.dpi;
+						f32  scale      = (f32)newdpi / USER_DEFAULT_SCREEN_DPI;
 						client_size.dpi = newdpi;
+						dbg::println("scaler DPI: {}, {:f}", newdpi, scale);
+
 
 						RECT old{};
 						GetWindowRect(handle, &old);
@@ -772,8 +786,8 @@ namespace deckard::app
 						f32 height = as<f32>(old.bottom - old.top);
 						dbg::println("pre scale({}): {}x{}", scale, width, height);
 
-						width *= scale;
-						height *= scale;
+						width /= scale;
+						height /= scale;
 
 						u32 cwidth  = std::ceil(width);
 						u32 cheight = std::ceil(height);
@@ -1717,9 +1731,17 @@ namespace deckard::app
 #endif
 		}
 
-		WindowSize client_size;
-		GLuint     u_angle{};
-		f32        angle{};
+		// Only client size, only detect dpi change, calc new size on the client_size
+		// WM_SIZE, save actual client size
+		WindowSize scale_client_extent(f32 scale); // return new size
+		WindowSize client_size_windowed;
+		WindowSize client_size_fullscreen;
+
+		f32 dpi_scale{1.0f};
+
+
+		GLuint u_angle{};
+		f32    angle{};
 
 		HWND              handle{nullptr};
 		HDC               dc{nullptr};

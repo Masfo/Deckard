@@ -304,6 +304,8 @@ namespace deckard::vulkan
 
 		operator VkDevice() const { return m_device; }
 
+		VkPhysicalDevice physical_device() const { return m_physical_device; }
+
 	private:
 		VkDevice         m_device{nullptr};
 		VkPhysicalDevice m_physical_device{nullptr};

@@ -60,6 +60,7 @@ namespace deckard::vulkan
 import std;
 import deckard;
 import deckard.vulkan_helpers;
+import deckard.types;
 
 namespace deckard::vulkan
 {
@@ -111,6 +112,8 @@ namespace deckard::vulkan
 		bool initialize(HWND handle);
 		void deinitialize();
 
+		void draw();
+
 
 	private:
 		debug                m_debug;
@@ -118,6 +121,8 @@ namespace deckard::vulkan
 		device               m_device;
 		presentation_surface m_surface;
 		command_buffer       m_command_buffer;
+		swapchain            m_swapchain;
+		images               m_images;
 
 		semaphore image_available;
 		semaphore rendering_finished;
@@ -133,7 +138,8 @@ namespace deckard::vulkan
 		is_initialized &= m_debug.initialize(m_instance);
 
 		is_initialized &= m_device.initialize(m_instance);
-		is_initialized &= m_surface.initialize(m_instance, handle);
+		is_initialized &= m_surface.initialize(m_instance, m_device.physical_device(), handle);
+		is_initialized &= m_swapchain.initialize(m_device, m_surface);
 		is_initialized &= m_command_buffer.initialize(m_device, m_device.select_queue());
 
 		is_initialized &= image_available.initialize(m_device);
@@ -148,12 +154,18 @@ namespace deckard::vulkan
 		in_flight.deinitialize(m_device);
 		rendering_finished.deinitialize(m_device);
 		image_available.deinitialize(m_device);
+		m_swapchain.deinitialize(m_device);
 
 		m_device.deinitialize();
 		m_surface.deinitialize(m_instance);
 
 		m_debug.deinitialize(m_instance);
 		m_instance.deinitialize();
+	}
+
+	void vulkan2::draw()
+	{
+		//
 	}
 
 	// ########################################################################
@@ -1016,19 +1028,11 @@ namespace deckard::vulkan
 	void vulkan::cleanup_command_buffers()
 	{
 
-		if (command_buffers.size() > 0 and command_buffers[0] != nullptr)
-		{
-			vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
-			command_buffers.clear();
-		}
 
-		if (command_pool != nullptr)
-		{
-			vkDestroyCommandPool(device, command_pool, nullptr);
-			command_pool = nullptr;
-		}
-
+		vkFreeCommandBuffers(device, command_pool, as<u32>(command_buffers.size()), command_buffers.data());
 		command_buffers.clear();
+		if(command_pool != nullptr)
+		vkDestroyCommandPool(device, command_pool, nullptr);
 	}
 
 	bool vulkan::create_imageviews()

@@ -19,7 +19,7 @@ namespace deckard::vulkan
 	export class presentation_surface
 	{
 	public:
-		bool initialize(VkInstance instance, HWND window_handle) noexcept
+		bool initialize(VkInstance instance, VkPhysicalDevice physical_device, HWND window_handle) noexcept
 		{
 			VkWin32SurfaceCreateInfoKHR surface_create_info{.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
 			surface_create_info.hinstance = GetModuleHandle(nullptr);
@@ -33,8 +33,17 @@ namespace deckard::vulkan
 				return false;
 			}
 
+			update_capabilities(physical_device);
 
 			return true;
+		}
+
+		void update_capabilities(VkPhysicalDevice physical_device)
+		{
+			// surface capabilities
+			VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
+			if (result != VK_SUCCESS)
+				dbg::println("Device surface capabilities query failed: {}", string_VkResult(result));
 		}
 
 		void deinitialize(VkInstance instance) noexcept
@@ -47,8 +56,13 @@ namespace deckard::vulkan
 			}
 		}
 
+		VkSurfaceCapabilitiesKHR capabilities() const { return surface_capabilities; }
+
+		operator VkSurfaceKHR() const { return surface; }
+
 	private:
-		VkSurfaceKHR surface{nullptr};
+		VkSurfaceKHR             surface{nullptr};
+		VkSurfaceCapabilitiesKHR surface_capabilities;
 	};
 
 } // namespace deckard::vulkan
