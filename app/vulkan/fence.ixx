@@ -41,6 +41,8 @@ namespace deckard::vulkan
 				vkDestroyFence(device, m_fence, nullptr);
 		}
 
+		operator VkFence() const { return m_fence; }
+
 	private:
 		VkFence m_fence{nullptr};
 	};

@@ -8,6 +8,7 @@ module;
 export module deckard.vulkan:swapchain;
 import deckard.vulkan_helpers;
 import :surface;
+import :device;
 
 
 import std;
@@ -21,8 +22,9 @@ namespace deckard::vulkan
 	export class swapchain
 	{
 	public:
-		bool initialize(VkDevice device, presentation_surface surface) noexcept
+		bool initialize(device device, presentation_surface surface) noexcept
 		{
+			surface.update(device);
 
 			VkSwapchainCreateInfoKHR create_swapchain{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 
@@ -33,14 +35,12 @@ namespace deckard::vulkan
 			create_swapchain.minImageCount = desired_number_of_images;
 
 			// TODO: query desired format somehow
-			VkFormat           swapchain_format;
-			VkSurfaceFormatKHR desired_format;
-
-			desired_format               = {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-			swapchain_format             = desired_format.format;
+			VkFormat   swapchain_format;
+			const auto format            = desired_format();
+			swapchain_format             = format.format;
 			create_swapchain.imageFormat = swapchain_format;
 
-			create_swapchain.imageColorSpace = desired_format.colorSpace;
+			create_swapchain.imageColorSpace = format.colorSpace;
 
 			// extent
 			create_swapchain.imageExtent      = surface_capabilities.currentExtent;
@@ -113,8 +113,7 @@ namespace deckard::vulkan
 			create_swapchain.clipped = VK_TRUE;
 
 
-			VkSwapchainKHR oldSwapchain = m_swapchain;
-			// old
+			VkSwapchainKHR oldSwapchain   = m_swapchain;
 			create_swapchain.oldSwapchain = oldSwapchain;
 
 
@@ -134,7 +133,31 @@ namespace deckard::vulkan
 			return true;
 		}
 
+		void resize(device device, presentation_surface surface)
+		{
+			vkDeviceWaitIdle(device);
+
+			initialize(device, surface);
+		}
+
+		u32 count(VkDevice device) const
+		{
+			u32      image_count{0};
+			VkResult result = vkGetSwapchainImagesKHR(device, m_swapchain, &image_count, nullptr);
+			return result == VK_SUCCESS ? image_count : 0;
+		}
+
+		VkSurfaceFormatKHR desired_format() const
+		{
+			// TODO: better
+			return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+		}
+
+		VkResult acquire_next_image() const { return VK_SUCCESS; }
+
 		void deinitialize(VkDevice device) noexcept { vkDestroySwapchainKHR(device, m_swapchain, nullptr); }
+
+		operator VkSwapchainKHR() const { return m_swapchain; }
 
 	private:
 		VkSwapchainKHR m_swapchain{nullptr};

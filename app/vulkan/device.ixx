@@ -6,6 +6,9 @@ module;
 
 
 export module deckard.vulkan:device;
+
+import :semaphore;
+
 import deckard.vulkan_helpers;
 
 import std;
@@ -239,15 +242,20 @@ namespace deckard::vulkan
 				dbg::println("Vulkan m_device creation failed: {}", string_VkResult(result));
 				return false;
 			}
+
+
+			vkGetDeviceQueue(m_device, queue_index, 0, &m_queue);
+			assert::check(m_queue != nullptr);
+
 			return true;
 		}
 
 		void deinitialize() noexcept
 		{
-			vkDeviceWaitIdle(m_device);
 
 			if (m_device != nullptr)
 			{
+				vkDeviceWaitIdle(m_device);
 				vkDestroyDevice(m_device, nullptr);
 				m_device = nullptr;
 			}
@@ -302,9 +310,31 @@ namespace deckard::vulkan
 			return queue_index;
 		}
 
+		void wait() const
+		{
+			assert::check(m_device != nullptr);
+			vkDeviceWaitIdle(m_device);
+		}
+
+		VkResult present(VkSemaphore rendering_finished, u32& image_index, VkSwapchainKHR swapchain)
+		{
+			VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+
+			present_info.waitSemaphoreCount = 1;
+			present_info.pWaitSemaphores    = &rendering_finished;
+
+			present_info.swapchainCount = 1;
+			present_info.pSwapchains    = &swapchain;
+			present_info.pImageIndices  = &image_index;
+
+			return vkQueuePresentKHR(m_queue, &present_info);
+		}
+
 		operator VkDevice() const { return m_device; }
 
 		VkPhysicalDevice physical_device() const { return m_physical_device; }
+
+		VkQueue queue() const { return m_queue; }
 
 	private:
 		VkDevice         m_device{nullptr};

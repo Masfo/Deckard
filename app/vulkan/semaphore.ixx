@@ -37,6 +37,8 @@ namespace deckard::vulkan
 				vkDestroySemaphore(device, m_semaphore, nullptr);
 		}
 
+		operator VkSemaphore() const { return m_semaphore; }
+
 	private:
 		VkSemaphore m_semaphore{nullptr};
 	};

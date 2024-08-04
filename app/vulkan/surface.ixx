@@ -6,6 +6,8 @@ module;
 
 
 export module deckard.vulkan:surface;
+
+import :device;
 import deckard.vulkan_helpers;
 
 import std;
@@ -19,7 +21,7 @@ namespace deckard::vulkan
 	export class presentation_surface
 	{
 	public:
-		bool initialize(VkInstance instance, VkPhysicalDevice physical_device, HWND window_handle) noexcept
+		bool initialize(VkInstance instance, device device, HWND window_handle) noexcept
 		{
 			VkWin32SurfaceCreateInfoKHR surface_create_info{.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
 			surface_create_info.hinstance = GetModuleHandle(nullptr);
@@ -33,15 +35,15 @@ namespace deckard::vulkan
 				return false;
 			}
 
-			update_capabilities(physical_device);
+			update(device);
 
 			return true;
 		}
 
-		void update_capabilities(VkPhysicalDevice physical_device)
+		void update(device device)
 		{
 			// surface capabilities
-			VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
+			VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical_device(), surface, &surface_capabilities);
 			if (result != VK_SUCCESS)
 				dbg::println("Device surface capabilities query failed: {}", string_VkResult(result));
 		}
@@ -57,6 +59,8 @@ namespace deckard::vulkan
 		}
 
 		VkSurfaceCapabilitiesKHR capabilities() const { return surface_capabilities; }
+
+		VkExtent2D extent() const { return surface_capabilities.currentExtent; }
 
 		operator VkSurfaceKHR() const { return surface; }
 
