@@ -18,7 +18,7 @@ namespace deckard::vulkan
 	export PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
 	export PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT{nullptr};
 
-	export bool enumerate_instance_extensions() noexcept
+	export bool enumerate_instance_extensions()
 	{
 		u32      count{0};
 		VkResult result = vkEnumerateInstanceExtensionProperties(0, &count, 0);
@@ -32,7 +32,7 @@ namespace deckard::vulkan
 		return result == VK_SUCCESS;
 	}
 
-	export bool enumerate_validator_layers() noexcept
+	export bool enumerate_validator_layers()
 	{
 		u32      count{0};
 		VkResult result = vkEnumerateInstanceLayerProperties(&count, nullptr);

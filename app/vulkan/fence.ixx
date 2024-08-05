@@ -17,7 +17,7 @@ namespace deckard::vulkan
 	export class fence
 	{
 	public:
-		bool initialize(VkDevice device, bool set_signaled = true) noexcept
+		bool initialize(VkDevice device, bool set_signaled = true)
 		{
 			VkFenceCreateInfo fence_info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
 			fence_info.flags = set_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
@@ -31,11 +31,11 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void wait(VkDevice device) noexcept { VkResult result = vkWaitForFences(device, 1, &m_fence, VK_TRUE, UINT64_MAX); }
+		void wait(VkDevice device) { VkResult result = vkWaitForFences(device, 1, &m_fence, VK_TRUE, UINT64_MAX); }
 
-		void reset(VkDevice device) noexcept { VkResult result = vkResetFences(device, 1, &m_fence); }
+		void reset(VkDevice device) { VkResult result = vkResetFences(device, 1, &m_fence); }
 
-		void deinitialize(VkDevice device) noexcept
+		void deinitialize(VkDevice device)
 		{
 			if (m_fence != nullptr)
 				vkDestroyFence(device, m_fence, nullptr);

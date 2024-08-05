@@ -22,7 +22,7 @@ namespace deckard::vulkan
 	export class swapchain
 	{
 	public:
-		bool initialize(device device, presentation_surface surface) noexcept
+		bool initialize(device device, presentation_surface surface)
 		{
 			surface.update(device);
 
@@ -155,7 +155,7 @@ namespace deckard::vulkan
 
 		VkResult acquire_next_image() const { return VK_SUCCESS; }
 
-		void deinitialize(VkDevice device) noexcept { vkDestroySwapchainKHR(device, m_swapchain, nullptr); }
+		void deinitialize(VkDevice device) { vkDestroySwapchainKHR(device, m_swapchain, nullptr); }
 
 		operator VkSwapchainKHR() const { return m_swapchain; }
 

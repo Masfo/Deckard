@@ -20,7 +20,7 @@ namespace deckard::vulkan
 	export class instance
 	{
 	public:
-		bool initialize() noexcept
+		bool initialize()
 		{
 
 			if (bool ext_init = enumerate_instance_extensions(); not ext_init)
@@ -162,7 +162,7 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void deinitialize() noexcept
+		void deinitialize()
 		{
 			if (m_instance != nullptr)
 			{

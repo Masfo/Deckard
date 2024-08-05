@@ -18,9 +18,9 @@ namespace deckard
 		export class app
 		{
 		public:
-			void init_inputs() noexcept;
-			void destroy_inputs() noexcept;
-			void run() noexcept;
+			void init_inputs();
+			void destroy_inputs();
+			void run();
 
 		private:
 			window                        wnd;
@@ -36,7 +36,7 @@ namespace deckard
 			};
 		};
 
-		void app::init_inputs() noexcept
+		void app::init_inputs()
 		{
 			// Keyboard
 			raw_inputs[Keyboard].usUsagePage = HID_USAGE_PAGE_GENERIC;
@@ -119,7 +119,7 @@ namespace deckard
 			}
 		}
 
-		void app::destroy_inputs() noexcept
+		void app::destroy_inputs()
 		{
 			//
 			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
@@ -146,7 +146,7 @@ namespace deckard
 		}
 
 		// impl
-		void app::run() noexcept
+		void app::run()
 		{
 			std::jthread t(
 			  [&]

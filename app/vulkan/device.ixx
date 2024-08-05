@@ -24,7 +24,7 @@ namespace deckard::vulkan
 	export class device
 	{
 	public:
-		bool initialize(VkInstance instance) noexcept
+		bool initialize(VkInstance instance)
 		{
 			assert::check(instance != nullptr);
 
@@ -250,7 +250,7 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void deinitialize() noexcept
+		void deinitialize()
 		{
 
 			if (m_device != nullptr)
@@ -266,7 +266,7 @@ namespace deckard::vulkan
 			return vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, nullptr, index);
 		}
 
-		VkResult present(const VkSwapchainKHR swapchain, VkSemaphore rendering_finished, u32 image_index) noexcept
+		VkResult present(const VkSwapchainKHR swapchain, VkSemaphore rendering_finished, u32 image_index)
 		{
 			VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
 

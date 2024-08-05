@@ -19,7 +19,7 @@ namespace deckard::vulkan
 	export class debug
 	{
 	public:
-		bool initialize(const VkInstance instance) noexcept
+		bool initialize(const VkInstance instance)
 		{
 			assert::check(instance != nullptr);
 
@@ -51,7 +51,7 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void deinitialize(const VkInstance instance) noexcept
+		void deinitialize(const VkInstance instance)
 		{
 			if (vkDestroyDebugUtilsMessengerEXT != nullptr)
 				vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);

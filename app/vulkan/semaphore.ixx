@@ -17,7 +17,7 @@ namespace deckard::vulkan
 	export class semaphore
 	{
 	public:
-		bool initialize(VkDevice device) noexcept
+		bool initialize(VkDevice device)
 		{
 			VkSemaphoreCreateInfo semaphore_create{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
@@ -30,7 +30,7 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void deinitialize(VkDevice device) noexcept
+		void deinitialize(VkDevice device)
 		{
 
 			if (m_semaphore != nullptr)

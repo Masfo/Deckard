@@ -21,7 +21,7 @@ namespace deckard::vulkan
 	export class presentation_surface
 	{
 	public:
-		bool initialize(VkInstance instance, device device, HWND window_handle) noexcept
+		bool initialize(VkInstance instance, device device, HWND window_handle)
 		{
 			VkWin32SurfaceCreateInfoKHR surface_create_info{.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
 			surface_create_info.hinstance = GetModuleHandle(nullptr);
@@ -48,7 +48,7 @@ namespace deckard::vulkan
 				dbg::println("Device surface capabilities query failed: {}", string_VkResult(result));
 		}
 
-		void deinitialize(VkInstance instance) noexcept
+		void deinitialize(VkInstance instance)
 		{
 
 			if (surface != nullptr)

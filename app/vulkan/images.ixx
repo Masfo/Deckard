@@ -21,7 +21,7 @@ namespace deckard::vulkan
 	export class images
 	{
 	public:
-		bool initialize(VkDevice device, swapchain swapchain) noexcept
+		bool initialize(VkDevice device, swapchain swapchain)
 		{
 			u32      swapchain_image_count{};
 			VkResult result = vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
@@ -75,7 +75,7 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void deinitialize(VkDevice device) noexcept
+		void deinitialize(VkDevice device)
 		{
 			for (auto& framebuffer : swapchain_framebuffers)
 				vkDestroyFramebuffer(device, framebuffer, nullptr);
