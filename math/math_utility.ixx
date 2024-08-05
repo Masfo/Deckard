@@ -20,6 +20,25 @@ export namespace deckard::math
 	template<std::floating_point T = float>
 	inline constexpr T pi180 = std::numbers::pi_v<T> / T{180};
 
+	template<typename T>
+	T round_to_even(f32 num)
+	{
+		T rounded = static_cast<T>(std::round(num));
+		return rounded + (rounded % 2);
+	}
+
+	template<std::unsigned_integral T>
+	T floor_pow2(T v)
+	{
+		return std::bit_floor(v);
+	}
+
+	template<std::unsigned_integral T>
+	T ceil_pow2(T v)
+	{
+		return std::bit_ceil(v);
+	}
+
 	template<arithmetic T>
 	[[nodiscard]] constexpr bool clamp01(const T x, const T lowerlimit = T{0}, const T upperlimit = T{1})
 	{

@@ -24,6 +24,7 @@ import deckard.as;
 import deckard.win32;
 import deckard.system;
 import deckard.vulkan;
+import deckard.math;
 
 using namespace deckard::system;
 using namespace std::string_view_literals;
@@ -32,27 +33,31 @@ namespace deckard::app
 {
 	using namespace deckard;
 
-	struct WindowSize
+	enum Mode : u32
+	{
+		Windowed   = 0,
+		Fullscreen = 1,
+	};
+
+	struct extent
 	{
 		u32 width{1'920};
 		u32 height{1'080};
-		f32 aspect{1.777f};
-		u32 dpi{USER_DEFAULT_SCREEN_DPI};
+	};
+
+	extent to_extent(RECT r) { return {as<u32>(r.right - r.left), as<u32>(r.bottom - r.top)}; }
+
+	struct WindowConfig
+	{
+		extent extent{1'920, 1'080};
+		f32    aspect{1.777f};
 
 		f32 update_aspect() noexcept
 		{
-			aspect = (f32)width / (f32)height;
+			aspect = as<f32>(extent.width / extent.height);
 			return aspect;
 		}
 	};
-
-	struct Size
-	{
-		u32 width{};
-		u32 height{};
-	};
-
-	auto RectToSize(const RECT& r) noexcept -> Size { return {(u32)r.right - r.left, (u32)r.bottom - r.top}; }
 
 	export class window
 
@@ -85,9 +90,40 @@ namespace deckard::app
 			PostQuitMessage(0);
 		}
 
+		u32 current_dpi() const { return GetDpiForWindow(handle); }
+
 		void set_title(std::string_view title) const noexcept { SetWindowTextA(handle, title.data()); }
 
-		void create() noexcept { create(1'280, 720); }
+		extent adjust_to_dpi(extent old, u32 dpi)
+		{
+
+			const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
+
+			extent ext;
+			ext.width  = math::round_to_even<u32>(old.width * scale);
+			ext.height = math::round_to_even<u32>(old.height * scale);
+
+			RECT wr = {0, 0, (LONG)(ext.width), (LONG)(ext.height)};
+
+			if (IsWindows10OrGreater())
+				AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
+			else
+				AdjustWindowRectEx(&wr, style, FALSE, ex_style);
+
+
+			return to_extent(wr);
+		}
+
+		void resize()
+		{
+			extent adjusted = adjust_to_dpi(config[current_mode].extent, current_dpi());
+
+
+			SetWindowPos(
+			  handle, nullptr, 0, 0, adjusted.width, adjusted.height, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+		}
+
+		void create() noexcept { create(1'280 - 1, 720 - 1); }
 
 		void create(u32 width, u32 height) noexcept
 		{
@@ -106,11 +142,12 @@ namespace deckard::app
 			if (handle != nullptr)
 				return;
 
+			config[Mode::Windowed].extent.width  = width;
+			config[Mode::Windowed].extent.height = height;
 
-			client_size_windowed.width  = width;
-			client_size_windowed.height = height;
-			client_size_windowed.update_aspect();
-			client_size_windowed.dpi = USER_DEFAULT_SCREEN_DPI;
+			config[Mode::Fullscreen].extent.width  = width;
+			config[Mode::Fullscreen].extent.height = height;
+
 
 			WNDCLASSEX wc{};
 			wc.cbSize        = sizeof(WNDCLASSEX);
@@ -162,8 +199,8 @@ namespace deckard::app
 			  style,
 			  CW_USEDEFAULT,
 			  CW_USEDEFAULT,
-			  client_size_windowed.width,
-			  client_size_windowed.height,
+			  config[Mode::Windowed].extent.width,
+			  config[Mode::Windowed].extent.height,
 			  nullptr,
 			  nullptr,
 			  wc.hInstance,
@@ -176,50 +213,20 @@ namespace deckard::app
 			}
 
 
-			// Adjust to DPI scale
-			RECT wr{0, 0, (LONG)client_size_windowed.width, (LONG)client_size_windowed.height};
-
-			if (IsWindows10OrGreater())
-			{
-				u32 dpi                  = GetDpiForWindow(handle);
-				f32 scale                = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
-				client_size_windowed.dpi = dpi;
-
-				f32 fWidth  = as<f32>(client_size_windowed.width * scale);
-				f32 fHeight = as<f32>(client_size_windowed.height * scale);
-
-				u32 scaledWidth  = as<u32>(fWidth);
-				u32 scaledHeight = as<u32>(fHeight);
-
-
-				wr = {0, 0, (LONG)(scaledWidth), (LONG)(scaledHeight)};
-				// scale dpi
-				AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
-
-				auto [swidth, sheight] = RectToSize(wr);
-
-				wr = {0, 0, (LONG)(swidth), (LONG)(sheight)};
-			}
-			else
-			{
-				AdjustWindowRectEx(&wr, style, FALSE, ex_style);
-			}
-
-			auto [adjustedWidth, adjustedHeight] = RectToSize(wr);
-
-			SetWindowPos(
-			  handle, nullptr, 0, 0, adjustedWidth, adjustedHeight, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+			///
 
 
 			const auto [major, minor, build] = system::OSBuildInfo();
 
 			if (IsWindows10OrGreater() and build >= 22'621)
 			{
-				constexpr auto DWMSBT_DISABLE         = 1; // Default
+				constexpr auto DWMSBT_DISABLE = 1; // Default
+#if 0
 				constexpr auto DWMSBT_MAINWINDOW      = 2; // Mica
 				constexpr auto DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
 				constexpr auto DWMSBT_TABBEDWINDOW    = 4; // Tabbed
-				auto           DWMSBT_set             = DWMSBT_DISABLE;
+#endif
+				auto DWMSBT_set = DWMSBT_DISABLE;
 
 				::DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
 			}
@@ -237,8 +244,7 @@ namespace deckard::app
 			}
 			// OnInit
 
-			minsize.x = GetSystemMetrics(SM_CXMINTRACK);
-			minsize.y = GetSystemMetrics(SM_CYMINTRACK) + 1;
+			resize();
 
 
 			SetTimer(handle, 0, 16, 0);
@@ -439,16 +445,22 @@ namespace deckard::app
 
 					case VK_F2:
 					{
-						client_size_windowed.width  = 1'920;
-						client_size_windowed.height = 1'080;
+						config[current_mode].extent.width  = 1'920;
+						config[current_mode].extent.height = 1'080;
+
+						resize();
+
 						break;
 					}
 
 
 					case VK_F3:
 					{
-						client_size_windowed.width  = 1'280;
-						client_size_windowed.height = 720;
+						config[current_mode].extent.width  = 1'280;
+						config[current_mode].extent.height = 720;
+
+						resize();
+
 						break;
 					};
 
@@ -479,6 +491,7 @@ namespace deckard::app
 		{
 			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
 
+
 			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
 			if (dwStyle & WS_OVERLAPPEDWINDOW)
 			{
@@ -496,18 +509,21 @@ namespace deckard::app
 					  mi.rcMonitor.bottom - mi.rcMonitor.top,
 					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				}
-				windowed = false;
+				current_mode = Mode::Fullscreen;
+				windowed     = false;
 			}
 			else
 			{
-				windowed              = true;
+				windowed     = true;
+				current_mode = Mode::Windowed;
+
 				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
 				SetWindowLong(handle, GWL_STYLE, old_style);
 				SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				SetWindowPlacement(handle, &wp);
 			}
 
-			dbg::println("toggle: {}x{}", client_size_windowed.width, client_size_windowed.height);
+			dbg::println("toggle: {}x{}", config[current_mode].extent.width, config[current_mode].extent.height);
 		}
 
 		LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
@@ -520,25 +536,17 @@ namespace deckard::app
 				{
 					//				break;
 #if 1
-					f32  dpi      = GetDpiForWindow(handle);
-					f32  DPIScale = dpi / USER_DEFAULT_SCREEN_DPI;
 					RECT cr{};
 					GetClientRect(handle, &cr);
 
-					RECT wr{};
-					GetWindowRect(handle, &wr);
-
 					SetWindowTextA(
 					  handle,
-					  std::format(
-						"client_size: {}x{}, window {}x{}, client {}x{} - {:.3f}",
-						client_size_windowed.width,
-						client_size_windowed.height,
-						wr.right - wr.left,
-						wr.bottom - wr.top,
-						cr.right - cr.left,
-						cr.bottom - cr.top,
-						DPIScale)
+					  std::format("client_size: {}x{}, client {}x{} - {}",
+								  config[current_mode].extent.width,
+								  config[current_mode].extent.height,
+								  cr.right - cr.left,
+								  cr.bottom - cr.top,
+								  current_dpi())
 						.c_str());
 					//
 					break;
@@ -643,310 +651,50 @@ namespace deckard::app
 				}
 
 				case WM_GETMINMAXINFO:
-				{ // set window's minimum size
+				{
+					auto new_min = adjust_to_dpi(min_extent, current_dpi());
+
+					POINT minsize{(LONG)new_min.width, (LONG)new_min.height};
 					((MINMAXINFO*)lParam)->ptMinTrackSize = minsize;
-					// vulkan.resized                        = true;
 					return 0;
 				}
-
-				case WM_GETDPISCALEDSIZE:
-				{
-					RECT  source = {0}, target = {0};
-					SIZE* size = (SIZE*)lParam;
-
-					AdjustWindowRectExForDpi(&source, style, FALSE, ex_style, GetDpiForWindow(handle));
-					AdjustWindowRectExForDpi(&target, style, FALSE, ex_style, LOWORD(wParam));
-
-					client_size_windowed.width = target.right - target.left;
-
-					UINT dpi = (UINT)wParam;
-					dbg::println("getdpiscaled: {}x{}", size->cx, size->cy);
-
-
-					return TRUE;
-				}
-
 
 				case WM_DPICHANGED:
 				{
-#if 0
-					{
-						RECT* suggested = (RECT*)lParam;
-						SetWindowPos(
-						  handle,
-						  nullptr,
-						  0,
-						  0,
-						  suggested->right - suggested->left,
-						  suggested->bottom - suggested->top,
-						  SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOZORDER);
-						break;
-					}
-#endif
-#if 0
-					RECT* const rect = (RECT*)lParam;
-					// auto rect = *reinterpret_cast<RECT *>(lParam);
-					SetWindowPos(
-					  hWnd,
-					  0, // or NULL
-					  0,
-					  0,
-					  rect->right - rect->left,
-					  rect->bottom - rect->top,
-					  SWP_NOSIZE | SWP_NOMOVE);
+					u32       dpi   = HIWORD(wParam);
+					const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
+					resize();
 
-					// const LPRECT prcNewWindow = (LPRECT)lParam;
-					// SetWindowPos(handle, NULL, 0, 0, client_size_windowed.width, client_size_windowed.height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
-#else
-					{
-						dbg::println("<DPI_CHANGE>");
-						{
-							RECT cr{};
-							GetClientRect(handle, &cr);
-
-							RECT wr{};
-							GetWindowRect(handle, &wr);
-							dbg::println(
-							  "client_size: {}x{}, window {}x{}, client {}x{}",
-							  client_size_windowed.width,
-							  client_size_windowed.height,
-							  wr.right - wr.left,
-							  wr.bottom - wr.top,
-							  cr.right - cr.left,
-							  cr.bottom - cr.top);
-						}
-
-						RECT* const new_size = (RECT*)lParam;
-
-						u32 new_width = new_size->right - new_size->left;
-
-						u32 new_height = new_size->bottom - new_size->top;
-
-
-						auto newdpi              = HIWORD(wParam);
-						f32  scale               = (f32)newdpi / USER_DEFAULT_SCREEN_DPI;
-						client_size_windowed.dpi = newdpi;
-						dbg::println("scaler DPI: {}, {:f}", newdpi, scale);
-
-
-						RECT old{};
-						GetWindowRect(handle, &old);
-
-
-						f32 width  = as<f32>(old.right - old.left);
-						f32 height = as<f32>(old.bottom - old.top);
-						dbg::println("pre scale({}): {}x{}", scale, width, height);
-
-						width /= scale;
-						height /= scale;
-
-						u32 cwidth  = std::ceil(width);
-						u32 cheight = std::ceil(height);
-
-						dbg::println("post scale({}): {}x{}", scale, cwidth, cheight);
-
-
-						SetWindowPos(handle, nullptr, 0, 0, cwidth, cheight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
-
-						RECT cr{}, wr;
-						GetClientRect(hWnd, &cr);
-						auto [sw, sh] = RectToSize(cr);
-
-						GetWindowRect(hWnd, &wr);
-						auto [cw, ch] = RectToSize(wr);
-
-						dbg::println("{}x{} # {} - client {}x{}, window {}x{}", width, height, scale, sw, sh, cw, ch);
-
-						dbg::println("</DPI_CHANGE>");
-
-						return 0;
-					}
-
-					int const dpi2 = ::GetDpiForWindow(hWnd);
-					dbg::println("GetDpiForWindow: {}", dpi2);
-
-
-					u32       dpi         = HIWORD(wParam);
-					f32       dpi3        = (f32)LOWORD(wParam) / (f32)USER_DEFAULT_SCREEN_DPI;
-					int const previousDpi = LOWORD(wParam);
-					dbg::println("DPI {}, old {}, manual {}", dpi, previousDpi, dpi3);
-
-					client_size_windowed.dpi = dpi;
-					LPRECT new_rect          = reinterpret_cast<LPRECT>(lParam);
-
-#if 0
-					u32 new_width  = client_size_windowed.width;
-					u32 new_height = client_size_windowed.height;
-#else
-					auto [new_width, new_height] = RectToSize(*new_rect);
-#endif
-
-					// as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
-
-
-					f32 fWidth  = as<f32>(new_width * dpi);
-					f32 fHeight = as<f32>(new_height * dpi);
-
-					// RECT r{0, 0, (LONG)(fWidth), (LONG)(fHeight)};
-					RECT r{0, 0, (LONG)(new_width), (LONG)(new_height)};
-
-					AdjustWindowRectExForDpi(&r, style, false, ex_style, dpi2);
-
-					i32 adjustedWidth{r.right - r.left};
-					i32 adjustedHeight{r.bottom - r.top};
-					u32 nw = std::floor(fWidth);
-					u32 nh = std::floor(fHeight);
-					dbg::println("Setting {}x{} => {}x{}", fWidth, fHeight, nw, nh);
-
-					// SetWindowPos(hWnd, NULL, 0, 0, adjustedWidth, adjustedHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
-					SetWindowPos(hWnd, NULL, 0, 0, new_width, new_height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
-
-#endif
+					dbg::println("new dpi: {:.3f}, {}x{}", scale, config[current_mode].extent.width, config[current_mode].extent.height);
 
 					return 0;
 				}
 
-#if 0
-				case WM_GETDPISCALEDSIZE:
+
+				case WM_EXITSIZEMOVE:
 				{
-					break;
-					UINT  dpi            = static_cast<UINT>(wParam);
-					float scaling_factor = static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
-
-					RECT client_area;
-
-					if (!GetClientRect(hWnd, &client_area))
-					{
-						// Error handling
-						return 0;
-					}
-
-					client_area.right  = static_cast<LONG>(client_area.right * scaling_factor);
-					client_area.bottom = static_cast<LONG>(client_area.bottom * scaling_factor);
-
-					if (!AdjustWindowRectExForDpi(&client_area, style, false, ex_style, dpi))
-					{
-						// Error handling
-						return 0;
-					}
-
-					SIZE* new_size = reinterpret_cast<SIZE*>(lParam);
-					new_size->cx   = client_area.right - client_area.left;
-					new_size->cy   = client_area.bottom - client_area.top;
-					SetWindowPos(handle, NULL, 0, 0, new_size->cx, new_size->cy, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
-
-					return 1;
+					is_sizing = false;
+					return 0;
 				}
-#endif
-				case WM_SIZE:
+
+				case WM_SIZING:
 				{
 					if (wParam != SIZE_MINIMIZED)
 					{
-						int width  = lParam & 0xFFFF;
-						int height = (lParam & 0xFFFF'0000) >> 16;
-						// vulkan.resize(width, height);
-					}
-
-					break;
-				}
-#if 0
-				case WM_SIZE:
-				{
-					return DefWindowProc(hWnd, uMsg, wParam, lParam);
-
-					auto client_width  = (u32)LOWORD(lParam);
-					auto client_height = (u32)HIWORD(lParam);
-					dbg::println("wm_size: {}x{}", client_width, client_height);
-					client_size.width  = client_width;
-					client_size.height = client_height;
-
-					RECT client_area{};
-
-					if (!GetClientRect(hWnd, &client_area))
-					{
-						// Error handling
-						return 0;
-					}
-					client_size.width = client_area.right - client_area.left;
-					;
-					client_size.height = client_area.bottom - client_area.top;
-
-					client_area.right  = static_cast<LONG>(client_area.right);
-					client_area.bottom = static_cast<LONG>(client_area.bottom);
-
-					// if (windowed)
-					//{
-					//	u32 dpi = handle ? GetDpiForWindow(handle) : USER_DEFAULT_SCREEN_DPI;
-					//
-					//
-					//	RECT windowRect{};
-					//	GetWindowRect(hWnd, &windowRect);
-					//
-					//	RECT inverseRect{0};
-					//	// DPI HERE?
-					//	if (AdjustWindowRectExForDpi(&inverseRect, style, false, ex_style, dpi) == 1)
-					//	{
-					//		windowRect.left -= inverseRect.left;
-					//		windowRect.top -= inverseRect.top;
-					//		windowRect.right -= inverseRect.right;
-					//		windowRect.bottom -= inverseRect.bottom;
-					//	}
-					// }
-					return 0;
-				}
-#endif
-
-#if 0
-				case WM_SIZING:
-				{
-
-					being_dragged = wParam;
-					return 0;
-				}
-
-				case WM_WINDOWPOSCHANGING:
-				{
-					WINDOWPOS* winPos = (WINDOWPOS*)lParam;
-
-					// Adjust window dimensions to maintain aspect ratio
-					switch (being_dragged)
-					{
-						case WMSZ_BOTTOM:
-						case WMSZ_TOPRIGHT: winPos->cx = (int)((double)winPos->cy * window_size.aspect); break;
-
-						case WMSZ_RIGHT:
-						case WMSZ_BOTTOMLEFT:
-						case WMSZ_BOTTOMRIGHT: winPos->cy = (int)((double)winPos->cx / window_size.aspect); break;
-
-						case WMSZ_TOP:
+						if (is_sizing)
 						{
-							// Adjust the x position of the window to make it appear
-							// that the bottom right side is anchored
-							WINDOWPOS old = *winPos;
-
-							winPos->cx = (int)((double)winPos->cy * window_size.aspect);
-
-							winPos->x += old.cx - winPos->cx;
-							;
+							RECT r{};
+							GetClientRect(handle, &r);
+							auto ne                     = to_extent(r);
+							config[current_mode].extent = ne;
 						}
-						break;
 
-						case WMSZ_LEFT:
-						case WMSZ_TOPLEFT:
-						{
-							// Adjust the y position of the window to make it appear
-							// the bottom right side is anchored. TOPLEFT resizing
-							// will move the window around if you don't do this
-							WINDOWPOS old = *winPos;
-							winPos->cy    = (int)((double)winPos->cx / window_size.aspect);
 
-							winPos->y += old.cy - winPos->cy;
-						}
-						break;
+						//	config[current_mode].extent = new_extent;
 					}
 					return 0;
 				}
-#endif
+
 					// Applications running on Windows Vista and Windows Server 2008 should adhere to these guidelines
 					// to ensure that the Restart Manager can shut down and restart applications if necessary to install
 					// updates.
@@ -972,13 +720,17 @@ namespace deckard::app
 					return 0;
 				}
 
-#if 1
 				case WM_SYSCOMMAND:
 				{
-					u32 command = as<u32>(wParam);
 
-					switch (command)
+
+					switch (wParam & 0xFFF0)
 					{
+						case SC_SIZE:
+						{
+							is_sizing = true;
+							break;
+						}
 						case SC_SCREENSAVE:
 						{
 							dbg::println("Screensaver");
@@ -1003,7 +755,6 @@ namespace deckard::app
 
 					return DefWindowProc(handle, uMsg, wParam, lParam);
 				}
-#endif
 
 
 				case WM_DESTROY:
@@ -1119,21 +870,22 @@ namespace deckard::app
 						toggle_fullscreen();
 						RECT r{};
 						GetClientRect(handle, &r);
-						client_size_windowed.width  = r.right - r.left;
-						client_size_windowed.height = r.bottom - r.top;
+						config[current_mode].extent.width  = r.right - r.left;
+						config[current_mode].extent.height = r.bottom - r.top;
+
 						break;
 					}
 
 					if (vk == VK_F2)
 					{
-						client_size_windowed.width  = 1'920;
-						client_size_windowed.height = 1'080;
+						config[Mode::Fullscreen].extent.width  = 1'920;
+						config[Mode::Fullscreen].extent.height = 1'080;
 						break;
 					}
 					if (vk == VK_F3)
 					{
-						client_size_windowed.width  = 1'280;
-						client_size_windowed.height = 720;
+						config[Mode::Fullscreen].extent.width  = 1'280;
+						config[Mode::Fullscreen].extent.height = 720;
 						break;
 					}
 
@@ -1376,11 +1128,8 @@ namespace deckard::app
 
 		// Only client size, only detect dpi change, calc new size on the client_size
 		// WM_SIZE, save actual client size
-		WindowSize scale_client_extent(f32 scale); // return new size
-		WindowSize client_size_windowed;
-		WindowSize client_size_fullscreen;
-
-		f32 dpi_scale{1.0f};
+		std::array<WindowConfig, 2> config;
+		Mode                        current_mode{Mode::Windowed};
 
 
 		GLuint u_angle{};
@@ -1391,7 +1140,8 @@ namespace deckard::app
 		DWORD             ex_style{0};
 		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
 		std::vector<char> rawinput_buffer;
-		POINT             minsize{1, 1};
+		extent            min_extent{640, 480};
+
 
 		// vulkan::vulkan  vulkan;
 		vulkan::vulkan vulkan;
@@ -1399,6 +1149,7 @@ namespace deckard::app
 		bool renderer_initialized{false};
 		bool is_running{false};
 		bool windowed{true};
+		bool is_sizing{false};
 		int  being_dragged{false};
 	};
 
