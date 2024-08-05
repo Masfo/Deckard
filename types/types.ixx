@@ -77,6 +77,12 @@ export namespace deckard
 
 	inline constexpr sink_t _;
 
+	struct extent
+	{
+		u32 width{0};
+		u32 height{};
+	};
+
 	/* Formatter
 		template <>
 		struct std::formatter<Color> {
