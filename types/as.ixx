@@ -72,27 +72,22 @@ namespace deckard
 		{
 			// floating point
 #ifdef _DEBUG
+
 			std::int64_t max_cast     = static_cast<std::int64_t>(value);
 			Ret          casted_value = static_cast<Ret>(value);
 
-			auto diff = std::abs(max_cast - value);
 
-			// If diff is near zero and it fits
-			if (max_cast >= return_min and max_cast <= return_max and diff <= 0.00000001)
-				return static_cast<Ret>(u);
+			if (max_cast >= return_min and max_cast <= return_max)
+				return static_cast<Ret>(value);
 
-			dbg::trace(loc);
-			dbg::println("Casting '{:f}' to range of {}...{} resulted in value '{}", value, return_min, return_max, casted_value);
-
-
-			warn_cast_limit<Ret>(value, loc);
+			warn_cast_limit<Ret>(max_cast, loc);
 #endif
 
-			return static_cast<Ret>(u);
+			return static_cast<Ret>(value);
 		}
 		else
 		{
-			return static_cast<Ret>(u);
+			return static_cast<Ret>(value);
 		}
 	}
 
