@@ -83,11 +83,11 @@ namespace deckard
 			warn_cast_limit<Ret>(max_cast, loc);
 #endif
 
-			return static_cast<Ret>(value);
+			return static_cast<Ret>(u);
 		}
 		else
 		{
-			return static_cast<Ret>(value);
+			return static_cast<Ret>(u);
 		}
 	}
 
