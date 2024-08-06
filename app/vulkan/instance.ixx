@@ -14,6 +14,10 @@ import deckard.types;
 import deckard.as;
 import deckard.assert;
 
+#ifndef _DEBUG
+import deckard_build;
+#endif
+
 namespace deckard::vulkan
 {
 
