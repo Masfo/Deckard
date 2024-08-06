@@ -16,6 +16,7 @@ export module deckard.app:window;
 
 import std;
 import deckard;
+import deckard.enums;
 import deckard.debug;
 import deckard.types;
 import deckard.helpers;
@@ -26,38 +27,20 @@ import deckard.system;
 import deckard.vulkan;
 import deckard.math;
 
+
 using namespace deckard::system;
 using namespace std::string_view_literals;
 
 namespace deckard::app
 {
-	using namespace deckard;
-
-	enum Mode : u32
+	enum class Resize
 	{
-		Windowed   = 0,
-		Fullscreen = 1,
+		No,
+		Yes,
 	};
-
-	struct extent
-	{
-		u32 width{1'920};
-		u32 height{1'080};
-	};
+	consteval void enable_bitmask_operations(Resize);
 
 	extent to_extent(RECT r) { return {as<u32>(r.right - r.left), as<u32>(r.bottom - r.top)}; }
-
-	struct WindowConfig
-	{
-		extent extent{1'920, 1'080};
-		f32    aspect{1.777f};
-
-		f32 update_aspect() noexcept
-		{
-			aspect = as<f32>(extent.width / extent.height);
-			return aspect;
-		}
-	};
 
 	export class window
 
@@ -65,7 +48,7 @@ namespace deckard::app
 	public:
 		window() = default;
 
-		virtual ~window() noexcept { destroy(); }
+		virtual ~window() { destroy(); }
 
 		window(window&&)            = delete;
 		window& operator=(window&&) = delete;
@@ -73,59 +56,9 @@ namespace deckard::app
 		window(const window&)            = delete;
 		window& operator=(const window&) = delete;
 
-		void destroy() noexcept
-		{
-			//
-			vulkan.deinitialize();
+		void create() { create(1'280, 720, Resize::Yes); }
 
-			is_running = false;
-			if (not windowed)
-			{
-				toggle_fullscreen();
-			}
-
-
-			DestroyWindow(handle);
-			UnregisterClass(L"DeckardWindowClass", GetModuleHandle(0));
-			PostQuitMessage(0);
-		}
-
-		u32 current_dpi() const { return GetDpiForWindow(handle); }
-
-		void set_title(std::string_view title) const noexcept { SetWindowTextA(handle, title.data()); }
-
-		extent adjust_to_dpi(extent old, u32 dpi)
-		{
-
-			const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
-
-			extent ext;
-			ext.width  = math::round_to_even<u32>(old.width * scale);
-			ext.height = math::round_to_even<u32>(old.height * scale);
-
-			RECT wr = {0, 0, (LONG)(ext.width), (LONG)(ext.height)};
-
-			if (IsWindows10OrGreater())
-				AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
-			else
-				AdjustWindowRectEx(&wr, style, FALSE, ex_style);
-
-
-			return to_extent(wr);
-		}
-
-		void resize()
-		{
-			extent adjusted = adjust_to_dpi(config[current_mode].extent, current_dpi());
-
-
-			SetWindowPos(
-			  handle, nullptr, 0, 0, adjusted.width, adjusted.height, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
-		}
-
-		void create() noexcept { create(1'280 - 1, 720 - 1); }
-
-		void create(u32 width, u32 height) noexcept
+		void create(u32 width, u32 height, Resize resizeflag)
 		{
 			if (IsWindows8Point1OrGreater())
 			{
@@ -142,11 +75,8 @@ namespace deckard::app
 			if (handle != nullptr)
 				return;
 
-			config[Mode::Windowed].extent.width  = width;
-			config[Mode::Windowed].extent.height = height;
-
-			config[Mode::Fullscreen].extent.width  = width;
-			config[Mode::Fullscreen].extent.height = height;
+			normalized_client_size.width  = width;
+			normalized_client_size.height = height;
 
 
 			WNDCLASSEX wc{};
@@ -154,7 +84,6 @@ namespace deckard::app
 			wc.style         = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
 			wc.lpszClassName = L"DeckardWindowClass";
 			wc.hInstance     = GetModuleHandle(nullptr);
-			// wc.hbrBackground = CreateSolidBrush(RGB(0, 128, 196));
 
 			wc.lpfnWndProc = [](HWND hWnd, uint32_t message, WPARAM wParam, LPARAM lParam) -> LRESULT
 			{
@@ -189,8 +118,9 @@ namespace deckard::app
 				return;
 			}
 #endif
+			if (resizeflag == Resize::No)
+				style &= ~WS_SIZEBOX;
 
-			// style &= ~WS_SIZEBOX;
 
 			handle = CreateWindowEx(
 			  ex_style,
@@ -199,8 +129,8 @@ namespace deckard::app
 			  style,
 			  CW_USEDEFAULT,
 			  CW_USEDEFAULT,
-			  config[Mode::Windowed].extent.width,
-			  config[Mode::Windowed].extent.height,
+			  normalized_client_size.width,
+			  normalized_client_size.height,
 			  nullptr,
 			  nullptr,
 			  wc.hInstance,
@@ -211,8 +141,7 @@ namespace deckard::app
 				destroy();
 				return;
 			}
-
-
+			resize();
 			///
 
 
@@ -244,17 +173,13 @@ namespace deckard::app
 			}
 			// OnInit
 
-			resize();
-
+			//
 
 			SetTimer(handle, 0, 16, 0);
 
 
 			if (not vulkan.initialize(handle))
 				return;
-
-			// if (not vulkan.initialize(GetModuleHandle(nullptr), handle))
-			//	return;
 
 
 			ShowWindow(handle, SW_SHOW);
@@ -263,7 +188,35 @@ namespace deckard::app
 			is_running = true;
 		}
 
-		void handle_messages() noexcept
+		void destroy()
+		{
+			//
+			vulkan.deinitialize();
+
+			is_running = false;
+			if (not windowed)
+			{
+				toggle_fullscreen();
+			}
+
+
+			DestroyWindow(handle);
+			UnregisterClass(L"DeckardWindowClass", GetModuleHandle(0));
+			PostQuitMessage(0);
+		}
+
+		void set_title(std::string_view title) const { SetWindowTextA(handle, title.data()); }
+
+		void resize()
+		{
+			extent adjusted = adjust_to_current_dpi(normalized_client_size);
+
+
+			SetWindowPos(
+			  handle, nullptr, 0, 0, adjusted.width, adjusted.height, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+		}
+
+		void handle_messages()
 		{
 			MSG msg{};
 
@@ -274,7 +227,7 @@ namespace deckard::app
 			}
 		}
 
-		bool loop() noexcept
+		bool loop()
 		{
 			handle_messages();
 
@@ -283,17 +236,17 @@ namespace deckard::app
 			return is_running;
 		}
 
-		void render() noexcept
+		void render()
 		{ //
 
 			vulkan.draw();
 		}
 
-		HWND get_handle() const noexcept { return handle; };
+		HWND get_handle() const { return handle; };
 
-		bool running() const noexcept { return is_running; };
+		bool running() const { return is_running; };
 
-		void handle_input(const HRAWINPUT input) noexcept
+		void handle_input(const HRAWINPUT input)
 		{
 			uint32_t size = 0;
 			if (GetRawInputData(input, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0)
@@ -319,7 +272,7 @@ namespace deckard::app
 			DefRawInputProc(&rawInput, 2, sizeof(RAWINPUTHEADER));
 		}
 
-		void handle_mouse(const RAWMOUSE& rawmouse) noexcept
+		void handle_mouse(const RAWMOUSE& rawmouse)
 		{
 
 
@@ -373,7 +326,7 @@ namespace deckard::app
 			//   buttons);
 		}
 
-		void handle_keyboard(const RAWKEYBOARD& kb) noexcept
+		void handle_keyboard(const RAWKEYBOARD& kb)
 		{
 			unsigned short vkey     = kb.VKey;
 			unsigned short scancode = kb.MakeCode;
@@ -445,8 +398,8 @@ namespace deckard::app
 
 					case VK_F2:
 					{
-						config[current_mode].extent.width  = 1'920;
-						config[current_mode].extent.height = 1'080;
+						normalized_client_size.width  = 1'920;
+						normalized_client_size.height = 1'080;
 
 						resize();
 
@@ -456,8 +409,8 @@ namespace deckard::app
 
 					case VK_F3:
 					{
-						config[current_mode].extent.width  = 1'280;
-						config[current_mode].extent.height = 720;
+						normalized_client_size.width  = 1'280;
+						normalized_client_size.height = 720;
 
 						resize();
 
@@ -509,13 +462,11 @@ namespace deckard::app
 					  mi.rcMonitor.bottom - mi.rcMonitor.top,
 					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				}
-				current_mode = Mode::Fullscreen;
-				windowed     = false;
+				windowed = false;
 			}
 			else
 			{
-				windowed     = true;
-				current_mode = Mode::Windowed;
+				windowed = true;
 
 				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
 				SetWindowLong(handle, GWL_STYLE, old_style);
@@ -523,10 +474,11 @@ namespace deckard::app
 				SetWindowPlacement(handle, &wp);
 			}
 
-			dbg::println("toggle: {}x{}", config[current_mode].extent.width, config[current_mode].extent.height);
+			extent size = get_clientsize();
+			dbg::println("toggle: {}x{}", size.width, size.height);
 		}
 
-		LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+		LRESULT CALLBACK WndProc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 
 			switch (uMsg)
@@ -541,9 +493,9 @@ namespace deckard::app
 
 					SetWindowTextA(
 					  handle,
-					  std::format("client_size: {}x{}, client {}x{} - {}",
-								  config[current_mode].extent.width,
-								  config[current_mode].extent.height,
+					  std::format("client_size: {}x{}, actual {}x{} - {}",
+								  normalized_client_size.width,
+								  normalized_client_size.height,
 								  cr.right - cr.left,
 								  cr.bottom - cr.top,
 								  current_dpi())
@@ -652,7 +604,7 @@ namespace deckard::app
 
 				case WM_GETMINMAXINFO:
 				{
-					auto new_min = adjust_to_dpi(min_extent, current_dpi());
+					extent new_min = adjust_to_current_dpi(min_extent);
 
 					POINT minsize{(LONG)new_min.width, (LONG)new_min.height};
 					((MINMAXINFO*)lParam)->ptMinTrackSize = minsize;
@@ -661,12 +613,20 @@ namespace deckard::app
 
 				case WM_DPICHANGED:
 				{
-					u32       dpi   = HIWORD(wParam);
-					const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
-					resize();
 
-					dbg::println("new dpi: {:.3f}, {}x{}", scale, config[current_mode].extent.width, config[current_mode].extent.height);
+					RECT* new_rect = reinterpret_cast<RECT*>(lParam);
 
+					if (!SetWindowPos(
+						  handle,
+						  nullptr,
+						  new_rect->left,
+						  new_rect->top,
+						  new_rect->right - new_rect->left,
+						  new_rect->bottom - new_rect->top,
+						  SWP_NOZORDER | SWP_NOACTIVATE))
+					{
+						return 1;
+					}
 					return 0;
 				}
 
@@ -674,6 +634,7 @@ namespace deckard::app
 				case WM_EXITSIZEMOVE:
 				{
 					is_sizing = false;
+					resize();
 					return 0;
 				}
 
@@ -683,14 +644,8 @@ namespace deckard::app
 					{
 						if (is_sizing)
 						{
-							RECT r{};
-							GetClientRect(handle, &r);
-							auto ne                     = to_extent(r);
-							config[current_mode].extent = ne;
+							normalize_client_size();
 						}
-
-
-						//	config[current_mode].extent = new_extent;
 					}
 					return 0;
 				}
@@ -870,22 +825,18 @@ namespace deckard::app
 						toggle_fullscreen();
 						RECT r{};
 						GetClientRect(handle, &r);
-						config[current_mode].extent.width  = r.right - r.left;
-						config[current_mode].extent.height = r.bottom - r.top;
+						normalized_client_size.width  = r.right - r.left;
+						normalized_client_size.height = r.bottom - r.top;
 
 						break;
 					}
 
 					if (vk == VK_F2)
 					{
-						config[Mode::Fullscreen].extent.width  = 1'920;
-						config[Mode::Fullscreen].extent.height = 1'080;
 						break;
 					}
 					if (vk == VK_F3)
 					{
-						config[Mode::Fullscreen].extent.width  = 1'280;
-						config[Mode::Fullscreen].extent.height = 720;
 						break;
 					}
 
@@ -942,10 +893,6 @@ namespace deckard::app
 						handle_input(raw);
 					}
 
-					// bool foreground = GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT;
-					//  if (foreground)
-
-					// DefWindowProc(hWnd, uMsg, wParam, lParam);
 					return 0;
 				}
 
@@ -1126,21 +1073,65 @@ namespace deckard::app
 			return DefWindowProc(handle, uMsg, wParam, lParam);
 		}
 
-		// Only client size, only detect dpi change, calc new size on the client_size
-		// WM_SIZE, save actual client size
-		std::array<WindowConfig, 2> config;
-		Mode                        current_mode{Mode::Windowed};
+		extent adjust_to_current_dpi(extent old)
+		{
+			const u32 dpi   = current_dpi();
+			const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
 
+			extent ext;
+			ext.width  = as<u32>(old.width * scale);
+			ext.height = as<u32>(old.height * scale);
+
+			RECT wr = {0, 0, (LONG)(ext.width), (LONG)(ext.height)};
+
+			if (IsWindows10OrGreater())
+				AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
+			else
+				AdjustWindowRectEx(&wr, style, FALSE, ex_style);
+
+
+			return to_extent(wr);
+		}
+
+		u32 current_dpi() const { return GetDpiForWindow(handle); }
+
+		extent normalize_client_size()
+		{
+			u32 dpi   = current_dpi();
+			f32 scale = as<f32>(dpi) / as<f32>(USER_DEFAULT_SCREEN_DPI);
+
+			RECT client_size{};
+			GetClientRect(handle, &client_size);
+
+			extent unnormalized_size = to_extent(client_size);
+
+			normalized_client_size.width  = as<u32>(unnormalized_size.width / scale);
+			normalized_client_size.height = as<u32>(unnormalized_size.height / scale);
+
+
+			//
+			return normalized_client_size;
+		}
+
+		extent get_clientsize() const
+		{
+			RECT r{};
+			GetClientRect(handle, &r);
+			return to_extent(r);
+		}
 
 		GLuint u_angle{};
 		f32    angle{};
 
-		HWND              handle{nullptr};
-		DWORD             style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD             ex_style{0};
-		WINDOWPLACEMENT   wp = {sizeof(WINDOWPLACEMENT)};
+		HWND            handle{nullptr};
+		DWORD           style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
+		DWORD           ex_style{0};
+		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
+		extent          min_extent{640, 480};
+		extent          normalized_client_size;
+
+
 		std::vector<char> rawinput_buffer;
-		extent            min_extent{640, 480};
 
 
 		// vulkan::vulkan  vulkan;
@@ -1150,7 +1141,7 @@ namespace deckard::app
 		bool is_running{false};
 		bool windowed{true};
 		bool is_sizing{false};
-		int  being_dragged{false};
+		bool being_dragged{false};
 	};
 
 } // namespace deckard::app

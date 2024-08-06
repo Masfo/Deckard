@@ -225,6 +225,7 @@ set(DECKARD_SRCS
         # App
         app/window.ixx
         app/app.ixx
+        app/input.ixx
 
         # Vulkan
         app/vulkan.ixx
