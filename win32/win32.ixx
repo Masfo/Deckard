@@ -15,16 +15,6 @@ import deckard.debug;
 import deckard.helpers;
 import deckard.scope_exit;
 
-
-#if 0
-extern "C"
-{
-	// Hints for higher performance (choose discrete GPU by default)
-	_declspec(dllexport) DWORD NvOptimusEnablement                  = 0x0000'0001;
-	_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x0000'0001;
-}
-#endif
-
 namespace deckard::system
 {
 
