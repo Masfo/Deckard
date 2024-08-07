@@ -92,8 +92,6 @@ namespace deckard::net
 		}
 
 		~NetInitializer() { WSACleanup(); }
-	};
-
-	NetInitializer dummy; // Just to automatically init winsock2
+	} dummy; // Just to automatically init winsock2
 
 } // namespace deckard::net
