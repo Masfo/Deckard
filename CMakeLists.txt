@@ -286,6 +286,7 @@ set(THIRD_PARTY_LIBS
     opengl32.lib
     Shcore.lib      # SetProcessDpiAwareness
     Dwmapi.lib      # DwmSetWindowAttribute
+    ws2_32
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

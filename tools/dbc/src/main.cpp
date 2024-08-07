@@ -355,6 +355,12 @@ fullscreen=true
 	}
 #endif
 
+	auto resolve = net::hostname_to_ip("taboobuilder.com", net::protocol::v6);
+	dbg::println("taboobuilder.com: {}", resolve ? *resolve : "<failed>");
+
+	resolve = net::hostname_to_ip("taboobuilder.com", net::protocol::v4);
+	dbg::println("taboobuilder.com: {}", resolve ? *resolve : "<failed>");
+
 	bignum a("13221321321321321321321321321321321321");
 	bignum b("4654654654654654654654654654654654654654");
 

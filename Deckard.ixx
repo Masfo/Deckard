@@ -53,6 +53,7 @@ export import deckard.zstd;
 
 // Net
 // Clumsy network simulator
+export import deckard.net;
 
 
 // export import deckard.DTE;
