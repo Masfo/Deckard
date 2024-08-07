@@ -284,8 +284,8 @@ set(THIRD_PARTY_LIBS
     sqlite3
     ZSTD
     opengl32.lib
-    Shcore.lib      # SetProcessDpiAwareness
-    Dwmapi.lib      # DwmSetWindowAttribute
+    #Shcore.lib      # SetProcessDpiAwareness
+    #Dwmapi.lib      # DwmSetWindowAttribute
     ws2_32
    # libcpmtd.lib
    # libcmtd.lib

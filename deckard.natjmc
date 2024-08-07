@@ -5,6 +5,8 @@
 	<File Name="types.ixx"/>
 	<File Name="as.ixx"/>
 	<File Name="enum_flags.ixx"/>
+	<File Name="scope_exit.ixx"/>
+
 
 
 
@@ -22,7 +24,7 @@
 
 	<File Name="win32.ixx"/>
 
-	<File Name="_zstd.ixx"/>
+	<File Name="zstd.ixx"/>
 
 
 	<!-- UTF8 -->

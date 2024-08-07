@@ -41,11 +41,7 @@ namespace deckard::net
 
 		addrinfo hints{}, *res{};
 
-		scope_exit _(
-		  [&]
-		  {
-			  freeaddrinfo(res);
-		  });
+		scope_exit _([&] { freeaddrinfo(res); });
 
 		if (version == protocol::v4)
 			hints.ai_family = AF_INET;
@@ -53,6 +49,8 @@ namespace deckard::net
 			hints.ai_family = AF_INET6;
 
 		hints.ai_socktype = SOCK_STREAM; // TCP
+		hints.ai_flags    = AI_PASSIVE;
+		hints.ai_protocol = IPPROTO_TCP;
 
 		if (getaddrinfo(hostname.data(), nullptr, &hints, &res) != 0)
 		{
@@ -60,25 +58,20 @@ namespace deckard::net
 			return {};
 		}
 
-		while (res)
+
+		for (addrinfo* ptr = res; ptr != nullptr; ptr = ptr->ai_next)
 		{
-			char host[NI_MAXHOST]{0};
-			if (getnameinfo(res->ai_addr, res->ai_addrlen, host, NI_MAXHOST, nullptr, 0, 0) != 0)
-			{
-				dbg::println("Could not resolve host name: {}", WSAGetLastError());
-				return {};
-			}
+			char       buffer[46];
+			DWORD      buffer_len  = 46;
+			LPSOCKADDR sockaddr_ip = (LPSOCKADDR)ptr->ai_addr;
+			auto       ret         = WSAAddressToStringA(sockaddr_ip, (DWORD)ptr->ai_addrlen, 0, buffer, &buffer_len);
 
+			if (ret == 0 and ptr->ai_family == AF_INET and version == protocol::v4)
+				return buffer;
 
-			if (res->ai_family == AF_INET6 and version == protocol::v6)
-				return host;
-
-			if (res->ai_family == AF_INET and version == protocol::v4)
-				return host;
-
-			res = res->ai_next;
+			if (ret == 0 and ptr->ai_family == AF_INET6 and version == protocol::v6)
+				return buffer;
 		}
-
 
 		return {};
 	}
