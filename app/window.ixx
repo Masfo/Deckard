@@ -62,7 +62,11 @@ namespace deckard::app
 		{
 			if (IsWindows8Point1OrGreater())
 			{
-				SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+				using SetProcessDpiAwarenessFunc = HRESULT(PROCESS_DPI_AWARENESS);
+				auto SetProcessDpiAwareness      = system::get_address<SetProcessDpiAwarenessFunc*>("Shcore.dll", "SetProcessDpiAwareness");
+
+				if (SetProcessDpiAwareness)
+					SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 			}
 
 			if (IsWindows10OrGreater())
@@ -147,6 +151,9 @@ namespace deckard::app
 
 			const auto [major, minor, build] = system::OSBuildInfo();
 
+			using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
+			auto DwmSetWindowAttribute     = system::get_address<DwmSetWindowAttributePtr*>("Dwmapi.dll", "DwmSetWindowAttribute");
+
 			if (IsWindows10OrGreater() and build >= 22'621)
 			{
 				constexpr auto DWMSBT_DISABLE = 1; // Default
@@ -157,19 +164,24 @@ namespace deckard::app
 #endif
 				auto DWMSBT_set = DWMSBT_DISABLE;
 
-				::DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
+
+				if (DwmSetWindowAttribute)
+					DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
 			}
 
 			if (IsWindows10OrGreater() and build >= 22'000)
 			{
 				// Darkmode
 				BOOL value = TRUE;
-				::DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+				if (DwmSetWindowAttribute)
+
+					DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 
 				//
 				// DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_ROUNDSMALL;
 				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
-				::DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+				if (DwmSetWindowAttribute)
+					DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}
 			// OnInit
 
