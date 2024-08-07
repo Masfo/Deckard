@@ -13,6 +13,7 @@ import deckard.assert;
 import deckard.types;
 import deckard.debug;
 import deckard.helpers;
+import deckard.scope_exit;
 
 
 #if 0
@@ -49,51 +50,24 @@ namespace deckard::system
 		return strTo;
 	}
 
-	template<typename T>
-	requires std::is_pointer_v<T>
-	T LoadDynamicAddress(std::string_view dll, std::string_view apiname,
-						 const std::source_location& loc = std::source_location::current()) noexcept
-	{
-		auto library = LoadLibraryA(dll.data());
-		if (not library)
-		{
-			dbg::println("{}({}) library '{}' not found.", loc.file_name(), loc.line(), dll);
-			return nullptr;
-		}
-
-		T function = std::bit_cast<T>(GetProcAddress(library, apiname.data()));
-		if (not function)
-		{
-			dbg::println("{}({}) function '{}' not found.", loc.file_name(), loc.line(), apiname);
-			return nullptr;
-		}
-
-		return function;
-	}
-
 	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept
 	{
 
-		using Func_RegOpenKeyExA    = LSTATUS(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
-		using Func_RegQueryValueExA = LSTATUS(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
-
-		static auto RegOpenKeyExA_F    = LoadDynamicAddress<Func_RegOpenKeyExA*>("advapi32.dll", "RegOpenKeyExA");
-		static auto RegQueryValueExA_F = LoadDynamicAddress<Func_RegQueryValueExA*>("advapi32.dll", "RegQueryValueExA");
-
-		if (!RegOpenKeyExA_F || !RegQueryValueExA_F)
-			return "";
 
 		std::string ret;
 
 		HKEY hKey{};
-		auto dwError = RegOpenKeyExA_F(HKEY_LOCAL_MACHINE, key.data(), 0u, (REGSAM)KEY_READ | KEY_WOW64_64KEY, &hKey);
+
+		scope_exit _([&] { RegCloseKey(hKey); });
+
+		auto dwError = RegOpenKeyExA(HKEY_LOCAL_MACHINE, key.data(), 0u, (REGSAM)KEY_READ | KEY_WOW64_64KEY, &hKey);
 		if (dwError != ERROR_SUCCESS)
 			return "";
 
 		ULONG cb   = 0;
 		ULONG Type = 0;
 
-		dwError = RegQueryValueExA_F(hKey, value.data(), nullptr, &Type, nullptr, &cb);
+		dwError = RegQueryValueExA(hKey, value.data(), nullptr, &Type, nullptr, &cb);
 		if (dwError != ERROR_SUCCESS)
 			return "";
 
@@ -101,7 +75,7 @@ namespace deckard::system
 		{
 			unsigned long regvalue = 0;
 
-			dwError = RegQueryValueExA_F(hKey, value.data(), nullptr, &Type, (PBYTE)&regvalue, &cb);
+			dwError = RegQueryValueExA(hKey, value.data(), nullptr, &Type, (PBYTE)&regvalue, &cb);
 			if (dwError != ERROR_SUCCESS)
 				return "";
 
@@ -112,7 +86,7 @@ namespace deckard::system
 		{
 			ret.resize(cb);
 
-			dwError = RegQueryValueExA_F(hKey, value.data(), nullptr, &Type, (PBYTE)ret.data(), &cb);
+			dwError = RegQueryValueExA(hKey, value.data(), nullptr, &Type, (PBYTE)ret.data(), &cb);
 			if (dwError != ERROR_SUCCESS)
 				return "";
 
