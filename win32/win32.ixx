@@ -189,34 +189,6 @@ namespace deckard::system
 
 	export std::string GetRAMString() noexcept { return PrettyBytes(GetRAM()); }
 
-	export std::string GetGPU() noexcept
-	{
-		std::string                    result{"GPU: "};
-		std::unique_ptr<IDXGIFactory4> factory{};
-
-		CreateDXGIFactory1(__uuidof(IDXGIFactory3), (void**)&factory);
-		if (!factory)
-			return result;
-
-		std::unique_ptr<IDXGIAdapter3> adapter;
-		factory->EnumAdapters(0, std::bit_cast<IDXGIAdapter**>(&adapter));
-		factory->Release();
-		factory.release();
-
-		if (!adapter)
-			return result;
-
-		DXGI_ADAPTER_DESC1 desc{0};
-		if (S_OK != adapter->GetDesc1(&desc))
-			return result;
-
-		adapter->Release();
-		adapter.release();
-
-
-		return std::format("GPU: {}, ({})", from_wide(desc.Description), PrettyBytes(desc.DedicatedVideoMemory));
-	}
-
 	export void set_thread_name(std::string_view threadname)
 	{
 #ifdef _DEBUG
