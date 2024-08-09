@@ -152,24 +152,22 @@ namespace deckard::app
 
 			const auto [major, minor, build] = system::OSBuildInfo();
 
+#if 1
 			using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
 			auto DwmSetWindowAttribute     = system::get_address<DwmSetWindowAttributePtr*>("Dwmapi.dll", "DwmSetWindowAttribute");
 
 			if (IsWindows10OrGreater() and build >= 22'621)
 			{
-				constexpr auto DWMSBT_DISABLE = 1; // Default
-#if 0
+				constexpr auto DWMSBT_DISABLE         = 1; // Default
 				constexpr auto DWMSBT_MAINWINDOW      = 2; // Mica
 				constexpr auto DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
 				constexpr auto DWMSBT_TABBEDWINDOW    = 4; // Tabbed
-#endif
-				auto DWMSBT_set = DWMSBT_DISABLE;
+				auto           DWMSBT_set             = DWMSBT_DISABLE;
 
 
 				if (DwmSetWindowAttribute)
 					DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
 			}
-
 			if (IsWindows10OrGreater() and build >= 22'000)
 			{
 				// Darkmode
@@ -184,7 +182,7 @@ namespace deckard::app
 				if (DwmSetWindowAttribute)
 					DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}
-			// OnInit
+#endif
 
 			//
 
@@ -1115,11 +1113,11 @@ namespace deckard::app
 
 		u32 current_dpi() const { return GetDpiForWindow(handle); }
 
-		u32 current_scale() const { return current_dpi() / USER_DEFAULT_SCREEN_DPI; };
+		f32 current_scale() const { return as<f32>(current_dpi()) / as<f32>(USER_DEFAULT_SCREEN_DPI); }
 
 		extent normalize_client_size()
 		{
-			const u32 scale = current_scale();
+			const f32 scale = current_scale();
 
 			RECT client_size{};
 			GetClientRect(handle, &client_size);
