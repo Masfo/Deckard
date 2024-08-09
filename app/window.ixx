@@ -1167,17 +1167,13 @@ namespace deckard::app
 		{
 			const auto [major, minor, build] = system::OSBuildInfo();
 
-			bool darkmode = force;
-			// or system::is_darkmode();
+			bool darkmode = force or system::is_darkmode();
 
 
-			if (IsWindows10OrGreater() and build >= 22'000)
+			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 22'000)
 			{
-				// Darkmode
-				BOOL value = force == true ? TRUE : FALSE;
-				if (DwmSetWindowAttribute)
-
-					DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+				BOOL value = darkmode;
+				DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 			}
 		}
 
@@ -1185,7 +1181,7 @@ namespace deckard::app
 		{
 			const auto [major, minor, build] = system::OSBuildInfo();
 
-			if (IsWindows10OrGreater() and build >= 22'000)
+			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 22'000)
 			{
 				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DEFAULT;
 				switch (option)
@@ -1195,8 +1191,8 @@ namespace deckard::app
 					case corner::square: preference = DWMWCP_DONOTROUND; break;
 					default: break;
 				}
-				if (DwmSetWindowAttribute)
-					DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+
+				DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}
 		}
 
