@@ -42,6 +42,18 @@ namespace deckard::app
 
 	extent to_extent(RECT r) { return {as<u32>(r.right - r.left), as<u32>(r.bottom - r.top)}; }
 
+	using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
+	DwmSetWindowAttributePtr* DwmSetWindowAttribute{nullptr};
+
+
+	enum class corner
+	{
+		system,
+		small_rounded,
+		rounded,
+		square,
+	};
+
 	export class window
 
 	{
@@ -60,6 +72,12 @@ namespace deckard::app
 
 		void create(u32 width, u32 height, Resize resizeflag)
 		{
+
+			if (IsWindows7OrGreater())
+			{
+				DwmSetWindowAttribute = system::get_address<DwmSetWindowAttributePtr*>("Dwmapi.dll", "DwmSetWindowAttribute");
+			}
+
 
 			if (IsWindows8Point1OrGreater())
 			{
@@ -150,13 +168,6 @@ namespace deckard::app
 			///
 
 
-			const auto [major, minor, build] = system::OSBuildInfo();
-
-
-			using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
-			auto DwmSetWindowAttribute     = system::get_address<DwmSetWindowAttributePtr*>("Dwmapi.dll", "DwmSetWindowAttribute");
-
-
 #if 0
 			if (IsWindows10OrGreater() and build >= 22'621)
 			{
@@ -172,26 +183,10 @@ namespace deckard::app
 			}
 
 #endif
-			using SetWindowThemePtr = HRESULT(HWND, LPCWSTR, LPCWSTR);
-			auto SetWindowTheme     = system::get_address<SetWindowThemePtr*>("UxTheme.dll", "SetWindowTheme");
 
-
-			if (IsWindows10OrGreater() and build >= 22'000 and system::is_darkmode(handle))
-			{
-				// Darkmode
-				BOOL value = TRUE;
-				if (DwmSetWindowAttribute)
-
-					DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
-
-				//
-				// DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_ROUNDSMALL;
-				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
-				if (DwmSetWindowAttribute)
-					DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
-			}
-
-			//
+			// TODO: config file
+			set_darkmode(true);
+			set_square_corners(corner::square);
 
 			SetTimer(handle, 0, 16, 0);
 
@@ -352,7 +347,7 @@ namespace deckard::app
 		void handle_keyboard(const RAWKEYBOARD& kb)
 		{
 			(kb);
-#if 0
+#if 1
 			unsigned short vkey     = kb.VKey;
 			unsigned short scancode = kb.MakeCode;
 			unsigned short flags    = kb.Flags;
@@ -443,14 +438,35 @@ namespace deckard::app
 
 					case VK_F4:
 					{
+						dbg::println("dark off");
+						set_darkmode(false);
+						// set_square_corners(corner::square);
+						break;
+					}
+					case VK_F5:
+					{
+						dbg::println("dark on");
 
+						set_darkmode(true);
 						break;
 					}
 
 
-					case VK_F11:
+					case VK_NUMPAD1:
 					{
-						toggle_fullscreen();
+						set_square_corners(corner::square);
+						break;
+					}
+					case VK_NUMPAD2:
+					{
+						set_square_corners(corner::rounded);
+						break;
+					}
+
+					case VK_NUMPAD3:
+					{
+						set_square_corners(corner::small_rounded);
+
 						break;
 					}
 
@@ -1145,6 +1161,43 @@ namespace deckard::app
 			RECT r{};
 			GetClientRect(handle, &r);
 			return to_extent(r);
+		}
+
+		void set_darkmode(bool force = false)
+		{
+			const auto [major, minor, build] = system::OSBuildInfo();
+
+			bool darkmode = force;
+			// or system::is_darkmode();
+
+
+			if (IsWindows10OrGreater() and build >= 22'000)
+			{
+				// Darkmode
+				BOOL value = force == true ? TRUE : FALSE;
+				if (DwmSetWindowAttribute)
+
+					DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+			}
+		}
+
+		void set_square_corners(corner option)
+		{
+			const auto [major, minor, build] = system::OSBuildInfo();
+
+			if (IsWindows10OrGreater() and build >= 22'000)
+			{
+				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DEFAULT;
+				switch (option)
+				{
+					case corner::small_rounded: preference = DWMWCP_ROUNDSMALL; break;
+					case corner::rounded: preference = DWMWCP_ROUND; break;
+					case corner::square: preference = DWMWCP_DONOTROUND; break;
+					default: break;
+				}
+				if (DwmSetWindowAttribute)
+					DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+			}
 		}
 
 		GLuint u_angle{};

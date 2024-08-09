@@ -77,7 +77,10 @@ namespace deckard
 		if (CoInitialize)
 			CoInitialize(0);
 
+		SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 		SetDllDirectoryW(L"");
+
+
 		net::initialize();
 	}
 

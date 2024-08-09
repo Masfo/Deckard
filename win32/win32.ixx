@@ -103,7 +103,7 @@ namespace deckard::system
 		return GetRegistryValue(HKEY_CURRENT_USER, key, value);
 	}
 
-	export bool is_darkmode(HWND handle)
+	export bool is_darkmode()
 	{
 		const std::string_view key("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
 
@@ -180,6 +180,7 @@ namespace deckard::system
 
 	export void set_thread_name(std::string_view threadname)
 	{
+		(threadname);
 #ifdef _DEBUG
 		using THREADNAME_INFO = struct tagTHREADNAME_INFO
 		{
