@@ -61,7 +61,7 @@ namespace deckard::vulkan
 			std::vector<VkPhysicalDeviceFeatures> device_features;
 			device_features.resize(device_count);
 
-			std::vector<u32> mem_counts;
+			std::vector<u64> mem_counts;
 			mem_counts.resize(device_count);
 
 			for (u32 i = 0; i < device_count; i++)
@@ -131,7 +131,6 @@ namespace deckard::vulkan
 				dbg::println("Enumerate device extensions: {}", string_VkResult(result));
 				return false;
 			}
-			std::ranges::sort(device_extensions, {}, &VkExtensionProperties::extensionName);
 			//
 
 #ifdef _DEBUG
@@ -199,7 +198,6 @@ namespace deckard::vulkan
 			std::vector<const char*> extensions;
 			extensions.reserve(device_extensions.size());
 
-			const auto& c = device_extensions;
 
 			for (const auto& extension : device_extensions)
 			{

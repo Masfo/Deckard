@@ -73,8 +73,7 @@ namespace deckard
 			// floating point
 #ifdef _DEBUG
 
-			std::int64_t max_cast     = static_cast<std::int64_t>(value);
-			Ret          casted_value = static_cast<Ret>(value);
+			std::int64_t max_cast = static_cast<std::int64_t>(value);
 
 
 			if (max_cast >= return_min and max_cast <= return_max)

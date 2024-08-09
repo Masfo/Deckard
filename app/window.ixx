@@ -286,7 +286,8 @@ namespace deckard::app
 
 		void handle_mouse(const RAWMOUSE& rawmouse)
 		{
-
+			(rawmouse);
+#if 0
 
 			u16 flags       = rawmouse.usFlags;
 			u16 buttonflags = rawmouse.usButtonFlags;
@@ -323,6 +324,7 @@ namespace deckard::app
 						scrollDelta *= static_cast<float>(scrollLines);
 				}
 			}
+#endif
 
 
 			// dbg::println(
@@ -340,6 +342,8 @@ namespace deckard::app
 
 		void handle_keyboard(const RAWKEYBOARD& kb)
 		{
+			(kb);
+#if 0
 			unsigned short vkey     = kb.VKey;
 			unsigned short scancode = kb.MakeCode;
 			unsigned short flags    = kb.Flags;
@@ -353,9 +357,8 @@ namespace deckard::app
 			bool e1    = ((flags & RI_KEY_E1) == RI_KEY_E1);
 			bool wm_up = (message == WM_KEYUP);
 
-			u32 key = (scancode << 16) | ((flags & RI_KEY_E0) << 24);
+			// u32 key = (scancode << 16) | ((flags & RI_KEY_E0) << 24);
 
-			int k = 0;
 
 			if (vkey || scancode)
 			{
@@ -449,6 +452,7 @@ namespace deckard::app
 					}
 				}
 			}
+#endif
 		}
 
 	private:
@@ -763,8 +767,8 @@ namespace deckard::app
 				{
 					// m_mouseVK = static_cast<uint32_t>(wParam);
 
-					int x = GET_X_LPARAM(lParam);
-					int y = GET_Y_LPARAM(lParam);
+					// int x = GET_X_LPARAM(lParam);
+					// int y = GET_Y_LPARAM(lParam);
 
 					// m_mouseWindowCoord.x = x;
 					// m_mouseWindowCoord.y = y;
@@ -788,8 +792,8 @@ namespace deckard::app
 				// Sys key
 				case WM_SYSKEYDOWN:
 				{
-					auto      vk       = static_cast<int>(wParam);
-					const int scancode = (lParam >> 16) & 0xff;
+					auto vk = static_cast<int>(wParam);
+					// const int scancode = (lParam >> 16) & 0xff;
 
 					// alt-enter
 					if (vk == VK_RETURN and (lParam & 0x6000'0000) == 0x2000'0000)
@@ -802,9 +806,9 @@ namespace deckard::app
 
 				case WM_SYSKEYUP:
 				{
-					auto vk = static_cast<int>(wParam);
+					// auto vk = static_cast<int>(wParam);
 
-					const int scancode = (lParam >> 16) & 0xff;
+					// const int scancode = (lParam >> 16) & 0xff;
 
 					return 0;
 				}
@@ -813,7 +817,7 @@ namespace deckard::app
 				// Key
 				case WM_KEYDOWN:
 				{
-					auto vk = static_cast<int>(wParam);
+					// auto vk = static_cast<int>(wParam);
 
 
 					return 0;
@@ -910,7 +914,7 @@ namespace deckard::app
 
 				case WM_INPUT_DEVICE_CHANGE:
 				{
-					auto newDevice = reinterpret_cast<HANDLE>(lParam);
+					// auto newDevice = reinterpret_cast<HANDLE>(lParam);
 
 					// HandleRawInputChange(newDevice, (int)GET_RAWINPUT_CODE_WPARAM(wParam));
 					dbg::println("rawinput wparam: {}", (int)GET_RAWINPUT_CODE_WPARAM(wParam));
@@ -1107,10 +1111,11 @@ namespace deckard::app
 
 		u32 current_dpi() const { return GetDpiForWindow(handle); }
 
+		u32 current_scale() const { return current_dpi() / USER_DEFAULT_SCREEN_DPI; };
+
 		extent normalize_client_size()
 		{
-			u32 dpi   = current_dpi();
-			f32 scale = as<f32>(dpi) / as<f32>(USER_DEFAULT_SCREEN_DPI);
+			const u32 scale = current_scale();
 
 			RECT client_size{};
 			GetClientRect(handle, &client_size);

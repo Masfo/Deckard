@@ -200,7 +200,7 @@ namespace deckard::vulkan
 		// render pass, framebuffer
 		// viewport, vkCmdDraw
 
-		for (size_t i = 0; i < m_command_buffer.size(); ++i)
+		for (u32 i = 0; i < m_command_buffer.size(); ++i)
 		{
 			const VkCommandBuffer& command_buffer = m_command_buffer[i];
 			assert::check(command_buffer != nullptr);

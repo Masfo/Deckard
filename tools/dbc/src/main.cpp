@@ -313,7 +313,7 @@ fullscreen=true
 
 	grid2[0][0] = 10;
 
-#if 1
+#if 0
 	{
 		constexpr int r = 3;
 		constexpr int c = 4;

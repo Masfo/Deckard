@@ -31,9 +31,23 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void wait(VkDevice device) { VkResult result = vkWaitForFences(device, 1, &m_fence, VK_TRUE, UINT64_MAX); }
+		void wait(VkDevice device)
+		{
+			assert::check(device != nullptr);
+			assert::check(m_fence != nullptr);
 
-		void reset(VkDevice device) { VkResult result = vkResetFences(device, 1, &m_fence); }
+			VkResult result = vkWaitForFences(device, 1, &m_fence, VK_TRUE, UINT64_MAX);
+			assert::check(result == VK_SUCCESS or result == VK_TIMEOUT);
+		}
+
+		void reset(VkDevice device)
+		{
+			assert::check(device != nullptr);
+			assert::check(m_fence != nullptr);
+
+			VkResult result = vkResetFences(device, 1, &m_fence);
+			assert::check(result == VK_SUCCESS);
+		}
 
 		void deinitialize(VkDevice device)
 		{

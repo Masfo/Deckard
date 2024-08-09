@@ -13,6 +13,7 @@ import deckard.win32;
 
 namespace deckard::net
 {
+	// TODO: TLSE
 	using namespace deckard::system;
 
 
@@ -73,16 +74,16 @@ namespace deckard::net
 
 		for (addrinfo* ptr = res; ptr != nullptr; ptr = ptr->ai_next)
 		{
-			char       buffer[46];
+			wchar_t    buffer[46];
 			DWORD      buffer_len  = 46;
 			LPSOCKADDR sockaddr_ip = (LPSOCKADDR)ptr->ai_addr;
-			auto       ret         = WSAAddressToStringA(sockaddr_ip, (DWORD)ptr->ai_addrlen, 0, buffer, &buffer_len);
+			auto       ret         = WSAAddressToStringW(sockaddr_ip, (DWORD)ptr->ai_addrlen, 0, buffer, &buffer_len);
 
 			if (ret == 0 and ptr->ai_family == AF_INET and version == protocol::v4)
-				return buffer;
+				return system::from_wide(buffer);
 
 			if (ret == 0 and ptr->ai_family == AF_INET6 and version == protocol::v6)
-				return buffer;
+				return system::from_wide(buffer);
 		}
 
 		return {};
@@ -212,7 +213,7 @@ namespace deckard::net
 
 		i32 send(const std::span<char> buffer) const
 		{
-			i32 size = ::send(m_socket, buffer.data(), buffer.size_bytes(), 0);
+			i32 size = ::send(m_socket, buffer.data(), as<i32>(buffer.size_bytes()), 0);
 
 			if (size != SOCKET_ERROR)
 				return 0;
@@ -222,7 +223,7 @@ namespace deckard::net
 
 		i32 receive(std::span<char> buffer) const
 		{
-			i32 size = ::recv(m_socket, buffer.data(), buffer.size_bytes(), 0);
+			i32 size = ::recv(m_socket, buffer.data(), as<i32>(buffer.size_bytes()), 0);
 
 			if (size == SOCKET_ERROR)
 				return SOCKET_ERROR;
