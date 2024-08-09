@@ -13,6 +13,7 @@ import deckard.win32;
 
 namespace deckard::net
 {
+	// TODO: TLSE
 	using namespace deckard::system;
 
 
@@ -212,7 +213,7 @@ namespace deckard::net
 
 		i32 send(const std::span<char> buffer) const
 		{
-			i32 size = ::send(m_socket, buffer.data(), buffer.size_bytes(), 0);
+			i32 size = ::send(m_socket, buffer.data(), as<i32>(buffer.size_bytes()), 0);
 
 			if (size != SOCKET_ERROR)
 				return 0;
@@ -222,7 +223,7 @@ namespace deckard::net
 
 		i32 receive(std::span<char> buffer) const
 		{
-			i32 size = ::recv(m_socket, buffer.data(), buffer.size_bytes(), 0);
+			i32 size = ::recv(m_socket, buffer.data(), as<i32>(buffer.size_bytes()), 0);
 
 			if (size == SOCKET_ERROR)
 				return SOCKET_ERROR;

@@ -21,6 +21,9 @@ namespace deckard
 			const u32 offset    = bitlen % 8;
 			const u32 remainder = 8 - offset;
 
+			(input);
+			(remainder);
+
 			if (byteindex > buffer.size())
 				buffer.resize(byteindex * 2);
 
