@@ -1,8 +1,8 @@
-github.com/AlDanial/cloc v 1.98  T=0.10 s (636.8 files/s, 127386.9 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.10 s (627.9 files/s, 126411.4 lines/s)
 ----------------------------------------------------------------------------------
 File                                           blank        comment           code
 ----------------------------------------------------------------------------------
-.\app\window.ixx                                 261             99            787
+.\app\window.ixx                                 265             99            795
 .\scripting\lexer\lexer.ixx                      200             44            780
 .\math\vec_generic.ixx                           139             23            613
 .\math\vec_sse_generic.ixx                       136             43            459
@@ -15,11 +15,12 @@ File                                           blank        comment           co
 .\math\matrix.ixx                                 64              6            265
 .\math\vec4_sse.ixx                              100             18            262
 .\app\vulkan\device.ixx                           87             15            243
+.\net\socket.ixx                                  62              8            222
 .\app\vulkan.ixx                                  92             63            212
-.\win32\win32.ixx                                 58              3            207
 .\unicode\utf8_codepoints.ixx                     56             22            206
 .\utils\helpers.ixx                               62             11            205
 .\math\math_utility.ixx                           45             13            175
+.\win32\win32.ixx                                 45              2            157
 .\app\app.ixx                                     43             11            156
 .\file\filemonitor.ixx                            38              7            154
 .\utils\base64.ixx                                28              0            141
@@ -51,21 +52,21 @@ File                                           blank        comment           co
 .\utils\serializer.ixx                            21              6             43
 .\app\vulkan\fence.ixx                            11              0             39
 .\app\vulkan\semaphore.ixx                        10              0             36
-.\Deckard.ixx                                     19             12             32
+.\Deckard.ixx                                     19             12             33
 .\unicode\utf8_ascii.ixx                          13              0             31
 .\config\ini.ixx                                  14             20             29
 .\debug\assert.ixx                                11              0             25
 .\types\HelperTypes.ixx                           12              4             25
+.\utils\system_win32.ixx                           8              0             23
 .\math\math.ixx                                    7              0             20
+.\net\net.ixx                                      8              1             18
 .\buildnumber.ixx                                  7             17             16
 .\file\qoi.ixx                                     3              0             10
 .\math\quaternion.ixx                              1              0              9
 .\taskpool\taskpool.ixx                            2              0              9
-.\utils\system_win32.ixx                           6              0              8
 .\unicode\utf8.ixx                                 0              0              6
 .\app\input.ixx                                    2              0              4
 .\scripting\parser\parser.ixx                     11             15              4
-.\net\net.ixx                                      0              0              1
 ----------------------------------------------------------------------------------
-SUM:                                            2698            698           9407
+SUM:                                            2761            706           9620
 ----------------------------------------------------------------------------------

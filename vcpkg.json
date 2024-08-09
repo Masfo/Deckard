@@ -2,7 +2,7 @@
   "vcpkg-configuration": {
     "default-registry": {
       "kind": "git",
-      "baseline": "cacf5994341f27e9a14a7b8724b0634b138ecb30",
+      "baseline": "f5398d978f8843c03ed466c7fdb8a54167cd5f51",
       "repository": "https://github.com/Microsoft/vcpkg"
     }
   },
