@@ -66,21 +66,18 @@ export import deckard_build;
 #endif
 
 
-class DeckardInit
-{
-public:
-	DeckardInit()
-	{
-		//
-		SetDllDirectoryW(L"");
-	}
-};
-
 namespace deckard
 {
-	net::initializer net_dummy;
 
-	DeckardInit deckard_init_dummy;
+	export void initialize()
+	{
+		SetDllDirectoryW(L"");
+		net::initialize();
+	}
 
-	export void init() { }
+	export void deinitialize()
+	{
+		//
+		net::deinitialize();
+	}
 }; // namespace deckard

@@ -5,23 +5,18 @@ module;
 export module deckard.net;
 
 export import :socket;
+import std;
 
 namespace deckard::net
 {
 
-	class NetInitializer
+	export void initialize()
 	{
-	public:
-		NetInitializer()
-		{
-			WSADATA wsadata{};
-			WSAStartup(0x0202, &wsadata);
-		}
+		WSADATA wsadata{};
+		WSAStartup(0x0202, &wsadata);
+	}
 
-		~NetInitializer() { WSACleanup(); }
-	} dummy; // Just to automatically init winsock2
-
-	// ######################
+	export void deinitialize() { WSACleanup(); }
 
 
 } // namespace deckard::net

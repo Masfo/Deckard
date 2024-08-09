@@ -388,7 +388,7 @@ fullscreen=true
 	}
 #endif
 
-	deckard::init();
+	deckard::initialize();
 
 
 	auto resolve = net::hostname_to_ip("www.taboobuilder.com", net::protocol::v6);
@@ -418,7 +418,7 @@ fullscreen=true
 	}
 
 	k = 0;
-
+#if 0
 
 	float x1 = 0.0f;
 	float x2 = 10.0f;
@@ -645,5 +645,8 @@ fullscreen=true
 
 
 	std::println("Script Compiler v5");
+#endif
+	deckard::deinitialize();
+
 	return 0;
 }
