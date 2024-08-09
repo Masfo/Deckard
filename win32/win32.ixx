@@ -2,8 +2,7 @@ module;
 
 #include <Windows.h>
 #include <VersionHelpers.h>
-#include <d3d9.h>
-#include <dxgi1_4.h>
+#include <dwmapi.h>
 
 export module deckard.win32;
 
@@ -14,9 +13,13 @@ import deckard.types;
 import deckard.debug;
 import deckard.helpers;
 import deckard.scope_exit;
+import deckard.system;
 
 namespace deckard::system
 {
+	using namespace std::string_view_literals;
+
+	export std::string get_windows_error(DWORD error = GetLastError());
 
 	export std::wstring to_wide(std::string_view in) noexcept
 	{
@@ -40,9 +43,8 @@ namespace deckard::system
 		return strTo;
 	}
 
-	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept
+	std::string GetRegistryValue(HKEY computer, std::string_view key, std::string_view value) noexcept
 	{
-
 
 		std::string ret;
 
@@ -50,7 +52,7 @@ namespace deckard::system
 
 		scope_exit _([&] { RegCloseKey(hKey); });
 
-		auto dwError = RegOpenKeyExA(HKEY_LOCAL_MACHINE, key.data(), 0u, (REGSAM)KEY_READ | KEY_WOW64_64KEY, &hKey);
+		auto dwError = RegOpenKeyExA(computer, key.data(), 0u, (REGSAM)KEY_READ | KEY_WOW64_64KEY, &hKey);
 		if (dwError != ERROR_SUCCESS)
 			return "";
 
@@ -59,7 +61,10 @@ namespace deckard::system
 
 		dwError = RegQueryValueExA(hKey, value.data(), nullptr, &Type, nullptr, &cb);
 		if (dwError != ERROR_SUCCESS)
+		{
+			dbg::println("Registry query failed: {}", get_windows_error());
 			return "";
+		}
 
 		if (Type == REG_DWORD)
 		{
@@ -86,6 +91,26 @@ namespace deckard::system
 		}
 
 		return "";
+	}
+
+	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept
+	{
+		return GetRegistryValue(HKEY_LOCAL_MACHINE, key, value);
+	}
+
+	std::string GetCurrentUserRegistryValue(std::string_view key, std::string_view value) noexcept
+	{
+		return GetRegistryValue(HKEY_CURRENT_USER, key, value);
+	}
+
+	export bool is_darkmode(HWND handle)
+	{
+		const std::string_view key("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
+
+		if (auto result = GetCurrentUserRegistryValue(key, "AppsUseLightTheme"); result == "0"sv)
+			return true;
+
+		return false;
 	}
 
 	export std::string GetOSVersionString() noexcept
@@ -193,7 +218,7 @@ namespace deckard::system
 #endif
 	}
 
-	export std::string get_windows_error(DWORD error = GetLastError())
+	export std::string get_windows_error(DWORD error)
 	{
 		char err[256]{0};
 		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)

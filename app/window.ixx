@@ -152,10 +152,12 @@ namespace deckard::app
 
 			const auto [major, minor, build] = system::OSBuildInfo();
 
-#if 1
+
 			using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
 			auto DwmSetWindowAttribute     = system::get_address<DwmSetWindowAttributePtr*>("Dwmapi.dll", "DwmSetWindowAttribute");
 
+
+#if 0
 			if (IsWindows10OrGreater() and build >= 22'621)
 			{
 				constexpr auto DWMSBT_DISABLE         = 1; // Default
@@ -168,7 +170,13 @@ namespace deckard::app
 				if (DwmSetWindowAttribute)
 					DwmSetWindowAttribute(handle, DWMWA_SYSTEMBACKDROP_TYPE, &DWMSBT_set, sizeof(int));
 			}
-			if (IsWindows10OrGreater() and build >= 22'000)
+
+#endif
+			using SetWindowThemePtr = HRESULT(HWND, LPCWSTR, LPCWSTR);
+			auto SetWindowTheme     = system::get_address<SetWindowThemePtr*>("UxTheme.dll", "SetWindowTheme");
+
+
+			if (IsWindows10OrGreater() and build >= 22'000 and system::is_darkmode(handle))
 			{
 				// Darkmode
 				BOOL value = TRUE;
@@ -182,7 +190,6 @@ namespace deckard::app
 				if (DwmSetWindowAttribute)
 					DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}
-#endif
 
 			//
 
@@ -1118,6 +1125,7 @@ namespace deckard::app
 		extent normalize_client_size()
 		{
 			const f32 scale = current_scale();
+			assert::check(scale >= 1.0f);
 
 			RECT client_size{};
 			GetClientRect(handle, &client_size);
