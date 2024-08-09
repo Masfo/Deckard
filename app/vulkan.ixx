@@ -104,7 +104,9 @@ namespace deckard::vulkan
 		void wait() { m_device.wait(); }
 
 	private:
-		debug                m_debug;
+#ifdef _DEBUG
+		debug m_debug;
+#endif
 		instance             m_instance;
 		device               m_device;
 		presentation_surface m_surface;
@@ -123,10 +125,13 @@ namespace deckard::vulkan
 	{
 
 		is_initialized = m_instance.initialize();
+#ifdef _DEBUG
 		is_initialized &= m_debug.initialize(m_instance);
+#endif
 
 		is_initialized &= m_device.initialize(m_instance);
 		is_initialized &= m_surface.initialize(m_instance, m_device, handle);
+
 		is_initialized &= m_swapchain.initialize(m_device, m_surface);
 		is_initialized &= m_command_buffer.initialize(m_device, m_swapchain);
 		is_initialized &= m_images.initialize(m_device, m_swapchain);
@@ -134,7 +139,7 @@ namespace deckard::vulkan
 		is_initialized &= image_available.initialize(m_device);
 		is_initialized &= rendering_finished.initialize(m_device);
 		is_initialized &= in_flight.initialize(m_device);
-
+		dbg::println("hello");
 
 		record_commands();
 
@@ -160,7 +165,9 @@ namespace deckard::vulkan
 		m_device.deinitialize();
 		m_surface.deinitialize(m_instance);
 
+#ifdef _DEBUG
 		m_debug.deinitialize(m_instance);
+#endif
 		m_instance.deinitialize();
 		is_initialized = false;
 	}

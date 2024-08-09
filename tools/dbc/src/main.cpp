@@ -274,12 +274,46 @@ std::string module_filename_from_function(void* function)
 	return {};
 }
 
+template<typename T>
+class Passkey
+{
+public:
+	// Ensure Passkey is not implicitly convertible to any other type
+	template<typename U, typename = std::enable_if_t<std::is_same_v<U, T>>>
+	operator U() const = delete;
+};
+
+class Secret
+{
+public:
+	void public_method() { }
+
+private:
+	template<typename T>
+	void private_method(Passkey<T>)
+	{
+		// Access to private data or logic
+	}
+
+	friend class TrustedClass;
+};
+
+class TrustedClass
+{
+public:
+	void call_private_method(Secret& secret)
+	{
+		secret.private_method(Passkey<int>{}); // Can create Passkey<int>
+	}
+};
+
 int main()
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
 
 	//
 	LoadLibraryExA("gdi32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -288,7 +322,6 @@ int main()
 	dbg::println("main: {}", module_filename_from_function(&main));
 
 
-#if 1
 	lexer::tokenizer l2(R"(
 [section.name]
 key=value
@@ -355,6 +388,9 @@ fullscreen=true
 	}
 #endif
 
+	deckard::init();
+
+
 	auto resolve = net::hostname_to_ip("www.taboobuilder.com", net::protocol::v6);
 	dbg::println("www.taboobuilder.com: {}", resolve ? *resolve : "<failed>");
 
@@ -382,7 +418,6 @@ fullscreen=true
 	}
 
 	k = 0;
-#else
 
 
 	float x1 = 0.0f;
@@ -440,11 +475,6 @@ fullscreen=true
 	dbg::println("{:08b}", bitmask(4, 1));
 	dbg::println("{:08b}", bitmask(2));
 	dbg::println("{:032b}", bitmask<u32>(5));
-
-
-	bitstream bs;
-	bs.write<u16>(0x1234);
-	bs.write<f32>(1);
 
 
 	// auto d = Chain().set(123).execute().close();
@@ -554,11 +584,10 @@ fullscreen=true
 
 	cpuid::CPUID id;
 	dbg::println("{}", id.as_string());
-	dbg::println("{}", system::GetGPU());
 
 	dbg::println("RAM: {}", system::GetRAMString());
 
-	dbg::println("OS: {}", system::GetOS());
+	dbg::println("OS: {}", system::GetOSVersionString());
 
 	dbg::println("4 == {}", longest_zero_run("12340000"));
 	dbg::println("6 == {}", longest_zero_run("120034000012"));
@@ -616,6 +645,5 @@ fullscreen=true
 
 
 	std::println("Script Compiler v5");
-#endif
 	return 0;
 }

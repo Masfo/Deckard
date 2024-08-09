@@ -179,6 +179,7 @@ namespace deckard
 
 				  float accumulate{0.0f};
 
+
 				  while (wnd.loop())
 				  {
 					  QueryPerformanceCounter((LARGE_INTEGER*)&counter);

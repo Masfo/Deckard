@@ -1,3 +1,5 @@
+module;
+#include <Windows.h>
 
 export module deckard;
 
@@ -62,3 +64,23 @@ export import deckard.win32;
 #ifndef _DEBUG
 export import deckard_build;
 #endif
+
+
+class DeckardInit
+{
+public:
+	DeckardInit()
+	{
+		//
+		SetDllDirectoryW(L"");
+	}
+};
+
+namespace deckard
+{
+	net::initializer net_dummy;
+
+	DeckardInit deckard_init_dummy;
+
+	export void init() { }
+}; // namespace deckard

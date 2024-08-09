@@ -60,6 +60,7 @@ namespace deckard::app
 
 		void create(u32 width, u32 height, Resize resizeflag)
 		{
+
 			if (IsWindows8Point1OrGreater())
 			{
 				using SetProcessDpiAwarenessFunc = HRESULT(PROCESS_DPI_AWARENESS);
@@ -191,7 +192,10 @@ namespace deckard::app
 
 
 			if (not vulkan.initialize(handle))
+			{
+				dbg::println("Vulkan not initialized");
 				return;
+			}
 
 
 			ShowWindow(handle, SW_SHOW);

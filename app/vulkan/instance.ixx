@@ -75,14 +75,13 @@ namespace deckard::vulkan
 			}
 #endif
 
+#ifdef _DEBUG
 				if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
 				{
 					marked = true;
 					required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 				}
 
-
-#ifdef _DEBUG
 
 				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 				{
@@ -103,9 +102,9 @@ namespace deckard::vulkan
 			// validator layers
 			std::vector<const char*> required_layers;
 
+#ifdef _DEBUG
 			dbg::println("Vulkan validators({}):", validator_layers.size());
 
-#ifdef _DEBUG
 			for (const auto& layer : validator_layers)
 			{
 				std::string_view name   = layer.layerName;

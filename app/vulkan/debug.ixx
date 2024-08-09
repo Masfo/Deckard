@@ -21,6 +21,7 @@ namespace deckard::vulkan
 	public:
 		bool initialize(const VkInstance instance)
 		{
+
 			assert::check(instance != nullptr);
 
 			// debug functions
