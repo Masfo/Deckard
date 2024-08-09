@@ -71,13 +71,23 @@ namespace deckard
 
 	export void initialize()
 	{
+
+		using CoInitializePtr = HRESULT(LPVOID);
+		auto CoInitialize     = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitialize");
+		if (CoInitialize)
+			CoInitialize(0);
+
 		SetDllDirectoryW(L"");
 		net::initialize();
 	}
 
 	export void deinitialize()
 	{
-		//
+		using CoUninitializePtr = void(void);
+		auto CoUninitialize     = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
+		if (CoUninitialize)
+			CoUninitialize();
+
 		net::deinitialize();
 	}
 }; // namespace deckard
