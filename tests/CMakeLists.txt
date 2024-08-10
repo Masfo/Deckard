@@ -16,27 +16,18 @@ set_target_properties(tests PROPERTIES
 )
 
 
-target_compile_definitions(tests PRIVATE UNICODE)
-target_compile_definitions(tests PRIVATE _UNICODE)
 
-target_compile_definitions(tests PRIVATE NOMINMAX)
-target_compile_definitions(tests PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_definitions(tests PRIVATE WIN32_EXTRA_LEAN)
 target_compile_options(tests PRIVATE /nologo)
 target_compile_options(tests PRIVATE -Zc:__cplusplus /Zc:alignedNew)
 target_compile_options(tests PRIVATE /utf-8)
 target_compile_options(tests PRIVATE /EHsc)
 
-target_compile_options(tests  PRIVATE /fp:precise)
 target_compile_options(tests PRIVATE /diagnostics:caret)
 target_compile_options(tests PRIVATE /Zc:preprocessor)
-target_compile_options(tests PRIVATE /permissive-)
 target_compile_options(tests PRIVATE /std:c++latest)
-target_compile_options(tests PRIVATE /Zc:__cplusplus)
 
 target_compile_options(tests PRIVATE /W4)
 
-target_compile_options(tests PRIVATE /arch:SSE2)
 
 
 target_sources(tests PUBLIC

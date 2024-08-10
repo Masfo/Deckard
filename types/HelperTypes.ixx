@@ -38,4 +38,22 @@ export namespace deckard
 	// at_compile
 	consteval decltype(auto) at_compile(auto&& arg) { return std::forward<decltype(arg)>(arg); }
 
+	// Passkeys
+
+	template<typename T>
+	class PassKey
+	{
+		friend T;
+		PassKey() = default;
+	};
+
+	template<typename T>
+	class NonCopyablePassKey
+	{
+		friend T;
+		NonCopyablePassKey()                                     = default;
+		NonCopyablePassKey(const NonCopyablePassKey&)            = delete;
+		NonCopyablePassKey& operator=(const NonCopyablePassKey&) = delete;
+	};
+
 } // namespace deckard
