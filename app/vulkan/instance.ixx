@@ -121,13 +121,13 @@ namespace deckard::vulkan
 					marked = true;
 					required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
 				}
-
+#if 0
 				if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
 				{
 					marked = true;
 					required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
 				}
-
+#endif
 
 				dbg::println(
 				  "{:>48}{} ({}.{}.{})",

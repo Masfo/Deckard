@@ -42,8 +42,15 @@ namespace deckard::app
 
 	extent to_extent(RECT r) { return {as<u32>(r.right - r.left), as<u32>(r.bottom - r.top)}; }
 
+	// Dwm's
 	using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
 	DwmSetWindowAttributePtr* DwmSetWindowAttribute{nullptr};
+
+	// using DwmExtendFrameIntoClientAreaPtr = HRESULT(HWND, const MARGINS*);
+	// DwmExtendFrameIntoClientAreaPtr* DwmExtendFrameIntoClientArea{nullptr};
+
+	// using DwmEnableBlurBehindWindowPtr = HRESULT(HWND, const DWM_BLURBEHIND*);
+	// DwmEnableBlurBehindWindowPtr* DwmEnableBlurBehindWindow{nullptr};
 
 
 	enum class corner
@@ -75,7 +82,12 @@ namespace deckard::app
 
 			if (IsWindows7OrGreater())
 			{
-				DwmSetWindowAttribute = system::get_address<DwmSetWindowAttributePtr*>("Dwmapi.dll", "DwmSetWindowAttribute");
+				DwmSetWindowAttribute = system::get_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
+				// DwmExtendFrameIntoClientArea = system::get_address<DwmExtendFrameIntoClientAreaPtr*>("dwmapi.dll",
+				// "DwmExtendFrameIntoClientArea");
+				//
+				// DwmEnableBlurBehindWindow =
+				// system::get_address<DwmEnableBlurBehindWindowPtr*>("dwmapi.dll", "DwmEnableBlurBehindWindow");
 			}
 
 
@@ -187,6 +199,7 @@ namespace deckard::app
 			// TODO: config file
 			set_darkmode(true);
 			set_square_corners(corner::square);
+
 
 			SetTimer(handle, 0, 16, 0);
 
@@ -438,35 +451,32 @@ namespace deckard::app
 
 					case VK_F4:
 					{
-						dbg::println("dark off");
-						set_darkmode(false);
-						// set_square_corners(corner::square);
 						break;
 					}
 					case VK_F5:
 					{
-						dbg::println("dark on");
-
-						set_darkmode(true);
 						break;
 					}
 
 
 					case VK_NUMPAD1:
 					{
-						set_square_corners(corner::square);
 						break;
 					}
 					case VK_NUMPAD2:
 					{
-						set_square_corners(corner::rounded);
 						break;
 					}
 
 					case VK_NUMPAD3:
 					{
-						set_square_corners(corner::small_rounded);
 
+						break;
+					}
+
+
+					case VK_NUMPAD9:
+					{
 						break;
 					}
 
