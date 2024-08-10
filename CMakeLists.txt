@@ -1,7 +1,7 @@
 
-cmake_minimum_required (VERSION 3.29)
+cmake_minimum_required (VERSION 3.29.0)
 
-project(deckard CXX)
+project(deckard LANGUAGES CXX)
 add_library(deckard STATIC)
 
 set_target_properties(deckard PROPERTIES
