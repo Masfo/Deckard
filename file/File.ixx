@@ -27,11 +27,11 @@ namespace deckard
 
 		file() = default;
 
-		// file(file&&) noexcept = delete;
-		// file(const file&)     = delete;
+		file(file&&) noexcept = delete;
+		file(const file&)     = delete;
 
-		// file& operator=(const file&) = delete;
-		// file& operator=(file&&)      = delete;
+		file& operator=(const file&) = delete;
+		file& operator=(file&&)      = delete;
 
 		~file() { close(); }
 
@@ -39,6 +39,7 @@ namespace deckard
 
 		std::optional<std::span<u8>> open(fs::path const file, access flag = access::read) noexcept
 		{
+			filepath          = file;
 			DWORD rw          = GENERIC_READ;
 			DWORD page        = PAGE_READONLY;
 			DWORD filemapping = FILE_MAP_READ;
@@ -50,13 +51,14 @@ namespace deckard
 				filemapping |= FILE_MAP_WRITE;
 			}
 
-			HANDLE handle = CreateFile(file.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			HANDLE handle =
+			  CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (handle == INVALID_HANDLE_VALUE)
 			{
 				close();
 
-				dbg::println("Could not open file '{}'", file.string());
+				dbg::println("Could not open file '{}'", filepath.string());
 				return {};
 			}
 
@@ -71,7 +73,7 @@ namespace deckard
 			{
 				close();
 
-				dbg::println("Could not create mapping for file '{}' ({})", file.string(), PrettyBytes(filesize));
+				dbg::println("Could not create mapping for file '{}' ({})", filepath.string(), PrettyBytes(filesize));
 				return {};
 			}
 
@@ -83,7 +85,7 @@ namespace deckard
 			{
 				close();
 
-				dbg::println("Could not map file '{}'", file.string());
+				dbg::println("Could not map file '{}'", filepath.string());
 				return {};
 			}
 
@@ -107,6 +109,8 @@ namespace deckard
 		bool is_open() const noexcept { return not view.empty(); }
 
 		void flush() { FlushViewOfFile(view.data(), 0); }
+
+		fs::path name() const { return filepath; }
 
 		void close() noexcept
 		{
@@ -178,6 +182,7 @@ namespace deckard
 
 	private:
 		std::span<u8> view;
+		fs::path      filepath;
 	};
 
 

@@ -4,6 +4,7 @@ export module deckard.ini;
 import std;
 import deckard.lexer;
 import deckard.types;
+import deckard.file;
 
 namespace fs = std::filesystem;
 
@@ -13,8 +14,8 @@ namespace deckard::ini
 
 	struct value
 	{
-		inivalue         value;
 		std::string_view sectionkey; // section.key
+		inivalue         value;
 		std::string_view comment;
 	};
 

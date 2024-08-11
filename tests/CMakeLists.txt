@@ -53,6 +53,9 @@ target_sources(tests PUBLIC
     # UTF8
     tests/utf8_test.cpp
 
+    # Ini
+    tests/ini_test.cpp
+
     # Misc
     tests/enumflag_test.cpp 
     tests/zstd_test.cpp

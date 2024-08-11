@@ -186,7 +186,10 @@ set(DECKARD_SRCS
 
         # Net
         net/net.ixx
+        net/types.ixx
         net/socket.ixx
+        net/client.ixx
+        net/server.ixx
        
         # Taskpool
         taskpool/taskpool.ixx

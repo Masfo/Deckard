@@ -315,13 +315,6 @@ int main()
 #endif
 
 
-	//
-	LoadLibraryExA("gdi32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-	dbg::println("MsgBox: {}", module_filename_from_function(&MessageBoxA));
-	dbg::println("GMF: {}", module_filename_from_function(&GetModuleFileNameA));
-	dbg::println("main: {}", module_filename_from_function(&main));
-
-
 	lexer::tokenizer l2(R"(
 [section.name]
 key=value
