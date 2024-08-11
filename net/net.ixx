@@ -5,10 +5,15 @@ module;
 export module deckard.net;
 
 export import :socket;
+export import :client;
+export import :server;
+import deckard.types;
+
 import std;
 
 namespace deckard::net
 {
+
 
 	export void initialize()
 	{

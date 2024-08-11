@@ -4,6 +4,8 @@ module;
 
 export module deckard.net:socket;
 
+import :types;
+
 import std;
 import deckard.scope_exit;
 import deckard.types;
@@ -16,26 +18,6 @@ namespace deckard::net
 	// TODO: TLSE
 	using namespace deckard::system;
 
-
-	export enum class protocol {
-		v4,
-		v6,
-	};
-	consteval void enable_bitmask_operations(protocol);
-
-	enum class transport
-	{
-		NUL,
-		TCP,
-		UDP,
-	};
-
-	export struct address
-	{
-		std::string host;
-		u16         port{0};
-	};
-
 	//
 
 
@@ -47,6 +29,18 @@ namespace deckard::net
 		inet_pton(AF_INET, addr.host.c_str(), &ret.sin_addr.S_un.S_addr);
 		ret.sin_port = htons(addr.port);
 		return ret;
+	}
+
+	address sockaddr_to_address(sockaddr_in addr)
+	{
+		address ret_addr;
+
+		std::array<char, INET_ADDRSTRLEN> buf{};
+		::inet_ntop(AF_INET, &addr.sin_addr.S_un.S_addr, buf.data(), buf.size());
+		ret_addr.host = std::string(buf.data());
+		ret_addr.port = ::ntohs(addr.sin_port);
+
+		return ret_addr;
 	}
 
 	export std::optional<std::string> hostname_to_ip(std::string_view hostname, protocol version)
@@ -181,6 +175,10 @@ namespace deckard::net
 				return {};
 			}
 
+			ret.m_socket    = acceptsocket;
+			ret.m_address   = sockaddr_to_address(ret.m_sockaddr);
+			ret.m_transport = m_transport;
+
 			return ret;
 		}
 
@@ -237,7 +235,7 @@ namespace deckard::net
 			addrinfo    hints{}, *res{};
 			// TODO: ipv6
 			hints.ai_family   = AF_INET;
-			hints.ai_socktype = SOCK_DGRAM; // UDP
+			hints.ai_socktype = SOCK_DGRAM;
 
 			if (getaddrinfo(to.host.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
 			{
@@ -261,8 +259,9 @@ namespace deckard::net
 			SOCKADDR_IN s_from{};
 			i32         fromsize = sizeof(s_from);
 			i32         bytes    = ::recvfrom(m_socket, buffer.data(), as<i32>(buffer.size()), 0, (SOCKADDR*)&s_from, &fromsize);
-			if (bytes == SOCKET_ERROR)
-				return SOCKET_ERROR;
+
+			if (from != nullptr and bytes != SOCKET_ERROR)
+				*from = sockaddr_to_address(s_from);
 
 			return bytes;
 		}
@@ -280,14 +279,14 @@ namespace deckard::net
 		bool is_open() const { return m_open; }
 
 	private:
-		address   m_address{.host = "", .port = 0};
-		transport m_transport{transport::NUL};
-
-
-		SOCKET      m_socket{INVALID_SOCKET};
+		address     m_address{.host = "", .port = 0};
 		SOCKADDR_IN m_sockaddr{.sin_family = AF_INET};
-		i32         m_addr_size{sizeof(m_sockaddr)};
-		bool        m_open{false};
+		SOCKET      m_socket{INVALID_SOCKET};
+		transport   m_transport{transport::NUL};
+
+
+		i32  m_addr_size{sizeof(m_sockaddr)};
+		bool m_open{false};
 	};
 
 } // namespace deckard::net
