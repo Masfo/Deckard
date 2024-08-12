@@ -53,8 +53,13 @@ namespace deckard::utf8
 
 		utf8file(fs::path filename)
 			: m_file(filename)
-			, m_filename(filename)
 		{
+			open(filename);
+		}
+
+		void open(fs::path f)
+		{
+			m_file.open(f);
 			points = m_file.data();
 		}
 
@@ -69,11 +74,14 @@ namespace deckard::utf8
 			return {};
 		}
 
-		fs::path filename() const { return m_filename; }
+		bool is_open() const { return m_file.is_open(); }
+
+		fs::path name() const { return m_file.name(); }
+
+		codepoints codepoint() const { return points; };
 
 	private:
 		file       m_file;
-		fs::path   m_filename;
 		codepoints points;
 	};
 

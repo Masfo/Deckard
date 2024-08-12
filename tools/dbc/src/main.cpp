@@ -314,6 +314,21 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	utf8::utf8file file("input.ini");
+
+	if (file.is_open())
+	{
+		//
+		lexer::tokenizer_config tf{.dot_identifier = true, .output_eol = true, .ignore_keywords = true};
+		lexer::tokenizer        tokens(file.name(), tf);
+
+
+		auto lk = tokens.current();
+
+		int k = 0;
+		//
+	}
+
 
 	lexer::tokenizer l2(R"(
 [section.name]

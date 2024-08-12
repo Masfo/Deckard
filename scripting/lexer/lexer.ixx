@@ -184,6 +184,7 @@ namespace deckard::lexer
 		std::string_view line_comment{"//"};
 		bool             dot_identifier{false};
 		bool             output_eol{false};
+		bool             ignore_keywords{false};
 	};
 
 	export class tokenizer
@@ -198,13 +199,25 @@ namespace deckard::lexer
 		explicit tokenizer(fs::path f) noexcept
 			: input_file(f)
 		{
-			utf8::codepoints cps = input_file.data();
-			codepoints           = cps.data(true);
-			m_tokens.reserve(codepoints.size());
-			filename = input_file.filename().string();
+			open(f);
+		}
+
+		explicit tokenizer(fs::path f, const tokenizer_config& tf) noexcept
+			: input_file(f)
+		{
+			open(f);
+			tokenize(tf);
 		}
 
 		explicit tokenizer(std::string_view str) noexcept { *this = str; }
+
+		explicit tokenizer(std::span<u8> input)
+		{
+			utf8::codepoints cps(input);
+			codepoints = cps.data(true);
+			m_tokens.reserve(codepoints.size());
+			filename = "";
+		}
 
 		void operator=(std::string_view input)
 		{
@@ -214,6 +227,15 @@ namespace deckard::lexer
 			m_tokens.reserve(codepoints.size());
 			filename = "";
 		};
+
+		void open(fs::path f)
+		{
+			input_file.open(f);
+			utf8::codepoints cps = input_file.data();
+			codepoints           = cps.data(true);
+			m_tokens.reserve(codepoints.size());
+			filename = input_file.name().string();
+		}
 
 		void setconfig(tokenizer_config c) noexcept { config = c; }
 
@@ -238,7 +260,7 @@ namespace deckard::lexer
 
 		bool eof() noexcept { return peek() == utf8::EOF_CHARACTER; }
 
-		char32_t next(u32 offset = 1) noexcept
+		char32_t next_unicode(u32 offset = 1) noexcept
 		{
 			if (has_data(offset))
 			{
@@ -265,7 +287,8 @@ namespace deckard::lexer
 		{
 			setconfig(cfg);
 
-			init_defaults();
+			if (cfg.ignore_keywords == false)
+				init_defaults();
 
 			while (not eof())
 			{
@@ -280,14 +303,24 @@ namespace deckard::lexer
 					// Any sequence of backslash (\) immediately followed by a new line is deleted,
 					// resulting in splicing lines together.
 					// \\n
-					next(2);
+					next_unicode(2);
 					continue;
 				}
 
 				if ((current_char == '\\' and next_char == '\r' and peek(2) == '\n'))
 				{
 					// \ \r\n
-					next(3);
+					next_unicode(3);
+					continue;
+				}
+				if (current_char == '\r' and next_char == '\n') // windows
+				{
+					if (config.output_eol)
+						insert_token(Token::EOL, {}, cursor);
+
+					next_unicode(2);
+					cursor = 0;
+					line += 1;
 					continue;
 				}
 
@@ -296,17 +329,7 @@ namespace deckard::lexer
 					if (config.output_eol)
 						insert_token(Token::EOL, {}, cursor);
 
-					next(1);
-					cursor = 0;
-					line += 1;
-					continue;
-				}
-				if (current_char == '\r' and next_char == '\n') // windows
-				{
-					if (config.output_eol)
-						insert_token(Token::EOL, {}, cursor);
-
-					next(2);
+					next_unicode(1);
 					cursor = 0;
 					line += 1;
 					continue;
@@ -314,7 +337,7 @@ namespace deckard::lexer
 
 				if (utf8::is_whitespace(current_char))
 				{
-					next();
+					next_unicode();
 					continue;
 				}
 				// TODO: line comment, user selected char // ; #
@@ -392,13 +415,13 @@ namespace deckard::lexer
 
 					{
 						binary = true;
-						lit.push_back(next());
-						lit.push_back(next());
+						lit.push_back(next_unicode());
+						lit.push_back(next_unicode());
 						diff = cursor - current_cursor;
 						while (not eof() and utf8::is_ascii_binary_digit(peek()))
 						{
 
-							lit.push_back(next());
+							lit.push_back(next_unicode());
 						}
 						break;
 					}
@@ -406,13 +429,13 @@ namespace deckard::lexer
 					case 'X':
 					{
 						hex = true;
-						lit.push_back(next());
-						lit.push_back(next());
+						lit.push_back(next_unicode());
+						lit.push_back(next_unicode());
 						diff = cursor - current_cursor;
 
 						while (not eof() and utf8::is_ascii_hex_digit(peek()))
 						{
-							lit.push_back(next());
+							lit.push_back(next_unicode());
 						}
 						break;
 					}
@@ -430,18 +453,18 @@ namespace deckard::lexer
 							{
 								type = Token::FLOATING_POINT;
 								dotcount += 1;
-								lit.push_back(next());
+								lit.push_back(next_unicode());
 								continue;
 							}
 
 							if (peek() == '.' and dotcount >= 1)
 							{
 								type = Token::INVALID_FLOATING_POINT;
-								lit.push_back(next());
+								lit.push_back(next_unicode());
 								continue;
 							}
 
-							lit.push_back(next());
+							lit.push_back(next_unicode());
 						}
 						break;
 					}
@@ -466,18 +489,18 @@ namespace deckard::lexer
 			lexeme lit;
 			Token  type           = Token::CHARACTER;
 			u32    current_cursor = cursor;
-			next(); // '
+			next_unicode(); // '
 
 			auto diff = cursor - current_cursor;
 
 
 			while (not eof() and peek() != '\'')
-				lit.push_back(next());
+				lit.push_back(next_unicode());
 
 			if (peek() != '\'')
 				type = Token::INVALID_CHAR;
 			else
-				next(); // '
+				next_unicode(); // '
 
 			if (diff == cursor - current_cursor)
 			{
@@ -498,7 +521,7 @@ namespace deckard::lexer
 
 			// TODO: python triple """ string, read all until second """
 
-			next();
+			next_unicode();
 			bool end_quote = false;
 			while (not eof())
 			{
@@ -512,12 +535,12 @@ namespace deckard::lexer
 					case '\"':
 					{
 						end_quote = true;
-						next();
+						next_unicode();
 						break;
 					}
 					case '\\':
 					{
-						next();
+						next_unicode();
 						current = peek();
 						switch (current)
 						{
@@ -540,11 +563,11 @@ namespace deckard::lexer
 								dbg::println("Invalid escape sequence");
 							}
 						}
-						next();
+						next_unicode();
 
 						break;
 					}
-					default: lit.push_back(next()); break;
+					default: lit.push_back(next_unicode()); break;
 				}
 			}
 
@@ -561,7 +584,7 @@ namespace deckard::lexer
 			{
 				if (auto n = peek();
 					config.dot_identifier == true ? n == '.' or utf8::is_identifier_continue(n) : utf8::is_identifier_continue(n))
-					lit.push_back(next());
+					lit.push_back(next_unicode());
 				else
 					break;
 			}
@@ -923,7 +946,7 @@ namespace deckard::lexer
 			}
 
 
-			next(symbol_size);
+			next_unicode(symbol_size);
 
 			insert_token(type, lit, current_cursor);
 		}
@@ -947,6 +970,29 @@ namespace deckard::lexer
 
 			m_tokens.push_back(t);
 		}
+
+		token current() const
+		{
+			assert::check(not m_tokens.empty());
+			return m_tokens[current_token];
+		}
+
+		token next()
+		{
+			if (current_token < m_tokens.size())
+				current_token += 1;
+
+			return current();
+		}
+
+		token previous()
+		{
+			if (current_token > 0)
+				current_token -= 1;
+
+			return current();
+		}
+
 
 	private:
 		void add_keyword(std::wstring_view word, Token tok) noexcept
@@ -1009,8 +1055,10 @@ namespace deckard::lexer
 		std::vector<char32_t> codepoints;
 
 
-		u32              index{0};
-		tokens           m_tokens;
+		u32    index{0};
+		tokens m_tokens;
+		u32    current_token{0};
+
 		std::string      filename;
 		tokenizer_config config;
 
