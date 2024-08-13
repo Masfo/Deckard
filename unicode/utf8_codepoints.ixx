@@ -239,7 +239,7 @@ namespace deckard::utf8
 			return 1;
 		if (codepoint < 0x800)
 			return 2;
-		if (codepoint < 0xFFFF)
+		if (codepoint < 0x10000)
 			return 3;
 		if (codepoint < 0x20000)
 			return 4;

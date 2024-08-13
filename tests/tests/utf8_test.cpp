@@ -5,6 +5,16 @@ import std;
 import deckard.utf8;
 using namespace deckard;
 
+TEST_CASE("u8string", "[utf8]")
+{
+	SECTION("init")
+	{
+		utf8::u8string str("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
+
+		REQUIRE(true == true);
+	}
+}
+
 TEST_CASE("utf8 decode to codepoints", "[utf8]")
 {
 	SECTION("widths")

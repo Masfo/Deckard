@@ -314,6 +314,28 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	dbg::println("u8:  {}", sizeof(utf8::u8string));
+	dbg::println("std: {}", sizeof(std::string));
+
+	utf8::u8string str("hello world longer string");
+	str.append("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
+
+	// at, []
+	// at<u32>, at<u8> template
+	// size, count, size_in_bytes
+	// iterator
+	// contains, find
+	// ==, !=
+	// sizeof == 32
+
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		auto w = str[i];
+		dbg::println("{:0X}", (u32)str[i]);
+	}
+
+
 	utf8::utf8file file("input.ini");
 
 	if (file.is_open())
