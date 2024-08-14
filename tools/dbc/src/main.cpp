@@ -307,18 +307,72 @@ public:
 	}
 };
 
+template<typename T, size_t SIZE>
+class sso_buffer
+{
+private:
+	T*  m_data{nullptr};
+	T   m_ssodata[SIZE]{0};
+	u32 m_capacity{SIZE};
+	u32 m_length{1};
+
+	void init_buffer(u32 capacity)
+	{
+		m_data = reinterpret_cast<T*>(std::malloc(capacity * sizeof(T)));
+		assert::check(m_data != nullptr);
+
+		m_capacity = capacity;
+	}
+
+	T* get_storage() const { return const_char<T*>(m_capacity == SIZE ? m_ssodata : m_data); }
+
+	void resize(u32 new_capacity)
+	{
+		if (new_capacity == m_capacity)
+			return;
+
+		if (not m_data)
+		{
+			m_data = reinterpret_cast<T*>(::malloc(new_capacity * sizeof(T)));
+			if (m_data)
+				m_capacity = new_capacity;
+
+			return;
+		}
+		assert::check(new_capacity >= m_length);
+
+		m_data = reinterpret_cast<T*>(::realloc(m_data, new_capacity * sizeof(T)));
+		if (m_data)
+		{
+			m_capacity = new_capacity;
+		}
+	}
+
+	void release()
+	{
+		if (m_data)
+		{
+			::free(m_data);
+			m_data = nullptr;
+		}
+
+		m_length   = 1;
+		m_capacity = 1;
+	}
+
+
+public:
+};
+
 int main()
 {
+
+
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	dbg::println("u8:  {}", sizeof(utf8::u8string));
-	dbg::println("std: {}", sizeof(std::string));
-
-	utf8::u8string str("hello world longer string");
-	str.append("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
 
 	// at, []
 	// at<u32>, at<u8> template
@@ -327,13 +381,6 @@ int main()
 	// contains, find
 	// ==, !=
 	// sizeof == 32
-
-
-	for (int i = 0; i < str.length(); i++)
-	{
-		auto w = str[i];
-		dbg::println("{:0X}", (u32)str[i]);
-	}
 
 
 	utf8::utf8file file("input.ini");
@@ -420,12 +467,17 @@ fullscreen=true
 
 	deckard::initialize();
 
+	auto resolve_ip = [](std::string_view url)
+	{
+		auto resolve = net::hostname_to_ip(url, net::protocol::v4);
+		dbg::println("ipv4: {}, {}", url, resolve ? *resolve : "failed to resolve");
 
-	auto resolve = net::hostname_to_ip("www.taboobuilder.com", net::protocol::v6);
-	dbg::println("www.taboobuilder.com: {}", resolve ? *resolve : "<failed>");
+		resolve = net::hostname_to_ip(url, net::protocol::v6);
+		dbg::println("ipv6: {}, {}", url, resolve ? *resolve : "failed to resolve");
+	};
 
-	resolve = net::hostname_to_ip("www.taboobuilder.com", net::protocol::v4);
-	dbg::println("www.taboobuilder.com: {}", resolve ? *resolve : "<failed>");
+	resolve_ip("www.taboobuilder.com");
+	resolve_ip("localhost");
 
 
 	bignum a("13221321321321321321321321321321321321");
