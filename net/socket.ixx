@@ -4,7 +4,6 @@ module;
 
 export module deckard.net:socket;
 
-import :types;
 import :address;
 
 import std;
@@ -26,7 +25,7 @@ namespace deckard::net
 	{
 		sockaddr_in ret{0};
 
-		ret.sin_family = (addr.flags == flags::ipv4) ? AF_INET : AF_INET6;
+		ret.sin_family = (addr.proto == protocol::v4) ? AF_INET : AF_INET6;
 
 		inet_pton(ret.sin_family, addr.hostname.c_str(), &ret.sin_addr.S_un.S_addr);
 		ret.sin_port = htons(addr.port);
@@ -110,14 +109,14 @@ namespace deckard::net
 
 		socket(transport proto, bool* ok)
 		{
-			if (proto == transport::NUL)
+			if (proto == transport::nul)
 			{
 				dbg::trace("Transport protocol cannot be nul");
 				if (ok != nullptr)
 					*ok = false;
 				return;
 			}
-			else if (proto == transport::TCP)
+			else if (proto == transport::tcp)
 			{
 				// TODO: ipv6
 				m_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -129,7 +128,7 @@ namespace deckard::net
 					return;
 				}
 			}
-			else if (proto == transport::UDP)
+			else if (proto == transport::udp)
 			{
 				// TODO: ipv6
 				m_socket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -301,7 +300,7 @@ namespace deckard::net
 		address     m_address{.hostname = "", .port = 0};
 		SOCKADDR_IN m_sockaddr{.sin_family = AF_INET};
 		SOCKET      m_socket{INVALID_SOCKET};
-		transport   m_transport{transport::NUL};
+		transport   m_transport{transport::nul};
 
 
 		i32  m_addr_size{sizeof(m_sockaddr)};
