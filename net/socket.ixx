@@ -25,9 +25,10 @@ namespace deckard::net
 	sockaddr_in address_to_sockaddr(address addr)
 	{
 		sockaddr_in ret{0};
-		// TODO: ipv6
-		ret.sin_family = AF_INET;
-		inet_pton(AF_INET, addr.hostname.c_str(), &ret.sin_addr.S_un.S_addr);
+
+		ret.sin_family = (addr.flags == flags::ipv4) ? AF_INET : AF_INET6;
+
+		inet_pton(ret.sin_family, addr.hostname.c_str(), &ret.sin_addr.S_un.S_addr);
 		ret.sin_port = htons(addr.port);
 		return ret;
 	}
@@ -36,7 +37,9 @@ namespace deckard::net
 	{
 		address ret_addr;
 
-		std::array<char, INET_ADDRSTRLEN> buf{};
+		std::array<char, INET6_ADDRSTRLEN> buf{};
+
+		// TODO: ipv6
 		::inet_ntop(AF_INET, &addr.sin_addr.S_un.S_addr, buf.data(), buf.size());
 		ret_addr.hostname = std::string(buf.data());
 		ret_addr.port     = ::ntohs(addr.sin_port);
@@ -66,8 +69,8 @@ namespace deckard::net
 
 		for (addrinfo* ptr = res; ptr != nullptr; ptr = ptr->ai_next)
 		{
-			wchar_t buffer[46]{};
-			DWORD   buffer_len = 46;
+			wchar_t buffer[INET6_ADDRSTRLEN]{};
+			DWORD   buffer_len = INET6_ADDRSTRLEN;
 
 			auto ret = WSAAddressToStringW(ptr->ai_addr, (DWORD)ptr->ai_addrlen, 0, buffer, &buffer_len);
 

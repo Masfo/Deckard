@@ -4,7 +4,6 @@ module;
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
 
-
 export module deckard.vulkan:device;
 
 import :semaphore;
@@ -240,6 +239,18 @@ namespace deckard::vulkan
 				dbg::println("Vulkan m_device creation failed: {}", string_VkResult(result));
 				return false;
 			}
+
+
+#if 0
+			const VpProfileProperties profile_properties = {VP_KHR_ROADMAP_2022_NAME, VP_KHR_ROADMAP_2022_SPEC_VERSION};
+
+			// Check if the profile is supported at device level
+			VkBool32 profile_supported;
+			result = vpGetPhysicalDeviceProfileSupport(instance, m_physical_device, &profile_properties, &profile_supported);
+			if (!profile_supported)
+			{
+			}
+#endif
 
 
 			vkGetDeviceQueue(m_device, queue_index, 0, &m_queue);
