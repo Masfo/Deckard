@@ -4,6 +4,8 @@ module;
 
 export module deckard.net:client;
 
+import :address;
+
 namespace deckard::net
 {
 

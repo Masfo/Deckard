@@ -18,7 +18,7 @@ namespace deckard::net
 		UDP,
 	};
 
-	export struct address
+	export struct address2
 	{
 		std::string host;
 		u16         port{0};

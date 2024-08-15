@@ -4,8 +4,9 @@ module;
 
 export module deckard.net:server;
 import std;
+
+import :address;
 import :socket;
-import :types;
 
 namespace deckard::net
 {

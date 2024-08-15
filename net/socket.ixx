@@ -5,6 +5,7 @@ module;
 export module deckard.net:socket;
 
 import :types;
+import :address;
 
 import std;
 import deckard.scope_exit;
@@ -26,7 +27,7 @@ namespace deckard::net
 		sockaddr_in ret{0};
 		// TODO: ipv6
 		ret.sin_family = AF_INET;
-		inet_pton(AF_INET, addr.host.c_str(), &ret.sin_addr.S_un.S_addr);
+		inet_pton(AF_INET, addr.hostname.c_str(), &ret.sin_addr.S_un.S_addr);
 		ret.sin_port = htons(addr.port);
 		return ret;
 	}
@@ -37,8 +38,8 @@ namespace deckard::net
 
 		std::array<char, INET_ADDRSTRLEN> buf{};
 		::inet_ntop(AF_INET, &addr.sin_addr.S_un.S_addr, buf.data(), buf.size());
-		ret_addr.host = std::string(buf.data());
-		ret_addr.port = ::ntohs(addr.sin_port);
+		ret_addr.hostname = std::string(buf.data());
+		ret_addr.port     = ::ntohs(addr.sin_port);
 
 		return ret_addr;
 	}
@@ -55,9 +56,6 @@ namespace deckard::net
 		else
 			hints.ai_family = AF_INET6;
 
-		hints.ai_socktype = SOCK_STREAM; // TCP
-		hints.ai_flags    = AI_PASSIVE;
-		hints.ai_protocol = IPPROTO_TCP;
 
 		if (getaddrinfo(hostname.data(), nullptr, &hints, &res) != 0)
 		{
@@ -68,16 +66,34 @@ namespace deckard::net
 
 		for (addrinfo* ptr = res; ptr != nullptr; ptr = ptr->ai_next)
 		{
-			wchar_t    buffer[46];
-			DWORD      buffer_len  = 46;
-			LPSOCKADDR sockaddr_ip = (LPSOCKADDR)ptr->ai_addr;
-			auto       ret         = WSAAddressToStringW(sockaddr_ip, (DWORD)ptr->ai_addrlen, 0, buffer, &buffer_len);
+			wchar_t buffer[46]{};
+			DWORD   buffer_len = 46;
+
+			auto ret = WSAAddressToStringW(ptr->ai_addr, (DWORD)ptr->ai_addrlen, 0, buffer, &buffer_len);
 
 			if (ret == 0 and ptr->ai_family == AF_INET and version == protocol::v4)
+			{
+				auto ip = as<sockaddr_in*>(ptr->ai_addr);
+
+				auto& i = ip->sin_addr.S_un.S_un_b;
+				dbg::println("raw: {:d}.{:d}.{:d}.{:d}", i.s_b1, i.s_b2, i.s_b3, i.s_b4);
+
+
 				return system::from_wide(buffer);
+			}
 
 			if (ret == 0 and ptr->ai_family == AF_INET6 and version == protocol::v6)
+			{
+				auto  ip    = as<sockaddr_in6*>(ptr->ai_addr);
+				auto& ipraw = ip->sin6_addr.u.Byte;
+				dbg::print("raw: ");
+				for (int i = 0; i < 15; i += 2)
+					dbg::print("{:02x}{:02x}{}", ipraw[i], ipraw[i + 1], i < 14 ? ":" : "");
+				dbg::println();
+
+
 				return system::from_wide(buffer);
+			}
 		}
 
 		return {};
@@ -191,7 +207,7 @@ namespace deckard::net
 			hints.ai_family   = AF_INET;
 			hints.ai_socktype = SOCK_STREAM; // TCP
 
-			if (::getaddrinfo(addr.host.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+			if (::getaddrinfo(addr.hostname.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
 			{
 				dbg::println("Socket connect failed, failed to resolve host: {}", WSAGetLastError());
 				return false;
@@ -237,7 +253,7 @@ namespace deckard::net
 			hints.ai_family   = AF_INET;
 			hints.ai_socktype = SOCK_DGRAM;
 
-			if (getaddrinfo(to.host.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+			if (getaddrinfo(to.hostname.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
 			{
 				dbg::println("sendto failed, failed to resolve host: {}", WSAGetLastError());
 				return SOCKET_ERROR;
@@ -279,7 +295,7 @@ namespace deckard::net
 		bool is_open() const { return m_open; }
 
 	private:
-		address     m_address{.host = "", .port = 0};
+		address     m_address{.hostname = "", .port = 0};
 		SOCKADDR_IN m_sockaddr{.sin_family = AF_INET};
 		SOCKET      m_socket{INVALID_SOCKET};
 		transport   m_transport{transport::NUL};

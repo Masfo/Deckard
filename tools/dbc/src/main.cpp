@@ -201,36 +201,6 @@ void IPv6Address::print()
 	dbg::println("");
 }
 
-class alignas(4) IpAddress
-{
-public:
-	enum class Version : u8
-	{
-		v4 = 4,
-		v6 = 6
-	};
-
-	IpAddress() = default;
-
-	IpAddress(std::string_view) { }
-
-	std::string as_string(size_t) const { return {}; }
-
-	std::array<u16, 8> address{0};
-	u16                port_num{0};
-	Version            ver{Version::v4};
-	u8                 flags{0};
-
-	void version(u8 v) { ver = (v == 4_u8) ? Version::v4 : Version::v6; }
-
-	void port(u16 p) { port_num = p; };
-
-private:
-	// Recommendation for IPv6 Address Text Representation: https://www.rfc-editor.org/rfc/rfc5952
-};
-
-static_assert(sizeof(IpAddress) == 20, "IpAddress is not 20-bytes");
-
 class Chain
 {
 public:
@@ -373,6 +343,7 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	dbg::println("{}", sizeof(net::address));
 
 	// at, []
 	// at<u32>, at<u8> template

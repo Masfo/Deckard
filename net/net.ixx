@@ -7,6 +7,8 @@ export module deckard.net;
 export import :socket;
 export import :client;
 export import :server;
+export import :address;
+
 import deckard.types;
 
 import std;
