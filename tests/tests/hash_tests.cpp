@@ -126,8 +126,10 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 
 TEST_CASE("siphash digests", "[siphash][hash]")
 {
-	//
+#ifdef _DEBUG
+	// debug has static key
 	REQUIRE("hello world"_siphash == 0xcdff'88cb'8097'b979);
+#endif
 }
 
 TEST_CASE("fnv digests", "[fnv][hash]")

@@ -4,6 +4,10 @@ module;
 
 export module deckard.utils.hash;
 
+#ifndef _DEBUG
+import deckard_build;
+#endif
+
 
 import deckard.types;
 import deckard.as;
@@ -113,10 +117,14 @@ namespace deckard::utils
 
 	export u64 siphash(std::string_view str)
 	{
+#ifdef _DEBUG
 		// key from random.org
 		const unsigned char key[16] = {0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
-
 		return siphash(key, {as<u8*>(str.data()), str.length()});
+
+#else
+		return siphash(deckard_build::build::rng_buffer, {as<u8*>(str.data()), str.length()});
+#endif
 	}
 
 	export u64 operator""_siphash(char const* s, size_t count) { return siphash({s, count}); }
