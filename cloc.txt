@@ -1,4 +1,4 @@
-github.com/AlDanial/cloc v 1.98  T=0.10 s (683.7 files/s, 143998.1 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.12 s (592.0 files/s, 123886.9 lines/s)
 ----------------------------------------------------------------------------------
 File                                           blank        comment           code
 ----------------------------------------------------------------------------------
@@ -15,9 +15,9 @@ File                                           blank        comment           co
 .\math\vec2_sse.ixx                              111             12            276
 .\math\matrix.ixx                                 64              6            265
 .\math\vec4_sse.ixx                              100             18            262
-.\app\vulkan\device.ixx                           87             15            241
+.\app\vulkan\device.ixx                           91             17            258
+.\net\socket.ixx                                  73              9            228
 .\app\vulkan.ixx                                  92             63            219
-.\net\socket.ixx                                  64              9            219
 .\unicode\utf8_codepoints.ixx                     56             22            206
 .\utils\helpers.ixx                               62             11            205
 .\win32\win32.ixx                                 50              2            178
@@ -28,14 +28,14 @@ File                                           blank        comment           co
 .\file\file.ixx                                   49              0            140
 .\utils\generator.ixx                             42              1            140
 .\math\math_formatter.ixx                         38             11            139
-.\app\vulkan\instance.ixx                         40              6            137
+.\app\vulkan\instance.ixx                         41              6            137
 .\utils\ringbuffer.ixx                            40              2            134
 .\math\ease_functions.ixx                         23              7            130
 .\debug\debug.ixx                                 29              9            128
+.\utils\hash.ixx                                  31              2            126
 .\win32\DTE.ixx                                   33              6            118
 .\app\vulkan\swapchain.ixx                        43              6            117
 .\utils\uuid.ixx                                  22              2            116
-.\utils\hash.ixx                                  22              1            100
 .\app\vulkan\command_buffer.ixx                   33              3             93
 .\types\as.ixx                                    16              4             80
 .\app\vulkan\images.ixx                           19              2             77
@@ -55,22 +55,23 @@ File                                           blank        comment           co
 .\graphs\binarytree.ixx                           11             12             43
 .\types\HelperTypes.ixx                           15              5             39
 .\app\vulkan\semaphore.ixx                        10              0             36
-.\net\server.ixx                                  11              3             33
+.\net\server.ixx                                  12              3             33
 .\unicode\utf8_ascii.ixx                          13              0             31
 .\config\ini.ixx                                  14             20             30
+.\net\address.ixx                                  9              1             29
 .\debug\assert.ixx                                11              0             25
 .\utils\system_win32.ixx                           8              0             23
-.\net\types.ixx                                    4              0             22
 .\math\math.ixx                                    7              0             20
-.\net\net.ixx                                      9              0             18
-.\buildnumber.ixx                                  7             17             16
+.\net\net.ixx                                     10              0             19
+.\buildnumber.ixx                                  6             17             17
+.\net\types.ixx                                    4              0             17
 .\file\qoi.ixx                                     3              0             10
 .\math\quaternion.ixx                              1              0              9
 .\taskpool\taskpool.ixx                            2              0              9
-.\net\client.ixx                                   3              0              7
+.\net\client.ixx                                   4              0              8
 .\unicode\utf8.ixx                                 0              0              7
 .\app\input.ixx                                    2              0              4
 .\scripting\parser\parser.ixx                     11             15              4
 ----------------------------------------------------------------------------------
-SUM:                                            3036            735          10762
+SUM:                                            3070            739          10841
 ----------------------------------------------------------------------------------
