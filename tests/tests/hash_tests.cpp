@@ -124,6 +124,12 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 #endif
 }
 
+TEST_CASE("siphash digests", "[siphash][hash]")
+{
+	//
+	REQUIRE("hello world"_siphash == 0xcdff'88cb'8097'b979);
+}
+
 TEST_CASE("fnv digests", "[fnv][hash]")
 {
 

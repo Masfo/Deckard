@@ -119,6 +119,8 @@ namespace deckard::utils
 		return siphash(key, {as<u8*>(str.data()), str.length()});
 	}
 
+	export u64 operator""_siphash(char const* s, size_t count) { return siphash({s, count}); }
+
 	// fnv
 	constexpr u32 val_32_const   = 0x811c'9dc5;
 	constexpr u32 prime_32_const = 0x100'0193;
