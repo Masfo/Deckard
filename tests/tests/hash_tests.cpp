@@ -2,13 +2,16 @@
 #include <catch2/catch_test_macros.hpp>
 
 import deckard;
+import deckard.utils.hash;
 import std;
 
 using namespace deckard;
+using namespace deckard::utils;
+
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-TEST_CASE("SHA digests", "[sha]")
+TEST_CASE("SHA digests", "[sha][hash]")
 {
 	//
 	sha256::digest correct_abc_digest{
@@ -42,7 +45,7 @@ TEST_CASE("SHA digests", "[sha]")
 	REQUIRE(correct_512_digest == hash512_str);
 }
 
-TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")
+TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha][hash]")
 {
 	SECTION("empty")
 	{ //
@@ -77,7 +80,7 @@ TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha]")
 #endif
 }
 
-TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
+TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 {
 	SECTION("empty")
 	{
@@ -119,4 +122,11 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha]")
 				"d8cc09b");
 	}
 #endif
+}
+
+TEST_CASE("fnv digests", "[fnv][hash]")
+{
+
+	REQUIRE("hello world"_hash32 == 0xd58b'3fa7);
+	REQUIRE("hello world"_hash64 == 0x779a'65e7'023c'd2e7);
 }
