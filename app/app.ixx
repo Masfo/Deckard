@@ -2,6 +2,8 @@
 module;
 #include <Windows.h>
 #include <dbt.h>
+#include <hidusage.h>
+
 #include <dwmapi.h>
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
@@ -19,11 +21,30 @@ import deckard.vulkan;
 import deckard.win32;
 import deckard.debug;
 import deckard.assert;
-import deckard.input;
 
 namespace deckard::app
 {
 	using namespace deckard::system;
+
+	// callback
+	class vulkanapp;
+
+	export using input_keyboard_callback_ptr = void(vulkanapp& const app, i32 key, i32 scancode, i32 action, i32 mods);
+
+	enum class Action : u32
+	{
+		DOWN,
+		UP,
+	};
+
+	enum RawInputType : u32
+	{
+		Keyboard,
+		Mouse,
+		Pad,
+
+		InputCount
+	};
 
 	using DwmSetWindowAttributePtr = HRESULT(HWND, DWORD, LPCVOID, DWORD);
 	DwmSetWindowAttributePtr* DwmSetWindowAttribute{nullptr};
@@ -60,10 +81,11 @@ namespace deckard::app
 		extent          normalized_client_size;
 		properties      m_properties;
 
-		std::vector<char> rawinput_buffer;
+		std::vector<char>             rawinput_buffer;
+		std::array<RAWINPUTDEVICE, 3> raw_inputs;
+		input_keyboard_callback_ptr*  keyboard_callback{nullptr};
 
-		vulkan::vulkan  vulkan;
-		input::rawinput input;
+		vulkan::vulkan vulkan;
 
 		bool renderer_initialized{false};
 		bool is_running{false};
@@ -197,6 +219,242 @@ namespace deckard::app
 		void set_title(std::string_view title) const { SetWindowTextA(handle, title.data()); }
 
 		void set_visible(bool visible) { ShowWindow(handle, visible ? SW_SHOW : SW_HIDE); }
+
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+
+		void input_initialize()
+		{
+
+			// Keyboard
+			raw_inputs[Keyboard].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+			raw_inputs[Keyboard].dwFlags     = RIDEV_APPKEYS | RIDEV_NOLEGACY; // | RIDEV_NOHOTKEYS;
+			raw_inputs[Keyboard].hwndTarget  = handle;
+
+
+			// Mouse
+			raw_inputs[Mouse].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
+			raw_inputs[Mouse].dwFlags     = 0;
+			raw_inputs[Mouse].hwndTarget  = handle;
+
+			// Pad
+			raw_inputs[Pad].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
+			raw_inputs[Pad].dwFlags     = RIDEV_DEVNOTIFY;
+			raw_inputs[Pad].hwndTarget  = handle;
+
+			if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
+			{
+				dbg::println("Raw input not initialized");
+				return;
+			}
+
+			std::vector<RAWINPUTDEVICELIST> riList;
+			unsigned int                    deviceCount = 0;
+
+			GetRawInputDeviceList(nullptr, &deviceCount, sizeof(RAWINPUTDEVICELIST));
+			riList.resize(deviceCount);
+
+			GetRawInputDeviceList(riList.data(), &deviceCount, sizeof(RAWINPUTDEVICELIST));
+
+			RID_DEVICE_INFO rdi;
+			rdi.cbSize = sizeof(RID_DEVICE_INFO);
+
+			for (const auto& i : riList)
+			{
+
+				unsigned int size = 256;
+				// char         deviceName[256]{};
+				// GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
+				// dbg::println("\nDevice name: {}", deviceName);
+
+				size = rdi.cbSize;
+				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICEINFO, &rdi, &size);
+
+				if (rdi.dwType == RIM_TYPEKEYBOARD)
+				{
+					dbg::println("Keyboard mode: {}", rdi.keyboard.dwKeyboardMode);
+					dbg::println("Keyboard: function keys: {}", rdi.keyboard.dwNumberOfFunctionKeys);
+					dbg::println("Keyboard indicators: {}", rdi.keyboard.dwNumberOfIndicators);
+					dbg::println("Keyboard total keys: {}", rdi.keyboard.dwNumberOfKeysTotal);
+
+					dbg::println("Keyboard type: {}", rdi.keyboard.dwType);
+					dbg::println("Keyboard sub-type: {}", rdi.keyboard.dwSubType);
+				}
+
+				if (rdi.dwType == RIM_TYPEMOUSE)
+				{
+					dbg::println("Mouse id: {}", rdi.mouse.dwId);
+					dbg::println("Mouse buttons: {}", rdi.mouse.dwNumberOfButtons);
+					dbg::println("Mouse sample rate: {}", rdi.mouse.dwSampleRate);
+					dbg::println("Mouse hori wheel: {}", rdi.mouse.fHasHorizontalWheel);
+				}
+
+#if 0
+				if (rdi.dwType == RIM_TYPEHID)
+				{
+					dbg::println("HID productID: {}", rdi.hid.dwProductId);
+					dbg::println("HID vendorID: {}", rdi.hid.dwVendorId);
+					dbg::println("HID version: {}", rdi.hid.dwVersionNumber);
+					dbg::println("HID usage: {}", rdi.hid.usUsage);
+					dbg::println("HID usage page: {}", rdi.hid.usUsagePage);
+				}
+#endif
+
+				dbg::println();
+			}
+		}
+
+		void input_deinitialize()
+		{
+			//
+			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+			raw_inputs[Keyboard].dwFlags     = RIDEV_REMOVE;
+			raw_inputs[Keyboard].usUsagePage = 0x01;
+			raw_inputs[Keyboard].hwndTarget  = handle;
+
+
+			// Mouse
+			raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
+			raw_inputs[Mouse].dwFlags     = RIDEV_REMOVE;
+			raw_inputs[Mouse].usUsagePage = 0x01;
+			raw_inputs[Mouse].hwndTarget  = handle;
+
+			// Pad
+			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
+			raw_inputs[Pad].dwFlags     = RIDEV_REMOVE;
+			raw_inputs[Pad].usUsagePage = 0x01;
+			raw_inputs[Pad].hwndTarget  = handle;
+
+			if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
+			{
+			}
+		}
+
+		void handle_mouse(const RAWMOUSE& rawmouse)
+		{
+			(rawmouse);
+#if 0
+
+			u16 flags       = rawmouse.usFlags;
+			u16 buttonflags = rawmouse.usButtonFlags;
+			u16 buttonData  = rawmouse.usButtonData;
+			u32 extra       = rawmouse.ulExtraInformation;
+			u32 rawButtons  = rawmouse.ulRawButtons;
+			u32 buttons     = rawmouse.ulButtons;
+
+			float scrollDelta{};
+			bool  isScrollPage = false;
+			if ((rawmouse.usButtonFlags & RI_MOUSE_HWHEEL) == RI_MOUSE_HWHEEL ||
+				(rawmouse.usButtonFlags & RI_MOUSE_WHEEL) == RI_MOUSE_WHEEL)
+			{
+				auto  delta      = (float)(short)rawmouse.usButtonData;
+				float numTicks   = delta / WHEEL_DELTA;
+				bool  horizontal = (rawmouse.usButtonFlags & RI_MOUSE_HWHEEL) == RI_MOUSE_HWHEEL;
+
+				scrollDelta = numTicks;
+
+				if (horizontal)
+				{
+					unsigned long scrollChars = 1;
+					SystemParametersInfoA(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
+					scrollDelta *= static_cast<float>(scrollChars);
+				}
+				else
+				{
+					unsigned long scrollLines = 3;
+
+					SystemParametersInfoA(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
+					if (scrollLines == WHEEL_PAGESCROLL)
+						isScrollPage = true;
+					else
+						scrollDelta *= static_cast<float>(scrollLines);
+				}
+			}
+#endif
+
+
+			// dbg::println(
+			//   "{:4}{:4} - [MOUSE] flags: {:016b}, buttons flags: {:016b}, button data: {:016b}, extra: {:8x}, rawButtons: {:032b}, "
+			//   "buttons: {:032b}",
+			//   scrollDelta,
+			//   isScrollPage,
+			//   flags,
+			//   buttonflags,
+			//   buttonData,
+			//   extra,
+			//   rawButtons,
+			//   buttons);
+		}
+
+		void handle_keyboard(const RAWKEYBOARD& kb)
+		{
+			unsigned short vkey     = kb.VKey;
+			unsigned short scancode = kb.MakeCode;
+			unsigned short flags    = kb.Flags;
+			unsigned int   message  = kb.Message;
+			// unsigned int   extra    = kb.ExtraInformation;
+
+
+			bool up    = ((flags & RI_KEY_BREAK) == RI_KEY_BREAK);
+			bool down  = !up;
+			bool right = ((flags & RI_KEY_E0) == RI_KEY_E0);
+			bool e1    = ((flags & RI_KEY_E1) == RI_KEY_E1);
+			bool wm_up = (message == WM_KEYUP);
+
+			// u32 key = (scancode << 16) | ((flags & RI_KEY_E0) << 24);
+
+			if (vkey or scancode)
+			{
+				keyboard_callback(*this, vkey, scancode, up ? 1 : 0, flags);
+			}
+		}
+
+		void handle_input(const HRAWINPUT input) noexcept
+		{
+			u32 size = 0;
+			if (GetRawInputData(input, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0)
+				return;
+
+			RAWINPUT* rawInput = nullptr;
+
+			if (size > 0)
+			{
+
+				rawinput_buffer.resize(as<size_t>(size));
+
+
+				if (GetRawInputData(input, RID_INPUT, &rawinput_buffer[0], &size, sizeof(RAWINPUTHEADER)) != size)
+					return;
+
+				rawInput = reinterpret_cast<RAWINPUT*>(rawinput_buffer.data());
+
+
+				handle_keyboard(rawInput->data.keyboard);
+				handle_mouse(rawInput->data.mouse);
+			}
+			DefRawInputProc(&rawInput, 2, sizeof(RAWINPUTHEADER));
+		}
+
+	public:
+		void set_keyboard_callback(input_keyboard_callback_ptr* ptr)
+		{
+			if (ptr)
+				keyboard_callback = ptr;
+		}
+
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
 
 
 	public:
@@ -348,18 +606,18 @@ namespace deckard::app
 
 			set_title(m_properties.title);
 
+			input_initialize();
 
 			is_running = true;
 		}
 
 		void destroy()
 		{
-			input.deinitialize();
+			input_deinitialize();
 
-			vulkan.deinitialize();
-			is_running = false;
 			if (m_properties.fullscreen)
 				toggle_fullscreen();
+			vulkan.deinitialize();
 
 			DestroyWindow(handle);
 			UnregisterClass(L"DeckardWindowClass", GetModuleHandle(0));
@@ -412,7 +670,7 @@ namespace deckard::app
 			  [&]
 			  {
 				  create();
-				  input.initialize(handle);
+				  input_initialize();
 
 				  if (not is_running)
 				  {
@@ -554,7 +812,6 @@ namespace deckard::app
 				  }
 
 
-				  // destroy_inputs();
 				  set_visible(false);
 
 				  destroy();
@@ -570,6 +827,8 @@ namespace deckard::app
 			//
 			vulkan.draw();
 		}
+
+		void quit() { is_running = false; }
 	};
 
 	// ##################################################################################
@@ -1001,7 +1260,7 @@ namespace deckard::app
 					const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
 
 
-					input.handle_input(raw);
+					handle_input(raw);
 				}
 
 				return 0;
