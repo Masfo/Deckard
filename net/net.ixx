@@ -16,6 +16,8 @@ import std;
 namespace deckard::net
 {
 
+	// Clumsy, lag simulator
+
 
 	export void initialize()
 	{
