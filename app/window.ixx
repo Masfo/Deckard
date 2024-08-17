@@ -33,12 +33,7 @@ using namespace std::string_view_literals;
 
 namespace deckard::app
 {
-	enum class Resize
-	{
-		No,
-		Yes,
-	};
-	consteval void enable_bitmask_operations(Resize);
+
 
 	extent to_extent(RECT r) { return {as<u32>(r.right - r.left), as<u32>(r.bottom - r.top)}; }
 
@@ -65,6 +60,15 @@ namespace deckard::app
 
 	{
 	public:
+		struct windowproperties
+		{
+			std::string title;
+			u32         width{1'920};
+			u32         height{1'080};
+			bool        resizable{true};
+			bool        fullscreen{false};
+		};
+
 		window() = default;
 
 		virtual ~window() { destroy(); }
@@ -75,10 +79,19 @@ namespace deckard::app
 		window(const window&)            = delete;
 		window& operator=(const window&) = delete;
 
-		void create() { create(1'280, 720, Resize::Yes); }
-
-		void create(u32 width, u32 height, Resize resizeflag)
+		void create()
 		{
+			create({.title      = "", //
+					.width      = 1'280,
+					.height     = 720,
+					.resizable  = true,
+					.fullscreen = false});
+		}
+
+		void create(const windowproperties props)
+		{
+
+			properties = props;
 
 			if (IsWindows7OrGreater())
 			{
@@ -110,8 +123,8 @@ namespace deckard::app
 			if (handle != nullptr)
 				return;
 
-			normalized_client_size.width  = width;
-			normalized_client_size.height = height;
+			normalized_client_size.width  = props.width;
+			normalized_client_size.height = props.height;
 
 
 			WNDCLASSEX wc{};
@@ -153,7 +166,7 @@ namespace deckard::app
 				return;
 			}
 #endif
-			if (resizeflag == Resize::No)
+			if (props.resizable == false)
 				style &= ~WS_SIZEBOX;
 
 
@@ -223,7 +236,7 @@ namespace deckard::app
 			vulkan.deinitialize();
 
 			is_running = false;
-			if (not windowed)
+			if (properties.fullscreen)
 			{
 				toggle_fullscreen();
 			}
@@ -513,11 +526,11 @@ namespace deckard::app
 					  mi.rcMonitor.bottom - mi.rcMonitor.top,
 					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				}
-				windowed = false;
+				properties.fullscreen = true;
 			}
 			else
 			{
-				windowed = true;
+				properties.fullscreen = false;
 
 				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
 				SetWindowLong(handle, GWL_STYLE, old_style);
@@ -526,7 +539,6 @@ namespace deckard::app
 			}
 
 			extent size = get_clientsize();
-			dbg::println("toggle: {}x{}", size.width, size.height);
 		}
 
 		LRESULT CALLBACK WndProc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1206,16 +1218,13 @@ namespace deckard::app
 			}
 		}
 
-		GLuint u_angle{};
-		f32    angle{};
-
-		HWND            handle{nullptr};
-		DWORD           style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD           ex_style{0};
-		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
-		extent          min_extent{640, 480};
-		extent          normalized_client_size;
-
+		HWND             handle{nullptr};
+		DWORD            style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
+		DWORD            ex_style{0};
+		WINDOWPLACEMENT  wp = {sizeof(WINDOWPLACEMENT)};
+		extent           min_extent{640, 480};
+		extent           normalized_client_size;
+		windowproperties properties;
 
 		std::vector<char> rawinput_buffer;
 
@@ -1225,9 +1234,7 @@ namespace deckard::app
 
 		bool renderer_initialized{false};
 		bool is_running{false};
-		bool windowed{true};
 		bool is_sizing{false};
-		bool being_dragged{false};
 	};
 
 } // namespace deckard::app
