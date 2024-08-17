@@ -400,7 +400,7 @@ namespace deckard::app
 			  {
 				  create();
 
-				  if (not not is_running)
+				  if (not is_running)
 				  {
 					  dbg::println("App not initialized");
 					  app_return = -1;
