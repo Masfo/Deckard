@@ -10,6 +10,9 @@ using namespace std::string_view_literals;
 
 export namespace deckard
 {
+	constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
+
+
 	// upto 0..n-1, P3060
 	inline constexpr auto upto = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
 
@@ -132,11 +135,7 @@ export namespace deckard
 		return std::format("{:.2f} {}", count, unit[suffix]);
 	}
 
-	// hash_combine
-
-
 	// to_hex
-
 	struct HexOption
 	{
 		std::string delimiter{", "};
@@ -255,7 +254,7 @@ export namespace deckard
 	}
 
 	// split
-	export std::vector<std::string_view> split(std::string_view strv, std::string_view delims = " ")
+	std::vector<std::string_view> split(std::string_view strv, std::string_view delims = " ")
 	{
 		std::vector<std::string_view> output;
 		size_t                        first = 0;
@@ -275,4 +274,29 @@ export namespace deckard
 
 		return output;
 	}
+
+	// trim
+	std::string_view trim_front(std::string_view s) noexcept
+	{
+		if (s.empty())
+			return s;
+
+		s.remove_prefix(s.find_first_not_of(whitespace_string));
+		return s;
+	}
+
+	std::string_view trim_back(std::string_view s) noexcept
+	{
+		if (s.empty())
+			return s;
+
+		s.remove_suffix(s.size() - s.find_last_not_of(whitespace_string) - 1);
+		return s;
+	}
+
+	std::string_view trim(std::string_view s) noexcept
+	{
+		s = trim_front(s);
+		return trim_back(s);
+	};
 } // namespace deckard
