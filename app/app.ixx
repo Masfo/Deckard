@@ -27,16 +27,15 @@ namespace deckard::app
 {
 	using namespace deckard::system;
 
+	export enum class Action : u32 {
+		Down,
+		Up,
+	};
 	// callback
 	class vulkanapp;
 
-	export using input_keyboard_callback_ptr = void(vulkanapp& const app, i32 key, i32 scancode, i32 action, i32 mods);
-
-	enum class Action : u32
-	{
-		DOWN,
-		UP,
-	};
+	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, Action action, i32 mods);
+	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
 
 	enum RawInputType : u32
 	{
@@ -413,7 +412,7 @@ namespace deckard::app
 
 			if (vkey or scancode)
 			{
-				keyboard_callback(*this, vkey, scancode, up ? 1 : 0, flags);
+				keyboard_callback(*this, vkey, scancode, up ? Action::Up : Action::Down, flags);
 			}
 		}
 
