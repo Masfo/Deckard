@@ -1,5 +1,6 @@
 module;
 #include <Windows.h>
+#include <cstdio>
 
 export module deckard;
 
@@ -106,6 +107,14 @@ extern "C" int deckard_main();
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	//
+	if (AllocConsole())
+	{
+		::freopen("CONOUT$", "wt", stdout);
+		::freopen("CONIN$", "rt", stdin);
+		SetConsoleTitle(L"Debug Console");
+		std::ios::sync_with_stdio(1);
+	}
+
 	deckard::initialize();
 
 	int ret = deckard_main();

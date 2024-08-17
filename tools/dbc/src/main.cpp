@@ -39,7 +39,6 @@ using namespace deckard::utf8;
 
 using crt_callback = int(void);
 
-
 int PreMain1(void)
 {
 	OutputDebugStringA("premain");
@@ -354,9 +353,8 @@ private:
 public:
 };
 
-int main()
+int deckard_main()
 {
-	deckard::initialize();
 
 
 #ifndef _DEBUG
@@ -484,7 +482,7 @@ fullscreen=true
 
 	int k = 0;
 	{
-		app::app app01;
+		app::vulkanapp app01;
 
 		app01.run();
 	}
@@ -718,7 +716,6 @@ fullscreen=true
 
 	std::println("Script Compiler v5");
 #endif
-	deckard::deinitialize();
 
 	return 0;
 }

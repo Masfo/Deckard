@@ -8,7 +8,7 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 project(dbc LANGUAGES CXX)
 
-add_executable(dbc)
+add_executable(dbc WIN32)
 
 set_target_properties(dbc PROPERTIES
     CXX_STANDARD 23
