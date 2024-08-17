@@ -15,11 +15,8 @@ namespace deckard::random
 	export std::mt19937       mersenne_twister;
 	export std::mt19937       mersenne_twister_fixed;
 
-	export std::uniform_real_distribution<float> fdist;
 	export std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
 	export std::uniform_real_distribution<float> fdist11(-1.0f, 1.0f);
-
-	std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
 
 	export void initialize()
 	{
