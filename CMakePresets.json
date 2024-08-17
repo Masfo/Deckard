@@ -46,7 +46,9 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
                 "DECKARD_TESTS": true,
-                "DECKARD_SCRIPT": true
+                "DECKARD_SCRIPT": true,
+                "BUILD_EXAMPLES": true
+
 
             }
         },
@@ -59,7 +61,8 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
                 "DECKARD_TESTS": false,
-                "DECKARD_SCRIPT": true
+                "DECKARD_SCRIPT": true,
+                "BUILD_EXAMPLES": true
 
 
             }
@@ -73,7 +76,9 @@
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo",
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
                 "DECKARD_TESTS": false,
-                "DECKARD_SCRIPT": true
+                "DECKARD_SCRIPT": true,
+                "BUILD_EXAMPLES": true
+
 
 
             }

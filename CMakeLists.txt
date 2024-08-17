@@ -360,7 +360,8 @@ enable_testing()
 add_subdirectory(tests)
 endif()
 
-
+if(BUILD_EXAMPLES)
 add_subdirectory(example/window)
+endif()
 
 
