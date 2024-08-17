@@ -1,18 +1,12 @@
-#include <Windows.h>
 
 import deckard;
 using namespace deckard;
 
-int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+int deckard_main()
 {
-	//
-	deckard::initialize();
-	{
-		app::vulkanapp app01({.title = "Example 01", .width = 1'280, .height = 720});
+	app::vulkanapp app01({.title  = "Example 02", //
+						  .width  = 1'280,
+						  .height = 720});
 
-		app01.run();
-	}
-
-	deckard::deinitialize();
-	return 0;
+	return app01.run();
 }

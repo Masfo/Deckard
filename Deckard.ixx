@@ -77,13 +77,12 @@ namespace deckard
 
 	export void initialize()
 	{
+		SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
+		SetDllDirectoryW(L"");
 
 		auto CoInitialize = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitialize");
 		if (CoInitialize)
 			CoInitialize(0);
-
-		SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
-		SetDllDirectoryW(L"");
 
 
 		deckard::random::initialize();
@@ -99,3 +98,50 @@ namespace deckard
 		net::deinitialize();
 	}
 }; // namespace deckard
+
+extern "C" int deckard_main();
+
+int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+	//
+	deckard::initialize();
+
+	int ret = deckard_main();
+
+	deckard::deinitialize();
+	return ret;
+}
+
+
+#if 0
+VOID WINAPI TlsCallback1(PVOID DllHandle, DWORD Reason, PVOID Reserved)
+{
+	if (Reason == DLL_PROCESS_ATTACH)
+	{
+		deckard::initialize();
+	}
+}
+
+VOID WINAPI TlsCallback2(PVOID DllHandle, DWORD Reason, PVOID Reserved)
+{
+	//
+	deckard::deinitialize();
+}
+
+
+#ifdef _M_AMD64
+#pragma comment(linker, "/INCLUDE:_tls_used")
+#pragma comment(linker, "/INCLUDE:p_TlsCallback1")
+
+#pragma const_seg(push)
+#pragma const_seg(".CRT$XLAA")
+EXTERN_C const PIMAGE_TLS_CALLBACK p_TlsCallback1 = TlsCallback1;
+
+#pragma data_seg(".CRT$XLDZ")
+EXTERN_C PIMAGE_TLS_CALLBACK p_TlsCallback2 = TlsCallback2;
+#pragma const_seg(pop)
+
+#endif
+
+#pragma data_seg() /* reset data-segment */
+#endif

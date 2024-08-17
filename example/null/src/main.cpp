@@ -1,14 +1,9 @@
-#include <Windows.h>
 
 import deckard;
 using namespace deckard;
 
-int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+int deckard_main()
 {
 	//
-	deckard::initialize();
-
-
-	deckard::deinitialize();
 	return 0;
 }
