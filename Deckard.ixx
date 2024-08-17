@@ -32,6 +32,7 @@ export import deckard.sha2;
 export import deckard.cpuid;
 export import deckard.system;
 export import deckard.ringbuffer;
+export import deckard.random;
 
 // UTF8
 export import deckard.utf8;
@@ -81,6 +82,7 @@ namespace deckard
 		SetDllDirectoryW(L"");
 
 
+		deckard::random::initialize();
 		net::initialize();
 	}
 

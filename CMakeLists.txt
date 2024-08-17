@@ -209,6 +209,7 @@ set(DECKARD_SRCS
         utils/cpuid.ixx
         utils/ringbuffer.ixx
         utils/serializer.ixx
+        utils/random.ixx
 
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
