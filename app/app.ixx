@@ -394,63 +394,72 @@ namespace deckard::app
 		// impl
 		i32 run()
 		{
-			create();
+			i32          app_return = 0;
+			std::jthread app_thread(
+			  [&]
+			  {
+				  create();
 
-			if (not not is_running)
-			{
-				dbg::println("App not initialized");
-				return -1;
-			}
-			system::set_thread_name("App::Run");
-
-
-			// init_inputs();
-
-			LARGE_INTEGER freq{};
-			QueryPerformanceFrequency(&freq);
-			LARGE_INTEGER start{}, last{};
-			LARGE_INTEGER now{};
-			QueryPerformanceCounter(&start);
-			last = start;
+				  if (not not is_running)
+				  {
+					  dbg::println("App not initialized");
+					  app_return = -1;
+					  return;
+				  }
+				  system::set_thread_name("App::Run");
 
 
-			u32   currentframe{0};
-			float framerate{0};
-			float oldtime{0};
-			float newtime{1};
-			i64   counter{1};
-			i64   frequency{0};
-			float timeperframe{0.0f};
-			QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
-			float freq1 = 1.0f / frequency;
+				  // init_inputs();
 
-			float accumulate{0.0f};
+				  LARGE_INTEGER freq{};
+				  QueryPerformanceFrequency(&freq);
+				  LARGE_INTEGER start{}, last{};
+				  LARGE_INTEGER now{};
+				  QueryPerformanceCounter(&start);
+				  last = start;
 
 
-			while (loop())
-			{
-				QueryPerformanceCounter((LARGE_INTEGER*)&counter);
-				newtime      = (float)counter * freq1;
-				timeperframe = newtime - oldtime;
-				framerate    = 1.0f / timeperframe;
-				oldtime      = newtime;
-				currentframe++;
-				accumulate += timeperframe;
+				  u32   currentframe{0};
+				  float framerate{0};
+				  float oldtime{0};
+				  float newtime{1};
+				  i64   counter{1};
+				  i64   frequency{0};
+				  float timeperframe{0.0f};
+				  QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
+				  float freq1 = 1.0f / frequency;
 
-				accumulate = std::clamp(accumulate, 0.0f, 1.0f);
-
-				if (accumulate >= 1.0)
-				{
-					accumulate -= 1.0;
-					// set_title(std::format("{}, {}, Delta: {}", currentframe, framerate, timeperframe));
-					currentframe = 0;
-				}
-			}
+				  float accumulate{0.0f};
 
 
-			// destroy_inputs();
-			destroy();
-			return 0;
+				  while (loop())
+				  {
+					  QueryPerformanceCounter((LARGE_INTEGER*)&counter);
+					  newtime      = (float)counter * freq1;
+					  timeperframe = newtime - oldtime;
+					  framerate    = 1.0f / timeperframe;
+					  oldtime      = newtime;
+					  currentframe++;
+					  accumulate += timeperframe;
+
+					  accumulate = std::clamp(accumulate, 0.0f, 1.0f);
+
+					  if (accumulate >= 1.0)
+					  {
+						  accumulate -= 1.0;
+						  // set_title(std::format("{}, {}, Delta: {}", currentframe, framerate, timeperframe));
+						  currentframe = 0;
+					  }
+				  }
+
+
+				  // destroy_inputs();
+				  destroy();
+				  app_return = 0;
+			  });
+
+			app_thread.join();
+			return app_return;
 		}
 
 		void render()

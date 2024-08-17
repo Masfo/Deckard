@@ -68,7 +68,7 @@ export import deckard.win32;
 export import deckard_build;
 #endif
 
-#pragma region #Deckard init/deinit
+#pragma region !Deckard init/deinit
 
 namespace deckard
 {
@@ -114,7 +114,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	return ret;
 }
 
-#pragma region #TLS Callback
+#pragma region !TLS Callback
 #if 0
 VOID WINAPI TlsCallback1(PVOID DllHandle, DWORD Reason, PVOID Reserved)
 {
