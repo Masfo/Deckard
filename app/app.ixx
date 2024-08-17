@@ -10,6 +10,7 @@ module;
 #include <windowsx.h>
 
 export module deckard.app;
+export import :types;
 
 import std;
 using namespace std::chrono_literals;

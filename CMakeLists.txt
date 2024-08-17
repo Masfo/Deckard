@@ -231,7 +231,9 @@ set(DECKARD_SRCS
 
         # App
         app/app.ixx
-        
+        app/app_types.ixx
+
+
         # Vulkan
         app/vulkan.ixx
 
