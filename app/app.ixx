@@ -3,7 +3,6 @@ module;
 #include <Windows.h>
 #include <dbt.h>
 #include <dwmapi.h>
-#include <hidusage.h>
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
 #include <windowsx.h>
@@ -20,6 +19,7 @@ import deckard.vulkan;
 import deckard.win32;
 import deckard.debug;
 import deckard.assert;
+import deckard.input;
 
 namespace deckard::app
 {
@@ -62,11 +62,13 @@ namespace deckard::app
 
 		std::vector<char> rawinput_buffer;
 
-		vulkan::vulkan vulkan;
+		vulkan::vulkan  vulkan;
+		input::rawinput input;
 
 		bool renderer_initialized{false};
 		bool is_running{false};
 		bool is_sizing{false};
+		bool is_minimized{false};
 
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -193,6 +195,8 @@ namespace deckard::app
 		}
 
 		void set_title(std::string_view title) const { SetWindowTextA(handle, title.data()); }
+
+		void set_visible(bool visible) { ShowWindow(handle, visible ? SW_SHOW : SW_HIDE); }
 
 
 	public:
@@ -344,14 +348,14 @@ namespace deckard::app
 
 			set_title(m_properties.title);
 
-			ShowWindow(handle, SW_SHOW);
-			RedrawWindow(handle, nullptr, nullptr, RDW_INTERNALPAINT);
 
 			is_running = true;
 		}
 
 		void destroy()
 		{
+			input.deinitialize();
+
 			vulkan.deinitialize();
 			is_running = false;
 			if (m_properties.fullscreen)
@@ -371,6 +375,15 @@ namespace deckard::app
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
+		}
+
+		void handle_messages_slow()
+		{
+			MSG msg{};
+			if (!GetMessage(&msg, NULL, 0, 0))
+				return;
+
+			DispatchMessage(&msg);
 		}
 
 		void resize()
@@ -399,6 +412,7 @@ namespace deckard::app
 			  [&]
 			  {
 				  create();
+				  input.initialize(handle);
 
 				  if (not is_running)
 				  {
@@ -406,6 +420,9 @@ namespace deckard::app
 					  app_return = -1;
 					  return;
 				  }
+
+				  set_visible(true);
+
 				  system::set_thread_name("App::Run");
 
 
@@ -431,9 +448,33 @@ namespace deckard::app
 
 				  float accumulate{0.0f};
 
+				  float m_fFPS, m_fFrameDelta, m_fTimerFPSCounter;
+				  float m_fMaxFPS;
+
+				  LARGE_INTEGER m_liTimerLast, m_liTimerNow, m_liTimerFreq;
+				  LARGE_INTEGER m_liNextTick;
+
+				  m_fTimerFPSCounter = m_fMaxFPS = m_fFPS = m_fFrameDelta = 0.0f;
+
+				  u32 m_gameUpdatePerSecond{120};
+				  QueryPerformanceCounter(&m_liTimerNow);
+				  QueryPerformanceCounter(&m_liNextTick);
+				  QueryPerformanceCounter(&m_liTimerLast);
+				  QueryPerformanceFrequency(&m_liTimerFreq);
+
+				  DWORD m_dwSecondsRun{0};
+				  DWORD m_dwTimerNumFrames{0};
+
+
+				  float      m_fSkipTicks    = 1000.0f / m_gameUpdatePerSecond;
+				  const UINT MAX_FRAMESKIP   = 5;
+				  UINT       loops           = 0;
+				  u32        user_update     = 0;
+				  u32        max_user_update = 0;
 
 				  while (loop())
 				  {
+#if 0
 					  QueryPerformanceCounter((LARGE_INTEGER*)&counter);
 					  newtime      = (float)counter * freq1;
 					  timeperframe = newtime - oldtime;
@@ -447,13 +488,75 @@ namespace deckard::app
 					  if (accumulate >= 1.0)
 					  {
 						  accumulate -= 1.0;
-						  // set_title(std::format("{}, {}, Delta: {}", currentframe, framerate, timeperframe));
+						  set_title(std::format("{:.5f}, Delta: {:.5f}", framerate, timeperframe));
 						  currentframe = 0;
 					  }
+#else
+					  if (is_minimized)
+					  {
+						  handle_messages_slow();
+						  set_title("Minimized");
+						  continue;
+					  }
+					  loops = 0;
+					  // std::this_thread::sleep_for(std::chrono::milliseconds{1'000 / 120});
+					  QueryPerformanceCounter(&m_liTimerNow);
+					  while (m_liTimerNow.QuadPart > m_liNextTick.QuadPart && loops < MAX_FRAMESKIP)
+					  {
+
+						  // User update
+						  {
+							  user_update++;
+							  max_user_update = std::max(user_update, max_user_update);
+						  }
+
+
+						  m_liNextTick.QuadPart += (LONGLONG)m_fSkipTicks;
+						  loops++;
+
+						  //  m_fSkipTicks = 1000.0f / m_gameUpdatePerSecond;
+					  }
+
+					  m_fMaxFPS = std::max(m_fMaxFPS, m_fFPS);
+
+
+					  m_fFrameDelta = (float)(m_liTimerNow.QuadPart - m_liTimerLast.QuadPart + m_fSkipTicks) / m_liTimerFreq.QuadPart;
+
+					  QueryPerformanceCounter(&m_liTimerLast);
+					  m_dwTimerNumFrames++;
+
+
+					  m_fTimerFPSCounter += m_fFrameDelta;
+
+					  if (m_fTimerFPSCounter >= 1.0f)
+					  {
+						  m_fFPS = as<f32>(m_dwTimerNumFrames / m_fTimerFPSCounter);
+
+						  m_dwSecondsRun++;
+
+						  set_title(std::format(
+							"{}, {}: {:.5f}, Delta: {:.5f} : User {}/{} : MaxFPS: {}, Skip: {:f}",
+							m_dwTimerNumFrames,
+							m_dwSecondsRun,
+							m_fFPS,
+							m_fFrameDelta,
+							user_update,
+							max_user_update,
+							m_fMaxFPS,
+							m_fSkipTicks));
+						  user_update = 0;
+
+						  m_dwTimerNumFrames = 0;
+						  m_fTimerFPSCounter = 0.0;
+					  }
+
+#endif
 				  }
 
 
 				  // destroy_inputs();
+				  set_visible(false);
+
 				  destroy();
 				  app_return = 0;
 			  });
@@ -468,6 +571,16 @@ namespace deckard::app
 			vulkan.draw();
 		}
 	};
+
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+
 
 	LRESULT CALLBACK vulkanapp::wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -636,6 +749,15 @@ namespace deckard::app
 						normalize_client_size();
 					}
 				}
+				return 0;
+			}
+
+			case WM_SIZE:
+			{
+				if (wParam == SIZE_MINIMIZED)
+					is_minimized = true;
+				if (wParam == SIZE_RESTORED or wParam == SIZE_MAXIMIZED)
+					is_minimized = false;
 				return 0;
 			}
 
@@ -876,10 +998,10 @@ namespace deckard::app
 
 				if (GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT)
 				{
-					// const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
+					const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
 
 
-					// handle_input(raw);
+					input.handle_input(raw);
 				}
 
 				return 0;
