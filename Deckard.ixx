@@ -58,6 +58,9 @@ export import deckard.zstd;
 // Clumsy network simulator
 export import deckard.net;
 
+// App
+export import deckard.app;
+
 
 // export import deckard.DTE;
 export import deckard.win32;

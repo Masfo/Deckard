@@ -363,4 +363,6 @@ add_subdirectory(tests)
 endif()
 
 
+add_subdirectory(example/window)
+
 

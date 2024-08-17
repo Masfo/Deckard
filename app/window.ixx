@@ -15,7 +15,6 @@ export module deckard.app:window;
 
 
 import std;
-import deckard;
 import deckard.enums;
 import deckard.debug;
 import deckard.types;
@@ -71,6 +70,8 @@ namespace deckard::app
 
 		window() = default;
 
+		window(const windowproperties props) { create(props); }
+
 		virtual ~window() { destroy(); }
 
 		window(window&&)            = delete;
@@ -123,8 +124,7 @@ namespace deckard::app
 			if (handle != nullptr)
 				return;
 
-			normalized_client_size.width  = props.width;
-			normalized_client_size.height = props.height;
+			normalized_client_size = {props.width, props.height};
 
 
 			WNDCLASSEX wc{};
@@ -162,10 +162,10 @@ namespace deckard::app
 			{
 				dbg::println("RegisterClassEx failed: {}", get_windows_error());
 				destroy();
-				destroy();
 				return;
 			}
 #endif
+
 			if (props.resizable == false)
 				style &= ~WS_SIZEBOX;
 
@@ -378,7 +378,7 @@ namespace deckard::app
 			unsigned short scancode = kb.MakeCode;
 			unsigned short flags    = kb.Flags;
 			unsigned int   message  = kb.Message;
-			unsigned int   extra    = kb.ExtraInformation;
+			// unsigned int   extra    = kb.ExtraInformation;
 
 
 			bool up    = ((flags & RI_KEY_BREAK) == RI_KEY_BREAK);
@@ -1173,9 +1173,13 @@ namespace deckard::app
 			normalized_client_size.width  = as<u32>(unnormalized_size.width / scale);
 			normalized_client_size.height = as<u32>(unnormalized_size.height / scale);
 
-
-			//
 			return normalized_client_size;
+		}
+
+		void set_client_size(const extent size)
+		{
+			normalized_client_size = size;
+			resize();
 		}
 
 		extent get_clientsize() const
@@ -1229,7 +1233,6 @@ namespace deckard::app
 		std::vector<char> rawinput_buffer;
 
 
-		// vulkan::vulkan  vulkan;
 		vulkan::vulkan vulkan;
 
 		bool renderer_initialized{false};

@@ -58,7 +58,6 @@ namespace deckard::vulkan
 */
 
 import std;
-import deckard;
 import deckard.vulkan_helpers;
 import deckard.types;
 
