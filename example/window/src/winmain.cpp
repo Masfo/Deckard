@@ -7,11 +7,11 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	//
 	deckard::initialize();
+	{
+		app::vulkanapp app01({.title = "Example 01", .width = 1'280, .height = 720});
 
-	app::app app01;
-
-	app01.run();
-
+		app01.run();
+	}
 
 	deckard::deinitialize();
 	return 0;

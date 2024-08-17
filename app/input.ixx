@@ -3,4 +3,125 @@ export module deckard.input;
 namespace deckard::input
 {
 
-}
+#if 0
+		std::array<RAWINPUTDEVICE, 3> raw_inputs;
+		enum RawInputType : uint32_t
+		{
+			Keyboard,
+			Mouse,
+			Pad,
+
+			InputCount
+		};
+	};
+
+	void app::init_inputs()
+	{
+		// Keyboard
+		raw_inputs[Keyboard].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+		raw_inputs[Keyboard].dwFlags     = RIDEV_APPKEYS | RIDEV_NOLEGACY; // | RIDEV_NOHOTKEYS;
+		raw_inputs[Keyboard].hwndTarget  = wnd.get_handle();
+
+
+		// Mouse
+		raw_inputs[Mouse].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
+		raw_inputs[Mouse].dwFlags     = 0;
+		raw_inputs[Mouse].hwndTarget  = wnd.get_handle();
+
+		// Pad
+		raw_inputs[Pad].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
+		raw_inputs[Pad].dwFlags     = RIDEV_DEVNOTIFY;
+		raw_inputs[Pad].hwndTarget  = wnd.get_handle();
+
+		if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
+		{
+			dbg::println("Raw input not initialized");
+			return;
+		}
+
+		std::vector<RAWINPUTDEVICELIST> riList;
+		unsigned int                    deviceCount = 0;
+
+		GetRawInputDeviceList(nullptr, &deviceCount, sizeof(RAWINPUTDEVICELIST));
+		riList.resize(deviceCount);
+
+		GetRawInputDeviceList(riList.data(), &deviceCount, sizeof(RAWINPUTDEVICELIST));
+
+		RID_DEVICE_INFO rdi;
+		rdi.cbSize = sizeof(RID_DEVICE_INFO);
+
+		for (const auto& i : riList)
+		{
+
+			unsigned int size = 256;
+			// char         deviceName[256]{};
+			// GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
+			// dbg::println("\nDevice name: {}", deviceName);
+
+			size = rdi.cbSize;
+			GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICEINFO, &rdi, &size);
+
+			if (rdi.dwType == RIM_TYPEKEYBOARD)
+			{
+				dbg::println("Keyboard mode: {}", rdi.keyboard.dwKeyboardMode);
+				dbg::println("Keyboard: function keys: {}", rdi.keyboard.dwNumberOfFunctionKeys);
+				dbg::println("Keyboard indicators: {}", rdi.keyboard.dwNumberOfIndicators);
+				dbg::println("Keyboard total keys: {}", rdi.keyboard.dwNumberOfKeysTotal);
+
+				dbg::println("Keyboard type: {}", rdi.keyboard.dwType);
+				dbg::println("Keyboard sub-type: {}", rdi.keyboard.dwSubType);
+			}
+
+			if (rdi.dwType == RIM_TYPEMOUSE)
+			{
+				dbg::println("Mouse id: {}", rdi.mouse.dwId);
+				dbg::println("Mouse buttons: {}", rdi.mouse.dwNumberOfButtons);
+				dbg::println("Mouse sample rate: {}", rdi.mouse.dwSampleRate);
+				dbg::println("Mouse hori wheel: {}", rdi.mouse.fHasHorizontalWheel);
+			}
+
+#if 0
+				if (rdi.dwType == RIM_TYPEHID)
+				{
+					dbg::println("HID productID: {}", rdi.hid.dwProductId);
+					dbg::println("HID vendorID: {}", rdi.hid.dwVendorId);
+					dbg::println("HID version: {}", rdi.hid.dwVersionNumber);
+					dbg::println("HID usage: {}", rdi.hid.usUsage);
+					dbg::println("HID usage page: {}", rdi.hid.usUsagePage);
+				}
+#endif
+
+			dbg::println();
+		}
+	}
+
+	void app::destroy_inputs()
+	{
+		//
+		raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+		raw_inputs[Keyboard].dwFlags     = RIDEV_REMOVE;
+		raw_inputs[Keyboard].usUsagePage = 0x01;
+		raw_inputs[Keyboard].hwndTarget  = wnd.get_handle();
+
+
+		// Mouse
+		raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
+		raw_inputs[Mouse].dwFlags     = RIDEV_REMOVE;
+		raw_inputs[Mouse].usUsagePage = 0x01;
+		raw_inputs[Mouse].hwndTarget  = wnd.get_handle();
+
+		// Pad
+		raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
+		raw_inputs[Pad].dwFlags     = RIDEV_REMOVE;
+		raw_inputs[Pad].usUsagePage = 0x01;
+		raw_inputs[Pad].hwndTarget  = wnd.get_handle();
+
+		if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
+		{
+		}
+	}
+#endif
+} // namespace deckard::input

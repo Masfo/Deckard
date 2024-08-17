@@ -230,15 +230,13 @@ set(DECKARD_SRCS
         scripting/parser/parser.ixx
 
         # App
-        app/window.ixx
         app/app.ixx
-        app/input.ixx
-
+        app/input.ixx>
+        
         # Vulkan
         app/vulkan.ixx
 
         app/vulkan/helpers.ixx
-
         app/vulkan/instance.ixx
         app/vulkan/device.ixx
         app/vulkan/surface.ixx
