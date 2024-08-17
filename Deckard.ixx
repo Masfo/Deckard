@@ -55,7 +55,6 @@ export import deckard.archive;
 export import deckard.zstd;
 
 // Net
-// Clumsy network simulator
 export import deckard.net;
 
 // App
@@ -69,6 +68,7 @@ export import deckard.win32;
 export import deckard_build;
 #endif
 
+#pragma region #Deckard init/deinit
 
 namespace deckard
 {
@@ -99,6 +99,8 @@ namespace deckard
 	}
 }; // namespace deckard
 
+#pragma endregion
+
 extern "C" int deckard_main();
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -112,7 +114,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	return ret;
 }
 
-
+#pragma region #TLS Callback
 #if 0
 VOID WINAPI TlsCallback1(PVOID DllHandle, DWORD Reason, PVOID Reserved)
 {
@@ -145,3 +147,4 @@ EXTERN_C PIMAGE_TLS_CALLBACK p_TlsCallback2 = TlsCallback2;
 
 #pragma data_seg() /* reset data-segment */
 #endif
+#pragma endregion
