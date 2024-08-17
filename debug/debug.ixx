@@ -1,5 +1,7 @@
 module;
 #include <Windows.h>
+#include <cstdio>
+
 
 export module deckard.debug;
 
@@ -9,8 +11,8 @@ using namespace std::string_view_literals;
 
 void output_message(const std::string_view message) noexcept
 {
-	std::print(std::cout, "{}"sv, message);
 #ifdef _DEBUG
+	std::print(std::cout, "{}"sv, message);
 
 	OutputDebugStringA(message.data());
 #endif
@@ -146,6 +148,26 @@ export namespace deckard::dbg
 	}
 
 	[[noreturn]] void panic() noexcept { panic(""); }
+
+	void show_debug_console(bool show)
+	{
+#ifdef _DEBUG
+		if (show)
+		{
+			if (AllocConsole())
+			{
+				::freopen("CONOUT$", "wt", stdout);
+				::freopen("CONIN$", "rt", stdin);
+				SetConsoleTitle(L"Debug Console");
+				std::ios::sync_with_stdio(1);
+			}
+		}
+		else
+		{
+			FreeConsole();
+		}
+#endif
+	}
 
 
 } // namespace deckard::dbg
