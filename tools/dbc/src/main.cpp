@@ -37,6 +37,26 @@ using namespace deckard::math;
 using namespace deckard::utf8;
 
 
+using crt_callback = int(void);
+
+
+int PreMain1(void)
+{
+	OutputDebugStringA("premain");
+	return 0;
+}
+
+int PreMain2(void)
+{
+	OutputDebugStringA("premain");
+	return 0;
+}
+
+#pragma data_seg(".CRT$XIAC")
+static crt_callback* autostart[] = {PreMain1, PreMain2};
+#pragma data_seg() /* reset data-segment */
+
+
 enum class ConvertEpoch : u64
 {
 	Microseconds = 10,
@@ -336,6 +356,7 @@ public:
 
 int main()
 {
+	deckard::initialize();
 
 
 #ifndef _DEBUG
@@ -435,7 +456,6 @@ fullscreen=true
 	}
 #endif
 
-	deckard::initialize();
 
 	auto resolve_ip = [](std::string_view url)
 	{

@@ -132,7 +132,7 @@ target_sources(${PROJECT_NAME}
 
 # Sources
 target_sources(${PROJECT_NAME} PUBLIC
-	src/main.cpp
+	src/winmain.cpp
 )
 
 # Libraries
