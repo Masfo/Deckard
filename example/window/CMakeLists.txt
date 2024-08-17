@@ -5,12 +5,13 @@ cmake_minimum_required (VERSION 3.29)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
+set(PROJECT_NAME window)
 
-project(dbc LANGUAGES CXX)
+project(${PROJECT_NAME} LANGUAGES CXX)
 
-add_executable(window WIN32)
+add_executable(${PROJECT_NAME} WIN32)
 
-set_target_properties(window PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
@@ -19,7 +20,7 @@ set_target_properties(window PROPERTIES
 )
 
 
-set_target_properties(window PROPERTIES 
+set_target_properties(${PROJECT_NAME} PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
@@ -28,80 +29,80 @@ set_target_properties(window PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
 
-    PDB_NAME window
+    PDB_NAME ${PROJECT_NAME}
     PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/pdb"
 )
 
 if(MSVC)
     
-    target_compile_definitions(window PRIVATE UNICODE)
-    target_compile_definitions(window PRIVATE _UNICODE)
-    target_compile_definitions(window PRIVATE NOMINMAX)
-    target_compile_definitions(window PRIVATE WIN32_LEAN_AND_MEAN)
-    target_compile_definitions(window PRIVATE WIN32_EXTRA_LEAN)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _UNICODE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32_EXTRA_LEAN)
     
-    target_compile_options(window PRIVATE /Zc:preprocessor)
-    target_compile_options(window PRIVATE /permissive-)
-    target_compile_options(window PRIVATE /std:c++latest)
-    target_compile_options(window PRIVATE /Zc:__cplusplus)
-    target_compile_options(window PRIVATE /utf-8)
+    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor)
+    target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
+    target_compile_options(${PROJECT_NAME} PRIVATE /std:c++latest)
+    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus)
+    target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
 
 
-    target_compile_options(window PRIVATE /fp:precise)
-    target_compile_options(window PRIVATE /diagnostics:caret)
+    target_compile_options(${PROJECT_NAME} PRIVATE /fp:precise)
+    target_compile_options(${PROJECT_NAME} PRIVATE /diagnostics:caret)
 
-    set_target_properties(window PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    set_target_properties(window PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-    target_compile_options(window PRIVATE /arch:SSE2)
+    target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
 
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
-        #set_target_properties(window PROPERTIES DEBUG_POSTFIX "d")
+        #set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
 
 
-        set_target_properties(window PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-        set_target_properties(window PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
-
-
-        target_compile_definitions(window PRIVATE -DDEBUG)
-        target_compile_options(window PRIVATE /W4)
-
-        target_compile_options(window PRIVATE /JMC)    # Just my debugging
-        target_compile_options(window PRIVATE /Od)
-        target_compile_options(window PRIVATE /RTC1)
-        target_compile_options(window PRIVATE /GS)
-        target_compile_options(window PRIVATE /Zi)     # /ZI edit/continue
+        set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
 
-        target_link_options(window PRIVATE /DEBUG)
-        target_link_options(window PRIVATE /INCREMENTAL)
-        target_link_options(window PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/window.ilk)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE -DDEBUG)
+        target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+
+        target_compile_options(${PROJECT_NAME} PRIVATE /JMC)    # Just my debugging
+        target_compile_options(${PROJECT_NAME} PRIVATE /Od)
+        target_compile_options(${PROJECT_NAME} PRIVATE /RTC1)
+        target_compile_options(${PROJECT_NAME} PRIVATE /GS)
+        target_compile_options(${PROJECT_NAME} PRIVATE /Zi)     # /ZI edit/continue
+
+
+        target_link_options(${PROJECT_NAME} PRIVATE /DEBUG)
+        target_link_options(${PROJECT_NAME} PRIVATE /INCREMENTAL)
+        target_link_options(${PROJECT_NAME} PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/${PROJECT_NAME}.ilk)
 
     endif()
     
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
     
-        set_target_properties(window PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
-        target_compile_definitions(window PRIVATE -DNDEBUG)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE -DNDEBUG)
 
-        target_compile_options(window PRIVATE /W4)
-        target_compile_options(window PRIVATE /O2 /Os)
-        target_compile_options(window PRIVATE /GS-)
-        target_compile_options(window PRIVATE /EHsc)
-        target_compile_options(window PRIVATE /Gw /MP)
+        target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+        target_compile_options(${PROJECT_NAME} PRIVATE /O2 /Os)
+        target_compile_options(${PROJECT_NAME} PRIVATE /GS-)
+        target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
+        target_compile_options(${PROJECT_NAME} PRIVATE /Gw /MP)
         
-        target_link_options(window PRIVATE /RELEASE)
-        target_link_options(window PRIVATE /INCREMENTAL:NO)
-        target_link_options(window PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
-        target_link_options(window PRIVATE /DYNAMICBASE:NO)
+        target_link_options(${PROJECT_NAME} PRIVATE /RELEASE)
+        target_link_options(${PROJECT_NAME} PRIVATE /INCREMENTAL:NO)
+        target_link_options(${PROJECT_NAME} PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
+        target_link_options(${PROJECT_NAME} PRIVATE /DYNAMICBASE:NO)
 
         # Undocumented options
-        target_link_options(window PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
+        target_link_options(${PROJECT_NAME} PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
 
     endif()
@@ -109,8 +110,8 @@ if(MSVC)
 
     # Manifest
     if(EXISTS "${CMAKE_SOURCE_DIR}/manifest.txt")
-        target_link_options(window PRIVATE /MANIFEST:EMBED)
-        target_link_options(window PRIVATE /MANIFESTINPUT:${CMAKE_SOURCE_DIR}/manifest.txt)
+        target_link_options(${PROJECT_NAME} PRIVATE /MANIFEST:EMBED)
+        target_link_options(${PROJECT_NAME} PRIVATE /MANIFESTINPUT:${CMAKE_SOURCE_DIR}/manifest.txt)
     endif()
 
 
@@ -119,7 +120,7 @@ endif()
 
 
 # Modules
-target_sources(window
+target_sources(${PROJECT_NAME}
 	PUBLIC
     FILE_SET CXX_MODULES 
     BASE_DIRS
@@ -130,31 +131,31 @@ target_sources(window
 )
 
 # Sources
-target_sources(window PUBLIC
+target_sources(${PROJECT_NAME} PUBLIC
 	src/main.cpp
 )
 
 # Libraries
-add_dependencies(window deckard)
+add_dependencies(${PROJECT_NAME} deckard)
  
 set(THIRD_PARTY_LIBS
     deckard
 )
 
-target_link_libraries(window PUBLIC ${THIRD_PARTY_LIBS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_LIBS})
 
 find_program(BUILDINC_TOOL "buildinc" NO_CACHE)
 if(BUILDINC_TOOL)
-    add_custom_command(TARGET window
+    add_custom_command(TARGET ${PROJECT_NAME}
                     PRE_BUILD
-                    COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/src/buildnumber.ixx window -q -m
+                    COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/src/buildnumber.ixx ${PROJECT_NAME} -q -m
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src
                     COMMENT "Increase build number (module)")
 endif()
 
 
 # Warnings
-target_compile_options(window PRIVATE 
+target_compile_options(${PROJECT_NAME} PRIVATE 
        
     #/wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc.
     #/wd5262 # implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break 
