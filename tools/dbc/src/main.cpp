@@ -343,7 +343,6 @@ int main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	dbg::println("{}", sizeof(net::address));
 
 	// at, []
 	// at<u32>, at<u8> template

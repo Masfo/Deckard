@@ -15,20 +15,20 @@ namespace deckard::random
 	export std::mt19937       mersenne_twister;
 	export std::mt19937       mersenne_twister_fixed;
 
-	std::uniform_real_distribution<float> fdist;
-
-	std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
+	export std::uniform_real_distribution<float> fdist;
+	export std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
+	export std::uniform_real_distribution<float> fdist11(-1.0f, 1.0f);
 
 	export void initialize()
 	{
 		//
 		mersenne_twister.seed(random_device());
-		mersenne_twister_fixed.seed(0x0BAD'BABE);
+		mersenne_twister_fixed.seed(0xB00'B1E5);
 	}
 
-	export float random_float() { return fdist(mersenne_twister); }
-
 	export float random_float01() { return fdist01(mersenne_twister); }
+
+	export float random_float11() { return fdist11(mersenne_twister); }
 
 
 } // namespace deckard::random

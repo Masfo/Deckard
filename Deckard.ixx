@@ -69,12 +69,13 @@ export import deckard_build;
 
 namespace deckard
 {
+	using CoInitializePtr   = HRESULT(LPVOID);
+	using CoUninitializePtr = void(void);
 
 	export void initialize()
 	{
 
-		using CoInitializePtr = HRESULT(LPVOID);
-		auto CoInitialize     = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitialize");
+		auto CoInitialize = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitialize");
 		if (CoInitialize)
 			CoInitialize(0);
 
@@ -88,8 +89,7 @@ namespace deckard
 
 	export void deinitialize()
 	{
-		using CoUninitializePtr = void(void);
-		auto CoUninitialize     = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
+		auto CoUninitialize = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
 		if (CoUninitialize)
 			CoUninitialize();
 
