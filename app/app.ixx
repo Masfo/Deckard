@@ -277,10 +277,10 @@ namespace deckard::app
 			for (const auto& i : riList)
 			{
 
-				unsigned int size = 256;
-				char         deviceName[256]{};
-				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
-				dbg::println("\nDevice name: {}", deviceName);
+				// unsigned int size = 256;
+				// char         deviceName[256]{};
+				// GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
+				// dbg::println("\nDevice name: {}", deviceName);
 
 				size = rdi.cbSize;
 				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICEINFO, &rdi, &size);
