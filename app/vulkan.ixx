@@ -138,7 +138,6 @@ namespace deckard::vulkan
 		is_initialized &= image_available.initialize(m_device);
 		is_initialized &= rendering_finished.initialize(m_device);
 		is_initialized &= in_flight.initialize(m_device);
-		dbg::println("hello");
 
 		record_commands();
 

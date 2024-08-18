@@ -149,18 +149,24 @@ export namespace deckard::dbg
 
 	[[noreturn]] void panic() noexcept { panic(""); }
 
-	void show_debug_console(bool show)
+	void redirect_console(bool [[maybe_unused]] show)
 	{
+
 #ifdef _DEBUG
 		if (show)
 		{
-			if (AllocConsole())
-			{
-				::freopen("CONOUT$", "wt", stdout);
-				::freopen("CONIN$", "rt", stdin);
-				SetConsoleTitle(L"Debug Console");
-				std::ios::sync_with_stdio(1);
-			}
+			static FILE* pNewStdout = nullptr;
+			static FILE* pNewStderr = nullptr;
+
+
+			if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
+				AllocConsole();
+
+			::freopen_s(&pNewStdout, "CONOUT$", "w", stdout);
+			::freopen_s(&pNewStderr, "CONOUT$", "w", stderr);
+			std::cout.clear();
+			std::cerr.clear();
+			std::ios::sync_with_stdio(1);
 		}
 		else
 		{
