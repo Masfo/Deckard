@@ -8,8 +8,10 @@ namespace deckard::app
 {
 	export enum Key : u32 {
 		Escape = VK_ESCAPE,
-		F10    = VK_F10,
-		F11    = VK_F11,
+
+		F1  = VK_F1,
+		F10 = VK_F10,
+		F11 = VK_F11,
 
 		// Numpad
 		NUM1 = VK_NUMPAD1,

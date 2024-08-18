@@ -84,8 +84,8 @@ namespace deckard::app
 		struct properties
 		{
 			std::string title;
-			u16         width{1'920};
-			u16         height{1'080};
+			u16         width{1920};
+			u16         height{1080};
 			Attribute   flags{Attribute::windowed | Attribute::resizable | Attribute::vsync};
 		};
 
@@ -213,7 +213,7 @@ namespace deckard::app
 			bool darkmode = force or system::is_darkmode();
 
 
-			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 22'000)
+			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 2'2000)
 			{
 				BOOL value = darkmode;
 				DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
@@ -224,7 +224,7 @@ namespace deckard::app
 		{
 			const auto [major, minor, build] = system::OSBuildInfo();
 
-			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 22'000)
+			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 2'2000)
 			{
 				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DEFAULT;
 				switch (option)
@@ -497,6 +497,15 @@ namespace deckard::app
 					break;
 
 				case Attribute::togglefullscreen: toggle_fullscreen(); break;
+
+				case Attribute::vsync:
+				{
+					bool vsync = not(m_properties.flags && Attribute::vsync);
+
+					set(Attribute::vsync, vsync);
+
+					break;
+				}
 				default: break;
 			}
 		}
@@ -512,6 +521,8 @@ namespace deckard::app
 					else
 						m_properties.flags -= Attribute::vsync;
 
+					vulkan.vsync(value);
+					vulkan.resize();
 
 					break;
 				}
@@ -547,7 +558,7 @@ namespace deckard::app
 		vulkanapp(const vulkanapp&)            = delete;
 		vulkanapp& operator=(const vulkanapp&) = delete;
 
-		vulkanapp() { m_properties = {.title = "Default Vulkan app", .width = 1'280, .height = 720}; }
+		vulkanapp() { m_properties = {.title = "Default Vulkan app", .width = 1280, .height = 720}; }
 
 		vulkanapp(const properties props) { m_properties = props; }
 
@@ -658,7 +669,7 @@ namespace deckard::app
 
 
 #if 0
-			if (IsWindows10OrGreater() and build >= 22'621)
+			if (IsWindows10OrGreater() and build >= 2'2621)
 			{
 				constexpr auto DWMSBT_DISABLE         = 1; // Default
 				constexpr auto DWMSBT_MAINWINDOW      = 2; // Mica

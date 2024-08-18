@@ -102,6 +102,8 @@ namespace deckard::vulkan
 
 		void wait() { m_device.wait(); }
 
+		void vsync(bool v) { m_vsync = v; }
+
 	private:
 #ifdef _DEBUG
 		debug m_debug;
