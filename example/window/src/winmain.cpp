@@ -48,7 +48,7 @@ int deckard_main()
 	  {.title  = "Example 01", //
 	   .width  = 1280,
 	   .height = 720,
-	   .flags  = Attribute::windowed | Attribute::vsync | Attribute::resizable});
+	   .flags  = Attribute::vsync | Attribute::resizable});
 
 	app01.set_title(std::format("{}", sizeof(vulkanapp)));
 

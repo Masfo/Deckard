@@ -28,13 +28,13 @@ namespace deckard::app
 {
 
 	export enum class Attribute : u8 {
-		windowed         = BIT(0),
-		fullscreen       = BIT(1),
-		togglefullscreen = BIT(2),
-		vsync            = BIT(3),
-		resizable        = BIT(4),
-		gameticks        = BIT(5),
+		fullscreen       = BIT(0),
+		togglefullscreen = BIT(1),
+		vsync            = BIT(2),
+		resizable        = BIT(3),
+		gameticks        = BIT(4),
 
+		pad5 = BIT(5),
 		pad6 = BIT(6),
 		pad7 = BIT(7),
 	};
@@ -86,7 +86,7 @@ namespace deckard::app
 			std::string title;
 			u16         width{1920};
 			u16         height{1080};
-			Attribute   flags{Attribute::windowed | Attribute::resizable | Attribute::vsync};
+			Attribute   flags{Attribute::resizable | Attribute::vsync};
 		};
 
 	private:
@@ -138,11 +138,12 @@ namespace deckard::app
 					  mi.rcMonitor.bottom - mi.rcMonitor.top,
 					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				}
-				m_properties.flags += Attribute::fullscreen;
+				set(Attribute::fullscreen, true);
 			}
 			else
 			{
-				m_properties.flags -= Attribute::fullscreen;
+				set(Attribute::fullscreen, false);
+
 
 				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
 				SetWindowLong(handle, GWL_STYLE, old_style);
@@ -481,20 +482,7 @@ namespace deckard::app
 		{
 			switch (flags)
 			{
-				case Attribute::fullscreen:
-				{
-					if (m_properties.flags == Attribute::fullscreen)
-					{
-						toggle_fullscreen();
-					}
-					break;
-				}
 
-
-				case Attribute::windowed:
-					if (m_properties.flags == Attribute::fullscreen)
-						toggle_fullscreen();
-					break;
 
 				case Attribute::togglefullscreen: toggle_fullscreen(); break;
 
@@ -514,6 +502,16 @@ namespace deckard::app
 		{
 			switch (flags)
 			{
+				case Attribute::fullscreen:
+				{
+					if (value)
+						m_properties.flags += Attribute::fullscreen;
+					else
+						m_properties.flags -= Attribute::fullscreen;
+
+					break;
+				}
+
 				case Attribute::vsync:
 				{
 					if (value)
@@ -630,14 +628,13 @@ namespace deckard::app
 				return DefWindowProc(hWnd, message, wParam, lParam);
 			};
 
-#if 1
+			//
 			if (RegisterClassEx(&wc) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
 			{
 				dbg::println("RegisterClassEx failed: {}", system::get_windows_error());
 				destroy();
 				return;
 			}
-#endif
 
 			if (not(m_properties.flags && Attribute::resizable))
 				style &= ~WS_SIZEBOX;

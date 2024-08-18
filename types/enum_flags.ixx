@@ -32,15 +32,6 @@ export namespace deckard
 	}
 
 	template<EnumFlagType T>
-	constexpr bool operator&&(const T lhs, const T rhs) noexcept
-	{
-		if (std::to_underlying(lhs) == std::to_underlying(rhs))
-			return true;
-
-		return static_cast<bool>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
-	}
-
-	template<EnumFlagType T>
 	constexpr T operator^(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
@@ -86,6 +77,16 @@ export namespace deckard
 	{
 		lhs |= rhs;
 		return lhs;
+	}
+
+	// check
+	template<EnumFlagType T>
+	constexpr bool operator&&(const T lhs, const T rhs) noexcept
+	{
+		if (std::to_underlying(lhs) == std::to_underlying(rhs))
+			return true;
+
+		return static_cast<bool>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
 	// P3070 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
