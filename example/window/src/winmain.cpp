@@ -36,8 +36,23 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (key == Key::NUM3 and up)
 	{
-		app.set(Attribute::gameticks, 15u);
+		app.set(Attribute::gameticks, 1u);
 	}
+}
+
+void fixed_update(vulkanapp& app, f32 fixed_delta)
+{
+	//
+}
+
+void update(vulkanapp& app, f32 delta)
+{
+	//
+}
+
+void render(vulkanapp& app)
+{
+	//
 }
 
 int deckard_main()
@@ -53,5 +68,10 @@ int deckard_main()
 	app01.set_title(std::format("{}", sizeof(vulkanapp)));
 
 	app01.set_keyboard_callback(keyboard_callback);
+	app01.set_fixed_update_callback(fixed_update);
+	app01.set_update_callback(update);
+	app01.set_render_callback(render);
+
+
 	return app01.run();
 }

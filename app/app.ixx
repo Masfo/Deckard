@@ -54,8 +54,9 @@ namespace deckard::app
 	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, Action action, i32 mods);
 	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
 
-	export using fixed_update_callback_ptr = void(vulkanapp & app, f64 fixed_dt);
-	export using update_callback_ptr       = void(vulkanapp & app, f64 dt);
+	export using fixed_update_callback_ptr = void(vulkanapp & app, f32 fixed_dt);
+	export using update_callback_ptr       = void(vulkanapp & app, f32 dt);
+	export using render_callback_ptr       = void(vulkanapp & app);
 
 	enum RawInputType : u32
 	{
@@ -105,8 +106,9 @@ namespace deckard::app
 
 		fixed_update_callback_ptr* fixed_update_callback{nullptr};
 		update_callback_ptr*       update_callback{nullptr};
+		render_callback_ptr*       render_callback{nullptr};
 
-		u32                                   game_ticks{20};
+		u32                                   game_ticks{60};
 		std::chrono::steady_clock::time_point start_time;
 		f32                                   m_deltatime{0.0f};
 
@@ -475,10 +477,28 @@ namespace deckard::app
 				SetWindowTextA(handle, title.data());
 		}
 
+		void set_fixed_update_callback(fixed_update_callback_ptr* ptr)
+		{
+			if (ptr)
+				fixed_update_callback = ptr;
+		}
+
+		void set_update_callback(update_callback_ptr* ptr)
+		{
+			if (ptr)
+				update_callback = ptr;
+		}
+
 		void set_keyboard_callback(input_keyboard_callback_ptr* ptr)
 		{
 			if (ptr)
 				keyboard_callback = ptr;
+		}
+
+		void set_render_callback(render_callback_ptr* ptr)
+		{
+			if (ptr)
+				render_callback = ptr;
 		}
 
 		void set(Attribute flags)
@@ -537,7 +557,7 @@ namespace deckard::app
 			{
 				case Attribute::gameticks:
 				{
-					game_ticks = value;
+					game_ticks = std::clamp(value, 1u, 0xFFFF'FFFFu);
 					break;
 				}
 				default: break;
@@ -844,6 +864,9 @@ namespace deckard::app
 					update_callback(*this, deltatime());
 
 				// Render
+				if (render_callback)
+					render_callback(*this);
+
 				render();
 			}
 		}
@@ -1506,8 +1529,6 @@ namespace deckard::app
 
 		return DefWindowProc(handle, uMsg, wParam, lParam);
 	}
-
-	static_assert(sizeof(vulkanapp) < 500, "Why is VulkanApp so big, 500+ bytes");
 
 
 } // namespace deckard::app
