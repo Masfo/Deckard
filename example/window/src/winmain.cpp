@@ -7,15 +7,31 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 {
 	dbg::println("key: {} - {}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
 
-	if (key == Key::Escape and action == Action::Up)
+	bool up = action == Action::Up;
+
+	if (key == Key::Escape and up)
 	{
 		dbg::println("quit");
 		app.quit();
 	}
 
-	if (key == Key::F11 and action == Action::Up)
+	if (key == Key::F11 and up)
 	{
-		app.set(Flag::togglefullscreen);
+		app.set(Attribute::togglefullscreen);
+	}
+
+	if (key == Key::NUM1 and up)
+	{
+		app.set(Attribute::gameticks, 60u);
+	}
+	if (key == Key::NUM2 and up)
+	{
+		app.set(Attribute::gameticks, 30u);
+	}
+
+	if (key == Key::NUM3 and up)
+	{
+		app.set(Attribute::gameticks, 15u);
 	}
 }
 
@@ -27,7 +43,7 @@ int deckard_main()
 	  {.title  = "Example 01", //
 	   .width  = 1'280,
 	   .height = 720,
-	   .vsync  = false});
+	   .flags  = Attribute::windowed | Attribute::vsync | Attribute::resizable});
 
 	app01.set_title(std::format("{}", sizeof(vulkanapp)));
 

@@ -11,6 +11,11 @@ namespace deckard::app
 		F10    = VK_F10,
 		F11    = VK_F11,
 
+		// Numpad
+		NUM1 = VK_NUMPAD1,
+		NUM2 = VK_NUMPAD2,
+		NUM3 = VK_NUMPAD3,
+
 
 	};
 }

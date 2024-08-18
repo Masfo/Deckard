@@ -20,7 +20,7 @@ export namespace deckard
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator|(const T lhs, const T rhs) noexcept
+	constexpr T operator|(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitor std::to_underlying(rhs));
 	}
@@ -41,33 +41,33 @@ export namespace deckard
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator^(const T lhs, const T rhs) noexcept
+	constexpr T operator^(const T lhs, const T rhs) noexcept
 	{
 		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator~(const T lhs) noexcept
+	constexpr T operator~(const T lhs) noexcept
 	{
 		return static_cast<T>(~std::to_underlying(lhs));
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator|=(T& lhs, const T rhs) noexcept
+	constexpr T operator|=(T& lhs, const T rhs) noexcept
 	{
 		lhs = lhs bitor rhs;
 		return lhs;
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator&=(T& lhs, const T rhs) noexcept
+	constexpr T operator&=(T& lhs, const T rhs) noexcept
 	{
 		lhs = static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 		return lhs;
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator^=(T& lhs, const T rhs) noexcept
+	constexpr T operator^=(T& lhs, const T rhs) noexcept
 	{
 		lhs = lhs xor rhs;
 		return lhs;
@@ -75,14 +75,14 @@ export namespace deckard
 
 	// Helpers for removing and setting flags
 	template<EnumFlagType T>
-	constexpr auto operator-=(T& lhs, const T rhs) noexcept
+	constexpr T operator-=(T& lhs, const T rhs) noexcept
 	{
 		lhs &= ~rhs;
 		return lhs;
 	}
 
 	template<EnumFlagType T>
-	constexpr auto operator+=(T& lhs, const T rhs) noexcept
+	constexpr T operator+=(T& lhs, const T rhs) noexcept
 	{
 		lhs |= rhs;
 		return lhs;
@@ -132,6 +132,9 @@ export namespace deckard
 		// or alternatively using += and -=
 		readAndWrite -= Permission::Execute; // Read | Write
 		readAndWrite += Permission::Execute; // Read | Write | Execute
+
+		// Check
+		bool has_read = readAndWrite && Permission::Read;
 
 	*/
 

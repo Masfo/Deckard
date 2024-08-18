@@ -26,26 +26,36 @@ import deckard.enums;
 
 namespace deckard::app
 {
-	using namespace deckard::system;
 
-	export enum class Flag : u32 {
-		fullscreen,
-		windowed,
-		togglefullscreen,
-		vsync,
+	export enum class Attribute : u8 {
+		windowed         = BIT(0),
+		fullscreen       = BIT(1),
+		togglefullscreen = BIT(2),
+		vsync            = BIT(3),
+		resizable        = BIT(4),
+		gameticks        = BIT(5),
+
+		pad6 = BIT(6),
+		pad7 = BIT(7),
 	};
-	consteval void enable_bitmask_operations(Flag);
+
+	export consteval void enable_bitmask_operations(Attribute);
 
 
 	export enum class Action : u32 {
 		Down,
 		Up,
 	};
+
+
 	// callback
 	class vulkanapp;
 
 	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, Action action, i32 mods);
 	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
+
+	export using fixed_update_callback_ptr = void(vulkanapp & app, f64 fixed_dt);
+	export using update_callback_ptr       = void(vulkanapp & app, f64 dt);
 
 	enum RawInputType : u32
 	{
@@ -68,25 +78,15 @@ namespace deckard::app
 		square,
 	};
 
-	enum class propertiesflags : u8
-	{
-		resisable,
-		fullscreen,
-		vsync,
-	};
-
 	export class vulkanapp
 	{
 	public:
 		struct properties
 		{
 			std::string title;
-			extent      size;
 			u16         width{1'920};
 			u16         height{1'080};
-			bool        resizable{true};
-			bool        fullscreen{false};
-			bool        vsync{true};
+			Attribute   flags{Attribute::windowed | Attribute::resizable | Attribute::vsync};
 		};
 
 	private:
@@ -103,6 +103,10 @@ namespace deckard::app
 
 		input_keyboard_callback_ptr* keyboard_callback{nullptr};
 
+		fixed_update_callback_ptr* fixed_update_callback{nullptr};
+		update_callback_ptr*       update_callback{nullptr};
+
+		u32 game_ticks{20};
 
 		bool renderer_initialized{false};
 		bool is_running{false};
@@ -134,11 +138,11 @@ namespace deckard::app
 					  mi.rcMonitor.bottom - mi.rcMonitor.top,
 					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				}
-				m_properties.fullscreen = true;
+				m_properties.flags += Attribute::fullscreen;
 			}
 			else
 			{
-				m_properties.fullscreen = false;
+				m_properties.flags -= Attribute::fullscreen;
 
 				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
 				SetWindowLong(handle, GWL_STYLE, old_style);
@@ -473,13 +477,13 @@ namespace deckard::app
 				keyboard_callback = ptr;
 		}
 
-		void set(Flag flags)
+		void set(Attribute flags)
 		{
 			switch (flags)
 			{
-				case Flag::fullscreen:
+				case Attribute::fullscreen:
 				{
-					if (m_properties.fullscreen == false)
+					if (m_properties.flags == Attribute::fullscreen)
 					{
 						toggle_fullscreen();
 					}
@@ -487,23 +491,41 @@ namespace deckard::app
 				}
 
 
-				case Flag::windowed:
-					if (m_properties.fullscreen == true)
+				case Attribute::windowed:
+					if (m_properties.flags == Attribute::fullscreen)
 						toggle_fullscreen();
 					break;
 
-				case Flag::togglefullscreen: toggle_fullscreen(); break;
+				case Attribute::togglefullscreen: toggle_fullscreen(); break;
 				default: break;
 			}
 		}
 
-		void set(Flag flags, bool value)
+		void set(Attribute flags, bool value)
 		{
 			switch (flags)
 			{
-				case Flag::vsync:
+				case Attribute::vsync:
 				{
-					m_properties.vsync = value;
+					if (value)
+						m_properties.flags += Attribute::vsync;
+					else
+						m_properties.flags -= Attribute::vsync;
+
+
+					break;
+				}
+				default: break;
+			}
+		}
+
+		void set(Attribute flags, u32 value)
+		{
+			switch (flags)
+			{
+				case Attribute::gameticks:
+				{
+					game_ticks = value;
 					break;
 				}
 				default: break;
@@ -525,7 +547,7 @@ namespace deckard::app
 		vulkanapp(const vulkanapp&)            = delete;
 		vulkanapp& operator=(const vulkanapp&) = delete;
 
-		vulkanapp() { m_properties = {.title = "Default Vulkan app", .width = 1'280, .height = 720, .vsync = true}; }
+		vulkanapp() { m_properties = {.title = "Default Vulkan app", .width = 1'280, .height = 720}; }
 
 		vulkanapp(const properties props) { m_properties = props; }
 
@@ -600,13 +622,13 @@ namespace deckard::app
 #if 1
 			if (RegisterClassEx(&wc) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
 			{
-				dbg::println("RegisterClassEx failed: {}", get_windows_error());
+				dbg::println("RegisterClassEx failed: {}", system::get_windows_error());
 				destroy();
 				return;
 			}
 #endif
 
-			if (m_properties.resizable == false)
+			if (not(m_properties.flags && Attribute::resizable))
 				style &= ~WS_SIZEBOX;
 
 
@@ -625,7 +647,7 @@ namespace deckard::app
 			  this);
 			if (!handle)
 			{
-				dbg::println("CreateWindowEx failed: {}", get_windows_error());
+				dbg::println("CreateWindowEx failed: {}", system::get_windows_error());
 				destroy();
 				return;
 			}
@@ -658,8 +680,9 @@ namespace deckard::app
 
 			SetTimer(handle, 0, 16, 0);
 
+			bool vsync = m_properties.flags && Attribute::vsync;
 
-			if (not vulkan.initialize(handle, m_properties.vsync))
+			if (not vulkan.initialize(handle, vsync))
 			{
 				dbg::println("Vulkan not initialized");
 				return;
@@ -676,7 +699,7 @@ namespace deckard::app
 		{
 			input_deinitialize();
 
-			if (m_properties.fullscreen)
+			if (m_properties.flags && Attribute::fullscreen)
 				toggle_fullscreen();
 			vulkan.deinitialize();
 
@@ -726,6 +749,77 @@ namespace deckard::app
 			return is_running;
 		}
 
+		void gameloop()
+		{
+			f32  fixed_timestep = 1.0 / game_ticks;
+			f32  accumulator    = 0.0;
+			u64  frames         = 0;
+			auto last_time      = std::chrono::steady_clock::now();
+
+			f32       fps           = 0;
+			f32       fps_counter   = 0;
+			u32       update        = 0;
+			u32       max_update    = 0;
+			u32       loops         = 0;
+			const u32 MAX_FRAMESKIP = 5;
+
+
+			while (handle_messages())
+			{
+				fixed_timestep = 1.0 / game_ticks;
+
+
+				auto current_time = std::chrono::steady_clock::now();
+				auto deltaTime    = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
+				last_time         = current_time;
+
+				loops = 0;
+				accumulator += deltaTime;
+				fps_counter += deltaTime;
+				while (accumulator >= fixed_timestep and loops < MAX_FRAMESKIP)
+				{
+					// Fixed update
+					if (fixed_update_callback)
+						fixed_update_callback(*this, fixed_timestep);
+
+					{
+						update++;
+					}
+					accumulator -= fixed_timestep;
+					loops++;
+				}
+
+
+				frames++;
+
+				if (fps_counter > 1.0)
+				{
+					fps = frames / fps_counter;
+
+					max_update = std::max(max_update, update);
+					set_title(std::format(
+					  "F: {}, FPS: {:.5f}, D: {:.5f}, U: {}/{}, FU: {:.5f}, L: {}",
+					  frames,
+					  fps,
+					  deltaTime,
+					  update,
+					  max_update,
+					  fixed_timestep,
+					  loops));
+					fps_counter = 0;
+					frames      = 0;
+					update      = 0;
+				}
+
+				// Update
+				if (update_callback)
+					update_callback(*this, deltaTime);
+
+				// Render
+				render();
+			}
+		}
+
 		// impl
 		i32 run()
 		{
@@ -750,114 +844,9 @@ namespace deckard::app
 
 				  // init_inputs();
 
-				  LARGE_INTEGER freq{};
-				  QueryPerformanceFrequency(&freq);
-				  LARGE_INTEGER start{}, last{};
-				  LARGE_INTEGER now{};
-				  QueryPerformanceCounter(&start);
-				  last = start;
 
+				  gameloop();
 
-				  u32   currentframe{0};
-				  float framerate{0};
-				  float oldtime{0};
-				  float newtime{1};
-				  i64   counter{1};
-				  i64   frequency{0};
-				  float timeperframe{0.0f};
-				  QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
-				  float freq1 = 1.0f / frequency;
-
-				  float accumulate{0.0f};
-
-				  float m_fFPS, m_fFrameDelta, m_fTimerFPSCounter;
-				  float m_fMaxFPS;
-
-				  LARGE_INTEGER m_liTimerLast, m_liTimerNow, m_liTimerFreq;
-				  LARGE_INTEGER m_liNextTick;
-
-
-				  m_fTimerFPSCounter = m_fMaxFPS = m_fFPS = m_fFrameDelta = 0.0f;
-
-				  u32        m_gameUpdatePerSecond{15};
-				  float      m_fSkipTicks  = 1000.0f / m_gameUpdatePerSecond;
-				  const UINT MAX_FRAMESKIP = 5;
-				  UINT       loops         = 0;
-				  u32        user_update   = 0;
-
-				  QueryPerformanceCounter(&m_liTimerNow);
-				  QueryPerformanceCounter(&m_liNextTick);
-				  QueryPerformanceCounter(&m_liTimerLast);
-				  QueryPerformanceFrequency(&m_liTimerFreq);
-
-
-				  DWORD m_dwSecondsRun{0};
-				  DWORD m_dwTimerNumFrames{0};
-
-				  auto n = std::chrono::system_clock::now();
-
-				  while (handle_messages())
-				  {
-					  if (is_minimized)
-					  {
-						  handle_messages_slow();
-						  set_title("Minimized");
-						  continue;
-					  }
-					  loops       = 0;
-					  user_update = 0;
-					  // std::this_thread::sleep_for(std::chrono::milliseconds{1'000 / 120});
-					  QueryPerformanceCounter(&m_liTimerNow);
-					  while (m_liTimerNow.QuadPart > m_liNextTick.QuadPart && loops < MAX_FRAMESKIP)
-					  {
-
-						  // User update
-						  {
-							  dbg::println("{}", std::chrono::system_clock::now() - n);
-							  user_update++;
-						  }
-
-
-						  m_liNextTick.QuadPart += (LONGLONG)m_fSkipTicks;
-						  loops++;
-					  }
-
-					  // Render
-					  render();
-
-
-					  m_fMaxFPS = std::max(m_fMaxFPS, m_fFPS);
-
-
-					  m_fFrameDelta = (float)(m_liTimerNow.QuadPart - m_liTimerLast.QuadPart + m_fSkipTicks) / m_liTimerFreq.QuadPart;
-
-					  QueryPerformanceCounter(&m_liTimerLast);
-					  m_dwTimerNumFrames++;
-
-
-					  m_fTimerFPSCounter += m_fFrameDelta;
-
-					  if (m_fTimerFPSCounter >= 1.0f)
-					  {
-						  m_fFPS = as<f32>(m_dwTimerNumFrames / m_fTimerFPSCounter);
-
-						  m_dwSecondsRun++;
-#if 1
-						  set_title(std::format(
-							"{}, {}: {:.5f}, Delta: {:.5f} : User {} : MaxFPS: {}, loops: {}",
-							m_dwTimerNumFrames,
-							m_dwSecondsRun,
-							m_fFPS,
-							m_fFrameDelta,
-							user_update,
-							m_fMaxFPS,
-							loops));
-#endif
-
-						  m_dwTimerNumFrames = 0;
-						  m_fTimerFPSCounter = 0.0;
-					  }
-				  }
 
 				  set_visible(false);
 
@@ -891,7 +880,6 @@ namespace deckard::app
 
 	LRESULT CALLBACK vulkanapp::wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-
 		switch (uMsg)
 		{
 
