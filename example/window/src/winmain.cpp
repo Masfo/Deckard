@@ -41,7 +41,7 @@ int deckard_main()
 
 	vulkanapp app01(
 	  {.title  = "Example 01", //
-	   .width  = 1'280,
+	   .width  = 1280,
 	   .height = 720,
 	   .flags  = Attribute::windowed | Attribute::vsync | Attribute::resizable});
 
