@@ -999,6 +999,13 @@ namespace deckard::app
 				return 0;
 			}
 
+			case WM_SETCURSOR:
+			{
+				if (LOWORD(lParam) == HTCLIENT)
+					SetCursor(0);
+				return 0;
+			}
+
 			case WM_ACTIVATE:
 			{
 				const bool focused   = LOWORD(wParam) != WA_INACTIVE;
