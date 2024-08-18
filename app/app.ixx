@@ -106,7 +106,10 @@ namespace deckard::app
 		fixed_update_callback_ptr* fixed_update_callback{nullptr};
 		update_callback_ptr*       update_callback{nullptr};
 
-		u32 game_ticks{20};
+		u32                                   game_ticks{20};
+		std::chrono::steady_clock::time_point start_time;
+		f32                                   m_deltatime{0.0f};
+
 
 		bool renderer_initialized{false};
 		bool is_running{false};
@@ -565,6 +568,8 @@ namespace deckard::app
 		void create()
 		{
 
+			start_time = std::chrono::steady_clock::now();
+
 			if (IsWindows7OrGreater())
 			{
 				DwmSetWindowAttribute = system::get_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
@@ -757,6 +762,14 @@ namespace deckard::app
 			return is_running;
 		}
 
+		f32 time() const
+		{
+			auto current_time = std::chrono::steady_clock::now();
+			return std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - start_time).count();
+		}
+
+		f32 deltatime() const { return m_deltatime; }
+
 		void gameloop()
 		{
 			f32  fixed_timestep = 1.0 / game_ticks;
@@ -764,7 +777,8 @@ namespace deckard::app
 			u64  frames         = 0;
 			auto last_time      = std::chrono::steady_clock::now();
 
-			f32       fps           = 0;
+			f32       fps = 0;
+			f32       max_fps{0};
 			f32       fps_counter   = 0;
 			u32       update        = 0;
 			u32       max_update    = 0;
@@ -778,12 +792,13 @@ namespace deckard::app
 
 
 				auto current_time = std::chrono::steady_clock::now();
-				auto deltaTime    = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
+				m_deltatime       = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
 				last_time         = current_time;
 
+
 				loops = 0;
-				accumulator += deltaTime;
-				fps_counter += deltaTime;
+				accumulator += m_deltatime;
+				fps_counter += m_deltatime;
 				while (accumulator >= fixed_timestep and loops < MAX_FRAMESKIP)
 				{
 					// Fixed update
@@ -802,18 +817,23 @@ namespace deckard::app
 
 				if (fps_counter > 1.0)
 				{
-					fps = frames / fps_counter;
+					fps     = frames / fps_counter;
+					max_fps = std::max(fps, max_fps);
 
 					max_update = std::max(max_update, update);
+#if 1
 					set_title(std::format(
-					  "F: {}, FPS: {:.5f}, D: {:.5f}, U: {}/{}, FU: {:.5f}, L: {}",
+					  "[{:05.5f}] F: {}, FPS: {:.5f}/{:.5f}, D: {:.5f}, U: {}/{}, FU: {:.5f}, L: {}",
+					  time(),
 					  frames,
 					  fps,
-					  deltaTime,
+					  max_fps,
+					  deltatime(),
 					  update,
 					  max_update,
 					  fixed_timestep,
 					  loops));
+#endif
 					fps_counter = 0;
 					frames      = 0;
 					update      = 0;
@@ -821,7 +841,7 @@ namespace deckard::app
 
 				// Update
 				if (update_callback)
-					update_callback(*this, deltaTime);
+					update_callback(*this, deltatime());
 
 				// Render
 				render();

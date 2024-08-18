@@ -20,7 +20,7 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 		app.set(Attribute::vsync);
 	}
 
-	if (key == Key::F11 and up)
+	if (up and (key == Key::F11 or key == 'F' or key == 'f'))
 	{
 		app.set(Attribute::togglefullscreen);
 	}

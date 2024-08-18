@@ -7,6 +7,8 @@ import deckard.types;
 namespace deckard::app
 {
 	export enum Key : u32 {
+
+
 		Escape = VK_ESCAPE,
 
 		F1  = VK_F1,
