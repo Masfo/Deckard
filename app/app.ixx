@@ -22,10 +22,19 @@ import deckard.vulkan;
 import deckard.win32;
 import deckard.debug;
 import deckard.assert;
+import deckard.enums;
 
 namespace deckard::app
 {
 	using namespace deckard::system;
+
+	export enum class Flag : u32 {
+		Fullscreen,
+		Windowed,
+		ToggleFullscreen,
+	};
+	consteval void enable_bitmask_operations(Flag);
+
 
 	export enum class Action : u32 {
 		Down,
@@ -58,34 +67,33 @@ namespace deckard::app
 		square,
 	};
 
-	extent to_extent(RECT r) { return {as<u32>(r.right - r.left), as<u32>(r.bottom - r.top)}; }
-
 	export class vulkanapp
 	{
 	public:
 		struct properties
 		{
 			std::string title;
-			u32         width{1'920};
-			u32         height{1'080};
+			extent      size;
+			u16         width{1'920};
+			u16         height{1'080};
 			bool        resizable{true};
 			bool        fullscreen{false};
 		};
 
 	private:
-		HWND            handle{nullptr};
-		DWORD           style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD           ex_style{0};
-		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
-		extent          min_extent{640, 480};
-		extent          normalized_client_size;
-		properties      m_properties;
-
-		std::vector<char>             rawinput_buffer;
+		properties                    m_properties;
+		vulkan::vulkan                vulkan;
 		std::array<RAWINPUTDEVICE, 3> raw_inputs;
-		input_keyboard_callback_ptr*  keyboard_callback{nullptr};
+		std::vector<char>             rawinput_buffer;
 
-		vulkan::vulkan vulkan;
+		HWND   handle{nullptr};
+		extent min_extent{640, 480};
+		extent normalized_client_size;
+		DWORD  style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
+		DWORD  ex_style{0};
+
+		input_keyboard_callback_ptr* keyboard_callback{nullptr};
+
 
 		bool renderer_initialized{false};
 		bool is_running{false};
@@ -96,6 +104,8 @@ namespace deckard::app
 
 		void toggle_fullscreen()
 		{
+			static WINDOWPLACEMENT wp{};
+
 			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
 
 			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
@@ -136,8 +146,8 @@ namespace deckard::app
 			const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
 
 			extent ext;
-			ext.width  = as<u32>(old.width * scale);
-			ext.height = as<u32>(old.height * scale);
+			ext.width  = as<u16>(old.width * scale);
+			ext.height = as<u16>(old.height * scale);
 
 			RECT wr = {0, 0, (LONG)(ext.width), (LONG)(ext.height)};
 
@@ -164,8 +174,8 @@ namespace deckard::app
 
 			extent unnormalized_size = to_extent(client_size);
 
-			normalized_client_size.width  = as<u32>(unnormalized_size.width / scale);
-			normalized_client_size.height = as<u32>(unnormalized_size.height / scale);
+			normalized_client_size.width  = as<u16>(unnormalized_size.width / scale);
+			normalized_client_size.height = as<u16>(unnormalized_size.height / scale);
 
 			return normalized_client_size;
 		}
@@ -215,8 +225,6 @@ namespace deckard::app
 				DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}
 		}
-
-		void set_title(std::string_view title) const { SetWindowTextA(handle, title.data()); }
 
 		void set_visible(bool visible) { ShowWindow(handle, visible ? SW_SHOW : SW_HIDE); }
 
@@ -270,9 +278,9 @@ namespace deckard::app
 			{
 
 				unsigned int size = 256;
-				// char         deviceName[256]{};
-				// GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
-				// dbg::println("\nDevice name: {}", deviceName);
+				char         deviceName[256]{};
+				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
+				dbg::println("\nDevice name: {}", deviceName);
 
 				size = rdi.cbSize;
 				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICEINFO, &rdi, &size);
@@ -429,7 +437,6 @@ namespace deckard::app
 
 				rawinput_buffer.resize(as<size_t>(size));
 
-
 				if (GetRawInputData(input, RID_INPUT, &rawinput_buffer[0], &size, sizeof(RAWINPUTHEADER)) != size)
 					return;
 
@@ -443,10 +450,56 @@ namespace deckard::app
 		}
 
 	public:
+		void fit()
+		{
+			MONITORINFO mi = {sizeof(mi)};
+			GetMonitorInfoA(MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST), &mi);
+			SetWindowPos(
+			  handle,
+			  HWND_TOPMOST,
+			  mi.rcMonitor.left,
+			  mi.rcMonitor.top,
+			  mi.rcMonitor.right - mi.rcMonitor.left,
+			  mi.rcMonitor.bottom - mi.rcMonitor.top,
+			  SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS);
+		}
+
+		void set_title(std::string_view title)
+		{
+			//
+			m_properties.title = title;
+			if (handle)
+				SetWindowTextA(handle, title.data());
+		}
+
 		void set_keyboard_callback(input_keyboard_callback_ptr* ptr)
 		{
 			if (ptr)
 				keyboard_callback = ptr;
+		}
+
+		void set(Flag flags)
+		{
+			switch (flags)
+			{
+				case Flag::Fullscreen:
+				{
+					if (m_properties.fullscreen == false)
+					{
+						toggle_fullscreen();
+					}
+					break;
+				}
+
+
+				case Flag::Windowed:
+					if (m_properties.fullscreen == true)
+						toggle_fullscreen();
+					break;
+
+				case Flag::ToggleFullscreen: toggle_fullscreen(); break;
+				default: break;
+			}
 		}
 
 		// ####################################################################################
@@ -643,6 +696,8 @@ namespace deckard::app
 
 			DispatchMessage(&msg);
 		}
+
+		void fullscreen() { toggle_fullscreen(); }
 
 		void resize()
 		{
@@ -1195,8 +1250,8 @@ namespace deckard::app
 					toggle_fullscreen();
 					RECT r{};
 					GetClientRect(handle, &r);
-					normalized_client_size.width  = r.right - r.left;
-					normalized_client_size.height = r.bottom - r.top;
+					normalized_client_size.width  = as<u16>(r.right - r.left);
+					normalized_client_size.height = as<u16>(r.bottom - r.top);
 
 					break;
 				}
@@ -1442,5 +1497,8 @@ namespace deckard::app
 
 		return DefWindowProc(handle, uMsg, wParam, lParam);
 	}
+
+	static_assert(sizeof(vulkanapp) < 500, "Why is VulkanApp so big, 500+ bytes");
+
 
 } // namespace deckard::app

@@ -4,6 +4,7 @@ import std;
 
 export namespace deckard
 {
+	// consteval void enable_bitmask_operations( );
 
 	export template<typename T>
 	concept EnumFlagType = requires {

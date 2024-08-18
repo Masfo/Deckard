@@ -1,3 +1,5 @@
+module;
+#include <Windows.h>
 
 export module deckard.types;
 
@@ -79,9 +81,11 @@ export namespace deckard
 
 	struct extent
 	{
-		u32 width{0};
-		u32 height{};
+		u16 width{0};
+		u16 height{};
 	};
+
+	extent to_extent(RECT r) { return {(u16)(r.right - r.left), (u16)(r.bottom - r.top)}; }
 
 	/* Formatter
 		template <>

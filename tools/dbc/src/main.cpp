@@ -487,6 +487,7 @@ fullscreen=true
 		app01.run();
 	}
 
+
 	k = 0;
 #if 0
 
@@ -506,6 +507,7 @@ fullscreen=true
 		);
 	}
 
+	
 
 	utf8file file("func.txt");
 
