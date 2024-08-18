@@ -363,6 +363,7 @@ endif()
 
 if(BUILD_EXAMPLES)
 add_subdirectory(example/window)
+#add_subdirectory(example/empty)
 endif()
 
 

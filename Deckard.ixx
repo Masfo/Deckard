@@ -84,6 +84,7 @@ namespace deckard
 		if (CoInitialize)
 			CoInitialize(0);
 
+		deckard::dbg::redirect_console(true);
 
 		deckard::random::initialize();
 		net::initialize();
@@ -95,6 +96,8 @@ namespace deckard
 		if (CoUninitialize)
 			CoUninitialize();
 
+		deckard::dbg::redirect_console(false);
+
 		net::deinitialize();
 	}
 }; // namespace deckard
@@ -105,9 +108,6 @@ extern "C" int deckard_main();
 
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-#ifdef _DEBUG
-	deckard::dbg::show_debug_console(true);
-#endif
 
 	deckard::initialize();
 
@@ -115,9 +115,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	deckard::deinitialize();
 
-#ifdef _DEBUG
-	deckard::dbg::show_debug_console(false);
-#endif
 	return ret;
 }
 
