@@ -15,7 +15,7 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (key == Key::F11 and action == Action::Up)
 	{
-		app.set(Flag::ToggleFullscreen);
+		app.set(Flag::togglefullscreen);
 	}
 }
 
@@ -23,11 +23,14 @@ int deckard_main()
 {
 
 
-	vulkanapp app01({.title  = "Example 01", //
-					 .width  = 1'280,
-					 .height = 720});
+	vulkanapp app01(
+	  {.title  = "Example 01", //
+	   .width  = 1'280,
+	   .height = 720,
+	   .vsync  = false});
 
 	app01.set_title(std::format("{}", sizeof(vulkanapp)));
+
 	app01.set_keyboard_callback(keyboard_callback);
 	return app01.run();
 }

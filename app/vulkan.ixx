@@ -77,7 +77,7 @@ namespace deckard::vulkan
 	public:
 		vulkan() = default;
 
-		vulkan(HWND handle) { initialize(handle); }
+		vulkan(HWND handle, bool vsync) { initialize(handle, vsync); }
 
 		~vulkan() { deinitialize(); };
 
@@ -90,7 +90,7 @@ namespace deckard::vulkan
 		vulkan& operator=(vulkan&&) = delete;
 
 
-		bool initialize(HWND handle);
+		bool initialize(HWND handle, bool vsync);
 		void deinitialize();
 
 		void resize();
@@ -118,10 +118,12 @@ namespace deckard::vulkan
 		fence     in_flight;
 
 		bool is_initialized{false};
+		bool m_vsync{true};
 	};
 
-	bool vulkan::initialize(HWND handle)
+	bool vulkan::initialize(HWND handle, bool vsync)
 	{
+		m_vsync = vsync;
 
 		is_initialized = m_instance.initialize();
 #ifdef _DEBUG
@@ -131,7 +133,7 @@ namespace deckard::vulkan
 		is_initialized &= m_device.initialize(m_instance);
 		is_initialized &= m_surface.initialize(m_instance, m_device, handle);
 
-		is_initialized &= m_swapchain.initialize(m_device, m_surface);
+		is_initialized &= m_swapchain.initialize(m_device, m_surface, vsync);
 		is_initialized &= m_command_buffer.initialize(m_device, m_swapchain);
 		is_initialized &= m_images.initialize(m_device, m_swapchain);
 
@@ -172,7 +174,7 @@ namespace deckard::vulkan
 
 	void vulkan::resize()
 	{
-		m_swapchain.resize(m_device, m_surface);
+		m_swapchain.resize(m_device, m_surface, m_vsync);
 
 		resize_images();
 

@@ -22,8 +22,10 @@ namespace deckard::vulkan
 	export class swapchain
 	{
 	public:
-		bool initialize(device device, presentation_surface surface)
+		bool initialize(device device, presentation_surface surface, bool vsync)
 		{
+			m_vsync = vsync;
+
 			surface.update(device);
 
 			VkSwapchainCreateInfoKHR create_swapchain{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
@@ -67,29 +69,44 @@ namespace deckard::vulkan
 			create_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 			// present mode
-			VkPresentModeKHR present_mode{VK_PRESENT_MODE_FIFO_KHR};
 
 			std::array<VkPresentModeKHR, 3> try_order{};
 
-			bool vsync = false;
 
-			if (vsync)
+			if (m_vsync == true)
 			{
-				try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
-				try_order[1] = VK_PRESENT_MODE_IMMEDIATE_KHR;
-				try_order[0] = VK_PRESENT_MODE_FIFO_KHR;    // vsync
+				try_order[0] = VK_PRESENT_MODE_FIFO_KHR;      // is preferred as it does not drop frames and lacks tearing.
+				try_order[1] = VK_PRESENT_MODE_MAILBOX_KHR;   // may offer lower latency, but frames might be dropped.
+				try_order[2] = VK_PRESENT_MODE_IMMEDIATE_KHR; // or VSync off.
 			}
 			else
 			{
-				try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR; //
-				try_order[1] = VK_PRESENT_MODE_FIFO_KHR;    // vsync
-				try_order[0] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+				try_order[0] = VK_PRESENT_MODE_IMMEDIATE_KHR; // vsync off
+				try_order[1] = VK_PRESENT_MODE_FIFO_KHR;      //
+				try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR;   //
 			}
 
-			std::vector<VkPresentModeKHR> present_modes;
+			VkPresentModeKHR present_mode{};
+
+			std::vector<VkPresentModeKHR> presentmodes;
+			u32                           presentmode_count{0};
+			VkResult result = vkGetPhysicalDeviceSurfacePresentModesKHR(device.physical_device(), surface, &presentmode_count, nullptr);
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Vulkan swapchain present mode query failed: {}", string_VkResult(result));
+				return false;
+			}
+
+			presentmodes.resize(presentmode_count);
+			result = vkGetPhysicalDeviceSurfacePresentModesKHR(device.physical_device(), surface, &presentmode_count, presentmodes.data());
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Vulkan swapchain present mode query failed: {}", string_VkResult(result));
+				return false;
+			}
 
 
-			for (const auto& mode : present_modes)
+			for (const auto& mode : presentmodes)
 			{
 				if (mode == try_order[0])
 				{
@@ -99,7 +116,7 @@ namespace deckard::vulkan
 			}
 
 			if (present_mode != try_order[0])
-				for (const auto& mode : present_modes)
+				for (const auto& mode : presentmodes)
 				{
 					if (mode == try_order[1])
 					{
@@ -117,7 +134,7 @@ namespace deckard::vulkan
 			create_swapchain.oldSwapchain = oldSwapchain;
 
 
-			VkResult result = vkCreateSwapchainKHR(device, &create_swapchain, nullptr, &m_swapchain);
+			result = vkCreateSwapchainKHR(device, &create_swapchain, nullptr, &m_swapchain);
 			if (result != VK_SUCCESS)
 			{
 				dbg::println("Vulkan swapchain creation failed: {}", string_VkResult(result));
@@ -133,11 +150,11 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		void resize(device device, presentation_surface surface)
+		void resize(device device, presentation_surface surface, bool vsync)
 		{
 			vkDeviceWaitIdle(device);
 
-			initialize(device, surface);
+			initialize(device, surface, vsync);
 		}
 
 		u32 count(VkDevice device) const
@@ -161,6 +178,7 @@ namespace deckard::vulkan
 
 	private:
 		VkSwapchainKHR m_swapchain{nullptr};
+		bool           m_vsync{true};
 	};
 
 } // namespace deckard::vulkan
