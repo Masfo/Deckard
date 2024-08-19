@@ -232,6 +232,7 @@ set(DECKARD_SRCS
         # App
         app/app.ixx
         app/app_types.ixx
+        app/controller.ixx
 
 
         # Vulkan
@@ -291,6 +292,7 @@ set(THIRD_PARTY_LIBS
     ZSTD
     opengl32.lib
     ws2_32
+    xinput
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

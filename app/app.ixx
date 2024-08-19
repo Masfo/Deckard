@@ -1,10 +1,10 @@
 
 module;
 #include <Windows.h>
+#include <Xinput.h>
 #include <dbt.h>
-#include <hidusage.h>
-
 #include <dwmapi.h>
+#include <hidusage.h>
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
 #include <windowsx.h>
@@ -23,6 +23,7 @@ import deckard.win32;
 import deckard.debug;
 import deckard.assert;
 import deckard.enums;
+import deckard.controller;
 
 namespace deckard::app
 {
@@ -54,14 +55,17 @@ namespace deckard::app
 	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, Action action, i32 mods);
 	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
 
+	export using initialize_callback_ptr = void(vulkanapp & app);
+	export using close_callback_ptr      = void(vulkanapp & app);
+
 	export using fixed_update_callback_ptr = void(vulkanapp & app, f32 fixed_dt);
 	export using update_callback_ptr       = void(vulkanapp & app, f32 dt);
 	export using render_callback_ptr       = void(vulkanapp & app);
 
 	enum RawInputType : u32
 	{
-		Keyboard,
-		Mouse,
+		// Keyboard,
+		// Mouse,
 		Pad,
 
 		InputCount
@@ -91,16 +95,19 @@ namespace deckard::app
 		};
 
 	private:
-		properties                    m_properties;
-		vulkan::vulkan                vulkan;
-		std::array<RAWINPUTDEVICE, 3> raw_inputs;
-		std::vector<char>             rawinput_buffer;
+		properties     m_properties;
+		vulkan::vulkan vulkan;
+		// std::array<RAWINPUTDEVICE, 1> raw_inputs;
+		// std::vector<char>             rawinput_buffer;
+
 
 		HWND   handle{nullptr};
 		extent min_extent{640, 480};
 		extent normalized_client_size;
 		DWORD  style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
 		DWORD  ex_style{0};
+
+		controller pad{};
 
 		input_keyboard_callback_ptr* keyboard_callback{nullptr};
 
@@ -254,9 +261,13 @@ namespace deckard::app
 		// ####################################################################################
 		// ####################################################################################
 
+
+#pragma region !Input
+#if 0
 		void input_initialize()
 		{
 
+#if 0
 			// Keyboard
 			raw_inputs[Keyboard].usUsagePage = HID_USAGE_PAGE_GENERIC;
 			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
@@ -269,7 +280,7 @@ namespace deckard::app
 			raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
 			raw_inputs[Mouse].dwFlags     = 0;
 			raw_inputs[Mouse].hwndTarget  = handle;
-
+#endif
 			// Pad
 			raw_inputs[Pad].usUsagePage = HID_USAGE_PAGE_GENERIC;
 			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
@@ -337,10 +348,10 @@ namespace deckard::app
 				dbg::println();
 			}
 		}
-
 		void input_deinitialize()
 		{
-			//
+//
+#if 0
 			raw_inputs[Keyboard].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
 			raw_inputs[Keyboard].dwFlags     = RIDEV_REMOVE;
 			raw_inputs[Keyboard].usUsagePage = 0x01;
@@ -352,7 +363,7 @@ namespace deckard::app
 			raw_inputs[Mouse].dwFlags     = RIDEV_REMOVE;
 			raw_inputs[Mouse].usUsagePage = 0x01;
 			raw_inputs[Mouse].hwndTarget  = handle;
-
+#endif
 			// Pad
 			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
 			raw_inputs[Pad].dwFlags     = RIDEV_REMOVE;
@@ -462,11 +473,20 @@ namespace deckard::app
 				rawInput = reinterpret_cast<RAWINPUT*>(rawinput_buffer.data());
 
 
-				handle_keyboard(rawInput->data.keyboard);
-				handle_mouse(rawInput->data.mouse);
+				// handle_keyboard(rawInput->data.keyboard);
+				// handle_mouse(rawInput->data.mouse);
 			}
 			DefRawInputProc(&rawInput, 2, sizeof(RAWINPUTHEADER));
 		}
+#endif
+#pragma endregion()
+
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################
+		// ####################################################################################>
 
 	public:
 		void set_title(std::string_view title)
@@ -723,14 +743,14 @@ namespace deckard::app
 
 			set_title(m_properties.title);
 
-			input_initialize();
+			//	input_initialize();
 
 			is_running = true;
 		}
 
 		void destroy()
 		{
-			input_deinitialize();
+			// input_deinitialize();
 
 			if (m_properties.flags && Attribute::fullscreen)
 				toggle_fullscreen();
@@ -792,23 +812,25 @@ namespace deckard::app
 
 		void gameloop()
 		{
-			f32  fixed_timestep = 1.0 / game_ticks;
+			f32  fixed_timestep = 1.0f / game_ticks;
 			f32  accumulator    = 0.0;
-			u64  frames         = 0;
+			u32  frames         = 0;
+			u64  totalframes    = 0;
 			auto last_time      = std::chrono::steady_clock::now();
 
 			f32       fps = 0;
 			f32       max_fps{0};
 			f32       fps_counter   = 0;
 			u32       update        = 0;
-			u32       max_update    = 0;
 			u32       loops         = 0;
 			const u32 MAX_FRAMESKIP = 5;
+
+			float next_title_update = 0.0f;
 
 
 			while (handle_messages())
 			{
-				fixed_timestep = 1.0 / game_ticks;
+				fixed_timestep = 1.0f / game_ticks;
 
 
 				auto current_time = std::chrono::steady_clock::now();
@@ -834,30 +856,50 @@ namespace deckard::app
 
 
 				frames++;
+				totalframes++;
 
 				if (fps_counter > 1.0)
 				{
 					fps     = frames / fps_counter;
 					max_fps = std::max(fps, max_fps);
 
-					max_update = std::max(max_update, update);
 #if 1
-					set_title(std::format(
-					  "[{:05.5f}] F: {}, FPS: {:.5f}/{:.5f}, D: {:.5f}, U: {}/{}, FU: {:.5f}, L: {}",
-					  time(),
-					  frames,
-					  fps,
-					  max_fps,
-					  deltatime(),
-					  update,
-					  max_update,
-					  fixed_timestep,
-					  loops));
 #endif
 					fps_counter = 0;
-					frames      = 0;
 					update      = 0;
+					frames      = 0;
 				}
+
+				next_title_update += deltatime();
+				if (next_title_update > 0.05f)
+				{
+
+					auto [lm, ld] = pad.left_thumb_direction();
+					auto [rm, rd] = pad.right_thumb_direction();
+
+
+					set_title(std::format(
+					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: {}/{} | X: {} - ({:.3f}, {:.3f})-({:.3f}, {:.3f})",
+					  time(),
+					  fps,
+					  max_fps,
+					  totalframes,
+					  deltatime(),
+					  update,
+					  game_ticks,
+					  pad.connected(),
+					  lm,
+					  ld,
+					  rm,
+					  rd));
+
+					next_title_update = 0.0f;
+				}
+
+				// update xinput
+				pad.poll();
+
+				pad.vibrate(pad.left_trigger(), pad.right_trigger());
 
 				// Update
 				if (update_callback)
@@ -879,7 +921,6 @@ namespace deckard::app
 			  [&]
 			  {
 				  create();
-				  input_initialize();
 
 				  if (not is_running)
 				  {
@@ -933,32 +974,6 @@ namespace deckard::app
 	{
 		switch (uMsg)
 		{
-
-			case WM_TIMER:
-			{
-				//				break;
-#if 0
-					RECT cr{};
-					GetClientRect(handle, &cr);
-
-					SetWindowTextA(
-					  handle,
-					  std::format("client_size: {}x{}, actual {}x{} - {}",
-								  normalized_client_size.width,
-								  normalized_client_size.height,
-								  cr.right - cr.left,
-								  cr.bottom - cr.top,
-								  current_dpi())
-						.c_str());
-					//
-					break;
-#endif
-			};
-
-			case WM_CREATE:
-			{
-				return 0;
-			}
 
 #if 0
 				case WM_DEVICECHANGE:
@@ -1240,8 +1255,8 @@ namespace deckard::app
 			// Sys key
 			case WM_SYSKEYDOWN:
 			{
-				auto vk = static_cast<int>(wParam);
-				// const int scancode = (lParam >> 16) & 0xff;
+				auto      vk       = static_cast<int>(wParam);
+				const int scancode = (lParam >> 16) & 0xff;
 
 				// alt-enter
 				if (vk == VK_RETURN and (lParam & 0x6000'0000) == 0x2000'0000)
@@ -1265,8 +1280,13 @@ namespace deckard::app
 			// Key
 			case WM_KEYDOWN:
 			{
-				// auto vk = static_cast<int>(wParam);
+				dbg::println("WM_KEYDOWN");
 
+				auto      vk       = static_cast<int>(wParam);
+				const int scancode = (lParam >> 16) & 0xff;
+
+				if (keyboard_callback)
+					keyboard_callback(*this, vk, scancode, Action::Down, 0);
 
 				return 0;
 			}
@@ -1274,40 +1294,11 @@ namespace deckard::app
 
 			case WM_KEYUP:
 			{
-				auto vk = static_cast<int>(wParam);
+				auto      vk       = static_cast<int>(wParam);
+				const int scancode = (lParam >> 16) & 0xff;
 
-
-				if (vk == VK_ESCAPE)
-				{
-					is_running = false;
-					break;
-				}
-
-
-				if (vk == VK_F1)
-				{
-					toggle_fullscreen();
-					RECT r{};
-					GetClientRect(handle, &r);
-					normalized_client_size.width  = as<u16>(r.right - r.left);
-					normalized_client_size.height = as<u16>(r.bottom - r.top);
-
-					break;
-				}
-
-				if (vk == VK_F2)
-				{
-					break;
-				}
-				if (vk == VK_F3)
-				{
-					break;
-				}
-
-				if (vk == VK_F4)
-				{
-					break;
-				}
+				if (keyboard_callback)
+					keyboard_callback(*this, vk, scancode, Action::Up, 0);
 
 
 				return 0;
@@ -1346,19 +1337,20 @@ namespace deckard::app
 				return 1;
 			}
 
+#if 0
 			case WM_INPUT:
 			{
-
 				if (GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT)
 				{
 					const HRAWINPUT raw = reinterpret_cast<HRAWINPUT>(lParam);
 
 
-					handle_input(raw);
+					//handle_input(raw);
 				}
 
 				return 0;
 			}
+#endif
 
 			case WM_INPUT_DEVICE_CHANGE:
 			{

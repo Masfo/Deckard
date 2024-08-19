@@ -3,11 +3,21 @@ import deckard;
 using namespace deckard;
 using namespace deckard::app;
 
+bool alt   = false;
+bool enter = false;
+
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
 	dbg::println("key: {} - {}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
 
 	bool up = action == Action::Up;
+
+	alt   = key == Key::Alt;
+	enter = key == Key::Enter;
+
+	if (alt and enter)
+		app.set(Attribute::togglefullscreen);
+
 
 	if (key == Key::Escape and up)
 	{

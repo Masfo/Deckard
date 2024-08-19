@@ -44,7 +44,7 @@ IndentCaseLabels: true
 
 IntegerLiteralSeparator:
     Binary: 4
-    Decimal: 4
+    Decimal: 6
     Hex: 4
     DecimalMinDigits: 4
     HexMinDigits:    6

@@ -10,6 +10,8 @@ namespace deckard::app
 
 
 		Escape = VK_ESCAPE,
+		Enter  = VK_RETURN,
+		Alt    = VK_MENU,
 
 		F1  = VK_F1,
 		F10 = VK_F10,
