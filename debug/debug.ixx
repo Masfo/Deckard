@@ -11,8 +11,8 @@ using namespace std::string_view_literals;
 
 void output_message(const std::string_view message) noexcept
 {
-#ifdef _DEBUG
 	std::print(std::cout, "{}"sv, message);
+#ifdef _DEBUG
 
 	OutputDebugStringA(message.data());
 #endif
@@ -152,7 +152,6 @@ export namespace deckard::dbg
 	void redirect_console(bool [[maybe_unused]] show)
 	{
 
-#ifdef _DEBUG
 		if (show)
 		{
 			static FILE* pNewStdout = nullptr;
@@ -172,6 +171,7 @@ export namespace deckard::dbg
 		{
 			FreeConsole();
 		}
+#ifdef _DEBUG
 #endif
 	}
 

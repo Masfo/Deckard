@@ -48,6 +48,8 @@ namespace deckard::app
 		Up,
 	};
 
+	// GetKeyboardState():  1-2µs in release, 2-4µs in debug
+
 
 	// callback
 	class vulkanapp;
@@ -1278,6 +1280,15 @@ namespace deckard::app
 
 				return 0;
 			}
+			/*
+			std::vector<unsigned char> previous(256);
+			std::vector<unsigned char> current(256);
+
+			// update:
+			current.swap(previous);
+			GetKeyboardState(&current[0]);
+
+			*/
 
 			// Keys up
 			case WM_SYSKEYUP:

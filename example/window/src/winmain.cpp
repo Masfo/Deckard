@@ -1,7 +1,12 @@
+#include <windows.h>
 
 import deckard;
 using namespace deckard;
 using namespace deckard::app;
+import std;
+
+std::array<unsigned char, 256> previous{0};
+std::array<unsigned char, 256> current{0};
 
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
@@ -11,6 +16,19 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	// num 6 -> 0x66, 0x4d
 	// f     -> 0x46, 0x21
+
+	if (up and key == Key::B)
+	{
+		current.swap(previous);
+		{
+			ScopeTimer<std::micro> _("state");
+			GetKeyboardState(&current[0]);
+		}
+
+		auto shift = current[Key::Shift];
+
+		int k = 0;
+	}
 
 	if (key == Key::Escape and up)
 	{

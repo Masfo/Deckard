@@ -233,7 +233,7 @@ set(DECKARD_SRCS
         app/app.ixx
         app/app_types.ixx
         app/controller.ixx
-
+        app/inputs.ixx
 
         # Vulkan
         app/vulkan.ixx
