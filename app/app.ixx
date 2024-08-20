@@ -226,7 +226,7 @@ namespace deckard::app
 			bool darkmode = force or system::is_darkmode();
 
 
-			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 2'2000)
+			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 22000)
 			{
 				BOOL value = darkmode;
 				DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
@@ -237,7 +237,7 @@ namespace deckard::app
 		{
 			const auto [major, minor, build] = system::OSBuildInfo();
 
-			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 2'2000)
+			if (DwmSetWindowAttribute and IsWindows10OrGreater() and build >= 22000)
 			{
 				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DEFAULT;
 				switch (option)
@@ -711,7 +711,7 @@ namespace deckard::app
 
 
 #if 0
-			if (IsWindows10OrGreater() and build >= 2'2621)
+			if (IsWindows10OrGreater() and build >= 22621)
 			{
 				constexpr auto DWMSBT_DISABLE         = 1; // Default
 				constexpr auto DWMSBT_MAINWINDOW      = 2; // Mica
@@ -1225,7 +1225,9 @@ namespace deckard::app
 			}
 
 #if 1
-				// Mouse
+
+
+			// Mouse
 			case WM_MOUSEMOVE:
 			{
 				// m_mouseVK = static_cast<uint32_t>(wParam);
@@ -1238,52 +1240,38 @@ namespace deckard::app
 
 				return 0;
 			}
-
-
-			case WM_SYSCHAR:
+			// Mouse buttons
+			case WM_LBUTTONDOWN:
+			case WM_LBUTTONUP:
+			case WM_RBUTTONDOWN:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONUP:
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONUP:
 			{
-				auto vk = static_cast<int>(wParam);
-
-				const int scancode = (lParam >> 16) & 0xff;
-
-				dbg::trace("SysChar {}: {} - scancode {}", "DeckardApp", vk, scancode);
-
-
 				return 0;
 			}
 
-			// Sys key
+
+			// Keys down
 			case WM_SYSKEYDOWN:
-			{
-				auto      vk       = static_cast<int>(wParam);
-				const int scancode = (lParam >> 16) & 0xff;
-
-				// alt-enter
-				if (vk == VK_RETURN and (lParam & 0x6000'0000) == 0x2000'0000)
-				{
-					toggle_fullscreen();
-				}
-
-				return 0;
-			}
-
-			case WM_SYSKEYUP:
-			{
-				// auto vk = static_cast<int>(wParam);
-
-				// const int scancode = (lParam >> 16) & 0xff;
-
-				return 0;
-			}
-
-
-			// Key
 			case WM_KEYDOWN:
 			{
-				dbg::println("WM_KEYDOWN");
 
-				auto      vk       = static_cast<int>(wParam);
-				const int scancode = (lParam >> 16) & 0xff;
+
+				i32 vk       = static_cast<i32>(wParam);
+				i32 scancode = (lParam >> 16) & 0xff;
+
+				bool alt   = (GetKeyState(Key::Alt) & 0x8000);
+				bool shift = (GetKeyState(Key::Shift) & 0x8000);
+				bool ctrl  = (GetKeyState(Key::Ctrl) & 0x8000);
+
+
+				bool wasDown = (lParam & (1 << 30)) != 0;
+				bool isDown  = (lParam & (1 << 31)) == 0;
+
+				dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
 
 				if (keyboard_callback)
 					keyboard_callback(*this, vk, scancode, Action::Down, 0);
@@ -1291,11 +1279,16 @@ namespace deckard::app
 				return 0;
 			}
 
-
+			// Keys up
+			case WM_SYSKEYUP:
 			case WM_KEYUP:
 			{
-				auto      vk       = static_cast<int>(wParam);
-				const int scancode = (lParam >> 16) & 0xff;
+
+				i32 vk       = static_cast<i32>(wParam);
+				i32 scancode = (lParam >> 16) & 0xff;
+
+				bool wasDown = (lParam & (1 << 30)) != 0;
+				bool isDown  = (lParam & (1 << 31)) == 0;
 
 				if (keyboard_callback)
 					keyboard_callback(*this, vk, scancode, Action::Up, 0);
@@ -1303,6 +1296,7 @@ namespace deckard::app
 
 				return 0;
 			}
+
 #endif
 			case WM_MOUSEWHEEL:
 			{
@@ -1447,30 +1441,6 @@ namespace deckard::app
 #if 1
 			case WM_CHAR:
 			{
-				dbg::trace("[{}] WM_CHAR:", "DeckardApp");
-
-				auto vk = static_cast<u16>(wParam);
-
-				if (vk == VK_RETURN)
-				{
-					dbg::trace("\t{} - Enter", vk);
-				}
-				else if (vk == VK_ESCAPE)
-				{
-					dbg::trace("\t{} - Escape", vk);
-				}
-				else if (vk == VK_SPACE)
-				{
-					dbg::trace("\t{} - Space", vk);
-				}
-				else if (vk == VK_BACK)
-				{
-					dbg::trace("\t{} - Back", vk);
-				}
-				else
-				{
-					dbg::trace("\t{0} - '{0}'", (char)vk);
-				}
 
 				return 0;
 			}

@@ -3,21 +3,14 @@ import deckard;
 using namespace deckard;
 using namespace deckard::app;
 
-bool alt   = false;
-bool enter = false;
-
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
-	dbg::println("key: {} - {}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
+	// dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
 
 	bool up = action == Action::Up;
 
-	alt   = key == Key::Alt;
-	enter = key == Key::Enter;
-
-	if (alt and enter)
-		app.set(Attribute::togglefullscreen);
-
+	// num 6 -> 0x66, 0x4d
+	// f     -> 0x46, 0x21
 
 	if (key == Key::Escape and up)
 	{
@@ -30,21 +23,21 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 		app.set(Attribute::vsync);
 	}
 
-	if (up and (key == Key::F11 or key == 'F' or key == 'f'))
+	if (up and (key == Key::F11 or key == Key::F))
 	{
 		app.set(Attribute::togglefullscreen);
 	}
 
-	if (key == Key::NUM1 and up)
+	if (key == Key::Numpad1 and up)
 	{
 		app.set(Attribute::gameticks, 60u);
 	}
-	if (key == Key::NUM2 and up)
+	if (key == Key::Numpad2 and up)
 	{
 		app.set(Attribute::gameticks, 30u);
 	}
 
-	if (key == Key::NUM3 and up)
+	if (key == Key::Numpad3 and up)
 	{
 		app.set(Attribute::gameticks, 1u);
 	}
@@ -67,7 +60,17 @@ void render(vulkanapp& app)
 
 int deckard_main()
 {
+	// TODO: register key bindings to apps own enum
+	//
+	// enum player_movement
+	// up,down,left,right, fire
+	// bind(KEY_LEFT, left)
+	// bind(KEY_SPACE, fire)  // both space and pad_a fires
+	// bind(PAD_A, fire)
 
+	// special enter textmode for input
+	// keys.enter_text_mode()
+	// end_text_mode(), // inputs keys as text?
 
 	vulkanapp app01(
 	  {.title  = "Example 01", //
