@@ -10,7 +10,7 @@ module;
 #include <windowsx.h>
 
 export module deckard.app;
-export import :types;
+export import :inputs;
 
 import std;
 using namespace std::chrono_literals;
@@ -41,14 +41,6 @@ namespace deckard::app
 	};
 
 	export consteval void enable_bitmask_operations(Attribute);
-
-
-	export enum class Action : u32 {
-		Down,
-		Up,
-	};
-
-	// GetKeyboardState():  1-2µs in release, 2-4µs in debug
 
 
 	// callback
@@ -110,6 +102,7 @@ namespace deckard::app
 		DWORD  ex_style{0};
 
 		controller pad{};
+		inputs     m_inputs;
 
 		input_keyboard_callback_ptr* keyboard_callback{nullptr};
 
@@ -592,7 +585,7 @@ namespace deckard::app
 		// ####################################################################################
 		// ####################################################################################
 		// ####################################################################################
-
+		void poll_inputs() { m_inputs.poll(); }
 
 	public:
 		vulkanapp(vulkanapp&&)            = delete;
@@ -795,15 +788,6 @@ namespace deckard::app
 			  handle, nullptr, 0, 0, adjusted.width, adjusted.height, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 		}
 
-		bool loop()
-		{
-			handle_messages();
-
-			render();
-
-			return is_running;
-		}
-
 		f32 time() const
 		{
 			auto current_time = std::chrono::steady_clock::now();
@@ -832,6 +816,8 @@ namespace deckard::app
 
 			while (handle_messages())
 			{
+				m_inputs.poll();
+
 				fixed_timestep = 1.0f / game_ticks;
 
 

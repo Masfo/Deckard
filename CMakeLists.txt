@@ -231,7 +231,6 @@ set(DECKARD_SRCS
 
         # App
         app/app.ixx
-        app/app_types.ixx
         app/controller.ixx
         app/inputs.ixx
 

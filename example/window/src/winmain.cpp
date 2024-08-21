@@ -61,17 +61,17 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 	}
 }
 
-void fixed_update(vulkanapp& app, f32 fixed_delta)
+void fixed_update(vulkanapp&, f32 /*fixed_delta*/)
 {
 	//
 }
 
-void update(vulkanapp& app, f32 delta)
+void update(vulkanapp&, f32 /*delta*/)
 {
 	//
 }
 
-void render(vulkanapp& app)
+void render(vulkanapp&)
 {
 	//
 }
