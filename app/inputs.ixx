@@ -127,10 +127,6 @@ namespace deckard::app
 		X = 'X',
 		Y = 'Y',
 		Z = 'Z',
-
-		END_OF_KEYBOARD_BUTTONS = 256,
-
-
 	};
 
 	export enum class Mouse : u8 {
@@ -141,13 +137,17 @@ namespace deckard::app
 		X2     = BIT(4),
 	};
 
+	export enum class Controller : u8 {
+		//
+	};
+
 
 	export consteval void enable_bitmask_operations(Mouse);
 
 	class inputs
 	{
 	private:
-		// std::array<unsigned char, 256> keyboard_state_previous{};
+		std::array<unsigned char, 256> keyboard_state_previous{};
 		std::array<unsigned char, 256> keyboard_state_current{};
 		XINPUT_STATE                   controller_state{};
 		Mouse                          mouse{0};
@@ -175,25 +175,32 @@ namespace deckard::app
 		}
 
 		void poll_keyboard()
-
 		{
-			// keyboard_state_current.swap(keyboard_state_previous);
+			keyboard_state_current.swap(keyboard_state_previous);
 			GetKeyboardState(keyboard_state_current.data());
 		}
 
 		void poll_controller() { controller_connected = XInputGetState(0, &controller_state) == ERROR_SUCCESS; }
 
+		AverageTimer<std::micro> avg;
 
 	public:
 		void poll()
 		{
+
+			avg.begin();
 			poll_mouse();
 			poll_keyboard();
 			poll_controller();
+			avg.end();
 		}
 
 		// bind key to event enum
 		void bind(Key key, u32 event_id) { }
+
+		void bind(Mouse button, u32 event_id) { }
+
+		void bind(Controller button, u32 event_id) { }
 	};
 
 } // namespace deckard::app
