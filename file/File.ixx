@@ -73,7 +73,7 @@ namespace deckard
 			{
 				close();
 
-				dbg::println("Could not create mapping for file '{}' ({})", filepath.string(), PrettyBytes(filesize));
+				dbg::println("Could not create mapping for file '{}' ({})", filepath.string(), pretty_bytes(filesize));
 				return {};
 			}
 

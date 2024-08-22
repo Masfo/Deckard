@@ -25,7 +25,7 @@ export namespace deckard
 	struct repeat_t final
 	{
 		template<std::invocable Func>
-		constexpr void operator=(Func&& f) const noexcept
+		constexpr void operator=(Func&& f) const
 		{
 			size_t count = Count;
 			while (count--)
@@ -41,7 +41,7 @@ export namespace deckard
 	concept HasDataMember = requires(T obj) { obj.data(); };
 
 	export template<typename To, typename From>
-	To load_as(const From from) noexcept
+	To load_as(const From from)
 	{
 		// TODO: Bitcast
 		To ret{};
@@ -54,12 +54,13 @@ export namespace deckard
 	}
 
 	export template<typename To, typename From>
-	To load_as_be(const From from) noexcept
+	To load_as_be(const From from)
 	{
 		return std::byteswap(load_as<To>(from));
 	}
 
 	//
+
 
 	template<typename T = u8>
 	constexpr T bitmask(u8 size, u8 offset = 0)
@@ -67,14 +68,48 @@ export namespace deckard
 		return ((1 << size) - 1) << offset;
 	}
 
-	constexpr bool test_bit(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	auto clock_now() noexcept { return std::chrono::high_resolution_clock::now(); }
+	auto clock_now() { return std::chrono::high_resolution_clock::now(); }
 
 	void clock_stop(std::string_view id, std::chrono::steady_clock::time_point start)
 	{
 		std::chrono::duration<double, std::milli> took(clock_now() - start);
 		std::println("{} took {}", id, took);
+	}
+
+	// Prettys
+	std::string pretty_bytes(u64 bytes)
+	{
+		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
+
+		auto count = static_cast<f64>(bytes);
+		u64  suffix{0};
+
+		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
+		{
+			suffix++;
+			count /= static_cast<f64>(1_KiB);
+		}
+
+		if (std::fabs(count - std::floor(count)) == 0.0)
+			return std::format("{} {}", static_cast<u64>(count), unit[suffix]);
+		return std::format("{:.2f} {}", count, unit[suffix]);
+	}
+
+	template<typename R>
+	std::string pretty_time(const std::chrono::duration<f64, R> d)
+	{
+		if (d < std::chrono::nanoseconds(10000))
+			return std::format("{:.3f}ns", std::chrono::duration<double, std::nano>(d).count());
+
+		if ((d >= std::chrono::nanoseconds(10000)) && (d < std::chrono::microseconds(10000)))
+			return std::format("{:.3f}µs", std::chrono::duration<double, std::micro>(d).count());
+
+		if ((d >= std::chrono::microseconds(10000)) && (d < std::chrono::seconds(5)))
+			return std::format("{:.3f}ms", std::chrono::duration<double, std::milli>(d).count());
+
+		return std::format("{} seconds", std::chrono::duration_cast<std::chrono::seconds>(d).count());
 	}
 
 	// ScopeTimer
@@ -94,17 +129,17 @@ export namespace deckard
 				now();
 		}
 
-		void start() noexcept { start_time = clock_now(); }
+		void start() { start_time = clock_now(); }
 
-		void stop() noexcept
+		void stop()
 		{
 			now();
 			stopped = true;
 		}
 
-		void now() noexcept { dbg::println("{} took {}", name, duration()); }
+		void now() { dbg::println("{} took {}", name, duration()); }
 
-		auto duration() noexcept
+		auto duration()
 		{
 			std::chrono::duration<float, R> dur(clock_now() - start_time);
 			return dur;
@@ -124,51 +159,32 @@ export namespace deckard
 	private:
 		using Type = f64;
 		u64                                   m_iterations{0};
-		Type                                  m_total{0};
+		std::chrono::duration<Type, R>        m_total_dur{0};
 		std::chrono::steady_clock::time_point start_time{};
-		std::chrono::duration<Type, R>        m_running_average;
 
 	public:
 		~AverageTimer() { dbg::println("{}", dump()); }
 
-		void start() { start_time = clock_now(); }
+		void begin() { start_time = clock_now(); }
 
 		void end()
 		{
-			std::chrono::duration<Type, R> duration = clock_now() - start_time;
-			m_total += duration.count();
+			m_total_dur += clock_now() - start_time;
 			m_iterations += 1;
-
-			m_running_average = std::chrono::duration<Type, R>(m_total / m_iterations);
 		}
 
-		Type total() const { return m_total; }
+		auto total() const { return m_total_dur; }
 
-		auto average() const { return m_running_average; }
+		auto average() const { return std::chrono::duration<Type, R>(m_total_dur / m_iterations); }
 
 		u64 iterations() const { return m_iterations; }
 
-		std::string dump() const { return std::format("Average: {:.3f}/{} => {}", m_total, m_iterations, m_running_average); }
-	};
-
-	// Prettys
-	std::string PrettyBytes(u64 bytes) noexcept
-	{
-		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
-
-		auto count = static_cast<f64>(bytes);
-		u64  suffix{0};
-
-		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
+		std::string dump() const
 		{
-			suffix++;
-			count /= static_cast<f64>(1_KiB);
+			return std::format(
+			  "Total time: {}, iterations: {}, average: {}", pretty_time<R>(m_total_dur), m_iterations, pretty_time<R>(average()));
 		}
-
-		if (std::fabs(count - std::floor(count)) == 0.0)
-			return std::format("{} {}", static_cast<u64>(count), unit[suffix]);
-		return std::format("{:.2f} {}", count, unit[suffix]);
-	}
+	};
 
 	// to_hex
 	struct HexOption
@@ -180,7 +196,7 @@ export namespace deckard
 	};
 
 	template<typename T = u8>
-	u64 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {}) noexcept
+	u64 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {})
 	{
 		const u64 delimiter_len = input.size() == 1 ? 0 : as<u64>(options.delimiter.size());
 		const u64 hex_len       = options.show_hex ? 2 : 0;
@@ -241,7 +257,7 @@ export namespace deckard
 	}
 
 	template<typename T>
-	std::string to_hex_string(const std::span<T> input, const HexOption& options = {}) noexcept
+	std::string to_hex_string(const std::span<T> input, const HexOption& options = {})
 	{
 		std::string ret;
 
@@ -252,14 +268,14 @@ export namespace deckard
 		return ret;
 	}
 
-	std::string to_hex_string(const std::string_view input, const HexOption& options = {}) noexcept
+	std::string to_hex_string(const std::string_view input, const HexOption& options = {})
 	{
 		return to_hex_string(std::span{as<u8*>(input.data()), input.size()}, options);
 	}
 
 	// epoch
 	template<typename T = std::chrono::seconds>
-	auto epoch() noexcept
+	auto epoch()
 	{
 		auto now = std::chrono::system_clock::now();
 
@@ -269,20 +285,20 @@ export namespace deckard
 			return std::chrono::duration_cast<T>(now.time_since_epoch()).count() & 0xFFFF'FFFF'FFFF'FFFF_u64;
 	}
 
-	std::string timezone() noexcept
+	std::string timezone()
 	{
 		const auto zone     = std::chrono::current_zone()->get_info(std::chrono::system_clock::now());
 		const auto zonename = std::chrono::current_zone()->name();
 		return std::format("{} {}", zone.abbrev, zonename);
 	}
 
-	std::string time_as_string() noexcept
+	std::string time_as_string()
 	{
 		auto time = std::chrono::system_clock::now();
 		return std::format("{:%T}", std::chrono::current_zone()->to_local(time));
 	}
 
-	std::string date_as_string() noexcept
+	std::string date_as_string()
 	{
 		auto epoch = std::chrono::system_clock::now();
 		return std::format("{:%F}", std::chrono::current_zone()->to_local(epoch));
@@ -311,7 +327,7 @@ export namespace deckard
 	}
 
 	// trim
-	std::string_view trim_front(std::string_view s) noexcept
+	std::string_view trim_front(std::string_view s)
 	{
 		if (s.empty())
 			return s;
@@ -320,7 +336,7 @@ export namespace deckard
 		return s;
 	}
 
-	std::string_view trim_back(std::string_view s) noexcept
+	std::string_view trim_back(std::string_view s)
 	{
 		if (s.empty())
 			return s;
@@ -329,7 +345,7 @@ export namespace deckard
 		return s;
 	}
 
-	std::string_view trim(std::string_view s) noexcept
+	std::string_view trim(std::string_view s)
 	{
 		s = trim_front(s);
 		return trim_back(s);
