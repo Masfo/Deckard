@@ -116,6 +116,41 @@ export namespace deckard
 		bool                                  stopped{false};
 	};
 
+	//
+
+	template<typename R = std::milli>
+	class AverageTimer
+	{
+	private:
+		using Type = f64;
+		u64                                   m_iterations{0};
+		Type                                  m_total{0};
+		std::chrono::steady_clock::time_point start_time{};
+		std::chrono::duration<Type, R>        m_running_average;
+
+	public:
+		~AverageTimer() { dbg::println("{}", dump()); }
+
+		void start() { start_time = clock_now(); }
+
+		void end()
+		{
+			std::chrono::duration<Type, R> duration = clock_now() - start_time;
+			m_total += duration.count();
+			m_iterations += 1;
+
+			m_running_average = std::chrono::duration<Type, R>(m_total / m_iterations);
+		}
+
+		Type total() const { return m_total; }
+
+		auto average() const { return m_running_average; }
+
+		u64 iterations() const { return m_iterations; }
+
+		std::string dump() const { return std::format("Average: {:.3f}/{} => {}", m_total, m_iterations, m_running_average); }
+	};
+
 	// Prettys
 	std::string PrettyBytes(u64 bytes) noexcept
 	{
