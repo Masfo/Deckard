@@ -100,13 +100,14 @@ export namespace deckard
 	template<typename R>
 	std::string pretty_time(const std::chrono::duration<f64, R> d)
 	{
-		if (d < std::chrono::nanoseconds(10000))
+		constexpr u32 LIMIT = 5000;
+		if (d < std::chrono::nanoseconds(LIMIT))
 			return std::format("{:.3f}ns", std::chrono::duration<double, std::nano>(d).count());
 
-		if ((d >= std::chrono::nanoseconds(10000)) && (d < std::chrono::microseconds(10000)))
+		if ((d >= std::chrono::nanoseconds(LIMIT)) && (d < std::chrono::microseconds(LIMIT)))
 			return std::format("{:.3f}µs", std::chrono::duration<double, std::micro>(d).count());
 
-		if ((d >= std::chrono::microseconds(10000)) && (d < std::chrono::seconds(5)))
+		if ((d >= std::chrono::microseconds(LIMIT)) && (d < std::chrono::seconds(5)))
 			return std::format("{:.3f}ms", std::chrono::duration<double, std::milli>(d).count());
 
 		return std::format("{} seconds", std::chrono::duration_cast<std::chrono::seconds>(d).count());
