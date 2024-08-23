@@ -78,154 +78,6 @@ export namespace deckard
 		std::println("{} took {}", id, took);
 	}
 
-	// Prettys
-	std::string pretty_bytes(u64 bytes)
-	{
-		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
-
-		auto count = static_cast<f64>(bytes);
-		u64  suffix{0};
-
-		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
-		{
-			suffix++;
-			count /= static_cast<f64>(1_KiB);
-		}
-
-		if (std::fabs(count - std::floor(count)) == 0.0)
-			return std::format("{} {}", static_cast<u64>(count), unit[suffix]);
-		return std::format("{:.2f} {}", count, unit[suffix]);
-	}
-
-	template<typename T, typename R>
-	std::string pretty_time(std::chrono::duration<T, R> duration)
-	{
-
-		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-		duration -= milliseconds;
-
-		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(milliseconds);
-		milliseconds -= seconds;
-
-		auto minutes = std::chrono::duration_cast<std::chrono::minutes>(seconds);
-		seconds -= minutes;
-
-		auto hours = std::chrono::duration_cast<std::chrono::hours>(minutes);
-		minutes -= hours;
-
-		auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
-		duration -= microseconds;
-
-
-		std::string result;
-		result.reserve(64);
-
-		if (hours.count() > 0)
-		{
-			result += std::format("{} ", hours);
-		}
-		if (minutes.count() > 0)
-		{
-			result += std::format("{} ", minutes);
-		}
-		if (seconds.count() > 0)
-		{
-			result += std::format("{} ", seconds);
-		}
-		if (milliseconds.count() > 0)
-		{
-			result += std::format("{} ", milliseconds);
-		}
-
-		if (microseconds.count() > 0)
-		{
-			result += std::format("{} ", microseconds);
-		}
-
-		if (duration.count() > 0)
-		{
-			result += std::format("{}", duration);
-		}
-
-		return result;
-	}
-
-	// ScopeTimer
-	template<typename R = std::milli>
-	class ScopeTimer
-	{
-	public:
-		explicit ScopeTimer(std::string_view scopename)
-		{
-			name = scopename;
-			start();
-		}
-
-		~ScopeTimer()
-		{
-			if (not stopped)
-				now();
-		}
-
-		void start() { start_time = clock_now(); }
-
-		void stop()
-		{
-			now();
-			stopped = true;
-		}
-
-		void now() { dbg::println("{} took {}", name, duration()); }
-
-		auto duration()
-		{
-			std::chrono::duration<float, R> dur(clock_now() - start_time);
-			return dur;
-		}
-
-	private:
-		std::string                           name;
-		std::chrono::steady_clock::time_point start_time{};
-		bool                                  stopped{false};
-	};
-
-	//
-
-	class AverageTimer
-	{
-	private:
-		using Type = f64;
-		using R    = std::nano;
-		u64                                   m_iterations{0};
-		std::chrono::duration<Type, R>        m_total_dur{0};
-		std::chrono::steady_clock::time_point start_time{};
-
-	public:
-		AverageTimer() = default;
-
-		~AverageTimer() { dbg::println("{}", dump()); }
-
-		void begin() { start_time = clock_now(); }
-
-		void end()
-		{
-			m_total_dur += clock_now() - start_time;
-			m_iterations += 1;
-		}
-
-		auto total() const { return m_total_dur; }
-
-		auto average() const { return std::chrono::duration<Type, R>(m_total_dur / m_iterations); }
-
-		u64 iterations() const { return m_iterations; }
-
-		std::string dump() const
-		{
-			return std::format(
-			  "Total time: {}, iterations: {}, average: {}", pretty_time(m_total_dur), m_iterations, pretty_time(average()));
-		}
-	};
-
 	// to_hex
 	struct HexOption
 	{
@@ -325,20 +177,20 @@ export namespace deckard
 			return std::chrono::duration_cast<T>(now.time_since_epoch()).count() & 0xFFFF'FFFF'FFFF'FFFF_u64;
 	}
 
-	std::string timezone()
+	std::string timezone_as_string()
 	{
 		const auto zone     = std::chrono::current_zone()->get_info(std::chrono::system_clock::now());
 		const auto zonename = std::chrono::current_zone()->name();
 		return std::format("{} {}", zone.abbrev, zonename);
 	}
 
-	std::string time_as_string()
+	std::string current_time_as_string()
 	{
 		auto time = std::chrono::system_clock::now();
 		return std::format("{:%T}", std::chrono::current_zone()->to_local(time));
 	}
 
-	std::string date_as_string()
+	std::string current_date_as_string()
 	{
 		auto epoch = std::chrono::system_clock::now();
 		return std::format("{:%F}", std::chrono::current_zone()->to_local(epoch));
@@ -389,5 +241,156 @@ export namespace deckard
 	{
 		s = trim_front(s);
 		return trim_back(s);
+	};
+
+	// Prettys
+	std::string pretty_bytes(u64 bytes)
+	{
+		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
+
+		auto count = static_cast<f64>(bytes);
+		u64  suffix{0};
+
+		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
+		{
+			suffix++;
+			count /= static_cast<f64>(1_KiB);
+		}
+
+		if (std::fabs(count - std::floor(count)) == 0.0)
+			return std::format("{} {}", static_cast<u64>(count), unit[suffix]);
+		return std::format("{:.2f} {}", count, unit[suffix]);
+	}
+
+	template<typename T, typename R>
+	std::string pretty_time(std::chrono::duration<T, R> duration)
+	{
+
+		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+		duration -= milliseconds;
+
+		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(milliseconds);
+		milliseconds -= seconds;
+
+		auto minutes = std::chrono::duration_cast<std::chrono::minutes>(seconds);
+		seconds -= minutes;
+
+		auto hours = std::chrono::duration_cast<std::chrono::hours>(minutes);
+		minutes -= hours;
+
+		auto days = std::chrono::duration_cast<std::chrono::days>(hours);
+		hours -= days;
+
+		auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+		duration -= microseconds;
+
+
+		std::string result;
+		result.reserve(64);
+
+
+		if (days.count() > 0)
+			result += std::format("{} ", days);
+		if (hours.count() > 0)
+			result += std::format("{} ", hours);
+		if (minutes.count() > 0)
+			result += std::format("{} ", minutes);
+		if (seconds.count() > 0)
+			result += std::format("{} ", seconds);
+		if (milliseconds.count() > 0)
+			result += std::format("{} ", milliseconds);
+		if (microseconds.count() > 0)
+			result += std::format("{} ", microseconds);
+		if (duration.count() > 0)
+			result += std::format("{}", duration);
+
+
+		if (result.back() == ' ')
+			result.resize(result.size() - 1);
+		result.shrink_to_fit();
+
+		return result;
+	}
+
+	// ScopeTimer
+	template<typename R = std::milli>
+	class ScopeTimer
+	{
+	public:
+		explicit ScopeTimer(std::string_view scopename)
+		{
+			name = scopename;
+			start();
+		}
+
+		~ScopeTimer()
+		{
+			if (not stopped)
+				now();
+		}
+
+		void start() { start_time = clock_now(); }
+
+		void stop()
+		{
+			now();
+			stopped = true;
+		}
+
+		void now() { dbg::println("{} took {}", name, duration()); }
+
+		auto duration()
+		{
+			std::chrono::duration<float, R> dur(clock_now() - start_time);
+			return dur;
+		}
+
+	private:
+		std::string                           name;
+		std::chrono::steady_clock::time_point start_time{};
+		bool                                  stopped{false};
+	};
+
+	//
+
+	class AverageTimer
+	{
+	private:
+		using Type = i64;
+		using R    = std::nano;
+		u64                                   m_iterations{0};
+		std::chrono::duration<Type, R>        m_total_dur{0};
+		std::chrono::steady_clock::time_point start_time{};
+		bool                                  has_dumped{false};
+
+	public:
+		AverageTimer() = default;
+
+		~AverageTimer()
+		{
+			if (has_dumped == false)
+				dbg::println("{}", dump());
+		}
+
+		void begin() { start_time = clock_now(); }
+
+		void end()
+		{
+			m_total_dur += clock_now() - start_time;
+			m_iterations += 1;
+		}
+
+		auto total() const { return m_total_dur; }
+
+		auto average() const { return std::chrono::duration<Type, R>(m_total_dur / m_iterations); }
+
+		u64 iterations() const { return m_iterations; }
+
+		std::string dump()
+		{
+			has_dumped = true;
+			return std::format(
+			  "Total time: {}, Iterations: {}, Average: {}", pretty_time(m_total_dur), m_iterations, pretty_time(average()));
+		}
 	};
 } // namespace deckard

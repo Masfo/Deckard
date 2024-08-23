@@ -59,15 +59,15 @@ static crt_callback* autostart[] = {PreMain1, PreMain2};
 enum class ConvertEpoch : u64
 {
 	Microseconds = 10,
-	Milliseconds = Microseconds * 1'000,
-	Seconds      = Milliseconds * 1'000,
+	Milliseconds = Microseconds * 1000,
+	Seconds      = Milliseconds * 1000,
 };
 
 std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds) noexcept
 {
 	u64 t{epoch};
 	t *= as<u64>(mul);
-	t += 116'444'736'000'000'000LL;
+	t += 116444'736000'000000LL;
 
 	FILETIME ft{};
 	ft.dwLowDateTime  = t & 0xFFFF'FFFF;
@@ -427,7 +427,7 @@ fullscreen=true
 		// Write data using 2D view
 		for (std::size_t i = 0; i != ms2.extent(0); i++)
 			for (std::size_t j = 0; j != ms2.extent(1); j++)
-				ms2[std::array{i, j}] = i * 1'000 + j;
+				ms2[std::array{i, j}] = i * 1000 + j;
 
 		// Read back using 3D view
 		for (std::size_t i = 0; i != ms2.extent(0); i++)
