@@ -603,7 +603,6 @@ namespace deckard::app
 		void create()
 		{
 
-			start_time = std::chrono::steady_clock::now();
 
 			if (IsWindows7OrGreater())
 			{
@@ -741,6 +740,7 @@ namespace deckard::app
 			//	input_initialize();
 
 			is_running = true;
+			start_time = clock_now();
 		}
 
 		void destroy()
@@ -802,7 +802,7 @@ namespace deckard::app
 			f32  accumulator    = 0.0;
 			u32  frames         = 0;
 			u64  totalframes    = 0;
-			auto last_time      = std::chrono::steady_clock::now();
+			auto last_time      = clock_now();
 
 			f32       fps = 0;
 			f32       max_fps{0};
@@ -821,7 +821,7 @@ namespace deckard::app
 				fixed_timestep = 1.0f / game_ticks;
 
 
-				auto current_time = std::chrono::steady_clock::now();
+				auto current_time = clock_now();
 				m_deltatime       = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
 				last_time         = current_time;
 

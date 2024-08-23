@@ -70,7 +70,7 @@ export namespace deckard
 
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	auto clock_now() { return std::chrono::high_resolution_clock::now(); }
+	auto clock_now() { return std::chrono::steady_clock::now(); }
 
 	void clock_stop(std::string_view id, std::chrono::steady_clock::time_point start)
 	{
