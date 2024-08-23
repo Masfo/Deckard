@@ -97,20 +97,57 @@ export namespace deckard
 		return std::format("{:.2f} {}", count, unit[suffix]);
 	}
 
-	template<typename R>
-	std::string pretty_time(const std::chrono::duration<f64, R> d)
+	template<typename T, typename R>
+	std::string pretty_time(std::chrono::duration<T, R> duration)
 	{
-		constexpr u32 LIMIT = 5000;
-		if (d < std::chrono::nanoseconds(LIMIT))
-			return std::format("{:.3f}ns", std::chrono::duration<double, std::nano>(d).count());
 
-		if ((d >= std::chrono::nanoseconds(LIMIT)) && (d < std::chrono::microseconds(LIMIT)))
-			return std::format("{:.3f}µs", std::chrono::duration<double, std::micro>(d).count());
+		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+		duration -= milliseconds;
 
-		if ((d >= std::chrono::microseconds(LIMIT)) && (d < std::chrono::seconds(5)))
-			return std::format("{:.3f}ms", std::chrono::duration<double, std::milli>(d).count());
+		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(milliseconds);
+		milliseconds -= seconds;
 
-		return std::format("{} seconds", std::chrono::duration_cast<std::chrono::seconds>(d).count());
+		auto minutes = std::chrono::duration_cast<std::chrono::minutes>(seconds);
+		seconds -= minutes;
+
+		auto hours = std::chrono::duration_cast<std::chrono::hours>(minutes);
+		minutes -= hours;
+
+		auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+		duration -= microseconds;
+
+
+		std::string result;
+		result.reserve(64);
+
+		if (hours.count() > 0)
+		{
+			result += std::format("{} ", hours);
+		}
+		if (minutes.count() > 0)
+		{
+			result += std::format("{} ", minutes);
+		}
+		if (seconds.count() > 0)
+		{
+			result += std::format("{} ", seconds);
+		}
+		if (milliseconds.count() > 0)
+		{
+			result += std::format("{} ", milliseconds);
+		}
+
+		if (microseconds.count() > 0)
+		{
+			result += std::format("{} ", microseconds);
+		}
+
+		if (duration.count() > 0)
+		{
+			result += std::format("{}", duration);
+		}
+
+		return result;
 	}
 
 	// ScopeTimer
@@ -154,16 +191,18 @@ export namespace deckard
 
 	//
 
-	template<typename R = std::milli>
 	class AverageTimer
 	{
 	private:
 		using Type = f64;
+		using R    = std::nano;
 		u64                                   m_iterations{0};
 		std::chrono::duration<Type, R>        m_total_dur{0};
 		std::chrono::steady_clock::time_point start_time{};
 
 	public:
+		AverageTimer() = default;
+
 		~AverageTimer() { dbg::println("{}", dump()); }
 
 		void begin() { start_time = clock_now(); }
@@ -183,7 +222,7 @@ export namespace deckard
 		std::string dump() const
 		{
 			return std::format(
-			  "Total time: {}, iterations: {}, average: {}", pretty_time<R>(m_total_dur), m_iterations, pretty_time<R>(average()));
+			  "Total time: {}, iterations: {}, average: {}", pretty_time(m_total_dur), m_iterations, pretty_time(average()));
 		}
 	};
 

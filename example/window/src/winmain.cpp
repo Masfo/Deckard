@@ -78,6 +78,8 @@ void render(vulkanapp&)
 
 int deckard_main()
 {
+
+
 	// TODO: register key bindings to apps own enum
 	//
 	// enum player_movement

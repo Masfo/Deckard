@@ -182,17 +182,17 @@ namespace deckard::app
 
 		void poll_controller() { controller_connected = XInputGetState(0, &controller_state) == ERROR_SUCCESS; }
 
-		AverageTimer<std::micro> avg;
+		void fire_events()
+		{
+			//
+		}
 
 	public:
 		void poll()
 		{
-
-			avg.begin();
-			poll_mouse();
 			poll_keyboard();
+			poll_mouse();
 			poll_controller();
-			avg.end();
 		}
 
 		// bind key to event enum
