@@ -366,6 +366,13 @@ export namespace deckard
 	public:
 		AverageTimer() = default;
 
+		// Copy
+		AverageTimer(AverageTimer const&)            = delete;
+		AverageTimer& operator=(AverageTimer const&) = delete;
+		// Move
+		AverageTimer(AverageTimer&&)            = delete;
+		AverageTimer& operator=(AverageTimer&&) = delete;
+
 		~AverageTimer()
 		{
 			if (has_dumped == false)
