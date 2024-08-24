@@ -119,4 +119,6 @@ namespace deckard
 	export template<typename R, typename... Args>
 	function_ref(R (*)(Args...)) -> function_ref<R(Args...)>;
 
+
+	static_assert(sizeof(function_ref<double(double)>) == 16);
 } // namespace deckard

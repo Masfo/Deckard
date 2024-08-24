@@ -22,8 +22,6 @@ bool f(bool b)
 
 TEST_CASE("function_ref", "[function_ref][utils]")
 {
-	REQUIRE(sizeof(function_ref<double(double)>) == 16);
-
 
 	// function
 	{
@@ -38,6 +36,7 @@ TEST_CASE("function_ref", "[function_ref][utils]")
 		REQUIRE(fr(8) == 50);
 	}
 
+	// method
 	{
 		b                          o;
 		function_ref<int(b&, int)> fr = &b::voidme;
