@@ -48,7 +48,8 @@ target_sources(tests PUBLIC
     tests/math_matrix_test.cpp
 
     # Utils
-    tests/ringbuffer.cpp
+    tests/ringbuffer_test.cpp
+    tests/function_ref_test.cpp
 
     # UTF8
     tests/utf8_test.cpp
