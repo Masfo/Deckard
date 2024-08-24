@@ -161,10 +161,6 @@ export namespace deckard::dbg
 			if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 				AllocConsole();
 
-			SetConsoleMode(
-			  GetStdHandle(STD_OUTPUT_HANDLE),
-			  ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT | ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
 			::freopen_s(&pNewStdout, "CONOUT$", "w", stdout);
 			::freopen_s(&pNewStderr, "CONOUT$", "w", stderr);
 			std::cout.clear();
