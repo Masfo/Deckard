@@ -2,16 +2,18 @@ module;
 #include <Windows.h>
 #include <Xinput.h>
 
-export module deckard.controller;
+export module deckard.app:pad;
+
+import std;
 import deckard.types;
 import deckard.as;
 import deckard.debug;
 import deckard.assert;
-import std;
 
 namespace deckard::app
 {
-	export class controller
+
+	export struct export class pad
 	{
 	private:
 		bool         m_connected{false};
@@ -22,7 +24,7 @@ namespace deckard::app
 
 
 	public:
-		controller()
+		pad()
 		{
 			XINPUT_CAPABILITIES cap{};
 			DWORD               err = XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &cap);
@@ -37,7 +39,7 @@ namespace deckard::app
 		}
 
 		// 0.0f - 1.0f
-		void vibrate(f32 left, f32 right)
+		void vibrate(f32 left, f32 right) const
 		{
 
 			left  = std::clamp(left, 0.0f, 1.0f);

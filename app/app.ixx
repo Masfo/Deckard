@@ -101,8 +101,7 @@ namespace deckard::app
 		DWORD  style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
 		DWORD  ex_style{0};
 
-		controller pad{};
-		inputs     m_inputs;
+		inputs m_inputs;
 
 		input_keyboard_callback_ptr* keyboard_callback{nullptr};
 
@@ -816,7 +815,7 @@ namespace deckard::app
 
 			while (handle_messages())
 			{
-				m_inputs.poll();
+
 
 				fixed_timestep = 1.0f / game_ticks;
 
@@ -862,31 +861,24 @@ namespace deckard::app
 				if (next_title_update > 0.05f)
 				{
 
-					auto [lm, ld] = pad.left_thumb_direction();
-					auto [rm, rd] = pad.right_thumb_direction();
-
 
 					set_title(std::format(
-					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: {}/{} | X: {} - ({:.3f}, {:.3f})-({:.3f}, {:.3f})",
+					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: {}/{}",
 					  time(),
 					  fps,
 					  max_fps,
 					  totalframes,
 					  deltatime(),
 					  update,
-					  game_ticks,
-					  pad.connected(),
-					  lm,
-					  ld,
-					  rm,
-					  rd));
+					  game_ticks));
 
 					next_title_update = 0.0f;
 				}
 
-				// update xinput
-				pad.poll();
 
+				m_inputs.poll();
+
+				auto& pad = m_inputs.controller();
 				pad.vibrate(pad.left_trigger(), pad.right_trigger());
 
 				// Update
@@ -925,7 +917,7 @@ namespace deckard::app
 				  // init_inputs();
 
 
-				  gameloop();
+				  gameloop(); // blocks
 
 
 				  set_visible(false);

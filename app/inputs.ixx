@@ -1,7 +1,8 @@
 module;
 #include <Windows.h>
-#include <Xinput.h>
 export module deckard.app:inputs;
+
+import :pad;
 
 import std;
 import deckard.types;
@@ -12,8 +13,6 @@ import deckard.helpers;
 
 namespace deckard::app
 {
-	// GetKeyboardState()			:  1-2µs in release,     2-4µs in debug
-	// GetAsyncKeyState(3xbuttons)  :  100-300ns in release, 400-600ns in debug
 
 	export enum class Action { Up, Down };
 
@@ -147,40 +146,38 @@ namespace deckard::app
 	class inputs
 	{
 	private:
-		std::array<unsigned char, 256> keyboard_state_previous{};
-		std::array<unsigned char, 256> keyboard_state_current{};
-		XINPUT_STATE                   controller_state{};
-		Mouse                          mouse{0};
-
-		bool controller_connected{false};
+		std::array<unsigned char, 256> m_keyboard_state_previous{};
+		std::array<unsigned char, 256> m_keyboard_state_current{};
+		Mouse                          m_mouse{0};
+		pad                            m_pad;
 
 		void poll_mouse()
 		{
-			mouse = {};
+			m_mouse = {};
 			//
 			if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
-				mouse += Mouse::Left;
+				m_mouse += Mouse::Left;
 
 			if (GetAsyncKeyState(VK_RBUTTON) & 0x8000)
-				mouse += Mouse::Right;
+				m_mouse += Mouse::Right;
 
 			if (GetAsyncKeyState(VK_MBUTTON) & 0x8000)
-				mouse += Mouse::Middle;
+				m_mouse += Mouse::Middle;
 
 			if (GetAsyncKeyState(VK_XBUTTON1) & 0x8000)
-				mouse += Mouse::X1;
+				m_mouse += Mouse::X1;
 
 			if (GetAsyncKeyState(VK_XBUTTON2) & 0x8000)
-				mouse += Mouse::X2;
+				m_mouse += Mouse::X2;
 		}
 
 		void poll_keyboard()
 		{
-			keyboard_state_current.swap(keyboard_state_previous);
-			GetKeyboardState(keyboard_state_current.data());
+			m_keyboard_state_current.swap(m_keyboard_state_previous);
+			GetKeyboardState(m_keyboard_state_current.data());
 		}
 
-		void poll_controller() { controller_connected = XInputGetState(0, &controller_state) == ERROR_SUCCESS; }
+		void poll_controller() { m_pad.poll(); }
 
 		void fire_events()
 		{
@@ -195,6 +192,8 @@ namespace deckard::app
 			poll_mouse();
 			poll_controller();
 		}
+
+		const pad& controller() const { return m_pad; }
 
 		// bind key to event enum
 		void bind(Key key, u32 event_id) { }
