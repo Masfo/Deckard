@@ -33,6 +33,7 @@ export import deckard.cpuid;
 export import deckard.system;
 export import deckard.ringbuffer;
 export import deckard.random;
+export import deckard.function_ref;
 
 // UTF8
 export import deckard.utf8;
