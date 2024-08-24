@@ -286,19 +286,19 @@ namespace deckard::vulkan
 
 
 			//
-			// const VkViewport viewport{
-			//  .x        = 0.0f, //
-			//  .y        = 0.0f,
-			//  .width    = (f32)swapchain_extent.width,
-			//  .height   = (f32)swapchain_extent.height,
-			//  .minDepth = 0.0f,
-			//  .maxDepth = 1.0f};
-			//
-			// vkCmdSetViewport(command_buffers[i], 0, 1, &viewport);
-			//
-			// VkRect2D scissor = render_area;
-			// vkCmdSetScissor(command_buffers[i], 0, 1, &scissor);
-			//
+			const VkViewport viewport{
+			  .x        = 0.0f, //
+			  .y        = 0.0f,
+			  .width    = (f32)current_extent.width,
+			  .height   = (f32)current_extent.height,
+			  .minDepth = 0.0f,
+			  .maxDepth = 1.0f};
+
+			vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+			VkRect2D scissor = render_area;
+			vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
 
 			// render pass
 
