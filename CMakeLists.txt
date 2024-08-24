@@ -210,6 +210,7 @@ set(DECKARD_SRCS
         utils/ringbuffer.ixx
         utils/serializer.ixx
         utils/random.ixx
+        utils/function_ref.ixx
 
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
