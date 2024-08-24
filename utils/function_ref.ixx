@@ -121,4 +121,9 @@ namespace deckard
 
 
 	static_assert(sizeof(function_ref<double(double)>) == 16);
+
+
+	// ################################
+
+
 } // namespace deckard
