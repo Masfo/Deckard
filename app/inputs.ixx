@@ -187,16 +187,13 @@ namespace deckard::app
 			//
 		}
 
-		AverageTimer avg;
 
 	public:
 		void poll()
 		{
-			avg.begin();
 			poll_keyboard();
 			poll_mouse();
 			poll_controller();
-			avg.end();
 		}
 
 		// bind key to event enum

@@ -1,5 +1,5 @@
 #include <windows.h>
-
+#include <Commctrl.h>
 import deckard;
 using namespace deckard;
 using namespace deckard::app;
@@ -78,8 +78,83 @@ void render(vulkanapp&)
 
 int deckard_main()
 {
+#if 1
+	{
+		int                     nButtonPressed = 0;
+		TASKDIALOGCONFIG        config         = {0};
+		const TASKDIALOG_BUTTON buttons[]      = {
+          {100, L"Update"},
+          {101, L"Play now"},
+        };
+
+		const TASKDIALOG_BUTTON radiobuttons[] = {
+		  {100, L"Update 2 "},
+		  {101, L"Play now 2"},
+		};
+		config.cbSize             = sizeof(config);
+		config.pszWindowTitle     = L"Deckard";
+		config.hInstance          = 0;
+		config.dwFlags            = TDF_USE_COMMAND_LINKS | TDF_ENABLE_HYPERLINKS;
+		config.dwCommonButtons    = TDCBF_CLOSE_BUTTON;
+		config.pszMainIcon        = TD_INFORMATION_ICON;
+		config.pszMainInstruction = L"Taboo Builder";
+		config.pszContent =
+		  L"New update available, v1.0.1234.DEADBEEF\n\n"
+		  L"* Fixed server pings\n"
+		  L"* Fixed server pings\n"
+		  L"* Fixed server pings\n"
+		  L"* Fixed server pings\n"
+		  L"* Fixed server pings Fixed server pings Fixed server pings Fixed server pings\n"
+		  L"* Update function no longer hangs\n"
+		  "\n\n<a href=\"https://www.taboobuilder.com/patchnotes/\">Read more patch notes</a>\n";
+		config.pButtons = buttons;
+		config.cButtons = ARRAYSIZE(buttons);
 
 
+		config.pfCallback = [](HWND hwnd, UINT uNotification, WPARAM wParam, LPARAM lParam, LONG_PTR dwRefData) -> HRESULT
+		{
+			switch (uNotification)
+			{
+				case TDN_HYPERLINK_CLICKED: dbg::println("url"); break;
+				default: break;
+			}
+			return S_OK;
+		};
+
+		using TaskDialogIndirectFunc =
+		  HRESULT(const TASKDIALOGCONFIG* pTaskConfig, int* pnButton, int* pnRadioButton, BOOL* pfVerificationFlagChecked);
+		TaskDialogIndirectFunc* TaskDialogIndirect = nullptr;
+
+		HMODULE mod = LoadLibraryA("Comctl32.dll");
+		if (mod)
+		{
+			TaskDialogIndirect = reinterpret_cast<TaskDialogIndirectFunc*>(GetProcAddress(mod, "TaskDialogIndirect"));
+		}
+
+		if (TaskDialogIndirect)
+		{
+			auto err = TaskDialogIndirect(&config, &nButtonPressed, NULL, NULL);
+			if (SUCCEEDED(err))
+			{
+				switch (nButtonPressed)
+				{
+					case 0: dbg::println("Dialog failed"); break;
+					case IDCANCEL: dbg::println("Dialog cancel"); break;
+					case IDNO: dbg::println("Dialog no"); break;
+					case IDRETRY: dbg::println("Dialog retry"); break;
+					case IDYES: dbg::println("Dialog yes"); break;
+					case 100: dbg::println("Update"); break;
+					case 101: dbg::println("Play"); break;
+
+
+					default: break;
+				}
+			}
+		}
+
+		FreeLibrary(mod);
+	}
+#endif
 	// TODO: register key bindings to apps own enum
 	//
 	// enum player_movement
