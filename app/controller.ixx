@@ -13,7 +13,7 @@ import deckard.assert;
 namespace deckard::app
 {
 
-	export struct export class pad
+	export class pad
 	{
 	private:
 		bool         m_connected{false};

@@ -23,7 +23,6 @@ import deckard.win32;
 import deckard.debug;
 import deckard.assert;
 import deckard.enums;
-import deckard.controller;
 
 namespace deckard::app
 {
