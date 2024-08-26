@@ -400,8 +400,6 @@ fullscreen=true
 )"sv);
 	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
 
-	serializer s;
-	s.write_bits(0b0000'1111, 4);
 
 	std::array<std::array<u32, 3>, 3> grid{1, 2, 3, 4, 5, 6, 7, 8, 9};
 

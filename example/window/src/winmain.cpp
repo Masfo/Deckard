@@ -76,9 +76,39 @@ void render(vulkanapp&)
 	//
 }
 
-int deckard_main()
+namespace fs = std::filesystem;
+
+class file
 {
-#if 1
+private:
+public:
+	// open file, fail
+	auto open(const fs::path& path) -> std::expected<fs::path, std::string>
+	{
+		//
+		return {};
+	}
+
+	// open existing file write-only, creates new if not
+	auto create(const fs::path& path) -> std::expected<fs::path, std::string>
+	{
+		//
+		return {};
+	}
+
+	// create new file if no existing
+	auto create_new(const fs::path& path) -> std::expected<fs::path, std::string>
+	{
+		//
+		return {};
+	}
+};
+
+int deckard_main()
+
+{
+
+#if 0
 	{
 		int                     nButtonPressed = 0;
 		TASKDIALOGCONFIG        config         = {0};

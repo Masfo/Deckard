@@ -50,6 +50,7 @@ target_sources(tests PUBLIC
     # Utils
     tests/ringbuffer_test.cpp
     tests/function_ref_test.cpp
+    tests/serializer_test.cpp
 
     # UTF8
     tests/utf8_test.cpp

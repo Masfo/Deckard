@@ -34,6 +34,7 @@ export import deckard.system;
 export import deckard.ringbuffer;
 export import deckard.random;
 export import deckard.function_ref;
+export import deckard.serializer;
 
 // UTF8
 export import deckard.utf8;
