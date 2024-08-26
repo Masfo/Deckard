@@ -87,6 +87,7 @@ export namespace deckard
 		bool        show_hex{true};
 	};
 
+	// TODO: Better hexdump, dump max(output.size()) amount of hex dump
 	template<typename T = u8>
 	u64 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {})
 	{
@@ -109,11 +110,15 @@ export namespace deckard
 
 		for (const auto [i, word] : std::views::enumerate(input))
 		{
+
+
 			const T input_word = options.endian_swap ? std::byteswap(word) : word;
 
 			u32 offset = 0;
 			if (show_hex)
 			{
+
+
 				output[i * stride + offset] = '0';
 				offset += 1;
 
@@ -140,6 +145,7 @@ export namespace deckard
 
 			for (size_t j = 0; (as<u64>(i) < input.size() - 1) and (j < options.delimiter.size()); j++)
 			{
+
 				output[i * stride + offset] = options.delimiter[j];
 				offset += 1;
 				len += 1;
@@ -148,6 +154,7 @@ export namespace deckard
 		return len;
 	}
 
+	// TODO: limit output size
 	template<typename T>
 	std::string to_hex_string(const std::span<T> input, const HexOption& options = {})
 	{
