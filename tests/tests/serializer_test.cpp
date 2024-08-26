@@ -102,6 +102,51 @@ TEST_CASE("bitwriter", "[bitwriter][serializer]")
 		REQUIRE(std::ranges::equal(correct, writer.data()) == true);
 	}
 
+	SECTION("write bits")
+	{
+		bitwriter writer;
+
+		writer.write(true);
+		writer.write(false);
+		writer.write(true);
+
+
+		std::array<u8, 1> correct{
+		  0xA0, // 0b10100000
+		};
+
+		REQUIRE(writer.size() == 8);
+		REQUIRE(std::ranges::equal(correct, writer.data()) == true);
+	}
+
+	SECTION("write floats")
+	{
+		bitwriter writer;
+
+		writer.write(2.0f);
+		writer.write(4.0);
+
+		std::array<u8, 4 + 8> correct{
+		  // 2.0f
+		  0x40,
+		  0x00,
+		  0x00,
+		  0x00,
+		  // 4.0
+		  0x40,
+		  0x10,
+		  0x00,
+		  0x00,
+		  0x00,
+		  0x00,
+		  0x00,
+		  0x00,
+		};
+
+		REQUIRE(writer.size() == 12 * 8);
+		REQUIRE(std::ranges::equal(correct, writer.data()) == true);
+	}
+
 	SECTION("write array, full")
 	{
 		bitwriter writer;
@@ -293,6 +338,38 @@ TEST_CASE("bitreader", "[bitreader][serializer]")
 		REQUIRE(reader.read<u32>(8) == 0b1111'0010);
 		REQUIRE(reader.read_string(4 * 8) == "abcd"sv);
 		REQUIRE(reader.empty() == true);
+	}
+
+	SECTION("read bits")
+	{
+		bitwriter writer;
+
+		writer.write(true);
+		writer.write(false);
+		writer.write(true);
+
+		//
+		bitreader reader(writer.data());
+
+		REQUIRE(reader.read<bool>() == true);
+		REQUIRE(reader.read<bool>() == false);
+		REQUIRE(reader.read<bool>() == true);
+		REQUIRE(reader.empty());
+	}
+
+	SECTION("read floats")
+	{
+		bitwriter writer;
+
+		writer.write(2.0f);
+		writer.write(4.0);
+
+		//
+		bitreader reader(writer.data());
+
+		REQUIRE(reader.read<f32>() == 2.0f);
+		REQUIRE(reader.read<f64>() == 4.0);
+		REQUIRE(reader.empty());
 	}
 
 	SECTION("read array, full")
