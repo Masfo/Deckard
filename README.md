@@ -90,12 +90,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	  readAndWrite += Permission::Execute; // Read | Write | Execute
 	  ```
   - **Result**
-    ```cpp
+	```cpp
 	// Default error is std::string
 	Ok(<value>);
 	Err("error value");
 
-    // Return value or error
+	// Return value or error
 	auto getex(int x) -> Result<int>
 	{
 		if (x == 10)
@@ -108,7 +108,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	{
 		dbg::trace("int {}", *v);
 	}
-    ```
+	```
   - **Fileview**
 	```cpp 
 	import deckard;
@@ -199,11 +199,11 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	writer.write("abcd");                // 168
 
 	std::array<u8, 21> correct{
-	      0xAA, 0xBB, 0xCC, 0xDD,					// AABBCCDD
-          0xEE, 0xFF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55,		// EEFF001122334455
-          0x40, 0x00, 0x00, 0x00,					// 2.0f
-          0xF0,							// 0b1111'0000
-          0x61, 0x62, 0x63, 0x64};					// abcd
+		  0xAA, 0xBB, 0xCC, 0xDD,					// AABBCCDD
+		  0xEE, 0xFF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55,		// EEFF001122334455
+		  0x40, 0x00, 0x00, 0x00,					// 2.0f
+		  0xF0,							// 0b1111'0000
+		  0x61, 0x62, 0x63, 0x64};					// abcd
 
 	std::ranges::equal(correct, writer.data()) == true;
 
