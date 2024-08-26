@@ -105,8 +105,8 @@ public:
 };
 
 int deckard_main()
-
 {
+
 
 #if 0
 	{

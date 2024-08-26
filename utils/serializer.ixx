@@ -337,6 +337,12 @@ namespace deckard::serializer
 			read(std::span<u8>{output}, S * 8);
 		}
 
+		template<typename T, size_t S>
+		void read(std::array<T, S>& output, const u32 bits)
+		{
+			read(std::span<u8>{output}, bits);
+		}
+
 		template<typename T>
 		void read(std::vector<T>& output, const u32 bits)
 		{

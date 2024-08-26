@@ -264,7 +264,7 @@ TEST_CASE("bitreader", "[bitreader][serializer]")
 		REQUIRE(reader.empty() == true);
 	}
 
-	SECTION("read array")
+	SECTION("read array, full")
 	{
 		bitwriter writer;
 
@@ -290,6 +290,35 @@ TEST_CASE("bitreader", "[bitreader][serializer]")
 		REQUIRE(readme[3] == 0x00);
 		REQUIRE(reader.empty() == true);
 	}
+
+	SECTION("read array, partial")
+	{
+		bitwriter writer;
+
+		std::array<u8, 4> arr{0xFF, 0xAA, 0x11, 0x00};
+
+		writer.write(arr);
+
+		// read
+		bitreader reader(writer.data());
+
+		std::array<u8, 4> readme{};
+		REQUIRE(readme[0] == 0);
+		REQUIRE(readme[1] == 0);
+		REQUIRE(readme[2] == 0);
+		REQUIRE(readme[3] == 0);
+
+
+		reader.read(readme, 8 * 2);
+
+		REQUIRE(readme[0] == 0xFF);
+		REQUIRE(readme[1] == 0xAA);
+		REQUIRE(readme[2] == 0x00);
+		REQUIRE(readme[3] == 0x00);
+
+		REQUIRE(reader.empty() == true);
+	}
+
 	SECTION("read vector")
 	{
 		bitwriter writer;
