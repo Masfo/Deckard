@@ -153,10 +153,22 @@ namespace deckard::serializer
 			write(std::span<T>{input.data(), S});
 		}
 
+		template<typename T, size_t S>
+		void write(std::array<T, S> input, const u32 bits)
+		{
+			write(std::span<T>{input.data(), bits / 8});
+		}
+
 		template<typename T>
-		void write(const std::vector<T>& input)
+		void write(std::vector<T>& input)
 		{
 			write(std::span{input});
+		}
+
+		template<typename T>
+		void write(std::vector<T>& input, const u32 bits)
+		{
+			write(std::span<T>{input.data(), bits / 8});
 		}
 
 		template<typename T>
@@ -168,7 +180,11 @@ namespace deckard::serializer
 
 		std::span<u8> data() { return {buffer.data(), buffer.size()}; }
 
-		size_t size() const { return buffer.size(); }
+		bool empty() const { return byte_index() <= buffer.size(); }
+
+		size_t size() const { return buffer.size() * 8; }
+
+		size_t size_in_bytes() const { return buffer.size(); }
 
 		void clear()
 		{
@@ -369,7 +385,9 @@ namespace deckard::serializer
 
 		std::span<u8> data() { return {buffer.data(), buffer.size()}; }
 
-		size_t size() const { return buffer.size(); }
+		size_t size() const { return buffer.size() * 8; }
+
+		size_t size_in_bytes() const { return buffer.size(); }
 
 		bool empty() const { return byte_index() <= buffer.size(); }
 	};
