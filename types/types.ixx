@@ -87,6 +87,32 @@ export namespace deckard
 
 	extent to_extent(RECT r) { return {(u16)(r.right - r.left), (u16)(r.bottom - r.top)}; }
 
+	export template<typename T>
+	concept container = requires(T cont) {
+		// Basic requirements
+		{ cont.size() } -> std::convertible_to<std::size_t>;
+		{ cont.empty() } -> std::convertible_to<bool>;
+		{ cont.begin() } -> std::convertible_to<typename T::iterator>;
+		{ cont.end() } -> std::convertible_to<typename T::iterator>;
+
+		// Element access
+		{ cont.data() } -> std::convertible_to<typename T::pointer>;
+		{ cont.at(0) } -> std::convertible_to<typename T::reference>;
+		{ cont[0] } -> std::convertible_to<typename T::reference>;
+		{ cont.front() } -> std::convertible_to<typename T::reference>;
+		{ cont.back() } -> std::convertible_to<typename T::reference>;
+
+		// Modifiers
+		{ cont.swap(cont) };
+
+		// Iterators
+		{ cont.begin() != cont.end() } -> std::convertible_to<bool>;
+		{ *cont.begin() } -> std::convertible_to<typename T::reference>;
+		{ ++cont.begin() } -> std::convertible_to<typename T::iterator>;
+		{ --cont.begin() } -> std::convertible_to<typename T::iterator>;
+	};
+
+
 	/* Formatter
 		template <>
 		struct std::formatter<Color> {
