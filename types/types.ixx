@@ -88,7 +88,7 @@ export namespace deckard
 	extent to_extent(RECT r) { return {(u16)(r.right - r.left), (u16)(r.bottom - r.top)}; }
 
 	export template<typename T>
-	concept container = requires(T cont) {
+	concept basic_container = requires(T cont) {
 		// Basic requirements
 		{ cont.size() } -> std::convertible_to<std::size_t>;
 		{ cont.empty() } -> std::convertible_to<bool>;
