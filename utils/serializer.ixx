@@ -9,6 +9,62 @@ namespace deckard::serializer
 	// TODO: fixed size reader/writer
 	// TODO: append bitreader/writers
 
+	namespace experimental
+	{
+
+		template<basic_container C>
+		class BaseWriter
+		{
+		private:
+		protected:
+			u64 bitpos{0};
+			C   buffer{};
+
+		public:
+			u64 byte_index() const { return bitpos / 8u; }
+
+			u64 bit_offset() const { return bitpos % 8u; }
+
+			virtual void push(const u8 byte) = 0;
+
+			void write_byte(const u8 byte)
+			{
+				const u64 offset    = bit_offset();
+				const u64 remainder = 8 - offset;
+
+				if (offset == 0)
+				{
+					push(byte);
+				}
+				else
+				{
+
+					buffer[byte_index()] |= byte >> offset;
+					push(byte << remainder);
+				}
+
+				bitpos += 8;
+			}
+		};
+
+		template<size_t S>
+		class StaticWriter final : public BaseWriter<std::array<u8, S>>
+		{
+		public:
+			using Base = BaseWriter<std::array<u8, S>>;
+
+			void push(const u8 byte) override { Base::buffer[Base::byte_index()] = byte; }
+		};
+
+		class DynaWriter final : public BaseWriter<std::vector<u8>>
+		{
+		public:
+			using Base = BaseWriter<std::vector<u8>>;
+
+			void push(const u8 byte) override { Base::buffer.push_back(byte); }
+		};
+	} // namespace experimental
+
 
 	export enum class padding : u8 { yes, no };
 
