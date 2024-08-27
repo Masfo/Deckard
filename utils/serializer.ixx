@@ -6,6 +6,9 @@ import deckard.assert;
 
 namespace deckard::serializer
 {
+	// TODO: fixed size reader/writer
+	// TODO: append bitreader/writers
+
 
 	export enum class padding : u8 { yes, no };
 
@@ -62,6 +65,13 @@ namespace deckard::serializer
 		{
 			pad = p;
 		}
+
+		// Copy
+		bitwriter(bitwriter const&)            = delete;
+		bitwriter& operator=(bitwriter const&) = delete;
+		// Move
+		bitwriter(bitwriter&&)            = delete;
+		bitwriter& operator=(bitwriter&&) = delete;
 
 		void write_byte(u8 byte)
 		{
@@ -195,6 +205,11 @@ namespace deckard::serializer
 		void reserve(size_t size) { buffer.reserve(size); }
 	};
 
+	// ##################################################################################
+	// ##################################################################################
+	// ##################################################################################
+
+
 	export class bitreader
 	{
 	private:
@@ -241,6 +256,13 @@ namespace deckard::serializer
 			, pad(p)
 		{
 		}
+
+		// Copy
+		bitreader(bitreader const&)            = delete;
+		bitreader& operator=(bitreader const&) = delete;
+		// Move
+		bitreader(bitreader&&)            = delete;
+		bitreader& operator=(bitreader&&) = delete;
 
 		template<typename T = std::string>
 		T read_string(u32 length)
