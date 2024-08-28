@@ -78,35 +78,221 @@ void render(vulkanapp&)
 
 namespace fs = std::filesystem;
 
-class file
+namespace nt
 {
-private:
-public:
-	// open file, fail
-	auto open(const fs::path& path) -> std::expected<fs::path, std::string>
+	class file
 	{
-		//
-		return {};
-	}
+	public:
+		enum class access : u8
+		{
+			read,
+			readwrite,
+			overwrite,
+		};
 
-	// open existing file write-only, creates new if not
-	auto create(const fs::path& path) -> std::expected<fs::path, std::string>
-	{
-		//
-		return {};
-	}
+		enum class creation : u8
+		{
+			create,
+			create_new,
+			open_existing,
+		};
 
-	// create new file if no existing
-	auto create_new(const fs::path& path) -> std::expected<fs::path, std::string>
-	{
-		//
-		return {};
-	}
-};
+	private:
+		std::span<u8> view{};
+		fs::path      filepath;
+		HANDLE        handle{INVALID_HANDLE_VALUE};
+
+		bool is_writeonly() const { return handle != nullptr and view.empty(); }
+
+		bool is_open() const { return not view.empty(); }
+
+		void setpath(fs::path p) { filepath = p; }
+
+		auto open_impl(const fs::path filepath, access access_flag, creation create_flag) -> Result<file>
+		{
+			setpath(filepath);
+
+			DWORD rw          = GENERIC_READ;
+			DWORD page        = PAGE_READONLY;
+			DWORD filemapping = FILE_MAP_READ;
+
+			DWORD create = OPEN_EXISTING;
+
+			if (create_flag == creation::create_new)
+			{
+				create      = CREATE_NEW;
+				access_flag = access::readwrite;
+			}
+
+			if (create_flag == creation::create)
+			{
+				create      = CREATE_ALWAYS;
+				access_flag = access::readwrite;
+			}
+
+			if (access_flag == access::readwrite)
+			{
+				rw |= GENERIC_WRITE;
+				page = PAGE_READWRITE;
+				filemapping |= FILE_MAP_WRITE;
+			}
+
+
+			handle = CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, create, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				auto error = GetLastError();
+				if (error = ERROR_FILE_EXISTS)
+				{
+					close();
+					return Err("File already exists: '{}'", filepath.string());
+				}
+
+				return Err("Could not open file '{}'", filepath.string());
+			}
+
+			if (create_flag == creation::create_new or create_flag == creation::create)
+				return Ok(*this);
+
+			LARGE_INTEGER fs;
+			u64           filesize{0};
+			if (GetFileSizeEx(handle, &fs) != 0)
+				filesize = as<u64>(fs.QuadPart);
+
+
+			HANDLE mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
+			if (mapping == nullptr)
+			{
+				close();
+
+				return Err("Could not create mapping for file '{}' ({})", filepath.string(), pretty_bytes(filesize));
+			}
+
+			CloseHandle(handle);
+			handle = nullptr;
+
+
+			u8* raw_address = as<u8*>(MapViewOfFile(mapping, filemapping, 0, 0, 0));
+			if (raw_address == nullptr)
+			{
+				close();
+
+				return Err("Could not map file '{}'", filepath.string());
+			}
+
+			CloseHandle(mapping);
+			mapping = nullptr;
+
+
+			view = std::span<u8>{as<u8*>(raw_address), filesize};
+
+			return Ok(*this);
+		}
+
+		void flush() { FlushViewOfFile(view.data(), 0); }
+
+		void close() noexcept
+		{
+			CloseHandle(handle);
+			handle = INVALID_HANDLE_VALUE;
+
+			flush();
+			UnmapViewOfFile(view.data());
+			view = {};
+		}
+
+	public:
+		file() = default;
+
+		file(file&&) noexcept = default;
+		file(const file&)     = default;
+
+		file& operator=(const file&) = default;
+		file& operator=(file&&)      = default;
+
+		~file() { close(); }
+
+		// open existing
+		auto open(const fs::path& path, access access_flag = access::read) -> Result<file>
+		{
+
+			return open_impl(path, access_flag, creation::open_existing);
+		}
+
+		// open existing file write-only, creates new if not
+		auto create(const fs::path& path, access access_flag = access::read) -> Result<file>
+		{
+			return open_impl(path, access_flag, creation::create);
+		}
+
+		// create new file if no existing
+		auto create_new(const fs::path& path, access access_flag = access::read) -> Result<file>
+		{
+			return open_impl(path, access_flag, creation::create_new);
+		}
+
+		auto read() -> Result<std::span<u8>> { return read((u64)-1); }
+
+		auto read(u32 size) -> Result<std::span<u8>> { return read(size, 0); }
+
+		auto read(u64 size, u64 offset = 0) -> Result<std::span<u8>>
+		{
+			if (is_writeonly())
+				return Err("File '{}' is opened for write-only", filepath.string());
+
+			if (not is_open())
+				return Err("File not open");
+			//
+			return Err("not implemented");
+		}
+
+		auto data() const -> Result<std::span<u8>>
+		{
+			if (not is_open())
+				return Err("File is not open. Cannot give view to file");
+
+			if (view.empty())
+				return Err("There is not mapping for file '{}'", filepath.string());
+
+			return Ok(view);
+		}
+
+		auto write(std::span<u8> input) -> Result<u32>
+		{
+			DWORD bytes_written{0};
+
+			if (not is_writeonly())
+				return Err("Could not write to file");
+
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				CloseHandle(handle);
+				return Err("Did not have a valid filehandle: '{}'", filepath.string());
+			}
+
+			WriteFile(handle, input.data(), as<u32>(input.size_bytes()), &bytes_written, nullptr);
+
+			return bytes_written;
+		}
+	};
+
+
+} // namespace nt
 
 int deckard_main()
 {
+	std::string h("hello");
 
+	nt::file f;
+	auto     r = f.create_new("hello.txt");
+
+	auto wrt = f.write(std::span<u8>{as<u8*>(h.data()), h.size()});
+
+	auto rwt = f.read(
+
+	int x = 0;
+	return 0;
 
 #if 0
 	{
