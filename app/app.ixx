@@ -34,6 +34,7 @@ namespace deckard::app
 		resizable        = BIT(3),
 		gameticks        = BIT(4),
 
+
 		pad5 = BIT(5),
 		pad6 = BIT(6),
 		pad7 = BIT(7),

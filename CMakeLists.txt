@@ -340,32 +340,37 @@ target_compile_options(deckard PRIVATE
 )
 
 ###################################
- find_program(BUILDINC_TOOL "buildinc")
- if(BUILDINC_TOOL AND BUILDINC)
- add_custom_command(TARGET deckard
-                    PRE_BUILD
-                    COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckard_build -q -m 
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    COMMENT "Increase build number"
- )
- endif()
 
 
 #####################################
 #####################################
-if(DECKARD_SCRIPT)
-add_subdirectory(tools/dbc)
-endif()
+if(PROJECT_IS_TOP_LEVEL)
 
+    find_program(BUILDINC_TOOL "buildinc")
+    if(BUILDINC_TOOL)
+    add_custom_command(TARGET deckard
+                       PRE_BUILD
+                       COMMAND ${BUILDINC_TOOL} ${CMAKE_CURRENT_SOURCE_DIR}/buildnumber.ixx deckard_build -q -m 
+                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                       COMMENT "Increase build number"
+    )
+    endif()
 
-if(DECKARD_TESTS)
-enable_testing()
-add_subdirectory(tests)
-endif()
+    add_subdirectory(tools/dbc)
+    if(DECKARD_SCRIPT)
+    endif()
+    
+    
+    enable_testing()
+    add_subdirectory(tests)
+    if(DECKARD_TESTS)
+    endif()
+    
+    add_subdirectory(example/window)
+    #add_subdirectory(example/empty)
+    if(BUILD_EXAMPLES)
+    endif()
 
-if(BUILD_EXAMPLES)
-add_subdirectory(example/window)
-#add_subdirectory(example/empty)
 endif()
 
 
