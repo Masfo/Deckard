@@ -357,19 +357,13 @@ if(PROJECT_IS_TOP_LEVEL)
     endif()
 
     add_subdirectory(tools/dbc)
-    if(DECKARD_SCRIPT)
-    endif()
     
     
     enable_testing()
     add_subdirectory(tests)
-    if(DECKARD_TESTS)
-    endif()
     
     add_subdirectory(example/window)
     #add_subdirectory(example/empty)
-    if(BUILD_EXAMPLES)
-    endif()
 
 endif()
 
