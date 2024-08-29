@@ -15,7 +15,7 @@ export namespace deckard
 	{
 		using namespace std::string_view_literals;
 		if constexpr (sizeof...(args) > 0)
-			return std::unexpected<DefaultErrorType>(std::format("{}"sv, std::vformat(fmt, std::make_format_args(args...))));
+			return std::unexpected<DefaultErrorType>(std::vformat(fmt, std::make_format_args(args...)));
 		else
 			return std::unexpected<DefaultErrorType>(fmt);
 	};

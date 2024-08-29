@@ -80,26 +80,21 @@ namespace fs = std::filesystem;
 
 namespace nt
 {
+#if 0
+
 	class file
 	{
 	public:
-		enum class access : u8
+		enum class Flags : u8
 		{
 			read,
 			readwrite,
-			overwrite,
-		};
-
-		enum class creation : u8
-		{
-			create,
-			create_new,
-			open_existing,
 		};
 
 	private:
 		std::span<u8> view{};
 		fs::path      filepath;
+		u32           offset{0};
 		HANDLE        handle{INVALID_HANDLE_VALUE};
 
 		bool is_writeonly() const { return handle != nullptr and view.empty(); }
@@ -108,35 +103,12 @@ namespace nt
 
 		void setpath(fs::path p) { filepath = p; }
 
-		auto open_impl(const fs::path filepath, access access_flag, creation create_flag) -> Result<file>
+		auto create_impl(const fs::path filepath) -> Result<file>
 		{
 			setpath(filepath);
 
-			DWORD rw          = GENERIC_READ;
-			DWORD page        = PAGE_READONLY;
-			DWORD filemapping = FILE_MAP_READ;
-
-			DWORD create = OPEN_EXISTING;
-
-			if (create_flag == creation::create_new)
-			{
-				create      = CREATE_NEW;
-				access_flag = access::readwrite;
-			}
-
-			if (create_flag == creation::create)
-			{
-				create      = CREATE_ALWAYS;
-				access_flag = access::readwrite;
-			}
-
-			if (access_flag == access::readwrite)
-			{
-				rw |= GENERIC_WRITE;
-				page = PAGE_READWRITE;
-				filemapping |= FILE_MAP_WRITE;
-			}
-
+			DWORD rw     = GENERIC_READ | GENERIC_WRITE;
+			DWORD create = CREATE_NEW;
 
 			handle = CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, create, FILE_ATTRIBUTE_NORMAL, nullptr);
 
@@ -152,8 +124,41 @@ namespace nt
 				return Err("Could not open file '{}'", filepath.string());
 			}
 
-			if (create_flag == creation::create_new or create_flag == creation::create)
-				return Ok(*this);
+
+			return Ok(*this);
+		}
+
+		auto open_impl(const fs::path filepath, Flags flags = Flags::read) -> Result<file>
+		{
+			setpath(filepath);
+
+			DWORD rw          = GENERIC_READ;
+			DWORD page        = PAGE_READONLY;
+			DWORD filemapping = FILE_MAP_READ;
+
+			DWORD create = OPEN_EXISTING;
+
+			if (flags == Flags::readwrite)
+			{
+				rw |= GENERIC_WRITE;
+				page = PAGE_READWRITE;
+				filemapping |= FILE_MAP_WRITE;
+			}
+
+			handle = CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, create, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				auto error = GetLastError();
+				if (error = ERROR_FILE_EXISTS)
+				{
+					close();
+					return Err("File already exists: '{}'", filepath.string());
+				}
+
+				return Err("Could not open file '{}'", filepath.string());
+			}
+
 
 			LARGE_INTEGER fs;
 			u64           filesize{0};
@@ -220,16 +225,10 @@ namespace nt
 			return open_impl(path, access_flag, creation::open_existing);
 		}
 
-		// open existing file write-only, creates new if not
+		// create new file
 		auto create(const fs::path& path, access access_flag = access::read) -> Result<file>
 		{
 			return open_impl(path, access_flag, creation::create);
-		}
-
-		// create new file if no existing
-		auto create_new(const fs::path& path, access access_flag = access::read) -> Result<file>
-		{
-			return open_impl(path, access_flag, creation::create_new);
 		}
 
 		auto read() -> Result<std::span<u8>> { return read((u64)-1); }
@@ -277,19 +276,40 @@ namespace nt
 		}
 	};
 
+	void read(std::span<u8> output) { }
+#endif
+
+
+	class commandliner
+	{
+	private:
+		std::string_view commandline;
+
+	public:
+		commandliner(std::string_view i)
+			: commandline(i)
+		{
+		}
+
+		void process()
+		{
+			auto split_result = split(commandline);
+			//
+
+			int x = 0;
+		}
+	};
 
 } // namespace nt
 
 int deckard_main()
 {
-	std::string h("hello");
 
-	nt::file f;
-	auto     r = f.create_new("hello.txt");
+	std::string cmdparse("-v -o\"file.txt\" -d 1024");
 
-	auto wrt = f.write(std::span<u8>{as<u8*>(h.data()), h.size()});
+	nt::commandliner cmd(cmdparse);
+	cmd.process();
 
-	auto rwt = f.read(
 
 	int x = 0;
 	return 0;

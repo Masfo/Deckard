@@ -100,7 +100,7 @@ export namespace deckard
 		~Monitor() noexcept = default;
 
 		template<typename Callable>
-		void start(Callable func, const std::chrono::milliseconds update_time = std::chrono::milliseconds{1'000}) noexcept
+		void start(Callable func, const std::chrono::milliseconds update_time = std::chrono::milliseconds{1000}) noexcept
 		{
 			static_assert(std::is_convertible_v<Callable&&, std::function<UserFunction>>, "Wrong callback signature");
 			m_callback = func;
@@ -109,7 +109,7 @@ export namespace deckard
 		}
 
 	private:
-		void start_thread(std::chrono::milliseconds update_time = std::chrono::milliseconds{1'000}) noexcept
+		void start_thread(std::chrono::milliseconds update_time = std::chrono::milliseconds{1000}) noexcept
 		{
 
 			m_monitor_thread = std::jthread(
