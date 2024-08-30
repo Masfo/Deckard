@@ -293,7 +293,6 @@ namespace nt
 
 		void process()
 		{
-			auto split_result = split(commandline);
 			//
 
 			int x = 0;
@@ -310,9 +309,40 @@ int deckard_main()
 	nt::commandliner cmd(cmdparse);
 	cmd.process();
 
+	{
+		taskpool::taskpool        tp;
+		std::atomic<int>          sum;
+		int                       real = 0;
+		std::vector<u8>           sp;
+		std::set<std::thread::id> tids;
 
+		for (int i = 0; i < 1024 * 1024; i++)
+		{
+			sp.push_back(i);
+			real += sp[i];
+		}
+
+		const size_t work_split_count = sp.size() / tp.size();
+		for (int i = 0; i < sp.size(); i += work_split_count)
+		{
+			tp.add(
+			  [&tids, sp, start = i, end = work_split_count, &sum](std::thread::id id)
+			  {
+				  tids.insert(id);
+
+				  dbg::println("T {}: work {}-{}", id, start, start + end);
+				  for (int i = start; i < start + end; i++)
+				  {
+					  sum += sp[i];
+				  }
+			  });
+		}
+		tp.join();
+		dbg::println("real {}", real);
+		dbg::println("sum {}", sum.load());
+		dbg::println("tids: {}", tids.size());
+	}
 	int x = 0;
-	return 0;
 
 #if 0
 	{
