@@ -113,6 +113,26 @@ if(MSVC)
         target_link_options(dbc PRIVATE /MANIFESTINPUT:${CMAKE_SOURCE_DIR}/manifest.txt)
     endif()
 
+        # Undocumented options
+    target_link_options(dbc PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
+
+    # Generate out stub
+    if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
+        file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
+        # CertUtil has been included since Windows XP
+        execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        file(REMOVE newstub.txt)
+        set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
+    endif()
+    
+    # use our own stub
+    if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        target_link_options(dbc PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
+    else()
+        message(WARNING "Could not find stub.bin")
+    endif()
+
 
 
 endif()

@@ -310,53 +310,6 @@ int deckard_main()
 	nt::commandliner cmd(cmdparse);
 	cmd.process();
 
-	constexpr u32                 thread_count = 16;
-	taskpool::taskpool            tp(thread_count);
-	u64                           real = 0;
-	std::vector<u64>              sp;
-	std::array<u64, thread_count> multithread_answers{};
-
-	constexpr u64 counted = 1024 * 1024;
-	sp.reserve(counted);
-
-	auto ss = clock_now();
-
-	for (const auto& i : upto(counted))
-	{
-		sp.push_back(i);
-		real += sp[i];
-	}
-	clock_stop("Single thread", ss);
-
-	ss = clock_now();
-
-	const u64 work_split_count = sp.size() / tp.size();
-	dbg::println("Split {} to {} threads => {}", sp.size(), tp.size(), work_split_count);
-	for (u64 i = 0; i < sp.size(); i += work_split_count)
-	{
-		tp.add(
-		  [sp, start = i, end = work_split_count, &multithread_answers](size_t id)
-		  {
-			  // dbg::println("T {}: work {}-{}", id, start, start + end);
-			  for (int j = start; j < start + end; j++)
-				  multithread_answers[id] += sp[j];
-		  });
-	}
-	tp.join();
-
-
-	auto sumsum = std::ranges::fold_right(multithread_answers, 0ull, std::plus<>());
-	clock_stop("multi thread", ss);
-
-	u64 sumsum2 = 0;
-	for (const auto& i : multithread_answers)
-		sumsum2 += i;
-
-
-	dbg::println("real {}", real);
-	dbg::println("sum {}, {}", sumsum, sumsum2);
-
-	int x = 0;
 
 #if 0
 	{

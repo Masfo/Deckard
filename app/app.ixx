@@ -119,7 +119,7 @@ namespace deckard::app
 		bool is_running{false};
 		bool is_sizing{false};
 		bool is_minimized{false};
-
+		bool show_cursor{false};
 
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -999,8 +999,8 @@ namespace deckard::app
 
 			case WM_SETCURSOR:
 			{
-				// if (LOWORD(lParam) == HTCLIENT)
-				//	SetCursor(0);
+				if (show_cursor == false and LOWORD(lParam) == HTCLIENT)
+					SetCursor(0);
 				return 0;
 			}
 

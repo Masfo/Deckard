@@ -1,5 +1,6 @@
 module;
 #include <Windows.h>
+#include <objbase.h>
 
 export module deckard;
 
@@ -74,19 +75,19 @@ export import deckard_build;
 
 namespace deckard
 {
-	using CoInitializePtr   = HRESULT(LPVOID);
+	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
 	using CoUninitializePtr = void(void);
 
 	export void initialize()
 	{
+		deckard::dbg::redirect_console(true);
+
 		SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 		SetDllDirectoryW(L"");
 
-		auto CoInitialize = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitialize");
-		if (CoInitialize)
-			CoInitialize(0);
-
-		deckard::dbg::redirect_console(true);
+		auto CoInitializeEx = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
+		if (CoInitializeEx)
+			CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 		deckard::random::initialize();
 		net::initialize();
@@ -108,9 +109,8 @@ namespace deckard
 
 extern "C" int deckard_main();
 
-int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-
 	deckard::initialize();
 
 	int ret = deckard_main();

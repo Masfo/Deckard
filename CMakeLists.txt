@@ -100,7 +100,6 @@ if(MSVC)
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release" OR ${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
     
-        target_link_options(deckard PRIVATE /DEBUG)
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
         set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
         set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
@@ -110,29 +109,17 @@ if(MSVC)
         target_compile_options(deckard PRIVATE /O2 /Os)
         target_compile_options(deckard PRIVATE /GS-)
         target_compile_options(deckard PRIVATE /Gw /MP)
+        target_compile_options(deckard PRIVATE /EHsc)
+        target_compile_options(deckard PRIVATE /GF)
+
+
         
         target_link_options(deckard PRIVATE /RELEASE)
+        target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
 
 
-        # Undocumented options
-        target_link_options(deckard PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
-        # # Generate out stub
-        # if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-        #     set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
-        #     file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
-        #     # CertUtil has been included since Windows XP
-        #     execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        #     file(REMOVE newstub.txt)
-        #     set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
-        # endif()
-        # 
-        # # use our own stub
-        # if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-        #     target_link_options(deckard PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
-        # else()
-        #     message(WARNING "Could not find stub.bin")
-        # endif()
+
 
 
     endif()
@@ -362,8 +349,8 @@ if(PROJECT_IS_TOP_LEVEL)
     enable_testing()
     add_subdirectory(tests)
     
-    add_subdirectory(example/window)
     #add_subdirectory(example/empty)
+    add_subdirectory(example/window)
 
 endif()
 
