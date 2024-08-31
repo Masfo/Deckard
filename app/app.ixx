@@ -89,7 +89,8 @@ namespace deckard::app
 		};
 
 	private:
-		properties     m_properties;
+		properties m_properties;
+
 		vulkan::vulkan vulkan;
 		// std::array<RAWINPUTDEVICE, 1> raw_inputs;
 		// std::vector<char>             rawinput_buffer;
@@ -118,6 +119,7 @@ namespace deckard::app
 		bool is_running{false};
 		bool is_sizing{false};
 		bool is_minimized{false};
+
 
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -736,6 +738,7 @@ namespace deckard::app
 
 			set_title(m_properties.title);
 
+
 			//	input_initialize();
 
 			is_running = true;
@@ -996,8 +999,8 @@ namespace deckard::app
 
 			case WM_SETCURSOR:
 			{
-				if (LOWORD(lParam) == HTCLIENT)
-					SetCursor(0);
+				// if (LOWORD(lParam) == HTCLIENT)
+				//	SetCursor(0);
 				return 0;
 			}
 
@@ -1054,6 +1057,7 @@ namespace deckard::app
 
 			case WM_GETMINMAXINFO:
 			{
+
 				extent new_min = adjust_to_current_dpi(min_extent);
 
 				POINT minsize{(LONG)new_min.width, (LONG)new_min.height};
@@ -1230,6 +1234,8 @@ namespace deckard::app
 			case WM_XBUTTONDOWN:
 			case WM_XBUTTONUP:
 			{
+				auto [width, height] = get_clientsize();
+				dbg::println("{}x{} ({:.3f}", width, height, (f32)width / height);
 				return 0;
 			}
 

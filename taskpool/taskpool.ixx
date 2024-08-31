@@ -8,7 +8,7 @@ namespace deckard::taskpool
 	export class taskpool
 	{
 	public:
-		using work = std::function<void(std::thread::id id)>;
+		using work = std::function<void(size_t id)>;
 
 	private:
 		std::vector<std::thread> threads;
@@ -25,13 +25,14 @@ namespace deckard::taskpool
 		}
 
 		taskpool(size_t threadcount)
-
 		{
-			//
+			if (threadcount == 0)
+				threadcount = std::thread::hardware_concurrency();
+
 			for (size_t i = 0; i < threadcount; i++)
 			{
 				threads.emplace_back(
-				  [this]
+				  [this, i]
 				  {
 					  while (true)
 					  {
@@ -43,7 +44,7 @@ namespace deckard::taskpool
 						  }
 						  else
 						  {
-							  task(std::this_thread::get_id());
+							  task(i);
 						  }
 					  }
 				  });
