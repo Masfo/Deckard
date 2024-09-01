@@ -61,6 +61,7 @@ namespace deckard
 		{
 // integers
 #ifdef _DEBUG
+
 			if (value >= return_min and value <= return_max)
 				return static_cast<Ret>(u);
 
@@ -74,8 +75,6 @@ namespace deckard
 #ifdef _DEBUG
 
 			std::int64_t max_cast = static_cast<std::int64_t>(value);
-
-
 			if (max_cast >= return_min and max_cast <= return_max)
 				return static_cast<Ret>(value);
 

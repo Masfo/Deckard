@@ -301,8 +301,34 @@ namespace nt
 
 } // namespace nt
 
+class matn
+{
+private:
+public:
+};
+
+std::string read_file(fs::path filename)
+{
+	if (not fs::exists(filename))
+		return {};
+
+	std::ifstream ifile(filename);
+	std::string   str{(std::istreambuf_iterator<char>(ifile)), std::istreambuf_iterator<char>()};
+
+	return str;
+}
+
 int deckard_main()
 {
+
+	auto insi = read_file("input.ini");
+
+	std::string        line;
+	std::istringstream iss(insi);
+	while (std::getline(iss, line, '\n'))
+	{
+		dbg::println("line: {}", line);
+	}
 
 
 	std::string cmdparse("-v -o\"file.txt\" -d 1024");
