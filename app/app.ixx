@@ -1234,8 +1234,6 @@ namespace deckard::app
 			case WM_XBUTTONDOWN:
 			case WM_XBUTTONUP:
 			{
-				auto [width, height] = get_clientsize();
-				dbg::println("{}x{} ({:.3f}", width, height, (f32)width / height);
 				return 0;
 			}
 

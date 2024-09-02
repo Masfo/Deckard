@@ -321,6 +321,22 @@ std::string read_file(fs::path filename)
 int deckard_main()
 {
 
+	file         f("input.ini");
+	utf8::string inistr(f.data());
+
+	utf8::string u8str("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
+
+	dbg::println("{} in bytes {}", u8str.size(), u8str.size_in_bytes());
+
+
+	for (const auto& cp : u8str)
+	{
+		dbg::println("{:X}", (int)cp);
+	}
+
+
+	int kx = 0;
+
 	auto insi = read_file("input.ini");
 
 	std::string        line;

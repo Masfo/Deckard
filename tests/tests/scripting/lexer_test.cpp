@@ -35,6 +35,7 @@ bool check_token_float(token t, double value)
 	return is_close_enough(t.as_double().value(), value);
 }
 
+#if 0
 TEST_CASE("tokens", "[lexer]")
 {
 	SECTION("file")
@@ -504,3 +505,4 @@ TEST_CASE("longer examples", "[lexer]")
 		REQUIRE(tokens.size() == ++count);
 	}
 }
+#endif

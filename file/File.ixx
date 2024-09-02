@@ -97,7 +97,16 @@ namespace deckard
 			return view;
 		}
 
-		std::optional<std::span<u8>> data() const noexcept
+		std::vector<u8> data() const
+		{
+			std::vector<u8> ret;
+			ret.reserve(view.size());
+
+			std::ranges::copy_n(view.data(), view.size(), std::back_inserter(ret));
+			return ret;
+		}
+
+		std::optional<std::span<u8>> opt_data() const noexcept
 		{
 			if (view.empty())
 				return {};

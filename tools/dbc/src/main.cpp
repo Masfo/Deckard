@@ -371,23 +371,7 @@ int deckard_main()
 	// ==, !=
 	// sizeof == 32
 
-
-	utf8::utf8file file("input.ini");
-
-	if (file.is_open())
-	{
-		//
-		lexer::tokenizer_config tf{.dot_identifier = true, .output_eol = true, .ignore_keywords = true};
-		lexer::tokenizer        tokens(file.name(), tf);
-
-
-		auto lk = tokens.current();
-
-		int k = 0;
-		//
-	}
-
-
+#if 0
 	lexer::tokenizer l2(R"(
 [section.name]
 key=value
@@ -399,7 +383,7 @@ aspect=1.666
 fullscreen=true
 )"sv);
 	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
-
+#endif
 
 	std::array<std::array<u32, 3>, 3> grid{1, 2, 3, 4, 5, 6, 7, 8, 9};
 
