@@ -21,16 +21,16 @@ set_target_properties(utftables PROPERTIES
 set_target_properties(utftables PROPERTIES DEBUG_POSTFIX "d")
 
 set_target_properties(utftables PROPERTIES 
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin
-    ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
-    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib
-    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_LIST_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_LIST_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_CURRENT_LIST_DIR}/bin
+    ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_LIST_DIR}/lib
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_LIST_DIR}/lib
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_LIST_DIR}/lib
 
     PDB_NAME utftables
-    PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/pdb"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/bin/pdb"
 )
 
 if(MSVC)
@@ -75,7 +75,7 @@ if(MSVC)
         target_compile_options(utftables  PRIVATE /Zi)     # /ZI edit/continue
     
         target_link_options(utftables PRIVATE /INCREMENTAL)
-        target_link_options(utftables PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/utftables.ilk)
+        target_link_options(utftables PRIVATE /ILK:${CMAKE_CURRENT_LIST_DIR}/bin/pdb/utftables.ilk)
 
         target_link_options(utftables PRIVATE /DEBUG)
         target_link_options(utftables PRIVATE /NOVCFEATURE /NOCOFFGRPINFO)
@@ -104,26 +104,26 @@ if(MSVC)
         target_link_options(utftables PRIVATE  /emittoolversioninfo:no /emitpogophaseinfo)
 
         #  # Generate out stub
-        # if(NOT EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
+        # if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/stub.bin)
         #     set(CMAKE_DISABLE_SOURCE_CHANGES OFF)   
         #     file(WRITE newstub.txt "4D 5A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
         #     # CertUtil has been included since Windows XP
-        #     execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        #     execute_process( COMMAND certutil -f -decodehex newstub.txt stub.bin WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
         #     file(REMOVE newstub.txt)
         #     set(CMAKE_DISABLE_SOURCE_CHANGES ON)   
         # endif()
         # 
         # # use our own stub
-        # if(EXISTS ${CMAKE_SOURCE_DIR}/stub.bin)
-        #     target_link_options(utftables PRIVATE /stub:${CMAKE_SOURCE_DIR}/stub.bin )
+        # if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/stub.bin)
+        #     target_link_options(utftables PRIVATE /stub:${CMAKE_CURRENT_LIST_DIR}/stub.bin )
         # else()
         #     message(WARNING "Could not find stub.bin")
         # endif()
 
         # Manifest
-        if(EXISTS "${CMAKE_SOURCE_DIR}/manifest.txt")
+        if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/manifest.txt")
             target_link_options(${target} PRIVATE /MANIFEST:EMBED)
-            target_link_options(${target} PRIVATE /MANIFESTINPUT:${CMAKE_SOURCE_DIR}/manifest.txt)
+            target_link_options(${target} PRIVATE /MANIFESTINPUT:${CMAKE_CURRENT_LIST_DIR}/manifest.txt)
         endif()
 
     endif()
@@ -209,21 +209,21 @@ include(ExternalProject)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
 
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/bin/DerivedCodeProperties.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/DerivedCodeProperties.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
-        ${CMAKE_SOURCE_DIR}/bin/DerivedCoreProperties.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/DerivedCoreProperties.txt)
 message(STATUS Downloaded latest DerivedCoreProperties.txt)
 endif()
 
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/bin/UnicodeData.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/UnicodeData.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
-        ${CMAKE_SOURCE_DIR}/bin/UnicodeData.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/UnicodeData.txt)
 message(STATUS Downloaded latest UnicodeData.txt)
 endif()
 
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/bin/CaseFolding.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/CaseFolding.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
-        ${CMAKE_SOURCE_DIR}/bin/CaseFolding.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/CaseFolding.txt)
 message(STATUS Downloaded latest CaseFolding.txt)
 endif()
 

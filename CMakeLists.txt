@@ -344,6 +344,8 @@ if(PROJECT_IS_TOP_LEVEL)
     endif()
 
     add_subdirectory(tools/dbc)
+    add_subdirectory(tools/utftables)
+
     
     
     enable_testing()

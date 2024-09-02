@@ -81,8 +81,9 @@ namespace deckard::utf8
 			friend bool operator==(const iterator& a, const iterator& b) { return a.index == b.index; };
 
 			codepoints* p{nullptr};
-			value_type  current{REPLACEMENT_CHARACTER};
-			i32         index{0};
+
+			value_type current{REPLACEMENT_CHARACTER};
+			i32        index{0};
 		};
 
 	public:

@@ -14,7 +14,7 @@ namespace deckard::utf8
 	bool is_in_range(char32_t codepoint, const std::array<char32_range, N>& range) noexcept
 	{
 #if 1
-		// ~20-40% faster (depends on input)
+		// ~20-40% faster (depends on input) than lower_bound
 		size_t low    = 0;
 		size_t high   = range.size() - 1;
 		size_t middle = 0;
