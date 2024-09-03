@@ -301,11 +301,68 @@ namespace nt
 
 } // namespace nt
 
-class matn
+template<size_t SSO_SIZE = 32>
+class alignas(8) u8string_sso
 {
+	static constexpr u32 MAX_CAPACITY = (1 < 31) - 1;
+
+	union CapacitySizeUnion
+	{
+		u64 value{0};
+
+		struct
+		{
+			u32 size : 32;
+			u32 capacity : 31;
+			u32 sso : 1; // tag for heap allocation
+		} bits;
+	};
+
+
 private:
+	CapacitySizeUnion m_cap_size;
+
+	union
+	{
+		u8  stackbuf[SSO_SIZE - sizeof(CapacitySizeUnion)]{0};
+		u8* ptr;
+	};
+
+	void set_sso(bool sso) { m_cap_size.bits.sso = true; }
+
+	bool is_sso() const { return static_cast<bool>(m_cap_size.bits.sso); }
+
+	void set_capacity(u32 newcap)
+	{
+		assert::check(newcap <= MAX_CAPACITY, "String has maximum capacity of 2^31 bits");
+		m_cap_size.bits.capacity = std::min(newcap, MAX_CAPACITY);
+	}
+
+	void set_size(u32 newsize) { m_cap_size.bits.size = newsize; }
+
 public:
+	u32 capacity() const { return static_cast<u32>(m_cap_size.bits.capacity); }
+
+	u32 size() const { return static_cast<u32>(m_cap_size.bits.size); }
 };
+
+static_assert(sizeof(u8string_sso<>) == 32, "u8string_sso should be 32-bytes");
+
+union Data
+{
+	struct NonSSO
+	{
+		u8* ptr;
+		u32 size;
+		u32 capacity;
+	} non_sso;
+
+	struct SSO
+	{
+		u8 string[16 + sizeof(NonSSO) / sizeof(u8) - 1];
+		u8 size; // turns to null byte when 0
+	} sso;
+} m_data;
 
 std::string read_file(fs::path filename)
 {
@@ -320,6 +377,12 @@ std::string read_file(fs::path filename)
 
 int deckard_main()
 {
+
+
+	u8string_sso sso;
+	dbg::println("sso: {}", sizeof(sso));
+	dbg::println("sso: {}", sizeof(Data));
+
 
 	file         f("input.ini");
 	utf8::string inistr(f.data());
