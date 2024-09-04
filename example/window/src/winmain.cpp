@@ -350,19 +350,21 @@ static_assert(sizeof(u8string_sso<>) == 32, "u8string_sso should be 32-bytes");
 
 union Data
 {
-	struct NonSSO
+	struct alignas(8) NonSSO
 	{
 		u8* ptr;
 		u32 size;
 		u32 capacity;
 	} non_sso;
 
-	struct SSO
+	struct alignas(8) SSO
 	{
-		u8 string[16 + sizeof(NonSSO) / sizeof(u8) - 1];
+		u8 string[sizeof(NonSSO) / sizeof(u8) - 1];
 		u8 size; // turns to null byte when 0
 	} sso;
 } m_data;
+
+// static_assert(sizeof(Data) == 32);
 
 std::string read_file(fs::path filename)
 {
@@ -380,8 +382,10 @@ int deckard_main()
 
 
 	u8string_sso sso;
-	dbg::println("sso: {}", sizeof(sso));
-	dbg::println("sso: {}", sizeof(Data));
+	dbg::println("sso1: {}", sizeof(sso));
+
+	Data dd;
+	dbg::println("sso2: {}", sizeof(dd));
 
 
 	file         f("input.ini");
