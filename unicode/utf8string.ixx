@@ -106,18 +106,27 @@ namespace deckard::utf8
 		}
 
 		std::vector<u8> buffer;
-		// std::span<u8> buffer;
-		type decoded_point{0};
-		type state{UTF8_ACCEPT};
-		u32  idx{0};
-		u32  codepoint_count{};
+		type            decoded_point{0};
+		type            state{UTF8_ACCEPT};
+		u32             idx{0};
+		u32             codepoint_count{};
+
+		void update_cache() { (void)size(); }
 
 	public:
 		string() = default;
 
-		string(std::string_view input) { std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer)); }
+		string(std::string_view input)
+		{
+			std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
+			update_cache();
+		}
 
-		string(std::span<u8> input) { std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer)); }
+		string(std::span<u8> input)
+		{
+			std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
+			update_cache();
+		}
 
 		string(std::optional<std::vector<u8>> input)
 		{
@@ -125,11 +134,17 @@ namespace deckard::utf8
 			{
 				auto i = *input;
 				std::ranges::copy_n(i.data(), i.size(), std::back_inserter(buffer));
+				update_cache();
 			}
 		}
 
 		string(std::vector<u8> input)
-			: buffer(input)
+			: string(std::optional<std::vector<u8>>(input))
+		{
+		}
+
+		string(const char* input)
+			: string(std::string_view{input})
 		{
 		}
 
@@ -165,39 +180,45 @@ namespace deckard::utf8
 
 		type current() const { return decoded_point; }
 
-		type next(u32 offset = 1)
+		type next()
 		{
-			u8 byte = 0;
-			// TODO: not this while ugh
-			while (offset--)
+			for (state = 0; idx < buffer.size(); idx++)
 			{
-				for (state = 0; idx < buffer.size(); idx++)
-				{
-					byte = buffer[idx];
+				u8 byte = buffer[idx];
 
-					if (!read(byte))
-					{
-						idx += 1;
-						return decoded_point;
-					}
-					else if (state == UTF8_REJECT)
-					{
-						idx += 1;
-						return REPLACEMENT_CHARACTER;
-					}
+				if (!read(byte))
+				{
+					idx += 1;
+					return decoded_point;
 				}
-
-				if (state != UTF8_ACCEPT)
+				else if (state == UTF8_REJECT)
 				{
-					state = UTF8_ACCEPT;
+					idx += 1;
 					return REPLACEMENT_CHARACTER;
 				}
+			}
+
+			if (state != UTF8_ACCEPT)
+			{
+				state = UTF8_ACCEPT;
+				return REPLACEMENT_CHARACTER;
 			}
 
 			return decoded_point;
 		}
 
 		auto data() const { return buffer.data(); }
+
+		auto codepoints() -> std::vector<type>
+		{
+			std::vector<type> ret;
+
+
+			for (const auto& cp : *this)
+				ret.emplace_back(cp);
+
+			return ret;
+		}
 	};
 
 } // namespace deckard::utf8

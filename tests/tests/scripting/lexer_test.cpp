@@ -16,6 +16,7 @@ using namespace deckard::math;
 using namespace deckard::utf8;
 using namespace deckard;
 
+#if 0
 bool check_token(token t, enum Token type, const std::wstring& str)
 {
 	//
@@ -34,6 +35,7 @@ bool check_token_float(token t, double value)
 
 	return is_close_enough(t.as_double().value(), value);
 }
+#endif
 
 #if 0
 TEST_CASE("tokens", "[lexer]")
