@@ -146,6 +146,9 @@ namespace deckard::lexer
 		bool operator<(const keyword& lhs) const { return word < lhs.word; }
 	};
 
+#pragma region !Old lexer
+#if 0
+
 	using lexeme = std::vector<char32_t>;
 
 
@@ -182,7 +185,7 @@ namespace deckard::lexer
 	export struct tokenizer_config
 	{
 		std::string_view digit_separator{"\'"};
-		std::string_view line_comment{"//"};
+		std::string_view line_comment{R"(//)"};
 		bool             dot_identifier{false};
 		bool             output_eol{false};
 		bool             ignore_keywords{false};
@@ -328,7 +331,7 @@ namespace deckard::lexer
 					if (config.output_eol)
 						insert_token(Token::EOL, {}, cursor);
 
-					m_data.next(2);
+					m_data.next();
 
 					cursor = 0;
 					line += 1;
@@ -340,7 +343,7 @@ namespace deckard::lexer
 					if (config.output_eol)
 						insert_token(Token::EOL, {}, cursor);
 
-					m_data.next(1);
+					m_data.next();
 					cursor = 0;
 					line += 1;
 					continue;
@@ -1061,4 +1064,7 @@ namespace deckard::lexer
 			return identifier_to_token(wstr);
 		}
 	};
+#endif
+#pragma endregion
+
 } // namespace deckard::lexer

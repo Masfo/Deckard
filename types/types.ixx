@@ -17,9 +17,10 @@ export namespace deckard
 	using u64 = std::uint64_t;
 	using i64 = std::int64_t;
 
-	using byte  = unsigned char;
-	using usize = std::uintmax_t;
-	using isize = std::intmax_t;
+	using char32 = char32_t;
+	using byte   = unsigned char;
+	using usize  = std::uintmax_t;
+	using isize  = std::intmax_t;
 
 	using f32 = float;
 	using f64 = double;

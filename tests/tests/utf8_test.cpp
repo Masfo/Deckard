@@ -16,21 +16,20 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(utf8::codepoint_width(str.next()) == 2);
 		REQUIRE(utf8::codepoint_width(str.next()) == 3);
 		REQUIRE(utf8::codepoint_width(str.next()) == 4);
-	}
 
-	SECTION("valid codepoints")
-	{
-		utf8::string str("🌍1🍋Ä");
+		str = "🌍1🍋Ä";
 
 		REQUIRE(utf8::codepoint_width(str.next()) == 4);
 		REQUIRE(utf8::codepoint_width(str.next()) == 1);
 		REQUIRE(utf8::codepoint_width(str.next()) == 4);
 		REQUIRE(utf8::codepoint_width(str.next()) == 2);
+	}
 
-
+	SECTION("valid codepoints")
+	{
 		// abc
-		str       = "ABC";
-		auto test = str.codepoints();
+		utf8::string str  = "ABC";
+		auto         test = str.codepoints();
 		REQUIRE(test.size() == 3);
 		REQUIRE(test[0] == 0x41);
 		REQUIRE(test[1] == 0x42);
@@ -45,7 +44,6 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		REQUIRE(test[2] == 0x1f34b);
 		REQUIRE(test[3] == 0xC4);
 
-		//
 		//             UTF32		UTF8
 		// 1 byte: A   0x41			0x41
 		// 2 byte: Ä   0xC4			0xC3 0x84
@@ -79,6 +77,12 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		test = str.codepoints();
 		REQUIRE(test.size() == 1);
 		REQUIRE(test[0] == 0xFFFE);
+
+		// Replacement character 0xFFFD (0xEF 0xBF 0xBD)
+		str  = "\xEF\xBF\xDB";
+		test = str.codepoints();
+		REQUIRE(test.size() == 1);
+		REQUIRE(test[0] == utf8::REPLACEMENT_CHARACTER);
 	}
 
 	SECTION("invalid codepoints")

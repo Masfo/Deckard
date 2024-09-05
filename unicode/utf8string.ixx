@@ -43,13 +43,12 @@ namespace deckard::utf8
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REJECT{12};
 
-	export constexpr char32_t REPLACEMENT_CHARACTER{0xFFFD};
-	export constexpr char32_t EOF_CHARACTER{0xFFFF};
+	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // 0xEF 0xBF 0xBD (efbfbd)
 
 	export class string
 	{
 	public:
-		using type = char32_t;
+		using type = char32;
 
 	private:
 		struct iterator
@@ -91,7 +90,7 @@ namespace deckard::utf8
 		{
 			assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
 
-			u32 type = utf8_table[byte];
+			const u32 type = utf8_table[byte];
 
 			decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
 			state         = utf8_table[256 + state + type];
@@ -111,7 +110,11 @@ namespace deckard::utf8
 		u32             idx{0};
 		u32             codepoint_count{};
 
-		void update_cache() { (void)size(); }
+		void update_cache()
+		{
+			reset();
+			(void)size();
+		}
 
 	public:
 		string() = default;
@@ -150,9 +153,9 @@ namespace deckard::utf8
 
 		bool empty() const noexcept { return idx >= buffer.size(); }
 
-		size_t size_in_bytes() const { return buffer.size(); }
+		u64 size_in_bytes() const { return buffer.size(); }
 
-		size_t size()
+		u64 size()
 		{
 			if (codepoint_count != 0)
 				return codepoint_count;
@@ -172,13 +175,11 @@ namespace deckard::utf8
 			return codepoint_count;
 		}
 
-		size_t count() { return size(); }
+		u64 count() { return size(); }
 
 		iterator begin() { return iterator(this, idx); }
 
 		iterator end() { return iterator(this, -1); }
-
-		type current() const { return decoded_point; }
 
 		type next()
 		{
@@ -212,7 +213,7 @@ namespace deckard::utf8
 		auto codepoints() -> std::vector<type>
 		{
 			std::vector<type> ret;
-
+			ret.reserve(count());
 
 			for (const auto& cp : *this)
 				ret.emplace_back(cp);
