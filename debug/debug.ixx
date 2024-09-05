@@ -5,6 +5,7 @@ module;
 
 export module deckard.debug;
 
+
 import std;
 
 using namespace std::string_view_literals;
@@ -12,6 +13,15 @@ using namespace std::string_view_literals;
 void output_message(const std::string_view message) noexcept
 {
 	std::print(std::cout, "{}"sv, message);
+#ifdef _DEBUG
+
+	OutputDebugStringA(message.data());
+#endif
+}
+
+void error_output_message(const std::string_view message) noexcept
+{
+	std::print(std::cerr, "{}"sv, message);
 #ifdef _DEBUG
 
 	OutputDebugStringA(message.data());
@@ -56,6 +66,20 @@ export namespace deckard::dbg
 {
 	using namespace std::string_view_literals;
 
+	void breakpoint()
+	{
+#if __cpp_lib_debugging && __has_include(<debugging>)
+#error "Debugging (C++26) is supported, use it"
+#endif
+
+#ifdef _DEBUG
+		if (IsDebuggerPresent())
+		{
+			DebugBreak();
+		}
+#endif
+	}
+
 	// debug
 	template<typename... Args>
 	void print([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
@@ -66,8 +90,7 @@ export namespace deckard::dbg
 			output_message(fmt);
 	}
 
-	// debugln
-
+	// println
 	template<typename... Args>
 	void println([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
 	{
@@ -82,6 +105,22 @@ export namespace deckard::dbg
 	}
 
 	void println() noexcept { output_message("\n"); }
+
+	// eprintln
+	template<typename... Args>
+	void eprintln([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	{
+		if constexpr (sizeof...(Args) > 0)
+		{
+			error_output_message(format("{}\n"sv, format(fmt, args...)));
+		}
+		else
+		{
+			error_output_message(format("{}\n"sv, fmt));
+		}
+	}
+
+	void eprintln() noexcept { error_output_message("\n"); }
 
 	template<typename... Args>
 	void if_true([[maybe_unused]] bool cond, [[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
@@ -139,10 +178,8 @@ export namespace deckard::dbg
 		{
 			dbg::println("PANIC: {}", fmt);
 		}
-		if (IsDebuggerPresent())
-		{
-			DebugBreak();
-		}
+
+		breakpoint();
 #endif
 		std::terminate();
 	}
@@ -180,14 +217,12 @@ export namespace deckard::dbg
 
 export namespace deckard
 {
-	void todo([[maybe_unused]] std::string_view            fmt,
-			  [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
+	template<typename... Args>
+	void todo([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
 	{
-#ifdef _DEBUG
-		dbg::println("{}({}): TODO: {}", loc.file_name(), loc.line(), fmt);
-		if (IsDebuggerPresent())
-			DebugBreak();
-#endif
+		//
+		deckard::dbg::println(format(fmt, args...));
+		deckard::dbg::breakpoint();
 	}
 
 
