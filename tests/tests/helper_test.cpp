@@ -39,16 +39,9 @@ TEST_CASE("helpers", "[helpers]")
 
 	SECTION("trim")
 	{
-		std::string input("\t hello \t");
-		auto        trimmed = trim_front(input);
-
-		REQUIRE(trimmed == "hello \t");
-
-		trimmed = trim_back(trimmed);
-		REQUIRE(trimmed == "hello");
-
-		trimmed = trim("\t\n hello \n\t");
-		REQUIRE(trimmed == "hello");
+		REQUIRE(trim_front("\t\n hello \n\t") == "hello \n\t");
+		REQUIRE(trim_back("\t\n hello \n\t") == "\t\n hello");
+		REQUIRE(trim("\t\n hello \n\t") == "hello");
 	}
 
 
