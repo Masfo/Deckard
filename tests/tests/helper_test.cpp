@@ -47,8 +47,8 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(splitted.size() == 4);
 		REQUIRE(splitted[0] == "hello");
 		REQUIRE(splitted[1] == "");
-		REQUIRE(splitted[1] == "world|dog");
-		REQUIRE(splitted[2] == "cat");
+		REQUIRE(splitted[2] == "world|dog");
+		REQUIRE(splitted[3] == "cat");
 	}
 
 	SECTION("split_exact")
@@ -59,7 +59,6 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(splitted.size() == 2);
 		REQUIRE(splitted[0] == "hello");
 		REQUIRE(splitted[1] == "WORLDmagic");
-
 	}
 
 	SECTION("split_stride")
