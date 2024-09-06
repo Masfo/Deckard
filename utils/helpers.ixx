@@ -285,6 +285,49 @@ export namespace deckard
 		}
 	}
 
+	// split_exact
+	std::vector<std::string_view> split_exact(std::string_view str, std::string_view delims, bool include_empty = false) noexcept
+	{
+		std::vector<std::string_view> output;
+		u64                           first = 0;
+		while (first < str.size())
+		{
+			const auto second = str.find(delims, first);
+
+			if (include_empty || first != second) // empty line
+				output.emplace_back(str.substr(first, second - first));
+
+			if (second == std::string_view::npos)
+				break;
+			first = second + delims.size();
+		}
+		return output;
+	}
+
+	std::vector<std::string_view> split_exact(std::string_view str, u64 length)
+	{
+		std::vector<std::string_view> v;
+		v.reserve(2);
+		if (length <= str.length())
+		{
+			v.emplace_back(str.substr(0, length));
+			v.emplace_back(str.substr(length));
+		}
+		return v;
+	}
+
+	std::vector<std::string_view> split_stride(std::string_view str, u64 stride) noexcept
+	{
+		std::vector<std::string_view> v;
+
+		for (u64 i = 0; i <= str.length(); i += stride)
+		{
+			if (i < str.length())
+				v.emplace_back(str.substr(i, stride));
+		}
+		return v;
+	}
+
 	// trim
 	std::string_view trim_front(std::string_view s)
 	{
@@ -319,7 +362,7 @@ export namespace deckard
 	};
 
 	// move index
-	template<ContainerResize T>
+	template<basic_container T>
 	void move_index(T& v, size_t oldIndex, size_t newIndex)
 	{
 		if (oldIndex > v.size() || newIndex > v.size() || oldIndex == newIndex)
@@ -332,17 +375,28 @@ export namespace deckard
 	}
 
 	// index_of
-	template<typename T, typename U>
-	auto index_of(const T& v, U find) -> size_t
+	template<non_string_container T, typename U>
+	auto index_of(const T& v, U find) -> u64
 	{
 		auto result = std::ranges::find(v, find);
 		if (result == v.end())
 		{
 			dbg::println("index_of: could not find '{}' from container", find);
-			return std::numeric_limits<size_t>::max();
+			return max_value<u64>;
 		}
 
 		return std::ranges::distance(v.begin(), result);
+	}
+
+	auto index_of(std::string_view input, std::string_view substr) -> u64
+	{
+		auto found = input.find(substr);
+		if (found == std::string_view::npos)
+		{
+			dbg::println("index_of: could not find '{}' from string", substr);
+			return max_value<u64>;
+		}
+		return found;
 	}
 
 	// take n elements
