@@ -47,6 +47,14 @@ export namespace deckard
 
 	constexpr f64 operator"" _f64(const u64 value) noexcept { return static_cast<f64>(value); }
 
+	// limits
+	template<std::integral T>
+	constexpr T max_value = std::numeric_limits<T>::max();
+
+	template<std::integral T>
+	constexpr T min_value = std::numeric_limits<T>::min();
+
+
 	// Sizes
 	using kibi = std::ratio<1ULL << 10>;
 	using mebi = std::ratio<1ULL << 20>;
