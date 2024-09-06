@@ -89,30 +89,15 @@ export namespace deckard
 	extent to_extent(RECT r) { return {(u16)(r.right - r.left), (u16)(r.bottom - r.top)}; }
 
 	export template<typename T>
-	concept basic_container = requires(T cont) {
-		// Basic requirements
-		{ cont.size() } -> std::convertible_to<std::size_t>;
-		{ cont.empty() } -> std::convertible_to<bool>;
-		{ cont.begin() } -> std::convertible_to<typename T::iterator>;
-		{ cont.end() } -> std::convertible_to<typename T::iterator>;
+	concept basic_container = requires(T cont) { requires std::ranges::range<T>; };
 
-		// Element access
-		{ cont.data() } -> std::convertible_to<typename T::pointer>;
-		{ cont.at(0) } -> std::convertible_to<typename T::reference>;
-		{ cont[0] } -> std::convertible_to<typename T::reference>;
-		{ cont.front() } -> std::convertible_to<typename T::reference>;
-		{ cont.back() } -> std::convertible_to<typename T::reference>;
+	export template<typename T>
+	concept non_string_container = requires(T) {
+		requires std::ranges::range<T>;
 
-		// Modifiers
-		{ cont.swap(cont) };
-
-		// Iterators
-		{ cont.begin() != cont.end() } -> std::convertible_to<bool>;
-		{ *cont.begin() } -> std::convertible_to<typename T::reference>;
-		{ ++cont.begin() } -> std::convertible_to<typename T::iterator>;
-		{ --cont.begin() } -> std::convertible_to<typename T::iterator>;
+		requires !std::is_same_v<T, std::string> && !std::is_same_v<T, std::wstring> && !std::is_same_v<T, std::string_view> &&
+				   !std::is_same_v<T, std::wstring_view>;
 	};
-
 
 	/* Formatter
 		template <>
