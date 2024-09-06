@@ -6,6 +6,7 @@ import deckard.helpers;
 import deckard.types;
 
 using namespace deckard;
+using namespace std::string_view_literals;
 
 TEST_CASE("helpers", "[helpers]")
 {
@@ -25,6 +26,51 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(splitted.size() == 2);
 		REQUIRE(splitted[0] == "hello");
 		REQUIRE(splitted[1] == "world");
+	}
+
+	SECTION("split_exact")
+	{
+		std::string input("hello||world|dog||cat");
+		auto        splitted = split_exact(input, "||");
+
+		REQUIRE(splitted.size() == 3);
+		REQUIRE(splitted[0] == "hello");
+		REQUIRE(splitted[1] == "world|dog");
+		REQUIRE(splitted[2] == "cat");
+	}
+
+	SECTION("split_exact")
+	{
+		std::string input("hello||||world|dog||cat");
+		auto        splitted = split_exact(input, "||", true);
+
+		REQUIRE(splitted.size() == 4);
+		REQUIRE(splitted[0] == "hello");
+		REQUIRE(splitted[1] == "");
+		REQUIRE(splitted[1] == "world|dog");
+		REQUIRE(splitted[2] == "cat");
+	}
+
+	SECTION("split_exact")
+	{
+		std::string input("helloWORLDmagic");
+		auto        splitted = split_exact(input, 5);
+
+		REQUIRE(splitted.size() == 2);
+		REQUIRE(splitted[0] == "hello");
+		REQUIRE(splitted[1] == "WORLDmagic");
+
+	}
+
+	SECTION("split_stride")
+	{
+		std::string input("helloWORLDmagic");
+		auto        splitted = split_stride(input, 5);
+
+		REQUIRE(splitted.size() == 3);
+		REQUIRE(splitted[0] == "hello");
+		REQUIRE(splitted[1] == "WORLD");
+		REQUIRE(splitted[2] == "magic");
 	}
 
 	SECTION("split_once")
@@ -47,8 +93,15 @@ TEST_CASE("helpers", "[helpers]")
 
 	SECTION("index_of")
 	{
+		// array
 		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
 		REQUIRE(index_of(input, 40) == 3);
+
+		// string
+		REQUIRE(6 == index_of("hello world lazy dog"sv, "world"));
+		REQUIRE(2 == index_of("hello world lazy dog"sv, "l"));
+
+		REQUIRE(max_value<u64> == index_of("hello world lazy dog"sv, "Q"));
 	}
 
 	SECTION("take")
