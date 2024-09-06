@@ -203,6 +203,51 @@ export namespace deckard
 		return std::format("{:%F}", std::chrono::current_zone()->to_local(epoch));
 	}
 
+	// make_array
+	template<class... Ts>
+	constexpr std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)> make_array(Ts&&... ts)
+	{
+		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
+	}
+
+	// strip - range
+	std::string strip(std::string_view str, char a, char z) noexcept
+	{
+		std::string ret;
+		ret.reserve(str.size());
+		for (const char& c : str)
+			if (c < a || c > z)
+				ret += c;
+
+		return ret;
+	}
+
+	// strip -
+	std::string strip(std::string_view str, std::string_view strip_chars) noexcept
+	{
+		std::string ret;
+		ret.reserve(str.size());
+
+		for (auto& c : str)
+			if (!strip_chars.contains(c))
+				ret += c;
+
+		return ret;
+	}
+
+	// replace
+	std::string replace(std::string_view subject, const std::string_view search, std::string_view replace) noexcept
+	{
+		std::string output(subject);
+		size_t      pos = 0;
+		while ((pos = output.find(search, pos)) != std::string::npos)
+		{
+			output.replace(pos, search.length(), replace);
+			pos += replace.length();
+		}
+		return output;
+	}
+
 	// split
 	std::vector<std::string_view> split(std::string_view strv, std::string_view delims = " ")
 	{
@@ -223,6 +268,21 @@ export namespace deckard
 		}
 
 		return output;
+	}
+
+	// split_once
+	auto split_once(std::string_view str, std::string_view delims = " ")
+	{
+		using namespace std::string_literals;
+		size_t pos = str.find(delims);
+		if (pos != std::string::npos)
+		{
+			return make_array(str.substr(0, pos), str.substr(pos + 1));
+		}
+		else
+		{
+			return make_array(str, ""s);
+		}
 	}
 
 	// trim
@@ -249,6 +309,71 @@ export namespace deckard
 		s = trim_front(s);
 		return trim_back(s);
 	};
+
+	template<typename T>
+	concept ContainerResize = requires(T a) {
+		a.size();
+		a.resize(0);
+		a.begin();
+		a.rbegin();
+	};
+
+	// move index
+	template<ContainerResize T>
+	void move_index(T& v, size_t oldIndex, size_t newIndex)
+	{
+		if (oldIndex > v.size() || newIndex > v.size() || oldIndex == newIndex)
+			return;
+
+		if (oldIndex > newIndex)
+			std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
+		else
+			std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+	}
+
+	// index_of
+	template<typename T, typename U>
+	auto index_of(const T& v, U find) -> size_t
+	{
+		auto result = std::ranges::find(v, find);
+		if (result == v.end())
+		{
+			dbg::println("index_of: could not find '{}' from container", find);
+			return std::numeric_limits<size_t>::max();
+		}
+
+		return std::ranges::distance(v.begin(), result);
+	}
+
+	// take n elements
+	template<ContainerResize T>
+	auto take(const T& container, size_t count)
+	{
+		assert::check(count <= container.size(), "Count is larger than the container");
+
+		if (count == container.size())
+			return container;
+
+		T result{};
+		result.resize(count);
+		std::ranges::copy_n(container.begin(), count, result.begin());
+		return result;
+	}
+
+	// last n elements
+	template<ContainerResize T>
+	auto last(const T& container, size_t count)
+	{
+		assert::check(count <= container.size(), "Count is larger than the container");
+
+		if (count == container.size())
+			return container;
+
+		T result{};
+		result.resize(count);
+		std::ranges::copy_n(container.rbegin(), count, result.rbegin());
+		return result;
+	}
 
 	// Prettys
 	std::string pretty_bytes(u64 bytes)
