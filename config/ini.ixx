@@ -40,7 +40,7 @@ namespace deckard::ini
 	export class ini
 	{
 	public:
-		ini(fs::path filename) { m_tokens.open(filename); }
+		// ini(fs::path filename) { m_tokens.open(filename); }
 
 		value& operator[](std::string_view key) noexcept
 		{
@@ -56,7 +56,7 @@ namespace deckard::ini
 
 	private:
 		std::vector<value> kv_map;
-		lexer::tokenizer   m_tokens;
+		//	lexer::tokenizer   m_tokens;
 	};
 
 	// TODO: read to vector so writeback doesnt change order.
