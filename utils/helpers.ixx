@@ -414,6 +414,17 @@ export namespace deckard
 		return result;
 	}
 
+	template<size_t RSize, typename T, size_t S>
+	auto take(const std::array<T, S>& container)
+	{
+		assert::check(RSize <= container.size(), "Count is larger than the container");
+
+
+		std::array<T, RSize> result{};
+		std::ranges::copy_n(container.begin(), RSize, result.begin());
+		return result;
+	}
+
 	// last n elements
 	template<ContainerResize T>
 	auto last(const T& container, size_t count)
@@ -426,6 +437,18 @@ export namespace deckard
 		T result{};
 		result.resize(count);
 		std::ranges::copy_n(container.rbegin(), count, result.rbegin());
+		return result;
+	}
+
+	// last array
+	template<size_t RSize, typename T, size_t S>
+	auto last(const std::array<T, S>& container)
+	{
+		assert::check(RSize <= container.size(), "Count is larger than the container");
+
+
+		std::array<T, RSize> result{};
+		std::ranges::copy_n(container.rbegin(), RSize, result.rbegin());
 		return result;
 	}
 

@@ -113,6 +113,17 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(first == real);
 	}
 
+	SECTION("take array")
+	{
+		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::array<u32, 3> real{10, 20, 30};
+
+
+		auto first = take<3>(input);
+		REQUIRE(first.size() == 3);
+		REQUIRE(first == real);
+	}
+
 	SECTION("last")
 	{
 		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
@@ -123,6 +134,16 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(lastof == real);
 	}
 
+	SECTION("last array")
+	{
+		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::array<u32, 3> real{60, 70, 80};
+
+
+		auto first = last<3>(input);
+		REQUIRE(first.size() == 3);
+		REQUIRE(first == real);
+	}
 
 	SECTION("strip-range")
 	{
