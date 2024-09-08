@@ -359,12 +359,12 @@ union Data
 
 	struct alignas(8) SSO
 	{
-		u8 string[sizeof(NonSSO) / sizeof(u8) - 1];
+		u8 string[16 + sizeof(NonSSO) / sizeof(u8) - 1];
 		u8 size; // turns to null byte when 0
 	} sso;
-} m_data;
+};
 
-// static_assert(sizeof(Data) == 32);
+static_assert(sizeof(Data) == 32);
 
 std::string read_file(fs::path filename)
 {
@@ -377,8 +377,488 @@ std::string read_file(fs::path filename)
 	return str;
 }
 
+class fakestring
+{
+private:
+	std::vector<u8> data{};
+
+public:
+};
+
+
+// AST node types
+enum class NodeType : u8
+{
+	NUM,
+	NAME,
+	BIN_OP,
+	ASSIGN
+};
+
+struct Node
+{
+	NodeType type;
+
+	int         num_value;
+	std::string name;
+
+	struct
+	{
+		std::unique_ptr<Node> left;
+		std::unique_ptr<Node> right;
+		char                  op;
+	} bin_op;
+};
+
+std::unique_ptr<Node> create_num_node(int value)
+{
+	std::unique_ptr<Node> node = std::make_unique<Node>();
+	node->type                 = NodeType::NUM;
+	node->num_value            = value;
+	return node;
+};
+
+std::unique_ptr<Node> create_name_node(const std::string& name)
+
+{
+	std::unique_ptr<Node> node = std::make_unique<Node>();
+	node->type                 = NodeType::NAME;
+	node->name                 = name;
+	return node;
+}
+
+std::unique_ptr<Node> create_bin_op_node(char op, std::unique_ptr<Node> left, std::unique_ptr<Node> right)
+{
+	std::unique_ptr<Node> node = std::make_unique<Node>();
+	node->type                 = NodeType::BIN_OP;
+	node->bin_op.op            = op;
+	node->bin_op.left          = std::move(left);
+	node->bin_op.right         = std::move(right);
+	return node;
+}
+
+std::unique_ptr<Node> create_assign_node(const std::string& name, std::unique_ptr<Node> value)
+{
+	std::unique_ptr<Node> node = std::make_unique<Node>();
+	node->type                 = NodeType::ASSIGN;
+	node->bin_op.left          = create_name_node(name);
+	node->bin_op.right         = std::move(value);
+	node->name                 = name;
+	return node;
+}
+
+// Interpreter function
+int interpret_ast(const std::unique_ptr<Node>& node, std::unordered_map<std::string, int>& env)
+{
+	switch (node->type)
+	{
+		case NodeType::NUM: return node->num_value;
+		case NodeType::NAME: return env[node->name];
+		case NodeType::BIN_OP:
+		{
+			int left  = interpret_ast(node->bin_op.left, env);
+			int right = interpret_ast(node->bin_op.right, env);
+			switch (node->bin_op.op)
+			{
+				case '+': return left + right;
+				case '-': return left - right;
+				case '*': return left * right;
+				case '/': return left / right;
+				default: return 0;
+			}
+		}
+		case NodeType::ASSIGN:
+		{
+			int value                    = interpret_ast(node->bin_op.right, env);
+			env[node->bin_op.left->name] = value;
+			return value;
+		}
+		default: return 0;
+	}
+}
+
+
+// Bytecode instructions
+enum class Opcode
+{
+	LOAD_CONST,
+	STORE_NAME,
+	BINARY_OP,
+};
+
+struct Instruction
+{
+	Opcode op;
+
+	int         arg;
+	std::string name;
+};
+
+std::vector<Instruction> generate_bytecode(const std::unique_ptr<Node>& node, std::unordered_map<std::string, int>& constants)
+{
+	std::vector<Instruction> code;
+
+	switch (node->type)
+	{
+		case NodeType::NUM:
+		{
+			int const_index                            = constants.size();
+			constants[std::to_string(node->num_value)] = const_index;
+			code.push_back({.op = Opcode::LOAD_CONST, .arg = const_index});
+			break;
+		}
+		case NodeType::NAME:
+		{
+			code.push_back({.op = Opcode::STORE_NAME, .name = node->name});
+			break;
+		}
+		case NodeType::BIN_OP:
+		{
+			code.insert(
+			  code.end(), generate_bytecode(node->bin_op.left, constants).begin(), generate_bytecode(node->bin_op.left, constants).end());
+			code.insert(
+			  code.end(), generate_bytecode(node->bin_op.right, constants).begin(), generate_bytecode(node->bin_op.right, constants).end());
+			switch (node->bin_op.op)
+			{
+				case '+':
+				{
+					code.push_back({Opcode::BINARY_OP, '+'});
+					break;
+				}
+				case '-':
+				{
+					code.push_back({Opcode::BINARY_OP, '-'});
+					break;
+				}
+				case '*':
+				{
+					code.push_back({Opcode::BINARY_OP, '*'});
+					break;
+				}
+				case '/':
+				{
+					code.push_back({Opcode::BINARY_OP, '/'});
+					break;
+				}
+				default:
+				{
+					throw std::runtime_error("Invalid binary operator");
+				}
+			}
+			break;
+		}
+		case NodeType::ASSIGN:
+		{
+			code.insert(
+			  code.end(), generate_bytecode(node->bin_op.right, constants).begin(), generate_bytecode(node->bin_op.right, constants).end());
+			code.push_back({.op = Opcode::STORE_NAME, .name = node->bin_op.left->name});
+			break;
+		}
+		default:
+		{
+			throw std::runtime_error("Unsupported node type");
+		}
+	}
+
+	return code;
+}
+
+// Function to evaluate an AST
+int evaluate_ast(const std::unique_ptr<Node>& node)
+{
+	switch (node->type)
+	{
+		case NodeType::NUM: return node->num_value;
+		case NodeType::NAME:
+			// Handle variable lookup here
+			throw std::runtime_error("Variable lookup not implemented");
+		case NodeType::BIN_OP:
+		{
+			int left  = evaluate_ast(node->bin_op.left);
+			int right = evaluate_ast(node->bin_op.right);
+			switch (node->bin_op.op)
+			{
+				case '+': return left + right;
+				case '-': return left - right;
+				case '*': return left * right;
+				case '/': return left / right;
+				default: throw std::runtime_error("Invalid operator");
+			}
+		}
+		default: throw std::runtime_error("Unsupported node type");
+	}
+}
+
+void print_ast(const std::unique_ptr<Node>& node, int indent = 0)
+{
+	std::string indent_str(indent, ' ');
+
+	switch (node->type)
+	{
+		case NodeType::NUM: dbg::println("{} {}", indent_str, node->num_value); break;
+		case NodeType::NAME: dbg::println("{} {}", indent_str, node->name); break;
+		case NodeType::BIN_OP:
+			dbg::print("{}({})", indent_str, node->bin_op.op);
+			print_ast(node->bin_op.left, indent + 2);
+			print_ast(node->bin_op.right, indent + 2);
+			break;
+		case NodeType::ASSIGN:
+			dbg::println("{}=", indent_str);
+			print_ast(node->bin_op.left, indent + 2);
+			print_ast(node->bin_op.right, indent + 2);
+			break;
+		default: dbg::eprintln("Error: Unsupported node type"); break;
+	}
+}
+
+// Token types
+enum TokenType2 : u8
+{
+	IDENTIFIER,
+	NUMBER,
+	PLUS,
+	MINUS,
+	TIMES,
+	DIVIDE,
+	LEFT_PAREN,
+	RIGHT_PAREN,
+	EOF_TOKEN
+};
+
+// Token structure
+struct Token
+{
+	TokenType2  type;
+	std::string value;
+};
+
+// Lexer class
+class Lexer
+{
+public:
+	Lexer(const std::string& input)
+		: input(input)
+		, current_pos(0)
+	{
+	}
+
+	Token next_token()
+	{
+		while (isspace(input[current_pos]))
+		{
+			++current_pos;
+		}
+
+		if (current_pos == input.length())
+		{
+			return Token{EOF_TOKEN, ""};
+		}
+
+		char current_char = input[current_pos];
+
+		if (isalpha(current_char))
+		{
+			std::string identifier;
+			while (isalnum(current_char))
+			{
+
+				identifier += current_char;
+				++current_pos;
+				current_char = input[current_pos];
+			}
+			return Token{IDENTIFIER, identifier};
+		}
+
+		if (isdigit(current_char))
+		{
+			std::string number;
+			while (isdigit(current_char))
+			{
+
+				number += current_char;
+				++current_pos;
+				current_char = input[current_pos];
+			}
+			return Token{NUMBER, number};
+		}
+
+		switch (current_char)
+		{
+			case '+': return Token{PLUS, "+"};
+			case '-': return Token{MINUS, "-"};
+			case '*': return Token{TIMES, "*"};
+			case '/': return Token{DIVIDE, "/"};
+			case '(': return Token{LEFT_PAREN, "("};
+			case ')': return Token{RIGHT_PAREN, ")"};
+			default: dbg::eprintln("Error: Unexpected character: {}", current_char); exit(1);
+		}
+	}
+
+private:
+	const std::string input;
+	size_t            current_pos;
+};
+
+// Parser class
+class Parser
+{
+public:
+	Parser(Lexer& lexer)
+		: lexer(lexer)
+		, current_token(lexer.next_token())
+	{
+	}
+
+	int expression()
+	{
+		int left = term();
+		while (current_token.type == PLUS || current_token.type == MINUS)
+		{
+			if (current_token.type == PLUS)
+			{
+				eat(PLUS);
+				left += term();
+			}
+			else
+			{
+				eat(MINUS);
+				left -= term();
+			}
+		}
+		return left;
+	}
+
+	int term()
+	{
+		int left = factor();
+		while (current_token.type == TIMES || current_token.type == DIVIDE)
+		{
+			if (current_token.type == TIMES)
+			{
+				eat(TIMES);
+				left *= factor();
+			}
+			else
+			{
+				eat(DIVIDE);
+				left /= factor();
+			}
+		}
+		return left;
+	}
+
+	int factor()
+	{
+		int value;
+		if (current_token.type == NUMBER)
+		{
+			value = std::stoi(current_token.value);
+			eat(NUMBER);
+		}
+		else if (current_token.type == LEFT_PAREN)
+		{
+			eat(LEFT_PAREN);
+			value = expression();
+			eat(RIGHT_PAREN);
+		}
+		else
+		{
+			dbg::eprintln("Error: Expected NUMBER or LEFT_PAREN, {}", current_token.value);
+			return 0;
+		}
+		return value;
+	}
+
+	int eat(TokenType2 expected_type)
+	{
+		if (current_token.type == expected_type)
+		{
+			current_token = lexer.next_token();
+		}
+		else
+		{
+			dbg::eprintln("Error: Expected {} but found {}, {}", (int)expected_type, (int)current_token.type, current_token.value);
+			return 0;
+		}
+	}
+
+private:
+	Lexer& lexer;
+	Token  current_token;
+};
+
+struct codepoint_result
+{
+	u32      bytes_read{0};
+	char32_t codepoint{0xFFFD};
+};
+
+// return: number of bytes read
+codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
+{
+	u32      bytes_read{0};
+	char32_t codepoint{0xFFFD};
+
+	dbg::println("{}", sizeof(codepoint));
+
+
+	return {bytes_read, codepoint};
+}
+
 int deckard_main()
 {
+	std::string input = "2 + 3 * (4 - 5)";
+	// Lexer       lexer(input);
+	// Parser      parser(lexer);
+	// int         result = parser.expression();
+	// dbg::println("Result: {}", result);
+
+#if 0
+	auto ast               = std::make_unique<Node>();
+	ast->type              = NodeType::ASSIGN;
+	ast->bin_op.left       = std::make_unique<Node>();
+	ast->bin_op.left->type = NodeType::NAME;
+	ast->bin_op.left->name = "x";
+
+	ast->bin_op.right       = std::make_unique<Node>();
+	ast->bin_op.right->type = NodeType::BIN_OP;
+
+	ast->bin_op.right->bin_op.op   = '+';
+	ast->bin_op.right->bin_op.left = std::make_unique<Node>();
+
+	ast->bin_op.right->bin_op.left->type      = NodeType::NUM;
+	ast->bin_op.right->bin_op.left->num_value = 0;
+
+	ast->bin_op.right->bin_op.right = std::make_unique<Node>();
+
+	ast->bin_op.right->bin_op.right->type      = NodeType::NUM;
+	ast->bin_op.right->bin_op.right->num_value = sizeof(Node);
+#endif
+	//	// Environment
+	//	std::unordered_map<std::string, int> env;
+	//
+	//	// Create an AST
+	//	std::unique_ptr<Node> ast =
+	//	  create_assign_node("x", create_bin_op_node('+', create_num_node(2), create_bin_op_node('*', create_num_node(3),
+	//create_num_node(6))));
+	//
+	//	std::unordered_map<std::string, int> constants;
+	//
+	//	print_ast(ast);
+	//	auto code = generate_bytecode(ast, constants);
+	//	interpret_ast(ast, env);
+	//	dbg::println("x = {}", env["x"]);
+	//
+
+	// 1 byte: A   0x41			0x41
+	// 2 byte: Ä   0xC4			0xC3 0x84
+	// 3 byte: ↥   0x21A8		0xE2 0x86 0xA8
+	// 4 byte: 🌍  0x1F30D		0xF0 0x9F 0x8C 0x8D
+	std::string u8str_d("\x41\xC3\x84\xE2\x86\xA8\xF0\x9F\x8C\x8D");
+
+	u32 index = 0;
+
+	auto [bytes, codepoint] = decode_codepoint({(u8*)u8str_d.data(), u8str_d.size()}, index);
 
 
 	u8string_sso sso;
