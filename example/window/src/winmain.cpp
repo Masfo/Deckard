@@ -805,8 +805,83 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 	return {bytes_read, codepoint};
 }
 
+template<typename type = u8, typename Allocator = std::allocator<type>>
+union basic_smallbuffer
+{
+	using pointer   = type*;
+	using size_type = u32;
+
+	struct SSO
+	{
+		type str[31]{0};       // data() bytes
+		type len{sizeof(str)}; // (1, 31) when Small
+	} sso{};
+
+	struct NonSSO
+	{
+		size_type size;
+		size_type capacity;
+
+		union
+		{
+			pointer ptr;
+
+			struct
+			{
+				type padding[sizeof(SSO) - sizeof(pointer) - 1]; // never accessed via this reference
+				type len;                                        // 0x00 when Big
+			} ptrbytes;
+		} buffer;
+	} nonsso;
+
+	bool is_sso() const { return sso.len > 0; }
+
+	void set_sso_len(type newlen) { sso.len = std::min<type>(newlen, sizeof(sso.str)); }
+
+	pointer data() { return is_sso() ? sso.str : nonsso.buffer.ptr; }
+
+	size_type size() const { return is_sso() ? sso.len : nonsso.size; }
+
+	size_type capacity() const { return is_sso() ? sso.len : nonsso.capacity; }
+
+	void set(std::string_view input)
+	{
+		//
+	}
+};
+
+using SmallStringBuffer = basic_smallbuffer<u8>;
+
+static_assert(sizeof(SmallStringBuffer) == 32, "SmallStringBuffer should be 32-bytes");
+
+class u8str
+{
+private:
+	SmallStringBuffer sbo{};
+
+public:
+};
+
 int deckard_main()
 {
+
+	std::allocator<u8> alloc;
+	u8*                ptr_u8 = alloc.allocate(16);
+
+
+	std::uninitialized_fill_n(ptr_u8, 16, 'X');
+
+	ptr_u8[0] = 100;
+
+	alloc.deallocate(ptr_u8, 16);
+	ptr_u8 = nullptr;
+
+
+	SmallStringBuffer sbo;
+	sbo.set_sso_len(12);
+
+
+	dbg::println("SmallBuffer {}", sizeof(u8str));
 	std::string input = "2 + 3 * (4 - 5)";
 	// Lexer       lexer(input);
 	// Parser      parser(lexer);
@@ -840,7 +915,7 @@ int deckard_main()
 	//	// Create an AST
 	//	std::unique_ptr<Node> ast =
 	//	  create_assign_node("x", create_bin_op_node('+', create_num_node(2), create_bin_op_node('*', create_num_node(3),
-	//create_num_node(6))));
+	// create_num_node(6))));
 	//
 	//	std::unordered_map<std::string, int> constants;
 	//
