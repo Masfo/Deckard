@@ -3,7 +3,6 @@ export module deckard.utf8:string;
 import std;
 import deckard.types;
 import deckard.assert;
-import deckard.as;
 
 namespace deckard::utf8
 {
@@ -45,6 +44,8 @@ namespace deckard::utf8
 
 	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // 0xEF 0xBF 0xBD (efbfbd)
 
+
+
 	export class string
 	{
 	public:
@@ -53,7 +54,7 @@ namespace deckard::utf8
 	private:
 		struct iterator
 		{
-			using iterator_category = std::forward_iterator_tag;
+			using iterator_category = std::bidirectional_iterator_tag;
 			using value_type        = type;
 
 			iterator(string* ptr, i32 i)
@@ -221,5 +222,6 @@ namespace deckard::utf8
 			return ret;
 		}
 	};
+
 
 } // namespace deckard::utf8
