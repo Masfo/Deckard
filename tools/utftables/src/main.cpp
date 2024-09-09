@@ -10,44 +10,97 @@ enum GeneralCategory : int
 {
 	Lu, // Letter, Uppercase
 	Ll, // Letter, Lowercase
-	Lt, // Letter,Titlecase
+	Lt, // Letter, Titlecase
+	Lm, // Letter, modifier
+	Lo, // Letter, other
+
 	Mn, // Mark, Non-spacing
 	Mc, // Mark, Spacing Combining
 	Me, // Mark, Enclosing
+
 	Nd, // Number, Decimal Digit
 	Nl, // Number, Letter
 	No, // Number, Other
+
+	Pc, // Punctuation, connector
+	Pd, // Punctuation, dash
+	Ps, // Punctuation, open
+	Pe, // Punctuation, close
+	Pi, // Punctuation, initial quote
+	Pf, // Punctuation, final quote
+	Po, // Punctuation, other
+
+	Sm, // Symbol, math
+	Sc, // Symbol, currency
+	Sk, // Symbol, modifier
+	So, // Symbol, other
+
 	Zs, // Separator, Space
 	Zl, // Seprarator, Line
 	Zp, // Separator, Paragraph
+
 	Cc, // Other, Control
 	Cf, // Other, Format
 	Cs, // Other, Surrogate
 	Co, // Other, Private Use
 	Cn, // Other, Not Assigned
+
+	Unknown = 9'9999
 };
 
 GeneralCategory to_GeneralCategory(std::string_view input)
 {
+
 	if (input == "Lu")
 		return GeneralCategory::Lu;
-
 	if (input == "Ll")
 		return GeneralCategory::Ll;
 	if (input == "Lt")
 		return GeneralCategory::Lt;
+	if (input == "Lm")
+		return GeneralCategory::Lm;
+	if (input == "Lo")
+		return GeneralCategory::Lo;
+
+
 	if (input == "Mn")
 		return GeneralCategory::Mn;
 	if (input == "Mc")
 		return GeneralCategory::Mc;
 	if (input == "Me")
 		return GeneralCategory::Me;
+
 	if (input == "Nd")
 		return GeneralCategory::Nd;
 	if (input == "Nl")
 		return GeneralCategory::Nl;
 	if (input == "No")
 		return GeneralCategory::No;
+
+	if (input == "Pc")
+		return GeneralCategory::Pc;
+	if (input == "Pd")
+		return GeneralCategory::Pd;
+	if (input == "Ps")
+		return GeneralCategory::Ps;
+	if (input == "Pe")
+		return GeneralCategory::Pe;
+	if (input == "Pi")
+		return GeneralCategory::Pi;
+	if (input == "Pf")
+		return GeneralCategory::Pf;
+	if (input == "Po")
+		return GeneralCategory::Po;
+
+	if (input == "Sm")
+		return GeneralCategory::Sm;
+	if (input == "Sc")
+		return GeneralCategory::Sc;
+	if (input == "Sk")
+		return GeneralCategory::Sk;
+	if (input == "So")
+		return GeneralCategory::So;
+
 	if (input == "Zs")
 		return GeneralCategory::Zs;
 	if (input == "Zl")
@@ -64,6 +117,8 @@ GeneralCategory to_GeneralCategory(std::string_view input)
 		return GeneralCategory::Co;
 	if (input == "Cn")
 		return GeneralCategory::Cn;
+
+	return GeneralCategory::Unknown;
 }
 
 enum BiDirectionalCategory : int
@@ -284,6 +339,12 @@ std::vector<std::string> read_lines(fs::path file)
 
 void write_lines(const Tables &tables, const std::string &table_name, fs::path filename)
 {
+
+	if (not tables.contains(table_name))
+	{
+		std::println("Table does not contain key \"{}\"", table_name);
+		return;
+	}
 	std::ofstream f(filename);
 
 	auto table = tables.at(table_name);
@@ -412,6 +473,7 @@ void process_unicode_data()
 		return;
 
 	Tables whitespaces;
+	Tables dashes;
 
 
 	for (const auto &line : lines)
@@ -428,9 +490,15 @@ void process_unicode_data()
 		field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
 		fields.emplace_back(field);
 
-		if (code and *code == 0x3000)
+		if (code and *code == 0x2010)
 		{
 			int k = 0;
+		}
+
+		if (field.category == GeneralCategory::Pd)
+		{
+			dashes["dashes"].push_back({(unsigned int)field.code_value, (unsigned int)field.code_value});
+			continue;
 		}
 
 		// Whitespaces
@@ -454,8 +522,11 @@ void process_unicode_data()
 
 
 	collapse_runs(whitespaces["whitespace"]);
+	collapse_runs(dashes["dashes"]);
+
 
 	write_lines(whitespaces, "whitespace", "whitespaces.ixx");
+	write_lines(dashes, "dashes", "dashes.ixx");
 
 
 	int k = 0;
