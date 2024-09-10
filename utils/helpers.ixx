@@ -210,6 +210,37 @@ export namespace deckard
 		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
 	}
 
+	// vmin
+	template<class A, class... Args>
+	constexpr A vmin(A a, A b, Args... args)
+	{
+
+		if constexpr (sizeof...(args) == 0)
+			return std::min(a, b);
+		else
+			return vmin(vmin(a, b), args...);
+	}
+
+	// vmax
+	template<class A, class... Args>
+	constexpr A vmax(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return std::max(a, b);
+		else
+			return vmax(vmax(a, b), args...);
+	}
+
+	// vlcm
+	template<class A, class... Args>
+	constexpr A vlcm(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return std::lcm(a, b);
+		else
+			return vlcm(vlcm(a, b), args...);
+	}
+
 	// strip - range
 	std::string strip(std::string_view str, char a, char z) noexcept
 	{
