@@ -805,7 +805,7 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 	return {bytes_read, codepoint};
 }
 
-template<typename type = u8, typename Allocator = std::allocator<type>>
+template<typename type = u8, size_t SSO_CAPACITY = 32, typename Allocator = std::allocator<type>>
 union basic_smallbuffer
 {
 	using pointer   = type*;
@@ -813,8 +813,8 @@ union basic_smallbuffer
 
 	struct SSO
 	{
-		type str[31]{0};       // data() bytes
-		type len{sizeof(str)}; // (1, 31) when Small
+		type str[SSO_CAPACITY - 1]{0}; // data() bytes
+		type len{sizeof(str)};         // (1, 31) when Small
 	} sso{};
 
 	struct NonSSO
@@ -842,7 +842,7 @@ union basic_smallbuffer
 
 	size_type size() const { return is_sso() ? sso.len : nonsso.size; }
 
-	size_type capacity() const { return is_sso() ? sso.len : nonsso.capacity; }
+	size_type capacity() const { return is_sso() ? sizeof(sso.str) : nonsso.capacity; }
 
 	void set(std::string_view input)
 	{
@@ -850,7 +850,7 @@ union basic_smallbuffer
 	}
 };
 
-using SmallStringBuffer = basic_smallbuffer<u8>;
+using SmallStringBuffer = basic_smallbuffer<u8, 32>;
 
 static_assert(sizeof(SmallStringBuffer) == 32, "SmallStringBuffer should be 32-bytes");
 
@@ -864,6 +864,9 @@ public:
 
 int deckard_main()
 {
+
+
+
 
 	std::allocator<u8> alloc;
 	u8*                ptr_u8 = alloc.allocate(16);
