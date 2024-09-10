@@ -75,6 +75,8 @@ export import deckard_build;
 
 namespace deckard
 {
+
+
 	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
 	using CoUninitializePtr = void(void);
 
@@ -91,10 +93,13 @@ namespace deckard
 
 		deckard::random::initialize();
 		net::initialize();
+		dbg::println("Initialized");
 	}
 
 	export void deinitialize()
 	{
+		dbg::println("Deinitializing");
+
 		auto CoUninitialize = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
 		if (CoUninitialize)
 			CoUninitialize();
@@ -105,20 +110,21 @@ namespace deckard
 	}
 }; // namespace deckard
 
+class DeckardInitializer
+{
+public:
+	DeckardInitializer() { deckard::initialize(); }
+
+	~DeckardInitializer() { deckard::deinitialize(); }
+};
+
+static const auto global_init = [] { return std::make_unique<DeckardInitializer>(); }();
 #pragma endregion
+
 
 extern "C" int deckard_main();
 
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
-{
-	deckard::initialize();
-
-	int ret = deckard_main();
-
-	deckard::deinitialize();
-
-	return ret;
-}
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { return deckard_main(); }
 
 #pragma region !TLS Callback
 #if 0

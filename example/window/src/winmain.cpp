@@ -862,10 +862,23 @@ private:
 public:
 };
 
+template<typename T, typename U, typename... Args>
+auto vpush2(std::vector<T>& items, U item, Args... args) -> std::vector<T>
+{
+	items.push_back(item);
+	push_back(items, args...);
+}
+
+template<typename T, typename U>
+void vpush2(std::vector<T>& items, U item)
+{
+	items.push_back(item);
+}
+
 int deckard_main()
 {
 
-
+	using namespace std::string_literals;
 
 
 	std::allocator<u8> alloc;
