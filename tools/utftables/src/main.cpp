@@ -8,6 +8,7 @@ constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
 
 enum GeneralCategory : int
 {
+	// Table 4-4. General Category
 	Lu, // Letter, Uppercase
 	Ll, // Letter, Lowercase
 	Lt, // Letter, Titlecase
@@ -522,6 +523,7 @@ void process_unicode_data()
 
 
 	collapse_runs(whitespaces["whitespace"]);
+
 	collapse_runs(dashes["dashes"]);
 
 
