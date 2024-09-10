@@ -241,6 +241,9 @@ export namespace deckard
 			return vlcm(vlcm(a, b), args...);
 	}
 
+	// vpush
+	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
+
 	// strip - range
 	std::string strip(std::string_view str, char a, char z) noexcept
 	{
