@@ -80,7 +80,7 @@ namespace deckard::math
 
 #ifdef __cpp_multidimensional_subscript
 #error("use multisubscript")
-		// const f32& operator[](std::size_t z, std::size_t y) const noexcept { return 0.0f; }
+		// const f32& operator[](std::size_t z, std::size_t y) const  { return 0.0f; }
 #endif
 
 
@@ -91,26 +91,26 @@ namespace deckard::math
 			return data[j * 4 + i];
 		}
 
-		f32& operator[](int index) noexcept
+		f32& operator[](int index)
 		{
 			assert::check(index < data.size(), "mat4: indexing out-of-bounds");
 			return data[index];
 		}
 
-		const f32& operator[](u32 index) const noexcept
+		const f32& operator[](u32 index) const
 		{
 			assert::check(index < data.size(), "mat4_generic: indexing out-of-bounds");
 			return data[index];
 		}
 
-		const vec4 vec4_index(u32 index) const noexcept
+		const vec4 vec4_index(u32 index) const
 		{
 			assert::check(index < 4, "mat4_generic: indexing out-of-bounds");
 
 			return vec4(data[index * 4 + 0], data[index * 4 + 1], data[index * 4 + 2], data[index * 4 + 3]);
 		}
 
-		mat4_generic operator*(const mat4_generic& rhs) noexcept
+		mat4_generic operator*(const mat4_generic& rhs)
 		{
 			std::array<f32, 16> tmp{0.0f};
 
@@ -148,7 +148,7 @@ namespace deckard::math
 			return (a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0);
 		}
 
-		mat4_generic operator-() const noexcept
+		mat4_generic operator-() const
 		{
 			mat4_generic m(*this);
 
@@ -156,18 +156,18 @@ namespace deckard::math
 			return m;
 		}
 
-		mat4_generic operator+() const noexcept { return *this; }
+		mat4_generic operator+() const { return *this; }
 
-		bool operator==(const mat4_generic& lhs) const noexcept { return data == lhs.data; }
+		bool operator==(const mat4_generic& lhs) const { return data == lhs.data; }
 
-		static mat4_generic identity() noexcept { return mat4_generic(1.0f); }
+		static mat4_generic identity() { return mat4_generic(1.0f); }
 
 	private:
 		std::array<f32, 16> data{0.0f};
 	};
 
 	// multiply mat4_generic by mat4_generic
-	export mat4_generic operator*(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
+	export mat4_generic operator*(const mat4_generic& lhs, const mat4_generic& rhs)
 	{
 		std::array<f32, 16> tmp{0.0f};
 
@@ -185,7 +185,7 @@ namespace deckard::math
 		return mat4_generic(tmp.data());
 	}
 
-	export mat4_generic operator+(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
+	export mat4_generic operator+(const mat4_generic& lhs, const mat4_generic& rhs)
 	{
 		mat4_generic result(1.0f);
 		for (int i = 0; i < 16; ++i)
@@ -193,7 +193,7 @@ namespace deckard::math
 		return result;
 	}
 
-	export mat4_generic operator-(const mat4_generic& lhs, const mat4_generic& rhs) noexcept
+	export mat4_generic operator-(const mat4_generic& lhs, const mat4_generic& rhs)
 	{
 		mat4_generic result(1.0f);
 		for (int i = 0; i < 16; ++i)
@@ -201,19 +201,19 @@ namespace deckard::math
 		return result;
 	}
 
-	export mat4_generic inverse(const mat4_generic& mat) noexcept;
+	export mat4_generic inverse(const mat4_generic& mat);
 
-	export mat4_generic operator/(const mat4_generic& lhs, const mat4_generic& rhs) noexcept { return lhs * inverse(rhs); }
+	export mat4_generic operator/(const mat4_generic& lhs, const mat4_generic& rhs) { return lhs * inverse(rhs); }
 
-	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs * rhs; }
+	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs * rhs; }
 
-	export void operator/=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs / rhs; }
+	export void operator/=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs / rhs; }
 
-	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs + rhs; }
+	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs + rhs; }
 
-	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs - rhs; }
+	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs - rhs; }
 
-	export mat4_generic inverse(const mat4_generic& mat) noexcept
+	export mat4_generic inverse(const mat4_generic& mat)
 	{
 
 		if (is_close_enough(mat.determinant(), 0.0f))
@@ -263,7 +263,7 @@ namespace deckard::math
 		  dot(c, s)));
 	}
 
-	export mat4_generic transpose(const mat4_generic& mat) noexcept
+	export mat4_generic transpose(const mat4_generic& mat)
 	{
 		return mat4_generic(
 		  vec4(mat(0, 0), mat(0, 1), mat(0, 2), mat(0, 3)),
@@ -272,7 +272,7 @@ namespace deckard::math
 		  vec4(mat(3, 0), mat(3, 1), mat(3, 2), mat(3, 3)));
 	}
 
-	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up) noexcept
+	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up)
 	{
 		//
 		vec3 f = normalized(center - eye);
@@ -286,7 +286,7 @@ namespace deckard::math
 		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 	}
 
-	export mat4_generic scale(const mat4_generic& mat, const vec3& scale) noexcept
+	export mat4_generic scale(const mat4_generic& mat, const vec3& scale)
 	{
 		return mat4_generic(
 		  vec4(mat(0, 0) * scale[0], mat(1, 0) * scale[0], mat(2, 0) * scale[0], mat(3, 0) * scale[0]),
@@ -295,7 +295,7 @@ namespace deckard::math
 		  vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3)));
 	}
 
-	export mat4_generic translate(const mat4_generic& mat, const vec3& translate) noexcept
+	export mat4_generic translate(const mat4_generic& mat, const vec3& translate)
 	{
 
 		vec4 v(mat(0, 0), mat(1, 0), mat(2, 0), 1);
@@ -313,7 +313,7 @@ namespace deckard::math
 		  v);
 	}
 
-	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far) noexcept
+	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far)
 	{
 		f32 const tanHalfFovy = std::tan(fov / 2.0f);
 
@@ -324,7 +324,7 @@ namespace deckard::math
 		  vec4(0.0f, 0.0f, -(2.0f * far * near) / (far - near), 0.0f));
 	}
 
-	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) noexcept
+	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
 	{
 		return mat4_generic(
 		  vec4(2 / (right - left), 0.0f, 0.0f, 0.0f),
@@ -333,7 +333,7 @@ namespace deckard::math
 		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
 
-	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v) noexcept
+	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v)
 	{
 		f32 a = radians;
 		f32 c = std::cos(a);
