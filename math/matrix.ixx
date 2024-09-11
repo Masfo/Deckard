@@ -103,6 +103,13 @@ namespace deckard::math
 			return data[index];
 		}
 
+		const vec4 vec4_index(u32 index) const noexcept
+		{
+			assert::check(index < 4, "mat4_generic: indexing out-of-bounds");
+
+			return vec4(data[index * 4 + 0], data[index * 4 + 1], data[index * 4 + 2], data[index * 4 + 3]);
+		}
+
 		mat4_generic operator*(const mat4_generic& rhs) noexcept
 		{
 			std::array<f32, 16> tmp{0.0f};
@@ -326,8 +333,25 @@ namespace deckard::math
 		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
 
+	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v) noexcept
+	{
+		f32 a = radians;
+		f32 c = std::cos(a);
+		f32 s = std::sin(a);
+
+		vec3 axis(v.normalized());
+		vec3 temp(axis * (1.0f - c));
+
+		mat4_generic Rotate(
+		  vec4(c + temp[0] * axis[0], temp[0] * axis[1] + s * axis[2], temp[0] * axis[2] - s * axis[1], 0.0f),
+		  vec4(0 + temp[1] * axis[0] - s * axis[2], c + temp[1] * axis[1], temp[1] * axis[2] + s * axis[0], 0.0f),
+		  vec4(0 + temp[2] * axis[0] + s * axis[1], temp[2] * axis[1] - s * axis[0], c + temp[2] * axis[2], 0.0f),
+		  vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+		return m * Rotate;
+	}
+
 	// rotate around unit vector
-	// rotate x,y,z
 
 
 } // namespace deckard::math

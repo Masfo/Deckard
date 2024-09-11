@@ -196,6 +196,73 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(fmt == test);
 	}
 
+	
+	SECTION("Rotate X")
+	{
+		mat4 rot = rotate(mat4(1.0f), 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		auto fmt = std::format("{}", rot);
+
+		std::string test(
+		  "mat4((1.00000, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, -0.80114, -0.59847, 0.00000),\n"
+		  "     (0.00000, 0.59847, -0.80114, 0.00000),\n"
+		  "     (0.00000, 0.00000, 0.00000, 1.00000))");
+
+		REQUIRE(fmt == test);
+	}
+
+		
+	SECTION("Rotate Y")
+	{
+
+		mat4 rot = rotate(mat4(1.0f), -0.5f, vec3(0.0f, 1.0f, 0.0f));
+		auto fmt = std::format("{}", rot);
+
+		std::string test(
+		  "mat4((0.87758, 0.00000, 0.47943, 0.00000),\n"
+		  "     (0.00000, 1.00000, 0.00000, 0.00000),\n"
+		  "     (-0.47943, 0.00000, 0.87758, 0.00000),\n"
+		  "     (0.00000, 0.00000, 0.00000, 1.00000))");
+
+		REQUIRE(fmt == test);
+	}
+
+		SECTION("Rotate Z")
+	{
+
+		mat4 rot = rotate(mat4(1.0f), 3.75f, vec3(0.0f, 0.0f, 1.0f));
+		auto fmt = std::format("{}", rot);
+
+		std::string test(
+		  "mat4((-0.82056, -0.57156, 0.00000, 0.00000),\n"
+		  "     (0.57156, -0.82056, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, 1.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, 0.00000, 1.00000))");
+
+		REQUIRE(fmt == test);
+	}
+
+	SECTION("full MVP")
+	{
+
+		mat4 Projection = perspective(to_rad(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		mat4 ViewRotateX = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		mat4 View = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+		mat4 Model = scale(mat4(1.0f), vec3(0.5f));
+		mat4 MVP = Projection * View * Model;
+
+
+		auto fmt = std::format("{}", MVP);
+		std::string test(
+		  "mat4((-0.37675, 0.65689, 0.36497, 0.36424),\n"
+		  "     (0.00000, -0.96707, 0.29984, 0.29924),\n"
+		  "     (-0.82321, -0.30063, -0.16703, -0.16670),\n"
+		  "     (0.00000, 0.00000, 4.80981, 5.00000))");
+
+		REQUIRE(fmt == test);
+	}
+
 
 	SECTION("perspective")
 	{
