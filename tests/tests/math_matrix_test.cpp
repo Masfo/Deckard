@@ -279,11 +279,18 @@ TEST_CASE("matrix generic", "[matrix]")
 		mat4 Model = scale(mat4(1.0f), vec3(0.5f));
 		mat4 MVP = Projection * View * Model;
 
+		auto fmt = std::format("{}", MVP);
+		std::string test(
+			"mat4((-0.37675, 0.65689, 0.36497, 0.36424),\n"
+			"     (0.00000, -0.96707, 0.29984, 0.29924),\n"
+			"     (-0.82321, -0.30063, -0.16703, -0.16670),\n"
+			"     (0.00000, 0.00000, 4.80981, 5.00000))");
+
+		REQUIRE(fmt == test);
+
+
 		auto inv = inverse(MVP);
 		auto invfmt = std::format("{}", inv);
-
-		auto fmt = std::format("{}", inv);
-
 		std::string invtest(
 			"mat4((-0.45966, 0.00000, -1.00438, -0.00000),\n"
 			"     (0.45082, -0.66369, -0.20632, -0.00000),\n"
