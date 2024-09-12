@@ -380,17 +380,6 @@ namespace deckard::math
 		return ret;
 	}
 
-		ret[8]  = (right + left) / (right - left);
-		ret[9]  = (top + bottom) / (top - bottom);
-		ret[10] = -(far + near) / (far - near);
-		ret[11] = -1.0f;
-
-		ret[14] = -(2.0f * far * near) / (far - near);
-
-		return ret;
-	}
-
-#endif
 } // namespace deckard::math
 
 export using mat4 = deckard::math::mat4_generic;
