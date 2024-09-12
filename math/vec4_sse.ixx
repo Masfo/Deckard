@@ -146,6 +146,8 @@ namespace deckard::math::sse
 			reg = _mm_load_ps(v);
 		}
 
+		explicit operator vec3() const { return _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 2, 1, 0)); }
+
 		// operations
 		vec_type min(const vec_type& lhs) const noexcept { return _mm_min_ps(reg, lhs.reg); }
 
@@ -320,6 +322,12 @@ namespace deckard::math::sse
 					dbg::panic("vec4: indexing out-of-bound");
 				}
 			}
+		}
+
+		float& operator[](int index)
+		{
+			assert::check(index < 4, "out-of-bounds, vec4 has 4 elements");
+			return *(reinterpret_cast<float*>(&reg) + index);
 		}
 
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();

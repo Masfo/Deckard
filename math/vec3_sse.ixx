@@ -9,6 +9,7 @@ module;
 export module deckard.math:vec3_sse;
 
 import deckard.debug;
+import deckard.assert;
 import :vec2_sse;
 import :utils;
 
@@ -78,6 +79,8 @@ namespace deckard::math::sse
 		}
 
 		void operator<<=(float* v) noexcept { reg = _mm_load_ps(v); }
+
+		explicit operator vec2() const { return _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 2, 1, 0)); }
 
 		vec_type& operator++() noexcept
 		{
@@ -330,6 +333,12 @@ namespace deckard::math::sse
 					dbg::panic("vec2: indexing out-of-bound");
 				}
 			}
+		}
+
+		float& operator[](int index)
+		{
+			assert::check(index < 3, "out-of-bounds, vec3 has 3 elements");
+			return *(reinterpret_cast<float*>(&reg) + index);
 		}
 
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();

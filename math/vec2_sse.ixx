@@ -10,6 +10,7 @@ export module deckard.math:vec2_sse;
 
 import :utils;
 import deckard.debug;
+import deckard.assert;
 
 namespace deckard::math::sse
 {
@@ -327,6 +328,12 @@ namespace deckard::math::sse
 					dbg::panic("vec2: indexing out-of-bound");
 				}
 			}
+		}
+
+		float& operator[](int index)
+		{
+			assert::check(index < 2, "out-of-bounds, vec2 has 2 elements");
+			return *(reinterpret_cast<float*>(&reg) + index);
 		}
 
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();
