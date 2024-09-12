@@ -363,7 +363,24 @@ namespace deckard::math
 		return {obj[0], obj[1], obj[2]};
 	}
 
+	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
+	{
+		//
+		mat4_generic ret{0.0f};
+		ret[0] = (2.0f * near) / (right - left);
+		ret[5] = (2.0f * near) / (top - bottom);
 
+		ret[8]  = (right + left) / (right - left);
+		ret[9]  = (top + bottom) / (top - bottom);
+		ret[10] = -(far + near) / (far - near);
+		ret[11] = -1.0f;
+
+		ret[14] = -(2.0f * far * near) / (far - near);
+
+		return ret;
+	}
+
+#endif
 } // namespace deckard::math
 
 export using mat4 = deckard::math::mat4_generic;

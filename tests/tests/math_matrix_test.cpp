@@ -320,6 +320,19 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(fmt == test);
 	}
 
+		SECTION("frustum")
+	{
+		auto projection = frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 100.0f);
+
+		auto        fmt = std::format("{}", projection);
+		std::string test(
+		  "mat4((1.00000, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 1.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, -1.02020, -1.00000),\n"
+		  "     (0.00000, 0.00000, -2.02020, 0.00000))");
+		REQUIRE(fmt == test);
+	}
+
 	SECTION("unproject")
 	{
 		vec2 mouse{100.0f, 124.0f};
