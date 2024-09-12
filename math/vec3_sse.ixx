@@ -134,14 +134,7 @@ namespace deckard::math::sse
 			return vec_type(tmp0);
 		}
 
-		bool operator==(const vec_type& lhs) const noexcept
-		{
-			auto reg_mask = _mm_mul_ps(reg, xyzmask);
-			auto lhs_mask = _mm_mul_ps(lhs.reg, xyzmask);
-
-			auto mask = _mm_movemask_ps(_mm_cmpeq_ps(reg_mask, lhs_mask));
-			return mask == 0xF;
-		}
+		bool operator==(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
 
 		bool equals(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
 

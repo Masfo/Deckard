@@ -347,7 +347,18 @@ namespace deckard::math
 		return m * Rotate;
 	}
 
-	// rotate around unit vector
+	export vec3 project(const vec3& obj, const mat4_generic model, const mat4_generic& proj, const vec4& viewport)
+	{
+		vec4 temp(obj, 1.0f);
+		temp = model * temp;
+		temp = proj * temp;
+
+		temp /= temp[3];
+
+		temp = temp * 0.5f + 0.5f;
+
+		return vec3(temp[0] * viewport[2] + viewport[0], temp[1] * viewport[3] + viewport[1], temp[2]);
+	}
 
 	export vec3 unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport)
 	{
@@ -380,6 +391,7 @@ namespace deckard::math
 		return ret;
 	}
 
+	// rotate around unit vector
 } // namespace deckard::math
 
 export using mat4 = deckard::math::mat4_generic;

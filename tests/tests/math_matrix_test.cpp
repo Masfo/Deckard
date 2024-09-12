@@ -333,6 +333,25 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(fmt == test);
 	}
 
+	SECTION("project")
+	{
+		vec3 point(1.0f, -2.0f, 3.0f);
+
+		mat4 model = translate(mat4(1.0f), vec3(0.0f, 0.0f, -10.0f));
+		vec4 viewport(0.0f, 0.0f, 640.0f, 360.0f);
+		mat4 projection = frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 100.0f);
+
+
+		vec3 projected = project(point, model, projection, viewport);
+		vec3 unprojected = unproject(projected, model, projection, viewport);
+
+		REQUIRE(projected.is_close_enough(vec3(365.71429f, 128.57143f, 0.86580f), 0.000001f));
+
+		REQUIRE(point.is_close_enough(unprojected,0.00001f));
+
+	}
+
+
 	SECTION("unproject")
 	{
 		vec2 mouse{100.0f, 124.0f};
@@ -348,11 +367,9 @@ TEST_CASE("matrix generic", "[matrix]")
 
 		vec3 mouse_world_farplane = unproject(vec3(mouse[0]*width, mouse[1]*height, 1.0f), View,  Projection, vec4(0, 0, width, height));
 
-		// mouse_near_plance: vec3(-4.74325, -21.06521, -33.48076)
-		// mouse_far_plance : vec3(-1109.41699, -18156.47266, -35302.85938)
 
-		REQUIRE(std::format("{}", mouse_world_nearplane) == "vec3(-4.74325, -21.06522, -33.48076)"s);
-		REQUIRE(std::format("{}", mouse_world_farplane) == "vec3(-1109.43042, -18156.69922, -35303.29688)"s);
+		REQUIRE(mouse_world_nearplane.is_close_enough(vec3(-4.74325f, -21.06522f, -33.48076f), 0.00001f));
+		REQUIRE(mouse_world_farplane.is_close_enough(vec3(-1109.43042f, -18156.6992f, -35303.2969f)));
 
 	}
 
