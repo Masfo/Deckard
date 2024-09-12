@@ -704,14 +704,14 @@ TEST_CASE("vec_n format", "[vec][math]")
 		const vec2 v{2.123f, 3.141f};
 
 		std::string result = std::format("{}", v);
-		REQUIRE(result == "vec2(2.123, 3.141)"s);
+		REQUIRE(result == "vec2(2.12300, 3.14100)"s);
 	}
 	SECTION("vec3")
 	{
 		const vec3 v{2.123f, 3.141f, 4.169f};
 
 		std::string result = std::format("{}", v);
-		REQUIRE(result == "vec3(2.123, 3.141, 4.169)"s);
+		REQUIRE(result == "vec3(2.12300, 3.14100, 4.16900)"s);
 	}
 
 	SECTION("vec4")

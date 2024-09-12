@@ -6,6 +6,7 @@ import std;
 import deckard.math;
 using namespace deckard::math;
 using namespace Catch::Matchers;
+using namespace std::string_literals;
 
 TEST_CASE("matrix generic", "[matrix]")
 {
@@ -337,15 +338,9 @@ TEST_CASE("matrix generic", "[matrix]")
 		// mouse_near_plance: vec3(-4.74325, -21.06521, -33.48076)
 		// mouse_far_plance : vec3(-1109.41699, -18156.47266, -35302.85938)
 
-		// TODO: unproject test
+		REQUIRE(std::format("{}", mouse_world_nearplane) == "vec3(-4.74325, -21.06522, -33.48076)"s);
+		REQUIRE(std::format("{}", mouse_world_farplane) == "vec3(-1109.43042, -18156.69922, -35303.29688)"s);
 
-		auto        fmt = std::format("{}", mouse_world_nearplane);
-		std::string test(
-		  "mat4((0.00500, 0.00000, 0.00000, 0.00000),\n"
-		  "     (0.00000, 0.00500, 0.00000, 0.00000),\n"
-		  "     (0.00000, 0.00000, -1.00000, 0.00000),\n"
-		  "     (-1.00000, -1.00000, -0.00000, 1.00000))");
-		REQUIRE(fmt == test);
 	}
 
 
