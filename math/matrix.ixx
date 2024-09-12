@@ -355,9 +355,11 @@ namespace deckard::math
 
 		temp /= temp[3];
 
-		temp = temp * 0.5f + 0.5f;
+		temp    = temp * 0.5f + 0.5f;
+		temp[0] = temp[0] * viewport[2] + viewport[0];
+		temp[1] = temp[1] * viewport[3] + viewport[1];
 
-		return vec3(temp[0] * viewport[2] + viewport[0], temp[1] * viewport[3] + viewport[1], temp[2]);
+		return vec3{temp};
 	}
 
 	export vec3 unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport)
@@ -371,7 +373,7 @@ namespace deckard::math
 		vec4 obj = inv * temp;
 		obj /= obj[3];
 
-		return {obj[0], obj[1], obj[2]};
+		return vec3{obj};
 	}
 
 	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
