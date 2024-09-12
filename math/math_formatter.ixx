@@ -83,7 +83,7 @@ namespace std
 			std::format_to(ctx.out(), "vec4(");
 
 			for (int i = 0; i < 4; ++i)
-				std::format_to(ctx.out(), "{:.3f}{}", vec[i], i < 3 ? ", " : "");
+				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 3 ? ", " : "");
 
 			return std::format_to(ctx.out(), ")");
 		}

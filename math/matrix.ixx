@@ -128,24 +128,14 @@ namespace deckard::math
 			return mat4_generic(tmp.data());
 		}
 
-		f32 determinant() const
+		vec4 operator*(const vec4& v) const
 		{
-			auto& m = *this;
-
-			const f32 a0 = m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
-			const f32 a1 = m(0, 0) * m(1, 2) - m(0, 2) * m(1, 0);
-			const f32 a2 = m(0, 0) * m(1, 3) - m(0, 3) * m(1, 0);
-			const f32 a3 = m(0, 1) * m(1, 2) - m(0, 2) * m(1, 1);
-			const f32 a4 = m(0, 1) * m(1, 3) - m(0, 3) * m(1, 1);
-			const f32 a5 = m(0, 2) * m(1, 3) - m(0, 3) * m(1, 2);
-			const f32 b0 = m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0);
-			const f32 b1 = m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0);
-			const f32 b2 = m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0);
-			const f32 b3 = m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1);
-			const f32 b4 = m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1);
-			const f32 b5 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
-
-			return (a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0);
+			return vec4(
+			  this->operator()(0, 0) * v[0] + this->operator()(0, 1) * v[1] + this->operator()(0, 2) * v[2] + this->operator()(0, 3) * v[3],
+			  this->operator()(1, 0) * v[0] + this->operator()(1, 1) * v[1] + this->operator()(1, 2) * v[2] + this->operator()(1, 3) * v[3],
+			  this->operator()(2, 0) * v[0] + this->operator()(2, 1) * v[1] + this->operator()(2, 2) * v[2] + this->operator()(2, 3) * v[3],
+			  this->operator()(3, 0) * v[0] + this->operator()(3, 1) * v[1] + this->operator()(3, 2) * v[2] +
+				this->operator()(3, 3) * v[3]);
 		}
 
 		mat4_generic operator-() const
@@ -185,6 +175,15 @@ namespace deckard::math
 		return mat4_generic(tmp.data());
 	}
 
+	// matrix * vec4
+	// export vec4 operator*(const mat4_generic& lhs, const vec4& v)
+	//{
+	//	return vec4(lhs(0, 0) * v[0] + lhs(1, 0) * v[1] + lhs(2, 0) * v[2] + lhs(3, 0) * v[3],
+	//				lhs(0, 1) * v[0] + lhs(1, 1) * v[1] + lhs(2, 1) * v[2] + lhs(3, 1) * v[3],
+	//				lhs(0, 2) * v[0] + lhs(1, 2) * v[1] + lhs(2, 2) * v[2] + lhs(3, 2) * v[3],
+	//				lhs(0, 3) * v[0] + lhs(1, 3) * v[1] + lhs(2, 3) * v[2] + lhs(3, 3) * v[3]);
+	//}
+
 	export mat4_generic operator+(const mat4_generic& lhs, const mat4_generic& rhs)
 	{
 		mat4_generic result(1.0f);
@@ -216,51 +215,48 @@ namespace deckard::math
 	export mat4_generic inverse(const mat4_generic& mat)
 	{
 
-		if (is_close_enough(mat.determinant(), 0.0f))
-			return {};
 
-		const vec3& a = vec3(mat(0, 0), mat(1, 0), mat(2, 0));
-		const vec3& b = vec3(mat(0, 1), mat(1, 1), mat(2, 1));
-		const vec3& c = vec3(mat(0, 2), mat(1, 2), mat(2, 2));
-		const vec3& d = vec3(mat(0, 3), mat(1, 3), mat(2, 3));
-		const f32&  x = mat(3, 0);
-		const f32&  y = mat(3, 1);
-		const f32&  z = mat(3, 2);
-		const f32&  w = mat(3, 3);
+		f32 A2323 = mat[10] * mat[15] - mat[11] * mat[14];
+		f32 A1323 = mat[9] * mat[15] - mat[11] * mat[13];
+		f32 A1223 = mat[9] * mat[14] - mat[10] * mat[13];
+		f32 A0323 = mat[8] * mat[15] - mat[11] * mat[12];
+		f32 A0223 = mat[8] * mat[14] - mat[10] * mat[12];
+		f32 A0123 = mat[8] * mat[13] - mat[9] * mat[12];
+		f32 A2313 = mat[6] * mat[15] - mat[7] * mat[14];
+		f32 A1313 = mat[5] * mat[15] - mat[7] * mat[13];
+		f32 A1213 = mat[5] * mat[14] - mat[6] * mat[13];
+		f32 A2312 = mat[6] * mat[11] - mat[7] * mat[10];
+		f32 A1312 = mat[5] * mat[11] - mat[7] * mat[9];
+		f32 A1212 = mat[5] * mat[10] - mat[6] * mat[9];
+		f32 A0313 = mat[4] * mat[15] - mat[7] * mat[12];
+		f32 A0213 = mat[4] * mat[14] - mat[6] * mat[12];
+		f32 A0312 = mat[4] * mat[11] - mat[7] * mat[8];
+		f32 A0212 = mat[4] * mat[10] - mat[6] * mat[8];
+		f32 A0113 = mat[4] * mat[13] - mat[5] * mat[12];
+		f32 A0112 = mat[4] * mat[9] - mat[5] * mat[8];
 
-		vec3 s = cross(a, b);
-		vec3 t = cross(c, d);
-		vec3 u = a * y - b * x;
-		vec3 v = c * w - d * z;
+		f32 det =
+		  mat[0] * (mat[5] * A2323 - mat[6] * A1323 + mat[7] * A1223) - mat[1] * (mat[4] * A2323 - mat[6] * A0323 + mat[7] * A0223) +
+		  mat[2] * (mat[4] * A1323 - mat[5] * A0323 + mat[7] * A0123) - mat[3] * (mat[4] * A1223 - mat[5] * A0223 + mat[6] * A0123);
+		det = 1 / det;
 
-		const f32 invDet = 1.0f / (dot(s, v) + dot(t, u));
-		s *= invDet;
-		t *= invDet;
-		u *= invDet;
-		v *= invDet;
-
-		const vec3 r0 = cross(b, v) + t * y;
-		const vec3 r1 = cross(v, a) - t * x;
-		const vec3 r2 = cross(d, u) + s * w;
-		const vec3 r3 = cross(u, c) - s * z;
-
-		return (mat4_generic(
-		  r0[0],
-		  r0[1],
-		  r0[2],
-		  -dot(b, t),
-		  r1[0],
-		  r1[1],
-		  r1[2],
-		  dot(a, t),
-		  r2[0],
-		  r2[1],
-		  r2[2],
-		  -dot(d, s),
-		  r3[0],
-		  r3[1],
-		  r3[2],
-		  dot(c, s)));
+		return mat4_generic(
+		  det * (mat[5] * A2323 - mat[6] * A1323 + mat[7] * A1223),
+		  det * -(mat[1] * A2323 - mat[2] * A1323 + mat[3] * A1223),
+		  det * (mat[1] * A2313 - mat[2] * A1313 + mat[3] * A1213),
+		  det * -(mat[1] * A2312 - mat[2] * A1312 + mat[3] * A1212),
+		  det * -(mat[4] * A2323 - mat[6] * A0323 + mat[7] * A0223),
+		  det * (mat[0] * A2323 - mat[2] * A0323 + mat[3] * A0223),
+		  det * -(mat[0] * A2313 - mat[2] * A0313 + mat[3] * A0213),
+		  det * (mat[0] * A2312 - mat[2] * A0312 + mat[3] * A0212),
+		  det * (mat[4] * A1323 - mat[5] * A0323 + mat[7] * A0123),
+		  det * -(mat[0] * A1323 - mat[1] * A0323 + mat[3] * A0123),
+		  det * (mat[0] * A1313 - mat[1] * A0313 + mat[3] * A0113),
+		  det * -(mat[0] * A1312 - mat[1] * A0312 + mat[3] * A0112),
+		  det * -(mat[4] * A1223 - mat[5] * A0223 + mat[6] * A0123),
+		  det * (mat[0] * A1223 - mat[1] * A0223 + mat[2] * A0123),
+		  det * -(mat[0] * A1213 - mat[1] * A0213 + mat[2] * A0113),
+		  det * (mat[0] * A1212 - mat[1] * A0212 + mat[2] * A0112));
 	}
 
 	export mat4_generic transpose(const mat4_generic& mat)
@@ -342,7 +338,7 @@ namespace deckard::math
 		vec3 axis(v.normalized());
 		vec3 temp(axis * (1.0f - c));
 
-		mat4_generic Rotate(
+		const mat4_generic Rotate(
 		  vec4(c + temp[0] * axis[0], temp[0] * axis[1] + s * axis[2], temp[0] * axis[2] - s * axis[1], 0.0f),
 		  vec4(0 + temp[1] * axis[0] - s * axis[2], c + temp[1] * axis[1], temp[1] * axis[2] + s * axis[0], 0.0f),
 		  vec4(0 + temp[2] * axis[0] + s * axis[1], temp[2] * axis[1] - s * axis[0], c + temp[2] * axis[2], 0.0f),
@@ -352,6 +348,20 @@ namespace deckard::math
 	}
 
 	// rotate around unit vector
+
+	export vec3 unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport)
+	{
+		mat4_generic inv = inverse(proj * model);
+
+		vec4 temp((win[0] - viewport[0]) / viewport[2], (win[1] - viewport[1]) / viewport[3], win[2], 1.0f);
+
+		temp = temp * 2.0f - 1.0f;
+
+		vec4 obj = inv * temp;
+		obj /= obj[3];
+
+		return {obj[0], obj[1], obj[2]};
+	}
 
 
 } // namespace deckard::math

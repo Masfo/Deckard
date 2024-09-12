@@ -81,6 +81,15 @@ TEST_CASE("matrix generic", "[matrix]")
 		mul_eq *= mat2;
 
 		REQUIRE(mul_eq == meq16);
+
+		// mul with vec4
+		const auto persp = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		vec4       mulvec4(1.0f, 2.0f, 3.0f, 4.0f);
+		auto       mulvec4_result = persp * mulvec4;
+		auto       fmt            = std::format("{}", mulvec4_result);
+
+		std::string test("vec4(1.81066, 4.82843, -3.80681, -3.00000)");
+		REQUIRE(fmt == test);
 	}
 
 	SECTION("add/sub")
@@ -121,6 +130,23 @@ TEST_CASE("matrix generic", "[matrix]")
 
 		REQUIRE(a == -m);
 	}
+
+
+	SECTION("inverse")
+	{
+		mat4 Projection = perspective(radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
+		mat4 inv        = inverse(Projection);
+
+		auto        fmt = std::format("{}", inv);
+		std::string test(
+		  "mat4((1.62903, 0.00000, -0.00000, 0.00000),\n"
+		  "     (0.00000, 0.91633, 0.00000, -0.00000),\n"
+		  "     (-0.00000, 0.00000, -0.00000, -4.99500),\n"
+		  "     (0.00000, -0.00000, -1.00000, 5.00500))");
+
+		REQUIRE(fmt == test);
+	}
+
 
 	SECTION("lookat_rh")
 	{
@@ -245,28 +271,31 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("full MVP")
 	{
 
-		mat4 Projection = perspective(to_rad(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 Projection = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
 		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
 		mat4 ViewRotateX = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
 		mat4 View = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
 		mat4 Model = scale(mat4(1.0f), vec3(0.5f));
 		mat4 MVP = Projection * View * Model;
 
+		auto inv = inverse(MVP);
+		auto invfmt = std::format("{}", inv);
 
-		auto fmt = std::format("{}", MVP);
-		std::string test(
-		  "mat4((-0.37675, 0.65689, 0.36497, 0.36424),\n"
-		  "     (0.00000, -0.96707, 0.29984, 0.29924),\n"
-		  "     (-0.82321, -0.30063, -0.16703, -0.16670),\n"
-		  "     (0.00000, 0.00000, 4.80981, 5.00000))");
+		auto fmt = std::format("{}", inv);
 
-		REQUIRE(fmt == test);
+		std::string invtest(
+			"mat4((-0.45966, 0.00000, -1.00438, -0.00000),\n"
+			"     (0.45082, -0.66369, -0.20632, -0.00000),\n"
+			"     (36.38750, 29.89371, -16.65302, -4.99500),\n"
+			"     (-35.00340, -28.75661, 16.01957, 5.00500))");
+
+		REQUIRE(invfmt == invtest);
 	}
 
 
 	SECTION("perspective")
 	{
-		auto persp = perspective(to_rad(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
+		auto persp = perspective(radians(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
 
 		auto        fmt = std::format("{}", persp);
 		std::string test(
@@ -282,6 +311,35 @@ TEST_CASE("matrix generic", "[matrix]")
 		auto orthopers = ortho( 0, 400, 0, 400, -1, 1 );
 
 		auto        fmt = std::format("{}", orthopers);
+		std::string test(
+		  "mat4((0.00500, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00500, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, -1.00000, 0.00000),\n"
+		  "     (-1.00000, -1.00000, -0.00000, 1.00000))");
+		REQUIRE(fmt == test);
+	}
+
+	SECTION("unproject")
+	{
+		vec2 mouse{100.0f, 124.0f};
+		float width      = 1920.0f;
+		float height     = 1080.0f;
+		mat4  Projection = perspective(radians(85.0f), width / height, 0.1f, 100.0f);
+
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		mat4 ViewRotateX = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		mat4 View = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+
+		vec3 mouse_world_nearplane = unproject(vec3(mouse[0]*width, mouse[1]*height, 0.0f), View,  Projection, vec4(0, 0, width, height));
+
+		vec3 mouse_world_farplane = unproject(vec3(mouse[0]*width, mouse[1]*height, 1.0f), View,  Projection, vec4(0, 0, width, height));
+
+		// mouse_near_plance: vec3(-4.74325, -21.06521, -33.48076)
+		// mouse_far_plance : vec3(-1109.41699, -18156.47266, -35302.85938)
+
+		// TODO: unproject test
+
+		auto        fmt = std::format("{}", mouse_world_nearplane);
 		std::string test(
 		  "mat4((0.00500, 0.00000, 0.00000, 0.00000),\n"
 		  "     (0.00000, 0.00500, 0.00000, 0.00000),\n"

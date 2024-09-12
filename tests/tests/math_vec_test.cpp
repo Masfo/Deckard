@@ -425,12 +425,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		const vec3 rotateA(1.0f, 0.0, 0.0f);
 		const vec3 axis(0.0f, 0.0, 1.0f);
 
-		float angle = to_rad<float>(180.0f);
+		float angle = radians<float>(180.0f);
 
 		const vec3 rotated = rotate(rotateA, axis, angle);
 		REQUIRE(true == rotated.equals(vec3{-1.0f, 0.00000000f, 0.0f}));
 
-		const vec3 rotated2 = rotate(vec3{0.0f, 1.0f, 0.0f}, vec3{0.0f, 0.0f, 1.0f}, to_rad<float>(180));
+		const vec3 rotated2 = rotate(vec3{0.0f, 1.0f, 0.0f}, vec3{0.0f, 0.0f, 1.0f}, radians<float>(180));
 		REQUIRE(true == rotated2.equals(vec3{0.0f, -1.0f, 0.0f}));
 
 		// reflected
@@ -719,7 +719,7 @@ TEST_CASE("vec_n format", "[vec][math]")
 		const vec4 v{2.123f, 3.141f, 4.169f, 5.f};
 
 		std::string result = std::format("{}", v);
-		REQUIRE(result == "vec4(2.123, 3.141, 4.169, 5.000)"s);
+		REQUIRE(result == "vec4(2.12300, 3.14100, 4.16900, 5.00000)"s);
 	}
 }
 
@@ -735,7 +735,7 @@ TEST_CASE("sin/cos benchmark")
 
 	mt.seed(123);
 #ifndef _DEBUG
-	constexpr int width = 100'000;
+	constexpr int width = 100000;
 #else
 	constexpr int width = 100;
 #endif
@@ -811,7 +811,7 @@ TEST_CASE("sqrt test", "[math]")
 
 	mt.seed(123);
 #ifndef _DEBUG
-	constexpr int width = 100'000;
+	constexpr int width = 100000;
 #else
 	constexpr int width = 100;
 #endif
@@ -857,7 +857,7 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	std::vector<sse::vec4>       sse;
 	std::vector<vec_n<float, 4>> generic;
 #ifndef _DEBUG
-	constexpr int width = 100'000;
+	constexpr int width = 100000;
 #else
 	constexpr int width = 100;
 #endif

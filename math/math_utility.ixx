@@ -73,20 +73,20 @@ export namespace deckard::math
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T to_rad(const T& rad) noexcept
+	[[nodiscard]] constexpr T radians(const T& v) noexcept
 	{
-		return static_cast<T>(rad * pi180<T>);
+		return static_cast<T>(v * pi180<T>);
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T to_deg(const T& degree) noexcept
+	[[nodiscard]] constexpr T degrees(const T& v) noexcept
 	{
-		return static_cast<T>((degree * T{180}) / std::numbers::pi_v<T>);
+		return static_cast<T>((v * T{180}) / std::numbers::pi_v<T>);
 	}
 
-	constexpr float operator""_rad(long double deg) { return to_rad<float>((float)deg); }
+	constexpr float operator""_rad(long double deg) { return radians<float>((float)deg); }
 
-	constexpr float operator""_deg(long double rad) { return to_deg<float>((float)rad); }
+	constexpr float operator""_deg(long double rad) { return degrees<float>((float)rad); }
 
 	namespace sse
 	{
@@ -176,8 +176,8 @@ namespace deckard::math
 					sum += a[i];
 				if (i < b.size())
 					sum += b[i];
-				result[i] = sum % 1'000'000'000;
-				carry     = sum / 1'000'000'000;
+				result[i] = sum % 1000'000000;
+				carry     = sum / 1000'000000;
 			}
 			result.resize(carry ? i + 1 : i);
 			return result;
