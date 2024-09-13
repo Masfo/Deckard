@@ -148,13 +148,26 @@ namespace deckard::math
 
 		mat4_generic operator+() const { return *this; }
 
-		bool operator==(const mat4_generic& lhs) const { return data == lhs.data; }
+		bool operator==(const mat4_generic& lhs) const { return is_close_enough(lhs); }
+
+		bool is_close_enough(const mat4_generic& lhs, const f32 epsilon = 0.000001f) const
+		{
+			for (size_t i = 0; i < 16; ++i)
+			{
+				if (not math::is_close_enough(lhs[i], data[i], epsilon))
+					return false;
+			}
+			return true;
+		}
 
 		static mat4_generic identity() { return mat4_generic(1.0f); }
 
 	private:
 		std::array<f32, 16> data{0.0f};
 	};
+
+	// Free functions
+
 
 	// multiply mat4_generic by mat4_generic
 	export mat4_generic operator*(const mat4_generic& lhs, const mat4_generic& rhs)
@@ -174,15 +187,6 @@ namespace deckard::math
 		}
 		return mat4_generic(tmp.data());
 	}
-
-	// matrix * vec4
-	// export vec4 operator*(const mat4_generic& lhs, const vec4& v)
-	//{
-	//	return vec4(lhs(0, 0) * v[0] + lhs(1, 0) * v[1] + lhs(2, 0) * v[2] + lhs(3, 0) * v[3],
-	//				lhs(0, 1) * v[0] + lhs(1, 1) * v[1] + lhs(2, 1) * v[2] + lhs(3, 1) * v[3],
-	//				lhs(0, 2) * v[0] + lhs(1, 2) * v[1] + lhs(2, 2) * v[2] + lhs(3, 2) * v[3],
-	//				lhs(0, 3) * v[0] + lhs(1, 3) * v[1] + lhs(2, 3) * v[2] + lhs(3, 3) * v[3]);
-	//}
 
 	export mat4_generic operator+(const mat4_generic& lhs, const mat4_generic& rhs)
 	{

@@ -354,7 +354,7 @@ namespace deckard::math
 			return is_close_enough(other, epsilon);
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, float epsilon = 0.0000001f) const noexcept
+		constexpr bool is_close_enough(const vec_type& lhs, float epsilon = 0.000001f) const noexcept
 		requires(std::floating_point<T>)
 		{
 			for (size_t i = 0; i < N; ++i)

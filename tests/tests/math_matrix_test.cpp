@@ -132,6 +132,15 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(a == -m);
 	}
 
+	SECTION("compare")
+	{
+		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0f};
+		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.000001f};
+
+		REQUIRE(m == m);
+		REQUIRE(m != m2);
+	}
+
 
 	SECTION("inverse")
 	{
@@ -217,11 +226,11 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("scale")
 	{
 		// clang-format off
-	mat4 scal{
-		    1, 2, 4, 8,
+		mat4 scal{
+		    1.0f, 2.0f, 4.0f, 8.0f,
 			0.2f, 0.4f, 0.6f, 0.8f, 
 			1.2f, 2.4f, 3.6f, 4.8f, 
-			8, 8, 8,8};
+			8.0f, 8.0f, 8.0f, 8.0f};
 	// clang-format off
 
 		scal               = scale(scal, vec3(2.0f, 3.0f, 4.0f));
