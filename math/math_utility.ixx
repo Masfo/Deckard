@@ -65,6 +65,12 @@ export namespace deckard::math
 		return std::abs(A - B) <= error;
 	}
 
+	template<std::floating_point T>
+	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T error = T{1e-7})
+	{
+		return std::abs(A) <= error;
+	}
+
 	// is_close_enough
 	template<arithmetic T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{0})

@@ -181,6 +181,39 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(fmt == test);
 	}
 
+	SECTION("tranpose bigger")
+	{
+		mat4 Projection    = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+		mat4 Model         = scale(mat4(1.0f), vec3(0.5f));
+		mat4 MVP           = Projection * View * Model;
+
+		mat4        transposeMVP = transpose(MVP);
+		auto        fmt          = std::format("{}", transposeMVP);
+		std::string test(
+		  "mat4((-0.37675, 0.00000, -0.82321, 0.00000),\n"
+		  "     (0.65689, -0.96707, -0.30063, 0.00000),\n"
+		  "     (0.36497, 0.29984, -0.16703, 4.80981),\n"
+		  "     (0.36424, 0.29924, -0.16670, 5.00000))");
+		REQUIRE(fmt == test);
+	}
+
+	SECTION("Determinent")
+	{
+		mat4 Projection    = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+		mat4 Model         = scale(mat4(1.0f), vec3(0.5f));
+		mat4 MVP           = Projection * View * Model;
+		REQUIRE_THAT(determinent(MVP), Catch::Matchers::WithinAbs(-0.109392, 0.000001));
+
+		mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		REQUIRE_THAT(determinent(m), Catch::Matchers::WithinAbs(0.0f, 0.00000001));
+	}
+
 	SECTION("scale")
 	{
 		// clang-format off

@@ -238,7 +238,8 @@ namespace deckard::math
 		f32 det =
 		  mat[0] * (mat[5] * A2323 - mat[6] * A1323 + mat[7] * A1223) - mat[1] * (mat[4] * A2323 - mat[6] * A0323 + mat[7] * A0223) +
 		  mat[2] * (mat[4] * A1323 - mat[5] * A0323 + mat[7] * A0123) - mat[3] * (mat[4] * A1223 - mat[5] * A0223 + mat[6] * A0123);
-		det = 1 / det;
+
+		det = 1.0f / det;
 
 		return mat4_generic(
 		  det * (mat[5] * A2323 - mat[6] * A1323 + mat[7] * A1223),
@@ -366,7 +367,10 @@ namespace deckard::math
 	{
 		mat4_generic inv = inverse(proj * model);
 
-		vec4 temp((win[0] - viewport[0]) / viewport[2], (win[1] - viewport[1]) / viewport[3], win[2], 1.0f);
+		vec4 temp(win, 1.0f);
+
+		temp[0] = (temp[0] - viewport[0]) / viewport[2];
+		temp[1] = (temp[1] - viewport[1]) / viewport[3];
 
 		temp = temp * 2.0f - 1.0f;
 
@@ -391,6 +395,22 @@ namespace deckard::math
 		ret[14] = -(2.0f * far * near) / (far - near);
 
 		return ret;
+	}
+
+	export f32 determinent(const mat4_generic& m)
+	{
+
+		f32  SubFactor00 = m[10] * m[15] - m[14] * m[11];
+		f32  SubFactor01 = m[9] * m[15] - m[13] * m[11];
+		f32  SubFactor02 = m[9] * m[14] - m[13] * m[10];
+		f32  SubFactor03 = m[8] * m[15] - m[12] * m[11];
+		f32  SubFactor04 = m[8] * m[14] - m[12] * m[10];
+		f32  SubFactor05 = m[8] * m[13] - m[12] * m[9];
+		vec4 DetCof(+(m[5] * SubFactor00 - m[6] * SubFactor01 + m[7] * SubFactor02),
+					-(m[4] * SubFactor00 - m[6] * SubFactor03 + m[7] * SubFactor04),
+					+(m[4] * SubFactor01 - m[5] * SubFactor03 + m[7] * SubFactor05),
+					-(m[4] * SubFactor02 - m[5] * SubFactor04 + m[6] * SubFactor05));
+		return m[0] * DetCof[0] + m[1] * DetCof[1] + m[2] * DetCof[2] + m[3] * DetCof[3];
 	}
 
 	// rotate around unit vector
