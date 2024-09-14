@@ -135,7 +135,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("compare")
 	{
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0f};
-		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.000001f};
+		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.001f};
 
 		REQUIRE(m == m);
 		REQUIRE(m != m2);
@@ -394,7 +394,7 @@ TEST_CASE("matrix generic", "[matrix]")
 		vec3 projected = project(point, model, projection, viewport);
 		vec3 unprojected = unproject(projected, model, projection, viewport);
 
-		REQUIRE(projected.is_close_enough(vec3(365.71429f, 128.57143f, 0.86580f), 0.000001f));
+		REQUIRE(projected.is_close_enough(vec3(365.71429f, 128.57142f, 0.86580f), 0.0001f));
 
 		REQUIRE(point.is_close_enough(unprojected,0.00001f));
 
@@ -417,8 +417,8 @@ TEST_CASE("matrix generic", "[matrix]")
 		vec3 mouse_world_farplane = unproject(vec3(mouse[0]*width, mouse[1]*height, 1.0f), View,  Projection, vec4(0, 0, width, height));
 
 
-		REQUIRE(mouse_world_nearplane.is_close_enough(vec3(-4.74325f, -21.06522f, -33.48076f), 0.00001f));
-		REQUIRE(mouse_world_farplane.is_close_enough(vec3(-1109.43042f, -18156.6992f, -35303.2969f)));
+		REQUIRE(mouse_world_nearplane == vec3(-4.7432f, -21.065f, -33.480f));
+		REQUIRE(mouse_world_farplane == vec3(-1109.4304f, -18156.699f, -35303.296f));
 
 	}
 

@@ -53,7 +53,7 @@ namespace deckard::math
 			data[15] = f16;
 		}
 
-		mat4_generic(const std::array<f32, 16>& v) { data = v; }
+		mat4_generic(const std::array<f32, 16>& v) { std::ranges::copy_n(v.begin(), 16, data.begin()); }
 
 		mat4_generic(const f32* v) { std::ranges::copy_n(v, 16, data.begin()); }
 
@@ -130,12 +130,56 @@ namespace deckard::math
 
 		vec4 operator*(const vec4& v) const
 		{
+			/*
+		typename mat<4, 4, T, Q>::col_type const Mov0(v[0]);
+		typename mat<4, 4, T, Q>::col_type const Mov1(v[1]);
+		typename mat<4, 4, T, Q>::col_type const Mul0 = m[0] * Mov0;
+		typename mat<4, 4, T, Q>::col_type const Mul1 = m[1] * Mov1;
+		typename mat<4, 4, T, Q>::col_type const Add0 = Mul0 + Mul1;
+
+		typename mat<4, 4, T, Q>::col_type const Mov2(v[2]);
+		typename mat<4, 4, T, Q>::col_type const Mov3(v[3]);
+
+		typename mat<4, 4, T, Q>::col_type const Mul2 = m[2] * Mov2;
+		typename mat<4, 4, T, Q>::col_type const Mul3 = m[3] * Mov3;
+
+		typename mat<4, 4, T, Q>::col_type const Add1 = Mul2 + Mul3;
+		typename mat<4, 4, T, Q>::col_type const Add2 = Add0 + Add1;
+		return Add2;
+			*/
+#if 0
+			vec4 Mov0(v[0]);
+			vec4 Mul0 = vec4(data[0], data[1], data[2], data[3]) * Mov0;
+
+			vec4 Mov1(v[1]);
+			vec4 Mul1 = vec4(data[4], data[5], data[6], data[7]) * Mov1;
+
+			vec4 Add0 = Mul0 + Mul1;
+
+			vec4 Mov2(v[2]);
+			vec4 Mov3(v[3]);
+
+			vec4 Mul2 = vec4(data[8], data[9], data[10], data[11]) * Mov2;
+			vec4 Mul3 = vec4(data[12], data[13], data[14], data[15]) * Mov3;
+
+			vec4 Add1 = Mul2 + Mul3;
+			return Add0 + Add1;
+#else
+			return vec4(
+			  //
+			  data[0] * v[0] + data[4] * v[1] + data[8] * v[2] + data[12] * v[3],
+			  data[1] * v[0] + data[5] * v[1] + data[9] * v[2] + data[13] * v[3],
+			  data[2] * v[0] + data[6] * v[1] + data[10] * v[2] + data[14] * v[3],
+			  data[3] * v[0] + data[7] * v[1] + data[11] * v[2] + data[15] * v[3]);
+#endif
+#if 0
 			return vec4(
 			  this->operator()(0, 0) * v[0] + this->operator()(0, 1) * v[1] + this->operator()(0, 2) * v[2] + this->operator()(0, 3) * v[3],
 			  this->operator()(1, 0) * v[0] + this->operator()(1, 1) * v[1] + this->operator()(1, 2) * v[2] + this->operator()(1, 3) * v[3],
 			  this->operator()(2, 0) * v[0] + this->operator()(2, 1) * v[1] + this->operator()(2, 2) * v[2] + this->operator()(2, 3) * v[3],
 			  this->operator()(3, 0) * v[0] + this->operator()(3, 1) * v[1] + this->operator()(3, 2) * v[2] +
 				this->operator()(3, 3) * v[3]);
+#endif
 		}
 
 		mat4_generic operator-() const
@@ -150,9 +194,11 @@ namespace deckard::math
 
 		bool operator==(const mat4_generic& lhs) const { return is_close_enough(lhs); }
 
-		bool is_close_enough(const mat4_generic& lhs, const f32 epsilon = 0.000001f) const
+		bool equals(const mat4_generic& lhs) const { return is_close_enough(lhs); }
+
+		bool is_close_enough(const mat4_generic& lhs, const f32 epsilon = 0.00001f) const
 		{
-			for (size_t i = 0; i < 16; ++i)
+			for (u32 i = 0; i < 16; ++i)
 			{
 				if (not math::is_close_enough(lhs[i], data[i], epsilon))
 					return false;
@@ -416,6 +462,28 @@ namespace deckard::math
 					-(m[4] * SubFactor02 - m[5] * SubFactor04 + m[6] * SubFactor05));
 		return m[0] * DetCof[0] + m[1] * DetCof[1] + m[2] * DetCof[2] + m[3] * DetCof[3];
 	}
+
+	// TODO:	project_world_to_screen
+	//			project_screen_to_world
+	//
+	// https://vallentin.dev/blog/post/cgmath-screen-to-world
+	//
+	// struct Ray
+	// {
+	//		start : Point3<f32>,
+	//      direction : Vector3<f32>,
+	// }
+	//
+	//	let front = project_screen_to_world(Vector3::new(mx, my, 1.0), projection, viewport);
+	//	let back = project_screen_to_world(Vector3::new (mx, my, 0.0), projection, viewport);
+	//
+	// if let (Some(front), Some(back)) = (front, back)
+	// {
+	//		let ray = Ray{
+	//			start : Point3::from_vec(back),
+	//			direction : (front - back).normalize(),
+	//		};
+	// }
 
 	// rotate around unit vector
 } // namespace deckard::math

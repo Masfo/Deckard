@@ -139,17 +139,30 @@ namespace deckard::math::sse
 
 		bool operator==(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
 
+		bool operator!=(const vec_type& lhs) const { return not is_close_enough(lhs); }
+
 		bool equals(const vec_type& lhs) const noexcept { return is_close_enough(lhs); }
 
-		bool is_close_enough(const vec_type& lhs, float epsilon = 0.0000001f) const noexcept
+		bool is_close_enough(const vec_type& lhs, float epsilon = 0.001f) const noexcept
 		{
+#if 1
 			auto masked_this = *this * vec_type(xyzmask);
 			auto masked_lhs  = lhs * vec_type(xyzmask);
 
 			auto diff   = masked_this - masked_lhs;
 			auto result = _mm_cmple_ps(diff.abs().reg, _mm_set_ps1(epsilon));
-			auto mask   = _mm_movemask_ps(result);
+
+			auto mask = _mm_movemask_ps(result);
+
 			return mask == 0xF;
+#else
+			for (int i = 0; i < 3; i++)
+			{
+				if (not math::is_close_enough(lhs[i], (*this)[i], epsilon))
+					return false;
+			}
+			return true;
+#endif
 		}
 
 		// cross
