@@ -4,6 +4,9 @@ import std;
 
 namespace deckard
 {
+#ifdef __cpp_lib_function_ref
+#error("use std::function_ref")
+#endif
 	// https://github.com/TartanLlama/function_ref/
 	namespace detail
 	{

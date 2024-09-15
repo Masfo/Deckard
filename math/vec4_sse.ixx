@@ -10,7 +10,6 @@ import :vec3_sse;
 import :utils;
 import deckard.assert;
 import deckard.debug;
-import deckard.assert;
 
 namespace deckard::math::sse
 {
