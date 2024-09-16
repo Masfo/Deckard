@@ -38,6 +38,9 @@ target_sources(tests PUBLIC
     tests/hash_tests.cpp
     tests/base64_test.cpp
 
+    # Graphs
+    tests/graph_tests.cpp
+
     # Helpers
     tests/helper_test.cpp
     

@@ -1,37 +1,40 @@
-export module deckard.graph:binarytree;
+export module deckard.graph:avltree;
 
 import std;
-import deckard.debug;
 import deckard.types;
+import deckard.debug;
 
-export namespace deckard::graph
+namespace deckard::graph
 {
 
 
 	// template<typename T>
 	// using GeneratorAlias = deckard::generator<T>;
 
-	template<typename T>
-	struct binarynode
+	export template<typename T>
+	struct avlnode
 	{
-		T                           data{};
-		std::unique_ptr<binarynode> left{};
+		T                        data{};
+		std::unique_ptr<avlnode> left{};
 
-		std::unique_ptr<binarynode> right{};
+		std::unique_ptr<avlnode> right{};
 
-		binarynode(T value)
+		i32 height{0};
+
+		avlnode(T value)
 			: data(value)
 			, left{nullptr}
 			, right{nullptr}
+			, height{0}
 		{
 		}
 	};
 
 	export template<typename T>
-	class binarytree
+	class avltree
 	{
 	private:
-		using node_t  = binarynode<T>;
+		using node_t  = avlnode<T>;
 		using nodeptr = std::unique_ptr<node_t>;
 		nodeptr root{nullptr};
 
@@ -126,7 +129,7 @@ export namespace deckard::graph
 		}
 
 	public:
-		binarytree()
+		avltree()
 			: root(nullptr)
 		{
 		}

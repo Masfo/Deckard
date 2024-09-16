@@ -210,7 +210,10 @@ set(DECKARD_SRCS
         unicode/utf8file.ixx
         unicode/utf8string.ixx
 
-
+        # Graph
+        graphs/graph.ixx
+        graphs/avltree.ixx
+        graphs/binarytree.ixx
 
 
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>

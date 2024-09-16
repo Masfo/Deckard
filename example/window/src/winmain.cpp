@@ -862,21 +862,30 @@ private:
 public:
 };
 
-template<typename T, typename U, typename... Args>
-auto vpush2(std::vector<T>& items, U item, Args... args) -> std::vector<T>
-{
-	items.push_back(item);
-	push_back(items, args...);
-}
-
-template<typename T, typename U>
-void vpush2(std::vector<T>& items, U item)
-{
-	items.push_back(item);
-}
-
 int deckard_main()
 {
+	graph::avltree<i32> tree;
+
+	tree.insert(50);
+	tree.insert(30);
+	tree.insert(20);
+	tree.insert(40);
+	tree.insert(70);
+	tree.insert(60);
+	tree.insert(80);
+
+	dbg::println("inorder:");
+	tree.inorder_traversal();
+
+	auto n70 = tree.get(50);
+
+	tree.delete_node(50);
+	auto n70_n = tree.get(50);
+
+
+	dbg::println("inorder:");
+	tree.inorder_traversal();
+
 
 	using namespace std::string_literals;
 
