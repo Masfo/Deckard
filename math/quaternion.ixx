@@ -33,6 +33,24 @@ namespace deckard::math::sse
 		QuatData data;
 
 	public:
+		quat()
+		{
+			data.c.x = data.c.y = data.c.z = 0.0f;
+			data.c.w                       = 1.0f;
+		}
+
+		quat(const vec3& v)
+		{
+			vec3 c = cos(v * 0.5f);
+			vec3 s = sin(v * 0.5f);
+
+			data.c.w = c[0] * c[1] * c[2] + s[0] * s[1] * s[2];
+			data.c.x = s[0] * c[1] * c[2] - c[0] * s[1] * s[2];
+			data.c.y = c[0] * s[1] * c[2] + s[0] * c[1] * s[2];
+			data.c.z = c[0] * c[1] * s[2] - s[0] * s[1] * c[2];
+
+		}
+
 		void test()
 		{
 			//

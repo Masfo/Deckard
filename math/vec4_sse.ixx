@@ -381,6 +381,10 @@ namespace deckard::math::sse
 
 	export [[nodiscard("Use the divided value")]] vec4 safe_divide(const vec4& lhs, const float scalar) { return lhs.safe_divide(scalar); }
 
+	export vec4 cos(const vec4& lhs) { return {std::cos(lhs[0]), std::cos(lhs[1]), std::cos(lhs[2]), std::cos(lhs[3])}; }
+
+	export vec4 sin(const vec4& lhs) { return {std::sin(lhs[0]), std::sin(lhs[1]), std::sin(lhs[2]), std::sin(lhs[3])}; }
+
 
 } // namespace deckard::math::sse
 
