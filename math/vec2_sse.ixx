@@ -401,9 +401,9 @@ namespace deckard::math::sse
 
 	export [[nodiscard("Use the divided value")]] vec2 safe_divide(const vec2& lhs, const float scalar) { return lhs.safe_divide(scalar); }
 
-	export vec2 cos(const vec2& lhs) { return {std::cos(lhs[0]), std::cos(lhs[1])}; }
+	export [[nodiscard("Use the cos vec2")]] vec2 cos(const vec2& lhs) { return {std::cos(lhs[0]), std::cos(lhs[1])}; }
 
-	export vec2 sin(const vec2& lhs) { return {std::sin(lhs[0]), std::sin(lhs[1])}; }
+	export [[nodiscard("Use the sin vec2")]] vec2 sin(const vec2& lhs) { return {std::sin(lhs[0]), std::sin(lhs[1])}; }
 
 } // namespace deckard::math::sse
 
