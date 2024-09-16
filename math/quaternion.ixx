@@ -48,7 +48,28 @@ namespace deckard::math::sse
 			data.c.x = s[0] * c[1] * c[2] - c[0] * s[1] * s[2];
 			data.c.y = c[0] * s[1] * c[2] + s[0] * c[1] * s[2];
 			data.c.z = c[0] * c[1] * s[2] - s[0] * s[1] * c[2];
+		}
 
+		float operator[](const int index) const noexcept
+		{
+			switch (index)
+			{
+				case 0: return data.c.x;
+				case 1: return data.c.y;
+				case 2: return data.c.z;
+				case 3: return data.c.w;
+				default:
+				{
+					dbg::trace();
+					dbg::panic("quat: indexing out-of-bound");
+				}
+			}
+		}
+
+		float& operator[](int index)
+		{
+			assert::check(index < 4, "out-of-bounds, vec4 has 4 elements");
+			return *(reinterpret_cast<float*>(&data.element[0]) + index);
 		}
 
 		void test()

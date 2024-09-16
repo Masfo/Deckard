@@ -6,6 +6,7 @@ import :vec3_sse;
 import :vec4_sse;
 import :vec_sse_generic;
 import :matrix;
+import :quaternion;
 
 
 import std;
@@ -81,6 +82,30 @@ namespace std
 		auto format(const sse::vec4& vec, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "vec4(");
+
+			for (int i = 0; i < 4; ++i)
+				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 3 ? ", " : "");
+
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+
+	// quat formatter
+	template<>
+	struct hash<sse::quat>
+	{
+		size_t operator()(const sse::quat& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+
+	template<>
+	struct formatter<sse::quat>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const sse::quat& vec, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "quat(");
 
 			for (int i = 0; i < 4; ++i)
 				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 3 ? ", " : "");
