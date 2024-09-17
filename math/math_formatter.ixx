@@ -22,7 +22,7 @@ namespace std
 	template<>
 	struct hash<sse::vec2>
 	{
-		size_t operator()(const sse::vec2& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const sse::vec2& value) const { return deckard::utils::hash_values(value[0], value[1]); }
 	};
 
 	template<>
@@ -33,12 +33,7 @@ namespace std
 
 		auto format(const sse::vec2& vec, std::format_context& ctx) const
 		{
-			std::format_to(ctx.out(), "vec2(");
-
-			for (int i = 0; i < 2; ++i)
-				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 1 ? ", " : "");
-
-			return std::format_to(ctx.out(), ")");
+			return std::format_to(ctx.out(), "vec2({:.5f}, {:.5f})", vec.data.c.x, vec.data.c.y);
 		}
 	};
 
@@ -46,7 +41,7 @@ namespace std
 	template<>
 	struct hash<sse::vec3>
 	{
-		size_t operator()(const sse::vec3& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const sse::vec3& value) const { return deckard::utils::hash_values(value[0], value[1], value[2]); }
 	};
 
 	template<>
@@ -57,12 +52,7 @@ namespace std
 
 		auto format(const sse::vec3& vec, std::format_context& ctx) const
 		{
-			std::format_to(ctx.out(), "vec3(");
-
-			for (int i = 0; i < 3; ++i)
-				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 2 ? ", " : "");
-
-			return std::format_to(ctx.out(), ")");
+			return std::format_to(ctx.out(), "vec3({:.5f}, {:.5f}, {:.5f})", vec.data.c.x, vec.data.c.y, vec.data.c.z);
 		}
 	};
 
@@ -81,12 +71,8 @@ namespace std
 
 		auto format(const sse::vec4& vec, std::format_context& ctx) const
 		{
-			std::format_to(ctx.out(), "vec4(");
-
-			for (int i = 0; i < 4; ++i)
-				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 3 ? ", " : "");
-
-			return std::format_to(ctx.out(), ")");
+			return std::format_to(
+			  ctx.out(), "vec4({:.5f}, {:.5f}, {:.5f}, {:.5f})", vec.data.c.x, vec.data.c.y, vec.data.c.z, vec.data.c.w);
 		}
 	};
 

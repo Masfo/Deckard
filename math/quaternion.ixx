@@ -88,4 +88,4 @@ namespace deckard::math::sse
 } // namespace deckard::math::sse
 
 export using quat = deckard::math::sse::quat;
-static_assert(sizeof(quat) == 16);
+static_assert(sizeof(quat) == 16, "quat sse should be 16-bytes");
