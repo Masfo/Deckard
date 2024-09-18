@@ -9,6 +9,7 @@ import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.helpers;
+import deckard.win32;
 namespace fs = std::filesystem;
 
 namespace deckard
@@ -58,7 +59,7 @@ namespace deckard
 			{
 				close();
 
-				dbg::println("Could not open file '{}'", filepath.string());
+				dbg::println("Could not open file '{}'", system::from_wide(filepath.wstring()).c_str());
 				return {};
 			}
 
@@ -73,7 +74,8 @@ namespace deckard
 			{
 				close();
 
-				dbg::println("Could not create mapping for file '{}' ({})", filepath.string(), pretty_bytes(filesize));
+				dbg::println(
+				  "Could not create mapping for file '{}' ({})", system::from_wide(filepath.wstring()).c_str(), pretty_bytes(filesize));
 				return {};
 			}
 
@@ -85,7 +87,7 @@ namespace deckard
 			{
 				close();
 
-				dbg::println("Could not map file '{}'", filepath.string());
+				dbg::println("Could not map file '{}'", system::from_wide(filepath.wstring()).c_str());
 				return {};
 			}
 
@@ -141,7 +143,7 @@ namespace deckard
 
 			if (not content.has_value())
 			{
-				dbg::println("write: empty content for file '{}'", file.string());
+				dbg::println("write: empty content for file '{}'", system::from_wide(file.wstring()).c_str());
 				return bytes_written;
 			}
 
@@ -160,9 +162,9 @@ namespace deckard
 			{
 				CloseHandle(handle);
 				if (GetLastError() == ERROR_ALREADY_EXISTS)
-					dbg::println("write: file '{}' already exists", file.string());
+					dbg::println("write: file '{}' already exists", system::from_wide(file.wstring()).c_str());
 				else
-					dbg::println("write: could not open file '{}' for writing", file.string());
+					dbg::println("write: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str());
 
 				return bytes_written;
 			}

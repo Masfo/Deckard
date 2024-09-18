@@ -6,6 +6,7 @@ import :utils;
 
 export namespace deckard::math
 {
+
 	// lerp
 	template<arithmetic T>
 	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha) noexcept
@@ -44,108 +45,123 @@ export namespace deckard::math
 		return -(p * (p - 2));
 	}
 
-	// cubic
-	template<arithmetic T>
-	[[nodiscard]] constexpr T cubic_ease_in(T p) noexcept
+	namespace cubic
 	{
-		return p * p * p;
-	}
-
-	template<arithmetic T>
-	[[nodiscard]] constexpr T cubic_ease_out(T p) noexcept
-	{
-		T f = (p - 1);
-		return f * f * f + 1;
-	}
-
-	template<arithmetic T>
-	[[nodiscard]] constexpr T cubic_ease_inout(T p) noexcept
-	{
-		if (p < 0.5)
+		// cubic
+		template<arithmetic T>
+		[[nodiscard]] constexpr T in(T p) noexcept
 		{
-			return 4 * p * p * p;
+			return p * p * p;
 		}
-		else
-		{
-			T f = ((2 * p) - 2);
-			return 0.5 * f * f * f + 1;
-		}
-	}
 
-	// quartic
-	template<arithmetic T>
-	[[nodiscard]] constexpr T quartic_ease_in(T p) noexcept
-	{
-		return p * p * p * p;
-	}
-
-	template<arithmetic T>
-	[[nodiscard]] constexpr T quartic_ease_out(T p) noexcept
-	{
-		T f = (p - 1);
-		return f * f * f * (1 - p) + 1;
-	}
-
-	template<arithmetic T>
-	[[nodiscard]] constexpr T quartic_ease_inout(T p) noexcept
-	{
-		if (p < 0.5)
-		{
-			return 8 * p * p * p * p;
-		}
-		else
+		template<arithmetic T>
+		[[nodiscard]] constexpr T out(T p) noexcept
 		{
 			T f = (p - 1);
-			return -8 * f * f * f * f + 1;
+			return f * f * f + 1;
 		}
-	}
 
-	// sine
-	template<arithmetic T>
-	[[nodiscard]] constexpr T sine_ease_in(T p) noexcept
-	{
-		return std::sin((p - 1) * std::numbers::pi_v<T>) + 1;
-	}
-
-	template<arithmetic T>
-	[[nodiscard]] constexpr T sine_ease_out(T p) noexcept
-	{
-		return std::sin(p * std::numbers::pi_v<T>);
-	}
-
-	template<arithmetic T>
-	[[nodiscard]] constexpr T sine_ease_inout(T p) noexcept
-	{
-		return as<T>(0.5 * (1 - std::cos(p * std::numbers::pi_v<T>)));
-	}
-
-	// bounce
-	template<arithmetic T>
-	[[nodiscard]] constexpr T bounce_ease_out(T p) noexcept
-	{
-		if (p < 4 / 11.0)
+		template<arithmetic T>
+		[[nodiscard]] constexpr T inout(T p) noexcept
 		{
-			return as<T>((121 * p * p) / 16.0);
+			if (p < 0.5)
+			{
+				return 4 * p * p * p;
+			}
+			else
+			{
+				T f = ((2 * p) - 2);
+				return 0.5 * f * f * f + 1;
+			}
 		}
-		else if (p < 8 / 11.0)
-		{
-			return as<T>((363 / 40.0 * p * p) - (99 / 10.0 * p) + 17 / 5.0);
-		}
-		else if (p < 9 / 10.0)
-		{
-			return as<T>((4'356 / 361.0 * p * p) - (35'442 / 1805.0 * p) + 16'061 / 1805.0);
-		}
-		else
-		{
-			return as<T>((54 / 5.0 * p * p) - (513 / 25.0 * p) + 268 / 25.0);
-		}
-	}
 
-	template<arithmetic T>
-	[[nodiscard]] constexpr T bounce_ease_in(T p) noexcept
+	} // namespace cubic
+
+	namespace quartic
 	{
-		return 1 - bounce_ease_out(1 - p);
-	}
+		// quartic
+		template<arithmetic T>
+		[[nodiscard]] constexpr T in(T p) noexcept
+		{
+			return p * p * p * p;
+		}
+
+		template<arithmetic T>
+		[[nodiscard]] constexpr T out(T p) noexcept
+		{
+			T f = (p - 1);
+			return f * f * f * (1 - p) + 1;
+		}
+
+		template<arithmetic T>
+		[[nodiscard]] constexpr T inout(T p) noexcept
+		{
+			if (p < 0.5)
+			{
+				return 8 * p * p * p * p;
+			}
+			else
+			{
+				T f = (p - 1);
+				return -8 * f * f * f * f + 1;
+			}
+		}
+	} // namespace quartic
+
+	namespace sine
+	{
+		// sine
+		template<arithmetic T>
+		[[nodiscard]] constexpr T in(T p) noexcept
+		{
+			return std::sin((p - 1) * std::numbers::pi_v<T>) + 1;
+		}
+
+		template<arithmetic T>
+		[[nodiscard]] constexpr T out(T p) noexcept
+		{
+			return std::sin(p * std::numbers::pi_v<T>);
+		}
+
+		template<arithmetic T>
+		[[nodiscard]] constexpr T inout(T p) noexcept
+		{
+			return as<T>(0.5 * (1 - std::cos(p * std::numbers::pi_v<T>)));
+		}
+	} // namespace sine
+
+	namespace bounce
+	{
+
+		template<arithmetic T>
+		[[nodiscard]] constexpr T out(T p) noexcept
+		{
+			if (p < 4 / 11.0)
+			{
+				return as<T>((121 * p * p) / 16.0);
+			}
+			else if (p < 8 / 11.0)
+			{
+				return as<T>((363 / 40.0 * p * p) - (99 / 10.0 * p) + 17 / 5.0);
+			}
+			else if (p < 9 / 10.0)
+			{
+				return as<T>((4356 / 361.0 * p * p) - (35442 / 1805.0 * p) + 16061 / 1805.0);
+			}
+			else
+			{
+				return as<T>((54 / 5.0 * p * p) - (513 / 25.0 * p) + 268 / 25.0);
+			}
+		}
+
+		// bounce
+		template<arithmetic T>
+		[[nodiscard]] constexpr T in(T p) noexcept
+		{
+			return 1 - out(1 - p);
+		}
+
+	} // namespace bounce
 
 	// damp
 	template<std::floating_point T>
@@ -153,8 +169,6 @@ export namespace deckard::math
 	{
 		return 1 - std::exp(-lambda * dt);
 	}
-
-
 
 
 } // namespace deckard::math

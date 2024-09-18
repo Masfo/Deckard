@@ -306,7 +306,7 @@ target_compile_options(deckard PRIVATE
     #/wd4710 # function not inlined
     #/wd4711 # function selected for automatic inline expansion
     #/wd5045 # Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
-    #/wd5050 # Possible incompatible environment while importing module
+    /wd5050 # Possible incompatible environment while importing module
     #
     #/wd4820 # bytes padding added after data member
     #

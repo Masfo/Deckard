@@ -21,7 +21,7 @@ namespace deckard::system
 
 	export std::string get_windows_error(DWORD error = GetLastError());
 
-	export std::wstring to_wide(std::string_view in) noexcept
+	export std::wstring to_wide(std::string_view in)
 	{
 		std::wstring wret;
 		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
@@ -31,7 +31,7 @@ namespace deckard::system
 		return wret;
 	}
 
-	export std::string from_wide(std::wstring_view wstr) noexcept
+	export std::string from_wide(std::wstring_view wstr)
 	{
 		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), nullptr, 0, nullptr, nullptr);
 		std::string strTo;
@@ -43,7 +43,7 @@ namespace deckard::system
 		return strTo;
 	}
 
-	std::string GetRegistryValue(HKEY computer, std::string_view key, std::string_view value) noexcept
+	std::string GetRegistryValue(HKEY computer, std::string_view key, std::string_view value)
 	{
 
 		std::string ret;
@@ -93,12 +93,12 @@ namespace deckard::system
 		return "";
 	}
 
-	std::string GetLocalRegistryValue(std::string_view key, std::string_view value) noexcept
+	std::string GetLocalRegistryValue(std::string_view key, std::string_view value)
 	{
 		return GetRegistryValue(HKEY_LOCAL_MACHINE, key, value);
 	}
 
-	std::string GetCurrentUserRegistryValue(std::string_view key, std::string_view value) noexcept
+	std::string GetCurrentUserRegistryValue(std::string_view key, std::string_view value)
 	{
 		return GetRegistryValue(HKEY_CURRENT_USER, key, value);
 	}
@@ -113,7 +113,7 @@ namespace deckard::system
 		return false;
 	}
 
-	export std::string GetOSVersionString() noexcept
+	export std::string GetOSVersionString()
 	{
 		const std::string key("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
 
@@ -130,7 +130,7 @@ namespace deckard::system
 		  "Microsoft Windows Version {} (OS Build {}.{}) ", DisplayVersion.empty() ? ReleaseId : DisplayVersion, CurrentBuild, UBR);
 	}
 
-	export bool IsWindowsVersion(u32 major, u32 minor, u32 build) noexcept
+	export bool IsWindowsVersion(u32 major, u32 minor, u32 build)
 	{
 		OSVERSIONINFOEXW osvi             = {sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0};
 		DWORDLONG const  dwlConditionMask = VerSetConditionMask(
@@ -167,7 +167,7 @@ namespace deckard::system
 		return {major, minor, build};
 	}
 
-	export u64 GetRAM() noexcept
+	export u64 GetRAM()
 	{
 		MEMORYSTATUSEX status{};
 		status.dwLength = sizeof(status);
@@ -176,7 +176,7 @@ namespace deckard::system
 		return as<u64>(status.ullTotalPhys);
 	}
 
-	export std::string GetRAMString() noexcept { return pretty_bytes(GetRAM()); }
+	export std::string GetRAMString() { return pretty_bytes(GetRAM()); }
 
 	export void set_thread_name(std::string_view threadname)
 	{

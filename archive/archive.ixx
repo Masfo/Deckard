@@ -5,6 +5,7 @@ export module deckard.archive;
 
 import std;
 import deckard.debug;
+import deckard.win32;
 
 namespace fs = std::filesystem;
 
@@ -49,7 +50,7 @@ export namespace deckard::archive
 
 		bool open(fs::path dbfile) noexcept
 		{
-			int rc = sqlite3_open(dbfile.string().c_str(), &m_db);
+			int rc = sqlite3_open(system::from_wide(dbfile.wstring()).c_str(), &m_db);
 			if (rc != SQLITE_OK)
 			{
 				dbg::println("SQLite3 open error: {}", sqlite3_errmsg(m_db));

@@ -274,13 +274,13 @@ namespace deckard::app
 			// Mouse
 			raw_inputs[Mouse].usUsagePage = HID_USAGE_PAGE_GENERIC;
 			raw_inputs[Mouse].usUsage     = HID_USAGE_GENERIC_MOUSE;
-			raw_inputs[Mouse].dwFlags     = 0;
+			raw_inputs[Mouse].dwFlags     = RIDEV_NOLEGACY;
 			raw_inputs[Mouse].hwndTarget  = handle;
 #endif
 			// Pad
 			raw_inputs[Pad].usUsagePage = HID_USAGE_PAGE_GENERIC;
 			raw_inputs[Pad].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
-			raw_inputs[Pad].dwFlags     = RIDEV_DEVNOTIFY;
+			raw_inputs[Pad].dwFlags     = RIDEV_DEVNOTIFY | RIDEV_NOLEGACY;
 			raw_inputs[Pad].hwndTarget  = handle;
 
 			if (RegisterRawInputDevices(raw_inputs.data(), as<u32>(raw_inputs.size()), sizeof(raw_inputs[0])) == 0)
