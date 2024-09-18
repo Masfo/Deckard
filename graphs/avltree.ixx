@@ -38,6 +38,38 @@ namespace deckard::graph
 		using nodeptr = std::unique_ptr<node_t>;
 		nodeptr root{nullptr};
 
+		i32 get_height(const nodeptr& node) const { return node ? node->height : 0; }
+
+		i32 get_balance(const nodeptr& node) const { return get_height(node->right) - get_height(node->left); }
+
+		i32 max_height(const nodeptr& node) const { return std::max(get_height(node->left), get_height(node->right)); }
+
+		nodeptr right_rotate(nodeptr node)
+		{
+			//
+			nodeptr temp = std::move(node->left);
+			node->left   = std::move(temp->right);
+			temp->right  = std::move(node);
+
+			node->height = max_height(node) + 1;
+			temp->height = max_height(temp) + 1;
+
+			return temp;
+		}
+
+		nodeptr left_rotate(nodeptr node)
+		{
+			//
+			nodeptr temp = std::move(node->right);
+			node->right  = std::move(temp->left);
+			temp->left   = std::move(node);
+
+			node->height = max_height(node) + 1;
+			temp->height = max_height(temp) + 1;
+
+			return temp;
+		}
+
 		nodeptr insert_helper(nodeptr node, T value)
 		{
 			if (!node)
@@ -47,6 +79,27 @@ namespace deckard::graph
 				node->left = insert_helper(std::move(node->left), value);
 			else
 				node->right = insert_helper(std::move(node->right), value);
+
+			node->height = max_height(node) + 1;
+			i32 balance  = get_balance(node);
+
+			// if (balance > 1 && value > node->right->data)
+			//	return left_rotate(node);
+			//
+			// if (balance < -1 && value < node->left->data)
+			//	return right_rotate(node);
+			//
+			// if (balance < -1 && value > node->left->data)
+			//{
+			//	node->left = right_rotate(node->left);
+			//	return left_rotate(node);
+			// }
+			//
+			// if (balance > 1 && value < node->right->data)
+			//{
+			//	node->right = left_rotate(node->right);
+			//	return right_rotate(node);
+			// }
 
 			return node;
 		}
