@@ -867,9 +867,9 @@ int deckard_main()
 
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
 
-	graph::avltree<i32> tree;
+	graph::avl<i32> tree;
 
-	tree.insert(50);
+	tree.insert(10);
 	tree.insert(30);
 	tree.insert(20);
 	tree.insert(40);
@@ -878,16 +878,14 @@ int deckard_main()
 	tree.insert(80);
 
 	dbg::println("inorder:");
-	tree.inorder_traversal();
+	tree.print();
 
-	auto n70 = tree.get(50);
 
-	tree.delete_node(50);
-	auto n70_n = tree.get(50);
+	tree.remove(40);
 
 
 	dbg::println("inorder:");
-	tree.inorder_traversal();
+	tree.print();
 
 
 	using namespace std::string_literals;

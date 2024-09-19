@@ -7,208 +7,666 @@ import deckard.debug;
 namespace deckard::graph
 {
 
-
-	// template<typename T>
-	// using GeneratorAlias = deckard::generator<T>;
-
+#if 0
 	export template<typename T>
-	struct avlnode
+	class avl
 	{
-		T                        data{};
-		std::unique_ptr<avlnode> left{};
-
-		std::unique_ptr<avlnode> right{};
-
-		i32 height{0};
-
-		avlnode(T value)
-			: data(value)
-			, left{nullptr}
-			, right{nullptr}
-			, height{0}
+	public:
+		avl()
+			: root{nullptr}
+			, element_count{0}
 		{
 		}
-	};
 
-	export template<typename T>
-	class avltree
-	{
+		avl(const avl& other)
+			: root{clone(other.root)}
+			, element_count{other.element_count}
+		{
+		}
+
+		avl& operator=(const avl& other)
+		{
+			avl tmp(other);
+			std::swap(root, tmp.root);
+			std::swap(element_count, tmp.element_count);
+
+			return *this;
+		}
+
+		avl(avl&& other) noexcept
+			: avl()
+		{
+			std::swap(root, other.root);
+			std::swap(element_count, other.element_count);
+		}
+
+		avl& operator=(avl&& other) noexcept
+		{
+			std::swap(root, other.root);
+			std::swap(element_count, other.element_count);
+			return *this;
+		}
+
+		~avl() noexcept = default;
+
+		template<typename Iter>
+		avl(Iter first, Iter last)
+			: avl()
+		{
+			using c_tp = typename std::iterator_traits<Iter>::value_type;
+			static_assert(std::is_constructible<T, c_tp>::value, "Type mismatch");
+
+			for (auto it = first; it != last; ++it)
+				insert(*it);
+		}
+
+		avl(const std::initializer_list<T>& lst)
+			: avl(std::begin(lst), std::end(lst))
+		{
+		}
+
+		avl(std::initializer_list<T>&& lst)
+			: avl()
+		{
+			for (auto&& elem : lst)
+			{
+				insert(std::move(elem));
+			}
+		}
+
+		avl& operator=(const std::initializer_list<T>& lst)
+		{
+			// copy and swap idiom
+			avl temp(lst);
+			std::swap(root, temp.root);
+			std::swap(element_count, temp.element_count);
+
+			return *this;
+		}
+
 	private:
-		using node_t  = avlnode<T>;
-		using nodeptr = std::unique_ptr<node_t>;
-		nodeptr root{nullptr};
-
-		i32 get_height(const nodeptr& node) const { return node ? node->height : 0; }
-
-		i32 get_balance(const nodeptr& node) const { return get_height(node->right) - get_height(node->left); }
-
-		i32 max_height(const nodeptr& node) const { return std::max(get_height(node->left), get_height(node->right)); }
-
-		nodeptr right_rotate(nodeptr node)
+		struct node
 		{
-			//
-			nodeptr temp = std::move(node->left);
-			node->left   = std::move(temp->right);
-			temp->right  = std::move(node);
+			std::unique_ptr<node> left{};
+			std::unique_ptr<node> right{};
+			T                     data{};
+			i32                   height{0};
 
-			node->height = max_height(node) + 1;
-			temp->height = max_height(temp) + 1;
+			template<typename X = T>
+			node(X&& elem)
+				: left{nullptr}
+				, right{nullptr}
+				, data{std::forward<X>(elem)}
+				, height{0}
+			{
+			}
 
-			return temp;
-		}
+			template<typename X = T>
+			node(X&& elem, std::unique_ptr<node>&& lt, std::unique_ptr<node>&& rt, i32 h = 0)
+				: left{std::move(lt)}
+				, right{std::move(rt)}
+				, data{std::forward<X>(elem)}
+				, height{h}
+			{
+			}
+		};
 
-		nodeptr left_rotate(nodeptr node)
+		using nodeptr = std::unique_ptr<node>;
+
+		u32     element_count{0};
+		nodeptr root;
+
+
+	private:
+		nodeptr clone(const nodeptr& node) const
 		{
-			//
-			nodeptr temp = std::move(node->right);
-			node->right  = std::move(temp->left);
-			temp->left   = std::move(node);
-
-			node->height = max_height(node) + 1;
-			temp->height = max_height(temp) + 1;
-
-			return temp;
-		}
-
-		nodeptr insert_helper(nodeptr node, T value)
-		{
-			if (!node)
-				return std::make_unique<node_t>(value);
-
-			if (value < node->data)
-				node->left = insert_helper(std::move(node->left), value);
-			else
-				node->right = insert_helper(std::move(node->right), value);
-
-			node->height = max_height(node) + 1;
-			i32 balance  = get_balance(node);
-
-			// if (balance > 1 && value > node->right->data)
-			//	return left_rotate(node);
-			//
-			// if (balance < -1 && value < node->left->data)
-			//	return right_rotate(node);
-			//
-			// if (balance < -1 && value > node->left->data)
-			//{
-			//	node->left = right_rotate(node->left);
-			//	return left_rotate(node);
-			// }
-			//
-			// if (balance > 1 && value < node->right->data)
-			//{
-			//	node->right = left_rotate(node->right);
-			//	return right_rotate(node);
-			// }
-
-			return node;
-		}
-
-		nodeptr delete_helper(nodeptr node, T value)
-		{
-			//
 			if (!node)
 				return nullptr;
+			else
+				return std::make_unique<node>(node->data, clone(node->left), clone(node->right), node->height);
+		}
 
-			if (value < node->data)
-				node->left = delete_helper(std::move(node->left), value);
-			else if (value > node->data)
-				node->right = delete_helper(std::move(node->right), value);
+		i32 height(const nodeptr& node) const { return node == nullptr ? -1 : node->height; };
+
+		const T& find_min(const nodeptr& node) const
+		{
+			auto temp = node.get();
+
+			if (temp != nullptr)
+			{
+				while (temp->left != nullptr)
+					temp = temp->left.get();
+			}
+
+			return temp->data;
+		}
+
+		const T& find_max(const nodeptr& node) const
+		{
+			auto temp = node.get();
+			if (temp != nullptr)
+			{
+				while (temp->right != nullptr)
+					temp = temp->right.get();
+			}
+
+			return temp->data;
+		}
+
+		void rotate_left(nodeptr& node)
+		{
+			auto temp  = std::move(node->left);
+			temp->left = std::move(temp->right);
+
+			temp->height = std::max(height(temp->left), height(temp->right)) + 1;
+			node->height = std::max(height(node->left), height(node->right)) + 1;
+
+			node->right = std::move(temp);
+			temp        = std::move(node);
+		}
+
+		void rotate_right(nodeptr& node)
+		{
+			auto temp   = std::move(node->right);
+			temp->right = std::move(temp->left);
+
+			node->height = std::max(height(node->left), height(node->right)) + 1;
+			temp->height = std::max(height(temp->right), height(temp->left)) + 1;
+
+			node->left = std::move(temp);
+			temp       = std::move(node);
+		}
+
+		void double_left(nodeptr& node)
+		{
+			rotate_right(node->left);
+			rotate_left(node);
+		}
+
+		void double_right(nodeptr& node)
+		{
+			rotate_left(node->right);
+			rotate_right(node);
+		}
+
+		void balance(nodeptr& node)
+		{
+			if (node == nullptr)
+				return;
+			if (height(node->left) - height(node->right) > 1)
+			{
+				if (height(node->left->left) >= height(node->left->right))
+					rotate_left(node);
+				else
+					double_left(node);
+			}
+			else if (height(node->right) - height(node->left) > 1)
+			{
+				if (height(node->right->right) >= height(node->right->left))
+					rotate_right(node);
+				else
+					double_right(node);
+			}
+
+			node->height = std::max(height(node->left), height(node->right)) + 1;
+		}
+
+		template<typename X = T>
+		void insert_util(X&& x, std::unique_ptr<node>&& node) noexcept
+		{
+			//	auto nd = std::make_unique<node>(0);
+
+			if (node == nullptr)
+				node = node; // std::make_unique<node>(std::forward<X>(x));
+			else if (x < node->data)
+				insert_util(std::forward<X>(x), node->left);
+			else if (node->data < x)
+				insert_util(std::forward<X>(x), node->right);
+
+			balance(node);
+		}
+
+		void remove_util(const T& x, nodeptr& node)
+		{
+			//
+			if (node == nullptr)
+				return;
+			if (x < node->data)
+				remove_util(x, node->left);
+			else if (node->data < x)
+				remove_util(x, node->right);
+			else if (node->left != nullptr and node->right != nullptr)
+			{
+				// two children
+				node->data = find_min(node->right);
+				remove_util(node->data, node->right);
+			}
 			else
 			{
-				if (!node->left)
-					return std::move(node->right);
-				else if (!node->right)
-					return std::move(node->left);
-				else
-				{
-					node_t* temp = minvalue(node->right.get());
-					node->data   = temp->data;
-					node->right  = delete_helper(std::move(node->right), temp->data);
-				}
+				// one children
+				nodeptr old_node{std::move(node)};
+				node = (old_node->left != nullptr) ? std::move(old_node->left) : std::move(old_node->right);
 			}
-			return node;
+
+			balance(node);
 		}
 
-		node_t* minvalue(node_t* node) const
+		void print(const nodeptr& node) const noexcept
 		{
-			node_t* current = node;
-			while (current->left)
-				current = current->left.get();
-			return current;
-		}
-
-		void inorder_helper(const nodeptr& node) const
-		{
-			if (!node)
-				return;
-
-			inorder_helper(node->left);
-			dbg::print("{} ", node->data);
-			inorder_helper(node->right);
-		}
-
-		void preorder_helper(const nodeptr& node) const
-		{
-			if (!node)
-				return;
-
-			dbg::print("{} ", node->data);
-			preorder_helper(node->left);
-			preorder_helper(node->right);
-		}
-
-		void postorder_helper(const nodeptr& node) const
-		{
-			if (!node)
-				return;
-
-			postorder_helper(node->left);
-			postorder_helper(node->right);
-			dbg::print("{} ", node->data);
-		}
-
-		node_t* get_helper(const nodeptr& node, T value) const
-		{
-			//
-			if (!node)
-				return nullptr;
-			if (node->data == value)
-				return node.get();
-			else if (value < node->data)
-				return get_helper(node->left, value);
-			else
-				return get_helper(node->right, value);
+			if (node != nullptr)
+			{
+				print(node->left);
+				dbg::println("{}, ", node->data);
+				print(node->right);
+			}
 		}
 
 	public:
-		avltree()
-			: root(nullptr)
+		bool empty() const { return element_count == 0; }
+
+		u32 size() const { return element_count; }
+
+		template<typename X = T, typename... Args>
+		void insert(X&& first, Args&&... args) noexcept
 		{
+			insert_util(std::forward<X>(first), root);
+			++element_count;
+			insert(std::forward<Args>(args)...);
 		}
 
-		void insert(const T value) { root = insert_helper(std::move(root), value); }
-
-		void delete_node(const T value) { root = delete_helper(std::move(root), value); };
-
-		void inorder_traversal() const
+		template<typename X = T>
+		void insert(X&& first) noexcept
 		{
-			inorder_helper(root);
-			dbg::println();
+			insert_util(std::forward<X>(first), root);
+			++element_count;
 		}
 
-		void preorder_traversal() const
+		template<typename X = T, typename... Args>
+		void remove(const X& first, Args&&... args)
 		{
-			preorder_helper(root);
-			dbg::println();
+			remove_util(first, root);
+			--element_count;
+			remove(std::forward<Args>(args)...);
 		}
 
-		void postorder_traversal() const
+		void remove(const T& first)
 		{
-			postorder_helper(root);
-			dbg::println();
+			remove_util(first, root);
+			--element_count;
 		}
 
-		node_t* get(const T value) const { return get_helper(root, value); }
+		void clear() { root.reset(nullptr); }
+
+		void print() const
+		{ //
+			if (empty())
+				dbg::println("{}");
+			else
+			{
+				dbg::println("{");
+				print(root);
+				dbg::println("}");
+			}
+		}
 	};
+#endif
+
+
+	export template<typename T>
+	class avl
+	{
+		// node of the tree
+		struct Node
+		{
+			std::unique_ptr<Node> left;
+			std::unique_ptr<Node> right;
+			T                     data;
+			std::int32_t          height;
+
+			template<typename X = T>
+			Node(X&& ele, std::unique_ptr<Node>&& lt, std::unique_ptr<Node>&& rt, std::int32_t h = 0)
+				: left{std::move(lt)}
+				, right{std::move(rt)}
+				, data{std::forward<X>(ele)}
+				, height{h}
+			{
+			}
+		};
+
+		// top of the tree
+		std::unique_ptr<Node> root;
+
+		// Number of elements
+		std::size_t sz;
+
+	public:
+		// constructors block
+		avl()
+			: root{nullptr}
+			, sz{0}
+		{
+		}
+
+		avl(const avl& other)
+			: root{clone(other.root)}
+			, sz{other.sz}
+		{
+		}
+
+		avl& operator=(const avl& other)
+		{
+			// copy and swap idiom
+			avl tmp(other);
+			std::swap(root, tmp.root);
+			std::swap(sz, tmp.sz);
+
+			return *this;
+		}
+
+		avl(avl&& other) noexcept
+			: avl()
+		{
+			std::swap(root, other.root);
+			std::swap(sz, other.sz);
+		}
+
+		avl& operator=(avl&& other) noexcept
+		{
+			std::swap(root, other.root);
+			std::swap(sz, other.sz);
+			return *this;
+		}
+
+		~avl() noexcept = default;
+
+		template<typename Iter>
+		avl(Iter first, Iter last)
+			: avl()
+		{
+			using c_tp = typename std::iterator_traits<Iter>::value_type;
+			static_assert(std::is_constructible<T, c_tp>::value, "Type mismatch");
+
+			for (auto it = first; it != last; ++it)
+			{
+				insert(*it);
+			}
+		}
+
+		avl(const std::initializer_list<T>& lst)
+			: avl(std::begin(lst), std::end(lst))
+		{
+		}
+
+		avl(std::initializer_list<T>&& lst)
+			: avl()
+		{
+			for (auto&& elem : lst)
+			{
+				insert(std::move(elem));
+			}
+		}
+
+		avl& operator=(const std::initializer_list<T>& lst)
+		{
+			// copy and swap idiom
+			avl tmp(lst);
+			std::swap(root, tmp.root);
+			std::swap(sz, tmp.sz);
+
+			return *this;
+		}
+
+		// Member functions block
+		inline bool empty() const noexcept { return sz == 0; }
+
+		inline const std::size_t& size() const noexcept { return sz; }
+
+		template<typename X = T, typename... Args>
+		void insert(X&& first, Args&&... args)
+		{
+			insert_util(std::forward<X>(first), root);
+			++sz;
+			insert(std::forward<Args>(args)...);
+		}
+
+		template<typename X = T>
+		void insert(X&& first)
+		{
+			insert_util(std::forward<X>(first), root);
+			++sz;
+		}
+
+		template<typename X = T, typename... Args>
+		void remove(const X& first, Args&&... args) noexcept
+		{
+			remove_util(first, root);
+			--sz;
+			remove(std::forward<Args>(args)...);
+		}
+
+		void remove(const T& first) noexcept
+		{
+			remove_util(first, root);
+			--sz;
+		}
+
+		const T& min_element() const
+		{
+			if (empty())
+				throw std::logic_error("Empty container");
+			return findMin(root);
+		}
+
+		const T& max_element() const
+		{
+			if (empty())
+				throw std::logic_error("Empty container");
+			return findMax(root);
+		}
+
+		void clear() noexcept { root.reset(nullptr); }
+
+		void print() const noexcept
+		{
+			if (empty())
+				dbg::println("{}");
+			else
+			{
+				dbg::print("{");
+				print(root);
+				dbg::println("}");
+			}
+		}
+
+		bool search(const T& x) const noexcept { return search(x, root); }
+
+	private:
+		// recursive method to clone a tree
+		std::unique_ptr<Node> clone(const std::unique_ptr<Node>& node) const
+		{
+			if (!node)
+				return nullptr;
+			else
+				return std::make_unique<Node>(node->data, clone(node->left), clone(node->right), node->height);
+		}
+
+		// Returns height of a node
+		inline std::int32_t height(const std::unique_ptr<Node>& node) const noexcept { return node == nullptr ? -1 : node->height; }
+
+		// print tree inorder
+		void print(const std::unique_ptr<Node>& t) const noexcept
+		{
+			if (t != nullptr)
+			{
+				print(t->left);
+				dbg::print("{}, ", t->data);
+				print(t->right);
+			}
+		}
+
+		// binary search an element in the tree
+		bool search(const T& x, const std::unique_ptr<Node>& node) const noexcept
+		{
+			auto t = node.get();
+
+			while (t != nullptr)
+				if (x < t->data)
+					t = t->left.get();
+				else if (t->data < x)
+					t = t->right.get();
+				else
+					return true;
+
+			return false;
+		}
+
+		// Recursive insert method
+		template<typename X = T>
+		void insert_util(X&& x, std::unique_ptr<Node>& t)
+		{
+			if (t == nullptr)
+				t = std::make_unique<Node>(std::forward<X>(x), nullptr, nullptr);
+			else if (x < t->data)
+				insert_util(std::forward<X>(x), t->left);
+			else if (t->data < x)
+				insert_util(std::forward<X>(x), t->right);
+
+			balance(t);
+		}
+
+		// Recursive delete method
+		void remove_util(const T& x, std::unique_ptr<Node>& t) noexcept
+		{
+			if (t == nullptr)
+				return; // Item not found; do nothing
+
+			if (x < t->data)
+				remove_util(x, t->left);
+			else if (t->data < x)
+				remove_util(x, t->right);
+			else if (t->left != nullptr && t->right != nullptr)
+			{ // Two children
+				t->data = findMin(t->right);
+				remove_util(t->data, t->right);
+			}
+			else
+			{ // One children
+				std::unique_ptr<Node> oldNode{std::move(t)};
+				t = (oldNode->left != nullptr) ? std::move(oldNode->left) : std::move(oldNode->right);
+
+				// oldNode.reset(nullptr); -> unneeded, auto delete when go out of scope
+			}
+
+			balance(t);
+		}
+
+		// Find smallest elem in a tree
+		const T& findMin(const std::unique_ptr<Node>& node) const noexcept
+		{
+			auto t = node.get();
+
+			if (t != nullptr)
+				while (t->left != nullptr)
+					t = t->left.get();
+
+			return t->data;
+		}
+
+		// Find largest elem in a tree
+		const T& findMax(const std::unique_ptr<Node>& node) const noexcept
+		{
+			auto t = node.get();
+
+			if (t != nullptr)
+				while (t->right != nullptr)
+					t = t->right.get();
+
+			return t->data;
+		}
+
+		// Internal method to re-balance the tree
+		void balance(std::unique_ptr<Node>& t) noexcept
+		{
+			static const int ALLOWED_IMBALANCE = 1;
+
+			if (t == nullptr)
+				return;
+
+			if (height(t->left) - height(t->right) > ALLOWED_IMBALANCE)
+			{
+				if (height(t->left->left) >= height(t->left->right))
+					rotateWithLeftChild(t);
+				else
+					doubleWithLeftChild(t);
+			}
+			else if (height(t->right) - height(t->left) > ALLOWED_IMBALANCE)
+			{
+				if (height(t->right->right) >= height(t->right->left))
+					rotateWithRightChild(t);
+				else
+					doubleWithRightChild(t);
+			}
+
+			t->height = std::max(height(t->left), height(t->right)) + 1;
+		}
+
+		// Rotations block
+
+		/**
+		 * Rotate binary tree node with left child.
+		 * For AVL trees, this is a single rotation for case 1.
+		 * Update heights, then set new root.
+		 */
+		void rotateWithLeftChild(std::unique_ptr<Node>& k2) noexcept
+		{
+			auto k1    = std::move(k2->left);
+			k2->left   = std::move(k1->right);
+			k2->height = std::max(height(k2->left), height(k2->right)) + 1;
+			k1->height = std::max(height(k1->left), k2->height) + 1;
+			k1->right  = std::move(k2);
+			k2         = std::move(k1);
+		}
+
+		/**
+		 * Rotate binary tree node with right child.
+		 * For AVL trees, this is a single rotation for case 4.
+		 * Update heights, then set new root.
+		 */
+		void rotateWithRightChild(std::unique_ptr<Node>& k1) noexcept
+		{
+			auto k2    = std::move(k1->right);
+			k1->right  = std::move(k2->left);
+			k1->height = std::max(height(k1->left), height(k1->right)) + 1;
+			k2->height = std::max(height(k2->right), k1->height) + 1;
+			k2->left   = std::move(k1);
+			k1         = std::move(k2);
+		}
+
+		/**
+		 * Double rotate binary tree node: first left child.
+		 * with its right child; then node k3 with new left child.
+		 * For AVL trees, this is a double rotation for case 2.
+		 * Update heights, then set new root.
+		 */
+		void doubleWithLeftChild(std::unique_ptr<Node>& k3) noexcept
+		{
+			rotateWithRightChild(k3->left);
+			rotateWithLeftChild(k3);
+		}
+
+		/**
+		 * Double rotate binary tree node: first right child.
+		 * with its left child; then node k1 with new right child.
+		 * For AVL trees, this is a double rotation for case 3.
+		 * Update heights, then set new root.
+		 */
+		void doubleWithRightChild(std::unique_ptr<Node>& k1) noexcept
+		{
+			rotateWithLeftChild(k1->right);
+			rotateWithRightChild(k1);
+		}
+
+	}; // end of class avl
+
+
 } // namespace deckard::graph
