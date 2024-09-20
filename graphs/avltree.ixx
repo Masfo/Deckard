@@ -7,6 +7,7 @@ import deckard.debug;
 namespace deckard::graph
 {
 
+
 	export template<typename T>
 	class avl
 	{
@@ -144,7 +145,11 @@ namespace deckard::graph
 
 		const T& max_element() const { return findMax(root); }
 
-		void clear() noexcept { root.reset(nullptr); }
+		void clear() noexcept
+		{
+			root.reset(nullptr);
+			count = 0;
+		}
 
 		void print() const noexcept
 		{
@@ -158,7 +163,13 @@ namespace deckard::graph
 			}
 		}
 
+		Node* get(const T& value) const { return getnode_helper(root, value); }
+
 		bool search(const T& x) const noexcept { return search(x, root); }
+
+		bool compare(const avl& other) const { return compare_util(root, other.root); }
+
+		bool operator==(const avl& other) const { return compare(other); }
 
 	private:
 		nodeptr clone(const nodeptr& node) const
@@ -194,6 +205,18 @@ namespace deckard::graph
 					return true;
 
 			return false;
+		}
+
+		bool compare_util(const nodeptr& left, const nodeptr& right) const
+		{
+			if (!left && !right)
+				return true;
+			else if (!left || !right)
+				return false;
+			else if (left->data != right->data)
+				return false;
+
+			return compare_util(left->left, right->left) && compare_util(left->right, right->right);
 		}
 
 		template<typename X = T>
@@ -234,6 +257,19 @@ namespace deckard::graph
 			balance(node);
 		}
 
+		Node* getnode_helper(const nodeptr& node, int value) const
+		{
+			if (!node)
+				return nullptr;
+
+			if (node->data == value)
+				return node.get();
+			else if (value < node->data)
+				return getnode_helper(node->left, value);
+			else
+				return getnode_helper(node->right, value);
+		}
+
 		const T& find_min(const nodeptr& node) const noexcept
 		{
 			auto temp = node.get();
@@ -258,29 +294,28 @@ namespace deckard::graph
 
 		void balance(nodeptr& node) noexcept
 		{
-
 			if (node == nullptr)
 				return;
 
 			if (height(node->left) - height(node->right) > 1)
 			{
 				if (height(node->left->left) >= height(node->left->right))
-					rotateWithLeftChild(node);
+					rotate_left(node);
 				else
-					doubleWithLeftChild(node);
+					double_left(node);
 			}
 			else if (height(node->right) - height(node->left) > 1)
 			{
 				if (height(node->right->right) >= height(node->right->left))
-					rotateWithRightChild(node);
+					rotate_right(node);
 				else
-					doubleWithRightChild(node);
+					double_right(node);
 			}
 
 			node->height = std::max(height(node->left), height(node->right)) + 1;
 		}
 
-		void rotateWithLeftChild(nodeptr& k2) noexcept
+		void rotate_left(nodeptr& k2) noexcept
 		{
 			auto k1    = std::move(k2->left);
 			k2->left   = std::move(k1->right);
@@ -290,7 +325,7 @@ namespace deckard::graph
 			k2         = std::move(k1);
 		}
 
-		void rotateWithRightChild(nodeptr& k1) noexcept
+		void rotate_right(nodeptr& k1) noexcept
 		{
 			auto k2    = std::move(k1->right);
 			k1->right  = std::move(k2->left);
@@ -300,16 +335,16 @@ namespace deckard::graph
 			k1         = std::move(k2);
 		}
 
-		void doubleWithLeftChild(nodeptr& k3) noexcept
+		void double_left(nodeptr& k3) noexcept
 		{
-			rotateWithRightChild(k3->left);
-			rotateWithLeftChild(k3);
+			rotate_right(k3->left);
+			rotate_left(k3);
 		}
 
-		void doubleWithRightChild(nodeptr& k1) noexcept
+		void double_right(nodeptr& k1) noexcept
 		{
-			rotateWithLeftChild(k1->right);
-			rotateWithRightChild(k1);
+			rotate_left(k1->right);
+			rotate_right(k1);
 		}
 
 	}; // end of class avl

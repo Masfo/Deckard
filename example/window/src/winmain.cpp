@@ -869,6 +869,7 @@ int deckard_main()
 
 	graph::avl<i32> tree;
 
+
 	tree.insert(10);
 	tree.insert(30);
 	tree.insert(20);
@@ -877,12 +878,17 @@ int deckard_main()
 	tree.insert(60);
 	tree.insert(80);
 
+	auto tree2 = tree;
+
+	dbg::println("tree == tree2 {}", tree == tree2);
+
 	dbg::println("inorder:");
 	tree.print();
 
 
 	tree.remove(40);
 
+	dbg::println("tree == tree2 {}", tree == tree2);
 
 	dbg::println("inorder:");
 	tree.print();
