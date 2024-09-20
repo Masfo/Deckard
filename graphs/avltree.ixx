@@ -3,14 +3,22 @@ export module deckard.graph:avltree;
 import std;
 import deckard.types;
 import deckard.debug;
+import deckard.function_ref;
 
 namespace deckard::graph
 {
 
+	export enum class order {
+		in,
+		pre,
+		post,
+		level,
+	};
 
 	export template<typename T>
 	class avl
 	{
+
 		struct Node
 		{
 			std::unique_ptr<Node> left;
@@ -33,6 +41,8 @@ namespace deckard::graph
 		std::size_t count;
 
 	public:
+		using avl_visitor = function_ref<void(const T&)>;
+
 		using nodeptr = std::unique_ptr<Node>;
 
 		avl()
@@ -151,14 +161,57 @@ namespace deckard::graph
 			count = 0;
 		}
 
-		void print() const noexcept
+		void visit(avl_visitor v) const { visit_inorder(v); }
+
+		void visit(order ord, avl_visitor v) const
+		{
+			switch (ord)
+			{
+				default: [[fallthrough]];
+				case order::in: visit_inorder(v); break;
+
+				case order::pre: visit_preorder(v); break;
+				case order::post: visit_postorder(v); break;
+				case order::level: visit_levelorder(v); break;
+			}
+		}
+
+		// left-root-right
+		void visit_inorder(avl_visitor v) const
+		{
+			if (not empty())
+				visit_inorder(root, v);
+		}
+
+		// root-left-right
+		void visit_preorder(avl_visitor v) const
+		{
+			if (not empty())
+				visit_preorder(root, v);
+		}
+
+		// left-right-root
+		void visit_postorder(avl_visitor v) const
+		{
+			if (not empty())
+				visit_postorder(root, v);
+		}
+
+		// level-order (BFS)
+		void visit_levelorder(avl_visitor v) const
+		{
+			if (not empty())
+				visit_levelorder(root, v);
+		}
+
+		void print() const
 		{
 			if (empty())
 				dbg::println("{}");
 			else
 			{
 				dbg::print("{");
-				print(root);
+				visit_inorder([](const T& data) { dbg::print("{}, ", data); });
 				dbg::println("}");
 			}
 		}
@@ -176,19 +229,60 @@ namespace deckard::graph
 		{
 			if (!node)
 				return nullptr;
-			else
-				return std::make_unique<Node>(node->data, clone(node->left), clone(node->right), node->height);
+
+			return std::make_unique<Node>(node->data, clone(node->left), clone(node->right), node->height);
 		}
 
 		i32 height(const nodeptr& node) const noexcept { return node == nullptr ? -1 : node->height; }
 
-		void print(const nodeptr& t) const noexcept
+		// left-root-right
+		void visit_inorder(const nodeptr& node, avl_visitor v) const
 		{
-			if (t != nullptr)
+			if (node == nullptr)
+				return;
+
+			visit_inorder(node->left, v);
+			std::invoke(v, node->data);
+			visit_inorder(node->right, v);
+		}
+
+		// root-left-right
+		void visit_preorder(const nodeptr& node, avl_visitor v) const
+		{
+			if (node == nullptr)
+				return;
+			std::invoke(v, node->data);
+			visit_preorder(node->left, v);
+			visit_preorder(node->right, v);
+		}
+
+		// left-right-root
+		void visit_postorder(const nodeptr& node, avl_visitor v) const
+		{
+			if (node == nullptr)
+				return;
+			visit_postorder(node->left, v);
+			visit_postorder(node->right, v);
+			std::invoke(v, node->data);
+		}
+
+		// level-order (BFS)
+		void visit_levelorder(const nodeptr& node, avl_visitor v) const
+		{
+			if (node == nullptr)
+				return;
+
+			std::queue<const Node*> q;
+			q.push(root.get());
+			while (not q.empty())
 			{
-				print(t->left);
-				dbg::print("{}, ", t->data);
-				print(t->right);
+				const auto current = q.front();
+				q.pop();
+				std::invoke(v, current->data);
+				if (current->left)
+					q.push(current->left.get());
+				if (current->right)
+					q.push(current->right.get());
 			}
 		}
 

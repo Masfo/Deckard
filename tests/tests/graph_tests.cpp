@@ -150,7 +150,116 @@ TEST_CASE("AVL", "[avl]")
 			REQUIRE(tree.get(60)->height == 0);
 			REQUIRE(tree.get(80)->height == 1);
 			REQUIRE(tree.get(100)->height == 0);
+		}
 
+
+		SECTION("visit inorder")
+		{
+			graph::avl<i32> tree;
+
+			tree.insert(10);
+			tree.insert(30);
+			tree.insert(60);
+			tree.insert(80);
+			std::vector<i32> v;
+			auto             to_vector = [&](i32 value) { v.push_back(value); };
+
+			tree.visit(to_vector);
+
+
+			//        30			0
+			//      /   \
+			//    10      60		1
+			// 	 /  \	 /  \
+			//  .    .  .    80		2
+
+
+			REQUIRE(v.size() == 4);
+			REQUIRE(v[0] == 10);
+			REQUIRE(v[1] == 30);
+			REQUIRE(v[2] == 60);
+			REQUIRE(v[3] == 80);
+		}
+
+		SECTION("visit preorder")
+		{
+			graph::avl<i32> tree;
+
+			tree.insert(10);
+			tree.insert(30);
+			tree.insert(60);
+			tree.insert(80);
+			std::vector<i32> v;
+			auto             to_vector = [&](i32 value) { v.push_back(value); };
+
+			tree.visit(graph::order::pre, to_vector);
+
+			//        30			0
+			//      /   \
+			//    10      60		1
+			// 	 /  \	 /  \
+			//  .    .  .    80		2
+
+
+			REQUIRE(v.size() == 4);
+			REQUIRE(v[0] == 30);
+			REQUIRE(v[1] == 10);
+			REQUIRE(v[2] == 60);
+			REQUIRE(v[3] == 80);
+		}
+
+		SECTION("visit postorder")
+		{
+			graph::avl<i32> tree;
+
+			tree.insert(10);
+			tree.insert(30);
+			tree.insert(60);
+			tree.insert(80);
+			std::vector<i32> v;
+			auto             to_vector = [&](i32 value) { v.push_back(value); };
+
+			tree.visit(graph::order::post, to_vector);
+
+
+			//        30			0
+			//      /   \
+			//    10      60		1
+			// 	 /  \	 /  \
+			//  .    .  .    80		2
+
+			REQUIRE(v.size() == 4);
+			REQUIRE(v[0] == 10);
+			REQUIRE(v[1] == 80);
+			REQUIRE(v[2] == 60);
+			REQUIRE(v[3] == 30);
+		}
+
+		SECTION("visit levelorder")
+		{
+			graph::avl<i32> tree;
+
+			tree.insert(10);
+			tree.insert(30);
+			tree.insert(60);
+			tree.insert(80);
+			std::vector<i32> v;
+			auto             to_vector = [&](i32 value) { v.push_back(value); };
+
+			tree.visit(graph::order::level, to_vector);
+
+
+			//        30			0
+			//      /   \
+			//    10      60		1
+			// 	 /  \	 /  \
+			//  .    .  .    80		2
+
+			REQUIRE(v.size() == 4);
+			REQUIRE(v[0] == 30);
+			REQUIRE(v[1] == 10);
+			REQUIRE(v[2] == 60);
+			REQUIRE(v[3] == 80);
 		}
 	}
 }
