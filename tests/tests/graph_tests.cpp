@@ -153,9 +153,9 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 		const auto n = tree.at(10);
 		REQUIRE(n.has_value());
@@ -180,9 +180,9 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 
 		REQUIRE(v.size() == 4);
@@ -207,9 +207,9 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 
 		REQUIRE(v.size() == 4);
@@ -235,9 +235,9 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 		REQUIRE(v.size() == 4);
 		REQUIRE(v[0] == 10);
@@ -262,9 +262,9 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 		REQUIRE(v.size() == 4);
 		REQUIRE(v[0] == 30);
@@ -422,9 +422,9 @@ TEST_CASE("AVL", "[avl]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 		const auto n = tree.at(10);
 		REQUIRE(n.has_value());
@@ -449,9 +449,9 @@ TEST_CASE("AVL", "[avl]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 
 		REQUIRE(v.size() == 4);
@@ -476,9 +476,9 @@ TEST_CASE("AVL", "[avl]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 
 		REQUIRE(v.size() == 4);
@@ -504,9 +504,9 @@ TEST_CASE("AVL", "[avl]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 		REQUIRE(v.size() == 4);
 		REQUIRE(v[0] == 10);
@@ -531,9 +531,9 @@ TEST_CASE("AVL", "[avl]")
 
 		//        30			0
 		//      /    \
-			//    10      60		1
+		//    10      60		1
 		// 	 /  \	 /  \
-			//  .    .  .    80		2
+		//  .    .  .    80		2
 
 		REQUIRE(v.size() == 4);
 		REQUIRE(v[0] == 30);
