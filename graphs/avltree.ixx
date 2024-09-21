@@ -5,9 +5,8 @@ import deckard.types;
 import deckard.debug;
 import deckard.function_ref;
 
-namespace deckard::graph
+namespace deckard::graph::avl
 {
-
 
 	export enum class order {
 		in,
@@ -17,7 +16,7 @@ namespace deckard::graph
 	};
 
 	export template<typename T>
-	class avl
+	class tree
 	{
 
 		struct Node
@@ -39,53 +38,53 @@ namespace deckard::graph
 
 		std::unique_ptr<Node> root;
 
-		std::size_t count;
+		u32 count;
 
 	public:
-		using avl_visitor = function_ref<void(const T&)>;
+		using visitor = function_ref<void(const T&)>;
 
 		using nodeptr = std::unique_ptr<Node>;
 
-		avl()
+		tree()
 			: root{nullptr}
 			, count{0}
 		{
 		}
 
-		avl(const avl& other)
+		tree(const tree& other)
 			: root{clone(other.root)}
 			, count{other.count}
 		{
 		}
 
-		avl& operator=(const avl& other)
+		tree& operator=(const tree& other)
 		{
-			avl tmp(other);
+			tree tmp(other);
 			std::swap(root, tmp.root);
 			std::swap(count, tmp.count);
 
 			return *this;
 		}
 
-		avl(avl&& other)
-			: avl()
+		tree(tree&& other)
+			: tree()
 		{
 			std::swap(root, other.root);
 			std::swap(count, other.count);
 		}
 
-		avl& operator=(avl&& other)
+		tree& operator=(tree&& other)
 		{
 			std::swap(root, other.root);
 			std::swap(count, other.count);
 			return *this;
 		}
 
-		~avl() = default;
+		~tree() = default;
 
 		template<typename Iter>
-		avl(Iter first, Iter last)
-			: avl()
+		tree(Iter first, Iter last)
+			: tree()
 		{
 			using c_tp = typename std::iterator_traits<Iter>::value_type;
 			static_assert(std::is_constructible<T, c_tp>::value, "Type mismatch");
@@ -96,13 +95,13 @@ namespace deckard::graph
 			}
 		}
 
-		avl(const std::initializer_list<T>& lst)
-			: avl(std::begin(lst), std::end(lst))
+		tree(const std::initializer_list<T>& lst)
+			: tree(std::begin(lst), std::end(lst))
 		{
 		}
 
-		avl(std::initializer_list<T>&& lst)
-			: avl()
+		tree(std::initializer_list<T>&& lst)
+			: tree()
 		{
 			for (auto&& elem : lst)
 			{
@@ -110,9 +109,9 @@ namespace deckard::graph
 			}
 		}
 
-		avl& operator=(const std::initializer_list<T>& lst)
+		tree& operator=(const std::initializer_list<T>& lst)
 		{
-			avl tmp(lst);
+			tree tmp(lst);
 			std::swap(root, tmp.root);
 			std::swap(count, tmp.count);
 
@@ -121,7 +120,7 @@ namespace deckard::graph
 
 		bool empty() const { return count == 0; }
 
-		const std::size_t& size() const { return count; }
+		const u32 size() const { return count; }
 
 		template<typename X = T, typename... Args>
 		void insert(X&& first, Args&&... args)
@@ -162,9 +161,9 @@ namespace deckard::graph
 			count = 0;
 		}
 
-		void visit(avl_visitor v) const { visit_inorder(v); }
+		void visit(visitor v) const { visit_inorder(v); }
 
-		void visit(order ord, avl_visitor v) const
+		void visit(order ord, visitor v) const
 		{
 			switch (ord)
 			{
@@ -178,28 +177,28 @@ namespace deckard::graph
 		}
 
 		// left-root-right
-		void visit_inorder(avl_visitor v) const
+		void visit_inorder(visitor v) const
 		{
 			if (not empty())
 				visit_inorder(root, v);
 		}
 
 		// root-left-right
-		void visit_preorder(avl_visitor v) const
+		void visit_preorder(visitor v) const
 		{
 			if (not empty())
 				visit_preorder(root, v);
 		}
 
 		// left-right-root
-		void visit_postorder(avl_visitor v) const
+		void visit_postorder(visitor v) const
 		{
 			if (not empty())
 				visit_postorder(root, v);
 		}
 
 		// level-order (BFS)
-		void visit_levelorder(avl_visitor v) const
+		void visit_levelorder(visitor v) const
 		{
 			if (not empty())
 				visit_levelorder(root, v);
@@ -227,9 +226,9 @@ namespace deckard::graph
 
 		bool has(const T& x) const { return has(x, root); }
 
-		bool compare(const avl& other) const { return compare_util(root, other.root); }
+		bool compare(const tree& other) const { return compare_util(root, other.root); }
 
-		bool operator==(const avl& other) const { return compare(other); }
+		bool operator==(const tree& other) const { return compare(other); }
 
 	private:
 		nodeptr clone(const nodeptr& node) const
@@ -243,7 +242,7 @@ namespace deckard::graph
 		i32 height(const nodeptr& node) const { return node == nullptr ? -1 : node->height; }
 
 		// left-root-right
-		void visit_inorder(const nodeptr& node, avl_visitor v) const
+		void visit_inorder(const nodeptr& node, const visitor v) const
 		{
 			if (node == nullptr)
 				return;
@@ -254,7 +253,7 @@ namespace deckard::graph
 		}
 
 		// root-left-right
-		void visit_preorder(const nodeptr& node, avl_visitor v) const
+		void visit_preorder(const nodeptr& node, const visitor v) const
 		{
 			if (node == nullptr)
 				return;
@@ -264,7 +263,7 @@ namespace deckard::graph
 		}
 
 		// left-right-root
-		void visit_postorder(const nodeptr& node, avl_visitor v) const
+		void visit_postorder(const nodeptr& node, const visitor v) const
 		{
 			if (node == nullptr)
 				return;
@@ -274,7 +273,7 @@ namespace deckard::graph
 		}
 
 		// level-order (BFS)
-		void visit_levelorder(const nodeptr& node, avl_visitor v) const
+		void visit_levelorder(const nodeptr& node, const visitor v) const
 		{
 			if (node == nullptr)
 				return;
@@ -285,7 +284,9 @@ namespace deckard::graph
 			{
 				const auto current = q.front();
 				q.pop();
+
 				std::invoke(v, current->data);
+
 				if (current->left)
 					q.push(current->left.get());
 				if (current->right)
@@ -465,4 +466,4 @@ namespace deckard::graph
 	}; // end of class avl
 
 
-} // namespace deckard::graph
+} // namespace deckard::graph::avl
