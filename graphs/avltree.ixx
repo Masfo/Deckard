@@ -8,6 +8,7 @@ import deckard.function_ref;
 namespace deckard::graph
 {
 
+
 	export enum class order {
 		in,
 		pre,
@@ -66,21 +67,21 @@ namespace deckard::graph
 			return *this;
 		}
 
-		avl(avl&& other) noexcept
+		avl(avl&& other)
 			: avl()
 		{
 			std::swap(root, other.root);
 			std::swap(count, other.count);
 		}
 
-		avl& operator=(avl&& other) noexcept
+		avl& operator=(avl&& other)
 		{
 			std::swap(root, other.root);
 			std::swap(count, other.count);
 			return *this;
 		}
 
-		~avl() noexcept = default;
+		~avl() = default;
 
 		template<typename Iter>
 		avl(Iter first, Iter last)
@@ -118,9 +119,9 @@ namespace deckard::graph
 			return *this;
 		}
 
-		bool empty() const noexcept { return count == 0; }
+		bool empty() const { return count == 0; }
 
-		const std::size_t& size() const noexcept { return count; }
+		const std::size_t& size() const { return count; }
 
 		template<typename X = T, typename... Args>
 		void insert(X&& first, Args&&... args)
@@ -131,21 +132,21 @@ namespace deckard::graph
 		}
 
 		template<typename X = T>
-		void insert(X&& first)
+		auto insert(X&& first) -> Node*
 		{
-			insert_util(std::forward<X>(first), root);
 			++count;
+			return insert_util(std::forward<X>(first), root);
 		}
 
 		template<typename X = T, typename... Args>
-		void remove(const X& first, Args&&... args) noexcept
+		void remove(const X& first, Args&&... args)
 		{
 			remove_util(first, root);
 			--count;
 			remove(std::forward<Args>(args)...);
 		}
 
-		void remove(const T& first) noexcept
+		void remove(const T& first)
 		{
 			remove_util(first, root);
 			--count;
@@ -153,9 +154,9 @@ namespace deckard::graph
 
 		const T& min_element() const { return find_min(root); }
 
-		const T& max_element() const { return findMax(root); }
+		const T& max_element() const { return find_max(root); }
 
-		void clear() noexcept
+		void clear()
 		{
 			root.reset(nullptr);
 			count = 0;
@@ -216,9 +217,15 @@ namespace deckard::graph
 			}
 		}
 
-		Node* get(const T& value) const { return getnode_helper(root, value); }
+#if __cpp_lib_optional_ref
+#error "return optional ref to node"
+#endif
 
-		bool search(const T& x) const noexcept { return search(x, root); }
+		std::optional<Node*> at(const T& value) const { return at_helper(root, value); }
+
+		Node* get(const T& value) const { return get_helper(root, value); }
+
+		bool has(const T& x) const { return has(x, root); }
 
 		bool compare(const avl& other) const { return compare_util(root, other.root); }
 
@@ -233,7 +240,7 @@ namespace deckard::graph
 			return std::make_unique<Node>(node->data, clone(node->left), clone(node->right), node->height);
 		}
 
-		i32 height(const nodeptr& node) const noexcept { return node == nullptr ? -1 : node->height; }
+		i32 height(const nodeptr& node) const { return node == nullptr ? -1 : node->height; }
 
 		// left-root-right
 		void visit_inorder(const nodeptr& node, avl_visitor v) const
@@ -286,7 +293,7 @@ namespace deckard::graph
 			}
 		}
 
-		bool search(const T& x, const nodeptr& node) const noexcept
+		bool has(const T& x, const nodeptr& node) const
 		{
 			auto temp = node.get();
 
@@ -314,19 +321,25 @@ namespace deckard::graph
 		}
 
 		template<typename X = T>
-		void insert_util(X&& x, nodeptr& node)
+		Node* insert_util(X&& x, nodeptr& node)
 		{
+			Node* ret = nullptr;
 			if (node == nullptr)
+			{
 				node = std::make_unique<Node>(std::forward<X>(x), nullptr, nullptr);
+				ret  = node.get();
+			}
 			else if (x < node->data)
-				insert_util(std::forward<X>(x), node->left);
+				ret = insert_util(std::forward<X>(x), node->left);
 			else if (node->data < x)
-				insert_util(std::forward<X>(x), node->right);
+				ret = insert_util(std::forward<X>(x), node->right);
+
 
 			balance(node);
+			return ret;
 		}
 
-		void remove_util(const T& x, nodeptr& node) noexcept
+		void remove_util(const T& x, nodeptr& node)
 		{
 			if (node == nullptr)
 				return;
@@ -351,7 +364,15 @@ namespace deckard::graph
 			balance(node);
 		}
 
-		Node* getnode_helper(const nodeptr& node, int value) const
+		std::optional<Node*> at_helper(const nodeptr& node, const T value) const
+		{
+			const auto ret = get_helper(node, value);
+			if (ret == nullptr)
+				return std::nullopt;
+			return ret;
+		}
+
+		Node* get_helper(const nodeptr& node, const T value) const
 		{
 			if (!node)
 				return nullptr;
@@ -359,12 +380,12 @@ namespace deckard::graph
 			if (node->data == value)
 				return node.get();
 			else if (value < node->data)
-				return getnode_helper(node->left, value);
+				return get_helper(node->left, value);
 			else
-				return getnode_helper(node->right, value);
+				return get_helper(node->right, value);
 		}
 
-		const T& find_min(const nodeptr& node) const noexcept
+		const T& find_min(const nodeptr& node) const
 		{
 			auto temp = node.get();
 
@@ -375,7 +396,7 @@ namespace deckard::graph
 			return temp->data;
 		}
 
-		const T& findMax(const nodeptr& node) const noexcept
+		const T& find_max(const nodeptr& node) const
 		{
 			auto temp = node.get();
 
@@ -386,7 +407,7 @@ namespace deckard::graph
 			return temp->data;
 		}
 
-		void balance(nodeptr& node) noexcept
+		void balance(nodeptr& node)
 		{
 			if (node == nullptr)
 				return;
@@ -409,7 +430,7 @@ namespace deckard::graph
 			node->height = std::max(height(node->left), height(node->right)) + 1;
 		}
 
-		void rotate_left(nodeptr& k2) noexcept
+		void rotate_left(nodeptr& k2)
 		{
 			auto k1    = std::move(k2->left);
 			k2->left   = std::move(k1->right);
@@ -419,7 +440,7 @@ namespace deckard::graph
 			k2         = std::move(k1);
 		}
 
-		void rotate_right(nodeptr& k1) noexcept
+		void rotate_right(nodeptr& k1)
 		{
 			auto k2    = std::move(k1->right);
 			k1->right  = std::move(k2->left);
@@ -429,13 +450,13 @@ namespace deckard::graph
 			k1         = std::move(k2);
 		}
 
-		void double_left(nodeptr& k3) noexcept
+		void double_left(nodeptr& k3)
 		{
 			rotate_right(k3->left);
 			rotate_left(k3);
 		}
 
-		void double_right(nodeptr& k1) noexcept
+		void double_right(nodeptr& k1)
 		{
 			rotate_left(k1->right);
 			rotate_right(k1);

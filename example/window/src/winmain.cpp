@@ -865,12 +865,20 @@ public:
 int deckard_main()
 {
 
+	int                  x2q    = 1;
+	std::optional<void*> optptr = std::make_optional(&x2q);
+
+	optptr = std::nullopt;
+
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
 
 	graph::avl<i32> tree;
 
 
-	tree.insert(10);
+	auto ptr10 = tree.insert(10);
+
+	dbg::println("{}", ptr10->data);
+
 	tree.insert(30);
 	tree.insert(20);
 	tree.insert(40);

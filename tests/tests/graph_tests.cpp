@@ -80,7 +80,7 @@ TEST_CASE("AVL", "[avl]")
 			REQUIRE(tree2.size() == 7);
 		}
 
-		SECTION("search")
+		SECTION("has")
 		{
 			graph::avl<i32> tree;
 
@@ -93,9 +93,9 @@ TEST_CASE("AVL", "[avl]")
 			tree.insert(80);
 
 			REQUIRE(tree.size() == 7);
-			REQUIRE(true == tree.search(10));
-			REQUIRE(true == tree.search(80));
-			REQUIRE(false == tree.search(0));
+			REQUIRE(true == tree.has(10));
+			REQUIRE(true == tree.has(80));
+			REQUIRE(false == tree.has(0));
 		}
 
 		SECTION("clear")
@@ -152,6 +152,27 @@ TEST_CASE("AVL", "[avl]")
 			REQUIRE(tree.get(100)->height == 0);
 		}
 
+		SECTION("at")
+		{
+			graph::avl<i32> tree;
+
+			tree.insert(10);
+			tree.insert(30);
+			tree.insert(60);
+			tree.insert(80);
+
+			//        30			0
+			//      /    \
+			//    10      60		1
+			// 	 /  \	 /  \
+			//  .    .  .    80		2
+
+			const auto n = tree.at(10);
+			REQUIRE(n.has_value());
+			REQUIRE((*n)->data == 10);
+
+			REQUIRE(not tree.at(0).has_value());
+		}
 
 		SECTION("visit inorder")
 		{
@@ -168,7 +189,7 @@ TEST_CASE("AVL", "[avl]")
 
 
 			//        30			0
-			//      /   \
+			//      /    \
 			//    10      60		1
 			// 	 /  \	 /  \
 			//  .    .  .    80		2
@@ -195,7 +216,7 @@ TEST_CASE("AVL", "[avl]")
 			tree.visit(graph::order::pre, to_vector);
 
 			//        30			0
-			//      /   \
+			//      /    \
 			//    10      60		1
 			// 	 /  \	 /  \
 			//  .    .  .    80		2
@@ -223,7 +244,7 @@ TEST_CASE("AVL", "[avl]")
 
 
 			//        30			0
-			//      /   \
+			//      /    \
 			//    10      60		1
 			// 	 /  \	 /  \
 			//  .    .  .    80		2
@@ -250,7 +271,7 @@ TEST_CASE("AVL", "[avl]")
 
 
 			//        30			0
-			//      /   \
+			//      /    \
 			//    10      60		1
 			// 	 /  \	 /  \
 			//  .    .  .    80		2
