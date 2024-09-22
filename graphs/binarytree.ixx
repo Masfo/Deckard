@@ -171,6 +171,8 @@ export namespace deckard::graph::binary
 
 		bool has(const T& x) const { return has(x, root); }
 
+		bool contains(const T& x) const { return has(x, root); }
+
 		bool compare(const tree& other) const { return compare_util(root, other.root); }
 
 		bool operator==(const tree& other) const { return compare(other); }

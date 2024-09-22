@@ -122,8 +122,8 @@ if(MSVC)
 
         # Manifest
         if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/manifest.txt")
-            target_link_options(${target} PRIVATE /MANIFEST:EMBED)
-            target_link_options(${target} PRIVATE /MANIFESTINPUT:${CMAKE_CURRENT_LIST_DIR}/manifest.txt)
+            target_link_options(utftables PRIVATE /MANIFEST:EMBED)
+            target_link_options(utftables PRIVATE /MANIFESTINPUT:${CMAKE_CURRENT_LIST_DIR}/manifest.txt)
         endif()
 
     endif()

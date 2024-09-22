@@ -203,6 +203,12 @@ export namespace deckard
 		return std::format("{:%F}", std::chrono::current_zone()->to_local(epoch));
 	}
 
+	template<typename T, typename U>
+	bool contains(const T& container, const U& element)
+	{
+		return std::ranges::contains(container, element);
+	}
+
 	// make_array
 	template<class... Ts>
 	constexpr std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)> make_array(Ts&&... ts)
@@ -210,11 +216,16 @@ export namespace deckard
 		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
 	}
 
+	template<class... Ts>
+	constexpr std::vector<typename std::decay<typename std::common_type<Ts...>::type>::type> make_vector(Ts&&... ts)
+	{
+		return std::vector<typename std::decay<typename std::common_type<Ts...>::type>::type>{std::forward<Ts>(ts)...};
+	}
+
 	// vmin
 	template<class A, class... Args>
 	constexpr A vmin(A a, A b, Args... args)
 	{
-
 		if constexpr (sizeof...(args) == 0)
 			return std::min(a, b);
 		else
@@ -635,6 +646,12 @@ export namespace deckard
 		auto average() const { return std::chrono::duration<Type, R>(m_total_dur / m_iterations); }
 
 		u64 iterations() const { return m_iterations; }
+
+		void clear()
+		{
+			m_iterations = 0;
+			has_dumped   = false;
+		}
 
 		std::string dump()
 		{

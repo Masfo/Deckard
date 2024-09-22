@@ -865,41 +865,8 @@ public:
 int deckard_main()
 {
 
-	int                  x2q    = 1;
-	std::optional<void*> optptr = std::make_optional(&x2q);
-
-	optptr = std::nullopt;
 
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
-
-	graph::avl<i32> tree;
-
-
-	auto ptr10 = tree.insert(10);
-
-	dbg::println("{}", ptr10->data);
-
-	tree.insert(30);
-	tree.insert(20);
-	tree.insert(40);
-	tree.insert(70);
-	tree.insert(60);
-	tree.insert(80);
-
-	auto tree2 = tree;
-
-	dbg::println("tree == tree2 {}", tree == tree2);
-
-	dbg::println("inorder:");
-	tree.print();
-
-
-	tree.remove(40);
-
-	dbg::println("tree == tree2 {}", tree == tree2);
-
-	dbg::println("inorder:");
-	tree.print();
 
 
 	using namespace std::string_literals;
@@ -928,28 +895,8 @@ int deckard_main()
 	// int         result = parser.expression();
 	// dbg::println("Result: {}", result);
 
-#if 0
-	auto ast               = std::make_unique<Node>();
-	ast->type              = NodeType::ASSIGN;
-	ast->bin_op.left       = std::make_unique<Node>();
-	ast->bin_op.left->type = NodeType::NAME;
-	ast->bin_op.left->name = "x";
 
-	ast->bin_op.right       = std::make_unique<Node>();
-	ast->bin_op.right->type = NodeType::BIN_OP;
-
-	ast->bin_op.right->bin_op.op   = '+';
-	ast->bin_op.right->bin_op.left = std::make_unique<Node>();
-
-	ast->bin_op.right->bin_op.left->type      = NodeType::NUM;
-	ast->bin_op.right->bin_op.left->num_value = 0;
-
-	ast->bin_op.right->bin_op.right = std::make_unique<Node>();
-
-	ast->bin_op.right->bin_op.right->type      = NodeType::NUM;
-	ast->bin_op.right->bin_op.right->num_value = sizeof(Node);
-#endif
-	//	// Environment
+	// Environment
 	//	std::unordered_map<std::string, int> env;
 	//
 	//	// Create an AST
