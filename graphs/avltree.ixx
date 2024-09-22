@@ -280,19 +280,19 @@ namespace deckard::graph::avl
 			if (node == nullptr)
 				return;
 
-			std::queue<const Node*> q;
-			q.push(root.get());
+			std::deque<const Node*> q;
+			q.push_back(root.get());
 			while (not q.empty())
 			{
 				const auto current = q.front();
-				q.pop();
+				q.pop_front();
 
 				std::invoke(v, current->data);
 
 				if (current->left)
-					q.push(current->left.get());
+					q.push_back(current->left.get());
 				if (current->right)
-					q.push(current->right.get());
+					q.push_back(current->right.get());
 			}
 		}
 

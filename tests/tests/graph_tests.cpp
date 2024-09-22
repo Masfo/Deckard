@@ -84,9 +84,9 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(80);
 
 		REQUIRE(tree.size() == 7);
-		REQUIRE(true == tree.has(10));
-		REQUIRE(true == tree.has(80));
-		REQUIRE(false == tree.has(0));
+		REQUIRE(true == tree.contains(10));
+		REQUIRE(true == tree.contains(80));
+		REQUIRE(false == tree.contains(0));
 	}
 
 	SECTION("clear")
@@ -173,7 +173,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(60);
 		tree.insert(80);
 		std::vector<i32> v;
-		auto             to_vector = [&](i32 value) { v.push_back(value); };
+		const auto       to_vector = [&](i32 value) { v.push_back(value); };
 
 		tree.visit(to_vector);
 
