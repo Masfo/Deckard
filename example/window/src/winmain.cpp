@@ -865,7 +865,6 @@ public:
 int deckard_main()
 {
 
-
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
 
 

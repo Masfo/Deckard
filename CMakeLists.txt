@@ -214,6 +214,7 @@ set(DECKARD_SRCS
         graphs/graph.ixx
         graphs/avltree.ixx
         graphs/binarytree.ixx
+        graphs/undirected.ixx
 
 
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
