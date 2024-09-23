@@ -352,9 +352,9 @@ TEST_CASE("AVL", "[avl]")
 		tree.insert(80);
 
 		REQUIRE(tree.size() == 7);
-		REQUIRE(true == tree.has(10));
-		REQUIRE(true == tree.has(80));
-		REQUIRE(false == tree.has(0));
+		REQUIRE(true == tree.contains(10));
+		REQUIRE(true == tree.contains(80));
+		REQUIRE(false == tree.contains(0));
 	}
 
 	SECTION("clear")

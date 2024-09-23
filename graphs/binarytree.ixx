@@ -381,6 +381,7 @@ export namespace deckard::graph::binary
 				return;
 
 			std::deque<const Node*> q;
+
 			q.push_back(root.get());
 			while (not q.empty())
 			{

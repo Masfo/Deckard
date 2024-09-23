@@ -224,9 +224,7 @@ namespace deckard::graph::avl
 
 		Node* get(const T& value) const { return get_helper(root, value); }
 
-		bool has(const T& x) const { return has(x, root); }
-
-		bool contains(const T& x) const { return has(x, root); }
+		bool contains(const T& x) const { return contains(x, root); }
 
 		bool compare(const tree& other) const { return compare_util(root, other.root); }
 
@@ -296,7 +294,7 @@ namespace deckard::graph::avl
 			}
 		}
 
-		bool has(const T& x, const nodeptr& node) const
+		bool contains(const T& x, const nodeptr& node) const
 		{
 			auto temp = node.get();
 
