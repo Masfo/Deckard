@@ -201,7 +201,9 @@ set(DECKARD_SRCS
         utils/serializer.ixx
         utils/random.ixx
         utils/function_ref.ixx
+        utils/grid.ixx
 
+        # Unicode
         unicode/utf8.ixx
         unicode/utf8_codepoints.ixx
         unicode/utf8_xid.ixx
