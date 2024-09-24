@@ -225,5 +225,7 @@ export namespace deckard
 		deckard::dbg::breakpoint();
 	}
 
+	void todo() { todo("TODO"); }
+
 
 } // namespace deckard
