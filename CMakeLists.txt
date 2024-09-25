@@ -201,7 +201,7 @@ set(DECKARD_SRCS
         utils/serializer.ixx
         utils/random.ixx
         utils/function_ref.ixx
-        utils/grid.ixx
+        utils/arrays.ixx
 
         # Unicode
         unicode/utf8.ixx
@@ -217,6 +217,8 @@ set(DECKARD_SRCS
         graphs/avltree.ixx
         graphs/binarytree.ixx
         graphs/undirected.ixx
+        graphs/directed.ixx
+
 
 
         $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>

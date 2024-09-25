@@ -2,19 +2,19 @@
 
 
 import std;
-import deckard.grid;
+import deckard.arrays;
 
 using namespace deckard::grid;
 
-TEST_CASE("grid<bool>", "[grid]")
+TEST_CASE("array2d<bool>", "[array]")
 {
 	SECTION("init")
 	{
 		//
-		grid<bool> g(8, 8);
+		array2d<bool> g(8, 8);
 		REQUIRE(g.size_in_bytes() == 8);
 
-		grid<bool> g2(9, 9);
+		array2d<bool> g2(9, 9);
 		REQUIRE(g2.size_in_bytes() == 11);
 	}
 }
