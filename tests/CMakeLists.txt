@@ -69,7 +69,7 @@ target_sources(tests PUBLIC
     tests/zstd_test.cpp
     
     # Grid
-    tests/grid_tests.cpp
+    tests/array_tests.cpp
 
 )
 

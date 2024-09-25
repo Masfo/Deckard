@@ -21,6 +21,11 @@ namespace deckard
 
 		array2d(u32 w, u32 h) { resize(w, h); }
 
+		array2d(extent<u32> e)
+			: extent(e)
+		{
+		}
+
 		bool get(u32 x, u32 y) const
 		{
 			todo();
@@ -60,6 +65,11 @@ namespace deckard
 
 	public:
 		array2d() { resize(extent.width, extent.height); }
+
+		array2d(extent<u32> e)
+			: extent(e)
+		{
+		}
 
 		array2d(u32 w, u32 h) { resize(w, h); }
 
