@@ -862,19 +862,17 @@ private:
 public:
 };
 
+template<std::unsigned_integral T = u16>
+struct ext
+{
+	T value{};
+};
+
 int deckard_main()
 {
 
-
-	grid::grid2d<bool> ug(9, 9);
-
-	ug.set(0, 0, true);
-	ug.set(8, 8, true);
-
-	ug.dump();
-
-	ug.flip(5, 5);
-	ug.dump();
+	extent      v1a;
+	extent<u32> v2a;
 
 
 	quat q1(vec3(1.0f, 2.0f, 3.0f));

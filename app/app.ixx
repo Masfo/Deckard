@@ -96,11 +96,11 @@ namespace deckard::app
 		// std::vector<char>             rawinput_buffer;
 
 
-		HWND   handle{nullptr};
-		extent min_extent{640, 480};
-		extent normalized_client_size;
-		DWORD  style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD  ex_style{0};
+		HWND        handle{nullptr};
+		extent<u16> min_extent{640, 480};
+		extent<u16> normalized_client_size{0, 0};
+		DWORD       style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
+		DWORD       ex_style{0};
 
 		inputs m_inputs;
 
@@ -159,15 +159,15 @@ namespace deckard::app
 				SetWindowPlacement(handle, &wp);
 			}
 
-			extent size = get_clientsize();
+			extent<u16> size = get_clientsize();
 		}
 
-		extent adjust_to_current_dpi(extent old)
+		extent<u16> adjust_to_current_dpi(extent<u16> old)
 		{
 			const u32 dpi   = current_dpi();
 			const f32 scale = as<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
 
-			extent ext;
+			extent<u16> ext;
 			ext.width  = as<u16>(old.width * scale);
 			ext.height = as<u16>(old.height * scale);
 
@@ -186,7 +186,7 @@ namespace deckard::app
 
 		f32 current_scale() const { return as<f32>(current_dpi()) / as<f32>(USER_DEFAULT_SCREEN_DPI); }
 
-		extent normalize_client_size()
+		extent<u16> normalize_client_size()
 		{
 			const f32 scale = current_scale();
 			assert::check(scale >= 1.0f);
@@ -194,7 +194,7 @@ namespace deckard::app
 			RECT client_size{};
 			GetClientRect(handle, &client_size);
 
-			extent unnormalized_size = to_extent(client_size);
+			extent<u16> unnormalized_size = to_extent(client_size);
 
 			normalized_client_size.width  = as<u16>(unnormalized_size.width / scale);
 			normalized_client_size.height = as<u16>(unnormalized_size.height / scale);
@@ -202,13 +202,13 @@ namespace deckard::app
 			return normalized_client_size;
 		}
 
-		void set_client_size(const extent size)
+		void set_client_size(const extent<u16> size)
 		{
 			normalized_client_size = size;
 			resize();
 		}
 
-		extent get_clientsize() const
+		extent<u16> get_clientsize() const
 		{
 			RECT r{};
 			GetClientRect(handle, &r);

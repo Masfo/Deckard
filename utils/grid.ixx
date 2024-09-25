@@ -12,13 +12,12 @@ namespace deckard::grid
 	class grid
 	{
 	private:
-		u32 m_width{1};
-		u32 m_height{1};
+		extent<u32> extent{1, 1};
 
 		std::vector<T> grid;
 
 	public:
-		grid() { resize(m_width, m_height); }
+		grid() { resize(extent.width, extent.height); }
 
 		grid(u32 w, u32 h) { resize(w, h); }
 
@@ -37,51 +36,50 @@ namespace deckard::grid
 			assert::check(new_width > 1);
 			assert::check(new_height > 1);
 
-			m_width  = new_width;
-			m_height = new_height;
+			extent.width  = new_width;
+			extent.height = new_height;
 
-			grid.resize(m_width * m_height);
+			grid.resize(extent.width * extent.height);
 		}
 
 		u32 size_in_bytes() const { return as<u32>(grid.size()); }
 
-		u32 width() const { return m_width; };
+		u32 width() const { return extent.width; };
 
-		u32 height() const { return m_height; };
+		u32 height() const { return extent.height; };
 	};
 
 	export template<>
 	class grid<bool>
 	{
 	private:
-		u32 m_width{1};
-		u32 m_height{1};
+		extent<u32> extent{1, 1};
 
 		std::vector<u8> m_grid;
 
 
 	public:
-		grid() { resize(m_width, m_height); }
+		grid() { resize(extent.width, extent.height); }
 
 		grid(u32 w, u32 h) { resize(w, h); }
 
 		bool get(u32 x, u32 y) const
 		{
-			assert::check(x <= m_width - 1);
-			assert::check(y <= m_height - 1);
+			assert::check(x <= extent.width - 1);
+			assert::check(y <= extent.height - 1);
 
-			return (m_grid[(x * m_width + y) / 8] >> ((x * m_width + y) % 8)) & 1;
+			return (m_grid[(x * extent.width + y) / 8] >> ((x * extent.width + y) % 8)) & 1;
 		}
 
 		void set(u32 x, u32 y, bool value)
 		{
-			assert::check(x <= m_width - 1);
-			assert::check(y <= m_height - 1);
+			assert::check(x <= extent.width - 1);
+			assert::check(y <= extent.height - 1);
 
 			if (value)
-				m_grid[(x * m_width + y) / 8] |= (1 << ((x * m_width + y) % 8));
+				m_grid[(x * extent.width + y) / 8] |= (1 << ((x * extent.width + y) % 8));
 			else
-				m_grid[(x * m_width + y) / 8] &= ~(1 << ((x * m_width + y) % 8));
+				m_grid[(x * extent.width + y) / 8] &= ~(1 << ((x * extent.width + y) % 8));
 		}
 
 		void flip(u32 x, u32 y) { set(x, y, not get(x, y)); }
@@ -93,24 +91,24 @@ namespace deckard::grid
 			assert::check(new_m_width > 1);
 			assert::check(new_m_height > 1);
 
-			m_width  = new_m_width;
-			m_height = new_m_height;
+			extent.width  = new_m_width;
+			extent.height = new_m_height;
 
-			m_grid.resize((m_width * m_height + 7) / 8);
+			m_grid.resize((extent.width * extent.height + 7) / 8);
 		}
 
 		u32 size_in_bytes() const { return as<u32>(m_grid.size()); }
 
-		u32 width() const { return m_width; };
+		u32 width() const { return extent.width; };
 
-		u32 height() const { return m_height; };
+		u32 height() const { return extent.height; };
 
 		void dump() const
 		{
 #ifdef _DEBUG
-			for (u32 y = 0; y < m_height; y++)
+			for (u32 y = 0; y < extent.height; y++)
 			{
-				for (u32 x = 0; x < m_width; x++)
+				for (u32 x = 0; x < extent.width; x++)
 				{
 					dbg::print("{:d}", get(x, y));
 				}

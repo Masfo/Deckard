@@ -88,13 +88,22 @@ export namespace deckard
 
 	inline constexpr sink_t _;
 
+	template<std::unsigned_integral T = u16>
 	struct extent
 	{
-		u16 width{0};
-		u16 height{};
+		extent() = default;
+
+		extent(T w, T h)
+			: width(w)
+			, height(h)
+		{
+		}
+
+		T width{T{0}};
+		T height{T{0}};
 	};
 
-	extent to_extent(RECT r) { return {(u16)(r.right - r.left), (u16)(r.bottom - r.top)}; }
+	auto to_extent(const RECT& r) -> extent<u16> { return extent{static_cast<u16>(r.right - r.left), static_cast<u16>(r.bottom - r.top)}; }
 
 	export template<typename T>
 	concept basic_container = requires(T cont) { requires std::ranges::range<T>; };
