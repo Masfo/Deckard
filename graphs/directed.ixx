@@ -1,4 +1,4 @@
-export module deckard.graph:undirected;
+export module deckard.graph:directed;
 
 import std;
 import deckard.types;
@@ -10,9 +10,8 @@ import deckard.arrays;
 namespace deckard::graph
 {
 
-
 	template<typename T>
-	class undirected_graph
+	class directed_graph
 	{
 	private:
 		T             data{};
