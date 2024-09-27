@@ -862,14 +862,41 @@ private:
 public:
 };
 
-template<std::unsigned_integral T = u16>
-struct ext
+template<typename T>
+class adjacencylist
 {
-	T value{};
+private:
+	std::vector<std::vector<T>> list;
+
+public:
 };
 
 int deckard_main()
 {
+
+	std::vector<std::vector<u32>> list(8);
+	for (auto& l : list)
+		l.reserve(8);
+
+
+	array2d<bool> bgrid(16, 16);
+	bgrid.dump();
+	bgrid.fill(true);
+	bgrid.dump();
+
+
+	array2d<u8> grid(16, 16);
+
+	grid.fill('X');
+	grid.dump();
+	dbg::println("{:c} {:c}", grid.get(0, 0), grid.get(1, 1));
+
+
+	grid(1, 1) = 'Y';
+	grid.dump();
+
+	dbg::println("{:c} {:c}", grid(0, 0), grid.get(1, 1));
+
 
 	extent      v1a;
 	extent<u32> v2a;

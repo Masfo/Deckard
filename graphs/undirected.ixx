@@ -15,8 +15,7 @@ namespace deckard::graph
 	class undirected_graph
 	{
 	private:
-		T             data{};
-		array2d<bool> adjacency;
+		T data{};
 
 	public:
 	};

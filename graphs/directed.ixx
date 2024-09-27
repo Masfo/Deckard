@@ -10,12 +10,12 @@ import deckard.arrays;
 namespace deckard::graph
 {
 
+
 	template<typename T>
 	class directed_graph
 	{
 	private:
-		T             data{};
-		array2d<bool> adjacency;
+		T data{};
 
 	public:
 	};

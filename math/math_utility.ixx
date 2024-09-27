@@ -62,7 +62,7 @@ export namespace deckard::math
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-7})
 	{
-		const f32 diff = A - B;
+		const f32 diff    = A - B;
 		const f32 absdiff = std::abs(diff);
 		return absdiff <= error;
 	}
@@ -132,6 +132,22 @@ export namespace deckard::math
 		export float cos(float f) noexcept { return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f))); }
 
 	} // namespace sse
+} // namespace deckard::math
+
+export namespace deckard::math
+{
+	template<std::integral T, std::integral U = T>
+	T index_from_2d(T x, T y, U width)
+	{
+		return y * width + x;
+	}
+
+	template<std::integral T, std::integral U = T, std::integral I = T>
+	T index_from_3d(T x, T y, T z, U height, I depth)
+	{
+		return x * height * depth + y * depth * z;
+	}
+
 } // namespace deckard::math
 
 namespace deckard::math

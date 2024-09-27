@@ -10,7 +10,6 @@ import deckard.file;
 
 namespace fs = std::filesystem;
 using namespace std::string_view_literals;
-using namespace deckard::utf8;
 
 namespace deckard::lexer
 {
@@ -38,7 +37,7 @@ namespace deckard::lexer
 
 	 */
 
-	export enum class Token : u8 {
+	export enum class TokenType : u8 {
 		INTEGER,        // 1, -1
 		FLOATING_POINT, // 3.14
 		KEYWORD,        // if, else
@@ -136,8 +135,48 @@ namespace deckard::lexer
 	};
 
 
-	constexpr auto keyword_to_i64_hash = [](std::wstring_view str) -> i64 { return std::hash<std::wstring_view>{}(str); };
+	using TokenValue = std::variant<std::monostate, double, i64, u64, utf8::string>;
 
+	constexpr auto STokenValue = sizeof(TokenValue);
+
+	struct Token
+	{
+		u32 index{0};  // Tokens position in original source
+		u32 length{0}; //
+
+		TokenValue value;
+	};
+
+	class lexer
+	{
+	private:
+		file         m_file;
+		utf8::string m_data;
+
+		u32 m_line{0};
+		u32 m_column{0};
+
+	public:
+		lexer() = delete;
+
+		lexer(std::string_view input)
+			: m_data(input)
+		{
+		}
+
+		lexer(utf8::string input)
+			: m_data(input)
+		{
+		}
+
+	private:
+	public:
+	};
+
+#pragma region !Old lexer
+#if 0
+
+	constexpr auto keyword_to_i64_hash = [](std::wstring_view str) -> i64 { return std::hash<std::wstring_view>{}(str); };
 	struct keyword
 	{
 		i64   word;
@@ -145,10 +184,6 @@ namespace deckard::lexer
 
 		bool operator<(const keyword& lhs) const { return word < lhs.word; }
 	};
-
-#pragma region !Old lexer
-#if 0
-
 	using lexeme = std::vector<char32_t>;
 
 
