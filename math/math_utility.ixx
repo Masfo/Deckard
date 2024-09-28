@@ -101,22 +101,24 @@ export namespace deckard::math
 
 	namespace sse
 	{
+		using m128 = __m128;
+
 		// sse
-		__m128 dot(const __m128& rhs)
+		__m128 dot(const m128& rhs)
 		{
 #if 0
 		// SSE3
-		__m128 tmp0 = _mm_hadd_ps(rhs, rhs);
-		__m128 tmp1 = _mm_hadd_ps(tmp0, tmp0);
+		m128 tmp0 = _mm_hadd_ps(rhs, rhs);
+		m128 tmp1 = _mm_hadd_ps(tmp0, tmp0);
 		return tmp1;
 #else
-			__m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
-			__m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
+			m128 tmp0 = _mm_add_ps(rhs, _mm_movehl_ps(rhs, rhs));
+			m128 tmp1 = _mm_add_ss(tmp0, _mm_shuffle_ps(tmp0, tmp0, 1));
 			return tmp1;
 #endif
 		};
 
-		float dotf(const __m128& lhs)
+		float dotf(const m128& lhs)
 		{
 			//
 			return _mm_cvtss_f32(dot(lhs));

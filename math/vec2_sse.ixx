@@ -370,6 +370,14 @@ namespace deckard::math::sse
 		inline static m128 nan_reg  = _mm_set_ps1(nan_float);
 	};
 
+	vec2 operator*(const vec2& v, float scalar) { return vec2(v.data.c.x * scalar, v.data.c.y * scalar); }
+
+	vec2 operator/(const vec2& v, float scalar)
+	{
+		scalar = 1.0f / scalar;
+		return vec2(v.data.c.x * scalar, v.data.c.y * scalar);
+	}
+
 	static_assert(sizeof(vec2) == 16);
 
 	// Free functions
