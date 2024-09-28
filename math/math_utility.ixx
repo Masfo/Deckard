@@ -18,7 +18,10 @@ export namespace deckard::math
 
 
 	template<std::floating_point T = float>
-	inline constexpr T pi180 = std::numbers::pi_v<T> / T{180};
+	inline constexpr T deg_to_radians = std::numbers::pi_v<T> / T{180};
+
+	template<std::floating_point T = float>
+	inline constexpr T rad_to_degrees = T{180} / std::numbers::pi_v<T>;
 
 	template<typename T>
 	T round_to_even(f32 num)
@@ -81,15 +84,15 @@ export namespace deckard::math
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T radians(const T& v) noexcept
+	[[nodiscard]] constexpr T radians(const T& v)
 	{
-		return static_cast<T>(v * pi180<T>);
+		return static_cast<T>(v * deg_to_radians<T>);
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T degrees(const T& v) noexcept
+	[[nodiscard]] constexpr T degrees(const T& v)
 	{
-		return static_cast<T>((v * T{180}) / std::numbers::pi_v<T>);
+		return static_cast<T>(v * rad_to_degrees<T>);
 	}
 
 	constexpr float operator""_rad(long double deg) { return radians<float>((float)deg); }
@@ -99,7 +102,7 @@ export namespace deckard::math
 	namespace sse
 	{
 		// sse
-		__m128 dot(const __m128& rhs) noexcept
+		__m128 dot(const __m128& rhs)
 		{
 #if 0
 		// SSE3
@@ -113,23 +116,23 @@ export namespace deckard::math
 #endif
 		};
 
-		float dotf(const __m128& lhs) noexcept
+		float dotf(const __m128& lhs)
 		{
 			//
 			return _mm_cvtss_f32(dot(lhs));
 		};
 
-		export float sqrt(float f) noexcept
+		export float sqrt(float f)
 		{
 			//
 			return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f)));
 		}
 
 		// ~2x faster than std::sin
-		export float sin(float f) noexcept { return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f))); }
+		export float sin(float f) { return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f))); }
 
 		//
-		export float cos(float f) noexcept { return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f))); }
+		export float cos(float f) { return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f))); }
 
 	} // namespace sse
 } // namespace deckard::math
@@ -162,7 +165,7 @@ namespace deckard::math
 
 		bignum(std::string_view input) { init(input); }
 
-		void init(std::string_view input) noexcept
+		void init(std::string_view input)
 		{
 			//
 			const i32 len        = input.size();
@@ -215,7 +218,7 @@ namespace deckard::math
 			return result;
 		}
 
-		std::string print() const noexcept
+		std::string print() const
 		{
 			//
 			std::string buffer;
@@ -241,15 +244,15 @@ namespace deckard::math
 			return buffer;
 		}
 
-		size_t size() const noexcept { return digits.size(); }
+		size_t size() const { return digits.size(); }
 
-		Type operator[](size_t index) const noexcept { return digits[index]; }
+		Type operator[](size_t index) const { return digits[index]; }
 
-		Type& operator[](size_t index) noexcept { return digits[index]; }
+		Type& operator[](size_t index) { return digits[index]; }
 
 
 	private:
-		void resize(size_t size) noexcept { digits.resize(size); };
+		void resize(size_t size) { digits.resize(size); };
 
 		std::vector<Type> digits;
 	};
