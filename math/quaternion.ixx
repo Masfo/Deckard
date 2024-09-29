@@ -154,7 +154,7 @@ namespace deckard::math::sse
 			return *this;
 		}
 
-		quat abs() const { return {std::abs(data.c.w), std::abs(data.c.x), std::abs(data.c.y), std::abs(data.c.z)}; }
+		// quat abs() const { return {std::abs(data.c.w), std::abs(data.c.x), std::abs(data.c.y), std::abs(data.c.z)}; }
 
 		bool equals(const quat& lhs) const { return is_close_enough(lhs); }
 
@@ -230,6 +230,7 @@ namespace deckard::math::sse
 			  0,
 			  0,
 			  1,
+			  //
 			  1.0f - 2.0f * (y2 + z2),
 			  2.0f * (xy + wz),
 			  2.0f * (xz - wy),
