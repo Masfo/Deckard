@@ -30,6 +30,14 @@ TEST_CASE("quatertion", "[quaternion]")
 		REQUIRE(q == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
 	}
 
+	SECTION("vec3 neg/pos")
+	{
+		quat q(1.0f, -2.0f, -3.0f, 4.0f);
+
+		REQUIRE(-q == quat(-1.0f, 2.0f, 3.0f, -4.0f));
+		REQUIRE(+q == quat(1.0f, -2.0f, -3.0f, 4.0f));
+	}
+
 	SECTION("vec3 add/sub/mul/div/scale")
 	{
 		quat v1(vec3(1.0f, 2.0f, 3.0f));

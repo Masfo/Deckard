@@ -39,6 +39,8 @@ namespace deckard::math::sse
 			data.c.x = data.c.y = data.c.z = 0.0f;
 		}
 
+		quat(m128 reg) { data.SSE = reg; }
+
 		quat(f32 s, f32 xx, f32 yy, f32 zz)
 		{
 			data.c.w = s;
@@ -153,6 +155,12 @@ namespace deckard::math::sse
 			data.c.z /= s;
 			return *this;
 		}
+
+		inline static m128 neg_one = _mm_set_ps1(-1.0f);
+
+		quat operator-() { return quat(_mm_mul_ps(data.SSE, neg_one)); }
+
+		quat operator+() const { return *this; }
 
 		// quat abs() const { return {std::abs(data.c.w), std::abs(data.c.x), std::abs(data.c.y), std::abs(data.c.z)}; }
 
