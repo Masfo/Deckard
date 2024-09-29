@@ -7,6 +7,7 @@ import deckard.types;
 import deckard.debug;
 
 import :vec3_sse;
+import :matrix;
 import std;
 
 namespace deckard::math::sse
@@ -27,28 +28,56 @@ namespace deckard::math::sse
 
 	static_assert(sizeof(QuatData) == 16);
 
-	class quat
+	struct quat
 	{
-	private:
 		QuatData data;
 
-	public:
 		quat()
 		{
 			data.c.x = data.c.y = data.c.z = 0.0f;
 			data.c.w                       = 1.0f;
 		}
 
+		quat(f32 xx, f32 yy, f32 zz, f32 s)
+		{
+			data.c.x = xx;
+			data.c.y = yy;
+			data.c.z = zz;
+			data.c.w = s;
+		}
+
+		quat(const vec3& v, f32 s)
+		{
+			data.c.x = v.data.c.x;
+			data.c.y = v.data.c.y;
+			data.c.z = v.data.c.z;
+			data.c.w = s;
+		}
+
 		quat(const vec3& v)
 		{
-			vec3 c = cos(v * 0.5f);
-			vec3 s = sin(v * 0.5f);
+			const vec3 half = v * 0.5f;
+
+			vec3 c = cos(half);
+			vec3 s = sin(half);
 
 			data.c.w = c[0] * c[1] * c[2] + s[0] * s[1] * s[2];
 			data.c.x = s[0] * c[1] * c[2] - c[0] * s[1] * s[2];
 			data.c.y = c[0] * s[1] * c[2] + s[0] * c[1] * s[2];
 			data.c.z = c[0] * c[1] * s[2] - s[0] * s[1] * c[2];
 		}
+
+		// operator vec3&() const { return reinterpret_cast<vec3&>(data.c.x); }
+		//
+		const vec3& vec3_part() const { return reinterpret_cast<const vec3&>(data.c.x); }
+
+		explicit operator vec3() const { return vec3{data.c.x, data.c.y, data.c.z}; }
+
+		// explicit operator vec4() const { return vec4{data.c.x, data.c.y, data.c.z, data.c.w}; }
+
+		vec4 vec4_part() { return reinterpret_cast<vec4&>(data.c.x); }
+
+		const vec4 vec4_part() const { return reinterpret_cast<const vec4&>(data.c.x); }
 
 		float operator[](const int index) const noexcept
 		{
@@ -72,20 +101,203 @@ namespace deckard::math::sse
 			return *(reinterpret_cast<float*>(&data.element[0]) + index);
 		}
 
-		void test()
+		quat& operator+=(const quat& q)
 		{
-			//
-
-			data.c.x = 1.0f;
-			data.c.w = 2.0f;
-
-
-			int x = 0;
+			data.c.x += q.data.c.x;
+			data.c.y += q.data.c.y;
+			data.c.z += q.data.c.z;
+			data.c.w += q.data.c.w;
+			return *this;
 		}
+
+		quat& operator-=(const quat& q)
+		{
+			data.c.x -= q.data.c.x;
+			data.c.y -= q.data.c.y;
+			data.c.z -= q.data.c.z;
+			data.c.w -= q.data.c.w;
+			return *this;
+		}
+
+		quat& operator*=(const quat& q)
+		{
+			data.c.x *= q.data.c.x;
+			data.c.y *= q.data.c.y;
+			data.c.z *= q.data.c.z;
+			data.c.w *= q.data.c.w;
+			return *this;
+		}
+
+		quat& operator*=(const f32 s)
+		{
+			data.c.x *= s;
+			data.c.y *= s;
+			data.c.z *= s;
+			data.c.w *= s;
+			return *this;
+		}
+
+		quat& operator/=(const f32 s)
+		{
+			data.c.x /= s;
+			data.c.y /= s;
+			data.c.z /= s;
+			data.c.w /= s;
+			return *this;
+		}
+
+		void set_rotation_matrix(const mat4& m)
+		{
+			const f32 m00 = m(0, 0);
+			const f32 m11 = m(1, 1);
+			const f32 m22 = m(2, 2);
+			const f32 sum = m00 + m11 + m22;
+
+			if (sum > 0.0f)
+			{
+				data.c.w = std::sqrt(sum + 1.0f) * 0.5f;
+				f32 f    = 0.25f / data.c.w;
+
+				data.c.x = (m(2, 1) - m(1, 2)) * f;
+				data.c.y = (m(0, 2) - m(2, 0)) * f;
+				data.c.z = (m(1, 0) - m(0, 1)) * f;
+			}
+			else if ((m00 > m11) and (m00 > m22))
+			{
+				data.c.w = std::sqrt(m00 - m11 - m22 + 1.0f) * 0.5f;
+				f32 f    = 0.25f / data.c.x;
+
+				data.c.x = (m(1, 0) + m(0, 1)) * f;
+				data.c.z = (m(0, 2) + m(2, 0)) * f;
+				data.c.w = (m(2, 1) - m(1, 2)) * f;
+			}
+			else if (m11 > m22)
+			{
+				data.c.y = std::sqrt(m11 - m00 - m22 + 1.0f) * 0.5f;
+				f32 f    = 0.25f / data.c.y;
+
+				data.c.x = (m(1, 0) + m(0, 1)) * f;
+				data.c.z = (m(2, 1) + m(1, 2)) * f;
+				data.c.w = (m(0, 2) - m(2, 0)) * f;
+			}
+			else
+			{
+				data.c.w = std::sqrt(m22 - m00 - m11 + 1.0f) * 0.5f;
+				f32 f    = 0.25f / data.c.w;
+
+				data.c.x = (m(0, 2) + m(0, 1)) * f;
+				data.c.y = (m(2, 1) + m(1, 2)) * f;
+				data.c.z = (m(1, 0) - m(0, 1)) * f;
+			}
+		}
+
+		mat4 get_rotation_matrix()
+		{
+			const float x2 = data.c.x * data.c.x;
+			const float y2 = data.c.y * data.c.y;
+			const float z2 = data.c.z * data.c.z;
+
+			const float xz = data.c.x * data.c.z;
+			const float xy = data.c.x * data.c.y;
+			const float yz = data.c.y * data.c.z;
+
+			const float wx = data.c.w * data.c.x;
+			const float wy = data.c.w * data.c.y;
+			const float wz = data.c.w * data.c.z;
+
+			return mat4{
+			  1.0f - 2.0f * (y2 + z2),
+			  2.0f * (xy + wz),
+			  2.0f * (xz - wy),
+			  0,
+			  //
+			  2.0f * (xy - wz),
+			  1.0f - 2.0f * (x2 + z2),
+			  2.0f * (yz + wx),
+			  0,
+			  //
+			  2.0f * (xz + wy),
+			  2.0f * (yz - wx),
+			  1.0f - 2.0f * (x2 + y2),
+			  0,
+			  //
+			  0,
+			  0,
+			  0,
+			  1};
+		}
+
+		quat conjugate() const { return quat(-data.c.x, -data.c.y, -data.c.z, data.c.w); }
 	};
 
+	export const quat operator+(const quat& q1, const quat& q2)
+	{
+		return quat(q1.data.c.x + q2.data.c.x, q1.data.c.y + q2.data.c.y, q1.data.c.z + q2.data.c.z, q1.data.c.w + q2.data.c.w);
+	}
 
+	export const quat operator-(const quat& q1, const quat& q2)
+	{
+		return quat(q1.data.c.x - q2.data.c.x, q1.data.c.y - q2.data.c.y, q1.data.c.z - q2.data.c.z, q1.data.c.w - q2.data.c.w);
+	}
+
+	export quat operator*(const quat& q1, const quat& q2)
+	{
+		const f32 x = q1.data.c.w * q2.data.c.x + q1.data.c.x * q2.data.c.w + q1.data.c.y * q2.data.c.z - q1.data.c.z * q2.data.c.y;
+		const f32 y = q1.data.c.w * q2.data.c.y + q1.data.c.y * q2.data.c.w + q1.data.c.z * q2.data.c.x - q1.data.c.x * q2.data.c.z;
+		const f32 z = q1.data.c.w * q2.data.c.z + q1.data.c.z * q2.data.c.w + q1.data.c.x * q2.data.c.y - q1.data.c.y * q2.data.c.x;
+		const f32 w = q1.data.c.w * q2.data.c.w - q1.data.c.x * q2.data.c.x - q1.data.c.y * q2.data.c.y - q1.data.c.z * q2.data.c.z;
+
+		return quat(x, y, z, w);
+	}
+
+	export const quat operator*(const quat& q, float scalar)
+	{
+		return quat(q.data.c.x * scalar, q.data.c.y * scalar, q.data.c.z * scalar, q.data.c.w * scalar);
+	}
+
+	export const quat operator/(const quat& q, float scalar)
+	{
+		return quat(q.data.c.x / scalar, q.data.c.y / scalar, q.data.c.z / scalar, q.data.c.w / scalar);
+	}
+
+	export quat conjugate(const quat& q) { return q.conjugate(); }
+
+	export quat rotate(const quat& q, const f32 angle, const vec3& v)
+	{
+		auto tmp = v;
+
+		f32 len = tmp.length();
+		if (std::abs(len - 1.0f) > 0.001f)
+		{
+			f32 over = 1.0f / len;
+			tmp.data.c.x *= over;
+			tmp.data.c.y *= over;
+			tmp.data.c.z *= over;
+		}
+
+		f32 s = std::sin(angle * 0.5f);
+		return q * quat(tmp.data.c.x * s, tmp.data.c.y * s, tmp.data.c.z * s, std::cos(angle * 0.5f));
+	}
+
+	export quat rotationX(float angle)
+	{
+		const float half = angle * 0.5f;
+		return quat(std::sin(half), 0, 0, std::cos(half));
+	}
+
+	export quat rotationY(float angle)
+	{
+		const float half = angle * 0.5f;
+		return quat(0, std::sin(half), 0, std::cos(half));
+	}
+
+	export quat rotationZ(float angle)
+	{
+		const float half = angle * 0.5f;
+		return quat(0, 0, std::sin(half), std::cos(half));
+	}
 } // namespace deckard::math::sse
 
 export using quat = deckard::math::sse::quat;
+
 static_assert(sizeof(quat) == 16, "quat sse should be 16-bytes");

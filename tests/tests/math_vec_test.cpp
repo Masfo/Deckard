@@ -643,7 +643,12 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 	{
 		// lt
 		const vec4 a{0.0, 0.0, 0.0, 0.0};
+
 		const vec4 b{1.0, 1.0, 1.0, 1.0};
+
+		vec4 c2 = b - b;
+
+		REQUIRE(a == c2);
 
 		REQUIRE(a < b);
 		REQUIRE(a != b);

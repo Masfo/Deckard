@@ -1,5 +1,5 @@
 module;
-#include <xmmintrin.h>
+#include <intrin.h>
 
 export module deckard.math:vec4_sse;
 import :vec3_sse;
@@ -165,7 +165,7 @@ namespace deckard::math::sse
 
 		bool equals(const vec_type& lhs) const { return is_close_enough(lhs); }
 
-		bool is_close_enough(const vec_type& lhs, float epsilon = 0.0000001f) const
+		bool is_close_enough(const vec_type& lhs, float epsilon = 0.00001f) const
 		{
 			auto diff   = *this - lhs;
 			auto result = _mm_cmple_ps(diff.abs().data.reg, _mm_set_ps1(epsilon));
