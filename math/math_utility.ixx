@@ -71,7 +71,7 @@ export namespace deckard::math
 	}
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T error = T{1e-7})
+	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T error = T{1e-7})
 	{
 		return std::abs(A) <= error;
 	}

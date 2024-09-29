@@ -8,6 +8,7 @@ import deckard.debug;
 
 import :vec3_sse;
 import :matrix;
+import :utils;
 import std;
 
 namespace deckard::math::sse
@@ -121,10 +122,13 @@ namespace deckard::math::sse
 
 		quat& operator*=(const quat& q)
 		{
-			data.c.x *= q.data.c.x;
-			data.c.y *= q.data.c.y;
-			data.c.z *= q.data.c.z;
-			data.c.w *= q.data.c.w;
+			quat temp(*this);
+
+			data.c.x = temp.data.c.w * q.data.c.x + temp.data.c.x * q.data.c.w + temp.data.c.y * q.data.c.z - temp.data.c.z * q.data.c.y;
+			data.c.y = temp.data.c.w * q.data.c.y + temp.data.c.y * q.data.c.w + temp.data.c.z * q.data.c.x - temp.data.c.x * q.data.c.z;
+			data.c.z = temp.data.c.w * q.data.c.z + temp.data.c.z * q.data.c.w + temp.data.c.x * q.data.c.y - temp.data.c.y * q.data.c.x;
+			data.c.w = temp.data.c.w * q.data.c.w - temp.data.c.x * q.data.c.x - temp.data.c.y * q.data.c.y - temp.data.c.z * q.data.c.z;
+
 			return *this;
 		}
 
@@ -255,12 +259,36 @@ namespace deckard::math::sse
 		return quat(q.data.c.x * scalar, q.data.c.y * scalar, q.data.c.z * scalar, q.data.c.w * scalar);
 	}
 
+	export const quat operator*(f32 scalar, const quat& q) { return q * scalar; }
+
 	export const quat operator/(const quat& q, float scalar)
 	{
 		return quat(q.data.c.x / scalar, q.data.c.y / scalar, q.data.c.z / scalar, q.data.c.w / scalar);
 	}
 
+	export f32 dot(const quat& a, const quat b)
+	{
+		vec4 tmp(a.data.c.w * b.data.c.w, a.data.c.x * b.data.c.x, a.data.c.y * b.data.c.y, a.data.c.z * b.data.c.z);
+		return (tmp.data.c.x + tmp.data.c.y) + (tmp.data.c.z + tmp.data.c.w);
+	}
+
+	export f32 length(const quat& q) { return std::sqrt(dot(q, q)); };
+
 	export quat conjugate(const quat& q) { return q.conjugate(); }
+
+	export quat normalize(const quat& q)
+	{
+		f32 len = length(q);
+
+		if (is_close_enough_zero(len))
+			return {};
+
+		f32 over = 1.0f / len;
+
+		return {q.data.c.x * over, q.data.c.y * over, q.data.c.z * over, q.data.c.w * over};
+	}
+
+	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }
 
 	export quat rotate(const quat& q, const f32 angle, const vec3& v)
 	{
