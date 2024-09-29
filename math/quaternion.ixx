@@ -122,7 +122,7 @@ namespace deckard::math::sse
 
 		quat& operator*=(const quat& q)
 		{
-			quat temp(*this);
+			const quat temp(*this);
 
 			data.c.x = temp.data.c.w * q.data.c.x + temp.data.c.x * q.data.c.w + temp.data.c.y * q.data.c.z - temp.data.c.z * q.data.c.y;
 			data.c.y = temp.data.c.w * q.data.c.y + temp.data.c.y * q.data.c.w + temp.data.c.z * q.data.c.x - temp.data.c.x * q.data.c.z;
@@ -286,6 +286,14 @@ namespace deckard::math::sse
 		f32 over = 1.0f / len;
 
 		return {q.data.c.x * over, q.data.c.y * over, q.data.c.z * over, q.data.c.w * over};
+	}
+
+	export quat cross(const quat& q1, const quat& q2)
+	{
+		return {q1.data.c.w * q2.data.c.x + q1.data.c.x * q2.data.c.w + q1.data.c.y * q2.data.c.z - q1.data.c.z * q2.data.c.y,
+				q1.data.c.w * q2.data.c.y + q1.data.c.y * q2.data.c.w + q1.data.c.z * q2.data.c.x - q1.data.c.x * q2.data.c.z,
+				q1.data.c.w * q2.data.c.z + q1.data.c.z * q2.data.c.w + q1.data.c.x * q2.data.c.y - q1.data.c.y * q2.data.c.x,
+				q1.data.c.w * q2.data.c.w - q1.data.c.x * q2.data.c.x - q1.data.c.y * q2.data.c.y - q1.data.c.z * q2.data.c.z};
 	}
 
 	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }

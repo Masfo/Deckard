@@ -76,6 +76,14 @@ TEST_CASE("quatertion", "[quaternion]")
 		REQUIRE(inverse(v1 + v2).vec4_part() == vec4(0.34000f, -0.03873f, -0.22843f, 0.32625f));
 	}
 
+	SECTION("cross")
+	{
+		quat v1(vec3(1.0f, 2.0f, 3.0f));
+		quat v2(vec3(2.0f, 3.0f, 4.0f));
+
+		REQUIRE(cross(v1, v2).vec4_part() == vec4(-0.56632f, 0.20500f, 0.78171f, -0.16183f));
+	}
+
 	SECTION("length")
 	{
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
