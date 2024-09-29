@@ -281,7 +281,7 @@ namespace deckard::math::sse
 			return mask != 0;
 		}
 
-		float operator[](const int index) const
+		f32 operator[](i32 index) const
 		{
 			assert::check(index < 4, "out-of-bounds, vec4 has 4 elements");
 			switch (index)
@@ -298,10 +298,10 @@ namespace deckard::math::sse
 			}
 		}
 
-		float& operator[](int index)
+		f32& operator[](i32 index)
 		{
 			assert::check(index < 4, "out-of-bounds, vec4 has 4 elements");
-			return *(reinterpret_cast<float*>(&data.reg) + index);
+			return *(reinterpret_cast<f32*>(&data.reg) + index);
 		}
 
 		inline static float nan_float = std::numeric_limits<float>::quiet_NaN();

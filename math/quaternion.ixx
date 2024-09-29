@@ -83,7 +83,7 @@ namespace deckard::math::sse
 
 		const vec4 vec4_part() const { return reinterpret_cast<const vec4&>(data.c.x); }
 
-		float operator[](const int index) const noexcept
+		f32 operator[](i32 index) const
 		{
 			switch (index)
 			{
@@ -99,10 +99,10 @@ namespace deckard::math::sse
 			}
 		}
 
-		float& operator[](int index)
+		f32& operator[](i32 index)
 		{
 			assert::check(index < 4, "out-of-bounds, vec4 has 4 elements");
-			return *(reinterpret_cast<float*>(&data.element[0]) + index);
+			return *(reinterpret_cast<f32*>(&data.element[0]) + index);
 		}
 
 		quat& operator+=(const quat& q)

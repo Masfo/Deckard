@@ -12,7 +12,7 @@ using namespace std::string_literals;
 
 TEST_CASE("quatertion", "[quaternion]")
 {
-	SECTION("identity")
+	SECTION("identity / indexing")
 	{
 		quat q;
 
