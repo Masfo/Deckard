@@ -91,12 +91,8 @@ namespace std
 
 		auto format(const sse::quat& vec, std::format_context& ctx) const
 		{
-			std::format_to(ctx.out(), "quat(");
-
-			for (int i = 0; i < 4; ++i)
-				std::format_to(ctx.out(), "{:.5f}{}", vec[i], i < 3 ? ", " : "");
-
-			return std::format_to(ctx.out(), ")");
+			return std::format_to(
+			  ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, {:.5f})", vec.data.c.w, vec.data.c.x, vec.data.c.y, vec.data.c.z);
 		}
 	};
 
