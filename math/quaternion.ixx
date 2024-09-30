@@ -158,7 +158,7 @@ namespace deckard::math::sse
 
 		inline static m128 neg_one = _mm_set_ps1(-1.0f);
 
-		quat operator-() { return quat(_mm_mul_ps(data.SSE, neg_one)); }
+		quat operator-() const { return quat(_mm_mul_ps(data.SSE, neg_one)); }
 
 		quat operator+() const { return *this; }
 
@@ -265,7 +265,12 @@ namespace deckard::math::sse
 		return quat(q1.data.c.w + q2.data.c.w, q1.data.c.x + q2.data.c.x, q1.data.c.y + q2.data.c.y, q1.data.c.z + q2.data.c.z);
 	}
 
-	export const quat operator-(const quat& q1, const quat& q2)
+	export quat operator-(const quat& q1, const quat& q2)
+	{
+		return quat(q1.data.c.w - q2.data.c.w, q1.data.c.x - q2.data.c.x, q1.data.c.y - q2.data.c.y, q1.data.c.z - q2.data.c.z);
+	}
+
+	export quat operator-(quat& q1, quat& q2)
 	{
 		return quat(q1.data.c.w - q2.data.c.w, q1.data.c.x - q2.data.c.x, q1.data.c.y - q2.data.c.y, q1.data.c.z - q2.data.c.z);
 	}
@@ -320,6 +325,55 @@ namespace deckard::math::sse
 				q1.data.c.w * q2.data.c.x + q1.data.c.x * q2.data.c.w + q1.data.c.y * q2.data.c.z - q1.data.c.z * q2.data.c.y,
 				q1.data.c.w * q2.data.c.y + q1.data.c.y * q2.data.c.w + q1.data.c.z * q2.data.c.x - q1.data.c.x * q2.data.c.z,
 				q1.data.c.w * q2.data.c.z + q1.data.c.z * q2.data.c.w + q1.data.c.x * q2.data.c.y - q1.data.c.y * q2.data.c.x};
+	}
+
+	f32 mix(f32 x, f32 y, f32 t) { return (x * (1.0f - t) + y * t); }
+
+	quat mix(const quat& x, const quat& y, f32 t)
+	{
+		f32 theta = dot(x, y);
+
+		if (theta > (1.0f - 0.000001f))
+		{
+			return quat(mix(x.data.c.w, y.data.c.w, t),
+						mix(x.data.c.x, y.data.c.x, t),
+						mix(x.data.c.y, y.data.c.y, t),
+						mix(x.data.c.z, y.data.c.z, t));
+		}
+
+		f32 angle = std::acos(theta);
+		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * y) / std::sin(angle);
+	}
+
+	export quat lerp(const quat& x, const quat& y, f32 t)
+	{
+		assert::check(t >= 0.0f);
+		assert::check(t <= 1.0f);
+
+		return x * (1.0f - t) + (y * t);
+	}
+
+	export quat slerp(const quat& x, const quat& y, f32 t)
+	{
+		quat z     = y;
+		f32  theta = dot(x, y);
+		if (theta < 0.0f)
+		{
+			z     = -y;
+			theta = -theta;
+		}
+
+		if (theta > (1.0f - 0.000001f))
+		{
+			return quat(mix(x.data.c.w, z.data.c.w, t),
+						mix(x.data.c.x, z.data.c.x, t),
+						mix(x.data.c.y, z.data.c.y, t),
+						mix(x.data.c.z, z.data.c.z, t));
+		}
+
+
+		f32 angle = std::acos(theta);
+		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * z) / std::sin(angle);
 	}
 
 	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }
