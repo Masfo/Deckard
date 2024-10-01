@@ -1,5 +1,5 @@
 module;
-#include <immintrin.h>
+#include <intrin.h>
 export module deckard.math:quaternion;
 
 import deckard.assert;

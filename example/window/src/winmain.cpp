@@ -871,30 +871,6 @@ private:
 public:
 };
 
-#include <intrin.h> // For SSE intrinsics
-
-int compare_m128_with_epsilon(__m128 a, __m128 b, float epsilon)
-{
-	// Subtract b from a
-	__m128 diff = _mm_sub_ps(a, b);
-
-	// Create an epsilon register with all elements set to epsilon
-	__m128 epsilon_vec = _mm_set1_ps(epsilon);
-
-	// Calculate the absolute value of the difference
-	// Method: AND the sign bit out using a mask (0x7FFFFFFF)
-	__m128 abs_diff = _mm_and_ps(diff, _mm_castsi128_ps(_mm_set1_epi32(0x7FFF'FFFF)));
-
-	// Compare if abs_diff <= epsilon
-	__m128 cmp = _mm_cmple_ps(abs_diff, epsilon_vec);
-
-	// Check if all comparisons were true
-	int mask = _mm_movemask_ps(cmp);
-
-	// If all 4 floats in the __m128 register satisfy the comparison, the mask will be 0xF (1111 in binary)
-	return mask == 0xF;
-}
-
 int deckard_main()
 {
 
