@@ -844,6 +844,15 @@ union basic_smallbuffer
 
 	size_type capacity() const { return is_sso() ? sizeof(sso.str) : nonsso.capacity; }
 
+	std::string_view data() const
+	{
+		if (is_sso())
+			return {sso.str, sizeof(sso.str) - sso.str};
+
+		todo();
+		return {};
+	}
+
 	void set(std::string_view input)
 	{
 		//
