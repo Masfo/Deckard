@@ -253,6 +253,7 @@ set(DECKARD_SRCS
         types/as.ixx
         types/enum_flags.ixx
         types/helpertypes.ixx
+        types/bigint.ixx
 
         $<$<PLATFORM_ID:Windows>:win32/win32.ixx>
 		# win32/DTE.ixx

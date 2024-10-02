@@ -37,6 +37,7 @@ export import deckard.random;
 export import deckard.function_ref;
 export import deckard.serializer;
 export import deckard.arrays;
+export import deckard.bigint;
 
 // UTF8
 export import deckard.utf8;

@@ -883,14 +883,6 @@ public:
 int deckard_main()
 {
 
-	__m128 a       = _mm_set_ps(1.0f, 2.0f, 3.0f, 4.0f);
-	__m128 b       = _mm_set_ps(1.00001f, 2.0f, 3.0001f, 4.0f);
-	float  epsilon = 0.0001f;
-
-	int result = compare_m128_with_epsilon(a, b, epsilon);
-
-	int result2 = compare_m128_with_epsilon(a, a, epsilon);
-
 
 	std::vector<std::vector<u32>> list(8);
 	for (auto& l : list)
