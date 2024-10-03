@@ -28,8 +28,8 @@ namespace deckard
 
 		file() = default;
 
-		file(file&&) noexcept = delete;
-		file(const file&)     = delete;
+		file(file&&)      = delete;
+		file(const file&) = delete;
 
 		file& operator=(const file&) = delete;
 		file& operator=(file&&)      = delete;
@@ -38,7 +38,7 @@ namespace deckard
 
 		explicit file(const std::filesystem::path file, access flag = access::read) { open(file, flag); }
 
-		std::optional<std::span<u8>> open(fs::path const file, access flag = access::read) noexcept
+		std::optional<std::span<u8>> open(fs::path const file, access flag = access::read)
 		{
 			filepath          = file;
 			DWORD rw          = GENERIC_READ;
@@ -108,36 +108,36 @@ namespace deckard
 			return ret;
 		}
 
-		std::optional<std::span<u8>> opt_data() const noexcept
+		std::optional<std::span<u8>> opt_data() const
 		{
 			if (view.empty())
 				return {};
 			return view;
 		}
 
-		u64 size() const noexcept { return view.size_bytes(); }
+		u64 size() const { return view.size_bytes(); }
 
-		bool is_open() const noexcept { return not view.empty(); }
+		bool is_open() const { return not view.empty(); }
 
 		void flush() { FlushViewOfFile(view.data(), 0); }
 
 		fs::path name() const { return filepath; }
 
-		void close() noexcept
+		void close()
 		{
 			flush();
 			UnmapViewOfFile(view.data());
 			view = {};
 		}
 
-		u8& operator[](u64 index) const noexcept
+		u8& operator[](u64 index) const
 		{
 			assert::check(is_open(), "indexing a closed file");
 			assert::check(index < view.size_bytes(), std::format("indexing out-of-bounds: {} out of {}", index + 1, view.size_bytes()));
 			return view[index];
 		}
 
-		static u32 write(std::filesystem::path file, std::optional<std::span<u8>> content, access flag = access::createnew) noexcept
+		static u32 write(std::filesystem::path file, std::optional<std::span<u8>> content, access flag = access::createnew)
 		{
 			DWORD bytes_written{0};
 
@@ -185,7 +185,7 @@ namespace deckard
 			return write(file, std::span<u8>{as<u8*>(content), content_len}, flag);
 		}
 
-		static u32 write(std::filesystem::path file, const std::vector<u8>& content, access flag = access::createnew) noexcept
+		static u32 write(std::filesystem::path file, const std::vector<u8>& content, access flag = access::createnew)
 
 		{
 			return write(file, std::span<u8>{as<u8*>(content.data()), content.size()}, flag);

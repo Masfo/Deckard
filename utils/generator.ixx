@@ -14,8 +14,8 @@ export namespace deckard
 		struct promise
 		{
 			using value_type     = std::remove_reference_t<T>;
-			using reference_type = std::conditional_t<std::is_pointer_v<value_type>, value_type, value_type &>;
-			using pointer_type   = std::conditional_t<std::is_pointer_v<value_type>, value_type, value_type *>;
+			using reference_type = std::conditional_t<std::is_pointer_v<value_type>, value_type, value_type&>;
+			using pointer_type   = std::conditional_t<std::is_pointer_v<value_type>, value_type, value_type*>;
 
 			promise() = default;
 
@@ -23,11 +23,11 @@ export namespace deckard
 
 			std::suspend_always initial_suspend() const { return {}; }
 
-			std::suspend_always final_suspend() const noexcept { return {}; }
+			std::suspend_always final_suspend() const { return {}; }
 
-			void return_void() const noexcept { return; }
+			void return_void() const { return; }
 
-			void unhandled_exception() noexcept { exception_ = std::current_exception(); }
+			void unhandled_exception() { exception_ = std::current_exception(); }
 
 			void rethrow_if_exception()
 			{
@@ -37,7 +37,7 @@ export namespace deckard
 				}
 			}
 
-			std::suspend_always yield_value(reference_type v) noexcept
+			std::suspend_always yield_value(reference_type v)
 			{
 				if constexpr (std::is_pointer_v<value_type>)
 				{
@@ -80,24 +80,24 @@ export namespace deckard
 			}
 
 			// Non-copyable because coroutine handles point to a unique resource
-			iterator(iterator const &) = delete;
+			iterator(iterator const&) = delete;
 
-			iterator(iterator &&rhs) noexcept
+			iterator(iterator&& rhs)
 				: handle_(std::exchange(rhs.handle_, nullptr))
 			{
 			}
 
-			iterator &operator=(iterator const &) = delete;
+			iterator& operator=(iterator const&) = delete;
 
-			iterator &operator=(iterator &&rhs) noexcept
+			iterator& operator=(iterator&& rhs)
 			{
 				handle_ = std::exchange(rhs.handle_, nullptr);
 				return *this;
 			}
 
-			friend bool operator==(iterator const &it, sentinel) noexcept { return (!it.handle_ || it.handle_.done()); }
+			friend bool operator==(iterator const& it, sentinel) { return (!it.handle_ || it.handle_.done()); }
 
-			iterator &operator++()
+			iterator& operator++()
 			{
 				handle_.resume();
 				if (handle_.done())
@@ -109,7 +109,7 @@ export namespace deckard
 
 			void operator++(int) { (void)this->operator++(); }
 
-			reference_type operator*() const noexcept(noexcept(std::is_nothrow_copy_constructible_v<reference_type>))
+			reference_type operator*() const std::is_nothrow_copy_constructible_v<reference_type>))
 			{
 				if constexpr (std::is_pointer_v<value_type>)
 					return handle_.promise().value_;
@@ -130,7 +130,7 @@ export namespace deckard
 
 		using handle_type = std::coroutine_handle<promise_type>;
 
-		generator() noexcept = default;
+		generator() = default;
 
 		~generator()
 		{
@@ -138,16 +138,16 @@ export namespace deckard
 				handle_.destroy();
 		}
 
-		generator(generator const &) = delete;
+		generator(generator const&) = delete;
 
-		generator(generator &&rhs) noexcept
+		generator(generator&& rhs)
 			: handle_(std::exchange(rhs.handle_, nullptr))
 		{
 		}
 
-		generator &operator=(generator const &) = delete;
+		generator& operator=(generator const&) = delete;
 
-		generator &operator=(generator &&rhs) noexcept
+		generator& operator=(generator&& rhs)
 		{
 			swap(rhs);
 			return *this;
@@ -163,14 +163,14 @@ export namespace deckard
 			return {std::exchange(handle_, nullptr)};
 		}
 
-		sentinel end() const noexcept { return {}; }
+		sentinel end() const { return {}; }
 
-		void swap(generator &other) noexcept { std::swap(handle_, other.handle_); }
+		void swap(generator& other) { std::swap(handle_, other.handle_); }
 
 	private:
 		friend class iterator;
 
-		explicit generator(handle_type handle) noexcept
+		explicit generator(handle_type handle)
 			: handle_(handle)
 		{
 		}

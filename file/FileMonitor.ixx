@@ -78,17 +78,17 @@ export namespace deckard
 		using UserFunction = void(const MonitorData&);
 
 	public:
-		explicit Monitor(const std::filesystem::path& path) noexcept
+		explicit Monitor(const std::filesystem::path& path)
 			: m_current_path(path)
 		{
 		}
 
-		Monitor() noexcept
+		Monitor()
 			: Monitor(std::filesystem::current_path())
 		{
 		}
 
-		bool filter(std::string_view) const noexcept { return false; }
+		bool filter(std::string_view) const { return false; }
 
 		// Copy
 		Monitor(Monitor const&)            = delete;
@@ -97,10 +97,10 @@ export namespace deckard
 		Monitor(Monitor&&)            = delete;
 		Monitor& operator=(Monitor&&) = delete;
 
-		~Monitor() noexcept = default;
+		~Monitor() = default;
 
 		template<typename Callable>
-		void start(Callable func, const std::chrono::milliseconds update_time = std::chrono::milliseconds{1000}) noexcept
+		void start(Callable func, const std::chrono::milliseconds update_time = std::chrono::milliseconds{1000})
 		{
 			static_assert(std::is_convertible_v<Callable&&, std::function<UserFunction>>, "Wrong callback signature");
 			m_callback = func;
@@ -109,7 +109,7 @@ export namespace deckard
 		}
 
 	private:
-		void start_thread(std::chrono::milliseconds update_time = std::chrono::milliseconds{1000}) noexcept
+		void start_thread(std::chrono::milliseconds update_time = std::chrono::milliseconds{1000})
 		{
 
 			m_monitor_thread = std::jthread(
@@ -128,15 +128,15 @@ export namespace deckard
 			  });
 		}
 
-		void callback(const MonitorData& data) const noexcept
+		void callback(const MonitorData& data) const
 		{
 			//
 			m_callback(data);
 		}
 
-		bool contains(const std::string& sv) const noexcept { return m_files.contains(sv); }
+		bool contains(const std::string& sv) const { return m_files.contains(sv); }
 
-		void update_file(const std::filesystem::directory_entry& path, StatusFlag flag) noexcept
+		void update_file(const std::filesystem::directory_entry& path, StatusFlag flag)
 		{
 			const auto& str         = path.path().string();
 			m_files[str].path       = path;
@@ -145,7 +145,7 @@ export namespace deckard
 			m_files[str].time       = std::filesystem::last_write_time(path);
 		}
 
-		void update_deleted_files() noexcept
+		void update_deleted_files()
 		{
 			// Delete files
 			std::erase_if(m_files,
@@ -161,7 +161,7 @@ export namespace deckard
 						  });
 		}
 
-		void update_files() noexcept
+		void update_files()
 		{
 			for (const auto& file :
 				 std::filesystem::recursive_directory_iterator(m_current_path, std::filesystem::directory_options::skip_permission_denied))

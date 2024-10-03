@@ -106,7 +106,7 @@ namespace deckard::cpuid
 	  //{"HTT", 1, cpu_register::edx, 28},
 	}};
 
-	constexpr bool is_bit_set(u64 value, u32 bitindex) noexcept { return ((value >> bitindex) & 1) ? true : false; }
+	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
@@ -160,7 +160,7 @@ namespace deckard::cpuid
 
 		void read(unsigned id) { regs = cpuid(id); }
 
-		bool has(Feature f) const noexcept
+		bool has(Feature f) const
 		{
 			const auto& feature = g_features[std::to_underlying(f)];
 			CPUID       id(feature.id);
@@ -168,7 +168,7 @@ namespace deckard::cpuid
 			return is_bit_set(id[feature.reg], feature.bit);
 		}
 
-		std::string feature_string() const noexcept
+		std::string feature_string() const
 		{
 			std::string ret;
 			ret.reserve(64);
@@ -185,7 +185,7 @@ namespace deckard::cpuid
 			return ret.substr(0, ret.size() - 1);
 		}
 
-		Vendor vendor() const noexcept
+		Vendor vendor() const
 		{
 			CPUID id(0);
 
@@ -200,7 +200,7 @@ namespace deckard::cpuid
 			return Vendor::Unknown;
 		}
 
-		std::string vendor_string() const noexcept
+		std::string vendor_string() const
 		{
 			std::string ret;
 			ret.reserve(16);
@@ -214,7 +214,7 @@ namespace deckard::cpuid
 			return ret;
 		}
 
-		std::string brand_string() const noexcept
+		std::string brand_string() const
 		{
 
 
@@ -233,7 +233,7 @@ namespace deckard::cpuid
 			return {};
 		}
 
-		u32 speed_in_mhz() const noexcept
+		u32 speed_in_mhz() const
 		{
 			const auto delay = 20ms;
 
@@ -245,12 +245,12 @@ namespace deckard::cpuid
 			while (timer_start <= timer_end)
 				timer_start = std::chrono::high_resolution_clock::now();
 
-			u32 hz_count = as<u32>((__rdtsc() - cycle_start) * (1'000 / delay.count()));
+			u32 hz_count = as<u32>((__rdtsc() - cycle_start) * (1000 / delay.count()));
 
 			return hz_count / std::mega::num;
 		}
 
-		[[deprecated("On Intel does not work")]] u32 logical_cores() const noexcept
+		[[deprecated("On Intel does not work")]] u32 logical_cores() const
 		{
 			auto [mfi, _, __, ___] = cpuid(0);
 
@@ -283,7 +283,7 @@ namespace deckard::cpuid
 			std::unreachable();
 		}
 
-		[[deprecated("On Intel does not work")]] u32 threads_per_core() const noexcept
+		[[deprecated("On Intel does not work")]] u32 threads_per_core() const
 		{
 
 			//
@@ -338,7 +338,7 @@ namespace deckard::cpuid
 			return tpc;
 		}
 
-		auto core_count() const noexcept -> std::pair<u32, u32>
+		auto core_count() const -> std::pair<u32, u32>
 		{
 			u32 threads{0};
 			u32 cores{threads};
@@ -405,7 +405,7 @@ namespace deckard::cpuid
 			return {cores, threads};
 		}
 
-		CPU_Info info() const noexcept
+		CPU_Info info() const
 		{
 			CPU_Info                 i;
 			CPUID                    id(1);
@@ -447,7 +447,7 @@ namespace deckard::cpuid
 			return i;
 		}
 
-		std::string as_string() const noexcept
+		std::string as_string() const
 		{
 
 			CPU_Info    i = info();
@@ -471,15 +471,15 @@ namespace deckard::cpuid
 			return ret;
 		}
 
-		u32 operator[](enum class cpu_register index) const noexcept { return regs[u32(index)]; }
+		u32 operator[](enum class cpu_register index) const { return regs[u32(index)]; }
 
-		const u32& EAX() const noexcept { return regs[0]; }
+		const u32& EAX() const { return regs[0]; }
 
-		const u32& EBX() const noexcept { return regs[1]; }
+		const u32& EBX() const { return regs[1]; }
 
-		const u32& ECX() const noexcept { return regs[2]; }
+		const u32& ECX() const { return regs[2]; }
 
-		const u32& EDX() const noexcept { return regs[3]; }
+		const u32& EDX() const { return regs[3]; }
 	};
 
 } // namespace deckard::cpuid

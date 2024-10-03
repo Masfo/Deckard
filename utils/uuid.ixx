@@ -21,13 +21,13 @@ namespace deckard::uuid
 			// TODO: serialize to disk
 		};
 
-		export uuid generate() noexcept
+		export uuid generate()
 		{
 			return {(dist(rd) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'4000ULL,
 					(dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL};
 		}
 
-		export std::string to_string(uuid id, bool uppercase) noexcept
+		export std::string to_string(uuid id, bool uppercase)
 		{
 			if (uppercase)
 				return std::format(
@@ -58,7 +58,7 @@ namespace deckard::uuid
 			// TODO: serialize to disk
 		};
 
-		export uuid generate() noexcept
+		export uuid generate()
 		{
 			u64 ab = ((deckard::epoch<std::chrono::milliseconds>() << 16) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'7000ULL;
 			ab |= (dist(rd) & 0x0FFF | 0x7000);
@@ -67,7 +67,7 @@ namespace deckard::uuid
 			return {ab, cd};
 		}
 
-		export std::string to_string(const uuid id, bool uppercase) noexcept
+		export std::string to_string(const uuid id, bool uppercase)
 		{
 			if (uppercase)
 				return std::format(

@@ -17,7 +17,7 @@ namespace deckard::utils
 {
 	constexpr u32 constant_seed_1 =
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
-	  (__TIME__[1] - '0') * 3'600 + (__TIME__[0] - '0') * 36'000;
+	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
 
 	template<typename T>
 	constexpr T xorshift(const T& n, int i)
@@ -135,19 +135,19 @@ namespace deckard::utils
 	constexpr u64 val_64_const   = 0xcbf2'9ce4'8422'2325;
 	constexpr u64 prime_64_const = 0x100'0000'01b3;
 
-	export constexpr u32 fnv1a_32(char const* s, size_t count) noexcept
+	export constexpr u32 fnv1a_32(char const* s, size_t count)
 	{
 		return count ? (fnv1a_32(s, count - 1) ^ s[count - 1]) * prime_32_const : val_32_const;
 	}
 
-	export constexpr u64 fnv1a_64(char const* s, size_t count) noexcept
+	export constexpr u64 fnv1a_64(char const* s, size_t count)
 	{
 		return count ? (fnv1a_64(s, count - 1) ^ s[count - 1]) * prime_64_const : val_64_const;
 	}
 
-	export constexpr u32 fnv1a_32(std::string_view str) noexcept { return fnv1a_32(str.data(), str.length()); }
+	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32(str.data(), str.length()); }
 
-	export constexpr u64 fnv1a_64(std::string_view str) noexcept { return fnv1a_64(str.data(), str.length()); }
+	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64(str.data(), str.length()); }
 
 	export constexpr u32 operator"" _hash32(char const* s, size_t count) { return fnv1a_32(s, count); }
 

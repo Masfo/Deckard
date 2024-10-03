@@ -19,7 +19,7 @@ import deckard.app;
 
 #ifdef __cpp_multidimensional_subscript
 #error("use multisubscript")
-// const f32& operator[](std::size_t z, std::size_t y) const noexcept { return 0.0f; }
+// const f32& operator[](std::size_t z, std::size_t y) const  { return 0.0f; }
 #endif
 
 
@@ -63,7 +63,7 @@ enum class ConvertEpoch : u64
 	Seconds      = Milliseconds * 1000,
 };
 
-std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds) noexcept
+std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds)
 {
 	u64 t{epoch};
 	t *= as<u64>(mul);

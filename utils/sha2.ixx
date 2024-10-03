@@ -52,19 +52,19 @@ public:
 	};
 
 	[[nodiscard("You are not using your hash digest string.")]]
-	std::string to_string(const Uppercase uppercase = Uppercase::No) noexcept
+	std::string to_string(const Uppercase uppercase = Uppercase::No)
 	{
 		return to_hex_string<Type>(
 		  binary, {.delimiter = "", .endian_swap = true, .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
 	}
 
-	Type operator[](int index) const noexcept
+	Type operator[](int index) const
 	{
 		assert::check(index < binary.size(), "Indexing out-of-bounds");
 		return binary[index];
 	}
 
-	bool operator==(const generic_sha2_digest<Type>& that) const noexcept { return binary == that.binary; }
+	bool operator==(const generic_sha2_digest<Type>& that) const { return binary == that.binary; }
 
 	std::array<Type, 8> binary{0};
 };
@@ -85,7 +85,7 @@ namespace deckard::sha256
 	public:
 		hasher() { reset(); }
 
-		void reset() noexcept
+		void reset()
 		{
 			m_state      = {0x6A09'E667, 0xBB67'AE85, 0x3C6E'F372, 0xA54F'F53A, 0x510E'527F, 0x9B05'688C, 0x1F83'D9AB, 0x5BE0'CD19};
 			m_block      = {};
@@ -93,11 +93,11 @@ namespace deckard::sha256
 			m_blockindex = 0ULL;
 		}
 
-		void update(std::string_view data) noexcept { generic_update<const char>(data); }
+		void update(std::string_view data) { generic_update<const char>(data); }
 
-		void update(std::span<u8> const data) noexcept { generic_update<u8>(data); }
+		void update(std::span<u8> const data) { generic_update<u8>(data); }
 
-		digest finalize() noexcept
+		digest finalize()
 		{
 			digest ret;
 
@@ -109,7 +109,7 @@ namespace deckard::sha256
 
 	private:
 		template<typename T>
-		void generic_update(const std::span<T> data) noexcept
+		void generic_update(const std::span<T> data)
 		{
 			if (data.empty())
 				return;
@@ -127,15 +127,15 @@ namespace deckard::sha256
 			}
 		}
 
-		u32 choose(u32 e, u32 f, u32 g) noexcept { return (e & f) ^ (~e & g); }
+		u32 choose(u32 e, u32 f, u32 g) { return (e & f) ^ (~e & g); }
 
-		u32 majority(u32 a, u32 b, u32 c) noexcept { return (a & b) ^ (a & c) ^ (b & c); }
+		u32 majority(u32 a, u32 b, u32 c) { return (a & b) ^ (a & c) ^ (b & c); }
 
-		u32 sig0(u32 x) noexcept { return std::rotr(x, 7) ^ std::rotr(x, 18) ^ (x >> 3); }
+		u32 sig0(u32 x) { return std::rotr(x, 7) ^ std::rotr(x, 18) ^ (x >> 3); }
 
-		u32 sig1(u32 x) noexcept { return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10); }
+		u32 sig1(u32 x) { return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10); }
 
-		void transform() noexcept
+		void transform()
 		{
 			u32                maj{}, S0{}, ch{}, S1{}, temp1{}, temp2{}, w[ROUNDS]{0};
 			std::array<u32, 8> state;
@@ -224,7 +224,7 @@ namespace deckard::sha256
 		  0x90be'fffa, 0xa450'6ceb, 0xbef9'a3f7, 0xc671'78f2};
 	};
 
-	export std::string quickhash(std::string_view input) noexcept
+	export std::string quickhash(std::string_view input)
 	{
 		sha256::hasher hasher;
 		hasher.update({(u8*)input.data(), input.size()});
@@ -243,7 +243,7 @@ namespace deckard::sha512
 	export using digest = generic_sha2_digest<u64>;
 
 	static_assert(sizeof(digest) == 64);
-	constexpr u32 CHUNK_SIZE_IN_BITS = 1'024;
+	constexpr u32 CHUNK_SIZE_IN_BITS = 1024;
 	constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
 	constexpr u32 ROUNDS             = 80;
 
@@ -252,7 +252,7 @@ namespace deckard::sha512
 	public:
 		hasher() { reset(); }
 
-		void reset() noexcept
+		void reset()
 		{
 			m_state = {
 			  0x6a09'e667'f3bc'c908,
@@ -268,11 +268,11 @@ namespace deckard::sha512
 			m_blockindex = 0ULL;
 		}
 
-		void update(std::string_view data) noexcept { generic_update<const char>(data); }
+		void update(std::string_view data) { generic_update<const char>(data); }
 
-		void update(std::span<u8> const data) noexcept { generic_update<u8>(data); }
+		void update(std::span<u8> const data) { generic_update<u8>(data); }
 
-		digest finalize() noexcept
+		digest finalize()
 		{
 			digest ret;
 
@@ -284,7 +284,7 @@ namespace deckard::sha512
 
 	private:
 		template<typename T>
-		void generic_update(const std::span<T> data) noexcept
+		void generic_update(const std::span<T> data)
 		{
 			if (data.empty())
 				return;
@@ -302,15 +302,15 @@ namespace deckard::sha512
 			}
 		}
 
-		u64 choose(u64 e, u64 f, u64 g) noexcept { return (e & f) ^ ((~e) & g); }
+		u64 choose(u64 e, u64 f, u64 g) { return (e & f) ^ ((~e) & g); }
 
-		u64 majority(u64 a, u64 b, u64 c) noexcept { return (a & b) ^ (a & c) ^ (b & c); }
+		u64 majority(u64 a, u64 b, u64 c) { return (a & b) ^ (a & c) ^ (b & c); }
 
-		u64 sig0(u64 x) noexcept { return (std::rotr(x, 1) ^ std::rotr(x, 8) ^ (x >> 7)); }
+		u64 sig0(u64 x) { return (std::rotr(x, 1) ^ std::rotr(x, 8) ^ (x >> 7)); }
 
-		u64 sig1(u64 x) noexcept { return (std::rotr(x, 19) ^ std::rotr(x, 61) ^ (x >> 6)); }
+		u64 sig1(u64 x) { return (std::rotr(x, 19) ^ std::rotr(x, 61) ^ (x >> 6)); }
 
-		void transform() noexcept
+		void transform()
 		{
 			u64                maj{}, S0{}, ch{}, S1{}, temp1{}, temp2{}, w[ROUNDS]{0};
 			std::array<u64, 8> state;
@@ -410,7 +410,7 @@ namespace deckard::sha512
 
 	static_assert(sizeof(hasher) == 208);
 
-	export std::string quickhash(std::string_view input) noexcept
+	export std::string quickhash(std::string_view input)
 	{
 		sha512::hasher hasher;
 		hasher.update({(u8*)input.data(), input.size()});

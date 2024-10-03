@@ -38,9 +38,9 @@ namespace gl
 	std::unordered_set<std::string_view> extensions;
 	std::unordered_set<std::string_view> wgl_extensions;
 
-	bool has_gl_extension(std::string_view name) noexcept { return extensions.contains(name); }
+	bool has_gl_extension(std::string_view name) { return extensions.contains(name); }
 
-	bool has_wgl_extension(std::string_view name) noexcept { return wgl_extensions.contains(name); }
+	bool has_wgl_extension(std::string_view name) { return wgl_extensions.contains(name); }
 } // namespace gl
 
 GLuint compile_shader(GLenum type, const char* source)
@@ -53,7 +53,7 @@ GLuint compile_shader(GLenum type, const char* source)
 	gl::GetShaderiv(shader, GL_COMPILE_STATUS, &param);
 	if (!param)
 	{
-		char log[4'096]{};
+		char log[4096]{};
 		gl::GetShaderInfoLog(shader, sizeof(log), NULL, log);
 		dbg::println("Compile: {}", log);
 	}
@@ -73,7 +73,7 @@ GLuint link_program(GLuint vert, GLuint frag)
 	gl::GetProgramiv(program, GL_LINK_STATUS, &param);
 	if (!param)
 	{
-		char log[4'096]{};
+		char log[4096]{};
 		gl::GetProgramInfoLog(program, sizeof(log), NULL, log);
 		dbg::println("Link: {}", log);
 	}
@@ -81,7 +81,7 @@ GLuint link_program(GLuint vert, GLuint frag)
 	return program;
 }
 
-void init_gl_renderer() noexcept
+void init_gl_renderer()
 {
 	PIXELFORMATDESCRIPTOR pdf = {
 	  .nSize        = sizeof(pdf),
@@ -320,7 +320,7 @@ void init_gl_renderer() noexcept
 	renderer_initialized = true;
 }
 
-void close_renderer() noexcept
+void close_renderer()
 {
 	if (auto hglrc = wglGetCurrentContext())
 	{

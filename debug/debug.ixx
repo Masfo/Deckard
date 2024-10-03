@@ -10,7 +10,7 @@ import std;
 
 using namespace std::string_view_literals;
 
-void output_message(const std::string_view message) noexcept
+void output_message(const std::string_view message)
 {
 	std::print(std::cout, "{}"sv, message);
 #ifdef _DEBUG
@@ -19,7 +19,7 @@ void output_message(const std::string_view message) noexcept
 #endif
 }
 
-void error_output_message(const std::string_view message) noexcept
+void error_output_message(const std::string_view message)
 {
 	std::print(std::cerr, "{}"sv, message);
 #ifdef _DEBUG
@@ -33,13 +33,13 @@ struct alignas(64) FormatLocation
 	std::string_view     fmt;
 	std::source_location loc;
 
-	FormatLocation(const char* s, const std::source_location& l = std::source_location::current()) noexcept
+	FormatLocation(const char* s, const std::source_location& l = std::source_location::current())
 		: fmt(s)
 		, loc(l)
 	{
 	}
 
-	FormatLocation(std::string_view s, const std::source_location& l = std::source_location::current()) noexcept
+	FormatLocation(std::string_view s, const std::source_location& l = std::source_location::current())
 		: fmt(s)
 		, loc(l)
 	{
@@ -51,13 +51,13 @@ struct alignas(64) FormatLocation
 static_assert(64 == sizeof(FormatLocation), "FormatLocation is not 64 bytes");
 
 // template<typename... Args>
-// auto format_check(std::format_string<Args...> format, Args&&... args) noexcept
+// auto format_check(std::format_string<Args...> format, Args&&... args)
 // {
 // 	return std::format(format, std::forward<Args>(args)...);
 // }
 
 template<typename... Args>
-auto format(std::string_view fmt, Args&&... args) noexcept
+auto format(std::string_view fmt, Args&&... args)
 {
 	return std::vformat(fmt, std::make_format_args(args...));
 }
@@ -82,7 +82,7 @@ export namespace deckard::dbg
 
 	// debug
 	template<typename... Args>
-	void print([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	void print([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 			output_message(format(fmt, args...));
@@ -92,7 +92,7 @@ export namespace deckard::dbg
 
 	// println
 	template<typename... Args>
-	void println([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	void println([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 		{
@@ -104,11 +104,11 @@ export namespace deckard::dbg
 		}
 	}
 
-	void println() noexcept { output_message("\n"); }
+	void println() { output_message("\n"); }
 
 	// eprintln
 	template<typename... Args>
-	void eprintln([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	void eprintln([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 		{
@@ -120,10 +120,10 @@ export namespace deckard::dbg
 		}
 	}
 
-	void eprintln() noexcept { error_output_message("\n"); }
+	void eprintln() { error_output_message("\n"); }
 
 	template<typename... Args>
-	void if_true([[maybe_unused]] bool cond, [[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	void if_true([[maybe_unused]] bool cond, [[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
 	{
 #ifdef _DEBUG
 		if (cond)
@@ -148,25 +148,25 @@ export namespace deckard::dbg
 
 	// trace
 	template<typename... Args>
-	void trace([[maybe_unused]] FormatLocation fmt, [[maybe_unused]] Args&&... args) noexcept
+	void trace([[maybe_unused]] FormatLocation fmt, [[maybe_unused]] Args&&... args)
 	{
 #ifdef _DEBUG
 		println("{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
 #endif
 	}
 
-	void trace([[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
+	void trace([[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
 #ifdef _DEBUG
 		println("{}({}):"sv, loc.file_name(), loc.line());
 #endif
 	}
 
-	void trace([[maybe_unused]] FormatLocation fmt) noexcept { dbg::println("{}", fmt.to_string()); }
+	void trace([[maybe_unused]] FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
 
 	// Panic
 	template<typename... Args>
-	[[noreturn]] void panic([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	[[noreturn]] void panic([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
 	{
 #ifdef _DEBUG
 		dbg::print("{} : ", who_called_me());
@@ -184,7 +184,7 @@ export namespace deckard::dbg
 		std::terminate();
 	}
 
-	[[noreturn]] void panic() noexcept { panic(""); }
+	[[noreturn]] void panic() { panic(""); }
 
 	void redirect_console(bool [[maybe_unused]] show)
 	{
@@ -218,7 +218,7 @@ export namespace deckard::dbg
 export namespace deckard
 {
 	template<typename... Args>
-	void todo([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args) noexcept
+	void todo([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
 	{
 		//
 		deckard::dbg::println(format(fmt, args...));

@@ -54,7 +54,7 @@ export namespace deckard::math
 
 	// mod
 	template<std::integral T = i64>
-	T mod(T x, T N) noexcept
+	T mod(T x, T N)
 	{
 		if (N == T{0})
 			return 0;

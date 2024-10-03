@@ -11,7 +11,7 @@ namespace deckard::utf8
 {
 
 	template<size_t N>
-	bool is_in_range(char32_t codepoint, const std::array<char32_range, N>& range) noexcept
+	bool is_in_range(char32_t codepoint, const std::array<char32_range, N>& range)
 	{
 #if 1
 		// ~20-40% faster (depends on input) than lower_bound
@@ -47,7 +47,7 @@ namespace deckard::utf8
 #endif
 	}
 
-	export constexpr bool is_xid_start(char32_t codepoint) noexcept
+	export constexpr bool is_xid_start(char32_t codepoint)
 	{
 		if (codepoint > max_xid_start)
 			return false;
@@ -60,7 +60,7 @@ namespace deckard::utf8
 		return is_in_range(codepoint, xid_start);
 	}
 
-	export constexpr bool is_xid_continue(char32_t codepoint) noexcept
+	export constexpr bool is_xid_continue(char32_t codepoint)
 	{
 		if (codepoint > max_xid_continue)
 			return false;

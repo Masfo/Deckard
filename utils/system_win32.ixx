@@ -12,8 +12,7 @@ namespace deckard::system
 
 	export template<typename T>
 	requires std::is_pointer_v<T>
-	T get_address(std::string_view dll, std::string_view apiname,
-				  const std::source_location& loc = std::source_location::current()) noexcept
+	T get_address(std::string_view dll, std::string_view apiname, const std::source_location& loc = std::source_location::current())
 	{
 		auto library = LoadLibraryA(dll.data());
 		assert::check(library != nullptr, std::format("library '{}' not found.", dll), loc);

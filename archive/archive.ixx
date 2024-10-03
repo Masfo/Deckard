@@ -44,11 +44,11 @@ export namespace deckard::archive
 	public:
 		file() = default;
 
-		file(fs::path file) noexcept { open(file); }
+		file(fs::path file) { open(file); }
 
 		~file() { close(); }
 
-		bool open(fs::path dbfile) noexcept
+		bool open(fs::path dbfile)
 		{
 			int rc = sqlite3_open(system::from_wide(dbfile.wstring()).c_str(), &m_db);
 			if (rc != SQLITE_OK)
@@ -64,7 +64,7 @@ export namespace deckard::archive
 			return true;
 		}
 
-		bool close() noexcept
+		bool close()
 		{
 			int rc = sqlite3_close(m_db);
 			if (rc != SQLITE_OK)
@@ -76,10 +76,10 @@ export namespace deckard::archive
 			return true;
 		}
 
-		bool is_open() const noexcept { return m_db != nullptr; }
+		bool is_open() const { return m_db != nullptr; }
 
 		template<typename... Args>
-		bool exec(std::string_view fmt, Args&&... args) const noexcept
+		bool exec(std::string_view fmt, Args&&... args) const
 		{
 			if (!is_open())
 				return false;
@@ -98,7 +98,7 @@ export namespace deckard::archive
 		}
 
 	private:
-		static int log_callback(void*, int column_count, char** data, char** columns) noexcept
+		static int log_callback(void*, int column_count, char** data, char** columns)
 		{
 
 			dbg::println("Column count: {}", column_count);

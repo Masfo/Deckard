@@ -256,7 +256,7 @@ export namespace deckard
 	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
 
 	// strip - range
-	std::string strip(std::string_view str, char a, char z) noexcept
+	std::string strip(std::string_view str, char a, char z)
 	{
 		std::string ret;
 		ret.reserve(str.size());
@@ -268,7 +268,7 @@ export namespace deckard
 	}
 
 	// strip -
-	std::string strip(std::string_view str, std::string_view strip_chars) noexcept
+	std::string strip(std::string_view str, std::string_view strip_chars)
 	{
 		std::string ret;
 		ret.reserve(str.size());
@@ -281,7 +281,7 @@ export namespace deckard
 	}
 
 	// replace
-	std::string replace(std::string_view subject, const std::string_view search, std::string_view replace) noexcept
+	std::string replace(std::string_view subject, const std::string_view search, std::string_view replace)
 	{
 		std::string output(subject);
 		size_t      pos = 0;
@@ -331,7 +331,7 @@ export namespace deckard
 	}
 
 	// split_exact
-	std::vector<std::string_view> split_exact(std::string_view str, std::string_view delims, bool include_empty = false) noexcept
+	std::vector<std::string_view> split_exact(std::string_view str, std::string_view delims, bool include_empty = false)
 	{
 		std::vector<std::string_view> output;
 		u64                           first = 0;
@@ -361,7 +361,7 @@ export namespace deckard
 		return v;
 	}
 
-	std::vector<std::string_view> split_stride(std::string_view str, u64 stride) noexcept
+	std::vector<std::string_view> split_stride(std::string_view str, u64 stride)
 	{
 		std::vector<std::string_view> v;
 

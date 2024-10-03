@@ -450,7 +450,7 @@ namespace deckard::app
 			}
 		}
 
-		void handle_input(const HRAWINPUT input) noexcept
+		void handle_input(const HRAWINPUT input) 
 		{
 			u32 size = 0;
 			if (GetRawInputData(input, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0)

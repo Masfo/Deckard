@@ -11,7 +11,7 @@ namespace deckard::utf8
 {
 
 
-	export constexpr u32 codepoint_width(char32_t codepoint) noexcept
+	export constexpr u32 codepoint_width(char32_t codepoint)
 	{
 
 		if (codepoint < 0x80)
@@ -30,9 +30,9 @@ namespace deckard::utf8
 		return 7;
 	}
 
-	export constexpr bool is_bom(char32_t codepoint) noexcept { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
+	export constexpr bool is_bom(char32_t codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
-	export constexpr bool is_whitespace(char32_t codepoint) noexcept
+	export constexpr bool is_whitespace(char32_t codepoint)
 	{
 		// PropList-15.1.0.txt
 		return (
@@ -50,12 +50,12 @@ namespace deckard::utf8
 		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
 	}
 
-	export constexpr bool is_identifier_start(char32_t codepoint) noexcept
+	export constexpr bool is_identifier_start(char32_t codepoint)
 	{
 		return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint);
 	}
 
-	export constexpr bool is_identifier_continue(char32_t codepoint) noexcept
+	export constexpr bool is_identifier_continue(char32_t codepoint)
 	{
 		return is_ascii_identifier_continue(codepoint) or is_xid_continue(codepoint);
 	}

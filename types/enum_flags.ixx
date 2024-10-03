@@ -20,45 +20,45 @@ export namespace deckard
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator|(const T lhs, const T rhs) noexcept
+	constexpr T operator|(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitor std::to_underlying(rhs));
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator&(const T lhs, const T rhs) noexcept
+	constexpr T operator&(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator^(const T lhs, const T rhs) noexcept
+	constexpr T operator^(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator~(const T lhs) noexcept
+	constexpr T operator~(const T lhs)
 	{
 		return static_cast<T>(~std::to_underlying(lhs));
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator|=(T& lhs, const T rhs) noexcept
+	constexpr T operator|=(T& lhs, const T rhs)
 	{
 		lhs = lhs bitor rhs;
 		return lhs;
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator&=(T& lhs, const T rhs) noexcept
+	constexpr T operator&=(T& lhs, const T rhs)
 	{
 		lhs = static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 		return lhs;
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator^=(T& lhs, const T rhs) noexcept
+	constexpr T operator^=(T& lhs, const T rhs)
 	{
 		lhs = lhs xor rhs;
 		return lhs;
@@ -66,14 +66,14 @@ export namespace deckard
 
 	// Helpers for removing and setting flags
 	template<EnumFlagType T>
-	constexpr T operator-=(T& lhs, const T rhs) noexcept
+	constexpr T operator-=(T& lhs, const T rhs)
 	{
 		lhs &= ~rhs;
 		return lhs;
 	}
 
 	template<EnumFlagType T>
-	constexpr T operator+=(T& lhs, const T rhs) noexcept
+	constexpr T operator+=(T& lhs, const T rhs)
 	{
 		lhs |= rhs;
 		return lhs;
@@ -81,7 +81,7 @@ export namespace deckard
 
 	// check
 	template<EnumFlagType T>
-	constexpr bool operator&&(const T lhs, const T rhs) noexcept
+	constexpr bool operator&&(const T lhs, const T rhs)
 	{
 		if (std::to_underlying(lhs) == std::to_underlying(rhs))
 			return true;
@@ -91,7 +91,7 @@ export namespace deckard
 
 	// P3070 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
 	template<EnumFlagType T>
-	auto format_as(T f) noexcept
+	auto format_as(T f)
 	{
 		return std::to_underlying(f);
 	}

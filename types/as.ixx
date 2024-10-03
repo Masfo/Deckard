@@ -8,7 +8,7 @@ namespace deckard
 {
 
 	template<typename T, typename U>
-	void warn_cast_limit([[maybe_unused]] U value, [[maybe_unused]] const std::source_location& loc) noexcept
+	void warn_cast_limit([[maybe_unused]] U value, [[maybe_unused]] const std::source_location& loc)
 	{
 #ifdef _DEBUG
 		dbg::trace(loc);
@@ -31,7 +31,7 @@ namespace deckard
 	}
 
 	export template<typename Ret = void*, typename U>
-	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
+	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
 #ifdef _DEBUG
 		U         value      = u;

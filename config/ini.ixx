@@ -42,12 +42,12 @@ namespace deckard::ini
 	public:
 		// ini(fs::path filename) { m_tokens.open(filename); }
 
-		value& operator[](std::string_view key) noexcept
+		value& operator[](std::string_view key)
 		{
 			//
 		}
 
-		value operator[](std::string_view key) const noexcept
+		value operator[](std::string_view key) const
 		{
 			//
 		}

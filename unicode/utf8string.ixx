@@ -44,8 +44,6 @@ namespace deckard::utf8
 
 	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // 0xEF 0xBF 0xBD (efbfbd)
 
-
-
 	export class string
 	{
 	public:
@@ -87,7 +85,7 @@ namespace deckard::utf8
 			i32        index{0};
 		};
 
-		type read(u8 byte) noexcept
+		type read(u8 byte)
 		{
 			assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
 
@@ -152,7 +150,7 @@ namespace deckard::utf8
 		{
 		}
 
-		bool empty() const noexcept { return idx >= buffer.size(); }
+		bool empty() const { return idx >= buffer.size(); }
 
 		u64 size_in_bytes() const { return buffer.size(); }
 

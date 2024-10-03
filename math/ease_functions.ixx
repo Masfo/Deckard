@@ -9,38 +9,38 @@ export namespace deckard::math
 
 	// lerp
 	template<arithmetic T>
-	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha) noexcept
+	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha)
 	{
 		return as<T>(A + Alpha * (B - A));
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T smoothstep(T x) noexcept
+	[[nodiscard]] constexpr T smoothstep(T x)
 	{
 		return x * x * (3.0f - 2.0f * x);
 	}
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr T inverse_smoothstep(T x) noexcept
+	[[nodiscard]] constexpr T inverse_smoothstep(T x)
 	{
 		return 0.5 - sin(asin(1.0 - 2.0 * x) / 3.0);
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T smootherstep(T x) noexcept
+	[[nodiscard]] constexpr T smootherstep(T x)
 	{
 		return x * x * x * (x * (6.0f * x - 15.0f) + 10.0f);
 	}
 
 	// quadratic
 	template<arithmetic T>
-	[[nodiscard]] constexpr T quadratic_ease_in(T p) noexcept
+	[[nodiscard]] constexpr T quadratic_ease_in(T p)
 	{
 		return p * p;
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T quadratic_ease_out(T p) noexcept
+	[[nodiscard]] constexpr T quadratic_ease_out(T p)
 	{
 		return -(p * (p - 2));
 	}
@@ -49,20 +49,20 @@ export namespace deckard::math
 	{
 		// cubic
 		template<arithmetic T>
-		[[nodiscard]] constexpr T in(T p) noexcept
+		[[nodiscard]] constexpr T in(T p)
 		{
 			return p * p * p;
 		}
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T out(T p) noexcept
+		[[nodiscard]] constexpr T out(T p)
 		{
 			T f = (p - 1);
 			return f * f * f + 1;
 		}
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T inout(T p) noexcept
+		[[nodiscard]] constexpr T inout(T p)
 		{
 			if (p < 0.5)
 			{
@@ -81,20 +81,20 @@ export namespace deckard::math
 	{
 		// quartic
 		template<arithmetic T>
-		[[nodiscard]] constexpr T in(T p) noexcept
+		[[nodiscard]] constexpr T in(T p)
 		{
 			return p * p * p * p;
 		}
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T out(T p) noexcept
+		[[nodiscard]] constexpr T out(T p)
 		{
 			T f = (p - 1);
 			return f * f * f * (1 - p) + 1;
 		}
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T inout(T p) noexcept
+		[[nodiscard]] constexpr T inout(T p)
 		{
 			if (p < 0.5)
 			{
@@ -112,19 +112,19 @@ export namespace deckard::math
 	{
 		// sine
 		template<arithmetic T>
-		[[nodiscard]] constexpr T in(T p) noexcept
+		[[nodiscard]] constexpr T in(T p)
 		{
 			return std::sin((p - 1) * std::numbers::pi_v<T>) + 1;
 		}
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T out(T p) noexcept
+		[[nodiscard]] constexpr T out(T p)
 		{
 			return std::sin(p * std::numbers::pi_v<T>);
 		}
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T inout(T p) noexcept
+		[[nodiscard]] constexpr T inout(T p)
 		{
 			return as<T>(0.5 * (1 - std::cos(p * std::numbers::pi_v<T>)));
 		}
@@ -134,7 +134,7 @@ export namespace deckard::math
 	{
 
 		template<arithmetic T>
-		[[nodiscard]] constexpr T out(T p) noexcept
+		[[nodiscard]] constexpr T out(T p)
 		{
 			if (p < 4 / 11.0)
 			{
@@ -156,7 +156,7 @@ export namespace deckard::math
 
 		// bounce
 		template<arithmetic T>
-		[[nodiscard]] constexpr T in(T p) noexcept
+		[[nodiscard]] constexpr T in(T p)
 		{
 			return 1 - out(1 - p);
 		}

@@ -115,9 +115,9 @@ namespace deckard
 class DeckardInitializer final
 {
 public:
-	DeckardInitializer() noexcept { deckard::initialize(); }
+	DeckardInitializer() { deckard::initialize(); }
 
-	~DeckardInitializer() noexcept { deckard::deinitialize(); }
+	~DeckardInitializer() { deckard::deinitialize(); }
 };
 
 static const auto global_init = [] { return std::make_unique<DeckardInitializer>(); }();

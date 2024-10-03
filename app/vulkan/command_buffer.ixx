@@ -25,7 +25,7 @@ namespace deckard::vulkan
 	export class command_buffer
 	{
 	public:
-		bool initialize(device device, swapchain swapchain) noexcept
+		bool initialize(device device, swapchain swapchain)
 		{
 			assert::check(device != nullptr);
 
@@ -75,7 +75,7 @@ namespace deckard::vulkan
 			return vkEndCommandBuffer(m_command_buffers[index]);
 		}
 
-		void deinitialize(VkDevice device) noexcept
+		void deinitialize(VkDevice device)
 		{
 			if (not m_command_buffers.empty())
 			{

@@ -197,7 +197,7 @@ namespace nt
 
 		void flush() { FlushViewOfFile(view.data(), 0); }
 
-		void close() noexcept
+		void close() 
 		{
 			CloseHandle(handle);
 			handle = INVALID_HANDLE_VALUE;
@@ -210,7 +210,7 @@ namespace nt
 	public:
 		file() = default;
 
-		file(file&&) noexcept = default;
+		file(file&&)  = default;
 		file(const file&)     = default;
 
 		file& operator=(const file&) = default;

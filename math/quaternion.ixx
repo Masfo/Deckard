@@ -71,6 +71,12 @@ namespace deckard::math::sse
 			data.c.z = c[0] * c[1] * s[2] - s[0] * s[1] * c[2];
 		}
 
+		// quat& operator=(const quat& q)
+		//{
+		//	data = q.data;
+		//	return *this;
+		// }
+
 		// operator vec3&() const { return reinterpret_cast<vec3&>(data.c.x); }
 		//
 		const vec3& vec3_part() const { return reinterpret_cast<const vec3&>(data.c.x); }
@@ -307,16 +313,23 @@ namespace deckard::math::sse
 
 	export quat conjugate(const quat& q) { return q.conjugate(); }
 
-	export quat normalize(const quat& q)
+	export quat& normalize(quat& q)
 	{
 		f32 len = length(q);
 
 		if (is_close_enough_zero(len))
-			return {};
+		{
+			return q;
+		}
 
 		f32 over = 1.0f / len;
 
-		return {q.data.c.w * over, q.data.c.x * over, q.data.c.y * over, q.data.c.z * over};
+		q.data.c.w *= over;
+		q.data.c.x *= over;
+		q.data.c.y *= over;
+		q.data.c.z *= over;
+
+		return q;
 	}
 
 	export quat cross(const quat& q1, const quat& q2)

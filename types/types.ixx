@@ -25,27 +25,27 @@ export namespace deckard
 	using f32 = float;
 	using f64 = double;
 
-	constexpr std::byte operator"" _byte(const u64 value) noexcept { return static_cast<std::byte>(value & 0xFF); }
+	constexpr std::byte operator"" _byte(const u64 value) { return static_cast<std::byte>(value & 0xFF); }
 
-	constexpr u8 operator"" _u8(const u64 value) noexcept { return static_cast<u8>(value & 0xFF); }
+	constexpr u8 operator"" _u8(const u64 value) { return static_cast<u8>(value & 0xFF); }
 
-	constexpr i8 operator"" _i8(const u64 value) noexcept { return static_cast<i8>(value & 0xFF); }
+	constexpr i8 operator"" _i8(const u64 value) { return static_cast<i8>(value & 0xFF); }
 
-	constexpr u16 operator"" _u16(const u64 value) noexcept { return static_cast<u16>(value & 0xFFFF); }
+	constexpr u16 operator"" _u16(const u64 value) { return static_cast<u16>(value & 0xFFFF); }
 
-	constexpr i16 operator"" _i16(const u64 value) noexcept { return static_cast<i16>(value & 0xFFFF); }
+	constexpr i16 operator"" _i16(const u64 value) { return static_cast<i16>(value & 0xFFFF); }
 
-	constexpr u32 operator"" _u32(const u64 value) noexcept { return static_cast<u32>(value & 0xFFFF'FFFF); }
+	constexpr u32 operator"" _u32(const u64 value) { return static_cast<u32>(value & 0xFFFF'FFFF); }
 
-	constexpr i32 operator"" _i32(const u64 value) noexcept { return static_cast<i32>(value & 0xFFFF'FFFF); }
+	constexpr i32 operator"" _i32(const u64 value) { return static_cast<i32>(value & 0xFFFF'FFFF); }
 
-	constexpr u64 operator"" _u64(const u64 value) noexcept { return static_cast<u64>(value); }
+	constexpr u64 operator"" _u64(const u64 value) { return static_cast<u64>(value); }
 
-	constexpr i64 operator"" _i64(const u64 value) noexcept { return static_cast<i64>(value); }
+	constexpr i64 operator"" _i64(const u64 value) { return static_cast<i64>(value); }
 
-	constexpr f32 operator"" _f32(const u64 value) noexcept { return static_cast<f32>(value); }
+	constexpr f32 operator"" _f32(const u64 value) { return static_cast<f32>(value); }
 
-	constexpr f64 operator"" _f64(const u64 value) noexcept { return static_cast<f64>(value); }
+	constexpr f64 operator"" _f64(const u64 value) { return static_cast<f64>(value); }
 
 	// limits
 	template<std::integral T>
@@ -61,27 +61,27 @@ export namespace deckard
 	using gibi = std::ratio<1ULL << 30>;
 	using tebi = std::ratio<1ULL << 40>;
 
-	constexpr u64 operator"" _KB(const u64 value) noexcept { return value * std::kilo::num; }
+	constexpr u64 operator"" _KB(const u64 value) { return value * std::kilo::num; }
 
-	constexpr u64 operator"" _MB(const u64 value) noexcept { return value * std::mega::num; }
+	constexpr u64 operator"" _MB(const u64 value) { return value * std::mega::num; }
 
-	constexpr u64 operator"" _GB(const u64 value) noexcept { return value * std::giga::num; }
+	constexpr u64 operator"" _GB(const u64 value) { return value * std::giga::num; }
 
-	constexpr u64 operator"" _TB(const u64 value) noexcept { return value * std::tera::num; }
+	constexpr u64 operator"" _TB(const u64 value) { return value * std::tera::num; }
 
-	constexpr u64 operator"" _KiB(const u64 value) noexcept { return value * kibi::num; }
+	constexpr u64 operator"" _KiB(const u64 value) { return value * kibi::num; }
 
-	constexpr u64 operator"" _MiB(const u64 value) noexcept { return value * mebi::num; }
+	constexpr u64 operator"" _MiB(const u64 value) { return value * mebi::num; }
 
-	constexpr u64 operator"" _GiB(const u64 value) noexcept { return value * gibi::num; }
+	constexpr u64 operator"" _GiB(const u64 value) { return value * gibi::num; }
 
-	constexpr u64 operator"" _TiB(const u64 value) noexcept { return value * tebi::num; }
+	constexpr u64 operator"" _TiB(const u64 value) { return value * tebi::num; }
 
 	// sink
 	struct sink_t final
 	{
 		template<typename T>
-		constexpr void operator=(T&&) const noexcept
+		constexpr void operator=(T&&) const
 		{
 		}
 	};

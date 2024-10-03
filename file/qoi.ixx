@@ -18,8 +18,8 @@ namespace deckard
 
 	export class qoi
 	{
-	public:
 	private:
+	public:
 	};
 
 }; // namespace deckard

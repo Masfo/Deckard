@@ -28,23 +28,23 @@ namespace deckard
 			assert::check(m_array_size > 1, "size must be greater than 1");
 		}
 
-		[[nodiscard]] reference front() noexcept { return at(0); }
+		[[nodiscard]] reference front() { return at(0); }
 
-		[[nodiscard]] reference top() noexcept { return front(); }
+		[[nodiscard]] reference top() { return front(); }
 
-		[[nodiscard]] reference back() noexcept { return at(size() - 1); }
+		[[nodiscard]] reference back() { return at(size() - 1); }
 
-		[[nodiscard]] const_reference front() const noexcept { return at(0); }
+		[[nodiscard]] const_reference front() const { return at(0); }
 
-		[[nodiscard]] const_reference back() const noexcept { return at(size() - 1); }
+		[[nodiscard]] const_reference back() const { return at(size() - 1); }
 
-		void clear() noexcept
+		void clear()
 		{
 			m_head = 1;
 			m_tail = m_content_size = 0;
 		}
 
-		void push_back(const value_type& item) noexcept
+		void push_back(const value_type& item)
 		{
 			increment_tail();
 			if (m_content_size > m_array_size)
@@ -52,40 +52,40 @@ namespace deckard
 			m_array[m_tail] = item;
 		}
 
-		void push(const value_type& item) noexcept { push_back(item); }
+		void push(const value_type& item) { push_back(item); }
 
-		[[nodiscard]] reference pop_front() noexcept
+		[[nodiscard]] reference pop_front()
 		{
 			increment_head();
 			return m_array[m_tail];
 		}
 
-		[[nodiscard]] reference pop() noexcept { return pop_front(); }
+		[[nodiscard]] reference pop() { return pop_front(); }
 
-		[[nodiscard]] const_reference pop_front() const noexcept
+		[[nodiscard]] const_reference pop_front() const
 		{
 			increment_head();
 			return m_array[m_tail];
 		}
 
-		[[nodiscard]] const_reference pop() const noexcept { return pop_front(); }
+		[[nodiscard]] const_reference pop() const { return pop_front(); }
 
-		[[nodiscard]] size_type size() const noexcept { return m_content_size; }
+		[[nodiscard]] size_type size() const { return m_content_size; }
 
-		[[nodiscard]] size_type capacity() const noexcept { return m_array_size; }
+		[[nodiscard]] size_type capacity() const { return m_array_size; }
 
-		[[nodiscard]] bool empty() const noexcept { return m_content_size == 0; }
+		[[nodiscard]] bool empty() const { return m_content_size == 0; }
 
-		[[nodiscard]] bool full() const noexcept { return m_content_size == m_array_size; }
+		[[nodiscard]] bool full() const { return m_content_size == m_array_size; }
 
-		[[nodiscard]] reference operator[](size_type index) noexcept
+		[[nodiscard]] reference operator[](size_type index)
 		{
 			index += m_head;
 			index %= m_array_size;
 			return m_array[index];
 		}
 
-		[[nodiscard]] const_reference operator[](size_type index) const noexcept
+		[[nodiscard]] const_reference operator[](size_type index) const
 		{
 			const ringbuffer<value_type>& constMe = *this;
 			return const_cast<reference>(constMe.operator[](index));
@@ -104,7 +104,7 @@ namespace deckard
 		}
 
 		//
-		[[nodiscard]] reference last() noexcept
+		[[nodiscard]] reference last()
 		{
 			size_type pos = m_head - 1;
 			if (pos > m_array_size)
@@ -113,7 +113,7 @@ namespace deckard
 			return m_array[pos];
 		}
 
-		[[nodiscard]] const_reference last() const noexcept
+		[[nodiscard]] const_reference last() const
 		{
 			size_type pos = m_head - 1;
 			if (pos > m_array_size)
@@ -123,7 +123,7 @@ namespace deckard
 		}
 
 		// TODO: iterator instead of copying
-		[[nodiscard]] std::vector<value_type> last(size_type count) const noexcept
+		[[nodiscard]] std::vector<value_type> last(size_type count) const
 		{
 			assert::check(count - 1 < m_content_size, "Cant get more than max size");
 			if (count - 1 > m_content_size)
@@ -145,7 +145,7 @@ namespace deckard
 		}
 
 	private:
-		void increment_tail() noexcept
+		void increment_tail()
 		{
 			++m_tail;
 			++m_content_size;
@@ -154,7 +154,7 @@ namespace deckard
 				m_tail = 0;
 		}
 
-		void increment_head() noexcept
+		void increment_head()
 		{
 			if (m_content_size == 0)
 				return;

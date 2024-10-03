@@ -39,13 +39,13 @@ namespace deckard::vulkan
 	export class queue
 	{
 	public:
-		bool initialize(VkInstance instance, HINSTANCE window_instance, HWND window_handle) noexcept
+		bool initialize(VkInstance instance, HINSTANCE window_instance, HWND window_handle)
 		{
 			//
 			return true;
 		}
 
-		void deinitialize(VkInstance instance) noexcept
+		void deinitialize(VkInstance instance)
 		{
 			//
 		}

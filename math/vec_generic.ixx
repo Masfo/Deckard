@@ -21,16 +21,16 @@ namespace deckard::math
 
 		constexpr vec_n() = default;
 
-		constexpr vec_n(T scalar) noexcept { m_data.fill(scalar); }
+		constexpr vec_n(T scalar) { m_data.fill(scalar); }
 
-		constexpr vec_n(T x, T y) noexcept
+		constexpr vec_n(T x, T y)
 		requires(N >= 2)
 		{
 			m_data[0] = x;
 			m_data[1] = y;
 		}
 
-		constexpr vec_n(T x, T y, T z) noexcept
+		constexpr vec_n(T x, T y, T z)
 		requires(N >= 3)
 		{
 			m_data[0] = x;
@@ -38,7 +38,7 @@ namespace deckard::math
 			m_data[2] = z;
 		}
 
-		constexpr vec_n(T x, T y, T z, T w) noexcept
+		constexpr vec_n(T x, T y, T z, T w)
 		requires(N == 4)
 		{
 			m_data[0] = x;
@@ -66,7 +66,7 @@ namespace deckard::math
 			m_data[2] = scalar;
 		}
 
-		constexpr vec_n(const std::initializer_list<T> list, const std::source_location& loc = std::source_location::current()) noexcept
+		constexpr vec_n(const std::initializer_list<T> list, const std::source_location& loc = std::source_location::current())
 		{
 
 			if (list.size() == 1)
@@ -85,25 +85,25 @@ namespace deckard::math
 			std::copy_n(list.begin(), std::min(N, list.size()), m_data.begin());
 		}
 
-		constexpr operator vec_type() const noexcept
+		constexpr operator vec_type() const
 		{
 			vec_type result{*this};
 			return result;
 		}
 
-		constexpr T& at(size_t index) noexcept { return m_data[index]; }
+		constexpr T& at(size_t index) { return m_data[index]; }
 
-		constexpr const T& at(size_t index) const noexcept { return m_data[index]; }
+		constexpr const T& at(size_t index) const { return m_data[index]; }
 
-		constexpr T& operator[](size_t index) noexcept { return m_data[index]; }
+		constexpr T& operator[](size_t index) { return m_data[index]; }
 
-		constexpr const T& operator[](size_t index) const noexcept
+		constexpr const T& operator[](size_t index) const
 		{
 			assert::check(index < N, "indexing out-of-bounds");
 			return m_data[index];
 		}
 
-		constexpr bool has_zero() const noexcept
+		constexpr bool has_zero() const
 		{
 			for (int i = 0; i < N; ++i)
 			{
@@ -113,7 +113,7 @@ namespace deckard::math
 			return false;
 		};
 
-		constexpr bool is_zero() const noexcept
+		constexpr bool is_zero() const
 		{
 			for (int i = 0; i < N; ++i)
 			{
@@ -123,7 +123,7 @@ namespace deckard::math
 			return true;
 		}
 
-		bool is_nan() const noexcept
+		bool is_nan() const
 		{
 			for (int i = 0; i < N; ++i)
 			{
@@ -133,7 +133,7 @@ namespace deckard::math
 			return true;
 		}
 
-		constexpr bool has_nan() const noexcept
+		constexpr bool has_nan() const
 		{
 			for (int i = 0; i < N; ++i)
 			{
@@ -143,7 +143,7 @@ namespace deckard::math
 			return false;
 		};
 
-		constexpr bool has_inf() const noexcept
+		constexpr bool has_inf() const
 		{
 			for (int i = 0; i < N; ++i)
 			{
@@ -153,7 +153,7 @@ namespace deckard::math
 			return false;
 		};
 
-		constexpr bool is_inf() const noexcept
+		constexpr bool is_inf() const
 		{
 			for (int i = 0; i < N; ++i)
 			{
@@ -163,33 +163,33 @@ namespace deckard::math
 			return true;
 		};
 
-		constexpr vec_type& operator++() noexcept
+		constexpr vec_type& operator++()
 		{
 			*this += vec_type(1);
 			return *this;
 		}
 
-		constexpr vec_type operator++(int) noexcept
+		constexpr vec_type operator++(int)
 		{
 			vec_type tmp = *this;
 			*this += vec_type(1);
 			return tmp;
 		}
 
-		constexpr vec_type& operator--() noexcept
+		constexpr vec_type& operator--()
 		{
 			*this -= vec_type(1);
 			return *this;
 		}
 
-		constexpr vec_type operator--(int) noexcept
+		constexpr vec_type operator--(int)
 		{
 			vec_type tmp = *this;
 			*this -= vec_type(1);
 			return tmp;
 		}
 
-		constexpr void operator+=(const vec_type& other) noexcept
+		constexpr void operator+=(const vec_type& other)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
@@ -197,7 +197,7 @@ namespace deckard::math
 			}
 		}
 
-		constexpr vec_type operator+(const vec_type& other) const noexcept
+		constexpr vec_type operator+(const vec_type& other) const
 		{
 			vec_type result = *this;
 			result += other;
@@ -205,7 +205,7 @@ namespace deckard::math
 		}
 
 		// sub
-		constexpr void operator-=(const vec_type& other) noexcept
+		constexpr void operator-=(const vec_type& other)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
@@ -213,7 +213,7 @@ namespace deckard::math
 			}
 		}
 
-		void operator+=(const float scalar) noexcept
+		void operator+=(const float scalar)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
@@ -221,7 +221,7 @@ namespace deckard::math
 			}
 		}
 
-		void operator-=(const float scalar) noexcept
+		void operator-=(const float scalar)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
@@ -229,7 +229,7 @@ namespace deckard::math
 			}
 		}
 
-		void operator*=(const float scalar) noexcept
+		void operator*=(const float scalar)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
@@ -237,7 +237,7 @@ namespace deckard::math
 			}
 		}
 
-		void operator/=(const float scalar) noexcept
+		void operator/=(const float scalar)
 		{
 			if (math::is_close_enough(scalar, 0.0f))
 				dbg::panic("divide by zero: {} / {}", *this, scalar);
@@ -248,7 +248,7 @@ namespace deckard::math
 			}
 		}
 
-		constexpr vec_type operator-(const vec_type& other) const noexcept
+		constexpr vec_type operator-(const vec_type& other) const
 		{
 			vec_type result = *this;
 			result -= other;
@@ -256,7 +256,7 @@ namespace deckard::math
 		}
 
 		// mul
-		constexpr void operator*=(const vec_type& other) noexcept
+		constexpr void operator*=(const vec_type& other)
 		{
 			for (size_t i = 0; i < N; ++i)
 			{
@@ -264,14 +264,14 @@ namespace deckard::math
 			}
 		}
 
-		constexpr vec_type operator*(const vec_type& other) const noexcept
+		constexpr vec_type operator*(const vec_type& other) const
 		{
 			vec_type result = *this;
 			result *= other;
 			return result;
 		}
 
-		constexpr void operator/=(const vec_type& other) noexcept
+		constexpr void operator/=(const vec_type& other)
 		{
 			if (other.has_zero())
 				dbg::panic("divide by zero: {} / {}", *this, other);
@@ -281,7 +281,7 @@ namespace deckard::math
 		}
 
 		// div
-		constexpr vec_type operator/(const vec_type& other) const noexcept
+		constexpr vec_type operator/(const vec_type& other) const
 		{
 			if (other.has_zero())
 				dbg::panic("divide by zero: {} / {}", *this, other);
@@ -295,7 +295,7 @@ namespace deckard::math
 
 		// div
 		template<typename U = T>
-		constexpr vec_type operator/(const U& scalar) const noexcept
+		constexpr vec_type operator/(const U& scalar) const
 		{
 			if (scalar == U{0})
 				dbg::panic("divide by scalar zero: {} / {}", *this, scalar);
@@ -309,21 +309,21 @@ namespace deckard::math
 		}
 
 		// unary
-		constexpr vec_type& operator-() noexcept
+		constexpr vec_type& operator-()
 		{
 			*this *= vec_type(T{-1.0});
 			return *this;
 		}
 
-		constexpr vec_type operator+() const noexcept { return *this; }
+		constexpr vec_type operator+() const { return *this; }
 
-		void operator>>(T* v) noexcept
+		void operator>>(T* v)
 		{
 			for (size_t i = 0; i < N; ++i)
 				v[i] = m_data[i];
 		}
 
-		void operator<<(T* v) noexcept
+		void operator<<(T* v)
 		{
 			assert::check(v != nullptr, "input buffer null");
 
@@ -331,30 +331,30 @@ namespace deckard::math
 				m_data[i] = v[i];
 		}
 
-		void operator<<=(T* v) noexcept
+		void operator<<=(T* v)
 		{
 			assert::check(v != nullptr, "input buffer null");
 			for (size_t i = 0; i < N; ++i)
 				m_data[i] = v[i];
 		}
 
-		constexpr auto operator<=>(const vec_type& other) const noexcept = default;
+		constexpr auto operator<=>(const vec_type& other) const = default;
 
-		constexpr bool operator==(const vec_type& other) const noexcept { return equals(other, T{}); }
+		constexpr bool operator==(const vec_type& other) const { return equals(other, T{}); }
 
-		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const noexcept
+		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const
 		requires(std::floating_point<T>)
 		{
 			return is_close_enough(other, epsilon);
 		}
 
-		constexpr bool equals(const vec_type& other, const T epsilon = 0) const noexcept
+		constexpr bool equals(const vec_type& other, const T epsilon = 0) const
 		requires(std::integral<T>)
 		{
 			return is_close_enough(other, epsilon);
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, float epsilon = 0.000001f) const noexcept
+		constexpr bool is_close_enough(const vec_type& lhs, float epsilon = 0.000001f) const
 		requires(std::floating_point<T>)
 		{
 			for (size_t i = 0; i < N; ++i)
@@ -365,7 +365,7 @@ namespace deckard::math
 			return true;
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const noexcept
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const
 		requires(std::integral<T>)
 		{
 			for (size_t i = 0; i < N; ++i)
@@ -376,7 +376,7 @@ namespace deckard::math
 			return true;
 		}
 
-		constexpr vec_type diff(const vec_type& other) const noexcept
+		constexpr vec_type diff(const vec_type& other) const
 		{
 			vec_type result = *this;
 
@@ -389,7 +389,7 @@ namespace deckard::math
 		// other functions
 
 		// min
-		[[nodiscard("Use the minimum value")]] constexpr vec_type min(const vec_type& other) const noexcept
+		[[nodiscard("Use the minimum value")]] constexpr vec_type min(const vec_type& other) const
 		{
 			vec_type result{0};
 			for (size_t i = 0; i < N; ++i)
@@ -399,7 +399,7 @@ namespace deckard::math
 		}
 
 		// max
-		[[nodiscard("Use the maximum value")]] constexpr vec_type max(const vec_type& other) const noexcept
+		[[nodiscard("Use the maximum value")]] constexpr vec_type max(const vec_type& other) const
 		{
 			vec_type result{0};
 			for (size_t i = 0; i < N; ++i)
@@ -409,7 +409,7 @@ namespace deckard::math
 		}
 
 		// abs
-		[[nodiscard("Use the absolute value")]] constexpr vec_type abs() const noexcept
+		[[nodiscard("Use the absolute value")]] constexpr vec_type abs() const
 		{
 			vec_type result{0};
 			for (size_t i = 0; i < N; ++i)
@@ -420,7 +420,7 @@ namespace deckard::math
 
 		// magnitude/length
 		template<typename U = T>
-		[[nodiscard("Use the length value")]] constexpr U length() const noexcept
+		[[nodiscard("Use the length value")]] constexpr U length() const
 		{
 			U result{0};
 			for (size_t i = 0; i < N; ++i)
@@ -430,7 +430,7 @@ namespace deckard::math
 		}
 
 		// normalize
-		constexpr void normalize() noexcept
+		constexpr void normalize()
 		requires(N >= 2)
 		{
 			const auto len = length();
@@ -440,7 +440,7 @@ namespace deckard::math
 		}
 
 		// normalized
-		[[nodiscard("Use the normalized value")]] constexpr vec_type normalized() const noexcept
+		[[nodiscard("Use the normalized value")]] constexpr vec_type normalized() const
 		requires(N >= 2)
 		{
 			vec_type   result{0};
@@ -454,7 +454,7 @@ namespace deckard::math
 
 		// manhattan distance
 		template<typename U = T>
-		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const noexcept
+		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const
 		{
 			U result{};
 			for (size_t i = 0; i < N; ++i)
@@ -467,7 +467,7 @@ namespace deckard::math
 
 		// clamp
 		template<typename U = T>
-		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const U cmin, const U cmax) const noexcept
+		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(const U cmin, const U cmax) const
 		{
 			vec_type result{0};
 			for (size_t i = 0; i < N; ++i)
@@ -478,7 +478,7 @@ namespace deckard::math
 
 		// 2d cross product
 		template<typename U = T>
-		[[nodiscard("Use the cross product")]] constexpr U cross(const vec_type& other) const noexcept
+		[[nodiscard("Use the cross product")]] constexpr U cross(const vec_type& other) const
 		requires(N == 2)
 		{
 			return m_data[0] * other[1] - m_data[1] * other[0];
@@ -487,7 +487,7 @@ namespace deckard::math
 		// 3d+ cross product
 		template<typename T, size_t N>
 		requires(N >= 3)
-		[[nodiscard("Use the cross product")]] constexpr auto cross(const vec_n<T, N>& other) const noexcept
+		[[nodiscard("Use the cross product")]] constexpr auto cross(const vec_n<T, N>& other) const
 		{
 			vec_n<T, 3> result;
 
@@ -499,7 +499,7 @@ namespace deckard::math
 		}
 
 		template<typename U = T>
-		[[nodiscard("Use the dot product value")]] constexpr U dot(const vec_type& other) const noexcept
+		[[nodiscard("Use the dot product value")]] constexpr U dot(const vec_type& other) const
 		{
 			U result{};
 			for (size_t i = 0; i < N; ++i)
@@ -508,7 +508,7 @@ namespace deckard::math
 		}
 
 		// 2d/3d projection
-		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const noexcept
+		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const
 		requires(N == 2 or N == 3)
 		{
 			if (other.has_zero())
@@ -525,7 +525,7 @@ namespace deckard::math
 		}
 
 		// 2d/3d angle
-		[[nodiscard("Use the angle value")]] constexpr T angle(const vec_type& other) const noexcept
+		[[nodiscard("Use the angle value")]] constexpr T angle(const vec_type& other) const
 		requires(N == 2 or N == 3)
 		{
 			if (has_zero() or other.has_zero())
@@ -541,7 +541,7 @@ namespace deckard::math
 		}
 
 		// 3d-rotate
-		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const noexcept
+		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const
 		requires(N == 3)
 		{
 			const vec_type axis_norm = axis.normalized();
@@ -554,7 +554,7 @@ namespace deckard::math
 			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
 		}
 
-		[[nodiscard("Use the reflected vector")]] constexpr vec_type reflect(const vec_type& other) const noexcept
+		[[nodiscard("Use the reflected vector")]] constexpr vec_type reflect(const vec_type& other) const
 		{
 			//
 			const vec_type v(*this);
@@ -562,7 +562,7 @@ namespace deckard::math
 		}
 
 		// divide - non panicking
-		[[nodiscard("Use the divide vector")]] constexpr vec_type safe_divide(const vec_type& other) const noexcept
+		[[nodiscard("Use the divide vector")]] constexpr vec_type safe_divide(const vec_type& other) const
 		requires(std::floating_point<T>)
 		{
 			if (other.has_zero())
@@ -576,7 +576,7 @@ namespace deckard::math
 		}
 
 		template<typename U = T>
-		[[nodiscard("Use the divide scalar")]] constexpr vec_type safe_divide(const U scalar) const noexcept
+		[[nodiscard("Use the divide scalar")]] constexpr vec_type safe_divide(const U scalar) const
 		requires(std::floating_point<U>)
 		{
 			if (scalar == U{})
@@ -596,11 +596,11 @@ namespace deckard::math
 		inline static T nan_value = std::numeric_limits<T>::quiet_NaN();
 		inline static T inf_value = std::numeric_limits<T>::infinity();
 
-		static inline vec_type nan() noexcept { return vec_type(nan_value); }
+		static inline vec_type nan() { return vec_type(nan_value); }
 
-		static inline vec_type inf() noexcept { return vec_type(inf_value); }
+		static inline vec_type inf() { return vec_type(inf_value); }
 
-		static inline vec_type zero() noexcept { return vec_type(T{0}); }
+		static inline vec_type zero() { return vec_type(T{0}); }
 	};
 
 	// Free functions
