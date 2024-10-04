@@ -884,6 +884,23 @@ int deckard_main()
 {
 
 
+	HANDLE hfile = CreateFileA("input.bin", GENERIC_WRITE | GENERIC_READ, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+	LARGE_INTEGER pos{0};
+	pos.QuadPart = 4096;
+	LARGE_INTEGER newpos{};
+
+	auto res = SetFilePointerEx(hfile, pos, &newpos, FILE_END);
+
+	DWORD                written = 0;
+	std::array<u8, 1024> data{};
+	std::ranges::fill(data, 0xAA);
+	res = WriteFile(hfile, data.data(), data.size(), &written, nullptr);
+
+	FlushFileBuffers(hfile);
+	CloseHandle(hfile);
+	int l = 0;
+
 	std::vector<std::vector<u32>> list(8);
 	for (auto& l : list)
 		l.reserve(8);
