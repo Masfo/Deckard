@@ -21,6 +21,12 @@ namespace deckard
 		fs::path path;
 
 	public:
+		enum class access : u8
+		{
+			read,
+			readwrite,
+		};
+
 		file() = default;
 
 		explicit file(const fs::path& p)
@@ -41,8 +47,14 @@ namespace deckard
 		{
 			path = p;
 
-			handle =
-			  CreateFileW(path.generic_wstring().data(), GENERIC_READ, 0, 0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_READ_ATTRIBUTES, 0);
+			handle = CreateFileW(
+			  path.generic_wstring().data(),
+			  GENERIC_READ | GENERIC_WRITE,
+			  0,
+			  0,
+			  OPEN_ALWAYS,
+			  FILE_ATTRIBUTE_NORMAL | FILE_READ_ATTRIBUTES,
+			  0);
 			if (handle == INVALID_HANDLE_VALUE)
 			{
 				dbg::eprintln("open('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
@@ -56,7 +68,7 @@ namespace deckard
 		i64 size() const
 		{
 			WIN32_FILE_ATTRIBUTE_DATA fad{};
-			if (GetFileAttributesExW(path.generic_wstring().data(), GetFileExInfoStandard, &fad))
+			if (0 == GetFileAttributesExW(path.generic_wstring().data(), GetFileExInfoStandard, &fad))
 			{
 				dbg::eprintln("size('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
 				return -1;
@@ -72,6 +84,14 @@ namespace deckard
 		{
 			FlushFileBuffers(handle);
 			CloseHandle(handle);
+		}
+
+		u64 write(std::span<u8> buffer)
+		{
+			DWORD written{};
+			if (0 == WriteFile(handle, buffer.data(), buffer.size_bytes(), &written, nullptr))
+				return 0;
+			return written;
 		}
 	};
 
