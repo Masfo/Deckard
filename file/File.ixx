@@ -86,10 +86,21 @@ namespace deckard
 			CloseHandle(handle);
 		}
 
-		u64 write(std::span<u8> buffer)
+		void seek(i64 offset) const
+		{
+			LARGE_INTEGER pos{.QuadPart = offset};
+			SetFilePointerEx(handle, pos, nullptr, FILE_BEGIN);
+		}
+
+		u64 write(std::span<u8> buffer, size_t size = 0)
 		{
 			DWORD written{};
-			if (0 == WriteFile(handle, buffer.data(), buffer.size_bytes(), &written, nullptr))
+
+
+			if (size == 0 or size > buffer.size())
+				size = buffer.size();
+
+			if (0 == WriteFile(handle, buffer.data(), size, &written, nullptr))
 				return 0;
 			return written;
 		}
