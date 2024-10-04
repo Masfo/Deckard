@@ -14,8 +14,68 @@ namespace fs = std::filesystem;
 
 namespace deckard
 {
-
 	export class file
+	{
+	private:
+		HANDLE   handle{nullptr};
+		fs::path path;
+
+	public:
+		file() = default;
+
+		explicit file(const fs::path& p)
+			: path(p)
+		{
+			open(p);
+		}
+
+		file(file&&)      = delete;
+		file(const file&) = delete;
+
+		file& operator=(const file&) = delete;
+		file& operator=(file&&)      = delete;
+
+		~file() { close(); }
+
+		bool open(const fs::path& p)
+		{
+			path = p;
+
+			handle =
+			  CreateFileW(path.generic_wstring().data(), GENERIC_READ, 0, 0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_READ_ATTRIBUTES, 0);
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				dbg::eprintln("open('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
+				return false;
+			}
+
+
+			return true;
+		}
+
+		i64 size() const
+		{
+			WIN32_FILE_ATTRIBUTE_DATA fad{};
+			if (GetFileAttributesExW(path.generic_wstring().data(), GetFileExInfoStandard, &fad))
+			{
+				dbg::eprintln("size('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
+				return -1;
+			}
+
+			LARGE_INTEGER size{};
+			size.HighPart = fad.nFileSizeHigh;
+			size.LowPart  = fad.nFileSizeLow;
+			return size.QuadPart;
+		}
+
+		void close() const
+		{
+			FlushFileBuffers(handle);
+			CloseHandle(handle);
+		}
+	};
+
+	export class filemap
 	{
 	public:
 		enum class access : u8
@@ -26,17 +86,17 @@ namespace deckard
 			overwrite,
 		};
 
-		file() = default;
+		filemap() = default;
 
-		file(file&&)      = delete;
-		file(const file&) = delete;
+		filemap(filemap&&)      = delete;
+		filemap(const filemap&) = delete;
 
-		file& operator=(const file&) = delete;
-		file& operator=(file&&)      = delete;
+		filemap& operator=(const filemap&) = delete;
+		filemap& operator=(filemap&&)      = delete;
 
-		~file() { close(); }
+		~filemap() { close(); }
 
-		explicit file(const std::filesystem::path file, access flag = access::read) { open(file, flag); }
+		explicit filemap(const std::filesystem::path file, access flag = access::read) { open(file, flag); }
 
 		std::optional<std::span<u8>> open(fs::path const file, access flag = access::read)
 		{

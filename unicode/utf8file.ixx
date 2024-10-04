@@ -11,14 +11,9 @@ namespace deckard::utf8
 	class file
 	{
 	private:
-		deckard::file m_file;
-		string        m_data;
+		string m_data;
 
 	public:
-		file(fs::path path)
-			: m_file(path)
-		{
-		}
 	};
 
 	//	export utf8file operator""_utf8file(const char* filename, size_t) noexcept { return utf8file{filename}; }
