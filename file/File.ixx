@@ -86,10 +86,14 @@ namespace deckard
 			return size.QuadPart;
 		}
 
-		void close() const
+		void flush() const { FlushFileBuffers(handle); }
+
+		void close()
 		{
-			FlushFileBuffers(handle);
-			CloseHandle(handle);
+			flush();
+			auto ret = CloseHandle(handle);
+			handle   = nullptr;
+			int x    = 0;
 		}
 
 		i64 seek(i64 offset) const
@@ -111,24 +115,31 @@ namespace deckard
 		{
 			DWORD written{};
 
+
 			if (size == 0 or size > buffer.size())
 				size = buffer.size();
 
-			if (0 == WriteFile(handle, buffer.data(), size, &written, nullptr))
+			auto res = WriteFile(handle, buffer.data(), size, &written, nullptr);
+
+			flush();
+
+			if (res == 0)
 				return 0;
+
 			return written;
 		}
 
-		u64 seek_read(std::span<u8> buffer, u32 size, i64 offset)
+		u64 seek_read(std::span<u8> buffer, u32 size, i64 offset) const
 		{
 			i64 old_offset = seek(offset);
 			u64 readcount  = read(buffer, size);
 			seek(old_offset);
 
+
 			return readcount;
 		}
 
-		u64 read(std::span<u8> buffer, u32 size)
+		u64 read(std::span<u8> buffer, u32 size) const
 		{
 
 			if (size == 0 or size > buffer.size_bytes())
@@ -136,10 +147,12 @@ namespace deckard
 
 			DWORD read{0};
 
-			ReadFile(handle, buffer.data(), size, &read, nullptr);
+			auto ret = ReadFile(handle, buffer.data(), size, &read, nullptr);
 
 			return read;
 		}
+
+		u64 read(std::vector<u8>& buffer, u32 size) const { }
 	};
 
 	export class filemap
