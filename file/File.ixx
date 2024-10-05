@@ -99,10 +99,17 @@ namespace deckard
 			return offset;
 		}
 
+		u64 seek_write(const std::span<u8> buffer, size_t size, i64 offset) const
+		{
+			i64 old_offset = seek(offset);
+			u64 written    = write(buffer, size);
+			seek(old_offset);
+			return written;
+		}
+
 		u64 write(const std::span<u8> buffer, size_t size = 0) const
 		{
 			DWORD written{};
-
 
 			if (size == 0 or size > buffer.size())
 				size = buffer.size();
