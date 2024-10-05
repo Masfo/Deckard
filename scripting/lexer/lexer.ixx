@@ -150,7 +150,6 @@ namespace deckard::lexer
 	class lexer
 	{
 	private:
-		file         m_file;
 		utf8::string m_data;
 
 		u32 m_line{0};
