@@ -47,10 +47,16 @@ namespace deckard
 		{
 			path = p;
 
+#ifdef _DEBUG
+			constexpr u32 sharemode = FILE_SHARE_READ | FILE_SHARE_WRITE;
+#else
+			constexpr u32 sharemode = 0;
+#endif
+
 			handle = CreateFileW(
 			  path.generic_wstring().data(),
 			  GENERIC_READ | GENERIC_WRITE,
-			  0,
+			  sharemode,
 			  0,
 			  OPEN_ALWAYS,
 			  FILE_ATTRIBUTE_NORMAL | FILE_READ_ATTRIBUTES,
@@ -86,13 +92,14 @@ namespace deckard
 			CloseHandle(handle);
 		}
 
-		void seek(i64 offset) const
+		i64 seek(i64 offset) const
 		{
 			LARGE_INTEGER pos{.QuadPart = offset};
 			SetFilePointerEx(handle, pos, nullptr, FILE_BEGIN);
+			return offset;
 		}
 
-		u64 write(std::span<u8> buffer, size_t size = 0)
+		u64 write(const std::span<u8> buffer, size_t size = 0) const
 		{
 			DWORD written{};
 
@@ -103,6 +110,28 @@ namespace deckard
 			if (0 == WriteFile(handle, buffer.data(), size, &written, nullptr))
 				return 0;
 			return written;
+		}
+
+		u64 seek_read(std::span<u8> buffer, u32 size, i64 offset)
+		{
+			i64 old_offset = seek(offset);
+			u64 readcount  = read(buffer, size);
+			seek(old_offset);
+
+			return readcount;
+		}
+
+		u64 read(std::span<u8> buffer, u32 size)
+		{
+
+			if (size == 0 or size > buffer.size_bytes())
+				size = buffer.size_bytes();
+
+			DWORD read{0};
+
+			ReadFile(handle, buffer.data(), size, &read, nullptr);
+
+			return read;
 		}
 	};
 
