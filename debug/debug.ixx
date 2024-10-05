@@ -189,14 +189,19 @@ export namespace deckard::dbg
 	void redirect_console(bool [[maybe_unused]] show)
 	{
 
+#ifdef _DEBUG
 		if (show)
 		{
-			static FILE* pNewStdout = nullptr;
-			static FILE* pNewStderr = nullptr;
-
 
 			if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 				AllocConsole();
+
+			SetConsoleCP(CP_UTF8);
+			SetConsoleOutputCP(CP_UTF8);
+
+			static FILE* pNewStdout = nullptr;
+			static FILE* pNewStderr = nullptr;
+
 
 			::freopen_s(&pNewStdout, "CONOUT$", "w", stdout);
 			::freopen_s(&pNewStderr, "CONOUT$", "w", stderr);
@@ -208,7 +213,6 @@ export namespace deckard::dbg
 		{
 			FreeConsole();
 		}
-#ifdef _DEBUG
 #endif
 	}
 

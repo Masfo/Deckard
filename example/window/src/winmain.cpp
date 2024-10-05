@@ -3,6 +3,7 @@
 import deckard;
 using namespace deckard;
 using namespace deckard::app;
+namespace fs = std::filesystem;
 import std;
 
 std::array<unsigned char, 256> previous{0};
@@ -883,27 +884,34 @@ public:
 int deckard_main()
 {
 
+	for (const auto& i : upto(100))
+		dbg::println("{}", random::randi64());
 
-	HANDLE hfile = CreateFileA("input.bin", GENERIC_WRITE | GENERIC_READ, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 
-	LARGE_INTEGER pos{0};
-	pos.QuadPart = 4096;
-	LARGE_INTEGER newpos{};
-
-	auto res = SetFilePointerEx(hfile, pos, &newpos, FILE_END);
-
-	DWORD                written = 0;
 	std::array<u8, 1024> data{};
-	std::ranges::fill(data, 0xAA);
-	res = WriteFile(hfile, data.data(), data.size(), &written, nullptr);
+	std::ranges::fill(data, as<u8>(random::rand() % 0xFF));
 
-	FlushFileBuffers(hfile);
-	CloseHandle(hfile);
-	int l = 0;
+	file f1("dir🌍\\input.bin");
 
-	std::vector<std::vector<u32>> list(8);
-	for (auto& l : list)
-		l.reserve(8);
+	f1.seek(4096 - 16);
+
+
+	f1.write(data, 16);
+
+	dbg::println("s: {}", f1.size());
+
+
+	std::array<u8, 32> ndata{};
+	u64                readsize = f1.seek_read(ndata, 16, 16);
+
+	std::vector<u8> rdata;
+	rdata.resize(64);
+	readsize = f1.seek_read(rdata, 16, 0x70);
+	dbg::println("s: {}", readsize);
+
+
+	f1.close();
+	readsize = f1.seek_read(rdata, 16, 0x70);
 
 
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
@@ -970,8 +978,7 @@ int deckard_main()
 	dbg::println("sso2: {}", sizeof(dd));
 
 
-	file         f("input.ini");
-	utf8::string inistr(f.data());
+	file f("input.ini");
 
 	utf8::string u8str("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
 
@@ -983,8 +990,6 @@ int deckard_main()
 		dbg::println("{:X}", (int)cp);
 	}
 
-
-	int kx = 0;
 
 	auto insi = read_file("input.ini");
 
