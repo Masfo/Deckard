@@ -55,17 +55,20 @@ export namespace deckard
 	concept integral_or_bool = std::integral<T> or std::is_same_v<T, bool>;
 
 	// limits
-	template<arithmetic T>
-	constexpr T max_value = std::numeric_limits<T>::max();
 
-	template<arithmetic T>
-	constexpr T min_value = std::numeric_limits<T>::min();
+	namespace limits
+	{
+		template<arithmetic T>
+		constexpr T max = std::numeric_limits<T>::max();
 
-	template<>
-	constexpr i32 min_value<bool> = 0;
-	template<>
-	constexpr i32 max_value<bool> = 1;
+		template<arithmetic T>
+		constexpr T min = std::numeric_limits<T>::min();
 
+		template<>
+		constexpr i32 min<bool> = 0;
+		template<>
+		constexpr i32 max<bool> = 1;
+	} // namespace limits
 
 	// Sizes
 	using kibi = std::ratio<1ULL << 10>;

@@ -18,12 +18,12 @@ namespace deckard::random
 	export std::mt19937       mersenne_twister;
 
 	export template<integral_or_bool T = i32>
-	T rnd(T minimum = min_value<T>, T maximum = max_value<T>)
+	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
 	{
 
 		if constexpr (std::is_same_v<T, unsigned char> or std::is_same_v<T, char>)
 		{
-			std::uniform_int_distribution<i16> cdist(min_value<T>, max_value<T>);
+			std::uniform_int_distribution<i16> cdist(limits::min<T>, limits::max<T>);
 			return static_cast<T>(cdist(mersenne_twister));
 		}
 		else if constexpr (std::is_same_v<T, bool>)

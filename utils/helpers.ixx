@@ -427,7 +427,7 @@ export namespace deckard
 		if (result == v.end())
 		{
 			dbg::println("index_of: could not find '{}' from container", find);
-			return max_value<u64>;
+			return limits::max<u64>;
 		}
 
 		return std::ranges::distance(v.begin(), result);
@@ -439,7 +439,7 @@ export namespace deckard
 		if (found == std::string_view::npos)
 		{
 			dbg::println("index_of: could not find '{}' from string", substr);
-			return max_value<u64>;
+			return limits::max<u64>;
 		}
 		return found;
 	}
