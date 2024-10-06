@@ -86,9 +86,11 @@ namespace deckard
 			return size.QuadPart;
 		}
 
+		void flush() const { FlushFileBuffers(handle); }
+
 		void close() const
 		{
-			FlushFileBuffers(handle);
+			flush();
 			CloseHandle(handle);
 		}
 
@@ -99,6 +101,16 @@ namespace deckard
 			return offset;
 		}
 
+		u64 seek_write(const std::span<u8> buffer, size_t size, i64 offset) const
+		{
+
+			i64 old_offset = seek(offset);
+			u64 written    = write(buffer, size);
+			seek(old_offset);
+
+			return written;
+		}
+
 		u64 write(const std::span<u8> buffer, size_t size = 0) const
 		{
 			DWORD written{};
@@ -107,12 +119,16 @@ namespace deckard
 			if (size == 0 or size > buffer.size())
 				size = buffer.size();
 
+
 			if (0 == WriteFile(handle, buffer.data(), size, &written, nullptr))
 				return 0;
+
+			flush();
 			return written;
 		}
 
 		u64 seek_read(std::span<u8> buffer, u32 size, i64 offset)
+
 		{
 			i64 old_offset = seek(offset);
 			u64 readcount  = read(buffer, size);

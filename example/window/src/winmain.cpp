@@ -883,6 +883,17 @@ public:
 int deckard_main()
 {
 
+	file f1("dir🌍\\input.bin");
+
+
+	std::array<u8, 16> rdata{};
+	for (auto& c : rdata)
+		c = random::randu8();
+
+	dbg::println("wrote: {}", f1.seek_write(rdata, 16, 64));
+
+	f1.close();
+
 
 	std::vector<std::vector<u32>> list(8);
 	for (auto& l : list)
@@ -953,8 +964,7 @@ int deckard_main()
 	dbg::println("sso2: {}", sizeof(dd));
 
 
-	file         f("input.ini");
-	utf8::string inistr(f.data());
+	file f("input.ini");
 
 	utf8::string u8str("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D");
 
