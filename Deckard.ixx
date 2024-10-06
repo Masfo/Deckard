@@ -73,57 +73,43 @@ export import deckard.win32;
 export import deckard_build;
 #endif
 
-#pragma region !Deckard init/deinit
 
-namespace deckard
+extern "C" int deckard_main();
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-
+	using namespace deckard;
 
 	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
 	using CoUninitializePtr = void(void);
 
-	export void initialize()
-	{
-		deckard::dbg::redirect_console(true);
+	deckard::dbg::redirect_console(true);
 
-		SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
-		SetDllDirectoryW(L"");
+	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
+	SetDllDirectoryW(L"");
 
-		auto CoInitializeEx = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
-		if (CoInitializeEx)
-			CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	auto CoInitializeEx = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
+	if (CoInitializeEx)
+		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-		deckard::random::initialize();
-		net::initialize();
-		dbg::println("Initialized");
-	}
+	deckard::random::initialize();
 
-	export void deinitialize()
-	{
-		dbg::println("Deinitializing");
-
-		auto CoUninitialize = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
-		if (CoUninitialize)
-			CoUninitialize();
-
-		deckard::dbg::redirect_console(false);
-
-		net::deinitialize();
-	}
-}; // namespace deckard
-
-class DeckardInitializer final
-{
-public:
-	DeckardInitializer() { deckard::initialize(); }
-
-	~DeckardInitializer() { deckard::deinitialize(); }
-};
-
-static const auto global_init = [] { return std::make_unique<DeckardInitializer>(); }();
-#pragma endregion
+	net::initialize();
+	dbg::println("Initialized");
 
 
-extern "C" int deckard_main();
+	int ret = deckard_main();
 
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { return deckard_main(); }
+	dbg::println("Deinitializing");
+
+	auto CoUninitialize = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
+	if (CoUninitialize)
+		CoUninitialize();
+
+	deckard::dbg::redirect_console(false);
+
+	net::deinitialize();
+
+
+	return ret;
+}

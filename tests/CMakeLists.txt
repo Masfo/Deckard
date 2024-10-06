@@ -68,9 +68,8 @@ target_sources(tests PUBLIC
     tests/enumflag_test.cpp 
     tests/zstd_test.cpp
     
-    # Grid
+    # array2d
     tests/array_tests.cpp
-
 )
 
 
