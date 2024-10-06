@@ -130,7 +130,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		quat qrot = sse::rotate(q, 45.0f, vec3(0, 1, 0));
+		quat qrot = rotate(q, 45.0f, vec3(0, 1, 0));
 
 		REQUIRE(qrot == quat(-0.22939f, 0.84380f, -0.48365f, -0.03820f));
 	}
@@ -141,13 +141,13 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		quat l = sse::lerp(v1, v2, 0.0f);
+		quat l = lerp(v1, v2, 0.0f);
 		REQUIRE(l == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
 
-		l = sse::lerp(v1, v2, 0.5f);
+		l = lerp(v1, v2, 0.5f);
 		REQUIRE(l == quat(0.59163f, -0.61656f, 0.07023f, 0.41424f));
 
-		l = sse::lerp(v1, v2, 1.0f);
+		l = lerp(v1, v2, 1.0f);
 		REQUIRE(l == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
 	}
 
@@ -156,13 +156,13 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		quat l = sse::slerp(v1, v2, 0.0f);
+		quat l = slerp(v1, v2, 0.0f);
 		REQUIRE(l == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
 
-		l = sse::slerp(v1, v2, 0.5f);
+		l = slerp(v1, v2, 0.5f);
 		REQUIRE(l == quat(0.62133f, -0.64750f, 0.07376f, 0.43503f));
 
-		l = sse::slerp(v1, v2, 1.0f);
+		l = slerp(v1, v2, 1.0f);
 		REQUIRE(l == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
 	}
 

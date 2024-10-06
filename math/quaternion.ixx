@@ -11,7 +11,7 @@ import :matrix;
 import :utils;
 import std;
 
-namespace deckard::math::sse
+namespace deckard::math
 {
 	using m128 = __m128;
 
@@ -313,7 +313,7 @@ namespace deckard::math::sse
 
 	export quat conjugate(const quat& q) { return q.conjugate(); }
 
-	export quat& normalize(quat& q)
+	export quat normalize(quat q)
 	{
 		f32 len = length(q);
 
@@ -425,8 +425,8 @@ namespace deckard::math::sse
 		const float half = angle * 0.5f;
 		return quat(0, 0, std::sin(half), std::cos(half));
 	}
-} // namespace deckard::math::sse
+} // namespace deckard::math
 
-export using quat = deckard::math::sse::quat;
+export using quat = deckard::math::quat;
 
 static_assert(sizeof(quat) == 16, "quat sse should be 16-bytes");

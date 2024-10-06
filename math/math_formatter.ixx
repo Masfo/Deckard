@@ -78,18 +78,18 @@ namespace std
 
 	// quat formatter
 	template<>
-	struct hash<sse::quat>
+	struct hash<quat>
 	{
-		size_t operator()(const sse::quat& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+		size_t operator()(const quat& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
 	};
 
 	template<>
-	struct formatter<sse::quat>
+	struct formatter<quat>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const sse::quat& vec, std::format_context& ctx) const
+		auto format(const quat& vec, std::format_context& ctx) const
 		{
 			return std::format_to(
 			  ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, {:.5f})", vec.data.c.w, vec.data.c.x, vec.data.c.y, vec.data.c.z);

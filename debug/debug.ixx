@@ -198,10 +198,12 @@ export namespace deckard::dbg
 			if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 				AllocConsole();
 
-			::freopen_s(&pNewStdout, "CONOUT$", "w", stdout);
-			::freopen_s(&pNewStderr, "CONOUT$", "w", stderr);
-			std::cout.clear();
-			std::cerr.clear();
+			if (::freopen_s(&pNewStdout, "CONOUT$", "w", stdout) == 0)
+				std::cout.clear();
+
+			if (::freopen_s(&pNewStderr, "CONOUT$", "w", stderr) == 0)
+				std::cerr.clear();
+
 			std::ios::sync_with_stdio(1);
 		}
 		else

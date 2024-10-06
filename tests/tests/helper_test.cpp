@@ -100,7 +100,7 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(6 == index_of("hello world lazy dog"sv, "world"));
 		REQUIRE(2 == index_of("hello world lazy dog"sv, "l"));
 
-		REQUIRE(max_value<u64> == index_of("hello world lazy dog"sv, "Q"));
+		REQUIRE(limits::max<u64> == index_of("hello world lazy dog"sv, "Q"));
 	}
 
 	SECTION("take")

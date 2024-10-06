@@ -895,6 +895,7 @@ int deckard_main()
 
 	f1.close();
 
+	auto kos = limits::min<bool>;
 
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
 

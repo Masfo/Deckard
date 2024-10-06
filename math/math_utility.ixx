@@ -115,23 +115,22 @@ export namespace deckard::math
 #endif
 		};
 
-		float dotf(const m128& lhs)
-		{
-			//
-			return _mm_cvtss_f32(dot(lhs));
-		};
+		float dotf(const m128& lhs) { return _mm_cvtss_f32(dot(lhs)); };
 
-		export float sqrt(float f)
-		{
-			//
-			return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f)));
-		}
+		export float sqrt(float f) { return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f))); }
 
 		// ~2x faster than std::sin
-		export float sin(float f) { return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f))); }
+		export float sin(float f)
+		{
+			// return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f)));
+			return _mm_cvtss_f32(_mm_set_ps1(std::sin(f)));
+		}
 
-		//
-		export float cos(float f) { return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f))); }
+		export float cos(float f)
+		{
+			// return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f)));
+			return _mm_cvtss_f32(_mm_set_ps1(std::cos(f)));
+		}
 
 	} // namespace sse
 } // namespace deckard::math
