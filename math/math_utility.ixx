@@ -74,7 +74,7 @@ export namespace deckard::math
 	}
 
 	// is_close_enough
-	template<arithmetic T>
+	template<std::integral T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{0})
 	{
 		return std::abs(A - B) == error;

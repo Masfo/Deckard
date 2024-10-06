@@ -48,8 +48,7 @@ export namespace deckard
 	constexpr f64 operator"" _f64(const u64 value) { return static_cast<f64>(value); }
 
 	template<typename T>
-	concept arithmetic = std::integral<T> or std::floating_point<T>;
-
+	concept arithmetic = std::is_arithmetic_v<T>;
 
 	template<typename T>
 	concept integral_or_bool = std::integral<T> or std::is_same_v<T, bool>;

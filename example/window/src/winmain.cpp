@@ -895,18 +895,6 @@ int deckard_main()
 
 	f1.close();
 
-	auto i32ii   = random::rnd<i8>();
-	auto i32iic  = random::rnd<char>();
-	auto i32iicu = random::rnd<unsigned char>();
-
-
-	for (const auto& f : upto(100))
-		dbg::println("{:+3.5f}", random::float11());
-
-	std::vector<std::vector<u32>> list(8);
-	for (auto& l : list)
-		l.reserve(8);
-
 
 	quat q1(vec3(1.0f, 2.0f, 3.0f));
 
