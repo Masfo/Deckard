@@ -14,52 +14,79 @@ import deckard.debug;
 namespace deckard::random
 {
 	// Global
-	std::random_device rd;
-	std::mt19937       mersenne_twister;
-	std::mt19937       mersenne_twister_fixed;
+	export std::random_device rd;
+	export std::mt19937       mersenne_twister;
+
+	export template<integral_or_bool T = i32>
+	T rnd(T minimum = min_value<T>, T maximum = max_value<T>)
+	{
+
+		if constexpr (std::is_same_v<T, unsigned char> or std::is_same_v<T, char>)
+		{
+			std::uniform_int_distribution<i16> cdist(min_value<T>, max_value<T>);
+			return static_cast<T>(cdist(mersenne_twister));
+		}
+		else if constexpr (std::is_same_v<T, bool>)
+		{
+			std::uniform_int_distribution<i16> bdist(0, 1);
+			return bdist(mersenne_twister) ? true : false;
+		}
+		else if constexpr (std::is_same_v<T, i8> or std::is_same_v<T, u8>)
+		{
+			std::uniform_int_distribution<i16> i16_dist(minimum, maximum);
+			return static_cast<T>(i16_dist(mersenne_twister));
+		}
+		else
+		{
+			std::uniform_int_distribution<T> dist(minimum, maximum);
+			return static_cast<T>(dist(mersenne_twister));
+		}
+
+
+		static_assert(true, "Type not handled");
+	}
+
+	export template<std::floating_point T = f32>
+	T rnd(T minimum = T{0}, T maximum = T{1})
+	{
+		std::uniform_real_distribution<T> dist(minimum, maximum);
+
+		return dist(mersenne_twister);
+	}
+
+	export bool randbool() { return rnd<bool>(); }
 
 	// signed
-	std::uniform_int_distribution<i16> i8dist(min_value<i8>, max_value<i8>);
-	std::uniform_int_distribution<i16> i16dist;
-	std::uniform_int_distribution<i32> i32dist;
-	std::uniform_int_distribution<i64> i64dist;
+	export i8 randi8() { return rnd<i8>(); }
+
+	export i16 randi16() { return rnd<i16>(); }
+
+	export i32 randi32() { return rnd<i32>(); }
+
+	export i64 randi64() { return rnd<i64>(); }
 
 	// unsigned
-	std::uniform_int_distribution<u16> u8dist(min_value<u8>, max_value<u8>);
-	std::uniform_int_distribution<u16> u16dist;
-	std::uniform_int_distribution<u32> u32dist;
-	std::uniform_int_distribution<u64> u64dist;
+	export u8 randu8() { return rnd<u8>(); }
 
-	std::uniform_real_distribution<float> fdist11(-1.0f, 1.0f);
-	std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
+	export u16 randu16() { return rnd<u16>(); }
 
-	// signed
-	export i8 randi8() { return static_cast<i8>(i8dist(mersenne_twister)); }
+	export u32 randu32() { return rnd<u32>(); }
 
-	export i16 randi16() { return i16dist(mersenne_twister); }
+	export u64 randu64() { return rnd<u64>(); }
 
-	export i32 randi32() { return i32dist(mersenne_twister); }
+	// the default
+	export auto rand() { return randu32(); }
 
-	export i64 randi64() { return i64dist(mersenne_twister); }
+	// float
+	export f32 float01() { return rnd<f32>(0.0f, 1.0f); }
 
-	// unsigned
-	export u8 randu8() { return static_cast<u8>(u8dist(mersenne_twister)); }
-
-	export u16 randu16() { return u16dist(mersenne_twister); }
-
-	export u32 randu32() { return u32dist(mersenne_twister); }
-
-	export u64 randu64() { return u64dist(mersenne_twister); }
-
-	export auto rand() { return randi32(); }
-
-	export float random_float01() { return fdist01(mersenne_twister); }
-
-	export float random_float11() { return fdist11(mersenne_twister); }
+	export f32 float11() { return rnd<f32>(-1.0f, 1.0f); }
 
 	export void random_bytes(std::span<u8> buffer)
 	{
-		std::ranges::generate(buffer, [] { return randu8(); });
+		std::uniform_int_distribution<i16> dist(0, 255);
+
+		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(rd) & 0xFF); });
 	}
 
 	export void initialize()
@@ -70,9 +97,6 @@ namespace deckard::random
 
 		mersenne_twister.seed(seeds);
 		mersenne_twister.discard(700000);
-
-		mersenne_twister_fixed.seed(0xB00'B1E5);
-		mersenne_twister_fixed.discard(700000);
 	}
 
 

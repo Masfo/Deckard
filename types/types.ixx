@@ -47,12 +47,24 @@ export namespace deckard
 
 	constexpr f64 operator"" _f64(const u64 value) { return static_cast<f64>(value); }
 
+	template<typename T>
+	concept arithmetic = std::integral<T> or std::floating_point<T>;
+
+
+	template<typename T>
+	concept integral_or_bool = std::integral<T> or std::is_same_v<T, bool>;
+
 	// limits
-	template<std::integral T>
+	template<arithmetic T>
 	constexpr T max_value = std::numeric_limits<T>::max();
 
-	template<std::integral T>
+	template<arithmetic T>
 	constexpr T min_value = std::numeric_limits<T>::min();
+
+	template<>
+	constexpr i32 min_value<bool> = 0;
+	template<>
+	constexpr i32 max_value<bool> = 1;
 
 
 	// Sizes

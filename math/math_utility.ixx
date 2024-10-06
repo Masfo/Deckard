@@ -13,9 +13,6 @@ import deckard.types;
 export namespace deckard::math
 {
 
-	template<typename T>
-	concept arithmetic = std::integral<T> or std::floating_point<T>;
-
 
 	template<std::floating_point T = float>
 	inline constexpr T deg_to_radians = std::numbers::pi_v<T> / T{180};

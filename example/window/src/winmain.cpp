@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <Commctrl.h>
+#include <random> // workaround for module std
 import deckard;
 using namespace deckard;
 using namespace deckard::app;
@@ -894,6 +895,13 @@ int deckard_main()
 
 	f1.close();
 
+	auto i32ii   = random::rnd<i8>();
+	auto i32iic  = random::rnd<char>();
+	auto i32iicu = random::rnd<unsigned char>();
+
+
+	for (const auto& f : upto(100))
+		dbg::println("{:+3.5f}", random::float11());
 
 	std::vector<std::vector<u32>> list(8);
 	for (auto& l : list)
