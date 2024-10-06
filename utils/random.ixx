@@ -1,5 +1,5 @@
 module;
-#include <random> // random doesn't work without header (17.8.2024)
+#include <random> // random doesn't work without header (6.10.2024)
 export module deckard.random;
 
 
@@ -9,36 +9,29 @@ import deckard_build;
 
 import std;
 import deckard.types;
+import deckard.debug;
 
 namespace deckard::random
 {
-	export std::random_device random_device;
-	export std::mt19937       mersenne_twister;
-	export std::mt19937       mersenne_twister_fixed;
-
+	// Global
+	std::random_device rd;
+	std::mt19937       mersenne_twister;
+	std::mt19937       mersenne_twister_fixed;
 
 	// signed
-	export std::uniform_int_distribution<i16> i8dist(min_value<i8>, max_value<i8>); // Note: cannot be u8 dist
-	export std::uniform_int_distribution<i16> i16dist(min_value<i16>, max_value<i16>);
-	export std::uniform_int_distribution<i32> i32dist(min_value<i32>, max_value<i32>);
-	export std::uniform_int_distribution<i64> i64dist(min_value<i64>, max_value<i64>);
+	std::uniform_int_distribution<i16> i8dist(min_value<i8>, max_value<i8>);
+	std::uniform_int_distribution<i16> i16dist;
+	std::uniform_int_distribution<i32> i32dist;
+	std::uniform_int_distribution<i64> i64dist;
 
 	// unsigned
-	export std::uniform_int_distribution<u16> u8dist(min_value<u8>, max_value<u8>); // Note: cannot be u8 dist
-	export std::uniform_int_distribution<u16> u16dist(min_value<u16>, max_value<u16>);
-	export std::uniform_int_distribution<u32> u32dist(min_value<u32>, max_value<u32>);
-	export std::uniform_int_distribution<u64> u64dist(min_value<u64>, max_value<u64>);
+	std::uniform_int_distribution<u16> u8dist(min_value<u8>, max_value<u8>);
+	std::uniform_int_distribution<u16> u16dist;
+	std::uniform_int_distribution<u32> u32dist;
+	std::uniform_int_distribution<u64> u64dist;
 
-
-	export std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
-	export std::uniform_real_distribution<float> fdist11(-1.0f, 1.0f);
-
-	export void initialize()
-	{
-		//
-		mersenne_twister.seed(random_device());
-		mersenne_twister_fixed.seed(0xB00'B1E5);
-	}
+	std::uniform_real_distribution<float> fdist11(-1.0f, 1.0f);
+	std::uniform_real_distribution<float> fdist01(0.0f, 1.0f);
 
 	// signed
 	export i8 randi8() { return static_cast<i8>(i8dist(mersenne_twister)); }
@@ -63,6 +56,24 @@ namespace deckard::random
 	export float random_float01() { return fdist01(mersenne_twister); }
 
 	export float random_float11() { return fdist11(mersenne_twister); }
+
+	export void random_bytes(std::span<u8> buffer)
+	{
+		std::ranges::generate(buffer, [] { return randu8(); });
+	}
+
+	export void initialize()
+	{
+		std::random_device::result_type random_data[(64 - 1) / sizeof(rd()) + 1];
+		std::generate(std::begin(random_data), std::end(random_data), std::ref(rd));
+		std::seed_seq seeds(std::begin(random_data), std::end(random_data));
+
+		mersenne_twister.seed(seeds);
+		mersenne_twister.discard(700000);
+
+		mersenne_twister_fixed.seed(0xB00'B1E5);
+		mersenne_twister_fixed.discard(700000);
+	}
 
 
 } // namespace deckard::random

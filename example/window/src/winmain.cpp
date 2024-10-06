@@ -885,10 +885,10 @@ int deckard_main()
 
 	file f1("dir🌍\\input.bin");
 
-
 	std::array<u8, 16> rdata{};
-	for (auto& c : rdata)
-		c = random::randu8();
+
+	random::random_bytes(rdata);
+
 
 	dbg::println("wrote: {}", f1.seek_write(rdata, 16, 64));
 
