@@ -241,11 +241,11 @@ namespace deckard::utils
 
 	export u64 rapidhash(const void* key, size_t len) { return rapidhash(key, len, RAPID_SEED); }
 
-	export u64 rapidhash(std::span<u8> buffer)
-	{
-		//
-		return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED);
-	}
+	export u64 rapidhash(std::span<u8> buffer) { return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED); }
+
+	export u32 operator"" _rapidhash32(char const* s, size_t count) { return rapidhash((void*)s, count) & 0xFFFF'FFFF; }
+
+	export u64 operator"" _rapidhash64(char const* s, size_t count) { return rapidhash((void*)s, count); }
 
 
 } // namespace deckard::utils

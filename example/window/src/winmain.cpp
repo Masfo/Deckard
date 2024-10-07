@@ -884,7 +884,7 @@ public:
 int deckard_main()
 {
 
-	array2d<u8> grid(8, 16);
+	array2d<u8> grid(8, 8);
 	grid.fill('.');
 	grid.set(1, 1, '#');
 	grid.set(1, 2, '#');
@@ -892,7 +892,9 @@ int deckard_main()
 	grid.dump<char>();
 
 	grid.transpose();
-	// grid.rotate();
+	grid.dump<char>();
+
+	grid.transpose();
 	grid.dump<char>();
 
 

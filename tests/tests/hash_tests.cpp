@@ -72,7 +72,7 @@ TEST_CASE("SHA256 Cryptographic Hash Function", "[sha256][sha][hash]")
 
 		std::string to_hash(100, 'a');
 
-		repeat<10'000> = [&] { hasher.update(to_hash); };
+		repeat<10000> = [&] { hasher.update(to_hash); };
 		auto digest    = hasher.finalize();
 
 		REQUIRE(digest.to_string() == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
@@ -113,7 +113,7 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 
 		std::string to_hash(100, 'a');
 
-		repeat<10'000> = [&] { hasher.update(to_hash); };
+		repeat<10000> = [&] { hasher.update(to_hash); };
 
 		auto digest = hasher.finalize();
 
@@ -137,4 +137,11 @@ TEST_CASE("fnv digests", "[fnv][hash]")
 
 	REQUIRE("hello world"_hash32 == 0xd58b'3fa7);
 	REQUIRE("hello world"_hash64 == 0x779a'65e7'023c'd2e7);
+}
+
+TEST_CASE("rapidhash digests", "[rapidhash][hash]")
+{
+
+	REQUIRE("hello world"_rapidhash32 == 0x6f5b'77b6);
+	REQUIRE("hello world"_rapidhash64 == 0x5dc0'fe3e'6f5b'77b6);
 }
