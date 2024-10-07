@@ -1,6 +1,5 @@
 module;
-#include <emmintrin.h>
-#include <xmmintrin.h>
+#include <intrin.h>
 
 export module deckard.utils.hash;
 
@@ -155,5 +154,98 @@ namespace deckard::utils
 
 	static_assert("hello world"_hash32 == 0xd58b'3fa7);
 	static_assert("hello world"_hash64 == 0x779a'65e7'023c'd2e7);
+
+	// wyhash
+	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
+
+	constexpr u64 rapid_secret[3] = {0x2d35'8dcc'aa6c'78a5ull, 0x8bb8'4b93'962e'acc9ull, 0x4b33'a62e'd433'd4a3ull};
+
+	void rapid_mum(uint64_t* A, uint64_t* B) { *A = _umul128(*A, *B, B); }
+
+	u64 rapid_read64(const uint8_t* p)
+	{
+		uint64_t v;
+		std::memcpy(&v, p, sizeof(uint64_t));
+		return std::byteswap(v);
+	}
+
+	u64 rapid_read32(const uint8_t* p)
+	{
+		uint32_t v;
+		std::memcpy(&v, p, sizeof(uint32_t));
+		return std::byteswap(v);
+	}
+
+	u64 rapid_mix(uint64_t A, uint64_t B)
+	{
+		rapid_mum(&A, &B);
+		return A ^ B;
+	}
+
+	u64 rapid_readSmall(const uint8_t* p, size_t k) { return (((uint64_t)p[0]) << 56) | (((uint64_t)p[k >> 1]) << 32) | p[k - 1]; }
+
+	u64 rapidhash_internal(const void* key, size_t len, uint64_t seed, const uint64_t* secret)
+	{
+		const uint8_t* p = (const uint8_t*)key;
+		seed ^= rapid_mix(seed ^ secret[0], secret[1]) ^ len;
+		uint64_t a, b;
+		if (len <= 16)
+		{
+			if (len >= 4)
+			{
+				const uint8_t* plast = p + len - 4;
+				a                    = (rapid_read32(p) << 32) | rapid_read32(plast);
+				const uint64_t delta = ((len & 24) >> (len >> 3));
+				b                    = ((rapid_read32(p + delta) << 32) | rapid_read32(plast - delta));
+			}
+			else if (len > 0)
+			{
+				a = rapid_readSmall(p, len);
+				b = 0;
+			}
+			else
+				a = b = 0;
+		}
+		else
+		{
+			size_t i = len;
+			if (i > 48)
+			{
+				uint64_t see1 = seed, see2 = seed;
+				do
+				{
+					seed = rapid_mix(rapid_read64(p) ^ secret[0], rapid_read64(p + 8) ^ seed);
+					see1 = rapid_mix(rapid_read64(p + 16) ^ secret[1], rapid_read64(p + 24) ^ see1);
+					see2 = rapid_mix(rapid_read64(p + 32) ^ secret[2], rapid_read64(p + 40) ^ see2);
+					p += 48;
+					i -= 48;
+				} while (i >= 48);
+				seed ^= see1 ^ see2;
+			}
+			if (i > 16)
+			{
+				seed = rapid_mix(rapid_read64(p) ^ secret[2], rapid_read64(p + 8) ^ seed ^ secret[1]);
+				if (i > 32)
+					seed = rapid_mix(rapid_read64(p + 16) ^ secret[2], rapid_read64(p + 24) ^ seed);
+			}
+			a = rapid_read64(p + i - 16);
+			b = rapid_read64(p + i - 8);
+		}
+		a ^= secret[1];
+		b ^= seed;
+		rapid_mum(&a, &b);
+		return rapid_mix(a ^ secret[0] ^ len, b ^ secret[1]);
+	}
+
+	export u64 rapidhash(const void* key, size_t len, uint64_t seed) { return rapidhash_internal(key, len, seed, rapid_secret); }
+
+	export u64 rapidhash(const void* key, size_t len) { return rapidhash(key, len, RAPID_SEED); }
+
+	export u64 rapidhash(std::span<u8> buffer)
+	{
+		//
+		return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED);
+	}
+
 
 } // namespace deckard::utils

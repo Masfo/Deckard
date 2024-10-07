@@ -902,6 +902,8 @@ int deckard_main()
 
 	random::random_bytes(rdata);
 
+	u64 wyh = utils::rapidhash(rdata);
+
 
 	dbg::println("wrote: {}", f1.seek_write(rdata, 16, 64));
 
