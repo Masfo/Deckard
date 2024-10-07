@@ -884,6 +884,18 @@ public:
 int deckard_main()
 {
 
+	array2d<u8> grid(8, 16);
+	grid.fill('.');
+	grid.set(1, 1, '#');
+	grid.set(1, 2, '#');
+
+	grid.dump<char>();
+
+	grid.transpose();
+	// grid.rotate();
+	grid.dump<char>();
+
+
 	file f1("dir🌍\\input.bin");
 
 	std::array<u8, 16> rdata{};

@@ -89,6 +89,45 @@ namespace deckard
 
 		u32 height() const { return m_extent.height; };
 
+		// drawline
+		// get line, references to each cell
+		// line x = array2d.column(0)
+		//  x[0] = 10;
+		void transpose()
+		{
+			std::vector<T> transposed{};
+			transposed.resize(m_extent.width * m_extent.height);
+
+
+			for (u32 y = 0; y < m_extent.height; ++y)
+			{
+				for (u32 x = 0; x < m_extent.width; ++x)
+				{
+					transposed[index_from_2d(y, x, m_extent.height)] = get(x, y);
+				}
+			}
+			std::swap(m_data, transposed);
+			std::swap(m_extent.width, m_extent.height);
+		}
+
+		void rotate()
+		{
+			std::vector<T> rotated(m_data.size());
+
+			for (u32 x = 0; x < m_extent.width; ++x)
+			{
+				for (u32 y = 0; y < m_extent.height; ++y)
+				{
+					u32 newIndex      = x * m_extent.width + (m_extent.width - 1 - y);
+					rotated[newIndex] = get(x, y);
+				}
+			}
+
+			// Swap rows and columns
+			std::swap(m_extent.width, m_extent.height);
+			m_data = rotated;
+		}
+
 		template<typename U = char>
 		void dump() const
 		{
@@ -97,7 +136,7 @@ namespace deckard
 			{
 				for (u32 x = 0; x < m_extent.width; x++)
 				{
-					dbg::print("{}", static_cast<U>(get(x, y)));
+					dbg::print("{:}", static_cast<U>(get(x, y)));
 				}
 				dbg::println();
 			}
