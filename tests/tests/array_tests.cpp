@@ -42,8 +42,46 @@ TEST_CASE("array2d", "[array]")
 		array2d<int> g(8, 8);
 		REQUIRE(0x3d0a'02d5'a2e3'8a7d == g.hash());
 	}
+
+	SECTION("reverse col")
+	{
+		array2d<u8> grid(8, 8);
+		grid.fill('.');
+
+		grid.set(1, 1, '1');
+		grid.set(1, 2, '2');
+
+		REQUIRE('1' == grid.at(1, 1));
+		REQUIRE('2' == grid.at(1, 2));
+
+		grid.reverse_col(1);
+
+		REQUIRE('1' == grid.at(1, 6));
+		REQUIRE('2' == grid.at(1, 5));
+	}
+
+	SECTION("reverse row")
+	{
+		array2d<u8> grid(8, 8);
+		grid.fill('.');
+
+		grid.set(1, 1, '1');
+		grid.set(2, 1, '2');
+
+
+		REQUIRE('1' == grid.at(1, 1));
+		REQUIRE('2' == grid.at(2, 1));
+		REQUIRE('.' == grid.at(6, 1));
+
+		grid.reverse_row(1);
+
+		REQUIRE('1' == grid.at(6, 1));
+		REQUIRE('2' == grid.at(5, 1));
+		REQUIRE('.' == grid.at(1, 1));
+	}
 }
 
+//
 TEST_CASE("array2d<bool>", "[array]")
 {
 	SECTION("init")

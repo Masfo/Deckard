@@ -33,6 +33,7 @@ namespace deckard
 		{
 		}
 
+
 #ifdef __cpp_multidimensional_subscript
 #error("use multisubscript")
 		// T operator[](const u32 x, const u32 y) const  {  }
@@ -152,13 +153,24 @@ namespace deckard
 #endif
 		}
 
-		void reverseColumn(u32 col)
+		void reverse_row(u32 row)
 		{
-			if (col >= m_extent.width)
+			if (row >= m_extent.width)
 				return;
 
-			for (size_t i = 0; i < m_extent.width / 2; ++i)
-				std::swap(at(i, col), at(m_extent.height - 1 - i, col));
+			for (u32 x = 0; x < m_extent.width / 2; ++x)
+				std::swap(at(x, row), at(m_extent.height - 1u - x, row));
+		}
+
+		void reverse_col(u32 col)
+		{
+			if (col >= m_extent.height)
+				return;
+
+			for (u32 y = 0; y < m_extent.height / 2; ++y)
+			{
+				std::swap(at(col, y), at(col, m_extent.height - 1u - y));
+			}
 		}
 
 		operator hash_type() const noexcept { return hash(); }

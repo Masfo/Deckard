@@ -886,16 +886,33 @@ int deckard_main()
 
 	array2d<u8> grid(8, 8);
 	grid.fill('.');
-	grid.set(1, 1, '#');
-	grid.set(1, 2, '#');
 
 	grid.dump<char>();
 
-	grid.transpose();
+
+	grid.set(1, 1, '1');
+	grid.set(1, 2, '2');
+
+	grid.set(2, 1, '3');
+
+
+	char c6 = grid.at(1, 6);
+
 	grid.dump<char>();
 
-	grid.transpose();
+	// grid.reverse_col(1);
+	grid.reverse_row(1);
+
+
+	// grid.transpose();
 	grid.dump<char>();
+	// grid.reverse_col(1);
+
+
+	grid.dump<char>();
+
+
+	auto hashes = grid.find_all('#');
 
 
 	file f1("dir🌍\\input.bin");
