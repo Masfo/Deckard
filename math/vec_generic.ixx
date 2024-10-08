@@ -734,6 +734,27 @@ export using ivec2 = deckard::math::vec_n<i32, 2>;
 export using ivec3 = deckard::math::vec_n<i32, 3>;
 export using ivec4 = deckard::math::vec_n<i32, 4>;
 
+namespace deckard::math
+{
+
+	export template<typename T>
+	struct grid_order
+	{
+		inline bool operator()(const T& v1, const T& v2) const { return (v1[1] < v2[1]) || (v1[1] == v2[1] && v1[0] < v2[0]); }
+	};
+
+	export template<typename T>
+	struct grid_order_reverse
+	{
+		inline bool operator()(const T& v1, const T& v2) const
+		{
+			//
+			return (v1[1] > v2[1]) || (v1[1] == v2[1] && v1[0] > v2[0]);
+		}
+	};
+
+} // namespace deckard::math
+
 static_assert(sizeof(deckard::math::vec_n<f32, 4>) == 16);
 static_assert(sizeof(deckard::math::vec_n<f32, 3>) == 12);
 static_assert(sizeof(deckard::math::vec_n<f32, 2>) == 8);

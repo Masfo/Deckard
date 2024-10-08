@@ -6,20 +6,24 @@ import deckard.assert;
 import deckard.as;
 import deckard.debug;
 import deckard.math;
+import deckard.utils.hash;
 
 namespace deckard
 {
 	using namespace deckard::math;
+	using namespace deckard::utils;
 
 	export template<typename T>
 	class array2d
 	{
 	private:
+	public:
 		extent<u32> m_extent{1, 1};
 
 		std::vector<T> m_data;
 
-	public:
+		using hash_type = u64;
+
 		array2d() { resize(m_extent.width, m_extent.height); }
 
 		array2d(u32 w, u32 h) { resize(w, h); }
@@ -39,10 +43,15 @@ namespace deckard
 
 		T& operator()(const u32 x, const u32 y) { return get(x, y); }
 
+		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
+
+		T& at(const u32 x, const u32 y) { return get(x, y); }
+
+		T at(const u32 x, const u32 y) const { return get(x, y); }
+
 		T get(const u32 x, const u32 y) const
 		{
-			assert::check(x <= m_extent.width - 1);
-			assert::check(y <= m_extent.height - 1);
+			assert::check(valid(x, y));
 
 			const u32 index = index_from_2d(x, y, m_extent.width);
 			return m_data[index];
@@ -50,8 +59,7 @@ namespace deckard
 
 		T& get(const u32 x, const u32 y)
 		{
-			assert::check(x <= m_extent.width - 1);
-			assert::check(y <= m_extent.height - 1);
+			assert::check(valid(x, y));
 
 			const u32 index = index_from_2d(x, y, m_extent.width);
 			return m_data[index];
@@ -59,8 +67,7 @@ namespace deckard
 
 		void set(u32 x, u32 y, const T& value)
 		{
-			assert::check(x <= m_extent.width - 1);
-			assert::check(y <= m_extent.height - 1);
+			assert::check(valid(x, y));
 
 			const u32 index = index_from_2d(x, y, m_extent.width);
 			m_data[index]   = value;
@@ -72,6 +79,7 @@ namespace deckard
 
 		void resize(u32 new_width, u32 new_height)
 		{
+
 			assert::check(new_width > 1);
 			assert::check(new_height > 1);
 
@@ -143,6 +151,65 @@ namespace deckard
 			dbg::println();
 #endif
 		}
+
+		void reverseColumn(u32 col)
+		{
+			if (col >= m_extent.width)
+				return;
+
+			for (size_t i = 0; i < m_extent.width / 2; ++i)
+				std::swap(at(i, col), at(m_extent.height - 1 - i, col));
+		}
+
+		operator hash_type() const noexcept { return hash(); }
+
+		hash_type hash(u64 seed = 0) const
+		{
+			hash_combine(seed, m_extent.width, m_extent.height);
+
+			for (const auto& i : m_data)
+				hash_combine(seed, i);
+
+			return seed;
+		}
+
+		// find_all, returns points in grid order
+		[[nodiscard]] auto find_all(const T to_find) const
+		{
+			std::vector<uvec2> points;
+
+			for (u32 y = 0; y < m_extent.height; ++y)
+			{
+				for (u32 x = 0; x < m_extent.width; ++x)
+				{
+					if (get(x, y) == to_find)
+						points.emplace_back(uvec2{x, y});
+				}
+			}
+
+			std::ranges::sort(points, grid_order<uvec2>());
+
+			return points;
+		}
+
+		void swap(array2d<T>& other) noexcept
+		{
+			using std::swap;
+			swap(m_extent.width, other.m_extent.width);
+			swap(m_extent.height, other.m_extent.height);
+			swap(m_data, other.m_data);
+		}
+
+		array2d<T>& operator=(array2d<T> lhs) noexcept
+		{
+			swap(lhs);
+			return *this;
+		}
+
+		bool operator==(const array2d<T>& lhs) const noexcept
+		{
+			return m_extent.width == lhs.m_extent.width && m_extent.height == lhs.m_extent.height && m_data == lhs.m_data;
+		}
 	};
 
 	export template<>
@@ -155,6 +222,8 @@ namespace deckard
 
 
 	public:
+		using hash_type = u64;
+
 		array2d() { resize(m_extent.width, m_extent.height); }
 
 		array2d(extent<u32> e)
@@ -164,12 +233,13 @@ namespace deckard
 
 		array2d(u32 w, u32 h) { resize(w, h); }
 
+		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
+
 		bool operator()(const u32 x, const u32 y) const { return get(x, y); }
 
 		bool get(u32 x, u32 y) const
 		{
-			assert::check(x <= m_extent.width - 1);
-			assert::check(y <= m_extent.height - 1);
+			assert::check(valid(x, y));
 
 			const u32 index = index_from_2d(x, y, m_extent.width);
 
@@ -178,8 +248,7 @@ namespace deckard
 
 		void set(u32 x, u32 y, bool value)
 		{
-			assert::check(x <= m_extent.width - 1);
-			assert::check(y <= m_extent.height - 1);
+			assert::check(valid(x, y));
 
 			const u32 index = index_from_2d(x, y, m_extent.width);
 
@@ -226,7 +295,50 @@ namespace deckard
 			dbg::println();
 #endif
 		}
+
+		operator hash_type() const noexcept { return hash(); }
+
+		hash_type hash(u64 seed = 0) const
+		{
+			hash_combine(seed, m_extent.width, m_extent.height);
+
+			for (const auto& i : m_data)
+				hash_combine(seed, i);
+
+			return seed;
+		}
+
+		void swap(array2d<bool>& other) noexcept
+		{
+			using std::swap;
+			swap(m_extent.width, other.m_extent.width);
+			swap(m_extent.height, other.m_extent.height);
+			swap(m_data, other.m_data);
+		}
+
+		array2d<bool>& operator=(array2d<bool> lhs) noexcept
+		{
+			swap(lhs);
+			return *this;
+		}
+
+		bool operator==(const array2d<bool>& lhs) const noexcept
+		{
+			return m_extent.width == lhs.m_extent.width && m_extent.height == lhs.m_extent.height && m_data == lhs.m_data;
+		}
 	};
 
 
 } // namespace deckard
+
+export namespace std
+
+{
+
+	template<typename T>
+	struct std::hash<deckard::array2d<T>>
+	{
+		deckard::array2d<T>::hash_type operator()(const deckard::array2d<T>& a) const { return a.hash(); }
+	};
+
+} // namespace std
