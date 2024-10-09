@@ -1,5 +1,6 @@
 export module deckard.arrays;
 
+
 import std;
 import deckard.types;
 import deckard.assert;
@@ -7,6 +8,7 @@ import deckard.as;
 import deckard.debug;
 import deckard.math;
 import deckard.utils.hash;
+import deckard.file;
 
 namespace deckard
 {
@@ -68,7 +70,10 @@ namespace deckard
 
 		void set(u32 x, u32 y, const T& value)
 		{
-			assert::check(valid(x, y));
+			if (not valid(x, y))
+				return;
+
+			//			assert::check(valid(x, y));
 
 			const u32 index = index_from_2d(x, y, m_extent.width);
 			m_data[index]   = value;
@@ -102,6 +107,12 @@ namespace deckard
 		// get line, references to each cell
 		// line x = array2d.column(0)
 		//  x[0] = 10;
+
+
+		// line, set single value
+		// line, sets value from lambda
+
+
 		void transpose()
 		{
 			std::vector<T> transposed{};
@@ -141,6 +152,10 @@ namespace deckard
 		void dump() const
 		{
 #ifdef _DEBUG
+
+			if (m_extent.width > 32 or m_extent.height > 32)
+				return;
+
 			for (u32 y = 0; y < m_extent.height; y++)
 			{
 				for (u32 x = 0; x < m_extent.width; x++)
@@ -221,6 +236,68 @@ namespace deckard
 		bool operator==(const array2d<T>& lhs) const noexcept
 		{
 			return m_extent.width == lhs.m_extent.width && m_extent.height == lhs.m_extent.height && m_data == lhs.m_data;
+		}
+
+		void line(i32 x0, i32 y0, i32 x1, i32 y1, T v)
+		{
+
+			i32 dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+			i32 dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+			i32 err = dx + dy, e2; /* error value e_xy */
+
+			for (;;)
+			{                      /* loop */
+				set(x0, y0, v);
+				if (x0 == x1 && y0 == y1)
+					break;
+				e2 = 2 * err;
+				if (e2 >= dy)
+				{
+					err += dy;
+					x0 += sx;
+				} /* e_xy+e_x > 0 */
+				if (e2 <= dx)
+				{
+					err += dx;
+					y0 += sy;
+				} /* e_xy+e_y < 0 */
+			}
+		}
+
+		void circle(i32 xm, i32 ym, i32 r, T v)
+		{
+			i32 x = -r, y = 0, err = 2 - 2 * r; /* II. Quadrant */
+			do
+			{
+				set(xm - x, ym + y, v);         /*   I. Quadrant */
+				set(xm - y, ym - x, v);         /*  II. Quadrant */
+				set(xm + x, ym - y, v);         /* III. Quadrant */
+				set(xm + y, ym + x, v);         /*  IV. Quadrant */
+				r = err;
+				if (r > x)
+					err += ++x * 2 + 1;         /* e_xy+e_x > 0 */
+				if (r <= y)
+					err += ++y * 2 + 1;         /* e_xy+e_y < 0 */
+			} while (x < 0);
+		}
+
+		bool export_ppm(std::filesystem::path path)
+		{
+			std::ofstream file(path.generic_string(), std::ios::out | std::ios::binary);
+			if (!file)
+			{
+				dbg::eprintln("ppm: file not opened '{}'", path.generic_string());
+				return false;
+			}
+
+			u32 colors = *std::max_element(m_data.begin(), m_data.end());
+
+			file << "P5\n" << width() << " " << height() << "\n" << colors << "\n";
+
+			file.write(reinterpret_cast<const char*>(m_data.data()), m_data.size());
+
+			file.close();
+			return true;
 		}
 	};
 
