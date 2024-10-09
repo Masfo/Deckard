@@ -4,6 +4,7 @@
 import deckard;
 using namespace deckard;
 using namespace deckard::app;
+using namespace deckard::random;
 import std;
 
 std::array<unsigned char, 256> previous{0};
@@ -79,226 +80,24 @@ void render(vulkanapp&)
 
 namespace fs = std::filesystem;
 
-namespace nt
+class commandliner
 {
-#if 0
+private:
+	std::string_view commandline;
 
-	class file
+public:
+	commandliner(std::string_view i)
+		: commandline(i)
 	{
-	public:
-		enum class Flags : u8
-		{
-			read,
-			readwrite,
-		};
+	}
 
-	private:
-		std::span<u8> view{};
-		fs::path      filepath;
-		u32           offset{0};
-		HANDLE        handle{INVALID_HANDLE_VALUE};
-
-		bool is_writeonly() const { return handle != nullptr and view.empty(); }
-
-		bool is_open() const { return not view.empty(); }
-
-		void setpath(fs::path p) { filepath = p; }
-
-		auto create_impl(const fs::path filepath) -> Result<file>
-		{
-			setpath(filepath);
-
-			DWORD rw     = GENERIC_READ | GENERIC_WRITE;
-			DWORD create = CREATE_NEW;
-
-			handle = CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, create, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-			if (handle == INVALID_HANDLE_VALUE)
-			{
-				auto error = GetLastError();
-				if (error = ERROR_FILE_EXISTS)
-				{
-					close();
-					return Err("File already exists: '{}'", filepath.string());
-				}
-
-				return Err("Could not open file '{}'", filepath.string());
-			}
-
-
-			return Ok(*this);
-		}
-
-		auto open_impl(const fs::path filepath, Flags flags = Flags::read) -> Result<file>
-		{
-			setpath(filepath);
-
-			DWORD rw          = GENERIC_READ;
-			DWORD page        = PAGE_READONLY;
-			DWORD filemapping = FILE_MAP_READ;
-
-			DWORD create = OPEN_EXISTING;
-
-			if (flags == Flags::readwrite)
-			{
-				rw |= GENERIC_WRITE;
-				page = PAGE_READWRITE;
-				filemapping |= FILE_MAP_WRITE;
-			}
-
-			handle = CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, create, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-			if (handle == INVALID_HANDLE_VALUE)
-			{
-				auto error = GetLastError();
-				if (error = ERROR_FILE_EXISTS)
-				{
-					close();
-					return Err("File already exists: '{}'", filepath.string());
-				}
-
-				return Err("Could not open file '{}'", filepath.string());
-			}
-
-
-			LARGE_INTEGER fs;
-			u64           filesize{0};
-			if (GetFileSizeEx(handle, &fs) != 0)
-				filesize = as<u64>(fs.QuadPart);
-
-
-			HANDLE mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
-			if (mapping == nullptr)
-			{
-				close();
-
-				return Err("Could not create mapping for file '{}' ({})", filepath.string(), pretty_bytes(filesize));
-			}
-
-			CloseHandle(handle);
-			handle = nullptr;
-
-
-			u8* raw_address = as<u8*>(MapViewOfFile(mapping, filemapping, 0, 0, 0));
-			if (raw_address == nullptr)
-			{
-				close();
-
-				return Err("Could not map file '{}'", filepath.string());
-			}
-
-			CloseHandle(mapping);
-			mapping = nullptr;
-
-
-			view = std::span<u8>{as<u8*>(raw_address), filesize};
-
-			return Ok(*this);
-		}
-
-		void flush() { FlushViewOfFile(view.data(), 0); }
-
-		void close() 
-		{
-			CloseHandle(handle);
-			handle = INVALID_HANDLE_VALUE;
-
-			flush();
-			UnmapViewOfFile(view.data());
-			view = {};
-		}
-
-	public:
-		file() = default;
-
-		file(file&&)  = default;
-		file(const file&)     = default;
-
-		file& operator=(const file&) = default;
-		file& operator=(file&&)      = default;
-
-		~file() { close(); }
-
-		// open existing
-		auto open(const fs::path& path, access access_flag = access::read) -> Result<file>
-		{
-
-			return open_impl(path, access_flag, creation::open_existing);
-		}
-
-		// create new file
-		auto create(const fs::path& path, access access_flag = access::read) -> Result<file>
-		{
-			return open_impl(path, access_flag, creation::create);
-		}
-
-		auto read() -> Result<std::span<u8>> { return read((u64)-1); }
-
-		auto read(u32 size) -> Result<std::span<u8>> { return read(size, 0); }
-
-		auto read(u64 size, u64 offset = 0) -> Result<std::span<u8>>
-		{
-			if (is_writeonly())
-				return Err("File '{}' is opened for write-only", filepath.string());
-
-			if (not is_open())
-				return Err("File not open");
-			//
-			return Err("not implemented");
-		}
-
-		auto data() const -> Result<std::span<u8>>
-		{
-			if (not is_open())
-				return Err("File is not open. Cannot give view to file");
-
-			if (view.empty())
-				return Err("There is not mapping for file '{}'", filepath.string());
-
-			return Ok(view);
-		}
-
-		auto write(std::span<u8> input) -> Result<u32>
-		{
-			DWORD bytes_written{0};
-
-			if (not is_writeonly())
-				return Err("Could not write to file");
-
-			if (handle == INVALID_HANDLE_VALUE)
-			{
-				CloseHandle(handle);
-				return Err("Did not have a valid filehandle: '{}'", filepath.string());
-			}
-
-			WriteFile(handle, input.data(), as<u32>(input.size_bytes()), &bytes_written, nullptr);
-
-			return bytes_written;
-		}
-	};
-
-	void read(std::span<u8> output) { }
-#endif
-
-
-	class commandliner
+	void process()
 	{
-	private:
-		std::string_view commandline;
+		//
 
-	public:
-		commandliner(std::string_view i)
-			: commandline(i)
-		{
-		}
-
-		void process()
-		{
-			//
-
-			int x = 0;
-		}
-	};
+		int x = 0;
+	}
+};
 
 } // namespace nt
 
@@ -366,251 +165,6 @@ union Data
 };
 
 static_assert(sizeof(Data) == 32);
-
-std::string read_file(fs::path filename)
-{
-	if (not fs::exists(filename))
-		return {};
-
-	std::ifstream ifile(filename);
-	std::string   str{(std::istreambuf_iterator<char>(ifile)), std::istreambuf_iterator<char>()};
-
-	return str;
-}
-
-class fakestring
-{
-private:
-	std::vector<u8> data{};
-
-public:
-};
-
-
-// AST node types
-enum class NodeType : u8
-{
-	NUM,
-	NAME,
-	BIN_OP,
-	ASSIGN
-};
-
-struct Node
-{
-	NodeType type;
-
-	int         num_value;
-	std::string name;
-
-	struct
-	{
-		std::unique_ptr<Node> left;
-		std::unique_ptr<Node> right;
-		char                  op;
-	} bin_op;
-};
-
-std::unique_ptr<Node> create_num_node(int value)
-{
-	std::unique_ptr<Node> node = std::make_unique<Node>();
-	node->type                 = NodeType::NUM;
-	node->num_value            = value;
-	return node;
-};
-
-std::unique_ptr<Node> create_name_node(const std::string& name)
-
-{
-	std::unique_ptr<Node> node = std::make_unique<Node>();
-	node->type                 = NodeType::NAME;
-	node->name                 = name;
-	return node;
-}
-
-std::unique_ptr<Node> create_bin_op_node(char op, std::unique_ptr<Node> left, std::unique_ptr<Node> right)
-{
-	std::unique_ptr<Node> node = std::make_unique<Node>();
-	node->type                 = NodeType::BIN_OP;
-	node->bin_op.op            = op;
-	node->bin_op.left          = std::move(left);
-	node->bin_op.right         = std::move(right);
-	return node;
-}
-
-std::unique_ptr<Node> create_assign_node(const std::string& name, std::unique_ptr<Node> value)
-{
-	std::unique_ptr<Node> node = std::make_unique<Node>();
-	node->type                 = NodeType::ASSIGN;
-	node->bin_op.left          = create_name_node(name);
-	node->bin_op.right         = std::move(value);
-	node->name                 = name;
-	return node;
-}
-
-// Interpreter function
-int interpret_ast(const std::unique_ptr<Node>& node, std::unordered_map<std::string, int>& env)
-{
-	switch (node->type)
-	{
-		case NodeType::NUM: return node->num_value;
-		case NodeType::NAME: return env[node->name];
-		case NodeType::BIN_OP:
-		{
-			int left  = interpret_ast(node->bin_op.left, env);
-			int right = interpret_ast(node->bin_op.right, env);
-			switch (node->bin_op.op)
-			{
-				case '+': return left + right;
-				case '-': return left - right;
-				case '*': return left * right;
-				case '/': return left / right;
-				default: return 0;
-			}
-		}
-		case NodeType::ASSIGN:
-		{
-			int value                    = interpret_ast(node->bin_op.right, env);
-			env[node->bin_op.left->name] = value;
-			return value;
-		}
-		default: return 0;
-	}
-}
-
-
-// Bytecode instructions
-enum class Opcode
-{
-	LOAD_CONST,
-	STORE_NAME,
-	BINARY_OP,
-};
-
-struct Instruction
-{
-	Opcode op;
-
-	int         arg;
-	std::string name;
-};
-
-std::vector<Instruction> generate_bytecode(const std::unique_ptr<Node>& node, std::unordered_map<std::string, int>& constants)
-{
-	std::vector<Instruction> code;
-
-	switch (node->type)
-	{
-		case NodeType::NUM:
-		{
-			int const_index                            = constants.size();
-			constants[std::to_string(node->num_value)] = const_index;
-			code.push_back({.op = Opcode::LOAD_CONST, .arg = const_index});
-			break;
-		}
-		case NodeType::NAME:
-		{
-			code.push_back({.op = Opcode::STORE_NAME, .name = node->name});
-			break;
-		}
-		case NodeType::BIN_OP:
-		{
-			code.insert(
-			  code.end(), generate_bytecode(node->bin_op.left, constants).begin(), generate_bytecode(node->bin_op.left, constants).end());
-			code.insert(
-			  code.end(), generate_bytecode(node->bin_op.right, constants).begin(), generate_bytecode(node->bin_op.right, constants).end());
-			switch (node->bin_op.op)
-			{
-				case '+':
-				{
-					code.push_back({Opcode::BINARY_OP, '+'});
-					break;
-				}
-				case '-':
-				{
-					code.push_back({Opcode::BINARY_OP, '-'});
-					break;
-				}
-				case '*':
-				{
-					code.push_back({Opcode::BINARY_OP, '*'});
-					break;
-				}
-				case '/':
-				{
-					code.push_back({Opcode::BINARY_OP, '/'});
-					break;
-				}
-				default:
-				{
-					throw std::runtime_error("Invalid binary operator");
-				}
-			}
-			break;
-		}
-		case NodeType::ASSIGN:
-		{
-			code.insert(
-			  code.end(), generate_bytecode(node->bin_op.right, constants).begin(), generate_bytecode(node->bin_op.right, constants).end());
-			code.push_back({.op = Opcode::STORE_NAME, .name = node->bin_op.left->name});
-			break;
-		}
-		default:
-		{
-			throw std::runtime_error("Unsupported node type");
-		}
-	}
-
-	return code;
-}
-
-// Function to evaluate an AST
-int evaluate_ast(const std::unique_ptr<Node>& node)
-{
-	switch (node->type)
-	{
-		case NodeType::NUM: return node->num_value;
-		case NodeType::NAME:
-			// Handle variable lookup here
-			throw std::runtime_error("Variable lookup not implemented");
-		case NodeType::BIN_OP:
-		{
-			int left  = evaluate_ast(node->bin_op.left);
-			int right = evaluate_ast(node->bin_op.right);
-			switch (node->bin_op.op)
-			{
-				case '+': return left + right;
-				case '-': return left - right;
-				case '*': return left * right;
-				case '/': return left / right;
-				default: throw std::runtime_error("Invalid operator");
-			}
-		}
-		default: throw std::runtime_error("Unsupported node type");
-	}
-}
-
-void print_ast(const std::unique_ptr<Node>& node, int indent = 0)
-{
-	std::string indent_str(indent, ' ');
-
-	switch (node->type)
-	{
-		case NodeType::NUM: dbg::println("{} {}", indent_str, node->num_value); break;
-		case NodeType::NAME: dbg::println("{} {}", indent_str, node->name); break;
-		case NodeType::BIN_OP:
-			dbg::print("{}({})", indent_str, node->bin_op.op);
-			print_ast(node->bin_op.left, indent + 2);
-			print_ast(node->bin_op.right, indent + 2);
-			break;
-		case NodeType::ASSIGN:
-			dbg::println("{}=", indent_str);
-			print_ast(node->bin_op.left, indent + 2);
-			print_ast(node->bin_op.right, indent + 2);
-			break;
-		default: dbg::eprintln("Error: Unsupported node type"); break;
-	}
-}
 
 // Token types
 enum TokenType2 : u8
@@ -884,33 +438,57 @@ public:
 int deckard_main()
 {
 
-	array2d<u8> grid(8, 8);
-	grid.fill('.');
+	array2d<u8> grid(512, 512);
+	grid.fill(255);
 
 	grid.dump<char>();
 
 
-	grid.set(1, 1, '1');
-	grid.set(1, 2, '2');
+	grid.set(1, 1, 0);
+	grid.set(1, 2, 0);
 
-	grid.set(2, 1, '3');
+	grid.set(2, 1, 128);
 
+	grid.line(0, 0, 128, 128, 0);
+	grid.line(129, 129, 129, 511, 64);
+
+	grid.circle(380, 380, 64, 128);
+
+	grid.raster_circle(100, 400, 64, 128);
+
+	grid.basic_bezier(32, 32, 35, 380, 400, 400, 64);
 
 	char c6 = grid.at(1, 6);
 
-	grid.dump<char>();
+	for (int i : upto(128))
+	{
+		grid.line(0, 0, rnd(0, 128), rnd(128, 256), rnd(64, 128));
+		grid.line(256, 256, rnd(128, 64 + 256 + 64), rnd(64, 64 + 256 + 64), rnd(0, 164));
 
-	// grid.reverse_col(1);
-	grid.reverse_row(1);
+		grid.circle(rnd(0, 511), rnd(0, 511), rnd(10, 64), rnd(16, 128));
+	}
+
+#if 0
+	for (int i : upto(grid.width()))
+	{
+
+
+		if (random::randbool())
+			grid.reverse_col(i);
+	}
+	for (int i : upto(grid.height()))
+	{
+
+		if (random::randbool())
+			grid.reverse_row(i);
+	}
+#endif
 
 
 	// grid.transpose();
-	grid.dump<char>();
 	// grid.reverse_col(1);
 
-
-	grid.dump<char>();
-
+	grid.export_ppm("out.pgm");
 
 	auto hashes = grid.find_all('#');
 

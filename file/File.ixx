@@ -111,6 +111,8 @@ namespace deckard
 			return written;
 		}
 
+		// TODO: writing advances offset automatically
+
 		u64 write(const std::span<u8> buffer, size_t size = 0) const
 		{
 			DWORD written{};
