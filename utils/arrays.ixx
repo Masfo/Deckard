@@ -9,6 +9,7 @@ import deckard.debug;
 import deckard.math;
 import deckard.utils.hash;
 import deckard.file;
+import deckard.function_ref;
 
 namespace deckard
 {
@@ -238,46 +239,62 @@ namespace deckard
 			return m_extent.width == lhs.m_extent.width && m_extent.height == lhs.m_extent.height && m_data == lhs.m_data;
 		}
 
-		void line(i32 x0, i32 y0, i32 x1, i32 y1, T v)
+		void line(i32 x1, i32 y1, i32 x2, i32 y2, T v)
+		{
+			line(x1, y1, x2, y2, [v] { return v; });
+		}
+
+		template<std::invocable Func>
+		void line(i32 x1, i32 y1, i32 x2, i32 y2, const Func&& cb)
 		{
 
-			i32 dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-			i32 dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-			i32 err = dx + dy, e2; /* error value e_xy */
+			static_assert(std::is_same_v<T, std::invoke_result_t<Func>>, "Callback must return the same type T as the array2d<T>");
 
-			for (;;)
-			{                      /* loop */
-				set(x0, y0, v);
-				if (x0 == x1 && y0 == y1)
+			i32 dx = std::abs(x2 - x1);
+			i32 dy = std::abs(y2 - y1);
+			i32 sx = (x1 < x2) ? 1 : -1;
+			i32 sy = (y1 < y2) ? 1 : -1;
+
+			i32 err = dx - dy;
+
+			while (true)
+			{
+				set(x1, y1, cb());
+
+				if (x1 == x2 && y1 == y2)
 					break;
-				e2 = 2 * err;
-				if (e2 >= dy)
+
+				i64 e2 = 2 * err;
+
+				if (e2 > -dy)
 				{
-					err += dy;
-					x0 += sx;
-				} /* e_xy+e_x > 0 */
-				if (e2 <= dx)
+					err -= dy;
+					x1 += sx;
+				}
+
+				if (e2 < dx)
 				{
 					err += dx;
-					y0 += sy;
-				} /* e_xy+e_y < 0 */
+					y1 += sy;
+				}
 			}
 		}
 
 		void circle(i32 xm, i32 ym, i32 r, T v)
+
 		{
-			i32 x = -r, y = 0, err = 2 - 2 * r; /* II. Quadrant */
+			i32 x = -r, y = 0, err = 2 - 2 * r;
 			do
 			{
-				set(xm - x, ym + y, v);         /*   I. Quadrant */
-				set(xm - y, ym - x, v);         /*  II. Quadrant */
-				set(xm + x, ym - y, v);         /* III. Quadrant */
-				set(xm + y, ym + x, v);         /*  IV. Quadrant */
+				set(xm - x, ym + y, v);
+				set(xm - y, ym - x, v);
+				set(xm + x, ym - y, v);
+				set(xm + y, ym + x, v);
 				r = err;
 				if (r > x)
-					err += ++x * 2 + 1;         /* e_xy+e_x > 0 */
+					err += ++x * 2 + 1;
 				if (r <= y)
-					err += ++y * 2 + 1;         /* e_xy+e_y < 0 */
+					err += ++y * 2 + 1;
 			} while (x < 0);
 		}
 
@@ -299,7 +316,7 @@ namespace deckard
 			file.close();
 			return true;
 		}
-	};
+	}; // namespace deckard
 
 	export template<>
 	class array2d<bool>
