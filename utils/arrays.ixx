@@ -298,6 +298,8 @@ namespace deckard
 			} while (x < 0);
 		}
 
+		// serialize to/from disk
+
 		bool export_ppm(std::filesystem::path path)
 		{
 			std::ofstream file(path.generic_string(), std::ios::out | std::ios::binary);

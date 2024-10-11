@@ -99,8 +99,6 @@ public:
 	}
 };
 
-} // namespace nt
-
 template<size_t SSO_SIZE = 32>
 class alignas(8) u8string_sso
 {
@@ -438,7 +436,7 @@ public:
 int deckard_main()
 {
 
-	array2d<u8> grid(512, 512);
+	array2d<u8> grid(2 * 1024, 2 * 1024);
 	grid.fill(255);
 
 	grid.dump<char>();
@@ -454,19 +452,97 @@ int deckard_main()
 
 	grid.circle(380, 380, 64, 128);
 
-	grid.raster_circle(100, 400, 64, 128);
+	u8 v = 0;
+	grid.line(0, 128, 256, 128 + 64, [&v]() { return v += 5; });
 
-	grid.basic_bezier(32, 32, 35, 380, 400, 400, 64);
+	i32       iX = 0, iY = 0;
+	const i32 iXmax = grid.width();
+	const i32 iYmax = grid.height();
 
-	char c6 = grid.at(1, 6);
+	f64       Cx, Cy;
+	const f64 CxMin = -1.5;
+	const f64 CxMax = 0.5;
+	const f64 CyMin = -1.0;
+	const f64 CyMax = 1.0;
+	/* */
+	f64 PixelWidth  = (CxMax - CxMin) / iXmax;
+	f64 PixelHeight = (CyMax - CyMin) / iYmax;
 
-	for (int i : upto(128))
+	i32          Iteration    = 0;
+	const int    IterationMax = 200;
+	const double EscapeRadius = 2;
+	double       ER2          = EscapeRadius * EscapeRadius;
+
+	unsigned char color[3]{};
+
+	for (iY = 0; iY < iYmax; iY++)
 	{
-		grid.line(0, 0, rnd(0, 128), rnd(128, 256), rnd(64, 128));
-		grid.line(256, 256, rnd(128, 64 + 256 + 64), rnd(64, 64 + 256 + 64), rnd(0, 164));
-
-		grid.circle(rnd(0, 511), rnd(0, 511), rnd(10, 64), rnd(16, 128));
+		Cy = CyMin + iY * PixelHeight;
+		if (fabs(Cy) < PixelHeight / 2)
+			Cy = 0.0; /* Main antenna */
+		for (iX = 0; iX < iXmax; iX++)
+		{
+			Cx = CxMin + iX * PixelWidth;
+			/* initial value of orbit = critical point Z= 0 */
+			f64 Zx  = 0.0;
+			f64 Zy  = 0.0;
+			f64 Zx2 = Zx * Zx;
+			f64 Zy2 = Zy * Zy;
+			/* */
+			for (Iteration = 0; Iteration < IterationMax && ((Zx2 + Zy2) < ER2); Iteration++)
+			{
+				Zy  = 2 * Zx * Zy + Cy;
+				Zx  = Zx2 - Zy2 + Cx;
+				Zx2 = Zx * Zx;
+				Zy2 = Zy * Zy;
+			};
+			/* compute  pixel color (24 bit = 3 bytes) */
+			if (Iteration == IterationMax)
+			{ /*  interior of Mandelbrot set = black */
+				color[0] = 0;
+				color[1] = 0;
+				color[2] = 0;
+			}
+			else
+			{                         /* exterior of Mandelbrot set = white */
+				color[0] = Iteration; /* Red*/
+				color[1] = Iteration; /* Green */
+				color[2] = Iteration; /* Blue */
+			};
+			grid.set(iX, iY, color[0]);
+		}
 	}
+
+	/*
+	for each pixel (Px, Py) on the screen do
+	x0 := scaled x coordinate of pixel (scaled to lie in the Mandelbrot X scale (-2.00, 0.47))
+	y0 := scaled y coordinate of pixel (scaled to lie in the Mandelbrot Y scale (-1.12, 1.12))
+	x := 0.0
+	y := 0.0
+	iteration := 0
+	max_iteration := 1000
+	while (x*x + y*y ≤ 2*2 AND iteration < max_iteration) do
+		xtemp := x*x - y*y + x0
+		y := 2*x*y + y0
+		x := xtemp
+		iteration := iteration + 1
+
+	color := palette[iteration]
+	plot(Px, Py, color)
+
+
+	// optimized
+	x2:= 0
+	y2:= 0
+
+	while (x2 + y2 ≤ 4 and iteration < max_iteration) do
+		y:= 2 * x * y + y0
+		x:= x2 - y2 + x0
+		x2:= x * x
+		y2:= y * y
+		iteration:= iteration + 1
+	*/
+
 
 #if 0
 	for (int i : upto(grid.width()))
@@ -583,24 +659,6 @@ int deckard_main()
 	{
 		dbg::println("{:X}", (int)cp);
 	}
-
-
-	int kx = 0;
-
-	auto insi = read_file("input.ini");
-
-	std::string        line;
-	std::istringstream iss(insi);
-	while (std::getline(iss, line, '\n'))
-	{
-		dbg::println("line: {}", line);
-	}
-
-
-	std::string cmdparse("-v -o\"file.txt\" -d 1024");
-
-	nt::commandliner cmd(cmdparse);
-	cmd.process();
 
 
 #if 0

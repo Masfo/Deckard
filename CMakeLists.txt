@@ -1,5 +1,5 @@
 
-cmake_minimum_required (VERSION 3.29.0)
+cmake_minimum_required (VERSION 3.30.0)
 
 project(deckard LANGUAGES CXX)
 add_library(deckard STATIC)
@@ -215,7 +215,7 @@ set(DECKARD_SRCS
         # Graph
         graphs/graph.ixx
         graphs/avltree.ixx
-        graphs/binarytree.ixx
+        #graphs/binarytree.ixx
         graphs/undirected.ixx
         graphs/directed.ixx
 
