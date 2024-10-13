@@ -95,5 +95,6 @@ namespace deckard
 		return std::bit_cast<T>(address);
 	}
 
+	export consteval auto as_constant(auto value) { return value; }
 
 } // namespace deckard
