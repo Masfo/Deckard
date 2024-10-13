@@ -202,6 +202,7 @@ set(DECKARD_SRCS
         utils/random.ixx
         utils/function_ref.ixx
         utils/arrays.ixx
+        utils/bitbuffer.ixx
 
         # Unicode
         unicode/utf8.ixx

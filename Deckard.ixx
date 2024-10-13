@@ -38,6 +38,7 @@ export import deckard.function_ref;
 export import deckard.serializer;
 export import deckard.arrays;
 export import deckard.bigint;
+export import deckard.bitbuffer;
 
 // UTF8
 export import deckard.utf8;
