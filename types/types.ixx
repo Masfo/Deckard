@@ -94,6 +94,9 @@ export namespace deckard
 	// sink
 	struct sink_t final
 	{
+#ifdef __cpp_placeholder_variables
+#error("remove this");
+#endif
 		template<typename T>
 		constexpr void operator=(T&&) const
 		{
