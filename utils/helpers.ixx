@@ -398,6 +398,55 @@ export namespace deckard
 		return trim_back(s);
 	};
 
+	template<typename T = i32>
+	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::optional<T>
+	{
+		if (input.empty())
+			return {};
+
+		if (input.starts_with('+'))
+			input.remove_prefix(1);
+
+
+		T val{};
+		if constexpr (std::is_floating_point_v<T>)
+		{
+			auto [ptr, _] = std::from_chars(input.data(), input.data() + input.size(), val, std::chars_format::general);
+			if (ptr == input.data())
+			{
+				dbg::println("try_to_number<float> failed: '{}'", input);
+				return {};
+			}
+
+			return val;
+		}
+
+		if constexpr (std::is_integral_v<T>)
+		{
+			if (input.starts_with('#'))
+			{
+				input.remove_prefix(1);
+				auto [ptr, _]{std::from_chars(input.data(), input.data() + input.size(), val, 16)};
+				if (ptr == input.data())
+				{
+					dbg::trace("try_to_number(\"{}\", base({})). Is not a hex number", input, 16);
+					return {};
+				}
+
+				return val;
+			}
+
+			auto [ptr, _] = std::from_chars(input.data(), input.data() + input.size(), val, base);
+			if (ptr == input.data())
+			{
+				dbg::println("try_to_number failed: '{}'", input);
+
+				return {};
+			}
+			return val;
+		}
+	}
+
 	template<typename T>
 	concept ContainerResize = requires(T a) {
 		a.size();

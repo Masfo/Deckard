@@ -160,4 +160,34 @@ TEST_CASE("helpers", "[helpers]")
 		input = strip(input, "123+-BDF");
 		REQUIRE(input == "ACE");
 	}
+
+	SECTION("try_to_number")
+	{
+		std::string input("123456");
+
+		auto a = try_to_number(input);
+
+		REQUIRE(a.has_value() == true);
+		REQUIRE(*a == 123456);
+
+		input  = "123.456";
+		auto b = try_to_number<f32>(input);
+		REQUIRE(b.has_value() == true);
+		REQUIRE(*b == 123.456f);
+
+		input  = "-123.456";
+		auto c = try_to_number<f32>(input);
+		REQUIRE(c.has_value() == true);
+		REQUIRE(*c == -123.456f);
+
+		input  = "+128";
+		auto d = try_to_number<u8>(input);
+		REQUIRE(d.has_value() == true);
+		REQUIRE(*d == 128);
+
+		input  = "#29A";
+		auto e = try_to_number<i16>(input);
+		REQUIRE(e.has_value() == true);
+		REQUIRE(*e == 666);
+	}
 }
