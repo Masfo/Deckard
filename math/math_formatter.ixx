@@ -164,8 +164,7 @@ namespace std
 
 		auto format(const deckard::math::bignum& bn, std::format_context& ctx)
 		{
-			(ctx);
-			return bn.print();
+			return std::format_to(ctx.out(), "{}", bn.print());
 
 #if 0
 			for (int i = bn.size() - 1; i >= 0; i--)
