@@ -1,5 +1,6 @@
 
 import std;
+import deckard.helpers;
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -259,7 +260,7 @@ std::string_view trim(std::string_view s) noexcept
 	return trim_back(s);
 };
 
-template<typename T = int>
+template<typename T = i32>
 auto to_number(std::string_view input, int base = 10) -> std::optional<T>
 {
 	T val{};
@@ -483,7 +484,7 @@ void process_unicode_data()
 
 		UnicodeDataField field{};
 
-		auto code = to_number(split_line[0], 16);
+		auto code = try_to_number(split_line[0], 16);
 		if (code)
 			field.code_value = *code;
 

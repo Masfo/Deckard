@@ -1,6 +1,8 @@
 #include <windows.h>
 #include <Commctrl.h>
+#include <intrin.h>
 #include <random> // workaround for module std
+
 import deckard;
 using namespace deckard;
 using namespace deckard::app;
@@ -433,8 +435,120 @@ private:
 public:
 };
 
+union float4
+{
+public:
+	__m128 v;
+
+	struct _c
+	{
+		f32 x, y, z, w;
+	} c;
+
+public:
+	float4()
+		: float4(0.0f)
+	{
+	}
+
+	float4(f32 scalar) { v = _mm_set_ps1(scalar); }
+
+	float4(f32 x, f32 y)
+		: float4(x, y, 0.0f, 0.0f)
+	{
+	}
+
+	float4(f32 x, f32 y, f32 z)
+		: float4(x, y, z, 0.0f)
+	{
+	}
+
+	float4(f32 x, f32 y, f32 z, f32 w) { v = _mm_setr_ps(x, y, z, w); }
+};
+
+union float2
+{
+	__m128 v{0.0f, 0.0f, 0.0f, 0.0f};
+
+	struct _c
+	{
+		float x, y, pad1, pad2;
+	} c;
+
+public:
+	float2()
+		: float2(0.0f)
+	{
+	}
+
+	float2(f32 s) { v = _mm_setr_ps(s, s, 1.0f, 1.0f); }
+
+	float2(f32 x, f32 y) { v = _mm_setr_ps(x, y, 1.0f, 1.0f); }
+};
+
+#define CTX_PI 3.141592653589793f
+
+constexpr f32 ctx_sinf(f32 x) noexcept
+{
+	/* source : http://mooooo.ooo/chebyshev-sine-approximation/ */
+	while (x < -CTX_PI)
+		x += CTX_PI * 2;
+	while (x > CTX_PI)
+		x -= CTX_PI * 2;
+
+	f32 coeffs[] = {
+	  -0.10132118f,        // x
+	  0.0066208798f,       // x^3
+	  -0.00017350505f,     // x^5
+	  0.0000025222919f,    // x^7
+	  -0.000000023317787f, // x^9
+	  0.00000000013291342f // x^11
+	};
+
+	f32 x2  = x * x;
+	f32 p11 = coeffs[5];
+	f32 p9  = p11 * x2 + coeffs[4];
+	f32 p7  = p9 * x2 + coeffs[3];
+	f32 p5  = p7 * x2 + coeffs[2];
+	f32 p3  = p5 * x2 + coeffs[1];
+	f32 p1  = p3 * x2 + coeffs[0];
+	return (x - CTX_PI + 0.00000008742278f) * (x + CTX_PI - 0.00000008742278f) * p1 * x;
+}
+
+constexpr std::array<u32, 64> k_md5 = []
+{
+	std::array<u32, 64> table = {};
+#ifdef __cpp_lib_constexpr_cmath
+#error("use std::sin")
+	for (u32 i : table)
+		table[i] = static_cast<u32>(std::floor(0x1'0000'0000 * std::fabs(std::sin(i + 1))));
+#else
+#endif
+	return table;
+}();
+
+// static_assert(k_md5[0] == 0xd76a'a478);
+// static_assert(k_md5[63] == 0xeb86'd391);
+
+
 int deckard_main()
 {
+
+	for (int i : upto(256))
+	{
+		dbg::println("std::sin: {:.5f}\nctx::sin: {:.5f}\n", std::sinf(i + 1), ctx_sinf(i + 1));
+
+
+		if (math::is_prime(i))
+			dbg::println("{}", i);
+	}
+
+
+	float4 vq;
+
+	vq.c.x = 2.0f;
+	vq.c.y = 2.0f;
+
 
 	array2d<u8> grid(2 * 1024, 2 * 1024);
 	grid.fill(255);
