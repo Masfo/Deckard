@@ -1,6 +1,5 @@
 
 import std;
-import deckard.helpers;
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -265,10 +264,10 @@ auto to_number(std::string_view input, int base = 10) -> std::optional<T>
 {
 	T val{};
 	auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, base)};
-	if (ec == std::errc{})
-		return val;
+	if (ptr == input.data())
+		return {};
 
-	return {};
+	return val;
 }
 
 std::vector<std::string> split_csv(const std::string &str)
@@ -484,7 +483,7 @@ void process_unicode_data()
 
 		UnicodeDataField field{};
 
-		auto code = try_to_number(split_line[0], 16);
+		auto code = to_number<int>(split_line[0], 16);
 		if (code)
 			field.code_value = *code;
 
@@ -494,7 +493,7 @@ void process_unicode_data()
 
 		if (code and *code == 0x2010)
 		{
-			int k = 0;
+			// int k = 0;
 		}
 
 		if (field.category == GeneralCategory::Pd)
@@ -530,9 +529,6 @@ void process_unicode_data()
 
 	write_lines(whitespaces, "whitespace", "whitespaces.ixx");
 	write_lines(dashes, "dashes", "dashes.ixx");
-
-
-	int k = 0;
 }
 
 void process_casefolding()
