@@ -122,7 +122,7 @@ namespace deckard
 				size = buffer.size();
 
 
-			if (0 == WriteFile(handle, buffer.data(), size, &written, nullptr))
+			if (0 == WriteFile(handle, buffer.data(), as<DWORD>(size), &written, nullptr))
 				return 0;
 
 			flush();
@@ -143,7 +143,7 @@ namespace deckard
 		{
 
 			if (size == 0 or size > buffer.size_bytes())
-				size = buffer.size_bytes();
+				size = as<u32>(buffer.size_bytes());
 
 			DWORD read{0};
 
