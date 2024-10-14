@@ -10,7 +10,7 @@ using namespace deckard;
 using namespace std::string_view_literals;
 using namespace std::string_literals;
 
-using namespace deckard::serializer;
+using namespace deckard::bitbuffer;
 
 TEST_CASE("bitwriter", "[bitwriter][serializer]")
 {
