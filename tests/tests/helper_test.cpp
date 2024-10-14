@@ -90,17 +90,26 @@ TEST_CASE("helpers", "[helpers]")
 	}
 
 
-	SECTION("index_of")
+	SECTION("try_index_of")
 	{
 		// array
 		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
-		REQUIRE(index_of(input, 40) == 3);
+
+		auto idx = try_index_of(input, 40);
+		REQUIRE(idx.has_value());
+		REQUIRE(*idx == 3);
 
 		// string
-		REQUIRE(6 == index_of("hello world lazy dog"sv, "world"));
-		REQUIRE(2 == index_of("hello world lazy dog"sv, "l"));
+		idx = try_index_of("hello world lazy dog"sv, "world");
+		REQUIRE(idx.has_value());
+		REQUIRE(6 == *idx);
 
-		REQUIRE(limits::max<u64> == index_of("hello world lazy dog"sv, "Q"));
+		idx = try_index_of("hello world lazy dog"sv, "l");
+		REQUIRE(idx.has_value());
+		REQUIRE(2 == *idx);
+
+		idx = try_index_of("hello world lazy dog"sv, "Q");
+		REQUIRE(not idx.has_value());
 	}
 
 	SECTION("take")
@@ -180,6 +189,11 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(c.has_value() == true);
 		REQUIRE(*c == -123.456f);
 
+		input   = "456.654";
+		auto c2 = try_to_number<f64>(input);
+		REQUIRE(c2.has_value() == true);
+		REQUIRE(*c2 == 456.654);
+
 		input  = "+128";
 		auto d = try_to_number<u8>(input);
 		REQUIRE(d.has_value() == true);
@@ -189,5 +203,10 @@ TEST_CASE("helpers", "[helpers]")
 		auto e = try_to_number<i16>(input);
 		REQUIRE(e.has_value() == true);
 		REQUIRE(*e == 666);
+
+
+		input  = "hello";
+		auto f = try_to_number<i16>(input);
+		REQUIRE(f.has_value() == false);
 	}
 }

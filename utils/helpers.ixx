@@ -409,9 +409,10 @@ export namespace deckard
 
 
 		T val{};
+
 		if constexpr (std::is_floating_point_v<T>)
 		{
-			auto [ptr, _] = std::from_chars(input.data(), input.data() + input.size(), val, std::chars_format::general);
+			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val);
 			if (ptr == input.data())
 			{
 				dbg::println("try_to_number<float> failed: '{}'", input);
@@ -426,7 +427,7 @@ export namespace deckard
 			if (input.starts_with('#'))
 			{
 				input.remove_prefix(1);
-				auto [ptr, _]{std::from_chars(input.data(), input.data() + input.size(), val, 16)};
+				auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, 16)};
 				if (ptr == input.data())
 				{
 					dbg::trace("try_to_number(\"{}\", base({})). Is not a hex number", input, 16);
@@ -436,10 +437,10 @@ export namespace deckard
 				return val;
 			}
 
-			auto [ptr, _] = std::from_chars(input.data(), input.data() + input.size(), val, base);
+			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val, base);
 			if (ptr == input.data())
 			{
-				dbg::println("try_to_number failed: '{}'", input);
+				dbg::trace("try_to_number failed: '{}'", input);
 
 				return {};
 			}
@@ -470,26 +471,21 @@ export namespace deckard
 
 	// index_of
 	template<non_string_container T, typename U>
-	auto index_of(const T& v, U find) -> u64
+	auto try_index_of(const T& v, U find) -> std::optional<u64>
 	{
 		auto result = std::ranges::find(v, find);
 		if (result == v.end())
-		{
-			dbg::println("index_of: could not find '{}' from container", find);
-			return limits::max<u64>;
-		}
+			return {};
 
 		return std::ranges::distance(v.begin(), result);
 	}
 
-	auto index_of(std::string_view input, std::string_view substr) -> u64
+	auto try_index_of(std::string_view input, std::string_view substr) -> std::optional<u64>
 	{
 		auto found = input.find(substr);
 		if (found == std::string_view::npos)
-		{
-			dbg::println("index_of: could not find '{}' from string", substr);
-			return limits::max<u64>;
-		}
+			return {};
+
 		return found;
 	}
 
