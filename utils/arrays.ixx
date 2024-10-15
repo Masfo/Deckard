@@ -169,13 +169,12 @@ namespace deckard
 		void dump() const
 		{
 #ifdef _DEBUG
+			constexpr u32 MIN_DUMPSIZE = 16;
 
-			if (m_extent.width > 32 or m_extent.height > 32)
-				return;
 
-			for (u32 y = 0; y < m_extent.height; y++)
+			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
 			{
-				for (u32 x = 0; x < m_extent.width; x++)
+				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
 				{
 					dbg::print("{:}", static_cast<U>(get(x, y)));
 				}
@@ -266,6 +265,18 @@ namespace deckard
 
 			static_assert(std::is_same_v<T, std::invoke_result_t<Func>>, "Callback must return the same type T as the array2d<T>");
 
+			if (x1 == x2)
+			{
+				vline(x1, y1, y2, cb());
+				return;
+			}
+
+			if (y1 == y2)
+			{
+				hline(x1, y1, x2, cb());
+				return;
+			}
+
 			i32 dx = std::abs(x2 - x1);
 			i32 dy = std::abs(y2 - y1);
 			i32 sx = (x1 < x2) ? 1 : -1;
@@ -297,8 +308,9 @@ namespace deckard
 		}
 
 		// TODO: vec2
-		// x1,x2,y
-		void hline(u32 x1, u32 x2, const u32 y, T v)
+
+		// x,y,x2
+		void hline(u32 x1, const u32 y, u32 x2, T v)
 		{
 			if (x1 > x2)
 				std::swap(x1, x2);
@@ -307,8 +319,8 @@ namespace deckard
 				set(x, y, v);
 		}
 
-		// y1,y2,x
-		void vline(u32 y1, u32 y2, u32 x, T v)
+		// x,y,y2
+		void vline(u32 x, u32 y1, u32 y2, T v)
 		{
 			if (y1 > y2)
 				std::swap(y1, y2);
@@ -332,11 +344,11 @@ namespace deckard
 			}
 			else
 			{
-				hline(x1, x2, y1, v);
-				hline(x1, x2, y2, v);
+				line(x1, y1, x2, y1, v); // T
+				line(x1, y2, x2, y2, v); // B
 
-				vline(y1, y2, x1, v);
-				vline(y1, y2, x2,v);
+				line(x1, y1, x1, y2, v); // L
+				line(x2, y1, x2, y2, v); // R
 			}
 		}
 
