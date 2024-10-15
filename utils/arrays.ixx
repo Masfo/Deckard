@@ -16,6 +16,13 @@ namespace deckard
 	using namespace deckard::math;
 	using namespace deckard::utils;
 
+	export enum class filled { yes, no };
+
+	export template<typename F>
+	concept floodfill_cb = requires(F fn, u32 x, u32 y) {
+		{ fn(x, y) };
+	};
+
 	export template<typename T>
 	class array2d
 	{
@@ -81,6 +88,15 @@ namespace deckard
 		}
 
 		void clear() { m_data.clear(); }
+
+		u32 count(std::string_view input) const
+		{
+			u32 count = 0;
+			for (u32 y = 0; y < height(); ++y)
+				for (u32 x = 0; x < width(); ++x)
+					count += input.contains(at(x, y)) ? 1 : 0;
+			return count;
+		}
 
 		void fill(const T& value) { std::ranges::fill(m_data, value); }
 
@@ -280,10 +296,54 @@ namespace deckard
 			}
 		}
 
-		void circle(i32 xm, i32 ym, i32 r, T v)
+		// TODO: vec2
+		// x1,x2,y
+		void hline(u32 x1, u32 x2, const u32 y, T v)
+		{
+			if (x1 > x2)
+				std::swap(x1, x2);
+
+			for (u32 x = x1; x <= x2; ++x)
+				set(x, y, v);
+		}
+
+		// y1,y2,x
+		void vline(u32 y1, u32 y2, u32 x, T v)
+		{
+			if (y1 > y2)
+				std::swap(y1, y2);
+
+			for (u32 y = y1; y <= y2; ++y)
+				set(x, y, v);
+		}
+
+		void rectangle(u32 x1, u32 y1, u32 x2, u32 y2, T v, filled f = filled::yes)
+		{
+			if (x1 > x2)
+				std::swap(x1, x2);
+			if (y1 > y2)
+				std::swap(y1, y2);
+
+			if (f == filled::yes)
+			{
+				for (u32 y = y1; y < y2 + 1; ++y)
+					for (u32 x = x1; x < x2 + 1; ++x)
+						set(x, y, v);
+			}
+			else
+			{
+				hline(x1, x2, y1, v);
+				hline(x1, x2, y2, v);
+
+				vline(y1, y2, x1, v);
+				vline(y1, y2, x2,v);
+			}
+		}
+
+		void circle(u32 xm, u32 ym, u32 r, T v)
 
 		{
-			i32 x = -r, y = 0, err = 2 - 2 * r;
+			u32 x = -r, y = 0, err = 2 - 2 * r;
 			do
 			{
 				set(xm - x, ym + y, v);
@@ -296,6 +356,54 @@ namespace deckard
 				if (r <= y)
 					err += ++y * 2 + 1;
 			} while (x < 0);
+		}
+
+		template<floodfill_cb Func>
+		u32 floodfill(u32 x, u32 y, const Func&& cb)
+		{
+			static_assert(
+			  std::is_same_v<T, std::invoke_result_t<Func, u32, u32>>, "Callback must be have signature fn(u32,u32) -> T (array2d<T>)");
+
+			T value = get(x, y);
+
+			std::set<std::pair<u32, u32>>   seen;
+			std::deque<std::pair<u32, u32>> to_visit;
+
+			to_visit.push_back({x, y});
+
+			u32 count{};
+
+			while (not to_visit.empty())
+			{
+				const auto [dx, dy] = to_visit.front();
+				to_visit.pop_front();
+
+				if (not valid(dx, dy))
+					continue;
+
+				if (seen.contains({dx, dy}))
+					continue;
+
+				seen.insert({dx, dy});
+
+				if (get(dx, dy) != value)
+					continue;
+
+				set(dx, dy, cb(dx, dy));
+				count += 1;
+
+				to_visit.push_back({dx + 1, dy + 0});
+				to_visit.push_back({dx + 0, dy + 1});
+				to_visit.push_back({dx - 1, dy - 0});
+				to_visit.push_back({dx - 0, dy - 1});
+			}
+
+			return count;
+		}
+
+		u32 floodfill(u32 x, u32 y, const T r)
+		{
+			return floodfill(x, y, [r](u32, u32) -> T { return r; });
 		}
 
 		// serialize to/from disk
