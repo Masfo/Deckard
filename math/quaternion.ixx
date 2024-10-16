@@ -182,9 +182,9 @@ namespace deckard::math
 
 		void set_rotation_matrix(const mat4& m)
 		{
-			const f32 m00 = m(0, 0);
-			const f32 m11 = m(1, 1);
-			const f32 m22 = m(2, 2);
+			const f32 m00 = m[0, 0];
+			const f32 m11 = m[1, 1];
+			const f32 m22 = m[2, 2];
 			const f32 sum = m00 + m11 + m22;
 
 			if (sum > 0.0f)
@@ -192,36 +192,36 @@ namespace deckard::math
 				data.c.w = std::sqrt(sum + 1.0f) * 0.5f;
 				f32 f    = 0.25f / data.c.w;
 
-				data.c.x = (m(2, 1) - m(1, 2)) * f;
-				data.c.y = (m(0, 2) - m(2, 0)) * f;
-				data.c.z = (m(1, 0) - m(0, 1)) * f;
+				data.c.x = (m[2, 1] - m[1, 2]) * f;
+				data.c.y = (m[0, 2] - m[2, 0]) * f;
+				data.c.z = (m[1, 0] - m[0, 1]) * f;
 			}
 			else if ((m00 > m11) and (m00 > m22))
 			{
 				data.c.w = std::sqrt(m00 - m11 - m22 + 1.0f) * 0.5f;
 				f32 f    = 0.25f / data.c.x;
 
-				data.c.x = (m(1, 0) + m(0, 1)) * f;
-				data.c.z = (m(0, 2) + m(2, 0)) * f;
-				data.c.w = (m(2, 1) - m(1, 2)) * f;
+				data.c.x = (m[1, 0] + m[0, 1]) * f;
+				data.c.z = (m[0, 2] + m[2, 0]) * f;
+				data.c.w = (m[2, 1] - m[1, 2]) * f;
 			}
 			else if (m11 > m22)
 			{
 				data.c.y = std::sqrt(m11 - m00 - m22 + 1.0f) * 0.5f;
 				f32 f    = 0.25f / data.c.y;
 
-				data.c.x = (m(1, 0) + m(0, 1)) * f;
-				data.c.z = (m(2, 1) + m(1, 2)) * f;
-				data.c.w = (m(0, 2) - m(2, 0)) * f;
+				data.c.x = (m[1, 0] + m[0, 1]) * f;
+				data.c.z = (m[2, 1] + m[1, 2]) * f;
+				data.c.w = (m[0, 2] - m[2, 0]) * f;
 			}
 			else
 			{
 				data.c.w = std::sqrt(m22 - m00 - m11 + 1.0f) * 0.5f;
 				f32 f    = 0.25f / data.c.w;
 
-				data.c.x = (m(0, 2) + m(0, 1)) * f;
-				data.c.y = (m(2, 1) + m(1, 2)) * f;
-				data.c.z = (m(1, 0) - m(0, 1)) * f;
+				data.c.x = (m[0, 2] + m[0, 1]) * f;
+				data.c.y = (m[2, 1] + m[1, 2]) * f;
+				data.c.z = (m[1, 0] - m[0, 1]) * f;
 			}
 		}
 

@@ -84,11 +84,10 @@ namespace deckard::math
 			return data[i * 4 + j];
 		}
 
-		const f32& operator()(u32 i, u32 j) const
+		f32& operator[](std::size_t i, std::size_t j)
 		{
 			assert::check(i < data.size() or j < data.size(), "mat4: indexing out-of-bounds");
-
-			return data[j * 4 + i];
+			return data[i * 4 + j];
 		}
 
 		f32& operator[](int index)
@@ -120,7 +119,7 @@ namespace deckard::math
 				{
 					f32 sum{0.0f};
 					for (int i = 0; i < 4; ++i)
-						sum += this->operator()(row, i) * rhs(i, col);
+						sum += this->operator[](i, row) * rhs[col, i];
 
 					tmp[row + col * 4] = sum;
 				}
@@ -130,56 +129,10 @@ namespace deckard::math
 
 		vec4 operator*(const vec4& v) const
 		{
-			/*
-		typename mat<4, 4, T, Q>::col_type const Mov0(v[0]);
-		typename mat<4, 4, T, Q>::col_type const Mov1(v[1]);
-		typename mat<4, 4, T, Q>::col_type const Mul0 = m[0] * Mov0;
-		typename mat<4, 4, T, Q>::col_type const Mul1 = m[1] * Mov1;
-		typename mat<4, 4, T, Q>::col_type const Add0 = Mul0 + Mul1;
-
-		typename mat<4, 4, T, Q>::col_type const Mov2(v[2]);
-		typename mat<4, 4, T, Q>::col_type const Mov3(v[3]);
-
-		typename mat<4, 4, T, Q>::col_type const Mul2 = m[2] * Mov2;
-		typename mat<4, 4, T, Q>::col_type const Mul3 = m[3] * Mov3;
-
-		typename mat<4, 4, T, Q>::col_type const Add1 = Mul2 + Mul3;
-		typename mat<4, 4, T, Q>::col_type const Add2 = Add0 + Add1;
-		return Add2;
-			*/
-#if 0
-			vec4 Mov0(v[0]);
-			vec4 Mul0 = vec4(data[0], data[1], data[2], data[3]) * Mov0;
-
-			vec4 Mov1(v[1]);
-			vec4 Mul1 = vec4(data[4], data[5], data[6], data[7]) * Mov1;
-
-			vec4 Add0 = Mul0 + Mul1;
-
-			vec4 Mov2(v[2]);
-			vec4 Mov3(v[3]);
-
-			vec4 Mul2 = vec4(data[8], data[9], data[10], data[11]) * Mov2;
-			vec4 Mul3 = vec4(data[12], data[13], data[14], data[15]) * Mov3;
-
-			vec4 Add1 = Mul2 + Mul3;
-			return Add0 + Add1;
-#else
-			return vec4(
-			  //
-			  data[0] * v[0] + data[4] * v[1] + data[8] * v[2] + data[12] * v[3],
-			  data[1] * v[0] + data[5] * v[1] + data[9] * v[2] + data[13] * v[3],
-			  data[2] * v[0] + data[6] * v[1] + data[10] * v[2] + data[14] * v[3],
-			  data[3] * v[0] + data[7] * v[1] + data[11] * v[2] + data[15] * v[3]);
-#endif
-#if 0
-			return vec4(
-			  this->operator()(0, 0) * v[0] + this->operator()(0, 1) * v[1] + this->operator()(0, 2) * v[2] + this->operator()(0, 3) * v[3],
-			  this->operator()(1, 0) * v[0] + this->operator()(1, 1) * v[1] + this->operator()(1, 2) * v[2] + this->operator()(1, 3) * v[3],
-			  this->operator()(2, 0) * v[0] + this->operator()(2, 1) * v[1] + this->operator()(2, 2) * v[2] + this->operator()(2, 3) * v[3],
-			  this->operator()(3, 0) * v[0] + this->operator()(3, 1) * v[1] + this->operator()(3, 2) * v[2] +
-				this->operator()(3, 3) * v[3]);
-#endif
+			return vec4(data[0] * v[0] + data[4] * v[1] + data[8] * v[2] + data[12] * v[3],
+						data[1] * v[0] + data[5] * v[1] + data[9] * v[2] + data[13] * v[3],
+						data[2] * v[0] + data[6] * v[1] + data[10] * v[2] + data[14] * v[3],
+						data[3] * v[0] + data[7] * v[1] + data[11] * v[2] + data[15] * v[3]);
 		}
 
 		mat4_generic operator-() const
@@ -226,7 +179,7 @@ namespace deckard::math
 			{
 				f32 sum{0.0f};
 				for (int i = 0; i < 4; ++i)
-					sum += lhs(row, i) * rhs(i, col);
+					sum += lhs[i, row] * rhs[col, i];
 
 				tmp[row + col * 4] = sum;
 			}
@@ -313,10 +266,10 @@ namespace deckard::math
 	export mat4_generic transpose(const mat4_generic& mat)
 	{
 		return mat4_generic(
-		  vec4(mat(0, 0), mat(0, 1), mat(0, 2), mat(0, 3)),
-		  vec4(mat(1, 0), mat(1, 1), mat(1, 2), mat(1, 3)),
-		  vec4(mat(2, 0), mat(2, 1), mat(2, 2), mat(2, 3)),
-		  vec4(mat(3, 0), mat(3, 1), mat(3, 2), mat(3, 3)));
+		  vec4(mat[0, 0], mat[1, 0], mat[2, 0], mat[3, 0]),
+		  vec4(mat[0, 1], mat[1, 1], mat[2, 1], mat[3, 1]),
+		  vec4(mat[0, 2], mat[1, 2], mat[2, 2], mat[3, 2]),
+		  vec4(mat[0, 3], mat[1, 3], mat[2, 3], mat[3, 3]));
 	}
 
 	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up)
@@ -336,27 +289,27 @@ namespace deckard::math
 	export mat4_generic scale(const mat4_generic& mat, const vec3& scale)
 	{
 		return mat4_generic(
-		  vec4(mat(0, 0) * scale[0], mat(1, 0) * scale[0], mat(2, 0) * scale[0], mat(3, 0) * scale[0]),
-		  vec4(mat(0, 1) * scale[1], mat(1, 1) * scale[1], mat(2, 1) * scale[1], mat(3, 1) * scale[1]),
-		  vec4(mat(0, 2) * scale[2], mat(1, 2) * scale[2], mat(2, 2) * scale[2], mat(3, 2) * scale[2]),
-		  vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3)));
+		  vec4(mat[0, 0] * scale[0], mat[0, 1] * scale[0], mat[0, 2] * scale[0], mat[0, 3] * scale[0]),
+		  vec4(mat[1, 0] * scale[1], mat[1, 1] * scale[1], mat[1, 2] * scale[1], mat[1, 3] * scale[1]),
+		  vec4(mat[2, 0] * scale[2], mat[2, 1] * scale[2], mat[2, 2] * scale[2], mat[2, 3] * scale[2]),
+		  vec4(mat[3, 0], mat[3, 1], mat[3, 2], mat[3, 3]));
 	}
 
 	export mat4_generic translate(const mat4_generic& mat, const vec3& translate)
 	{
 
-		vec4 v(mat(0, 0), mat(1, 0), mat(2, 0), 1);
+		vec4 v(mat[0, 0], mat[0, 1], mat[0, 2], 1);
 
 		v *= translate[0];
-		v += vec4(mat(0, 1), mat(1, 1), mat(2, 1), mat(3, 1)) * translate[1];
-		v += vec4(mat(0, 2), mat(1, 2), mat(2, 2), mat(3, 2)) * translate[2];
-		v += vec4(mat(0, 3), mat(1, 3), mat(2, 3), mat(3, 3));
+		v += vec4(mat[1, 0], mat[1, 1], mat[1, 2], mat[1, 3]) * translate[1];
+		v += vec4(mat[2, 0], mat[2, 1], mat[2, 2], mat[2, 3]) * translate[2];
+		v += vec4(mat[3, 0], mat[3, 1], mat[3, 2], mat[3, 3]);
 
 
 		return mat4_generic(
-		  vec4(mat(0, 0), mat(1, 0), mat(2, 0), mat(3, 0)),
-		  vec4(mat(0, 1), mat(1, 1), mat(2, 1), mat(3, 1)),
-		  vec4(mat(0, 2), mat(1, 2), mat(2, 2), mat(3, 2)),
+		  vec4(mat[0, 0], mat[0, 1], mat[0, 2], mat[0, 3]),
+		  vec4(mat[1, 0], mat[1, 1], mat[1, 2], mat[1, 3]),
+		  vec4(mat[2, 0], mat[2, 1], mat[2, 2], mat[2, 3]),
 		  v);
 	}
 
