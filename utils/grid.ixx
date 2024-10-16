@@ -5,6 +5,7 @@ import deckard.arrays;
 import deckard.debug;
 import deckard.types;
 import deckard.math;
+import deckard.utils.hash;
 
 namespace deckard
 {
@@ -19,7 +20,7 @@ namespace deckard
 
 	// TODO: Non-member drawings, works with array2d<bool> too
 
-	export template<std::unsigned_integral T = u8>
+	export template<typename T = u8>
 	class grid
 	{
 	private:
@@ -55,6 +56,14 @@ namespace deckard
 		u32 width() const { return data.width(); };
 
 		u32 height() const { return data.height(); };
+
+		u32 size() const { return data.size(); }
+
+		u32 size_in_bytes() const { return data.size_in_bytes(); }
+
+		operator auto() const noexcept { return hash(); }
+
+		auto hash(u64 seed = 0) const { return data.hash(seed); }
 
 		void line(i32 x1, i32 y1, i32 x2, i32 y2, T v)
 		{

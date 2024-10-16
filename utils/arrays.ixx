@@ -46,7 +46,7 @@ namespace deckard
 
 		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
 
-		auto data() const { return m_data.data(); }
+		auto& data() const { return m_data.data(); }
 
 		auto begin() const { return m_data.begin(); }
 
@@ -224,8 +224,8 @@ namespace deckard
 
 		void resize(u32 new_m_width, u32 new_m_height)
 		{
-			assert::check(new_m_width > 1);
-			assert::check(new_m_height > 1);
+			assert::check(new_m_width >= 1);
+			assert::check(new_m_height >= 1);
 
 			m_extent.width  = new_m_width;
 			m_extent.height = new_m_height;

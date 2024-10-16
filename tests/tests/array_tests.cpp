@@ -2,24 +2,24 @@
 
 
 import std;
-import deckard.arrays;
+import deckard.grid;
 
 using namespace deckard;
 
-TEST_CASE("array2d", "[array]")
+TEST_CASE("grid", "[array]")
 {
 	SECTION("init")
 	{
-		array2d<int> g(8, 8);
+		grid<int> g(8, 8);
 		REQUIRE(g.size_in_bytes() == 8 * 8 * 4);
 
-		array2d<int> g2(9, 9);
+		grid<int> g2(9, 9);
 		REQUIRE(g2.size_in_bytes() == 9 * 9 * 4);
 	}
 
 	SECTION("get/set")
 	{
-		array2d<int> g(8, 8);
+		grid<int> g(8, 8);
 
 		REQUIRE(0 == g.get(1, 1));
 		g.set(1, 1, 1);
@@ -31,7 +31,7 @@ TEST_CASE("array2d", "[array]")
 
 	SECTION("valid")
 	{
-		array2d<int> g(8, 8);
+		grid<int> g(8, 8);
 		REQUIRE(true == g.valid(0, 0));
 		REQUIRE(true == g.valid(7, 7));
 		REQUIRE(false == g.valid(8, 8));
@@ -39,13 +39,13 @@ TEST_CASE("array2d", "[array]")
 
 	SECTION("hash")
 	{
-		array2d<int> g(8, 8);
+		grid<int> g(8, 8);
 		REQUIRE(0x3d0a'02d5'a2e3'8a7d == g.hash());
 	}
 
 	SECTION("reverse col")
 	{
-		array2d<u8> grid(8, 8);
+		grid<u8> grid(8, 8);
 		grid.fill('.');
 
 		grid.set(1, 1, '1');
@@ -62,7 +62,7 @@ TEST_CASE("array2d", "[array]")
 
 	SECTION("reverse row")
 	{
-		array2d<u8> grid(8, 8);
+		grid<u8> grid(8, 8);
 		grid.fill('.');
 
 		grid.set(1, 1, '1');
@@ -82,20 +82,20 @@ TEST_CASE("array2d", "[array]")
 }
 
 //
-TEST_CASE("array2d<bool>", "[array]")
+TEST_CASE("grid<bool>", "[array]")
 {
 	SECTION("init")
 	{
-		array2d<bool> g(8, 8);
+		grid<bool> g(8, 8);
 		REQUIRE(g.size_in_bytes() == 8);
 
-		array2d<bool> g2(9, 9);
+		grid<bool> g2(9, 9);
 		REQUIRE(g2.size_in_bytes() == 11);
 	}
 
 	SECTION("hash")
 	{
-		array2d<bool> g(8, 8);
+		grid<bool> g(8, 8);
 		REQUIRE(0x8a23'e09e'6054'a0ea == g.hash());
 	}
 }
