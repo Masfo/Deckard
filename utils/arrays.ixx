@@ -46,7 +46,7 @@ namespace deckard
 
 		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
 
-		auto& data() const { return m_data.data(); }
+		auto data() const { return m_data.data(); }
 
 		auto begin() const { return m_data.begin(); }
 
@@ -195,6 +195,10 @@ namespace deckard
 
 		bool operator()(const u32 x, const u32 y) const { return get(x, y); }
 
+		bool at(const u32 x, const u32 y) { return get(x, y); }
+
+		bool at(const u32 x, const u32 y) const { return get(x, y); }
+
 		bool get(u32 x, u32 y) const
 		{
 			assert::check(valid(x, y));
@@ -241,14 +245,19 @@ namespace deckard
 
 		u32 height() const { return m_extent.height; };
 
+		template<typename U>
 		void dump() const
 		{
+
 #ifdef _DEBUG
-			for (u32 y = 0; y < m_extent.height; y++)
+			constexpr u32 MIN_DUMPSIZE = 16;
+
+			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
 			{
-				for (u32 x = 0; x < m_extent.width; x++)
+				dbg::println("{:02}. ", y);
+				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
 				{
-					dbg::print("{:d}", get(x, y));
+					dbg::print("{:}", static_cast<U>(get(x, y)));
 				}
 				dbg::println();
 			}
