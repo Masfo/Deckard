@@ -20,11 +20,11 @@ namespace deckard
 
 	// TODO: Non-member drawings, works with array2d<bool> too
 
-	export template<typename T = u8>
+	export template<typename T = u8, typename BufferType = array2d<T>>
 	class grid
 	{
 	private:
-		array2d<T> data;
+		BufferType data;
 
 	public:
 		grid() = default;
@@ -65,8 +65,9 @@ namespace deckard
 
 		auto hash(u64 seed = 0) const { return data.hash(seed); }
 
-		void line(i32 x1, i32 y1, i32 x2, i32 y2, T v)
+		void line(i32 x1, i32 y1, i32 x2, i32 y2, const T& v)
 		{
+
 			line(x1, y1, x2, y2, [v] { return v; });
 		}
 
@@ -119,7 +120,7 @@ namespace deckard
 		}
 
 		// x,y,x2
-		void hline(u32 x1, const u32 y, u32 x2, T v)
+		void hline(u32 x1, const u32 y, u32 x2, const T& v)
 		{
 			if (x1 > x2)
 				std::swap(x1, x2);
@@ -129,7 +130,7 @@ namespace deckard
 		}
 
 		// x,y,y2
-		void vline(u32 x, u32 y1, u32 y2, T v)
+		void vline(u32 x, u32 y1, u32 y2, T const& v)
 		{
 			if (y1 > y2)
 				std::swap(y1, y2);
@@ -138,7 +139,7 @@ namespace deckard
 				set(x, y, v);
 		}
 
-		void rectangle(u32 x1, u32 y1, u32 x2, u32 y2, T v, filled f = filled::yes)
+		void rectangle(u32 x1, u32 y1, u32 x2, u32 y2, const T& v, filled f = filled::yes)
 		{
 			if (x1 > x2)
 				std::swap(x1, x2);
@@ -161,7 +162,7 @@ namespace deckard
 			}
 		}
 
-		void circle(u32 xm, u32 ym, u32 r, T v)
+		void circle(u32 xm, u32 ym, u32 r, const T& v)
 
 		{
 			u32 x = -r, y = 0, err = 2 - 2 * r;
@@ -224,7 +225,7 @@ namespace deckard
 			return count;
 		}
 
-		u32 floodfill(u32 x, u32 y, const T r)
+		u32 floodfill(u32 x, u32 y, const T& r)
 		{
 			return floodfill(x, y, [r](u32, u32) -> T { return r; });
 		}
@@ -324,20 +325,7 @@ namespace deckard
 		template<typename U = char>
 		void dump() const
 		{
-#ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE = 16;
-
-
-			for (u32 y = 0; y < std::min(height(), MIN_DUMPSIZE); y++)
-			{
-				for (u32 x = 0; x < std::min(width(), MIN_DUMPSIZE); x++)
-				{
-					dbg::print("{:}", static_cast<U>(data.at(x, y)));
-				}
-				dbg::println();
-			}
-			dbg::println();
-#endif
+			data.dump<U>();
 		}
 	};
 } // namespace deckard
