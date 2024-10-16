@@ -77,12 +77,12 @@ namespace deckard::math
 			data[15] = v3[3];
 		}
 
+		const f32& operator[](std::size_t i, std::size_t j) const
+		{
+			assert::check(i < data.size() or j < data.size(), "mat4: indexing out-of-bounds");
 
-#ifdef __cpp_multidimensional_subscript
-#error("use multisubscript")
-		// const f32& operator[](std::size_t z, std::size_t y) const  { return 0.0f; }
-#endif
-
+			return data[i * 4 + j];
+		}
 
 		const f32& operator()(u32 i, u32 j) const
 		{

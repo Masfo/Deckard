@@ -17,6 +17,8 @@ namespace deckard
 		{ fn(x, y) };
 	};
 
+	// TODO: Non-member drawings, works with array2d<bool> too
+
 	export template<std::unsigned_integral T = u8>
 	class grid
 	{
@@ -29,6 +31,8 @@ namespace deckard
 		grid(u32 w, u32 h) { data.resize(w, h); }
 
 		// TODO: vec2
+
+		T& operator[](const u32 x, const u32 y) { return data.get(x, y); }
 
 		T& at(const u32 x, const u32 y) { return data.get(x, y); }
 

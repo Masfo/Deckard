@@ -47,7 +47,7 @@ if(MSVC)
     #target_compile_options(deckard PRIVATE /await:strict)
 
 
-    target_compile_options(deckard PRIVATE /Zc:preprocessor /experimental:module)
+    target_compile_options(deckard PRIVATE /Zc:preprocessor)
     target_compile_options(deckard PRIVATE /std:c++latest)
     target_compile_options(deckard PRIVATE /Zc:__cplusplus /Zc:__STDC__)
     target_compile_options(deckard PRIVATE /utf-8)

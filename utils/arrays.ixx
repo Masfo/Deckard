@@ -36,12 +36,9 @@ namespace deckard
 		{
 		}
 
+		T operator[](const u32 x, const u32 y) const { return at(x, y); }
 
-#ifdef __cpp_multidimensional_subscript
-#error("use multisubscript")
-		// T operator[](const u32 x, const u32 y) const  {  }
-		// T& operator[](const u32 x, const u32 y) {  }
-#endif
+		T& operator[](const u32 x, const u32 y) { return at(x, y); }
 
 		T operator()(const u32 x, const u32 y) const { return get(x, y); }
 
