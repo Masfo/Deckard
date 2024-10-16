@@ -203,6 +203,7 @@ set(DECKARD_SRCS
         utils/function_ref.ixx
         utils/arrays.ixx
         utils/bitbuffer.ixx
+        utils/grid.ixx
 
         # Unicode
         unicode/utf8.ixx
