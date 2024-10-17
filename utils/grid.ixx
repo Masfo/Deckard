@@ -230,7 +230,7 @@ namespace deckard
 			return floodfill(x, y, [r](u32, u32) -> T { return r; });
 		}
 
-		// find_all, returns points in grid order
+		// returns points in grid order
 		[[nodiscard]] auto find_all(const T to_find) const
 		{
 			std::vector<uvec2> points;
@@ -322,7 +322,7 @@ namespace deckard
 			return true;
 		}
 
-		template<typename U = char>
+		template<typename U>
 		void dump() const
 		{
 			data.dump<U>();

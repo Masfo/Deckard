@@ -9,6 +9,8 @@ namespace deckard::bitbuffer
 
 	export enum class padding : u8 { yes, no };
 
+	// TODO: name bitfield
+
 	export class bitwriter
 	{
 	public:

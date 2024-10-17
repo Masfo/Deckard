@@ -14,6 +14,10 @@ namespace fs = std::filesystem;
 
 namespace deckard
 {
+
+	// virtualfile
+	// fills buffers, if full dump to disk
+
 	export class file
 	{
 	private:
