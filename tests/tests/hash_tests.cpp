@@ -13,7 +13,6 @@ using namespace std::string_view_literals;
 
 TEST_CASE("SHA digests", "[sha][hash]")
 {
-	//
 	sha256::digest correct_abc_digest{
 	  0xba78'16bf, 0x8f01'cfea, 0x4141'40de, 0x5dae'2223, 0xb003'61a3, 0x9617'7a9c, 0xb410'ff61, 0xf200'15ad};
 
@@ -29,6 +28,7 @@ TEST_CASE("SHA digests", "[sha][hash]")
 
 	sha256::digest hash256_str("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"sv);
 	REQUIRE(correct_abc_digest == hash256_str);
+
 
 	sha512::digest correct_512_digest{
 	  0xcf83'e135'7eef'b8bd,

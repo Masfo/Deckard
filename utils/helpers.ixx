@@ -87,18 +87,23 @@ export namespace deckard
 		bool        show_hex{true};
 	};
 
-	// TODO: Better hexdump, dump max(output.size()) amount of hex dump
-	template<typename T = u8>
+	template<typename T>
 	u64 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {})
 	{
+		u64 len{0};
+
+
 		const u64 delimiter_len = input.size() == 1 ? 0 : as<u64>(options.delimiter.size());
 		const u64 hex_len       = options.show_hex ? 2 : 0;
 
 		const u64 stride = (sizeof(T) * 2) + delimiter_len + hex_len;
 		const u64 maxlen = (as<u64>(input.size()) * stride) - delimiter_len;
 
-		if (input.empty() or output.size() < maxlen or output.empty())
+		if (output.empty())
 			return maxlen;
+
+		if (input.empty())
+			return 0;
 
 		constexpr static std::array<u8, 32> HEX_LUT{
 		  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -106,51 +111,57 @@ export namespace deckard
 		const i32 lowercase_offset = options.lowercase ? 16 : 0;
 
 		const bool show_hex = options.show_hex;
-		u64        len      = 0;
+
+		auto output_byte = [&](u32 i, u32 offset, char b) -> bool
+		{
+			u32 index = i * stride + offset;
+			if (index >= output.size())
+				return false;
+
+			output[index] = b;
+			len += 1;
+			return true;
+		};
 
 		for (const auto [i, word] : std::views::enumerate(input))
 		{
 
-
 			const T input_word = options.endian_swap ? std::byteswap(word) : word;
 
 			u32 offset = 0;
+
 			if (show_hex)
 			{
-
-
-				output[i * stride + offset] = '0';
-				offset += 1;
-
-				output[i * stride + offset] = 'x';
-				offset += 1;
-				len += 2;
+				if (not output_byte(i, offset++, '0'))
+					break;
+				if (not output_byte(i, offset++, 'x'))
+					break;
 			}
 
+			u32 len2 = 0;
 			for (u8 byteindex = 0; byteindex < sizeof(T); byteindex++)
 			{
 				const T  shift       = byteindex * 8;
 				const T  mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF_u8) << shift;
 				const u8 masked_byte = as<u8>((input_word & mask) >> shift);
 
+				if (not output_byte(i, offset++, HEX_LUT[((masked_byte) >> 4) + lowercase_offset]))
+					break;
+				if (not output_byte(i, offset++, HEX_LUT[((masked_byte) & 0xF) + lowercase_offset]))
+					break;
 
-				output[i * stride + offset] = HEX_LUT[((masked_byte) >> 4) + lowercase_offset];
-				offset += 1;
-
-				output[i * stride + offset] = HEX_LUT[((masked_byte) & 0xF) + lowercase_offset];
-				offset += 1;
+				len2 += 1;
 			}
 
-			len += sizeof(T);
 
 			for (size_t j = 0; (as<u64>(i) < input.size() - 1) and (j < options.delimiter.size()); j++)
 			{
-
-				output[i * stride + offset] = options.delimiter[j];
-				offset += 1;
-				len += 1;
+				if (not output_byte(i, offset++, options.delimiter[j]))
+					break;
 			}
 		}
+
+
 		return len;
 	}
 
@@ -160,7 +171,8 @@ export namespace deckard
 	{
 		std::string ret;
 
-		ret.resize(to_hex(input, {}, options));
+		auto len = to_hex<T>(input, {}, options);
+		ret.resize(len);
 
 		(void)to_hex<T>(input, {as<u8*>(ret.data()), ret.size()}, options);
 
@@ -170,6 +182,11 @@ export namespace deckard
 	std::string to_hex_string(const std::string_view input, const HexOption& options = {})
 	{
 		return to_hex_string(std::span{as<u8*>(input.data()), input.size()}, options);
+	}
+
+	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
+	{
+		return to_hex_string(std::span{as<u8*>(input.data()), len}, options);
 	}
 
 	// epoch
