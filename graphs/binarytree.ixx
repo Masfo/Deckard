@@ -224,6 +224,8 @@ export namespace deckard::graph::binary
 			count = 0;
 		}
 
+		void print() { print(root); }
+
 	private:
 		bool contains(const T& x, const nodeptr& node) const
 		{
@@ -395,6 +397,22 @@ export namespace deckard::graph::binary
 				if (current->right)
 					q.push_back(current->right.get());
 			}
+		}
+
+		void print(const nodeptr& node) { print("", node, false); }
+
+		void print(const std::string& prefix, const nodeptr& node, bool isleft)
+		{
+			if (node == nullptr)
+				return;
+
+			dbg::print("{}", prefix);
+			dbg::print("{}", isleft ? "├──" : "└──");
+
+			dbg::println("{}", node->data);
+
+			print(prefix + (isleft ? "│   " : "    "), node->left, true);
+			print(prefix + (isleft ? "│   " : "    "), node->right, false);
 		}
 	};
 } // namespace deckard::graph::binary

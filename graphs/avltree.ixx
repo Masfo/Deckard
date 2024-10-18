@@ -230,6 +230,9 @@ namespace deckard::graph::avl
 
 		bool operator==(const tree& other) const { return compare(other); }
 
+		void print() { print(root); }
+
+
 	private:
 		nodeptr clone(const nodeptr& node) const
 		{
@@ -461,6 +464,22 @@ namespace deckard::graph::avl
 		{
 			rotate_left(k1->right);
 			rotate_right(k1);
+		}
+
+				void print(const nodeptr& node) { print("", node, false); }
+
+		void print(const std::string& prefix, const nodeptr& node, bool isleft)
+		{
+			if (node == nullptr)
+				return;
+
+			dbg::print("{}", prefix);
+			dbg::print("{}", isleft ? "├──" : "└──");
+
+			dbg::println("{}", node->data);
+
+			print(prefix + (isleft ? "│   " : "    "), node->left, true);
+			print(prefix + (isleft ? "│   " : "    "), node->right, false);
 		}
 
 	}; // end of class avl
