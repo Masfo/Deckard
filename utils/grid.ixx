@@ -18,7 +18,7 @@ namespace deckard
 		{ fn(x, y) };
 	};
 
-	// TODO: Non-member drawings, works with array2d<bool> too
+	// TODO: non-member drawings
 
 	export template<typename T = u8, typename BufferType = array2d<T>>
 	class grid
@@ -27,6 +27,8 @@ namespace deckard
 		BufferType data;
 
 	public:
+		// friend void dump(const grid&);
+
 		grid() = default;
 
 		grid(u32 w, u32 h) { data.resize(w, h); }
@@ -328,4 +330,13 @@ namespace deckard
 			data.dump<U>();
 		}
 	};
+
+	// non-members
+
+
+	export template<typename T>
+	void dump(const grid<T>& buffer)
+	{
+		// dump<T>(buffer.data);
+	}
 } // namespace deckard

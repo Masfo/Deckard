@@ -166,9 +166,7 @@ namespace deckard
 		{
 			return m_extent.width == lhs.m_extent.width && m_extent.height == lhs.m_extent.height && m_data == lhs.m_data;
 		}
-
-
-	}; // namespace deckard
+	};
 
 	export template<>
 	class array2d<bool>
@@ -297,6 +295,25 @@ namespace deckard
 		}
 	};
 
+	// non-members
+
+	export template<typename T>
+	void dump(const array2d<T>& buffer)
+	{
+#ifdef _DEBUG
+		constexpr u32 MIN_DUMPSIZE = 16;
+
+		for (u32 y = 0; y < std::min(buffer.height(), MIN_DUMPSIZE); y++)
+		{
+			for (u32 x = 0; x < std::min(buffer.width(), MIN_DUMPSIZE); x++)
+			{
+				dbg::print("{:}", buffer.get(x, y));
+			}
+			dbg::println();
+		}
+		dbg::println();
+#endif
+	}
 
 } // namespace deckard
 
