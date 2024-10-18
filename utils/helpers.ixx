@@ -138,7 +138,6 @@ export namespace deckard
 					break;
 			}
 
-			u32 len2 = 0;
 			for (u8 byteindex = 0; byteindex < sizeof(T); byteindex++)
 			{
 				const T  shift       = byteindex * 8;
@@ -149,8 +148,6 @@ export namespace deckard
 					break;
 				if (not output_byte(i, offset++, HEX_LUT[((masked_byte) & 0xF) + lowercase_offset]))
 					break;
-
-				len2 += 1;
 			}
 
 
