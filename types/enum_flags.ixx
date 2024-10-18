@@ -89,7 +89,8 @@ export namespace deckard
 		return static_cast<bool>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
-	// P3070 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
+	// P3070r0 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
+	//      r1 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3070r1.html
 	template<EnumFlagType T>
 	auto format_as(T f)
 	{
