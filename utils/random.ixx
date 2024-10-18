@@ -10,6 +10,7 @@ import deckard_build;
 import std;
 import deckard.types;
 import deckard.debug;
+import deckard.as;
 
 namespace deckard::random
 {
@@ -57,22 +58,22 @@ namespace deckard::random
 	export bool randbool() { return rnd<bool>(); }
 
 	// signed
-	export i8 randi8() { return rnd<i8>(); }
+	export i8 randi8(i8 min = limits::min<i8>, i8 max = limits::max<i8>) { return as<i8>(rnd<i16>(min, max)); }
 
-	export i16 randi16() { return rnd<i16>(); }
+	export i16 randi16(i16 min = limits::min<i16>, i16 max = limits::max<i16>) { return rnd<i16>(min, max); }
 
-	export i32 randi32() { return rnd<i32>(); }
+	export i32 randi32(i32 min = limits::min<i32>, i32 max = limits::max<i32>) { return rnd<i32>(min, max); }
 
-	export i64 randi64() { return rnd<i64>(); }
+	export i64 randi64(i64 min = limits::min<i64>, i64 max = limits::max<i64>) { return rnd<i64>(min, max); }
 
 	// unsigned
-	export u8 randu8() { return rnd<u8>(); }
+	export u8 randu8(u8 min = limits::min<u8>, u8 max = limits::max<u8>) { return as<u8>(rnd<u16>(min, max)); }
 
-	export u16 randu16() { return rnd<u16>(); }
+	export u16 randu16(u16 min = limits::min<u16>, u16 max = limits::max<u16>) { return rnd<u16>(min, max); }
 
-	export u32 randu32() { return rnd<u32>(); }
+	export u32 randu32(u32 min = limits::min<u32>, u32 max = limits::max<u32>) { return rnd<u32>(min, max); }
 
-	export u64 randu64() { return rnd<u64>(); }
+	export u64 randu64(u64 min = limits::min<u64>, u64 max = limits::max<u64>) { return rnd<u64>(min, max); }
 
 	// the default
 	export auto rand() { return randu32(); }
