@@ -17,12 +17,6 @@ import deckard.serializer;
 import deckard.app;
 
 
-#ifdef __cpp_multidimensional_subscript
-#error("use multisubscript")
-// const f32& operator[](std::size_t z, std::size_t y) const  { return 0.0f; }
-#endif
-
-
 #ifndef _DEBUG
 import dbc;
 #endif
