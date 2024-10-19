@@ -1,4 +1,4 @@
-github.com/AlDanial/cloc v 1.98  T=0.12 s (693.3 files/s, 154556.6 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.16 s (528.6 files/s, 118153.9 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
@@ -12,17 +12,17 @@ File                                                blank        comment        
 .\unicode\utf8_xid_tables.ixx                           6              3            365
 .\utils\cpuid.ixx                                     107             15            363
 .\utils\sha2.ixx                                       87              1            336
-.\math\matrix.ixx                                      84             27            333
+.\math\matrix.ixx                                      84             28            333
 .\math\quaternion.ixx                                  88             12            332
 .\graphs\binarytree.ixx                                82             12            324
 .\utils\bitbuffer.ixx                                  83              9            323
 .\math\vec3_sse.ixx                                   121             13            308
 .\math\vec2_sse.ixx                                   119             12            295
+.\utils\grid.ixx                                       90             12            286
 .\app\gl\opengl.ixx                                    63             18            283
 .\math\vec4_sse.ixx                                    99             10            272
 .\app\vulkan\device.ixx                                91             17            258
 .\file\File.ixx                                        87              3            252
-.\utils\grid.ixx                                       86             10            246
 .\utils\arrays.ixx                                     93              1            236
 .\app\vulkan.ixx                                       96             50            230
 .\net\socket.ixx                                       73              9            228
@@ -52,7 +52,7 @@ File                                                blank        comment        
 .\app\vulkan\debug.ixx                                 19              5             75
 .\archive\archive.ixx                                  23             25             71
 .\taskpool\taskpool.ixx                                16              0             71
-.\utils\random.ixx                                     28              5             70
+.\utils\random.ixx                                     28              5             71
 .\Deckard.ixx                                          33             14             68
 .\unicode\utf8_xid.ixx                                 12              1             62
 .\app\vulkan\surface.ixx                               17              1             54
@@ -87,5 +87,5 @@ File                                                blank        comment        
 .\example\empty\src\main.cpp                            2              1              6
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 3994            944          13789
+SUM:                                                 3998            947          13830
 ---------------------------------------------------------------------------------------
