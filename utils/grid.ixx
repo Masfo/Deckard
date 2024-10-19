@@ -35,15 +35,31 @@ namespace deckard
 
 		// TODO: vec2
 
-		T& operator[](const u32 x, const u32 y) { return data.get(x, y); }
 
-		T& at(const u32 x, const u32 y) { return data.get(x, y); }
+		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
+
+		T& operator[](const u32 x, const u32 y)
+		requires not std::is_same_v<T, bool>
+
+		{
+			return data.get(x, y);
+		}
+
+		T& at(const u32 x, const u32 y)
+		requires not std::is_same_v<T, bool>
+		{
+			return data.get(x, y);
+		}
 
 		T at(const u32 x, const u32 y) const { return data.get(x, y); }
 
 		T get(const u32 x, const u32 y) const { return data.get(x, y); }
 
-		T& get(const u32 x, const u32 y) { return data.get(x, y); }
+		T& get(const u32 x, const u32 y)
+		requires not std::is_same_v<T, bool>
+		{
+			return data.get(x, y);
+		}
 
 		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
 
@@ -257,7 +273,20 @@ namespace deckard
 				return;
 
 			for (u32 x = 0; x < width() / 2; ++x)
-				std::swap(data.at(x, row), data.at(height() - 1u - x, row));
+			{
+				if constexpr (std::is_same_v<T, bool>)
+				{
+					// no references to bool
+
+					auto temp = data.get(x, row);
+					data.set(x, row, data.get(height() - 1u - x, row));
+					data.set(height() - 1u - x, row, temp);
+				}
+				else
+				{
+					std::swap(data.at(x, row), data.at(height() - 1u - x, row));
+				}
+			}
 		}
 
 		void reverse_col(u32 col)
@@ -267,7 +296,17 @@ namespace deckard
 
 			for (u32 y = 0; y < height() / 2; ++y)
 			{
-				std::swap(data.at(col, y), data.at(col, height() - 1u - y));
+				if constexpr (std::is_same_v<T, bool>)
+				{
+					// no references to bool
+					auto temp = data.get(col, y);
+					data.set(col, y, data.get(col, height() - 1u - y));
+					data.set(col, height() - 1u - y, temp);
+				}
+				else
+				{
+					std::swap(data.at(col, y), data.at(col, height() - 1u - y));
+				}
 			}
 		}
 
@@ -286,24 +325,48 @@ namespace deckard
 			std::swap(data, transposed);
 		}
 
-		void rotate()
+		void reverse_rows()
 		{
-			array2d<T> rotated;
-
-			rotated.resize(width(), height());
-
-
-			for (u32 x = 0; x < width(); ++x)
-			{
-				for (u32 y = 0; y < height(); ++y)
-				{
-					u32 newIndex      = x * width() + (width() - 1 - y);
-					rotated[newIndex] = get(x, y);
-				}
-			}
-
-			data = rotated;
+			for (u32 y = 0; y < height(); ++y)
+				reverse_row(y);
 		}
+
+		void reverse_columns()
+		{
+			for (u32 x = 0; x < width(); ++x)
+				reverse_col(x);
+		}
+
+		void rotate_cw()
+		{
+			transpose();
+			reverse_rows();
+		}
+
+		void rotate_ccw()
+		{
+			transpose();
+			reverse_columns();
+		}
+
+		// void rotate_cw()
+		//{
+		//	array2d<T> rotated;
+		//
+		//	rotated.resize(width(), height());
+		//
+		//
+		//	for (u32 x = 0; x < width(); ++x)
+		//	{
+		//		for (u32 y = 0; y < height(); ++y)
+		//		{
+		//			u32 newIndex      = x * width() + (width() - 1 - y);
+		//			rotated[newIndex] = get(x, y);
+		//		}
+		//	}
+		//
+		//	data = rotated;
+		// }
 
 		// TODO: serialize to/from disk
 		// TODO: non-member export

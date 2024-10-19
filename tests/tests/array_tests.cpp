@@ -126,18 +126,10 @@ TEST_CASE("grid", "[grid]")
 		REQUIRE('1' == grid.at(1, 1));
 		REQUIRE('2' == grid.at(2, 1));
 
-
 		grid.transpose();
 
 		REQUIRE('1' == grid.at(1, 1));
 		REQUIRE('2' == grid.at(1, 2));
-
-		grid.dump();
-
-		grid.rotate();
-
-		grid.dump();
-		int k = 0;
 	}
 }
 
@@ -157,5 +149,34 @@ TEST_CASE("grid<bool>", "[grid]")
 	{
 		grid<bool> g(8, 8);
 		REQUIRE(0x8a23'e09e'6054'a0ea == g.hash());
+	}
+
+
+	SECTION("transpose")
+	{
+		grid<bool> grid(8, 8);
+		grid.fill(false);
+
+		grid.set(1, 1, true);
+		grid.set(2, 1, true);
+
+		REQUIRE(true == grid.at(1, 1));
+		REQUIRE(true == grid.at(2, 1));
+
+
+		grid.transpose();
+
+		REQUIRE(true == grid.at(1, 1));
+		REQUIRE(true == grid.at(1, 2));
+
+		grid.dump();
+
+		grid.rotate_cw();
+
+		grid.dump();
+		grid.rotate_ccw();
+		grid.dump();
+
+		int k = 0;
 	}
 }
