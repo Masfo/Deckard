@@ -79,14 +79,14 @@ namespace deckard::math
 
 		const f32& operator[](std::size_t i, std::size_t j) const
 		{
-			assert::check(i < data.size() or j < data.size(), "mat4: indexing out-of-bounds");
+			assert::check(i < 4 or j < 4, "mat4: indexing out-of-bounds");
 
 			return data[i * 4 + j];
 		}
 
 		f32& operator[](std::size_t i, std::size_t j)
 		{
-			assert::check(i < data.size() or j < data.size(), "mat4: indexing out-of-bounds");
+			assert::check(i < 4 or j < 4, "mat4: indexing out-of-bounds");
 			return data[i * 4 + j];
 		}
 
