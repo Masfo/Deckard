@@ -3,10 +3,45 @@
 
 import std;
 import deckard.grid;
+import deckard.arrays;
 
 using namespace deckard;
 
-TEST_CASE("grid", "[array]")
+TEST_CASE("array", "[array]")
+{
+	SECTION("init")
+	{
+		array2d<int> g(8, 8);
+		REQUIRE(g.size_in_bytes() == 8 * 8 * 4);
+
+		array2d<bool> g2(8, 8);
+		REQUIRE(g2.size_in_bytes() == 8 * 8 / 8);
+	}
+
+	SECTION("get/set int")
+	{
+		array2d<int> g(8, 8);
+		g.fill(0);
+
+		REQUIRE(g.get(1, 1) == 0);
+
+		g.set(1, 1, 8);
+		REQUIRE(g.get(1, 1) == 8);
+	}
+
+	SECTION("get/set bool")
+	{
+		array2d<bool> g(8, 8);
+		g.fill(0);
+
+		REQUIRE(g.get(1, 1) == false);
+
+		g.set(1, 1, true);
+		REQUIRE(g.get(1, 1) == true);
+	}
+}
+
+TEST_CASE("grid", "[grid]")
 {
 	SECTION("init")
 	{
@@ -79,10 +114,35 @@ TEST_CASE("grid", "[array]")
 		REQUIRE('2' == grid.at(5, 1));
 		REQUIRE('.' == grid.at(1, 1));
 	}
+
+	SECTION("transpose")
+	{
+		grid<u8> grid(8, 8);
+		grid.fill('.');
+
+		grid.set(1, 1, '1');
+		grid.set(2, 1, '2');
+
+		REQUIRE('1' == grid.at(1, 1));
+		REQUIRE('2' == grid.at(2, 1));
+
+
+		grid.transpose();
+
+		REQUIRE('1' == grid.at(1, 1));
+		REQUIRE('2' == grid.at(1, 2));
+
+		grid.dump();
+
+		grid.rotate();
+
+		grid.dump();
+		int k = 0;
+	}
 }
 
 //
-TEST_CASE("grid<bool>", "[array]")
+TEST_CASE("grid<bool>", "[grid]")
 {
 	SECTION("init")
 	{

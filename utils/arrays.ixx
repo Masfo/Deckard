@@ -36,13 +36,13 @@ namespace deckard
 		{
 		}
 
+		T operator[](const u32 index) const { return m_data[index]; }
+
+		T& operator[](const u32 index) { return m_data[index]; }
+
 		T operator[](const u32 x, const u32 y) const { return at(x, y); }
 
 		T& operator[](const u32 x, const u32 y) { return at(x, y); }
-
-		T operator()(const u32 x, const u32 y) const { return get(x, y); }
-
-		T& operator()(const u32 x, const u32 y) { return get(x, y); }
 
 		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
 
@@ -191,9 +191,9 @@ namespace deckard
 
 		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
 
-		bool operator()(const u32 x, const u32 y) const { return get(x, y); }
+		bool operator[](const u32 index) const { return (m_data[index / 8] >> (index % 8)) & 1; }
 
-		bool at(const u32 x, const u32 y) { return get(x, y); }
+		bool operator[](const u32 x, const u32 y) const { return at(x, y); }
 
 		bool at(const u32 x, const u32 y) const { return get(x, y); }
 

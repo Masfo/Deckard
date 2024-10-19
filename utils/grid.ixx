@@ -273,15 +273,14 @@ namespace deckard
 
 		void transpose()
 		{
-			array2d<T> transposed{};
-			transposed.resize(width() * height());
-
+			array2d<T> transposed;
+			transposed.resize(width(), height());
 
 			for (u32 y = 0; y < height(); ++y)
 			{
 				for (u32 x = 0; x < width(); ++x)
 				{
-					transposed[index_from_2d(y, x, height())] = get(x, y);
+					transposed.set(y, x, get(x, y));
 				}
 			}
 			std::swap(data, transposed);
@@ -289,7 +288,10 @@ namespace deckard
 
 		void rotate()
 		{
-			array2d<T> rotated(data.size());
+			array2d<T> rotated;
+
+			rotated.resize(width(), height());
+
 
 			for (u32 x = 0; x < width(); ++x)
 			{
@@ -324,7 +326,7 @@ namespace deckard
 			return true;
 		}
 
-		template<typename U>
+		template<typename U = char>
 		void dump() const
 		{
 			data.dump<U>();
