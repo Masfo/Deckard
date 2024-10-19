@@ -349,25 +349,6 @@ namespace deckard
 			reverse_columns();
 		}
 
-		// void rotate_cw()
-		//{
-		//	array2d<T> rotated;
-		//
-		//	rotated.resize(width(), height());
-		//
-		//
-		//	for (u32 x = 0; x < width(); ++x)
-		//	{
-		//		for (u32 y = 0; y < height(); ++y)
-		//		{
-		//			u32 newIndex      = x * width() + (width() - 1 - y);
-		//			rotated[newIndex] = get(x, y);
-		//		}
-		//	}
-		//
-		//	data = rotated;
-		// }
-
 		// TODO: serialize to/from disk
 		// TODO: non-member export
 		bool export_ppm(std::filesystem::path path)
