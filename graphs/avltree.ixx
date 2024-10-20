@@ -466,7 +466,7 @@ namespace deckard::graph::avl
 			rotate_right(k1);
 		}
 
-				void print(const nodeptr& node) { print("", node, false); }
+		void print(const nodeptr& node) { print("", node, false); }
 
 		void print(const std::string& prefix, const nodeptr& node, bool isleft)
 		{
@@ -476,7 +476,7 @@ namespace deckard::graph::avl
 			dbg::print("{}", prefix);
 			dbg::print("{}", isleft ? "├──" : "└──");
 
-			dbg::println("{}", node->data);
+			dbg::println("─ {}", node->data);
 
 			print(prefix + (isleft ? "│   " : "    "), node->left, true);
 			print(prefix + (isleft ? "│   " : "    "), node->right, false);

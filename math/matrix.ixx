@@ -17,6 +17,10 @@ namespace deckard::math
 
 	class mat4_generic
 	{
+	private:
+		// TODO: vec4
+		std::array<f32, 16> data{0.0f};
+
 	public:
 		struct fill
 		{
@@ -160,9 +164,6 @@ namespace deckard::math
 		}
 
 		static mat4_generic identity() { return mat4_generic(1.0f); }
-
-	private:
-		std::array<f32, 16> data{0.0f};
 	};
 
 	// Free functions
