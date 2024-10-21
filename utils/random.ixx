@@ -14,9 +14,13 @@ import deckard.as;
 
 namespace deckard::random
 {
-	// Global
-	export std::random_device rd;
-	export std::mt19937       mersenne_twister;
+	std::random_device rd;
+	std::mt19937       mersenne_twister;
+
+	constexpr std::string_view alphanum_special{
+	  R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
+	constexpr std::string_view alphabet{alphanum_special.substr(0, 52)};
+	constexpr std::string_view alphanumeric{alphanum_special.substr(0, 62)};
 
 	export template<integral_or_bool T = i32>
 	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
@@ -89,6 +93,21 @@ namespace deckard::random
 
 		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(rd) & 0xFF); });
 	}
+
+	std::string generate_with_dictionary(u32 len, const std::string_view dictionary)
+	{
+		std::string ret;
+		ret.resize(len);
+		std::ranges::generate(ret, [&dictionary] { return dictionary[rnd<u64>(0u, dictionary.length() - 1)]; });
+
+		return ret;
+	}
+
+	export std::string alpha(u32 len = 12) { return generate_with_dictionary(len, alphabet); }
+
+	export std::string alphanum(u32 len = 12) { return generate_with_dictionary(len, alphanumeric); }
+
+	export std::string password(u32 len = 12) { return generate_with_dictionary(len, alphanum_special); }
 
 	export void initialize()
 	{
