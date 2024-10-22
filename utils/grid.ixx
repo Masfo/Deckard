@@ -95,22 +95,29 @@ namespace deckard
 
 			static_assert(std::is_same_v<T, std::invoke_result_t<Func>>, "Callback must return the same type T as the array2d<T>");
 
-			if (x1 == x2)
+			i32 dx = std::abs(x2 - x1);
+			i32 dy = std::abs(y2 - y1);
+			i32 sx = (x1 < x2) ? 1 : -1;
+			i32 sy = (y1 < y2) ? 1 : -1;
+
+			if(dx == 0 and dy == 0)
+			{
+				set(x1,x2, cb());
+				return;
+			}
+
+			if (dx == 0)
 			{
 				vline(x1, y1, y2, cb());
 				return;
 			}
 
-			if (y1 == y2)
+			if (dy == 0)
 			{
 				hline(x1, y1, x2, cb());
 				return;
 			}
 
-			i32 dx = std::abs(x2 - x1);
-			i32 dy = std::abs(y2 - y1);
-			i32 sx = (x1 < x2) ? 1 : -1;
-			i32 sy = (y1 < y2) ? 1 : -1;
 
 			i32 err = dx - dy;
 

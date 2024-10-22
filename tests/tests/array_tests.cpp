@@ -131,6 +131,130 @@ TEST_CASE("grid", "[grid]")
 		REQUIRE('1' == grid.at(1, 1));
 		REQUIRE('2' == grid.at(1, 2));
 	}
+
+	SECTION("line")
+	{
+		grid<u8> grid(8, 8);
+		grid.fill('.');
+
+		REQUIRE('.' == grid.get(1, 1));
+		REQUIRE('.' == grid.get(2, 2));
+		REQUIRE('.' == grid.get(3, 3));
+		REQUIRE('.' == grid.get(4, 4));
+		REQUIRE('.' == grid.get(5, 5));
+
+		grid.line(1, 1, 5, 5, '#');
+
+		REQUIRE('#' == grid.get(1, 1));
+		REQUIRE('#' == grid.get(2, 2));
+		REQUIRE('#' == grid.get(3, 3));
+		REQUIRE('#' == grid.get(4, 4));
+		REQUIRE('#' == grid.get(5, 5));
+	}
+
+	SECTION("hline")
+	{
+		grid<u8> grid(8, 8);
+		grid.fill('.');
+
+		REQUIRE('.' == grid.get(1, 1));
+		REQUIRE('.' == grid.get(2, 2));
+		REQUIRE('.' == grid.get(3, 3));
+		REQUIRE('.' == grid.get(4, 4));
+		REQUIRE('.' == grid.get(5, 5));
+
+		grid.line(1, 1, 5, 1, '#');
+
+		REQUIRE('#' == grid.get(1, 1));
+		REQUIRE('#' == grid.get(2, 1));
+		REQUIRE('#' == grid.get(3, 1));
+		REQUIRE('#' == grid.get(4, 1));
+		REQUIRE('#' == grid.get(5, 1));
+	}
+
+	SECTION("vline")
+	{
+		grid<u8> grid(8, 8);
+		grid.fill('.');
+
+		REQUIRE('.' == grid.get(1, 1));
+		REQUIRE('.' == grid.get(2, 2));
+		REQUIRE('.' == grid.get(3, 3));
+		REQUIRE('.' == grid.get(4, 4));
+		REQUIRE('.' == grid.get(5, 5));
+
+		grid.line(1, 1, 1, 5, '#');
+
+		REQUIRE('#' == grid.get(1, 1));
+		REQUIRE('#' == grid.get(1, 2));
+		REQUIRE('#' == grid.get(1, 3));
+		REQUIRE('#' == grid.get(1, 4));
+		REQUIRE('#' == grid.get(1, 5));
+	}
+
+	SECTION("rectangle full")
+	{
+		grid<u8> grid(5, 5);
+		grid.fill('.');
+
+		REQUIRE('.' == grid.get(1, 1));
+		REQUIRE('.' == grid.get(2, 1));
+		REQUIRE('.' == grid.get(3, 1));
+
+		REQUIRE('.' == grid.get(1, 2));
+		REQUIRE('.' == grid.get(2, 2));
+		REQUIRE('.' == grid.get(3, 2));
+
+		REQUIRE('.' == grid.get(1, 3));
+		REQUIRE('.' == grid.get(2, 3));
+		REQUIRE('.' == grid.get(3, 3));
+
+		grid.rectangle(1, 1, 3, 3, '#');
+
+		REQUIRE('#' == grid.get(1, 1));
+		REQUIRE('#' == grid.get(2, 1));
+		REQUIRE('#' == grid.get(3, 1));
+
+		REQUIRE('#' == grid.get(1, 2));
+		REQUIRE('#' == grid.get(2, 2));
+		REQUIRE('#' == grid.get(3, 2));
+
+		REQUIRE('#' == grid.get(1, 3));
+		REQUIRE('#' == grid.get(2, 3));
+		REQUIRE('#' == grid.get(3, 3));
+	}
+
+	SECTION("rectangle hollow")
+	{
+		grid<u8> grid(5, 5);
+		grid.fill('.');
+
+		REQUIRE('.' == grid.get(1, 1));
+		REQUIRE('.' == grid.get(2, 1));
+		REQUIRE('.' == grid.get(3, 1));
+
+		REQUIRE('.' == grid.get(1, 2));
+		REQUIRE('.' == grid.get(2, 2));
+		REQUIRE('.' == grid.get(3, 2));
+
+		REQUIRE('.' == grid.get(1, 3));
+		REQUIRE('.' == grid.get(2, 3));
+		REQUIRE('.' == grid.get(3, 3));
+
+		grid.rectangle(1, 1, 3, 3, '#', filled::no);
+
+		REQUIRE('#' == grid.get(1, 1));
+		REQUIRE('#' == grid.get(2, 1));
+		REQUIRE('#' == grid.get(3, 1));
+
+		REQUIRE('#' == grid.get(1, 2));
+		REQUIRE('.' == grid.get(2, 2));
+		REQUIRE('#' == grid.get(3, 2));
+
+		REQUIRE('#' == grid.get(1, 3));
+		REQUIRE('#' == grid.get(2, 3));
+		REQUIRE('#' == grid.get(3, 3));
+	}
 }
 
 //
