@@ -535,16 +535,6 @@ int deckard_main()
 {
 
 
-	graph::avl::tree<i32> btree;
-	for (int i : upto(50))
-		btree.insert(random::randi16());
-
-	btree.print();
-
-	for (int i : upto(30))
-		dbg::print("{:1}", i % 10);
-	dbg::println();
-
 	float4 vq;
 
 	vq.c.x = 2.0f;

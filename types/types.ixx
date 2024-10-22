@@ -57,6 +57,8 @@ export namespace deckard
 
 	namespace limits
 	{
+		// usage: limits::max<i32>
+
 		template<arithmetic T>
 		constexpr T max = std::numeric_limits<T>::max();
 
