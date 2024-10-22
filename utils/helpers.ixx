@@ -112,9 +112,9 @@ export namespace deckard
 
 		const bool show_hex = options.show_hex;
 
-		auto output_byte = [&](u32 i, u32 offset, char b) -> bool
+		auto output_byte = [&](size_t i, u32 offset, char b) -> bool
 		{
-			u32 index = i * stride + offset;
+			u32 index = as<u32>(i * stride + offset);
 			if (index >= output.size())
 				return false;
 

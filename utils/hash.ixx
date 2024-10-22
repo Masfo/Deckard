@@ -155,7 +155,7 @@ namespace deckard::utils
 	static_assert("hello world"_hash32 == 0xd58b'3fa7);
 	static_assert("hello world"_hash64 == 0x779a'65e7'023c'd2e7);
 
-	// wyhash
+	//
 	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
 
 	constexpr u64 rapid_secret[3] = {0x2d35'8dcc'aa6c'78a5ull, 0x8bb8'4b93'962e'acc9ull, 0x4b33'a62e'd433'd4a3ull};
@@ -182,7 +182,7 @@ namespace deckard::utils
 		return A ^ B;
 	}
 
-	u64 rapid_readSmall(const uint8_t* p, size_t k) { return (((uint64_t)p[0]) << 56) | (((uint64_t)p[k >> 1]) << 32) | p[k - 1]; }
+	u64 rapid_readsmall(const uint8_t* p, size_t k) { return (((uint64_t)p[0]) << 56) | (((uint64_t)p[k >> 1]) << 32) | p[k - 1]; }
 
 	u64 rapidhash_internal(const void* key, size_t len, uint64_t seed, const uint64_t* secret)
 	{
@@ -200,7 +200,7 @@ namespace deckard::utils
 			}
 			else if (len > 0)
 			{
-				a = rapid_readSmall(p, len);
+				a = rapid_readsmall(p, len);
 				b = 0;
 			}
 			else

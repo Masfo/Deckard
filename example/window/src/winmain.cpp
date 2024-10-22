@@ -534,15 +534,16 @@ constexpr std::array<u32, 64> k_md5 = []
 int deckard_main()
 {
 
-	for (int i : upto(256))
-	{
-		dbg::println("std::sin: {:.5f}\nctx::sin: {:.5f}\n", std::sinf(i + 1), ctx_sinf(i + 1));
 
+	graph::avl::tree<i32> btree;
+	for (int i : upto(50))
+		btree.insert(random::randi16());
 
-		if (math::is_prime(i))
-			dbg::println("{}", i);
-	}
+	btree.print();
 
+	for (int i : upto(30))
+		dbg::print("{:1}", i % 10);
+	dbg::println();
 
 	float4 vq;
 
@@ -550,28 +551,62 @@ int deckard_main()
 	vq.c.y = 2.0f;
 
 
-	array2d<u8> grid(2 * 1024, 2 * 1024);
-	grid.fill(255);
+	grid<bool> gb(16, 16);
+	grid<u8>   gb1(16, 16);
 
-	grid.dump<char>();
+	dbg::println("gb: {}", gb.size_in_bytes());
+	dbg::println("gb1: {}", gb1.size_in_bytes());
+
+	dump(gb);
 
 
-	grid.set(1, 1, 0);
-	grid.set(1, 2, 0);
+	gb.set(1, 1, true);
+	gb.line(1, 1, 5, 6, true);
+	gb.dump<char>();
 
-	grid.set(2, 1, 128);
 
-	grid.line(0, 0, 128, 128, 0);
-	grid.line(129, 129, 129, 511, 64);
+	deckard::grid<u8> g(16, 16);
+	g.fill('.');
 
-	grid.circle(380, 380, 64, 128);
 
-	u8 v = 0;
-	grid.line(0, 128, 256, 128 + 64, [&v]() { return v += 5; });
+	// g.line(1, 1, 1, 14, '#');
+	// g.line(1, 1, 14, 1, '#');
+	// g.line(14, 1, 14, 14, '#');
+	// g.line(1, 14, 14, 14, '#');
+	// g.line(6, 1, 6, 10, '$');
+
+	g.rectangle(1, 1, 14, 14, '#', filled::no);
+
+	g.line(4, 4, 10, 4, '=');
+	g.line(4, 4, 4, 10, '+');
+
+
+	g.dump<char>();
+
+	u32 ff_count = g.floodfill(2, 2, 'x');
+
+	u32 ff_count2 = g.count("x");
+
+	auto ff_all = g.find_all('x');
+
+	auto bv = g[1, 1];
+	bv      = g[0, 1];
+
+	g.dump<char>();
+
+	// g.rectangle(1, 10, 10, 1, 'R');
+	//  g.rectangle(1, 1, 10, 10, 'R');
+
+
+	g.dump<char>();
+
+	g.export_ppm("out2.pgm");
+
+	g.resize(1024, 1024);
 
 	i32       iX = 0, iY = 0;
-	const i32 iXmax = grid.width();
-	const i32 iYmax = grid.height();
+	const i32 iXmax = g.width();
+	const i32 iYmax = g.height();
 
 	f64       Cx, Cy;
 	const f64 CxMin = -1.5;
@@ -583,7 +618,7 @@ int deckard_main()
 	f64 PixelHeight = (CyMax - CyMin) / iYmax;
 
 	i32          Iteration    = 0;
-	const int    IterationMax = 200;
+	const int    IterationMax = 400;
 	const double EscapeRadius = 2;
 	double       ER2          = EscapeRadius * EscapeRadius;
 
@@ -623,64 +658,32 @@ int deckard_main()
 				color[1] = Iteration; /* Green */
 				color[2] = Iteration; /* Blue */
 			};
-			grid.set(iX, iY, color[0]);
+			g.set(iX, iY, color[0]);
 		}
 	}
 
-	/*
-	for each pixel (Px, Py) on the screen do
-	x0 := scaled x coordinate of pixel (scaled to lie in the Mandelbrot X scale (-2.00, 0.47))
-	y0 := scaled y coordinate of pixel (scaled to lie in the Mandelbrot Y scale (-1.12, 1.12))
-	x := 0.0
-	y := 0.0
-	iteration := 0
-	max_iteration := 1000
-	while (x*x + y*y ≤ 2*2 AND iteration < max_iteration) do
-		xtemp := x*x - y*y + x0
-		y := 2*x*y + y0
-		x := xtemp
-		iteration := iteration + 1
-
-	color := palette[iteration]
-	plot(Px, Py, color)
-
-
-	// optimized
-	x2:= 0
-	y2:= 0
-
-	while (x2 + y2 ≤ 4 and iteration < max_iteration) do
-		y:= 2 * x * y + y0
-		x:= x2 - y2 + x0
-		x2:= x * x
-		y2:= y * y
-		iteration:= iteration + 1
-	*/
-
 
 #if 0
-	for (int i : upto(grid.width()))
+	for (int i : upto(g.width()))
 	{
 
 
 		if (random::randbool())
-			grid.reverse_col(i);
+			g.reverse_col(i);
 	}
-	for (int i : upto(grid.height()))
+	for (int i : upto(g.height()))
 	{
 
 		if (random::randbool())
-			grid.reverse_row(i);
+			g.reverse_row(i);
 	}
 #endif
 
 
-	// grid.transpose();
-	// grid.reverse_col(1);
+	// g.transpose();
+	// g.reverse_col(1);
 
-	grid.export_ppm("out.pgm");
-
-	auto hashes = grid.find_all('#');
+	g.export_ppm("out.pgm");
 
 
 	file f1("dir🌍\\input.bin");

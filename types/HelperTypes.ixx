@@ -5,35 +5,35 @@ import std;
 export namespace deckard
 {
 	// Result
-	using DefaultErrorType = std::string;
+	using default_errortype = std::string;
 
-	template<typename T, typename E = DefaultErrorType>
-	using Result = std::expected<T, E>;
+	template<typename T, typename E = default_errortype>
+	using result = std::expected<T, E>;
 
-	auto Ok  = []<typename T>(const T value) -> Result<T> { return value; };
-	auto Err = [](std::string_view fmt, auto... args)
+	auto ok  = []<typename T>(const T value) -> result<T> { return value; };
+	auto err = [](std::string_view fmt, auto... args)
 	{
 		using namespace std::string_view_literals;
 		if constexpr (sizeof...(args) > 0)
-			return std::unexpected<DefaultErrorType>(std::vformat(fmt, std::make_format_args(args...)));
+			return std::unexpected<default_errortype>(std::vformat(fmt, std::make_format_args(args...)));
 		else
-			return std::unexpected<DefaultErrorType>(fmt);
+			return std::unexpected<default_errortype>(fmt);
 	};
 
 
 	// Option
 	template<typename T>
-	using Option = std::optional<T>;
+	using option = std::optional<T>;
 
-	auto Some = []<typename T>(const T value) -> Option<T> { return value; };
-	auto None = []<typename T>(const T) -> Option<T> { return {}; };
+	auto some = []<typename T>(const T value) -> option<T> { return value; };
+	auto none = []<typename T>(const T) -> option<T> { return {}; };
 
 
-	// Box
+	// box
 	template<typename T>
-	using Box = std::unique_ptr<T>;
+	using box = std::unique_ptr<T>;
 
-	auto MakeBox = []<typename T>(T value) -> Box<T> { return std::make_unique<T>(value); };
+	auto makebox = []<typename T>(T value) -> box<T> { return std::make_unique<T>(value); };
 
 	// at_compile
 	consteval decltype(auto) at_compile(auto&& arg) { return std::forward<decltype(arg)>(arg); }
