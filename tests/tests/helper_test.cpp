@@ -7,6 +7,7 @@ import deckard.types;
 
 using namespace deckard;
 using namespace std::string_view_literals;
+using namespace std::chrono_literals;
 
 TEST_CASE("helpers", "[helpers]")
 {
@@ -208,5 +209,21 @@ TEST_CASE("helpers", "[helpers]")
 		input  = "hello";
 		auto f = try_to_number<i16>(input);
 		REQUIRE(f.has_value() == false);
+	}
+
+	SECTION("prettytime")
+	{
+
+		REQUIRE("2min 8s 678ms"sv == pretty_time(std::chrono::duration<f64>(std::chrono::seconds{123} + 5678ms)));
+
+		REQUIRE("1d 23min 16s 213ms 741us"sv == pretty_time(std::chrono::duration(std::chrono::days{1} + 23min + 16s + 213ms + 741us)));
+	}
+
+	SECTION("pretty_bytes")
+	{
+		REQUIRE("0 bytes"sv == pretty_bytes(0));
+		REQUIRE("1 MiB"sv == pretty_bytes(1_MiB));
+		REQUIRE("1.02 MiB"sv == pretty_bytes(1_MiB + 20_KiB));
+		REQUIRE("1.02 GiB"sv == pretty_bytes(1_GiB + 20_MiB + 100_KiB));
 	}
 }
