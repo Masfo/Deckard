@@ -557,7 +557,7 @@ export namespace deckard
 	}
 
 	// Prettys
-	std::string pretty_bytes(u64 bytes)
+	std::string human_readable_bytes(u64 bytes)
 	{
 		constexpr std::array<char[6], 9> unit{{"bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}};
 
@@ -573,6 +573,41 @@ export namespace deckard
 		if (std::fabs(count - std::floor(count)) == 0.0)
 			return std::format("{} {}", static_cast<u64>(count), unit[suffix]);
 		return std::format("{:.2f} {}", count, unit[suffix]);
+	}
+
+	std::string pretty_bytes(u64 bytes)
+	{
+
+		std::string ret;
+		ret.reserve(64);
+
+		auto add_unit = [&bytes, &ret](u64 unit, std::string_view unitstr)
+		{
+			if (unit == 0)
+			{
+				ret += std::format("{}{} byte{}", (ret.empty() ? "" : ", "), bytes, bytes > 1 ? "s" : "");
+				return;
+			}
+
+			u64 count = 0;
+			while (bytes >= unit)
+			{
+				bytes -= unit;
+				count += 1;
+			}
+
+			if (count > 0)
+				ret += std::format("{}{} {}", (ret.empty() ? "" : ", "), count, unitstr);
+		};
+
+		add_unit(1024 * 1_TiB, "PiB");
+		add_unit(1_TiB, "TiB");
+		add_unit(1_GiB, "GiB");
+		add_unit(1_MiB, "MiB");
+		add_unit(1_KiB, "KiB");
+		add_unit(0, "bytes");
+
+		return ret;
 	}
 
 	template<typename T, typename R>

@@ -292,15 +292,5 @@ TEST_CASE("grid<bool>", "[grid]")
 
 		REQUIRE(true == grid.at(1, 1));
 		REQUIRE(true == grid.at(1, 2));
-
-		grid.dump();
-
-		grid.rotate_cw();
-
-		grid.dump();
-		grid.rotate_ccw();
-		grid.dump();
-
-		int k = 0;
 	}
 }

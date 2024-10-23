@@ -219,11 +219,20 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE("1d 23min 16s 213ms 741us"sv == pretty_time(std::chrono::duration(std::chrono::days{1} + 23min + 16s + 213ms + 741us)));
 	}
 
+	SECTION("human_readable_bytes")
+	{
+		REQUIRE("0 bytes"sv == human_readable_bytes(0));
+		REQUIRE("1 MiB"sv == human_readable_bytes(1_MiB));
+		REQUIRE("1.02 MiB"sv == human_readable_bytes(1_MiB + 20_KiB));
+		REQUIRE("3.14 GiB"sv == human_readable_bytes(3_GiB + 140_MiB + 100_KiB));
+	}
+
 	SECTION("pretty_bytes")
 	{
-		REQUIRE("0 bytes"sv == pretty_bytes(0));
-		REQUIRE("1 MiB"sv == pretty_bytes(1_MiB));
-		REQUIRE("1.02 MiB"sv == pretty_bytes(1_MiB + 20_KiB));
-		REQUIRE("1.02 GiB"sv == pretty_bytes(1_GiB + 20_MiB + 100_KiB));
+		REQUIRE("128 bytes"sv == pretty_bytes(128));
+		REQUIRE("1 KiB, 1 bytes"sv == pretty_bytes(1024 + 1));
+
+
+		REQUIRE("1 MiB, 256 KiB, 128 bytes"sv == pretty_bytes(1_MiB + 256_KiB + 128));
 	}
 }
