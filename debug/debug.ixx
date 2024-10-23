@@ -10,6 +10,9 @@ import std;
 
 using namespace std::string_view_literals;
 
+// TODO: null module with blank functions, cmake conditional on release
+//       instead of ifdef debugs
+
 void output_message(const std::string_view message)
 {
 	std::print(std::cout, "{}"sv, message);
@@ -146,6 +149,24 @@ export namespace deckard::dbg
 #endif
 	}
 
+	void stacktrace(std::string_view [[maybe_unused]] file_to_ignore = __FILE__)
+	{
+#ifdef _DEBUG
+		auto traces = std::stacktrace::current();
+
+		for (const auto& traceline : traces)
+		{
+			if (traceline.source_file().contains("catch2"))
+				continue;
+
+			if (traceline.source_file().contains(file_to_ignore))
+				continue;
+
+			dbg::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
+#endif
+		}
+	}
+
 	// trace
 	template<typename... Args>
 	void trace([[maybe_unused]] FormatLocation fmt, [[maybe_unused]] Args&&... args)
@@ -162,7 +183,12 @@ export namespace deckard::dbg
 #endif
 	}
 
-	void trace([[maybe_unused]] FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
+	void trace([[maybe_unused]] FormatLocation fmt)
+	{
+#ifdef _DEBUG
+		dbg::println("{}", fmt.to_string());
+#endif
+	}
 
 	// Panic
 	template<typename... Args>

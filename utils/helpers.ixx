@@ -454,7 +454,10 @@ export namespace deckard
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val, base);
 			if (ptr == input.data())
 			{
+				#ifdef _DEBUG
 				dbg::trace("try_to_number failed: '{}'", input);
+				dbg::stacktrace();
+				#endif
 
 				return {};
 			}

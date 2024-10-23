@@ -230,7 +230,7 @@ TEST_CASE("helpers", "[helpers]")
 	SECTION("pretty_bytes")
 	{
 		REQUIRE("128 bytes"sv == pretty_bytes(128));
-		REQUIRE("1 KiB, 1 bytes"sv == pretty_bytes(1024 + 1));
+		REQUIRE("1 KiB, 1 byte"sv == pretty_bytes(1024 + 1));
 
 
 		REQUIRE("1 MiB, 256 KiB, 128 bytes"sv == pretty_bytes(1_MiB + 256_KiB + 128));
