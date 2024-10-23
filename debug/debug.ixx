@@ -1,6 +1,5 @@
 module;
 #include <Windows.h>
-#include <cstdio>
 
 
 export module deckard.debug;
@@ -10,25 +9,18 @@ import std;
 
 using namespace std::string_view_literals;
 
-// TODO: null module with blank functions, cmake conditional on release
-//       instead of ifdef debugs
-
 void output_message(const std::string_view message)
 {
 	std::print(std::cout, "{}"sv, message);
-#ifdef _DEBUG
 
 	OutputDebugStringA(message.data());
-#endif
 }
 
 void error_output_message(const std::string_view message)
 {
 	std::print(std::cerr, "{}"sv, message);
-#ifdef _DEBUG
 
 	OutputDebugStringA(message.data());
-#endif
 }
 
 struct alignas(64) FormatLocation
@@ -75,17 +67,15 @@ export namespace deckard::dbg
 #error "Debugging (C++26) is supported, use it"
 #endif
 
-#ifdef _DEBUG
 		if (IsDebuggerPresent())
 		{
 			DebugBreak();
 		}
-#endif
 	}
 
 	// debug
 	template<typename... Args>
-	void print([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
+	void print(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 			output_message(format(fmt, args...));
@@ -95,7 +85,7 @@ export namespace deckard::dbg
 
 	// println
 	template<typename... Args>
-	void println([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
+	void println(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 		{
@@ -111,7 +101,7 @@ export namespace deckard::dbg
 
 	// eprintln
 	template<typename... Args>
-	void eprintln([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
+	void eprintln(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 		{
@@ -126,9 +116,8 @@ export namespace deckard::dbg
 	void eprintln() { error_output_message("\n"); }
 
 	template<typename... Args>
-	void if_true([[maybe_unused]] bool cond, [[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
+	void if_true(bool cond, std::string_view fmt, Args&&... args)
 	{
-#ifdef _DEBUG
 		if (cond)
 		{
 			if constexpr (sizeof...(Args) > 0)
@@ -136,22 +125,16 @@ export namespace deckard::dbg
 			else
 				println("{}", fmt);
 		}
-#endif
 	}
 
 	std::string who_called_me()
 	{
-#ifdef _DEBUG
 		auto strace = std::stacktrace::current();
 		return std::to_string(strace[2]);
-#else
-		return {};
-#endif
 	}
 
-	void stacktrace(std::string_view [[maybe_unused]] file_to_ignore = __FILE__)
+	void stacktrace(std::string_view file_to_ignore = __FILE__)
 	{
-#ifdef _DEBUG
 		auto traces = std::stacktrace::current();
 
 		for (const auto& traceline : traces)
@@ -163,38 +146,24 @@ export namespace deckard::dbg
 				continue;
 
 			dbg::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
-#endif
 		}
 	}
 
 	// trace
 	template<typename... Args>
-	void trace([[maybe_unused]] FormatLocation fmt, [[maybe_unused]] Args&&... args)
+	void trace(FormatLocation fmt, Args&&... args)
 	{
-#ifdef _DEBUG
 		println("{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
-#endif
 	}
 
-	void trace([[maybe_unused]] const std::source_location& loc = std::source_location::current())
-	{
-#ifdef _DEBUG
-		println("{}({}):"sv, loc.file_name(), loc.line());
-#endif
-	}
+	void trace(const std::source_location& loc = std::source_location::current()) { println("{}({}):"sv, loc.file_name(), loc.line()); }
 
-	void trace([[maybe_unused]] FormatLocation fmt)
-	{
-#ifdef _DEBUG
-		dbg::println("{}", fmt.to_string());
-#endif
-	}
+	void trace(FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
 
 	// Panic
 	template<typename... Args>
-	[[noreturn]] void panic([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
+	[[noreturn]] void panic(std::string_view fmt, Args&&... args)
 	{
-#ifdef _DEBUG
 		dbg::print("{} : ", who_called_me());
 		if constexpr (sizeof...(args) > 0)
 		{
@@ -206,39 +175,9 @@ export namespace deckard::dbg
 		}
 
 		breakpoint();
-#endif
-		std::terminate();
 	}
 
 	[[noreturn]] void panic() { panic(""); }
-
-	void redirect_console(bool [[maybe_unused]] show)
-	{
-
-		if (show)
-		{
-			static FILE* pNewStdout = nullptr;
-			static FILE* pNewStderr = nullptr;
-
-
-			if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
-				AllocConsole();
-
-			if (::freopen_s(&pNewStdout, "CONOUT$", "w", stdout) == 0)
-				std::cout.clear();
-
-			if (::freopen_s(&pNewStderr, "CONOUT$", "w", stderr) == 0)
-				std::cerr.clear();
-
-			std::ios::sync_with_stdio(1);
-		}
-		else
-		{
-			FreeConsole();
-		}
-#ifdef _DEBUG
-#endif
-	}
 
 
 } // namespace deckard::dbg
@@ -246,14 +185,14 @@ export namespace deckard::dbg
 export namespace deckard
 {
 	template<typename... Args>
-	void todo([[maybe_unused]] std::string_view fmt, [[maybe_unused]] Args&&... args)
+	void todo([std::string_view fmt,  Args&&... args)
 	{
-		//
 		deckard::dbg::println(format(fmt, args...));
 		deckard::dbg::breakpoint();
 	}
 
-	void todo() { todo("TODO"); }
+	void todo() {
+		todo("TODO"); }
 
 
 } // namespace deckard

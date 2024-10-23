@@ -148,10 +148,13 @@ target_link_libraries(deckard INTERFACE Vulkan::Vulkan)
 
 set(DECKARD_SRCS
 		deckard.ixx
-         $<$<CONFIG:RelWithDebInfo,Release>:buildnumber.ixx>
+        $<$<CONFIG:RelWithDebInfo,Release>:buildnumber.ixx>
 
-		debug/debug.ixx
-		debug/assert.ixx
+        $<$<CONFIG:Debug>:debug/debug.ixx>
+        $<$<CONFIG:Debug>:debug/assert.ixx>
+
+        $<$<CONFIG:RelWithDebInfo,Release>:debug/debug_null.ixx>
+        $<$<CONFIG:RelWithDebInfo,Release>:debug/assert_null.ixx>
 
         # File
 		file/file.ixx

@@ -1,5 +1,6 @@
 module;
 #include <Windows.h>
+#include <cstdio>
 #include <objbase.h>
 
 export module deckard;
@@ -76,6 +77,34 @@ export import deckard_build;
 #endif
 
 
+void redirect_console(bool show)
+{
+
+	if (show)
+	{
+		static FILE* pNewStdout = nullptr;
+		static FILE* pNewStderr = nullptr;
+
+
+		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
+			AllocConsole();
+
+		if (::freopen_s(&pNewStdout, "CONOUT$", "w", stdout) == 0)
+			std::cout.clear();
+
+		if (::freopen_s(&pNewStderr, "CONOUT$", "w", stderr) == 0)
+			std::cerr.clear();
+
+		std::ios::sync_with_stdio(1);
+	}
+	else
+	{
+		FreeConsole();
+	}
+#ifdef _DEBUG
+#endif
+}
+
 extern "C" int deckard_main();
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -93,7 +122,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	if (CoInitializeEx)
 		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-	deckard::dbg::redirect_console(true);
+	redirect_console(true);
+
 	deckard::random::initialize();
 	net::initialize();
 	dbg::println("Initialized");
@@ -108,7 +138,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	if (CoUninitialize)
 		CoUninitialize();
 
-	deckard::dbg::redirect_console(false);
+	redirect_console(false);
 	net::deinitialize();
 
 	return ret;
