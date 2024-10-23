@@ -9,6 +9,10 @@ using namespace deckard::app;
 using namespace deckard::random;
 import std;
 
+#ifndef _DEBUG
+import window;
+#endif
+
 std::array<unsigned char, 256> previous{0};
 std::array<unsigned char, 256> current{0};
 
@@ -533,6 +537,10 @@ constexpr std::array<u32, 64> k_md5 = []
 
 int deckard_main()
 {
+#ifndef _DEBUG
+	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
+	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
+#endif
 
 
 	float4 vq;
@@ -541,57 +549,7 @@ int deckard_main()
 	vq.c.y = 2.0f;
 
 
-	grid<bool> gb(16, 16);
-	grid<u8>   gb1(16, 16);
-
-	dbg::println("gb: {}", gb.size_in_bytes());
-	dbg::println("gb1: {}", gb1.size_in_bytes());
-
-	dump(gb);
-
-
-	gb.set(1, 1, true);
-	gb.line(1, 1, 5, 6, true);
-	gb.dump<char>();
-
-
-	deckard::grid<u8> g(16, 16);
-	g.fill('.');
-
-
-	// g.line(1, 1, 1, 14, '#');
-	// g.line(1, 1, 14, 1, '#');
-	// g.line(14, 1, 14, 14, '#');
-	// g.line(1, 14, 14, 14, '#');
-	// g.line(6, 1, 6, 10, '$');
-
-	g.rectangle(1, 1, 14, 14, '#', filled::no);
-
-	g.line(4, 4, 10, 4, '=');
-	g.line(4, 4, 4, 10, '+');
-
-
-	g.dump<char>();
-
-	u32 ff_count = g.floodfill(2, 2, 'x');
-
-	u32 ff_count2 = g.count("x");
-
-	auto ff_all = g.find_all('x');
-
-	auto bv = g[1, 1];
-	bv      = g[0, 1];
-
-	g.dump<char>();
-
-	// g.rectangle(1, 10, 10, 1, 'R');
-	//  g.rectangle(1, 1, 10, 10, 'R');
-
-
-	g.dump<char>();
-
-	g.export_ppm("out2.pgm");
-
+	grid<u8> g;
 	g.resize(1024, 1024);
 
 	i32       iX = 0, iY = 0;
@@ -652,26 +610,6 @@ int deckard_main()
 		}
 	}
 
-
-#if 0
-	for (int i : upto(g.width()))
-	{
-
-
-		if (random::randbool())
-			g.reverse_col(i);
-	}
-	for (int i : upto(g.height()))
-	{
-
-		if (random::randbool())
-			g.reverse_row(i);
-	}
-#endif
-
-
-	// g.transpose();
-	// g.reverse_col(1);
 
 	g.export_ppm("out.pgm");
 

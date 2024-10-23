@@ -4,7 +4,6 @@ module;
 
 export module deckard.debug;
 
-
 import std;
 
 using namespace std::string_view_literals;
@@ -185,14 +184,12 @@ export namespace deckard::dbg
 export namespace deckard
 {
 	template<typename... Args>
-	void todo([std::string_view fmt,  Args&&... args)
+	void todo(std::string_view fmt, Args&&... args)
 	{
 		deckard::dbg::println(format(fmt, args...));
 		deckard::dbg::breakpoint();
 	}
 
-	void todo() {
-		todo("TODO"); }
-
+	void todo() { todo(""); }
 
 } // namespace deckard
