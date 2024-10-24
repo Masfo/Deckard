@@ -207,6 +207,7 @@ set(DECKARD_SRCS
         utils/arrays.ixx
         utils/bitbuffer.ixx
         utils/grid.ixx
+        utils/commandline.ixx
 
         # Unicode
         unicode/utf8.ixx
