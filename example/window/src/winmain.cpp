@@ -533,7 +533,50 @@ constexpr std::array<u32, 64> k_md5 = []
 
 // static_assert(k_md5[0] == 0xd76a'a478);
 // static_assert(k_md5[63] == 0xeb86'd391);
+uint64_t multiply_64bit_by_8bit_chunks(uint64_t a, uint8_t b)
+{
+	uint64_t result = 0;
+	uint8_t  carry  = 0;
 
+	for (int i = 0; i < 8; ++i)
+	{
+		uint8_t  a_byte  = (a >> (i * 8)) & 0xFF;
+		uint16_t product = a_byte * b + carry;
+		result |= (uint64_t)product << (i * 8);
+		carry = product >> 8;
+	}
+
+	return result;
+}
+
+std::vector<int> multiply_large_numbers(const std::vector<int>& num1, const std::vector<int>& num2)
+{
+	int              n1 = num1.size(), n2 = num2.size();
+	std::vector<int> result(n1 + n2, 0);
+
+	// Multiply each digit of num2 with each digit of num1
+	for (int i = n2 - 1; i >= 0; i--)
+	{
+		int carry = 0;
+		for (int j = n1 - 1; j >= 0; j--)
+		{
+			int product       = num1[j] * num2[i] + carry + result[i + j + 1];
+			carry             = product / 10;
+			result[i + j + 1] = product % 10;
+		}
+		result[i] = carry;
+	}
+
+	// Remove leading zeros
+	int i = 0;
+	while (i < result.size() - 1 && result[i] == 0)
+	{
+		i++;
+	}
+
+	result.erase(result.begin(), result.begin() + i);
+	return result;
+}
 
 int deckard_main()
 {
@@ -541,6 +584,18 @@ int deckard_main()
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	// 0x07e6c88e44dd2
+	// 0xC379AAA42D208
+	std::vector<int> num1 = {3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3};
+	std::vector<int> num2 = {7, 8, 9, 8, 5, 4, 6, 3, 2, 1, 9, 8, 6, 2, 1, 6, 8, 4, 6, 2, 1, 3, 5, 1, 9, 8, 4, 3, 2, 1, 2, 6, 5, 4};
+
+	auto res = multiply_large_numbers(num1, num2);
+	// 3438837141525000
+	for (int digit : res)
+		dbg::print("{}", digit);
+	dbg::println();
+	dbg::println("25379713406982738815160559254284513486903839651407928201597302");
 
 
 	float4 vq;
