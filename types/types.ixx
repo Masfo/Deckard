@@ -93,6 +93,37 @@ export namespace deckard
 
 	constexpr u64 operator"" _TiB(const u64 value) { return value * tebi::num; }
 
+	// ###########################################################################
+	// ###########################################################################
+
+	template<typename T, typename Parameter>
+	class StrongType
+	{
+	public:
+		explicit StrongType(T const& value)
+			: value(value)
+		{
+		}
+
+		explicit StrongType(T&& value)
+			: value(std::move(value))
+		{
+		}
+
+		// explicit operator T() const { return value; }
+
+		T& get() { return value; }
+
+		T const& get() const { return value; }
+
+	private:
+		T value;
+	};
+
+	// ###########################################################################
+	// ###########################################################################
+
+
 	// sink
 	struct sink_t final
 	{
