@@ -29,15 +29,28 @@ TEST_CASE("radians/degrees", "[radians][degrees]")
 {
 	SECTION("deg to radians")
 	{
-		REQUIRE_THAT(to_radians(180.0f), Catch::Matchers::WithinAbs(std::numbers::pi, 0.000001));
+		REQUIRE_THAT(to_radians(360.0), Catch::Matchers::WithinAbs(2.0 * std::numbers::pi, 0.000001));
+
+		REQUIRE_THAT(to_radians(180.0), Catch::Matchers::WithinAbs(std::numbers::pi, 0.000001));
 		REQUIRE_THAT(to_radians(90.0), Catch::Matchers::WithinAbs(std::numbers::pi / 2.0, 0.000001));
 		REQUIRE_THAT(to_radians(0.0), Catch::Matchers::WithinAbs(0.0, 0.000001));
 	}
 	SECTION("degree")
 	{
-		//
+		REQUIRE_THAT(to_degrees(2.0 * std::numbers::pi), Catch::Matchers::WithinAbs(360.00, 0.000001));
+
 		REQUIRE_THAT(to_degrees(std::numbers::pi), Catch::Matchers::WithinAbs(180.0, 0.000001));
 		REQUIRE_THAT(to_degrees(std::numbers::pi / 2.0), Catch::Matchers::WithinAbs(90.0, 0.000001));
 		REQUIRE_THAT(to_degrees(1.0), Catch::Matchers::WithinAbs(57.29577951, 0.000001));
+	}
+}
+
+TEST_CASE("is_close_enough", "[math][utility]")
+{
+	SECTION("is_close_enough")
+	{
+		REQUIRE(true == is_close_enough_zero(0.000001));
+		REQUIRE(true == is_close_enough(0.0, 0.00001, 0.0001));
+		REQUIRE(false == is_close_enough(1.0, 0.00001, 0.0001));
 	}
 }
