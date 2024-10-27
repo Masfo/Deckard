@@ -20,16 +20,48 @@ import deckard_build;
 
 namespace deckard::vulkan
 {
+	bool enumerate_instance_extensions(std::vector<VkExtensionProperties>& extensions)
+	{
+		u32      count{0};
+		VkResult result = vkEnumerateInstanceExtensionProperties(0, &count, 0);
+
+		if (result == VK_SUCCESS)
+		{
+			extensions.resize(count);
+			result = vkEnumerateInstanceExtensionProperties(0, &count, extensions.data());
+		}
+
+		return result == VK_SUCCESS;
+	}
+
+	bool enumerate_validator_layers(std::vector<VkLayerProperties>& layers)
+	{
+		u32      count{0};
+		VkResult result = vkEnumerateInstanceLayerProperties(&count, nullptr);
+		if (result == VK_SUCCESS)
+		{
+
+			layers.resize(count);
+			result = vkEnumerateInstanceLayerProperties(&count, layers.data());
+		}
+		return result == VK_SUCCESS;
+	}
 
 	export class instance
 	{
+	private:
+		std::vector<VkLayerProperties>     validator_layers;
+		std::vector<VkExtensionProperties> instance_extensions;
+
+		VkInstance m_instance{nullptr};
+
 	public:
 		bool initialize()
 		{
 
-			if (bool ext_init = enumerate_instance_extensions(); not ext_init)
+			if (bool ext_init = enumerate_instance_extensions(instance_extensions); not ext_init)
 				return false;
-			if (bool layer_init = enumerate_validator_layers(); not layer_init)
+			if (bool layer_init = enumerate_validator_layers(validator_layers); not layer_init)
 				return false;
 
 			VkApplicationInfo app_info{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -176,9 +208,6 @@ namespace deckard::vulkan
 		}
 
 		operator VkInstance() const { return m_instance; }
-
-	private:
-		VkInstance m_instance{nullptr};
 	};
 
 } // namespace deckard::vulkan

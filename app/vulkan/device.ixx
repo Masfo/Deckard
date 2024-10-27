@@ -22,6 +22,13 @@ namespace deckard::vulkan
 
 	export class device
 	{
+	private:
+		std::vector<VkExtensionProperties> device_extensions;
+
+		VkDevice         m_device{nullptr};
+		VkPhysicalDevice m_physical_device{nullptr};
+		VkQueue          m_queue{nullptr};
+
 	public:
 		bool initialize(VkInstance instance)
 		{
@@ -207,11 +214,6 @@ namespace deckard::vulkan
 
 				if (name.compare(VK_EXT_SHADER_OBJECT_EXTENSION_NAME) == 0)
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
-
-#if 0
-				if (name.compare(VK_KHR_SHADER_FLOAT_CONTROLS_2_EXTENSION_NAME) == 0)
-					extensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_2_EXTENSION_NAME);
-#endif
 			}
 
 			// Requested features
@@ -226,16 +228,10 @@ namespace deckard::vulkan
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = true;
 
-#if 0
-			VkPhysicalDeviceShaderFloatControls2FeaturesKHR shader_control2{
-			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT_CONTROLS_2_FEATURES_KHR};
-			shader_control2.shaderFloatControls2 = true;
-#endif
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 			device_create.pNext     = &vulkan_features13;
 			vulkan_features13.pNext = &shader_features;
-			// shader_features.pNext   = &shader_control2;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
@@ -251,18 +247,6 @@ namespace deckard::vulkan
 				dbg::println("Vulkan m_device creation failed: {}", string_VkResult(result));
 				return false;
 			}
-
-
-#if 0
-			const VpProfileProperties profile_properties = {VP_KHR_ROADMAP_2022_NAME, VP_KHR_ROADMAP_2022_SPEC_VERSION};
-
-			// Check if the profile is supported at device level
-			VkBool32 profile_supported;
-			result = vpGetPhysicalDeviceProfileSupport(instance, m_physical_device, &profile_properties, &profile_supported);
-			if (!profile_supported)
-			{
-			}
-#endif
 
 
 			vkGetDeviceQueue(m_device, queue_index, 0, &m_queue);
@@ -356,11 +340,6 @@ namespace deckard::vulkan
 		VkPhysicalDevice physical_device() const { return m_physical_device; }
 
 		VkQueue queue() const { return m_queue; }
-
-	private:
-		VkDevice         m_device{nullptr};
-		VkPhysicalDevice m_physical_device{nullptr};
-		VkQueue          m_queue{nullptr};
 	};
 
 } // namespace deckard::vulkan

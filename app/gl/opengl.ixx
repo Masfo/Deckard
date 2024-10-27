@@ -34,6 +34,48 @@ namespace gl
 	PFNWGLGETEXTENSIONSSTRINGEXTPROC  wglGetExtensionsStringEXT;
 	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
+	void initialize_functions()
+	{
+		gl::CreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
+		gl::ShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
+		gl::CompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
+		gl::CreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
+		gl::AttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
+		gl::LinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
+		gl::GetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
+		gl::UseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
+		gl::GenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
+		gl::BindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
+		gl::GenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
+		gl::BindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
+		gl::BufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
+		gl::VertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
+		gl::EnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
+		gl::Uniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
+		gl::GetStringi              = (PFNGLGETSTRINGIPROC)wglGetProcAddress("glGetStringi");
+
+		gl::DebugMessageControl  = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddress("glDebugMessageControl");
+		gl::DebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
+		gl::GetShaderiv          = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
+		gl::GetShaderInfoLog     = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
+		gl::GetProgramiv         = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
+		gl::GetProgramInfoLog    = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
+
+		int num_ext{};
+		glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
+		for (int i = 0; i < num_ext; i++)
+		{
+			std::string_view ext = as<const char*>(gl::GetStringi(GL_EXTENSIONS, i));
+			gl::extensions.insert(ext);
+		}
+
+		if (gl::wglGetExtensionsStringEXT)
+		{
+			const std::string_view extensions = gl::wglGetExtensionsStringEXT();
+			for (const auto& extension : split(extensions))
+				gl::wgl_extensions.insert(extension);
+		}
+	}
 
 	std::unordered_set<std::string_view> extensions;
 	std::unordered_set<std::string_view> wgl_extensions;
@@ -43,28 +85,27 @@ namespace gl
 	bool has_wgl_extension(std::string_view name) { return wgl_extensions.contains(name); }
 } // namespace gl
 
-GLuint compile_shader(GLenum type, const char* source)
+u32 compile_shader(u32 type, std::string_view source)
 {
-	GLuint shader = gl::CreateShader(type);
-	gl::ShaderSource(shader, 1, &source, NULL);
+	u32 shader = gl::CreateShader(type);
+	gl::ShaderSource(shader, 1, source.data(), 0);
 	gl::CompileShader(shader);
 
-	GLint param;
+	i32 param{};
 	gl::GetShaderiv(shader, GL_COMPILE_STATUS, &param);
 	if (!param)
 	{
 		char log[4096]{};
-		gl::GetShaderInfoLog(shader, sizeof(log), NULL, log);
+		gl::GetShaderInfoLog(shader, sizeof(log), 0, log);
 		dbg::println("Compile: {}", log);
 	}
 
 	return shader;
 }
 
-GLuint link_program(GLuint vert, GLuint frag)
+u32 link_program(u32 vert, u32 frag)
 {
-	//
-	GLuint program = gl::CreateProgram();
+	u32 program = gl::CreateProgram();
 	gl::AttachShader(program, vert);
 	gl::AttachShader(program, frag);
 	gl::LinkProgram(program);
@@ -115,10 +156,10 @@ void init_gl_renderer()
 
 
 	int attribs[] = {
-	  // WGL_CONTEXT_MAJOR_VERSION_ARB,
-	  // 4,
-	  // WGL_CONTEXT_MINOR_VERSION_ARB,
-	  // 6,
+	  WGL_CONTEXT_MAJOR_VERSION_ARB,
+	  4,
+	  WGL_CONTEXT_MINOR_VERSION_ARB,
+	  6,
 	  WGL_CONTEXT_PROFILE_MASK_ARB,
 	  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 	  WGL_CONTEXT_FLAGS_ARB,
@@ -154,38 +195,7 @@ void init_gl_renderer()
 		return;
 	}
 
-
-	gl::CreateShader            = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
-	gl::ShaderSource            = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
-	gl::CompileShader           = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
-	gl::CreateProgram           = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
-	gl::AttachShader            = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
-	gl::LinkProgram             = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
-	gl::GetUniformLocation      = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
-	gl::UseProgram              = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
-	gl::GenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
-	gl::BindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
-	gl::GenBuffers              = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
-	gl::BindBuffer              = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
-	gl::BufferData              = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
-	gl::VertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
-	gl::EnableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
-	gl::Uniform1f               = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
-	gl::GetStringi              = (PFNGLGETSTRINGIPROC)wglGetProcAddress("glGetStringi");
-
-	gl::DebugMessageControl  = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddress("glDebugMessageControl");
-	gl::DebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
-	gl::GetShaderiv          = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
-	gl::GetShaderInfoLog     = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
-	gl::GetProgramiv         = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
-	gl::GetProgramInfoLog    = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
-
-	if (gl::wglGetExtensionsStringEXT)
-	{
-		const std::string_view extensions = gl::wglGetExtensionsStringEXT();
-		for (const auto& extension : split(extensions))
-			gl::wgl_extensions.insert(extension);
-	}
+	gl::initialize_functions();
 
 
 	dbg::println("GL Vendor   : {}", (const char*)glGetString(GL_VENDOR));
@@ -193,14 +203,6 @@ void init_gl_renderer()
 	dbg::println("GL Version  : {}", (const char*)glGetString(GL_VERSION));
 	dbg::println("GL GLSL     : {}", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-
-	int num_ext{};
-	glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
-	for (int i = 0; i < num_ext; i++)
-	{
-		std::string_view ext = as<const char*>(gl::GetStringi(GL_EXTENSIONS, i));
-		gl::extensions.insert(ext);
-	}
 
 	if (gl::has_wgl_extension("WGL_EXT_swap_control"))
 	{
@@ -350,15 +352,3 @@ void render()
 
 #endif
 }
-
-/*
-	case VK_F4:
-					{
-						const int toggle_swap = 1 - gl::wglGetSwapIntervalEXT();
-						gl::wglSwapIntervalEXT(toggle_swap);
-
-						dbg::println("Toggle vsync: {}", toggle_swap);
-
-						break;
-
-*/
