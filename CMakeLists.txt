@@ -156,6 +156,8 @@ set(DECKARD_SRCS
         $<$<CONFIG:RelWithDebInfo,Release>:debug/debug_null.ixx>
         $<$<CONFIG:RelWithDebInfo,Release>:debug/assert_null.ixx>
 
+        $<$<PLATFORM_ID:Windows>:debug/console.ixx>
+
         # File
 		file/file.ixx
 		file/fileMonitor.ixx
@@ -189,7 +191,6 @@ set(DECKARD_SRCS
         taskpool/taskpool.ixx
 
 
-        graphs/binarytree.ixx
 
         # Utils
         utils/base64.ixx
@@ -221,7 +222,7 @@ set(DECKARD_SRCS
         # Graph
         graphs/graph.ixx
         graphs/avltree.ixx
-        #graphs/binarytree.ixx
+        graphs/binarytree.ixx
         graphs/undirected.ixx
         graphs/directed.ixx
 

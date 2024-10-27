@@ -45,12 +45,12 @@ TEST_CASE("radians/degrees", "[radians][degrees]")
 	}
 }
 
-TEST_CASE("is_close_enough", "[math][utility]")
+TEST_CASE("math.utility", "[math]")
 {
-	SECTION("is_close_enough")
+	SECTION("mod")
 	{
-		REQUIRE(true == is_close_enough_zero(0.000001));
-		REQUIRE(true == is_close_enough(0.0, 0.00001, 0.0001));
-		REQUIRE(false == is_close_enough(1.0, 0.00001, 0.0001));
+		REQUIRE(10 == mod(10, 100));
+		REQUIRE(10 == mod(110, 100));
+		REQUIRE(3 == mod(-11, 7));
 	}
 }
