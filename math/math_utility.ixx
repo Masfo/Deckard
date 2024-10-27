@@ -140,7 +140,7 @@ export namespace deckard::math
 	template<std::integral T, std::integral U = T>
 	T index_from_2d(T x, T y, U width)
 	{
-		return y * width + x;
+		return x * width + y;
 	}
 
 	template<std::integral T, std::integral U = T, std::integral I = T>
