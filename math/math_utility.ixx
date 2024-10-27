@@ -81,20 +81,20 @@ export namespace deckard::math
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T radians(const T& v)
+	[[nodiscard]] constexpr T to_radians(const T& v)
 	{
 		return static_cast<T>(v * deg_to_radians<T>);
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T degrees(const T& v)
+	[[nodiscard]] constexpr T to_degrees(const T& v)
 	{
 		return static_cast<T>(v * rad_to_degrees<T>);
 	}
 
-	constexpr float operator""_rad(long double deg) { return radians<float>((float)deg); }
+	constexpr float operator""_rad(long double deg) { return to_radians<float>((float)deg); }
 
-	constexpr float operator""_deg(long double rad) { return degrees<float>((float)rad); }
+	constexpr float operator""_deg(long double rad) { return to_degrees<float>((float)rad); }
 
 	namespace sse
 	{
@@ -138,15 +138,15 @@ export namespace deckard::math
 export namespace deckard::math
 {
 	template<std::integral T, std::integral U = T>
-	T index_from_2d(T x, T y, U width)
+	constexpr T index_from_2d(T x, T y, U width)
 	{
 		return x * width + y;
 	}
 
 	template<std::integral T, std::integral U = T, std::integral I = T>
-	T index_from_3d(T x, T y, T z, U height, I depth)
+	constexpr T index_from_3d(T x, T y, T z, U height, I depth)
 	{
-		return x * height * depth + y * depth * z;
+		return (z * height * depth) + (y * depth) + x;
 	}
 
 	template<std::integral T>

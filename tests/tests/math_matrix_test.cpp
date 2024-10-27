@@ -84,7 +84,7 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(mul_eq == meq16);
 
 		// mul with vec4
-		const auto persp = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		const auto persp = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
 		vec4       mulvec4(1.0f, 2.0f, 3.0f, 4.0f);
 		auto       mulvec4_result = persp * mulvec4;
 		auto       fmt            = std::format("{}", mulvec4_result);
@@ -144,7 +144,7 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("inverse")
 	{
-		mat4 Projection = perspective(radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
+		mat4 Projection = perspective(to_radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
 		mat4 inv        = inverse(Projection);
 
 		auto        fmt = std::format("{}", inv);
@@ -192,7 +192,7 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("tranpose bigger")
 	{
-		mat4 Projection    = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 Projection    = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
 		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
 		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
 		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
@@ -211,7 +211,7 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("Determinent")
 	{
-		mat4 Projection    = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 Projection    = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
 		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
 		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
 		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
@@ -314,7 +314,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("full MVP")
 	{
 
-		mat4 Projection = perspective(radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 Projection = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
 		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
 		mat4 ViewRotateX = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
 		mat4 View = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
@@ -345,7 +345,7 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("perspective")
 	{
-		auto persp = perspective(radians(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
+		auto persp = perspective(to_radians(85.0f), 1920.0f/1080.0f, 0.1f, 100.0f);
 
 		auto        fmt = std::format("{}", persp);
 		std::string test(
@@ -406,7 +406,7 @@ TEST_CASE("matrix generic", "[matrix]")
 		vec2 mouse{100.0f, 124.0f};
 		float width      = 1920.0f;
 		float height     = 1080.0f;
-		mat4  Projection = perspective(radians(85.0f), width / height, 0.1f, 100.0f);
+		mat4  Projection = perspective(to_radians(85.0f), width / height, 0.1f, 100.0f);
 
 		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
 		mat4 ViewRotateX = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));

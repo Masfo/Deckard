@@ -52,6 +52,7 @@ target_sources(tests PUBLIC
     tests/math_vec_test.cpp
     tests/math_matrix_test.cpp
     tests/math_quat_test.cpp
+    tests/math_tests.cpp
 
     # Utils
     tests/ringbuffer_test.cpp
