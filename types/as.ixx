@@ -15,15 +15,15 @@ namespace deckard
 
 		if constexpr (std::is_unsigned_v<U>)
 		{
-			dbg::println("Unable to cast '{}' safely. Target range is {}...{}",
-						 (u64)value,
-						 std::numeric_limits<T>::min(),
-						 std::numeric_limits<T>::max());
 		}
 		else
 		{
 			dbg::println("Unable to cast '{}' safely. Target range is {}...{}",
-						 (i64)value,
+						 static_cast<i64>(value),
+						 std::numeric_limits<T>::min(),
+						 std::numeric_limits<T>::max());
+			dbg::println("Unable to cast '{}' safely. Target range is {}...{}",
+						 static_cast<u64>(value),
 						 std::numeric_limits<T>::min(),
 						 std::numeric_limits<T>::max());
 		}
@@ -31,13 +31,14 @@ namespace deckard
 	}
 
 	export template<typename Ret = void*, typename U>
+	constexpr Ret as2(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
+	{
+	}
+
+	export template<typename Ret = void*, typename U>
 	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
-#ifdef _DEBUG
-		U         value      = u;
-		const Ret return_max = std::numeric_limits<Ret>::max();
-		const Ret return_min = std::numeric_limits<Ret>::min();
-#endif
+		U value = u;
 
 
 		// pointers
@@ -61,13 +62,12 @@ namespace deckard
 		{
 // integers
 #ifdef _DEBUG
-
-			if (value >= return_min and value <= return_max)
-				return static_cast<Ret>(u);
+			if (std::in_range<Ret>(value))
+				return static_cast<Ret>(value);
 
 			warn_cast_limit<Ret>(u, loc);
 #endif
-			return static_cast<Ret>(u);
+			return static_cast<Ret>(value);
 		}
 		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
 		{
@@ -75,8 +75,10 @@ namespace deckard
 #ifdef _DEBUG
 
 			std::int64_t max_cast = static_cast<std::int64_t>(value);
-			if (max_cast >= return_min and max_cast <= return_max)
+
+			if (std::in_range<Ret>(max_cast))
 				return static_cast<Ret>(value);
+
 
 			warn_cast_limit<Ret>(max_cast, loc);
 #endif
