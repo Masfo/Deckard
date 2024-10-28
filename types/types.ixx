@@ -96,6 +96,8 @@ export namespace deckard
 	// ###########################################################################
 	// ###########################################################################
 
+	// using Kilo = StrongType<double, struct Kilo_>;
+
 	template<typename T, typename Parameter>
 	class StrongType
 	{
