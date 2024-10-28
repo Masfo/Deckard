@@ -63,12 +63,6 @@ import deckard.types;
 
 namespace deckard::vulkan
 {
-	// TODO: partial modules for vulkan, like math
-	// instance, device, debug,	queue, surface
-	// all used in main vulkan module
-	// void init()
-	//   create_instance(), create_device(), create_queue(), create_surface()...
-
 	// Vulkan 1.3: https://developer.nvidia.com/blog/advanced-api-performance-vulkan-clearing-and-presenting/
 
 
@@ -129,7 +123,7 @@ namespace deckard::vulkan
 
 		is_initialized = m_instance.initialize();
 #ifdef _DEBUG
-		is_initialized &= m_debug.initialize(m_instance);
+		is_initialized &= m_debug.initialize(m_instance, nullptr);
 #endif
 
 		is_initialized &= m_device.initialize(m_instance);

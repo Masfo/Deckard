@@ -21,6 +21,10 @@ namespace deckard::vulkan
 {
 	export class swapchain
 	{
+	private:
+		VkSwapchainKHR m_swapchain{nullptr};
+		bool           m_vsync{true};
+
 	public:
 		bool initialize(device device, presentation_surface surface, bool vsync)
 		{
@@ -175,10 +179,6 @@ namespace deckard::vulkan
 		void deinitialize(VkDevice device) { vkDestroySwapchainKHR(device, m_swapchain, nullptr); }
 
 		operator VkSwapchainKHR() const { return m_swapchain; }
-
-	private:
-		VkSwapchainKHR m_swapchain{nullptr};
-		bool           m_vsync{true};
 	};
 
 } // namespace deckard::vulkan

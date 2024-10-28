@@ -16,6 +16,10 @@ namespace deckard::vulkan
 {
 	export class semaphore
 	{
+
+	private:
+		VkSemaphore m_semaphore{nullptr};
+
 	public:
 		bool initialize(VkDevice device)
 		{
@@ -38,9 +42,6 @@ namespace deckard::vulkan
 		}
 
 		operator VkSemaphore() const { return m_semaphore; }
-
-	private:
-		VkSemaphore m_semaphore{nullptr};
 	};
 
 } // namespace deckard::vulkan

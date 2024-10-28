@@ -3,7 +3,7 @@ module;
 #include <vulkan/vulkan.h>
 
 export module deckard.vulkan:debug;
-import deckard.vulkan_helpers;
+
 
 import std;
 import deckard.debug;
@@ -13,13 +13,29 @@ import deckard.assert;
 
 namespace deckard::vulkan
 {
+
+	PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT{nullptr};
+	PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
+	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT{nullptr};
+
+	void initialize_ext_functions(VkInstance instance)
+	{
+		vkCreateDebugUtilsMessengerEXT =
+		  (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+
+		vkSubmitDebugUtilsMessageEXT = (PFN_vkSubmitDebugUtilsMessageEXT)vkGetInstanceProcAddr(instance, "vkSubmitDebugUtilsMessageEXT");
+
+		vkDestroyDebugUtilsMessengerEXT =
+		  (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	}
+
 	bool debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
 						const VkDebugUtilsMessengerCallbackDataEXT*, void*);
 
 	export class debug
 	{
 	public:
-		bool initialize(const VkInstance instance)
+		bool initialize(const VkInstance instance, void* userdata)
 		{
 
 			assert::check(instance != nullptr);
@@ -39,7 +55,7 @@ namespace deckard::vulkan
 			create.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 								 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 			create.pfnUserCallback = as<PFN_vkDebugUtilsMessengerCallbackEXT>(debug_callback);
-			create.pUserData       = this;
+			create.pUserData       = userdata;
 
 			VkResult result{};
 			result = vkCreateDebugUtilsMessengerEXT(instance, &create, nullptr, &debug_messenger);
@@ -64,10 +80,9 @@ namespace deckard::vulkan
 	};
 
 	bool debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
-						const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* /*pUserData*/)
+						const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* [[maybe_unused]] pUserData)
 	{
 
-		// vulkan* self = (vulkan*)pUserData;
 
 		std::string_view severity, type;
 

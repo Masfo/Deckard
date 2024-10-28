@@ -20,6 +20,11 @@ namespace deckard::vulkan
 {
 	export class presentation_surface
 	{
+
+	private:
+		VkSurfaceKHR             surface{nullptr};
+		VkSurfaceCapabilitiesKHR surface_capabilities;
+
 	public:
 		bool initialize(VkInstance instance, device device, HWND window_handle)
 		{
@@ -63,10 +68,6 @@ namespace deckard::vulkan
 		VkExtent2D extent() const { return surface_capabilities.currentExtent; }
 
 		operator VkSurfaceKHR() const { return surface; }
-
-	private:
-		VkSurfaceKHR             surface{nullptr};
-		VkSurfaceCapabilitiesKHR surface_capabilities;
 	};
 
 } // namespace deckard::vulkan

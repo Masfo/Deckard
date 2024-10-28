@@ -20,6 +20,10 @@ namespace deckard::vulkan
 {
 	export class images
 	{
+	private:
+		std::vector<VkImage>     swapchain_images{};
+		std::vector<VkImageView> swapchain_imageviews{};
+
 	public:
 		bool initialize(VkDevice device, swapchain swapchain)
 		{
@@ -77,8 +81,6 @@ namespace deckard::vulkan
 
 		void deinitialize(VkDevice device)
 		{
-			for (auto& framebuffer : swapchain_framebuffers)
-				vkDestroyFramebuffer(device, framebuffer, nullptr);
 
 			for (auto& view : swapchain_imageviews)
 				vkDestroyImageView(device, view, nullptr);
@@ -87,12 +89,6 @@ namespace deckard::vulkan
 		VkImage image(u32 index) const { return swapchain_images[index]; }
 
 		VkImageView imageview(u32 index) const { return swapchain_imageviews[index]; }
-
-
-	private:
-		std::vector<VkImage>       swapchain_images{};
-		std::vector<VkImageView>   swapchain_imageviews{};
-		std::vector<VkFramebuffer> swapchain_framebuffers;
 	};
 
 } // namespace deckard::vulkan
