@@ -5,7 +5,7 @@ import deckard.debug;
 import deckard.types;
 import deckard.function_ref;
 
-export namespace deckard::graph::binary
+namespace deckard::graph::binary
 {
 
 	export enum class order {

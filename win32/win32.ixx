@@ -176,7 +176,7 @@ namespace deckard::system
 		return as<u64>(status.ullTotalPhys);
 	}
 
-	export std::string GetRAMString() { return pretty_bytes(GetRAM()); }
+	export std::string GetRAMString() { return human_readable_bytes(GetRAM()); }
 
 	export void set_thread_name(std::string_view threadname)
 	{

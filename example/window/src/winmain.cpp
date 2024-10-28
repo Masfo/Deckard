@@ -585,6 +585,14 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	auto k = math::index_from_3d(1, 1, 1, 3, 3);
+
+	i32 ab1 = -125;
+
+	dbg::println("{}", std::in_range<u16>(ab1));
+	dbg::println("{}", std::in_range<i16>(ab1));
+
+
 	// 0x07e6c88e44dd2
 	// 0xC379AAA42D208
 	std::vector<int> num1 = {3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3, 2, 1, 3};
