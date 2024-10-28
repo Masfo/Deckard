@@ -216,8 +216,9 @@ namespace deckard
 			{
 				close();
 
-				dbg::println(
-				  "Could not create mapping for file '{}' ({})", system::from_wide(filepath.wstring()).c_str(), pretty_bytes(filesize));
+				dbg::println("Could not create mapping for file '{}' ({})",
+							 system::from_wide(filepath.wstring()).c_str(),
+							 human_readable_bytes(filesize));
 				return {};
 			}
 
