@@ -585,6 +585,8 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	deckard::archive::test();
+
 	auto k = math::index_from_3d(1, 1, 1, 3, 3);
 
 	i32 ab1 = -125;
