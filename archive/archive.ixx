@@ -9,6 +9,7 @@ import deckard.win32;
 import deckard.types;
 import deckard.as;
 import deckard.random;
+import deckard.helpers;
 
 namespace fs = std::filesystem;
 
@@ -114,15 +115,24 @@ export namespace deckard::archive
 	void test()
 	{
 		// open sqlite3 database connection
-		sqlite3* db{};
-		int      rc = sqlite3_open("database.db", &db);
+		sqlite3*      db{};
+		sqlite3_stmt* stmtInsert{};
 
-		std::array<u8, 512> blob;
+		std::array<u8, 512> blob{};
+		random::random_bytes(blob);
+
+
+		int rc = sqlite3_open_v2("database.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 0);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
 		// std::vector<u8>     blob; // your data
 		// blob.resize(128);
 
 		// random::random_bytes({blob.data(), blob.size()});
-		random::random_bytes(blob);
 
 		blob[0] = 'M';
 		blob[1] = 'A';
@@ -133,8 +143,7 @@ export namespace deckard::archive
 
 		//  insert blob
 
-		sqlite3_stmt* stmtInsert = nullptr;
-		rc                       = sqlite3_prepare(db, "INSERT INTO table_name (vector_blob) VALUES (?)", -1, &stmtInsert, nullptr);
+		rc = sqlite3_prepare_v2(db, "INSERT INTO table_name (vector_blob) VALUES (?)", -1, &stmtInsert, nullptr);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -163,13 +172,80 @@ export namespace deckard::archive
 		}
 
 	ending:
-		rc = sqlite3_close(db);
+		rc = sqlite3_close_v2(db);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
 		}
 
 		int x = 0;
+	}
+
+	void test_read_blob()
+	{
+		sqlite3*            db{};
+		sqlite3_stmt*       stmtRetrieve{};
+		int                 id = 1; // your id
+		std::array<u8, 256> blob{};
+		// std::vector<u8> blob;
+
+		int rc = sqlite3_open_v2("database.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 0);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
+		// retrieve blob
+		rc = sqlite3_prepare_v2(db, "SELECT vector_blob FROM table_name where id = ?", -1, &stmtRetrieve, nullptr);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
+		 rc = sqlite3_bind_int(stmtRetrieve, 1, id);
+		 if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		 }
+
+		//rc = sqlite3_bind_blob(stmtRetrieve, 1, &blob[0], as<i32>(blob.size()), SQLITE_STATIC);
+		//if (rc != SQLITE_OK)
+		//{
+		//	dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+		//	goto ending;
+		//}
+
+		// sqlite3_blob_read, N+offset
+
+		while (sqlite3_step(stmtRetrieve) == SQLITE_ROW)
+		{
+			// retrieve blob data
+			const u8* pdata = reinterpret_cast<const u8*>(sqlite3_column_blob(stmtRetrieve, 0));
+			// query blob data size
+			// blob.resize(sqlite3_column_bytes(stmtRetrieve, 0) / static_cast<int>(sizeof(float)));
+			// copy to data vector
+			std::copy(pdata, pdata + static_cast<int>(blob.size()), blob.data());
+			dbg::println("{}", to_hex_string<u8>(blob, {.delimiter = " ", .show_hex = false}));
+		}
+
+
+		rc = sqlite3_finalize(stmtRetrieve);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
+
+	ending:
+		rc = sqlite3_close_v2(db);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+		}
 	}
 #if 0
 		class file
