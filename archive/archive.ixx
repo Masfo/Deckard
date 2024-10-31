@@ -120,11 +120,12 @@ export namespace deckard::archive
 
 	*/
 
+
 	void my_add(sqlite3_context* ctx, int argc, sqlite3_value** argv)
 	{
-		int x = sqlite3_value_int(argv[0]);
-		int y = sqlite3_value_int(argv[1]);
-		sqlite3_result_int(ctx, x + y);
+		auto x = sqlite3_value_double(argv[0]);
+		auto y = sqlite3_value_double(argv[1]);
+		sqlite3_result_double(ctx, x + y);
 		// return 0;
 	}
 
@@ -133,6 +134,7 @@ export namespace deckard::archive
 		// open sqlite3 database connection
 		sqlite3*      db{};
 		sqlite3_stmt* stmtInsert{};
+
 
 		std::array<u8, 512> blob{};
 		random::random_bytes(blob);
@@ -167,7 +169,7 @@ export namespace deckard::archive
 
 		//  insert blob
 
-		rc = sqlite3_prepare_v2(db, "INSERT INTO table_name (vector_blob) VALUES (?)", -1, &stmtInsert, nullptr);
+		rc = sqlite3_prepare_v2(db, "INSERT INTO blobs (data) VALUES (?)", -1, &stmtInsert, nullptr);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -207,9 +209,12 @@ export namespace deckard::archive
 
 	void test_read_blob()
 	{
-		sqlite3*            db{};
-		sqlite3_stmt*       stmtRetrieve{};
-		int                 id = 1; // your id
+		sqlite3*      db{};
+		sqlite3_stmt* stmtRetrieve{};
+		int           id = 1; // your id
+		int           data_count{};
+		int           col_count{};
+
 		std::array<u8, 256> blob{};
 		// std::vector<u8> blob;
 
@@ -220,7 +225,28 @@ export namespace deckard::archive
 			goto ending;
 		}
 
-		rc = sqlite3_create_function(db, "my_add", 2, SQLITE_UTF8, NULL, my_add, NULL, NULL);
+		rc = sqlite3_create_function_v2(db, "my_add", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, my_add, NULL, NULL, NULL);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
+		rc = sqlite3_create_function_v2(
+		  db,
+		  "my_add2",
+		  2,
+		  SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+		  NULL,
+		  [](sqlite3_context* ctx, int argc, sqlite3_value** argv)
+		  {
+			  auto x = sqlite3_value_double(argv[0]);
+			  auto y = sqlite3_value_double(argv[1]);
+			  sqlite3_result_double(ctx, x + y);
+		  },
+		  NULL,
+		  NULL,
+		  NULL);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -229,7 +255,7 @@ export namespace deckard::archive
 
 		{
 			// retrieve blob
-			rc = sqlite3_prepare_v2(db, "SELECT my_add(1,2)", -1, &stmtRetrieve, nullptr);
+			rc = sqlite3_prepare_v2(db, "SELECT my_add2(123.2,123.4)", -1, &stmtRetrieve, nullptr);
 			if (rc != SQLITE_OK)
 			{
 				dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -238,19 +264,18 @@ export namespace deckard::archive
 
 			while (sqlite3_step(stmtRetrieve) == SQLITE_ROW)
 			{
-				auto type = sqlite3_column_type(stmtRetrieve, 0);
-				auto res = sqlite3_column_int(stmtRetrieve, 0);
+				auto type  = sqlite3_column_type(stmtRetrieve, 0);
+				auto bytes = sqlite3_column_bytes(stmtRetrieve, 0);
+				auto res   = sqlite3_column_double(stmtRetrieve, 0);
 
 				int j = 0;
 			}
-
 		}
-
-
+		rc = sqlite3_finalize(stmtRetrieve);
 
 
 		// retrieve blob
-		rc = sqlite3_prepare_v2(db, "SELECT vector_blob FROM table_name where id = ?", -1, &stmtRetrieve, nullptr);
+		rc = sqlite3_prepare_v2(db, "SELECT data FROM blobs where id = ?", -1, &stmtRetrieve, nullptr);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -271,10 +296,31 @@ export namespace deckard::archive
 		//	goto ending;
 		// }
 
+		// #define SQLITE_INTEGER  1
+		// #define SQLITE_FLOAT    2
+		// #define SQLITE_TEXT     3
+		// #define SQLITE_BLOB     4
+		// #define SQLITE_NULL     5
+		//
 		// sqlite3_blob_read, N+offset
+
+		// sqlite3_column_bytes
+		// sqlite3_column_type
+		// sqlite3_column_count
+		// sqlite3_data_count
+		//
+		// sqlite3_column_blob			BLOB result
+		// sqlite3_column_double		REAL result
+		// sqlite3_column_int			32-bit INTEGER result
+		// sqlite3_column_int64			64-bit INTEGER result
+		// sqlite3_column_text			UTF-8 TEXT result
+
+		data_count = sqlite3_data_count(stmtRetrieve);
+		col_count  = sqlite3_column_count(stmtRetrieve);
 
 		while (sqlite3_step(stmtRetrieve) == SQLITE_ROW)
 		{
+			dbg::print("{}: ", sqlite3_column_name(stmtRetrieve, 0));
 			// retrieve blob data
 			const u8* pdata = reinterpret_cast<const u8*>(sqlite3_column_blob(stmtRetrieve, 0));
 			// query blob data size
