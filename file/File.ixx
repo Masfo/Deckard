@@ -159,6 +159,10 @@ namespace deckard
 
 	export class filemap
 	{
+	private:
+		std::span<u8> view;
+		fs::path      filepath;
+
 	public:
 		enum class access : u8
 		{
@@ -333,10 +337,6 @@ namespace deckard
 		{
 			return write(file, std::span<u8>{as<u8*>(content.data()), content.size()}, flag);
 		}
-
-	private:
-		std::span<u8> view;
-		fs::path      filepath;
 	};
 
 

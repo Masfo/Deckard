@@ -123,6 +123,8 @@ export namespace deckard
 			return true;
 		};
 
+		// TODO: output width( ie, how often newlines)
+
 		for (const auto [i, word] : std::views::enumerate(input))
 		{
 
@@ -454,10 +456,10 @@ export namespace deckard
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val, base);
 			if (ptr == input.data())
 			{
-				#ifdef _DEBUG
+#ifdef _DEBUG
 				dbg::trace("try_to_number failed: '{}'", input);
 				dbg::stacktrace();
-				#endif
+#endif
 
 				return {};
 			}

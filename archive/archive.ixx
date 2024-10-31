@@ -108,9 +108,25 @@ export namespace deckard::archive
 		// do something with db ...
 	}
 
+	 SELECT * FROM Students WHERE Name GLOB 'A*e';
+									   LIKE 'A_e';
+	GLOB: case-sensitive
+	LIKE:
+	GLOB: * any
+		  ? one
 
+	LIKE: % any
+		  _ one
 
 	*/
+
+	void my_add(sqlite3_context* ctx, int argc, sqlite3_value** argv)
+	{
+		int x = sqlite3_value_int(argv[0]);
+		int y = sqlite3_value_int(argv[1]);
+		sqlite3_result_int(ctx, x + y);
+		// return 0;
+	}
 
 	void test()
 	{
@@ -123,6 +139,14 @@ export namespace deckard::archive
 
 
 		int rc = sqlite3_open_v2("database.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 0);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
+
+		rc = sqlite3_create_function(db, "my_add", 2, SQLITE_UTF8, NULL, my_add, NULL, NULL);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -196,6 +220,35 @@ export namespace deckard::archive
 			goto ending;
 		}
 
+		rc = sqlite3_create_function(db, "my_add", 2, SQLITE_UTF8, NULL, my_add, NULL, NULL);
+		if (rc != SQLITE_OK)
+		{
+			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+			goto ending;
+		}
+
+		{
+			// retrieve blob
+			rc = sqlite3_prepare_v2(db, "SELECT my_add(1,2)", -1, &stmtRetrieve, nullptr);
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
+				goto ending;
+			}
+
+			while (sqlite3_step(stmtRetrieve) == SQLITE_ROW)
+			{
+				auto type = sqlite3_column_type(stmtRetrieve, 0);
+				auto res = sqlite3_column_int(stmtRetrieve, 0);
+
+				int j = 0;
+			}
+
+		}
+
+
+
+
 		// retrieve blob
 		rc = sqlite3_prepare_v2(db, "SELECT vector_blob FROM table_name where id = ?", -1, &stmtRetrieve, nullptr);
 		if (rc != SQLITE_OK)
@@ -204,19 +257,19 @@ export namespace deckard::archive
 			goto ending;
 		}
 
-		 rc = sqlite3_bind_int(stmtRetrieve, 1, id);
-		 if (rc != SQLITE_OK)
+		rc = sqlite3_bind_int(stmtRetrieve, 1, id);
+		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
 			goto ending;
-		 }
+		}
 
-		//rc = sqlite3_bind_blob(stmtRetrieve, 1, &blob[0], as<i32>(blob.size()), SQLITE_STATIC);
-		//if (rc != SQLITE_OK)
+		// rc = sqlite3_bind_blob(stmtRetrieve, 1, &blob[0], as<i32>(blob.size()), SQLITE_STATIC);
+		// if (rc != SQLITE_OK)
 		//{
 		//	dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
 		//	goto ending;
-		//}
+		// }
 
 		// sqlite3_blob_read, N+offset
 

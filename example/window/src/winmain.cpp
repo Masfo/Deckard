@@ -586,6 +586,7 @@ int deckard_main()
 #endif
 
 	deckard::archive::test();
+	deckard::archive::test_read_blob();
 
 	auto k = math::index_from_3d(1, 1, 1, 3, 3);
 
