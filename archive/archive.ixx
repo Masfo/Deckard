@@ -120,6 +120,55 @@ export namespace deckard::archive
 
 	*/
 
+	class db
+	{
+	private:
+		sqlite3* m_db{nullptr};
+
+	public:
+		db(std::filesystem::path path) { open(path); }
+
+		bool is_open() const { return m_db != nullptr; }
+
+		std::string err() const { return sqlite3_errmsg(m_db); }
+
+		std::expected<bool, std::string> exec(std::string_view sql)
+		{
+			sqlite3_stmt* statement{nullptr};
+			i32           rc = sqlite3_prepare_v2(m_db, sql.data(), -1, &statement, nullptr);
+			if (rc != SQLITE_OK)
+				return std::unexpected(sqlite3_errmsg(m_db));
+
+			rc = sqlite3_step(statement);
+
+			rc = sqlite3_finalize(statement);
+			if (rc != SQLITE_OK)
+				return std::unexpected(sqlite3_errmsg(m_db));
+
+			return true;
+		}
+
+		std::expected<bool, std::string> open(std::filesystem::path path)
+		{
+			if (path.empty())
+				return std::unexpected("database name empty");
+
+			i32 rc = sqlite3_open_v2(path.generic_string().c_str(), &m_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 0);
+			if (rc != SQLITE_OK)
+				return std::unexpected(sqlite3_errmsg(m_db));
+
+			return true;
+		}
+
+		void close()
+		{
+			i32 rc = sqlite3_close_v2(m_db);
+			if (rc != SQLITE_OK)
+				dbg::println("sqlite3_close_v2: error: {}", sqlite3_errmsg(m_db));
+
+			m_db = nullptr;
+		}
+	};
 
 	void my_add(sqlite3_context* ctx, int argc, sqlite3_value** argv)
 	{
