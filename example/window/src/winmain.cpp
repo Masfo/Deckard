@@ -578,69 +578,6 @@ std::vector<int> multiply_large_numbers(const std::vector<int>& num1, const std:
 	return result;
 }
 
-class chain
-{
-private:
-	std::string sql;
-
-	template<typename T>
-	void bind_sql(i32 index, T& value)
-	{
-		if constexpr (std::is_integral_v<T>)
-		{
-			dbg::println("#{}: integral: {}", index, value);
-		}
-		else if constexpr (std::is_floating_point_v<T>)
-		{
-			dbg::println("#{}: floating: {}", index, value);
-		}
-		else if constexpr (std::is_convertible_v<T, const char*>)
-		{
-			dbg::println("#{}: string: {}", index, value);
-		}
-		else
-		{
-			//
-			static_assert(true);
-		}
-	}
-
-	template<typename T>
-	void bind_helper(i32 index, const T& value)
-	{
-		bind_sql(index, value);
-	}
-
-	template<typename T, typename... Args>
-	void bind_helper(i32 index, const T& value, Args... args)
-	{
-		bind_sql(index, value);
-
-		bind_helper(++index, args...);
-	}
-
-public:
-	chain& prepare(std::string_view input)
-	{
-		sql = input;
-		return *this;
-	}
-
-	template<typename... Args>
-	chain& bind(Args... args)
-	{
-		bind_helper(1, args...);
-
-		return *this;
-	}
-
-	chain& commit()
-	{
-		dbg::println("commit");
-		return *this;
-	}
-};
-
 int deckard_main()
 {
 #ifndef _DEBUG
@@ -649,26 +586,10 @@ int deckard_main()
 #endif
 
 
-	chain dbq;
+	deckard::archive::db db("database.db");
 
-	dbq.prepare("PRAGMA ?1, ?2").bind(42, "hello").commit();
-
-
-	deckard::archive::db db("");
-
-	if (not db.is_open())
-	{
-		dbg::println("{}", db.err());
-	}
-
-	auto p = db.exec("PRAGMA synchronous = NORMAL;");
-	dbg::println("{}", p ? "true" : p.error());
-
-	p = db.exec("PRAGMA journal_mode = WAL;");
-	dbg::println("{}", p ? "true" : p.error());
-
-	p = db.exec("PRGMA temp_store = MEMORY;");
-	dbg::println("{}", p ? "true" : p.error());
+	db.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(3.14).commit();
+	db.close();
 
 
 	deckard::archive::test();

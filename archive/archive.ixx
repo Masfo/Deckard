@@ -4,6 +4,7 @@ module;
 export module deckard.archive;
 
 import std;
+import deckard.assert;
 import deckard.debug;
 import deckard.win32;
 import deckard.types;
@@ -123,7 +124,61 @@ export namespace deckard::archive
 	class db
 	{
 	private:
-		sqlite3* m_db{nullptr};
+		sqlite3*      m_db{nullptr};
+		sqlite3_stmt* m_statement{nullptr};
+
+		template<typename T>
+		void bind_sql(i32 index, const T& value)
+		{
+
+
+			i32 rc = SQLITE_ERROR;
+
+			if constexpr (std::is_integral_v<T>)
+			{
+				if (std::in_range<i32>(value))
+					rc = sqlite3_bind_int(m_statement, index, value);
+				else if (std::in_range<i64>(value))
+					rc = sqlite3_bind_int64(m_statement, index, value);
+				else
+					rc = sqlite3_bind_text(m_statement, index, std::format("{}", value).c_str(), -1, nullptr);
+			}
+			else if constexpr (std::is_floating_point_v<T>)
+			{
+				rc = sqlite3_bind_double(m_statement, index, value);
+			}
+			else if constexpr (std::is_convertible_v<T, std::string_view>)
+			{
+				if constexpr (std::is_same_v<T, std::string_view> or std::is_same_v<T, std::string>)
+					rc = sqlite3_bind_text(m_statement, index, value.data(), as<i32>(value.size()), nullptr);
+				else
+					rc = sqlite3_bind_text(m_statement, index, value, -1, nullptr);
+			}
+			else if constexpr (non_string_container<T>)
+			{
+				rc = sqlite3_bind_blob(m_statement, index, value.data(), as<i32>(value.size()), SQLITE_STATIC);
+			}
+			else
+			{
+				//
+				static_assert(false, "type not bindable");
+			}
+
+			if (rc != SQLITE_OK)
+				dbg::println("{}", sqlite3_errmsg(m_db));
+		}
+
+		template<typename T, typename... Args>
+		void bind_helper(i32 index, const T& value, Args... args)
+		{
+			bind_sql(index, value);
+
+			if constexpr (sizeof...(args) > 0)
+			{
+				bind_helper(++index, args...);
+			}
+		}
+
 
 	public:
 		db(std::filesystem::path path) { open(path); }
@@ -146,6 +201,63 @@ export namespace deckard::archive
 				return std::unexpected(sqlite3_errmsg(m_db));
 
 			return true;
+		}
+
+		db& prepare(std::string_view input)
+		{
+			i32 rc = sqlite3_prepare_v2(m_db, input.data(), -1, &m_statement, nullptr);
+
+			if (rc != SQLITE_OK)
+			{
+				m_statement = nullptr;
+				dbg::println("sqlite3::prepare: {}", sqlite3_errmsg(m_db));
+			}
+
+			return *this;
+		}
+
+		template<typename... Args>
+		db& bind(Args... args)
+		{
+			if (m_statement == nullptr)
+			{
+				dbg::println("sqlite3::bind: statement is invalid");
+				return *this;
+			}
+
+			bind_helper(1, args...);
+
+			return *this;
+		}
+
+		db& reset_bindings()
+		{
+			i32 rc = sqlite3_clear_bindings(m_statement);
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("sqlite3::reset_bindings: {}", sqlite3_errmsg(m_db));
+				return *this;
+			}
+
+			return *this;
+		}
+
+		db& commit()
+		{
+			if (m_statement == nullptr)
+			{
+				dbg::println("sqlite3::commit: statement is invalid");
+				return *this;
+			}
+
+			i32 rc = sqlite3_step(m_statement);
+			if (rc != SQLITE_DONE and rc != SQLITE_ROW)
+			{
+				dbg::println("sqlite3_commit: {}", sqlite3_errmsg(m_db));
+			}
+
+
+			return *this;
 		}
 
 		std::expected<bool, std::string> open(std::filesystem::path path)
@@ -218,7 +330,7 @@ export namespace deckard::archive
 
 		//  insert blob
 
-		rc = sqlite3_prepare_v2(db, "INSERT INTO blobs (data) VALUES (?)", -1, &stmtInsert, nullptr);
+		rc = sqlite3_prepare_v2(db, "INSERT INTO blobs (data) VALUES (?1)", -1, &stmtInsert, nullptr);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
@@ -324,7 +436,7 @@ export namespace deckard::archive
 
 
 		// retrieve blob
-		rc = sqlite3_prepare_v2(db, "SELECT data FROM blobs where id = ?", -1, &stmtRetrieve, nullptr);
+		rc = sqlite3_prepare_v2(db, "SELECT data FROM blobs where id = ?1", -1, &stmtRetrieve, nullptr);
 		if (rc != SQLITE_OK)
 		{
 			dbg::println("SQLite3 error: {}", sqlite3_errmsg(db));
