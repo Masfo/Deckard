@@ -171,6 +171,21 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(input == "ACE");
 	}
 
+	SECTION("try_to_string")
+	{
+		auto a = try_to_string(0xffff, 16);
+		REQUIRE(a.has_value() == true);
+		REQUIRE("ffff" == *a);
+
+		a = try_to_string(0xffff);
+		REQUIRE(a.has_value() == true);
+		REQUIRE("65535" == *a);
+
+		a = try_to_string(-256, 16);
+		REQUIRE(a.has_value() == true);
+		REQUIRE("-100" == *a);
+	}
+
 	SECTION("try_to_number")
 	{
 		std::string input("123456");

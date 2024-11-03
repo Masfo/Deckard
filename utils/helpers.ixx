@@ -414,18 +414,16 @@ export namespace deckard
 		return trim_back(s);
 	};
 
-	template<typename U = std::string, typename T>
-	auto try_to_string(T input, i32 [[maybe_unused]] base = 10) -> std::optional<U>
+	template<typename T>
+	auto try_to_string(T input, i32 base = 10) -> std::optional<std::string>
 	{
-		U ret{};
-		ret.resize(64);
+		char buffer[32]{0};
 
 
-		auto [ptr, ec] = std::to_chars(ret.data(), ret.data() + ret.size(), input, base);
+		auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), input, base);
 		if (ec == std::errc())
 		{
-			ret.shrink_to_fit();
-			return ret;
+			return buffer;
 		}
 
 		return {};
@@ -485,9 +483,7 @@ export namespace deckard
 
 			return val;
 		}
-
-
-		return val;
+		std::unreachable();
 	}
 
 	template<typename T>
