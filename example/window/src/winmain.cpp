@@ -590,17 +590,18 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	std::variant<int, std::string> v = "abc";
 
-	v = 1;
+	auto as_string = as<std::string>(-1566, 16);
+	dbg::println("as_ {}", as_string);
 
-	if (std::holds_alternative<int>(v))
-		dbg::println("int");
-	else
-		dbg::println("string");
+	auto as_int = as<i32>("0xFFFFFF");
 
 
 	deckard::archive::db db("database.db");
+
+	db.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
+	auto v64 = db.at<u64>("log_id", 0);
+	dbg::println("v: {}", v64 ? *v64 : 0);
 
 	auto bfs = db.bind_function(
 	  "my_add",
@@ -623,34 +624,11 @@ int deckard_main()
 
 	db.prepare("SELECT log_id,text FROM blobs WHERE id=1;").commit();
 
-	auto vresult  = db.at<i64>("log_id");
-	auto vrestext = db.at<std::string>("text");
-
-
-	if (vresult)
-	{
-		dbg::println("values {}", *vresult);
-	}
-	if (vrestext)
-	{
-		dbg::println("values {}", *vrestext);
-	}
-
-	db.prepare("SELECT my_add(3.14, 5.18) as result").commit();
-	vresult = db.at<f64>("result");
-		dbg::println("values {:.5}", vresult ? *vresult : 0.0);
-
 
 	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?, ?)").bind("testing", 1).commit();
 
 
-	i64 ffff = 0xFFFF'FFFF'FFFF'DEAD;
-
-	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?, ?)").bind("testing", 1).commit();
-
-
-	for (i32 i : upto(2))
-		db.bind(std::format("test {}", ffff).c_str(), i).commit();
+	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?1, ?2)").bind("testing", 1).commit();
 
 
 	db.close();
