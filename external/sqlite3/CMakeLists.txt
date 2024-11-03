@@ -41,6 +41,8 @@ endif()
 project(sqlite3)
 add_library(sqlite3 STATIC sqlite3.c)
 
+# target_compile_definitions(sqlite3 PRIVATE -DSQLITE_ENABLE_COLUMN_METADATA)
+
 set_source_files_properties(sqlite3.c sqlite3.h PROPERTIES LANGUAGE C)
 
 set_target_properties(sqlite3 PROPERTIES 
