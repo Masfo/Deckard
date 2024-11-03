@@ -152,10 +152,10 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args&&... args)
 	{
-		println("{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
+		println("\n{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
 	}
 
-	void trace(const std::source_location& loc = std::source_location::current()) { println("{}({}):"sv, loc.file_name(), loc.line()); }
+	void trace(const std::source_location& loc = std::source_location::current()) { println("\n{}({}):"sv, loc.file_name(), loc.line()); }
 
 	void trace(FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
 
