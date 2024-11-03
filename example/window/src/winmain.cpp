@@ -578,6 +578,11 @@ std::vector<int> multiply_large_numbers(const std::vector<int>& num1, const std:
 	return result;
 }
 
+extern "C" struct sqlite3_value;
+extern "C" struct sqlite3_context;
+extern "C" f64  sqlite3_value_double(sqlite3_value*);
+extern "C" void sqlite3_result_double(sqlite3_context*, f64);
+
 int deckard_main()
 {
 #ifndef _DEBUG
@@ -585,10 +590,69 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	std::variant<int, std::string> v = "abc";
+
+	v = 1;
+
+	if (std::holds_alternative<int>(v))
+		dbg::println("int");
+	else
+		dbg::println("string");
+
 
 	deckard::archive::db db("database.db");
 
-	db.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(3.14).commit();
+	auto bfs = db.bind_function(
+	  "my_add",
+	  2,
+	  [](sqlite3_context* ctx, int argc, sqlite3_value** argv)
+	  {
+		  auto x = sqlite3_value_double(argv[0]);
+		  auto y = sqlite3_value_double(argv[1]);
+		  sqlite3_result_double(ctx, x + y);
+	  });
+
+	db.prepare("SELECT 3.14+0xFFFFFFFFFFFF as result").commit();
+
+	auto vresult2 = db.at<f64>("result");
+	if (vresult2)
+	{
+		dbg::println("values {}", *vresult2);
+	}
+
+
+	db.prepare("SELECT log_id,text FROM blobs WHERE id=1;").commit();
+
+	auto vresult  = db.at<i64>("log_id");
+	auto vrestext = db.at<std::string>("text");
+
+
+	if (vresult)
+	{
+		dbg::println("values {}", *vresult);
+	}
+	if (vrestext)
+	{
+		dbg::println("values {}", *vrestext);
+	}
+
+	db.prepare("SELECT my_add(3.14, 5.18) as result").commit();
+	vresult = db.at<f64>("result");
+		dbg::println("values {:.5}", vresult ? *vresult : 0.0);
+
+
+	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?, ?)").bind("testing", 1).commit();
+
+
+	i64 ffff = 0xFFFF'FFFF'FFFF'DEAD;
+
+	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?, ?)").bind("testing", 1).commit();
+
+
+	for (i32 i : upto(2))
+		db.bind(std::format("test {}", ffff).c_str(), i).commit();
+
+
 	db.close();
 
 

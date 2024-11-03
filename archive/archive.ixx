@@ -121,11 +121,74 @@ export namespace deckard::archive
 
 	*/
 
+	struct option
+	{
+		bool autoreset{true};
+	};
+
+	using sqlite_type = std::variant<std::monostate, u64, i64, f64, std::string, std::vector<u8>>;
+	using sqlite_row  = std::unordered_map<std::string, sqlite_type>;
+	using sqlite_rows = std::vector<sqlite_row>;
+
 	class db
 	{
 	private:
+		using sqlite_function = void(sqlite3_context*, i32, sqlite3_value**);
+
 		sqlite3*      m_db{nullptr};
 		sqlite3_stmt* m_statement{nullptr};
+		option        m_option{};
+
+		sqlite_rows m_rows;
+
+		template<typename T>
+		T get_column_value(i32 index)
+		{
+			auto bytes = sqlite3_column_bytes(m_statement, index);
+			auto type  = sqlite3_column_type(m_statement, index);
+			switch (type)
+			{
+				case SQLITE_INTEGER:
+					if constexpr (std::is_integral_v<T>)
+						return sqlite3_column_int64(m_statement, index);
+					return {};
+
+				case SQLITE_FLOAT:
+					if constexpr (std::is_floating_point_v<T>)
+						return sqlite3_column_double(m_statement, index);
+					return {};
+				case SQLITE_TEXT:
+				{
+					if constexpr (std::is_same_v<T, std::string>)
+					{
+						std::string ret;
+						const u8*   pdata = sqlite3_column_text(m_statement, index);
+						ret.resize(bytes);
+						std::copy(pdata, pdata + as<i32>(ret.size()), ret.data());
+						return ret;
+					}
+					return {};
+				}
+				case SQLITE_BLOB:
+				{
+					if constexpr (non_string_container<T>)
+					{
+						std::vector<u8> blob;
+						blob.resize(bytes);
+
+						const u8* pdata = reinterpret_cast<const u8*>(sqlite3_column_blob(m_statement, index));
+						std::copy(pdata, pdata + as<i32>(blob.size()), blob.data());
+
+						return blob;
+					}
+					return {};
+				}
+
+				case SQLITE_NULL: return {};
+
+				default: std::unreachable();
+			};
+		}
 
 		template<typename T>
 		void bind_sql(i32 index, const T& value)
@@ -141,7 +204,10 @@ export namespace deckard::archive
 				else if (std::in_range<i64>(value))
 					rc = sqlite3_bind_int64(m_statement, index, value);
 				else
-					rc = sqlite3_bind_text(m_statement, index, std::format("{}", value).c_str(), -1, nullptr);
+				{
+					dbg::println("TODO: big unsigned integers");
+					return;
+				}
 			}
 			else if constexpr (std::is_floating_point_v<T>)
 			{
@@ -149,10 +215,12 @@ export namespace deckard::archive
 			}
 			else if constexpr (std::is_convertible_v<T, std::string_view>)
 			{
+				dbg::println("{}", value);
+
 				if constexpr (std::is_same_v<T, std::string_view> or std::is_same_v<T, std::string>)
-					rc = sqlite3_bind_text(m_statement, index, value.data(), as<i32>(value.size()), nullptr);
+					rc = sqlite3_bind_text(m_statement, index, value.data(), as<i32>(value.size() + 1), nullptr);
 				else
-					rc = sqlite3_bind_text(m_statement, index, value, -1, nullptr);
+					rc = sqlite3_bind_text(m_statement, index, value, as<i32>(std::strlen(value)), nullptr);
 			}
 			else if constexpr (non_string_container<T>)
 			{
@@ -181,7 +249,16 @@ export namespace deckard::archive
 
 
 	public:
-		db(std::filesystem::path path) { open(path); }
+		db(std::filesystem::path path)
+			: db(path, {})
+		{
+		}
+
+		db(std::filesystem::path path, option opt)
+		{
+			m_option = opt;
+			open(path);
+		}
 
 		bool is_open() const { return m_db != nullptr; }
 
@@ -205,6 +282,8 @@ export namespace deckard::archive
 
 		db& prepare(std::string_view input)
 		{
+			clear();
+
 			i32 rc = sqlite3_prepare_v2(m_db, input.data(), -1, &m_statement, nullptr);
 
 			if (rc != SQLITE_OK)
@@ -230,9 +309,17 @@ export namespace deckard::archive
 			return *this;
 		}
 
-		db& reset_bindings()
+		// reset state and bindings
+		db& reset()
 		{
-			i32 rc = sqlite3_clear_bindings(m_statement);
+			i32 rc = sqlite3_reset(m_statement);
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("sqlite3::reset_bindings: {}", sqlite3_errmsg(m_db));
+				return *this;
+			}
+
+			rc = sqlite3_clear_bindings(m_statement);
 			if (rc != SQLITE_OK)
 			{
 				dbg::println("sqlite3::reset_bindings: {}", sqlite3_errmsg(m_db));
@@ -242,7 +329,23 @@ export namespace deckard::archive
 			return *this;
 		}
 
-		db& commit()
+		// clear statement
+		db& clear()
+		{
+			i32 rc = sqlite3_finalize(m_statement);
+			if (rc != SQLITE_OK)
+			{
+				dbg::println("SQLite3 error: {}", sqlite3_errmsg(m_db));
+			}
+
+			m_statement = nullptr;
+			m_rows.clear();
+
+			return *this;
+		}
+
+		// just simple execute of SQL, no results
+		db& exec()
 		{
 			if (m_statement == nullptr)
 			{
@@ -253,11 +356,132 @@ export namespace deckard::archive
 			i32 rc = sqlite3_step(m_statement);
 			if (rc != SQLITE_DONE and rc != SQLITE_ROW)
 			{
-				dbg::println("sqlite3_commit: {}", sqlite3_errmsg(m_db));
+				dbg::println("sqlite3::exec: {}", sqlite3_errmsg(m_db));
+			}
+
+			if (m_option.autoreset == true)
+				reset();
+
+			return *this;
+		}
+
+		i32 rows() const { return as<i32>(m_rows.size()); }
+
+		template<typename T>
+		std::optional<T> at(const std::string& col, i32 row = 0)
+		{
+			//
+			if (m_rows.size() >= 0 and row < m_rows.size())
+			{
+				const auto rowmap = m_rows[row];
+				if (rowmap.contains(col))
+				{
+					auto rm = rowmap.at(col);
+
+					// TODO: variant -> T
+					// if string -> T, try_to_number
+					// // T -> string, ??
+					// if integer->integer -> simple as cast
+
+					if constexpr (std::is_signed_v<T>)
+					{
+						if (std::holds_alternative<T>(rm))
+							return std::get<T>(rm);
+						return {};
+					}
+					else
+					{
+						if constexpr (std::is_unsigned_v<T>)
+						{
+							if (not std::holds_alternative<i64>(rm))
+							{
+								if (std::holds_alternative<std::string>(rm))
+									return try_to_number<T>(std::get<std::string>(rm));
+
+								return {};
+							}
+						}
+						return {};
+					}
+				}
+
+				return {};
+			}
+
+			return {};
+		}
+
+		// execute and cache results
+		db& commit()
+
+		{
+			if (m_statement == nullptr)
+			{
+				dbg::println("sqlite3::commit: statement is invalid");
+				return *this;
+			}
+
+			i32 data_count = sqlite3_data_count(m_statement);
+			i32 col_count  = sqlite3_column_count(m_statement);
+
+			while (sqlite3_step(m_statement) == SQLITE_ROW)
+			{
+				sqlite_row row;
+				for (i32 i : upto(col_count))
+				{
+					auto type  = sqlite3_column_type(m_statement, i);
+					auto bytes = sqlite3_column_bytes(m_statement, i);
+					auto res   = sqlite3_column_double(m_statement, i);
+
+					auto name = sqlite3_column_name(m_statement, i);
+					if (name != nullptr)
+					{
+						switch (type)
+						{
+							case SQLITE_INTEGER:
+							{
+								row[name] = get_column_value<i64>(i);
+								break;
+							}
+
+							case SQLITE_FLOAT:
+							{
+								row[name] = get_column_value<f64>(i);
+								break;
+							}
+							case SQLITE_TEXT:
+							{
+								row[name] = get_column_value<std::string>(i);
+								break;
+							}
+							case SQLITE_BLOB:
+							{
+								row[name] = get_column_value<std::vector<u8>>(i);
+								break;
+							}
+							case SQLITE_NULL: break;
+						}
+					}
+				}
+				m_rows.push_back(row);
 			}
 
 
+			if (m_option.autoreset == true)
+				reset();
+
 			return *this;
+		}
+
+		std::expected<bool, std::string> bind_function(std::string_view signature, i32 param_count, sqlite_function func)
+		{
+			//
+			i32 rc = sqlite3_create_function(m_db, signature.data(), param_count, SQLITE_UTF8, NULL, func, NULL, NULL);
+			if (rc != SQLITE_OK)
+			{
+				return std::unexpected(sqlite3_errmsg(m_db));
+			}
+			return true;
 		}
 
 		std::expected<bool, std::string> open(std::filesystem::path path)
@@ -274,6 +498,8 @@ export namespace deckard::archive
 
 		void close()
 		{
+			clear();
+
 			i32 rc = sqlite3_close_v2(m_db);
 			if (rc != SQLITE_OK)
 				dbg::println("sqlite3_close_v2: error: {}", sqlite3_errmsg(m_db));
