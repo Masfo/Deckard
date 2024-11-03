@@ -160,12 +160,24 @@ export namespace deckard
 	export template<typename T>
 	concept basic_container = requires(T cont) { requires std::ranges::range<T>; };
 
+
+	export template<typename T>
+	concept string_container = requires(T) {
+		requires std::is_same_v<T, std::string> or std::is_same_v<T, std::wstring> or std::is_same_v<T, std::string_view> or
+				   std::is_same_v<T, std::wstring_view>;
+	};
+
+	export template<typename T>
+	concept string_like_container = requires(T) {
+		requires std::is_same_v<T, std::string> or std::is_same_v<T, std::wstring> or std::is_same_v<T, std::string_view> or
+				   std::is_same_v<T, std::wstring_view> or std::is_convertible_v<T, std::string_view>;
+	};
+
 	export template<typename T>
 	concept non_string_container = requires(T) {
 		requires std::ranges::range<T>;
 
-		requires !std::is_same_v<T, std::string> && !std::is_same_v<T, std::wstring> && !std::is_same_v<T, std::string_view> &&
-				   !std::is_same_v<T, std::wstring_view>;
+		requires not string_container<T>;
 	};
 
 	/* Formatter

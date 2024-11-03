@@ -36,7 +36,7 @@ namespace deckard
 	}
 
 	export template<typename Ret = void*, typename U>
-	constexpr Ret as(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
+	constexpr Ret as(U u, u8 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
 		U value = u;
 
@@ -84,6 +84,25 @@ namespace deckard
 #endif
 
 			return static_cast<Ret>(u);
+		}
+		else if constexpr (string_like_container<U>)
+		{
+			// TODO: try_to expected?
+			auto v = try_to_number<Ret>(value);
+			if (v)
+				return as<Ret>(*v);
+
+			dbg::trace(loc);
+			dbg::panic("Could not convert input from string");
+		}
+		else if constexpr (std::is_arithmetic_v<U> and string_container<Ret>)
+		{
+			auto v = try_to_string<Ret>(value, base);
+			if (v)
+				return *v;
+
+			dbg::trace(loc);
+			dbg::panic("Could not convert input to string");
 		}
 		else
 		{
