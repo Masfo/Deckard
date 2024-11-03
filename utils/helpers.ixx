@@ -455,7 +455,7 @@ export namespace deckard
 		if constexpr (std::is_floating_point_v<T>)
 		{
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val);
-			if (ec == std::errc())
+			if (ec != std::errc())
 			{
 				dbg::trace("try_to_number<float>(\"{}\"). Failed to convert", input, base);
 
@@ -483,7 +483,6 @@ export namespace deckard
 
 			return val;
 		}
-		std::unreachable();
 	}
 
 	template<typename T>
