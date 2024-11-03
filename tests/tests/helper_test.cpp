@@ -4,6 +4,7 @@
 import std;
 import deckard.helpers;
 import deckard.types;
+import deckard.as;
 
 using namespace deckard;
 using namespace std::string_view_literals;
@@ -224,6 +225,13 @@ TEST_CASE("helpers", "[helpers]")
 		input  = "hello";
 		auto f = try_to_number<i16>(input);
 		REQUIRE(f.has_value() == false);
+	}
+
+	SECTION("as")
+	{
+		//
+		REQUIRE("ffff"sv == as<std::string>(0xFFFF, 16));
+		REQUIRE(0xFFFF == as<u32>("0xFFFF", 16));
 	}
 
 	SECTION("prettytime")
