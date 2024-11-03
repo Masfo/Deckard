@@ -36,7 +36,7 @@ namespace deckard
 	}
 
 	export template<typename Ret = void*, typename U>
-	constexpr Ret as(U u, u8 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
+	constexpr Ret as(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
 		U value = u;
 
@@ -94,15 +94,20 @@ namespace deckard
 
 			dbg::trace(loc);
 			dbg::panic("Could not convert input from string");
+
+			return {};
 		}
-		else if constexpr (std::is_arithmetic_v<U> and string_container<Ret>)
+		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
 		{
-			auto v = try_to_string<Ret>(value, base);
+
+			auto v = try_to_string<U>(value, base);
 			if (v)
 				return *v;
 
+
 			dbg::trace(loc);
 			dbg::panic("Could not convert input to string");
+			return {};
 		}
 		else
 		{

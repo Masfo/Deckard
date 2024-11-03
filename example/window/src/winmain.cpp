@@ -591,7 +591,7 @@ int deckard_main()
 #endif
 
 
-	auto as_string = as<std::string>(-1566, 16);
+	auto as_string = as<std::string>(1566, 16);
 	dbg::println("as_ {}", as_string);
 
 	auto as_int = as<i32>("0xFFFFFF");

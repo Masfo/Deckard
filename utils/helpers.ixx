@@ -414,19 +414,16 @@ export namespace deckard
 		return trim_back(s);
 	};
 
-	template<typename T>
-	auto try_to_string(T input, i32 base = 10) -> std::optional<std::string>
+	auto try_to_string(const auto input, i32 base = 10) -> std::optional<std::string>
 	{
 		char buffer[32]{0};
 
 
 		auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), input, base);
-		if (ec == std::errc())
-		{
-			return buffer;
-		}
+		if (ec != std::errc())
+			return {};
 
-		return {};
+		return buffer;
 	}
 
 	template<typename T = i32>
