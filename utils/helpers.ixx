@@ -414,6 +414,23 @@ export namespace deckard
 		return trim_back(s);
 	};
 
+	template<typename U = std::string, typename T>
+	auto try_to_string(T input, i32 [[maybe_unused]] base = 10) -> std::optional<U>
+	{
+		U ret{};
+		ret.resize(64);
+
+
+		auto [ptr, ec] = std::to_chars(ret.data(), ret.data() + ret.size(), input, base);
+		if (ec == std::errc())
+		{
+			ret.shrink_to_fit();
+			return ret;
+		}
+
+		return {};
+	}
+
 	template<typename T = i32>
 	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::optional<T>
 	{
@@ -423,15 +440,27 @@ export namespace deckard
 		if (input.starts_with('+'))
 			input.remove_prefix(1);
 
+		if (input.starts_with("0x"))
+		{
+			input.remove_prefix(2);
+			base = 16;
+		}
+		else if (input.starts_with('#'))
+		{
+			input.remove_prefix(1);
+			base = 16;
+		}
+
 
 		T val{};
 
 		if constexpr (std::is_floating_point_v<T>)
 		{
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val);
-			if (ptr == input.data())
+			if (ec == std::errc())
 			{
-				dbg::println("try_to_number<float> failed: '{}'", input);
+				dbg::trace("try_to_number<float>(\"{}\"). Failed to convert", input, base);
+
 				return {};
 			}
 
@@ -440,31 +469,25 @@ export namespace deckard
 
 		if constexpr (std::is_integral_v<T>)
 		{
-			if (input.starts_with('#'))
+
+
+			auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, base)};
+			if (ec == std::errc::result_out_of_range)
 			{
-				input.remove_prefix(1);
-				auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, 16)};
-				if (ptr == input.data())
-				{
-					dbg::trace("try_to_number(\"{}\", base({})). Is not a hex number", input, 16);
-					return {};
-				}
-
-				return val;
-			}
-
-			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val, base);
-			if (ptr == input.data())
-			{
-#ifdef _DEBUG
-				dbg::trace("try_to_number failed: '{}'", input);
-				dbg::stacktrace();
-#endif
-
+				dbg::trace("try_to_number(\"{}\", base({})). Out of range", input, base);
 				return {};
 			}
+			else if (ec != std::errc())
+			{
+				dbg::trace("try_to_number(\"{}\", base({})). Failed to convert", input, base);
+				return {};
+			}
+
 			return val;
 		}
+
+
+		return val;
 	}
 
 	template<typename T>
