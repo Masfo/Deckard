@@ -16,3 +16,4 @@ bin
 /external/zstd/*.zip
 /external/sqlite3/*.zip
 
+*.idb
