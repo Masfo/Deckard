@@ -191,7 +191,7 @@ export namespace deckard::archive
 		}
 
 		template<typename T>
-		void bind_sql(i32 index, const T& value)
+		void bind_sql(i32 index, const T value)
 		{
 
 
@@ -215,16 +215,14 @@ export namespace deckard::archive
 			}
 			else if constexpr (std::is_convertible_v<T, std::string_view>)
 			{
-				dbg::println("{}", value);
-
-				if constexpr (std::is_same_v<T, std::string_view> or std::is_same_v<T, std::string>)
-					rc = sqlite3_bind_text(m_statement, index, value.data(), as<i32>(value.size() + 1), nullptr);
+				if constexpr (std::is_same_v<T, std::string> or std::is_same_v<T, std::string_view>)
+					rc = sqlite3_bind_text(m_statement, index, value.data(), as<i32>(value.size()), SQLITE_TRANSIENT);
 				else
-					rc = sqlite3_bind_text(m_statement, index, value, as<i32>(std::strlen(value)), nullptr);
+					rc = sqlite3_bind_text(m_statement, index, value, as<i32>(std::strlen(value)), SQLITE_TRANSIENT);
 			}
 			else if constexpr (non_string_container<T>)
 			{
-				rc = sqlite3_bind_blob(m_statement, index, value.data(), as<i32>(value.size()), SQLITE_STATIC);
+				rc = sqlite3_bind_blob(m_statement, index, value.data(), as<i32>(value.size()), SQLITE_TRANSIENT);
 			}
 			else
 			{

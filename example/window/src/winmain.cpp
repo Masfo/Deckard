@@ -591,13 +591,8 @@ int deckard_main()
 #endif
 
 
-	auto as_string = as<std::string>(1566, 16);
-	dbg::println("as_ {}", as_string);
-
-	auto as_int = as<i32>("0xFFFFFF");
-
-
 	deckard::archive::db db("database.db");
+	db.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
 
 	db.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
 	auto v64 = db.at<u64>("log_id", 0);
@@ -621,14 +616,23 @@ int deckard_main()
 		dbg::println("values {}", *vresult2);
 	}
 
+	auto bind_test = []
+	{
+		std::vector<u8> v;
+		v.push_back('H');
+		v.push_back('I');
+		v.push_back('!');
+		return v;
+	};
 
-	db.prepare("SELECT log_id,text FROM blobs WHERE id=1;").commit();
+
+	db.prepare("INSERT INTO blobs (log_id, text) VALUES (?1,?2)").bind(1, "testing").commit();
+	db.bind(epoch(), random::alpha(16)).commit();
+
+	db.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(bind_test()).commit();
 
 
-	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?, ?)").bind("testing", 1).commit();
-
-
-	db.prepare("INSERT INTO blobs (text, log_id) VALUES (?1, ?2)").bind("testing", 1).commit();
+	db.prepare("SELECT * FROM blobs WHERE id=23;").commit();
 
 
 	db.close();
