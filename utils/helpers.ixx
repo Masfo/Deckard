@@ -426,7 +426,7 @@ export namespace deckard
 		return buffer;
 	}
 
-	template<typename T = i32>
+	template<arithmetic T = i32>
 	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::optional<T>
 	{
 		if (input.empty())
@@ -439,6 +439,11 @@ export namespace deckard
 		{
 			input.remove_prefix(2);
 			base = 16;
+		}
+		else if (input.starts_with("0b"))
+		{
+			input.remove_prefix(2);
+			base = 2;
 		}
 		else if (input.starts_with('#'))
 		{
@@ -464,8 +469,6 @@ export namespace deckard
 
 		if constexpr (std::is_integral_v<T>)
 		{
-
-
 			auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, base)};
 			if (ec == std::errc::result_out_of_range)
 			{
