@@ -591,14 +591,14 @@ int deckard_main()
 #endif
 
 
-	deckard::archive::db db("database.db");
-	db.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
+	deckard::db::db dbq("database.dbq");
+	dbq.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
 
-	db.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
-	auto v64 = db.at<u64>("log_id", 0);
+	dbq.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
+	auto v64 = dbq.at<u64>("log_id", 0);
 	dbg::println("v: {}", v64 ? *v64 : 0);
 
-	auto bfs = db.bind_function(
+	auto bfs = dbq.bind_function(
 	  "my_add",
 	  2,
 	  [](sqlite3_context* ctx, int argc, sqlite3_value** argv)
@@ -608,9 +608,9 @@ int deckard_main()
 		  sqlite3_result_double(ctx, x + y);
 	  });
 
-	db.prepare("SELECT 3.14+0xFFFFFFFFFFFF as result").commit();
+	dbq.prepare("SELECT 3.14+0xFFFFFFFFFFFF as result").commit();
 
-	auto vresult2 = db.at<f64>("result");
+	auto vresult2 = dbq.at<f64>("result");
 	if (vresult2)
 	{
 		dbg::println("values {}", *vresult2);
@@ -626,20 +626,20 @@ int deckard_main()
 	};
 
 
-	db.prepare("INSERT INTO blobs (log_id, text) VALUES (?1,?2)").bind(1, "testing").commit();
-	db.bind(epoch(), random::alpha(16)).commit();
+	dbq.prepare("INSERT INTO blobs (log_id, text) VALUES (?1,?2)").bind(1, "testing").commit();
+	dbq.bind(epoch(), random::alpha(16)).commit();
 
-	db.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(bind_test()).commit();
-
-
-	db.prepare("SELECT * FROM blobs WHERE id=23;").commit();
+	dbq.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(bind_test()).commit();
 
 
-	db.close();
+	dbq.prepare("SELECT * FROM blobs WHERE id=23;").commit();
 
 
-	deckard::archive::test();
-	deckard::archive::test_read_blob();
+	dbq.close();
+
+
+	deckard::db::test();
+	deckard::db::test_read_blob();
 
 	auto k = math::index_from_3d(1, 1, 1, 3, 3);
 
