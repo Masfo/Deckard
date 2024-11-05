@@ -263,7 +263,7 @@ namespace deckard::db
 
 		i32 rows() const { return as<i32>(m_rows.size()); }
 
-		template<typename T>
+		template<typename T=i64>
 		std::optional<T> at(const std::string& col, i32 row = 0)
 		{
 			//

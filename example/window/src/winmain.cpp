@@ -591,14 +591,40 @@ int deckard_main()
 #endif
 
 
-	deckard::db::db dbq("database.dbq");
-	dbq.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
+	deckard::db::db db("database.db");
+	db.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
+	db.prepare("CREATE TABLE IF NOT EXISTS fs(path TEXT NOT NULL, size INTEGER NOT NULL, hash TEXT NOT NULL, data BLOB NOT NULL)").commit();
 
-	dbq.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
-	auto v64 = dbq.at<u64>("log_id", 0);
+	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
+	if (auto count = db.at("count"); count and *count >= 1000)
+	{
+		db.prepare("DELETE FROM fs WHERE size > 0").commit();
+	}
+
+	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
+	if (auto count = db.at("count"); count and *count < 1000)
+	{
+
+		db.prepare("INSERT INTO fs (path, size, hash, data) VALUES (?1, ?2, ?3, ?4)");
+
+		for (int i : upto(500))
+		{
+			db.bind(std::format("data/level{:03}/sprite_{:4}_{:02d}.qoi", random::randu32(0, 999), random::alpha(4), i),
+					random::randu32(1, 2048),
+					"ABCD",
+					"DATA");
+			db.commit();
+		}
+	}
+	else
+	{
+		db.prepare("DELETE FROM fs WHERE size > 0").commit();
+	}
+	db.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
+	auto v64 = db.at<u64>("log_id", 0);
 	dbg::println("v: {}", v64 ? *v64 : 0);
 
-	auto bfs = dbq.bind_function(
+	auto bfs = db.bind_function(
 	  "my_add",
 	  2,
 	  [](sqlite3_context* ctx, int argc, sqlite3_value** argv)
@@ -608,9 +634,9 @@ int deckard_main()
 		  sqlite3_result_double(ctx, x + y);
 	  });
 
-	dbq.prepare("SELECT 3.14+0xFFFFFFFFFFFF as result").commit();
+	db.prepare("SELECT 3.14+0xFFFFFFFFFFFF as result").commit();
 
-	auto vresult2 = dbq.at<f64>("result");
+	auto vresult2 = db.at<f64>("result");
 	if (vresult2)
 	{
 		dbg::println("values {}", *vresult2);
@@ -626,16 +652,16 @@ int deckard_main()
 	};
 
 
-	dbq.prepare("INSERT INTO blobs (log_id, text) VALUES (?1,?2)").bind(1, "testing").commit();
-	dbq.bind(epoch(), random::alpha(16)).commit();
+	db.prepare("INSERT INTO blobs (log_id, text) VALUES (?1,?2)").bind(1, "testing").commit();
+	db.bind(epoch(), random::alpha(16)).commit();
 
-	dbq.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(bind_test()).commit();
-
-
-	dbq.prepare("SELECT * FROM blobs WHERE id=23;").commit();
+	db.prepare("INSERT INTO blobs (data) VALUES (?1)").bind(bind_test()).commit();
 
 
-	dbq.close();
+	db.prepare("SELECT * FROM blobs WHERE id=23;").commit();
+
+
+	db.close();
 
 
 	deckard::db::test();
