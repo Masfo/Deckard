@@ -403,7 +403,14 @@ namespace deckard::db
 			if (rc != SQLITE_OK)
 				return std::unexpected(sqlite3_errmsg(m_db));
 
+			// defaults
+			exec("PRAGMA synchronous = NORMAL; PRAGMA journal_mode=WAL; PRAGMA temp_store = MEMORY;");
 			return true;
+		}
+
+		void set_ids(u32 application_id, u32 user_id)
+		{
+			exec(std::format("PRAGMA application_id = {}; PRAGMA user_version = {};", application_id, user_id));
 		}
 
 		void close()
