@@ -1,13 +1,13 @@
-github.com/AlDanial/cloc v 1.98  T=0.12 s (735.4 files/s, 163496.9 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.15 s (588.2 files/s, 131139.1 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           222             44            839
-.\example\window\src\winmain.cpp                      193             58            681
+.\example\window\src\winmain.cpp                      200             58            710
 .\math\vec_generic.ixx                                143             24            629
-.\utils\helpers.ixx                                   161             31            588
-.\archive\db.ixx                                      113             47            473
+.\utils\helpers.ixx                                   162             31            592
+.\archive\db.ixx                                      116             47            483
 .\math\vec_sse_generic.ixx                            136             43            426
 .\graphs\avltree.ixx                                   94             10            384
 .\unicode\utf8_xid_tables.ixx                           5              3            377
@@ -92,5 +92,5 @@ File                                                blank        comment        
 .\example\empty\src\main.cpp                            2              1              6
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 4214           1052          14522
+SUM:                                                 4225           1052          14565
 ---------------------------------------------------------------------------------------

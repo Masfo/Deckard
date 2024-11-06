@@ -602,6 +602,11 @@ int deckard_main()
 	}
 
 	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
+
+	db.begin_transaction();
+
+	ScopeTimer<std::milli> t("transaction");
+	t.start();
 	if (auto count = db.at("count"); count and *count < 1000)
 	{
 
@@ -620,6 +625,11 @@ int deckard_main()
 	{
 		db.prepare("DELETE FROM fs WHERE size > 0").commit();
 	}
+	t.now();
+	db.end_transaction();
+	t.now();
+
+
 	db.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
 	auto v64 = db.at<u64>("log_id", 0);
 	dbg::println("v: {}", v64 ? *v64 : 0);

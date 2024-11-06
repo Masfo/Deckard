@@ -688,7 +688,12 @@ export namespace deckard
 	class ScopeTimer
 	{
 	public:
-		explicit ScopeTimer(std::string_view scopename)
+		ScopeTimer()
+			: name("Unknown timer")
+		{
+		}
+
+		ScopeTimer(std::string_view scopename)
 		{
 			name = scopename;
 			start();

@@ -176,10 +176,23 @@ namespace deckard::db
 			return true;
 		}
 
+		db& begin_transaction()
+		{
+			exec("BEGIN TRANSACTION;");
+			return *this;
+		}
+
+		db& end_transaction()
+		{
+			exec("COMMIT TRANSACTION;");
+			return *this;
+		}
+
 		db& prepare(std::string_view input)
 		{
 			clear();
 
+			// TODO: statement to own struct/class, caching it
 			i32 rc = sqlite3_prepare_v2(m_db, input.data(), -1, &m_statement, nullptr);
 
 			if (rc != SQLITE_OK)
@@ -201,6 +214,7 @@ namespace deckard::db
 			}
 
 			bind_helper(1, args...);
+
 
 			return *this;
 		}
@@ -263,7 +277,7 @@ namespace deckard::db
 
 		i32 rows() const { return as<i32>(m_rows.size()); }
 
-		template<typename T=i64>
+		template<typename T = i64>
 		std::optional<T> at(const std::string& col, i32 row = 0)
 		{
 			//
