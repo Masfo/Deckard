@@ -705,6 +705,8 @@ export namespace deckard
 				now();
 		}
 
+		void reset() { start(); };
+
 		void start() { start_time = clock_now(); }
 
 		void stop()
@@ -713,7 +715,13 @@ export namespace deckard
 			stopped = true;
 		}
 
-		void now() { dbg::println("{} took {}", name, duration()); }
+		void now(std::string_view input = "")
+		{
+			if (input.empty())
+				dbg::println("{} took {}", name, duration());
+			else
+				dbg::println("{}/{} took {}", name, input, duration());
+		}
 
 		auto duration()
 		{

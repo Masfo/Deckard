@@ -596,39 +596,48 @@ int deckard_main()
 	db.prepare("CREATE TABLE IF NOT EXISTS fs(path TEXT NOT NULL, size INTEGER NOT NULL, hash TEXT NOT NULL, data BLOB NOT NULL)").commit();
 
 	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
-	if (auto count = db.at("count"); count and *count >= 1000)
+
+
+	ScopeTimer<std::milli> t("transaction");
+	db.begin_transaction();
+	if (auto count = db.at("count"); count)
 	{
+		t.start();
+
+		dbg::println("delete all data from fs");
 		db.prepare("DELETE FROM fs WHERE size > 0").commit();
+		db.end_transaction();
+
+		t.now("deletes");
+		t.reset();
 	}
+
+
+	constexpr u32 bulk_insert_count = 10'000;
 
 	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
 
 	db.begin_transaction();
 
-	ScopeTimer<std::milli> t("transaction");
 	t.start();
-	if (auto count = db.at("count"); count and *count < 1000)
+	if (auto count = db.at("count"); count)
 	{
 
 		db.prepare("INSERT INTO fs (path, size, hash, data) VALUES (?1, ?2, ?3, ?4)");
 
-		for (int i : upto(500))
+		for (int i : upto(bulk_insert_count))
 		{
 			db.bind(std::format("data/level{:03}/sprite_{:4}_{:02d}.qoi", random::randu32(0, 999), random::alpha(4), i),
-					random::randu32(1, 2048),
+					random::randu32(1, 16 * 2'048),
 					"ABCD",
 					"DATA");
 			db.commit();
 		}
 	}
-	else
-	{
-		db.prepare("DELETE FROM fs WHERE size > 0").commit();
-	}
-	t.now();
+	t.now("bulk insert");
 	db.end_transaction();
-	t.now();
-
+	t.now("commit");
+	t.stop();
 
 	db.prepare("SELECT log_id AS result FROM blobs WHERE id = 35;").commit();
 	auto v64 = db.at<u64>("log_id", 0);
@@ -674,9 +683,6 @@ int deckard_main()
 	db.close();
 
 
-	deckard::db::test();
-	deckard::db::test_read_blob();
-
 	auto k = math::index_from_3d(1, 1, 1, 3, 3);
 
 	i32 ab1 = -125;
@@ -705,7 +711,7 @@ int deckard_main()
 
 
 	grid<u8> g;
-	g.resize(1024, 1024);
+	g.resize(1'024, 1'024);
 
 	i32       iX = 0, iY = 0;
 	const i32 iXmax = g.width();
@@ -952,7 +958,7 @@ int deckard_main()
 
 	vulkanapp app01(
 	  {.title  = "Example 01", //
-	   .width  = 1280,
+	   .width  = 1'280,
 	   .height = 720,
 	   .flags  = Attribute::vsync | Attribute::resizable});
 
