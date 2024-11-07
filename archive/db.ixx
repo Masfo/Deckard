@@ -162,13 +162,33 @@ namespace deckard::db
 
 		std::expected<bool, std::string> exec(std::string_view sql)
 		{
+
 			sqlite3_stmt* statement{nullptr};
-			i32           rc = sqlite3_prepare_v2(m_db, sql.data(), -1, &statement, nullptr);
+			i32           rc = 0;
+
+
+			rc = sqlite3_prepare_v2(m_db, sql.data(), -1, &statement, nullptr);
 			if (rc != SQLITE_OK)
+			{
+				dbg::println("sqlite3::prepare: {}", sqlite3_errmsg(m_db));
 				return std::unexpected(sqlite3_errmsg(m_db));
+			}
+
 
 			rc = sqlite3_step(statement);
+			switch (rc)
+			{
+				case SQLITE_DONE: [[fallthrough]];
+				case SQLITE_ROW: break;
 
+				default:
+				{
+					dbg::println("sqlite3::exec: step error: {}", sqlite3_errmsg(m_db));
+					rc = sqlite3_finalize(statement);
+					if (rc != SQLITE_OK)
+						return std::unexpected(sqlite3_errmsg(m_db));
+				}
+			}
 			rc = sqlite3_finalize(statement);
 			if (rc != SQLITE_OK)
 				return std::unexpected(sqlite3_errmsg(m_db));
@@ -246,7 +266,9 @@ namespace deckard::db
 			if (rc != SQLITE_OK)
 			{
 				dbg::println("SQLite3 error: {}", sqlite3_errmsg(m_db));
+				return *this;
 			}
+
 
 			m_statement = nullptr;
 			m_rows.clear();

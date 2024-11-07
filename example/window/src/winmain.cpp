@@ -591,7 +591,12 @@ int deckard_main()
 #endif
 
 
+	// ########################################################################
+
+
 	deckard::db::db db("database.db");
+	auto            dkod = db.exec("PRAGMA he");
+
 	db.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
 	db.prepare("CREATE TABLE IF NOT EXISTS fs(path TEXT NOT NULL, size INTEGER NOT NULL, hash TEXT NOT NULL, data BLOB NOT NULL)").commit();
 
