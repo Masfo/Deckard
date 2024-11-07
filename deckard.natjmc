@@ -3,7 +3,7 @@
 
 	<!-- Files -->
 	<File Name="types.ixx"/>
-	<File Name="as.ixx"/>
+	<File Name="_as.ixx"/>
 	<File Name="enum_flags.ixx"/>
 	<File Name="scope_exit.ixx"/>
 
@@ -13,7 +13,7 @@
 
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
-	<File Name="helpers.ixx"/>
+	<File Name="_helpers.ixx"/>
 	<File Name="random.ixx"/>
 
 

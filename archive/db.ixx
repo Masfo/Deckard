@@ -417,7 +417,7 @@ namespace deckard::db
 		{
 			clear();
 
-			exec("VACUUM;");
+			exec("PRAGMA OPTIMIZE; VACUUM;");
 
 			i32 rc = sqlite3_close_v2(m_db);
 			if (rc != SQLITE_OK)
