@@ -600,6 +600,19 @@ int deckard_main()
 	db.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
 	db.prepare("CREATE TABLE IF NOT EXISTS fs(path TEXT NOT NULL, size INTEGER NOT NULL, hash TEXT NOT NULL, data BLOB NOT NULL)").commit();
 
+
+	db.prepare("SELECT id,data FROM blobs WHERE id = 1").commit();
+	auto aid   = db.at("id");
+	auto adata = db.at<std::vector<u8>>("data");
+
+
+	if (aid)
+		dbg::println("id: {}", *aid);
+
+	if (adata)
+		dbg::println("data: {}", *adata);
+
+
 	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
 
 
@@ -627,7 +640,6 @@ int deckard_main()
 	t.start();
 	if (auto count = db.at("count"); count)
 	{
-
 		db.prepare("INSERT INTO fs (path, size, hash, data) VALUES (?1, ?2, ?3, ?4)");
 
 		for (int i : upto(bulk_insert_count))

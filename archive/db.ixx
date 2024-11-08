@@ -178,8 +178,8 @@ namespace deckard::db
 			rc = sqlite3_step(statement);
 			switch (rc)
 			{
-				case SQLITE_DONE: [[fallthrough]];
-				case SQLITE_ROW: break;
+				case SQLITE_ROW: [[fallthrough]];
+				case SQLITE_DONE: break;
 
 				default:
 				{
@@ -315,6 +315,13 @@ namespace deckard::db
 					// // T -> string, ??
 					// if integer->integer -> simple as cast
 
+					if constexpr (std::is_same_v<T, std::vector<u8>>)
+					{
+						if (std::holds_alternative<T>(rm))
+							return std::get<T>(rm);
+						return {};
+					}
+
 					if constexpr (std::is_signed_v<T>)
 					{
 						if (std::holds_alternative<T>(rm))
@@ -391,7 +398,11 @@ namespace deckard::db
 								row[name] = get_column_value<std::vector<u8>>(i);
 								break;
 							}
-							case SQLITE_NULL: break;
+							case SQLITE_NULL:
+							{
+								row[name] = {};
+								break;
+							}
 						}
 					}
 				}
