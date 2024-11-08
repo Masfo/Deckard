@@ -1,17 +1,17 @@
-github.com/AlDanial/cloc v 1.98  T=0.15 s (588.2 files/s, 131139.1 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.13 s (668.1 files/s, 147719.3 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           222             44            839
-.\example\window\src\winmain.cpp                      200             58            710
+.\example\window\src\winmain.cpp                      207             59            713
 .\math\vec_generic.ixx                                143             24            629
-.\utils\helpers.ixx                                   162             31            592
-.\archive\db.ixx                                      116             47            483
+.\utils\helpers.ixx                                   163             31            599
 .\math\vec_sse_generic.ixx                            136             43            426
 .\graphs\avltree.ixx                                   94             10            384
 .\unicode\utf8_xid_tables.ixx                           5              3            377
 .\utils\cpuid.ixx                                     107             15            363
+.\archive\db.ixx                                       84             24            355
 .\utils\sha2.ixx                                       87              1            336
 .\math\matrix.ixx                                      84             28            333
 .\math\quaternion.ixx                                  88             12            332
@@ -92,5 +92,5 @@ File                                                blank        comment        
 .\example\empty\src\main.cpp                            2              1              6
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 4225           1052          14565
+SUM:                                                 4201           1030          14447
 ---------------------------------------------------------------------------------------
