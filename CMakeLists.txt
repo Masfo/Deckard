@@ -293,7 +293,6 @@ add_subdirectory(external/zstd)
 add_dependencies(deckard sqlite3 ZSTD)
  
 set(THIRD_PARTY_LIBS
-    dxgi.lib
     sqlite3
     ZSTD
     opengl32.lib
