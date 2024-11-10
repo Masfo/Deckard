@@ -3,6 +3,7 @@ export module deckard.utf8:string;
 import std;
 import deckard.types;
 import deckard.assert;
+import deckard.as;
 
 namespace deckard::utf8
 {
@@ -43,6 +44,31 @@ namespace deckard::utf8
 	constexpr u32 UTF8_REJECT{12};
 
 	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // 0xEF 0xBF 0xBD (efbfbd)
+
+	struct utf8_decode_t
+	{
+		u32 state{};
+		u32 codepoint{};
+	};
+
+	export u32 decode(utf8_decode_t& state, const u32 byte)
+	{
+		const u32 type     = utf8_table[byte];
+		state.codepoint    = state.state ? (byte & 0x3fu) | (state.codepoint << 6) : (0xffu >> type) & byte;
+		return state.state = utf8_table[256 + state.state + type];
+	}
+
+	export u32 length(const std::span<u8> buffer)
+	{
+		u32 size{};
+		for (const auto& c : buffer)
+			size += (c & 0xC0) != 0x80;
+		return size;
+	}
+
+	export u32 length(std::string_view buffer) { return length(std::span<u8>{as<u8*>(buffer.data()), as<u32>(buffer.length())}); }
+
+	export u32 length(const char* str, u32 len) { return length(std::span<u8>{as<u8*>(str), len}); }
 
 	export class string
 	{
