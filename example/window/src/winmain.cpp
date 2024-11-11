@@ -8,6 +8,8 @@ using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
 import std;
+using namespace std::string_view_literals;
+
 
 #ifndef _DEBUG
 import window;
@@ -236,10 +238,7 @@ union basic_smallbuffer
 		return {};
 	}
 
-	void set(std::string_view input)
-	{
-		//
-	}
+	void set(std::string_view input) { }
 };
 
 using SmallStringBuffer = basic_smallbuffer<u8, 32>;
@@ -347,12 +346,67 @@ extern "C" struct sqlite3_context;
 extern "C" f64  sqlite3_value_double(sqlite3_value*);
 extern "C" void sqlite3_result_double(sqlite3_context*, f64);
 
+template<typename T, typename Allocator = std::allocator<T>>
+class TestAllocator
+{
+private:
+	T*  ptr{};
+	u32 size{0};
+
+public:
+	TestAllocator() = default;
+
+	~TestAllocator() { destroy(); }
+
+	template<typename Alloc = Allocator>
+	void allocate(int s, Alloc&& alloc = Allocator{})
+	{
+		size = s;
+		dbg::println("{} allocate", size);
+
+		ptr = alloc.allocate(size);
+		std::uninitialized_fill(ptr, ptr + size, (u8)'Q');
+
+		dbg::println("{}", ptr[0]);
+	}
+
+	template<typename Alloc = Allocator>
+	void destroy(Alloc&& alloc = Allocator{})
+	{
+		dbg::println("destroy {}", size);
+		std::destroy_n(ptr, size);
+		alloc.deallocate(ptr, size);
+
+		size = 0;
+		ptr  = nullptr;
+	}
+
+	T* data() const { return ptr; }
+};
+
 int deckard_main()
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	// ########################################################################
+	u8* ptr{};
+	{
+		TestAllocator<u8> ta;
+
+		ta.allocate(10);
+		ptr = ta.data();
+	}
+
+	ptr[0] = 'A';
+
+	std::string sss("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D"sv);
+	auto        i = utf8::length(sss);
+
+
+	int j = 0;
 
 
 	// ########################################################################
