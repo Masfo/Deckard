@@ -59,22 +59,22 @@ if(MSVC)
     
         set_target_properties(utftables PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
-        set_target_properties(utftables PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
+        set_target_properties(utftables PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
-        string(REGEX REPLACE "/MDd" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-        string(REGEX REPLACE "/W[0-3]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+        #string(REGEX REPLACE "/MDd" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        #string(REGEX REPLACE "/W[0-3]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
         target_compile_definitions(utftables PRIVATE -DDEBUG)
 
         target_compile_options(utftables PRIVATE /W4)
         target_compile_options(utftables  PRIVATE /JMC)    # Just my debugging
         target_compile_options(utftables  PRIVATE /Od)
-        target_compile_options(utftables  PRIVATE /RTC1)
+        #target_compile_options(utftables  PRIVATE /RTC1)
         target_compile_options(utftables  PRIVATE /EHsc)
         target_compile_options(utftables  PRIVATE /GS)
         target_compile_options(utftables  PRIVATE /Zi)     # /ZI edit/continue
     
-        target_link_options(utftables PRIVATE /INCREMENTAL)
+        #target_link_options(utftables PRIVATE /INCREMENTAL)
         target_link_options(utftables PRIVATE /ILK:${CMAKE_CURRENT_LIST_DIR}/bin/pdb/utftables.ilk)
 
         target_link_options(utftables PRIVATE /DEBUG)

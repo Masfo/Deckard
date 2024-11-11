@@ -221,7 +221,8 @@ struct char32_range
 	unsigned int end;
 };
 
-using Tables = std::unordered_map<std::string, std::vector<char32_range>>;
+using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
+using IntTable = std::map<int, int>;
 
 std::optional<unsigned int> to_char32(std::string_view str)
 {
@@ -364,7 +365,27 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	}
 	f << "}};\n";
 
-	f << std::format("constexpr char32_t max_{} = {}[{}].end;\n\n", ctable_name, ctable_name, table.size() - 1);
+	// f << std::format("constexpr char32_t max_{} = {}[{}].end;\n\n", ctable_name, ctable_name, table.size() - 1);
+
+	f.close();
+}
+
+void write_lines(const IntTable &table, const std::string &table_name, fs::path filename)
+{
+	std::ofstream f(filename);
+
+
+	f << std::format("inline constexpr std::array<char32_range, {}> {}{{{{\n", table.size(), table_name);
+
+	for (const auto [from, to] : table)
+	{
+		f << "{";
+		f << std::format("{:#0x}, {:#0x}", from, to);
+		f << "},\n";
+	}
+	f << "}};\n";
+
+	// f << std::format("constexpr uint32_t max_{}{{{}}};\n\n", table_name, table.size() - 1);
 
 	f.close();
 }
@@ -477,9 +498,22 @@ void process_unicode_data()
 	Tables dashes;
 
 
+	IntTable to_lowercase;
+	IntTable to_uppercase;
+
+
+	// TODO: to_uppercase, to_lowercase mappings
+	// 0x41, 0x61  ; LATIN CAPITAL LETTER A -> LATIN SMALL LETTER A
+
 	for (const auto &line : lines)
 	{
 		auto split_line = split_csv(line);
+#if 0
+		for (const auto &i : split_line)
+			std::print("'{}', ", i);
+		std::println("");
+		auto is = split_line.size();
+#endif
 
 		UnicodeDataField field{};
 
@@ -487,13 +521,49 @@ void process_unicode_data()
 		if (code)
 			field.code_value = *code;
 
+
+		if (code && *code == 0x61)
+		{
+			int j = 0;
+		}
+
 		field.category               = to_GeneralCategory(split_line[2]);
 		field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
+
+		auto uc = to_number<int>(split_line[12], 16);
+		if (uc)
+		{
+			field.uppercase_mapping = *uc;
+
+			if(not to_uppercase.contains(*code))
+				to_uppercase[*code]     = *uc;
+
+			if (not to_lowercase.contains(*uc))
+				to_lowercase[*uc]       = *code;
+		}
+
+		auto lc = to_number<int>(split_line[13], 16);
+		if (lc)
+		{
+			field.lowercase_mapping = *lc;
+			to_lowercase[*code]     = *lc;
+		}
+
+		if (split_line.size() >= 15)
+		{
+			auto tc = to_number<int>(split_line[14], 16);
+			if (tc)
+			{
+				field.titlecase_mapping = *tc;
+			}
+		}
+
+
 		fields.emplace_back(field);
 
-		if (code and *code == 0x2010)
+		if (code and *code == 0x41)
 		{
-			// int k = 0;
+			int k = 0;
 		}
 
 		if (field.category == GeneralCategory::Pd)
@@ -520,6 +590,13 @@ void process_unicode_data()
 	whitespaces["whitespace"].push_back({0x09, 0x0D});     // controls
 	whitespaces["whitespace"].push_back({0x85, 0x85});     // NEXT LINE
 	whitespaces["whitespace"].push_back({0x2060, 0x2060}); // WORD JOINER (like U+00A0)
+
+
+	std::println("Upper-to-lower: {}", to_lowercase.size());
+	std::println("Lower-to-upper: {}", to_uppercase.size());
+
+	write_lines(to_lowercase, "upper_to_lower", "to_lowercase.ixx");
+	write_lines(to_uppercase, "lower_to_upper", "to_uppercase.ixx");
 
 
 	collapse_runs(whitespaces["whitespace"]);

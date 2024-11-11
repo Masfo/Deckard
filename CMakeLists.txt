@@ -60,9 +60,9 @@ if(MSVC)
 
     #target_compile_options(deckard PRIVATE /arch:AVX2)
 
-    set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    #set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-#    set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
     # Enable Hot Reload for MSVC compilers if supported.
 
@@ -72,11 +72,13 @@ if(MSVC)
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
         #set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
 
-        if (POLICY CMP0141)
-          cmake_policy(SET CMP0141 NEW)
-          set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
-        endif()
+
+        #if (POLICY CMP0141)
+         # cmake_policy(SET CMP0141 NEW)
+         # set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        #endif()
 
         set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
@@ -89,7 +91,7 @@ if(MSVC)
 
         target_compile_options(deckard PRIVATE /RTC1)
         target_compile_options(deckard PRIVATE /GS)
-        target_link_options(deckard PRIVATE /INCREMENTAL)
+        #target_link_options(deckard PRIVATE /INCREMENTAL)
         target_link_options(deckard PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
 
 
