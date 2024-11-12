@@ -314,7 +314,7 @@ uint64_t multiply_64bit_by_8bit_chunks(uint64_t a, uint8_t b)
 
 std::vector<int> multiply_large_numbers(const std::vector<int>& num1, const std::vector<int>& num2)
 {
-	int              n1 = num1.size(), n2 = num2.size();
+	int              n1 = as<int>(num1.size()), n2 = as<int>(num2.size());
 	std::vector<int> result(n1 + n2, 0);
 
 	// Multiply each digit of num2 with each digit of num1
@@ -384,12 +384,46 @@ public:
 	T* data() const { return ptr; }
 };
 
+template<typename T>
+std::vector<std::pair<u32, char>> compress_rle(const T input)
+{
+	// WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW
+	// 12W 1B 12W 3B 24W 1B 14W
+	std::vector<std::pair<u32, char>> ret;
+
+	ret.reserve(input.size() * 2);
+
+	for (size_t i = 0; i < input.size(); i++)
+	{
+		u32 run = 1;
+		while (i < input.size() - 1 and input[i] == input[i + 1])
+		{
+			i++;
+			run++;
+		}
+		ret.push_back({run, input[i]});
+	}
+
+	ret.shrink_to_fit();
+
+	return ret;
+}
+
 int deckard_main()
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+	// ########################################################################
+
+	auto rle = compress_rle<std::string>("WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW");
+
+	for (const auto& i : rle)
+	{
+		dbg::println("{} - {}", i.first, i.second);
+	}
+
 
 	// ########################################################################
 	u8* ptr{};

@@ -53,39 +53,35 @@ if(MSVC)
 
     set_target_properties(utftables PROPERTIES POSITION_INDEPENDENT_CODE ON)
     set_target_properties(utftables PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+    
+    set_target_properties(utftables PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_target_properties(utftables PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT  "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
      # Debug
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     
-        set_target_properties(utftables PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
-
-        set_target_properties(utftables PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
-
-        #string(REGEX REPLACE "/MDd" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-        #string(REGEX REPLACE "/W[0-3]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
         target_compile_definitions(utftables PRIVATE -DDEBUG)
 
         target_compile_options(utftables PRIVATE /W4)
         target_compile_options(utftables  PRIVATE /JMC)    # Just my debugging
         target_compile_options(utftables  PRIVATE /Od)
-        #target_compile_options(utftables  PRIVATE /RTC1)
+        target_compile_options(utftables  PRIVATE /RTC1)
         target_compile_options(utftables  PRIVATE /EHsc)
         target_compile_options(utftables  PRIVATE /GS)
         target_compile_options(utftables  PRIVATE /Zi)     # /ZI edit/continue
     
-        #target_link_options(utftables PRIVATE /INCREMENTAL)
+        target_link_options(utftables PRIVATE /INCREMENTAL)
         target_link_options(utftables PRIVATE /ILK:${CMAKE_CURRENT_LIST_DIR}/bin/pdb/utftables.ilk)
 
         target_link_options(utftables PRIVATE /DEBUG)
-        target_link_options(utftables PRIVATE /NOVCFEATURE /NOCOFFGRPINFO)
+        #target_link_options(utftables PRIVATE /NOVCFEATURE /NOCOFFGRPINFO)
 
     endif()
     
     # Release
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
     
-        set_target_properties(utftables PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
         target_compile_definitions(utftables PRIVATE -DNDEBUG)
 

@@ -6,7 +6,7 @@ using namespace std::string_literals;
 
 constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
 
-enum GeneralCategory : int
+enum class GeneralCategory : int
 {
 	// Table 4-4. General Category
 	Lu, // Letter, Uppercase
@@ -46,7 +46,7 @@ enum GeneralCategory : int
 	Co, // Other, Private Use
 	Cn, // Other, Not Assigned
 
-	Unknown = 9'9999
+	Unknown = -1,
 };
 
 GeneralCategory to_GeneralCategory(std::string_view input)
@@ -122,7 +122,7 @@ GeneralCategory to_GeneralCategory(std::string_view input)
 	return GeneralCategory::Unknown;
 }
 
-enum BiDirectionalCategory : int
+enum class BiDirectionalCategory : int
 {
 	L,   // Left-to-Right				LRM, most alphabetic, syllabic, Han ideographs, non-European or non-Arabic digits,...
 	R,   // Right-to-Left				RLM, Hebrew alphabet, and related punctuation
@@ -148,6 +148,8 @@ enum BiDirectionalCategory : int
 	RLI, // Right-to-Left Isolate		RLI
 	FSI, // First Strong Isolate		FSI
 	PDI, // Pop Directional Isolate		PDI
+
+	Unknown = -1,
 };
 
 BiDirectionalCategory to_BiDirectionalCategory(std::string_view input)
@@ -194,35 +196,9 @@ BiDirectionalCategory to_BiDirectionalCategory(std::string_view input)
 		return BiDirectionalCategory::FSI;
 	if (input == "PDI")
 		return BiDirectionalCategory::PDI;
+
+	return BiDirectionalCategory::Unknown;
 }
-
-struct UnicodeDataField
-{
-	int                   code_value{-1};                      // 0
-	std::string           character_name;                      // 1
-	GeneralCategory       category;                            // 2
-	int                   canonical_combining_classes{-1};     // 3
-	BiDirectionalCategory bidirectional_category{-1};          // 4
-	int                   character_decomposition_mapping{-1}; // 5
-	int                   decimal_digit_value{-1};             // 6
-	int                   digit_value{-1};                     // 7
-	int                   numeric_value{-1};                   // 8
-	int                   mirrored{-1};                        // 9
-	std::string           unicode10_name;                      // 10. unicode 1.0 name
-	std::string           comment;                             // 11. 10646 comment field
-	int                   uppercase_mapping{-1};               // 12.
-	int                   lowercase_mapping{-1};               // 13
-	int                   titlecase_mapping{-1};               // 14
-};
-
-struct char32_range
-{
-	unsigned int start;
-	unsigned int end;
-};
-
-using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
-using IntTable = std::map<int, int>;
 
 std::optional<unsigned int> to_char32(std::string_view str)
 {
@@ -271,19 +247,116 @@ auto to_number(std::string_view input, int base = 10) -> std::optional<T>
 	return val;
 }
 
-std::vector<std::string> split_csv(const std::string &str)
+std::vector<std::string> split(const std::string_view str, const std::string_view delims = "\n")
+{
+	auto start = str.find_first_not_of(delims, 0);
+	auto stop  = str.find_first_of(delims, start);
+
+	std::vector<std::string> tokens;
+	while (std::string::npos != stop || std::string::npos != start)
+	{
+
+		auto token = str.substr(start, stop - start);
+		tokens.emplace_back(token.empty() ? "" : token);
+
+		start = str.find_first_not_of(delims, stop);
+		stop  = str.find_first_of(delims, start);
+	}
+	return tokens;
+}
+
+std::vector<std::string> split_csv(std::string_view str, std::string_view delimiter = ";")
 {
 	std::vector<std::string> result;
-	std::istringstream       iss(str);
-	std::string              token;
+	size_t                   start = 0, end = 0;
 
-	while (std::getline(iss, token, ';'))
+	while ((end = str.find(delimiter, start)) != std::string_view::npos)
 	{
-		result.push_back(token);
+		result.emplace_back(str.substr(start, end - start));
+		start = end + 1;
 	}
+
+	result.emplace_back(str.substr(start));
 
 	return result;
 }
+
+struct UnicodeDataField
+{
+	int                   code_value{-1};                      // 0
+	std::string           character_name;                      // 1
+	GeneralCategory       category{-1};                        // 2
+	int                   canonical_combining_classes{-1};     // 3
+	BiDirectionalCategory bidirectional_category{-1};          // 4
+	int                   character_decomposition_mapping{-1}; // 5
+	int                   decimal_digit_value{-1};             // 6
+	int                   digit_value{-1};                     // 7
+	int                   numeric_value{-1};                   // 8
+	int                   mirrored{-1};                        // 9
+	std::string           unicode10_name;                      // 10. unicode 1.0 name
+	std::string           comment;                             // 11. 10646 comment field
+	int                   uppercase_mapping{-1};               // 12.
+	int                   lowercase_mapping{-1};               // 13
+	int                   titlecase_mapping{-1};               // 14
+};
+
+UnicodeDataField parse_field(std::string_view line)
+{
+	UnicodeDataField field{};
+
+	auto split_line = split_csv(line);
+
+
+#if 0
+
+	for (const auto [i, str] : std::views::enumerate(split_line))
+		std::println("{}. '{}'", i, str);
+
+#endif
+
+
+	auto code = to_number<int>(split_line[0], 16);
+	// 0
+	field.code_value = code ? *code : -1;
+
+	// 1
+	field.character_name = split_line[1];
+
+	// 2
+	field.category = to_GeneralCategory(split_line[2]);
+
+	// 3
+	auto combining                    = to_number<int>(split_line[3], 16);
+	field.canonical_combining_classes = combining ? *combining : -1;
+
+	// 4
+	field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
+
+
+	// 12
+	auto uc                 = to_number<int>(split_line[12], 16);
+	field.uppercase_mapping = uc ? *uc : -1;
+
+	// 13
+	auto lc                 = to_number<int>(split_line[13], 16);
+	field.lowercase_mapping = lc ? *lc : -1;
+
+	// 14
+	auto tc                 = to_number<int>(split_line[14], 16);
+	field.titlecase_mapping = tc ? *tc : -1;
+
+
+	return field;
+}
+
+struct char32_range
+{
+	unsigned int start;
+	unsigned int end;
+};
+
+using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
+using IntTable = std::map<int, int>;
 
 void collapse_runs(std::vector<char32_range> &ranges)
 {
@@ -302,22 +375,6 @@ void collapse_runs(std::vector<char32_range> &ranges)
 		std::ranges::sort(ranges, {}, &char32_range::start);
 	}
 	std::ranges::sort(ranges, {}, &char32_range::start);
-}
-
-std::vector<std::string> split(const std::string_view str, const std::string_view delims = "\n")
-{
-	auto start = str.find_first_not_of(delims, 0);
-	auto stop  = str.find_first_of(delims, start);
-
-	std::vector<std::string> tokens;
-	while (std::string::npos != stop || std::string::npos != start)
-	{
-		tokens.emplace_back(str.substr(start, stop - start));
-
-		start = str.find_first_not_of(delims, stop);
-		stop  = str.find_first_of(delims, start);
-	}
-	return tokens;
 }
 
 std::vector<std::string> read_lines(fs::path file)
@@ -365,7 +422,7 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	}
 	f << "}};\n";
 
-	// f << std::format("constexpr char32_t max_{} = {}[{}].end;\n\n", ctable_name, ctable_name, table.size() - 1);
+	f << std::format("constexpr char32_t max_{} = {}[{}].end;\n\n", ctable_name, ctable_name, table.size() - 1);
 
 	f.close();
 }
@@ -385,7 +442,7 @@ void write_lines(const IntTable &table, const std::string &table_name, fs::path 
 	}
 	f << "}};\n";
 
-	// f << std::format("constexpr uint32_t max_{}{{{}}};\n\n", table_name, table.size() - 1);
+	f << std::format("constexpr uint32_t max_{}{{{}}};\n\n", table_name, table.size() - 1);
 
 	f.close();
 }
@@ -440,8 +497,8 @@ void process_core_properties()
 
 	write_lines(tables, "Math", "math.ixx");
 	write_lines(tables, "Alphabetic", "alphabetic.ixx");
-	write_lines(tables, "Lowercase", "lowercase.ixx");
-	write_lines(tables, "Uppercase", "Uppercase.ixx");
+	// write_lines(tables, "Lowercase", "lowercase.ixx");
+	// write_lines(tables, "Uppercase", "uppercase.ixx");
 	write_lines(tables, "Cased", "cased.ixx");
 	write_lines(tables, "Case_Ignorable", "case_ignorable.ixx");
 	write_lines(tables, "Changes_When_Lowercased", "changes_when_lowercased.ixx");
@@ -515,14 +572,22 @@ void process_unicode_data()
 		auto is = split_line.size();
 #endif
 
-		UnicodeDataField field{};
+		UnicodeDataField field{0};
+		field = parse_field(line);
+
+		if (field.uppercase_mapping != -1)
+			to_uppercase[field.code_value] = field.uppercase_mapping;
+
+		if (field.lowercase_mapping != -1)
+			to_lowercase[field.code_value] = field.lowercase_mapping;
+#if 0
 
 		auto code = to_number<int>(split_line[0], 16);
 		if (code)
 			field.code_value = *code;
 
 
-		if (code && *code == 0x61)
+		if (code && *code == 0x178)
 		{
 			int j = 0;
 		}
@@ -534,12 +599,7 @@ void process_unicode_data()
 		if (uc)
 		{
 			field.uppercase_mapping = *uc;
-
-			if(not to_uppercase.contains(*code))
-				to_uppercase[*code]     = *uc;
-
-			if (not to_lowercase.contains(*uc))
-				to_lowercase[*uc]       = *code;
+			to_uppercase[*code]     = *uc;
 		}
 
 		auto lc = to_number<int>(split_line[13], 16);
@@ -558,10 +618,10 @@ void process_unicode_data()
 			}
 		}
 
-
+#endif
 		fields.emplace_back(field);
 
-		if (code and *code == 0x41)
+		if (field.code_value == 0x41)
 		{
 			int k = 0;
 		}
