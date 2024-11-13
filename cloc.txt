@@ -1,17 +1,17 @@
-github.com/AlDanial/cloc v 1.98  T=0.13 s (668.1 files/s, 147719.3 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.16 s (560.1 files/s, 121715.9 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           222             44            839
-.\example\window\src\winmain.cpp                      207             59            713
 .\math\vec_generic.ixx                                143             24            629
 .\utils\helpers.ixx                                   163             31            599
 .\math\vec_sse_generic.ixx                            136             43            426
+.\example\window\src\winmain.cpp                      150             51            405
 .\graphs\avltree.ixx                                   94             10            384
 .\unicode\utf8_xid_tables.ixx                           5              3            377
+.\archive\db.ixx                                       85             24            365
 .\utils\cpuid.ixx                                     107             15            363
-.\archive\db.ixx                                       84             24            355
 .\utils\sha2.ixx                                       87              1            336
 .\math\matrix.ixx                                      84             28            333
 .\math\quaternion.ixx                                  88             12            332
@@ -29,9 +29,9 @@ File                                                blank        comment        
 .\net\socket.ixx                                       73              9            228
 .\math\math_utility.ixx                                57             12            214
 .\utils\hash.ixx                                       45              3            203
+.\unicode\utf8string.ixx                               51             16            184
 .\win32\win32.ixx                                      50              2            178
 .\app\inputs.ixx                                       36              4            166
-.\unicode\utf8string.ixx                               46             16            163
 .\app\vulkan\instance.ixx                              46              6            161
 .\file\filemonitor.ixx                                 38              7            154
 .\math\math_formatter.ixx                              35             13            146
@@ -92,5 +92,5 @@ File                                                blank        comment        
 .\example\empty\src\main.cpp                            2              1              6
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 4201           1030          14447
+SUM:                                                 4150           1022          14170
 ---------------------------------------------------------------------------------------
