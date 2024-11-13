@@ -46,7 +46,8 @@
 	<File Name="sqlite3.c"/>
 	<File Name="catch_*.*"/>
 
-	<!-- Functions -->
+	<!-- Functions 
+	-->
 	<Function Name="std\:\:.*" />
 
 </NonUserCode>

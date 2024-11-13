@@ -580,45 +580,8 @@ void process_unicode_data()
 
 		if (field.lowercase_mapping != -1)
 			to_lowercase[field.code_value] = field.lowercase_mapping;
-#if 0
-
-		auto code = to_number<int>(split_line[0], 16);
-		if (code)
-			field.code_value = *code;
 
 
-		if (code && *code == 0x178)
-		{
-			int j = 0;
-		}
-
-		field.category               = to_GeneralCategory(split_line[2]);
-		field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
-
-		auto uc = to_number<int>(split_line[12], 16);
-		if (uc)
-		{
-			field.uppercase_mapping = *uc;
-			to_uppercase[*code]     = *uc;
-		}
-
-		auto lc = to_number<int>(split_line[13], 16);
-		if (lc)
-		{
-			field.lowercase_mapping = *lc;
-			to_lowercase[*code]     = *lc;
-		}
-
-		if (split_line.size() >= 15)
-		{
-			auto tc = to_number<int>(split_line[14], 16);
-			if (tc)
-			{
-				field.titlecase_mapping = *tc;
-			}
-		}
-
-#endif
 		fields.emplace_back(field);
 
 		if (field.code_value == 0x41)
