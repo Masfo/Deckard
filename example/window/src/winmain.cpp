@@ -346,7 +346,7 @@ extern "C" struct sqlite3_context;
 extern "C" f64  sqlite3_value_double(sqlite3_value*);
 extern "C" void sqlite3_result_double(sqlite3_context*, f64);
 
-template<typename T=u8, typename Allocator = std::allocator<T>>
+template<typename T = u8, typename Allocator = std::allocator<T>>
 class TestAllocator
 {
 private:
@@ -461,6 +461,11 @@ T remap(const T& X, const T& minimum, const T& maximum, const T& newminimum, con
 	return newminimum + (X - minimum) * (newmaximum - newminimum) / (maximum - minimum);
 }
 
+void test_cb01() { dbg::println("cb test 01"); }
+
+void test_cb02() { dbg::println("cb test 02"); }
+
+
 int deckard_main()
 {
 #ifndef _DEBUG
@@ -468,15 +473,33 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	auto nf = remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f);
+	auto* cb_ptr = &test_cb01;
+	char buffer[sizeof(cb_ptr)]{};
 
+	std::memcpy(buffer, &cb_ptr, sizeof(buffer));
+
+	cb_ptr();
+
+	cb_ptr = &test_cb02;
+	std::memcpy(buffer, &cb_ptr, sizeof(buffer));
+
+	cb_ptr();
+
+	auto* ptr_from_buffer = std::bit_cast<void(*)()>(buffer);
+	ptr_from_buffer();
+
+
+
+
+
+	auto nf = remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f);
 
 
 	// ###########
 
 	for (const auto& coord : Iter2D(4, 5))
 		dbg::print("({}, {}) ", coord.x, coord.y);
-	
+
 	dbg::println();
 
 
