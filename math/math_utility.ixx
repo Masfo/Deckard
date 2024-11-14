@@ -49,6 +49,13 @@ export namespace deckard::math
 		return x;
 	}
 
+	// remap
+	template<arithmetic T>
+	T remap(const T& X, const T& minimum, const T& maximum, const T& newminimum, const T& newmaximum)
+	{
+		return newminimum + (X - minimum) * (newmaximum - newminimum) / (maximum - minimum);
+	}
+
 	// mod
 	template<std::integral T = i64>
 	T mod(T x, T N)

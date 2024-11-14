@@ -47,6 +47,12 @@ TEST_CASE("radians/degrees", "[radians][degrees]")
 
 TEST_CASE("math.utility", "[math]")
 {
+
+	SECTION("remap")
+	{
+		REQUIRE_THAT(remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f), Catch::Matchers::WithinAbs(30.0f, 0.0001));
+		REQUIRE(550 == remap(5, 0, 10, 100, 1'000));
+	}
 	SECTION("mod")
 	{
 		REQUIRE(10 == mod(10, 100));

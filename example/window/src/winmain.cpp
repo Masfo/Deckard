@@ -346,7 +346,7 @@ extern "C" struct sqlite3_context;
 extern "C" f64  sqlite3_value_double(sqlite3_value*);
 extern "C" void sqlite3_result_double(sqlite3_context*, f64);
 
-template<typename T, typename Allocator = std::allocator<T>>
+template<typename T=u8, typename Allocator = std::allocator<T>>
 class TestAllocator
 {
 private:
@@ -409,12 +409,77 @@ std::vector<std::pair<u32, char>> compress_rle(const T input)
 	return ret;
 }
 
+struct Coord
+{
+	int            x{};
+	int            y{};
+	constexpr bool operator==(const Coord& rhs) const = default;
+};
+
+struct Iter2D
+{
+public:
+	Iter2D(int x, int y)
+		: size(x, y)
+	{
+	}
+
+	Coord current{};
+
+	const Coord& operator*() const { return current; }
+
+	constexpr bool operator==(const Iter2D& rhs) const = default;
+
+	Iter2D& operator++()
+	{
+		++current.x;
+		if (current.x >= size.x)
+		{
+			current.x = 0;
+			++current.y;
+		}
+		return *this;
+	}
+
+	Iter2D begin() const { return Iter2D{size, {}}; }
+
+	Iter2D end() const { return Iter2D{size, {0, size.y}}; }
+
+private:
+	Coord size{};
+
+	Iter2D(Coord size_, Coord current_)
+		: size(size_)
+		, current(current_)
+	{
+	}
+};
+
+template<typename T>
+T remap(const T& X, const T& minimum, const T& maximum, const T& newminimum, const T& newmaximum)
+{
+	return newminimum + (X - minimum) * (newmaximum - newminimum) / (maximum - minimum);
+}
+
 int deckard_main()
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	auto nf = remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f);
+
+
+
+	// ###########
+
+	for (const auto& coord : Iter2D(4, 5))
+		dbg::print("({}, {}) ", coord.x, coord.y);
+	
+	dbg::println();
+
+
 	// ########################################################################
 
 	auto rle = compress_rle<std::string>("WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW");
@@ -428,7 +493,7 @@ int deckard_main()
 	// ########################################################################
 	u8* ptr{};
 	{
-		TestAllocator<u8> ta;
+		TestAllocator ta;
 
 		ta.allocate(10);
 		ptr = ta.data();
