@@ -455,6 +455,10 @@ private:
 	}
 };
 
+#if __cpp_lib_generator and __has_include("generator")
+#error "Generator should now work"
+
+#define generator_work 
 template<typename T>
 struct Tree
 {
@@ -472,6 +476,7 @@ struct Tree
 			co_yield std::ranges::elements_of(right->traverse_inorder());
 	}
 };
+#endif
 
 void test_cb01() { dbg::println("cb test 01"); }
 
@@ -484,12 +489,13 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+#ifdef generator_work
 	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 
 	for (char x : tree->traverse_inorder())
 		dbg::print("{} ", x);
 	dbg::println();
-
+#endif
 
 	// ###################
 
