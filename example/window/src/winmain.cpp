@@ -456,15 +456,26 @@ private:
 };
 
 template<typename T>
-T remap(const T& X, const T& minimum, const T& maximum, const T& newminimum, const T& newmaximum)
+struct Tree
 {
-	return newminimum + (X - minimum) * (newmaximum - newminimum) / (maximum - minimum);
-}
+	T     value;
+	Tree *left{}, *right{};
+
+	std::generator<const T&> traverse_inorder() const
+	{
+		if (left)
+			co_yield std::ranges::elements_of(left->traverse_inorder());
+
+		co_yield value;
+
+		if (right)
+			co_yield std::ranges::elements_of(right->traverse_inorder());
+	}
+};
 
 void test_cb01() { dbg::println("cb test 01"); }
 
 void test_cb02() { dbg::println("cb test 02"); }
-
 
 int deckard_main()
 {
@@ -473,8 +484,17 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
+
+	for (char x : tree->traverse_inorder())
+		dbg::print("{} ", x);
+	dbg::println();
+
+
+	// ###################
+
 	auto* cb_ptr = &test_cb01;
-	char buffer[sizeof(cb_ptr)]{};
+	char  buffer[sizeof(cb_ptr)]{};
 
 	std::memcpy(buffer, &cb_ptr, sizeof(buffer));
 
@@ -485,14 +505,8 @@ int deckard_main()
 
 	cb_ptr();
 
-	auto* ptr_from_buffer = std::bit_cast<void(*)()>(buffer);
+	auto* ptr_from_buffer = std::bit_cast<void (*)()>(buffer);
 	ptr_from_buffer();
-
-
-
-
-
-	auto nf = remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f);
 
 
 	// ###########
