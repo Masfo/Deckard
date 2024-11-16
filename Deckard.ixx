@@ -40,6 +40,7 @@ export import deckard.arrays;
 export import deckard.bigint;
 export import deckard.bitbuffer;
 export import deckard.grid;
+export import deckard.stringhelper;
 
 // UTF8
 export import deckard.utf8;
