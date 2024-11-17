@@ -47,6 +47,8 @@ namespace deckard
 
 		~file() { close(); }
 
+		bool is_open() const { return handle != nullptr; }
+
 		bool open(const fs::path& p)
 		{
 			path = p;
@@ -75,13 +77,13 @@ namespace deckard
 			return true;
 		}
 
-		i64 size() const
+		u64 size() const
 		{
 			WIN32_FILE_ATTRIBUTE_DATA fad{};
 			if (0 == GetFileAttributesExW(path.generic_wstring().data(), GetFileExInfoStandard, &fad))
 			{
 				dbg::eprintln("size('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
-				return -1;
+				return 0;
 			}
 
 			LARGE_INTEGER size{};
@@ -143,15 +145,15 @@ namespace deckard
 			return readcount;
 		}
 
-		u64 read(std::span<u8> buffer, u32 size)
+		u64 read(std::span<u8> buffer, u64 size=0)
 		{
 
 			if (size == 0 or size > buffer.size_bytes())
-				size = as<u32>(buffer.size_bytes());
+				size = buffer.size_bytes();
 
 			DWORD read{0};
 
-			ReadFile(handle, buffer.data(), size, &read, nullptr);
+			ReadFile(handle, buffer.data(), as<DWORD>(size), &read, nullptr);
 
 			return read;
 		}
@@ -339,5 +341,29 @@ namespace deckard
 		}
 	};
 
+	// simple api
+
+	export std::string read_text_file(fs::path path)
+	{
+
+		file f(path);
+		if (not f.is_open())
+		{
+			dbg::eprintln("read_text_file: could not open '{}'", path.generic_string());
+			return {};
+		}
+
+		std::string ret;
+		ret.resize(f.size());
+
+		auto read_size = f.read({as<u8*>(ret.data()), ret.size()});
+		if (read_size < ret.size())
+		{
+			dbg::eprintln("read_text_file: read partial {}/{}", read_size, ret.size());
+		}
+		ret.shrink_to_fit();
+
+		return ret;
+	}
 
 } // namespace deckard
