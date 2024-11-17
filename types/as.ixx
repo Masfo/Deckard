@@ -94,8 +94,6 @@ namespace deckard
 
 			dbg::trace(loc);
 			dbg::panic("Could not convert input from string");
-
-			return {};
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
 		{
@@ -107,7 +105,6 @@ namespace deckard
 
 			dbg::trace(loc);
 			dbg::panic("Could not convert input to string");
-			return {};
 		}
 		else
 		{
