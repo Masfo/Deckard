@@ -3,10 +3,12 @@
 
 import std;
 import deckard.helpers;
+import deckard.stringhelper;
 import deckard.types;
 import deckard.as;
 
 using namespace deckard;
+using namespace deckard::string;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
