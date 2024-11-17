@@ -46,9 +46,10 @@ export namespace deckard::string
 	}
 
 	// split
-	std::vector<std::string_view> split(std::string_view strv, std::string_view delims = " ")
+	template<typename T>
+	std::vector<T> split(T strv, std::string_view delims = " ")
 	{
-		std::vector<std::string_view> output;
+		std::vector<T> output;
 		size_t                        first = 0;
 
 		while (first < strv.size())
@@ -58,7 +59,7 @@ export namespace deckard::string
 			if (first != second)
 				output.emplace_back(strv.substr(first, second - first));
 
-			if (second == std::string_view::npos)
+			if (second == T::npos)
 				break;
 
 			first = second + 1;

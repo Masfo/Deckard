@@ -30,6 +30,15 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(splitted.size() == 2);
 		REQUIRE(splitted[0] == "hello");
 		REQUIRE(splitted[1] == "world");
+
+
+		std::string_view input_view = input;
+		auto             split_view = split<std::string_view>(input_view, "|");
+		REQUIRE(split_view.size() == 2);
+		REQUIRE(split_view[0] == "hello"sv);
+		REQUIRE(split_view[1] == "world"sv);
+
+
 	}
 
 	SECTION("split_exact")
