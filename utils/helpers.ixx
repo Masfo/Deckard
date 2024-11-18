@@ -59,7 +59,12 @@ export namespace deckard
 		return std::byteswap(load_as<To>(from));
 	}
 
-	//
+	export template<typename To, typename From>
+	To load_as_le(const From from)
+	{
+		return load_as<To>(from);
+	}
+
 
 
 	template<typename T = u8>
@@ -271,8 +276,6 @@ export namespace deckard
 	// vpush
 	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
 
-
-
 	auto try_to_string(const auto input, i32 base = 10) -> std::optional<std::string>
 	{
 		char buffer[32]{0};
@@ -482,7 +485,7 @@ export namespace deckard
 				ret += std::format("{}{} {}", (ret.empty() ? "" : ", "), count, unitstr);
 		};
 
-		add_unit(1024 * 1_TiB, "PiB");
+		add_unit(1'024 * 1_TiB, "PiB");
 		add_unit(1_TiB, "TiB");
 		add_unit(1_GiB, "GiB");
 		add_unit(1_MiB, "MiB");

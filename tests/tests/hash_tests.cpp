@@ -145,3 +145,9 @@ TEST_CASE("rapidhash digests", "[rapidhash][hash]")
 	REQUIRE("hello world"_rapidhash32 == 0x6f5b'77b6);
 	REQUIRE("hello world"_rapidhash64 == 0x5dc0'fe3e'6f5b'77b6);
 }
+
+
+TEST_CASE("chibihash digest", "[chibihash][hash]")
+{ 
+	REQUIRE("hello world"_chibihash64 == 0x4d6a1a71f530b808);
+}

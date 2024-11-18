@@ -10,13 +10,14 @@ import deckard_build;
 
 import deckard.types;
 import deckard.as;
+import deckard.helpers;
 import std;
 
 namespace deckard::utils
 {
 	constexpr u32 constant_seed_1 =
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
-	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
+	  (__TIME__[1] - '0') * 3'600 + (__TIME__[0] - '0') * 36'000;
 
 	template<typename T>
 	constexpr T xorshift(const T& n, int i)
@@ -246,6 +247,80 @@ namespace deckard::utils
 	export u32 operator"" _rapidhash32(char const* s, size_t count) { return rapidhash((void*)s, count) & 0xFFFF'FFFF; }
 
 	export u64 operator"" _rapidhash64(char const* s, size_t count) { return rapidhash((void*)s, count); }
+
+	// Chibihash - https://nrk.neocities.org/articles/chibihash
+	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
+
+	export u64 chibihash64(const void* keyIn, size_t len, u64 seed)
+	{
+		const u8* k = as<const u8*>(keyIn);
+		size_t l = len;
+
+		const u64 P1 = 0x2B7E'1516'28AE'D2A5Ull;
+		const u64 P2 = 0x9E37'9349'2EED'C3F7Ull;
+		const u64 P3 = 0x3243'F6A8'885A'308DUll;
+
+		u64 h[4] = {P1, P2, P3, seed};
+
+		for (; l >= 32; l -= 32)
+		{
+			for (i32 i = 0; i < 4; ++i, k += 8)
+			{
+				u64 lane = deckard::load_as_le<u64>(k);
+				h[i] ^= lane;
+				h[i] *= P1;
+				h[(i + 1) & 3] ^= ((lane << 40) | (lane >> 24));
+			}
+		}
+
+		h[0] += as<u64>(len << 32) | as<u64>(len >> 32);
+		if (l & 1)
+		{
+			h[0] ^= k[0];
+			--l, ++k;
+		}
+		h[0] *= P2;
+		h[0] ^= h[0] >> 31;
+
+		for (i32 i = 1; l >= 8; l -= 8, k += 8, ++i)
+		{
+			h[i] ^= deckard::load_as_le<u64>(k);
+			h[i] *= P2;
+			h[i] ^= h[i] >> 31;
+		}
+
+		for (i32 i = 0; l > 0; l -= 2, k += 2, ++i)
+		{
+			h[i] ^= (k[0] | ((u64)k[1] << 8));
+			h[i] *= P3;
+			h[i] ^= h[i] >> 31;
+		}
+
+		u64 x = seed;
+		x ^= h[0] * ((h[2] >> 32) | 1);
+		x ^= h[1] * ((h[3] >> 32) | 1);
+		x ^= h[2] * ((h[0] >> 32) | 1);
+		x ^= h[3] * ((h[1] >> 32) | 1);
+
+		// moremur: https://mostlymangling.blogspot.com/2019/12/stronger-better-morer-moremur-better.html
+		x ^= x >> 27;
+		x *= 0x3C79'AC49'2BA7'B653ULL;
+		x ^= x >> 33;
+		x *= 0x1C69'B3F7'4AC4'AE35ULL;
+		x ^= x >> 27;
+
+		return x;
+	}
+
+	export u64 chibihash64(const void* keyIn, size_t len) { return chibihash64(keyIn, len, CHIBI_SEED); }
+
+
+	export u64 chibihash64(std::span<u8> buffer) { return chibihash64(buffer.data(), buffer.size_bytes(), CHIBI_SEED); }
+
+	export u64 chibihash64(std::string_view buffer) { return chibihash64({as<u8*>(buffer.data()), buffer.size()}); }
+
+	export u64 operator"" _chibihash64(char const* s, size_t count) { return chibihash64((void*)s, count); }
+
 
 
 } // namespace deckard::utils
