@@ -84,9 +84,10 @@ export namespace deckard::string
 	}
 
 	// split_exact
-	std::vector<std::string_view> split_exact(std::string_view str, std::string_view delims, bool include_empty = false)
+	template<typename T>
+	std::vector<T> split_exact(T str, std::string_view delims, bool include_empty = false)
 	{
-		std::vector<std::string_view> output;
+		std::vector<T> output;
 		u64                           first = 0;
 		while (first < str.size())
 		{
@@ -95,7 +96,7 @@ export namespace deckard::string
 			if (include_empty || first != second) // empty line
 				output.emplace_back(str.substr(first, second - first));
 
-			if (second == std::string_view::npos)
+			if (second == T::npos)
 				break;
 			first = second + delims.size();
 		}
@@ -150,4 +151,8 @@ export namespace deckard::string
 		s = trim_front(s);
 		return trim_back(s);
 	};
+
+	// split variants
+
+
 }
