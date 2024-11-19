@@ -13,7 +13,7 @@ export namespace deckard::string
 	constexpr std::string_view uppercase_string{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
 	constexpr std::string_view alphabet_string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
 	constexpr std::string_view alphanum_string{"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
-		
+
 	export enum class strip_option : u8 {
 		digit      = BIT(0),
 		whitespace = BIT(1),
@@ -24,23 +24,24 @@ export namespace deckard::string
 		special    = BIT(6),
 		none       = BIT(7),
 
-		d        = digit,
-		w        = whitespace,
-		l        = lowercase,
-		u        = uppercase,
-		a        = lowercase|uppercase,
-		an       = a|d,
-		s        = special,
+		d  = digit,
+		w  = whitespace,
+		l  = lowercase,
+		u  = uppercase,
+		a  = lowercase | uppercase,
+		an = a | d,
+		s  = special,
 
 	};
 
-	export consteval void enable_bitmask_operations(strip_option);
+	consteval void enable_bitmask_operations(strip_option);
 
 	// count
 	i64 count(auto str, std::string_view interests) noexcept
 	{
 		return std::ranges::count_if(str, [&interests](char c) { return interests.contains(c); });
 	}
+
 	// strip - single
 	std::string strip(std::string_view str, char a)
 	{
@@ -87,8 +88,6 @@ export namespace deckard::string
 
 		if (option == none)
 			return ret;
-		constexpr u8 x = ' ';
-		constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
 
 
 		if (option && whitespace)
