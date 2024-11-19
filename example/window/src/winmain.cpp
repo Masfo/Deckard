@@ -455,10 +455,11 @@ private:
 	}
 };
 
-#if __cpp_lib_generator and __has_include("generator")
+#if __has_include("generator")
 #error "Generator should now work"
 
-#define generator_work 
+#define generator_work
+
 template<typename T>
 struct Tree
 {
@@ -478,9 +479,31 @@ struct Tree
 };
 #endif
 
+
+bool match(std::string_view s1, std::string_view s2)
+{
+	if (s1.empty() && s2.empty())
+		return true;
+	else if (s1.starts_with('*') && s1.size() > 1 && s2.empty())
+		return false;
+	else if (s1.starts_with('?') || (!s1.empty() and !s2.empty() and s1[0] == s2[0]))
+		return match(s1.substr(1), s2.substr(1));
+	else if (s1.starts_with('*'))
+		return match(s1.substr(1), s2) || match(s1, s2.substr(1));
+
+	return false;
+}
+
 void test_cb01() { dbg::println("cb test 01"); }
 
 void test_cb02() { dbg::println("cb test 02"); }
+
+
+template<typename... Args>
+auto varsum(Args&&... args)
+{
+	return std::make_tuple(((args), ...)); // Performs a binary right fold with addition
+} 
 
 int deckard_main()
 {
@@ -496,6 +519,19 @@ int deckard_main()
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+	// ###################
+
+	
+	auto        vkox = varsum<i32, std::string>(1, "555");
+	std::string stt("hello world");
+
+
+	auto testext = read_text_file("test01.txt");
+
+
+	// ###################
+
+	dbg::println("{}", match("*X*", "qH1") ? "match!" : "not found");
 
 	// ###################
 
@@ -602,9 +638,9 @@ int deckard_main()
 	{
 		db.prepare("INSERT INTO fs (path, size, hash, data) VALUES (?1, ?2, ?3, ?4)");
 
-		for (int i : upto(bulk_insert_count))
+		for (int k : upto(bulk_insert_count))
 		{
-			db.bind(std::format("data/level{:03}/sprite_{:4}_{:02d}.qoi", random::randu32(0, 999), random::alpha(4), i),
+			db.bind(std::format("data/level{:03}/sprite_{:4}_{:02d}.qoi", random::randu32(0, 999), random::alpha(4), k),
 					random::randu32(1, 16 * 2'048),
 					"ABCD",
 					"DATA");

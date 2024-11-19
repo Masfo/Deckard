@@ -3,11 +3,57 @@ export module deckard.stringhelper;
 import std;
 import deckard.helpers;
 import deckard.types;
+import deckard.enums;
 
 export namespace deckard::string
 {
+	constexpr std::string_view digit_string{"0123456789"};
+	constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
+	constexpr std::string_view lowercase_string{"abcdefghijklmnopqrstuvwxyz"};
+	constexpr std::string_view uppercase_string{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+	constexpr std::string_view alphabet_string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+	constexpr std::string_view alphanum_string{"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+		
+	export enum class strip_option : u8 {
+		digit      = BIT(0),
+		whitespace = BIT(1),
+		lowercase  = BIT(2),
+		uppercase  = BIT(3),
+		alphabet   = BIT(4),
+		alphanum   = BIT(5),
+		special    = BIT(6),
+		none       = BIT(7),
 
-		// strip - range
+		d        = digit,
+		w        = whitespace,
+		l        = lowercase,
+		u        = uppercase,
+		a        = lowercase|uppercase,
+		an       = a|d,
+		s        = special,
+
+	};
+
+	export consteval void enable_bitmask_operations(strip_option);
+
+	// count
+	i64 count(auto str, std::string_view interests) noexcept
+	{
+		return std::ranges::count_if(str, [&interests](char c) { return interests.contains(c); });
+	}
+	// strip - single
+	std::string strip(std::string_view str, char a)
+	{
+		std::string ret;
+		ret.reserve(str.size());
+		for (const char& c : str)
+			if (c != a)
+				ret += c;
+
+		return ret;
+	}
+
+	// strip - range
 	std::string strip(std::string_view str, char a, char z)
 	{
 		std::string ret;
@@ -32,6 +78,48 @@ export namespace deckard::string
 		return ret;
 	}
 
+	// strip - option
+	// input = strip(input, w|u|d);
+	std::string strip(std::string_view str, strip_option option = strip_option::whitespace)
+	{
+		using enum strip_option;
+		std::string ret{str};
+
+		if (option == none)
+			return ret;
+		constexpr u8 x = ' ';
+		constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
+
+
+		if (option && whitespace)
+		{
+			ret = strip(ret, '\t', '\r');
+			ret = strip(ret, ' ');
+		}
+
+		if (option && digit)
+			ret = strip(ret, '0', '9');
+
+		if (option && lowercase)
+			ret = strip(ret, 'a', 'z');
+
+		if (option && uppercase)
+			ret = strip(ret, 'A', 'Z');
+
+		if (option && special)
+		{
+			ret = strip(ret, '!', '/');
+			ret = strip(ret, ':', '@');
+			ret = strip(ret, '[', '`');
+			ret = strip(ret, '{', '~');
+		}
+
+		if (option && alphanum)
+			ret = strip(ret, alphanum_string);
+
+		return ret;
+	}
+
 	// replace
 	std::string replace(std::string_view subject, const std::string_view search, std::string_view replace)
 	{
@@ -50,7 +138,7 @@ export namespace deckard::string
 	std::vector<T> split(T strv, std::string_view delims = " ")
 	{
 		std::vector<T> output;
-		size_t                        first = 0;
+		size_t         first = 0;
 
 		while (first < strv.size())
 		{
@@ -88,7 +176,7 @@ export namespace deckard::string
 	std::vector<T> split_exact(T str, std::string_view delims, bool include_empty = false)
 	{
 		std::vector<T> output;
-		u64                           first = 0;
+		u64            first = 0;
 		while (first < str.size())
 		{
 			const auto second = str.find(delims, first);
@@ -155,4 +243,4 @@ export namespace deckard::string
 	// split variants
 
 
-}
+} // namespace deckard::string

@@ -6,6 +6,7 @@ import deckard.helpers;
 import deckard.stringhelper;
 import deckard.types;
 import deckard.as;
+import deckard.enums;
 
 using namespace deckard;
 using namespace deckard::string;
@@ -181,6 +182,17 @@ TEST_CASE("helpers", "[helpers]")
 
 		input = strip(input, "123+-BDF");
 		REQUIRE(input == "ACE");
+	}
+
+	SECTION("strip-option") 
+	{
+		std::string input("+ABC x 123 y DEF-");
+
+		using enum string::strip_option;
+		input = strip(input, w|u|d);
+		REQUIRE(input == "+xy-");
+
+		REQUIRE("123" == strip("123abcABC\t#", a|w|s));
 	}
 
 	SECTION("try_to_string")
