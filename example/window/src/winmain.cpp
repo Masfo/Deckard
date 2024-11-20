@@ -4,6 +4,7 @@
 #include <random> // workaround for module std
 
 import deckard;
+import deckard.timers;
 using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
