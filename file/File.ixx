@@ -426,7 +426,7 @@ namespace deckard
 	// try read
 
 	export template<arithmetic T>
-	std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines=false)
 	{
 		using namespace deckard::string;
 
@@ -443,6 +443,13 @@ namespace deckard
 		}
 
 		return ret;
+	}
+
+	
+	export template<arithmetic T>
+	std::vector<T> read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
+	{
+		return read_lines_as<T>(path, delimiter, true);
 	}
 
 	export template<arithmetic T>

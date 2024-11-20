@@ -521,6 +521,10 @@ int deckard_main()
 #endif
 	// ###################
 
+	using enum string::strip_option;
+	string::strip_option op{};
+	auto i22 =strip("ako",op);
+
 	
 	auto        vkox = varsum<i32, std::string>(1, "555");
 	std::string stt("hello world");

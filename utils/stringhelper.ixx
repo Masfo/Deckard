@@ -7,28 +7,35 @@ import deckard.enums;
 
 export namespace deckard::string
 {
-	constexpr std::string_view digit_string{"0123456789"};
-	constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
-	constexpr std::string_view lowercase_string{"abcdefghijklmnopqrstuvwxyz"};
-	constexpr std::string_view uppercase_string{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
-	constexpr std::string_view alphabet_string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
-	constexpr std::string_view alphanum_string{"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+	constexpr std::string_view alphanum_string{" \t\f\n\r\v0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+
+	constexpr std::string_view whitespace_string{alphanum_string.substr(0, 6)};
+	constexpr std::string_view digit_string{alphanum_string.substr(6, 10)};
+	constexpr std::string_view lowercase_string{alphanum_string.substr(16, 26)};
+	constexpr std::string_view uppercase_string{alphanum_string.substr(42,26)};
+	constexpr std::string_view alphabet_string{alphanum_string.substr(16, 52)};
+
+
 
 	export enum class strip_option : u8 {
 		digit      = BIT(0),
 		whitespace = BIT(1),
 		lowercase  = BIT(2),
 		uppercase  = BIT(3),
-		alphabet   = BIT(4),
-		alphanum   = BIT(5),
-		special    = BIT(6),
-		none       = BIT(7),
+		special    = BIT(4),
+
+		reserved   = BIT(5),
+		reserved2  = BIT(6),
+		reserved3  = BIT(7),
+
+		alphabet = lowercase|uppercase,
+		alphanum = alphabet|digit,
 
 		d  = digit,
 		w  = whitespace,
 		l  = lowercase,
 		u  = uppercase,
-		a  = lowercase | uppercase,
+		a  = l | u,
 		an = a | d,
 		s  = special,
 
@@ -86,7 +93,8 @@ export namespace deckard::string
 		using enum strip_option;
 		std::string ret{str};
 
-		if (option == none)
+
+		if (std::to_underlying(option) == 0)
 			return ret;
 
 
@@ -112,9 +120,6 @@ export namespace deckard::string
 			ret = strip(ret, '[', '`');
 			ret = strip(ret, '{', '~');
 		}
-
-		if (option && alphanum)
-			ret = strip(ret, alphanum_string);
 
 		return ret;
 	}
@@ -171,7 +176,7 @@ export namespace deckard::string
 	}
 
 	// split_exact
-	template<typename T>
+	template<string_like_container T>
 	std::vector<T> split_exact(T str, std::string_view delims, bool include_empty = false)
 	{
 		std::vector<T> output;
@@ -238,8 +243,6 @@ export namespace deckard::string
 		s = trim_front(s);
 		return trim_back(s);
 	};
-
-	// split variants
 
 
 } // namespace deckard::string

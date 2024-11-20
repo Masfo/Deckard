@@ -248,14 +248,14 @@ namespace deckard
 		{
 
 #ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE = 16;
+			constexpr u32 MIN_DUMPSIZE =32;
 
 			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
 			{
 				dbg::println("{:02}. ", y);
 				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
 				{
-					dbg::print("{:}", static_cast<U>(get(x, y)));
+					dbg::print("{}", get(x, y) ? 1:0);
 				}
 				dbg::println();
 			}
