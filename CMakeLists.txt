@@ -209,6 +209,7 @@ set(DECKARD_SRCS
         utils/grid.ixx
         utils/commandline.ixx
         utils/stringhelper.ixx
+        utils/timers.ixx
 
         # Unicode
         unicode/utf8.ixx
