@@ -126,6 +126,8 @@ namespace deckard
 
 			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
 			{
+				dbg::println("{:02}. ", y);
+
 				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
 				{
 					dbg::print("{:}", static_cast<U>(get(x, y)));
@@ -252,6 +254,7 @@ namespace deckard
 
 			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
 			{
+				dbg::println("{:02}. ", y);
 				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
 				{
 					dbg::print("{}", get(x, y) ? 1:0);
