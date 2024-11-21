@@ -40,7 +40,15 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(split_view[1] == "world"sv);
 
 
+		input = "aa,bb.cc";
+		splitted = split(input, ",.");
+		REQUIRE(splitted.size() == 3);
+		REQUIRE(splitted[0] == "aa");
+		REQUIRE(splitted[1] == "bb");
+		REQUIRE(splitted[2] == "cc");
+
 	}
+
 
 	SECTION("split_exact")
 	{

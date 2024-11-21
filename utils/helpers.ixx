@@ -237,6 +237,7 @@ export namespace deckard
 		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
 	}
 
+	// make_vector
 	template<class... Ts>
 	constexpr std::vector<typename std::decay<typename std::common_type<Ts...>::type>::type> make_vector(Ts&&... ts)
 	{
@@ -286,6 +287,25 @@ export namespace deckard
 			return {};
 
 		return buffer;
+	}
+
+	// isrange
+	template<typename T>
+	bool isrange(T c, T a, T b) 
+	{
+		return (c >= a) && (c <= b);
+	}
+
+	// isdigit
+	bool isdigit(char c) 
+	{
+		return isrange(c, '0', '9');
+	}
+
+	// isascii
+	bool isascii(char c) 
+	{
+		return isrange(c, 'a', 'z') or isrange(c, 'A', 'Z');
 	}
 
 	template<arithmetic T = i32>
