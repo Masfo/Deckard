@@ -111,6 +111,17 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(trim("\t\n hello \n\t") == "hello");
 	}
 
+	SECTION("match")
+	{
+		REQUIRE(true == match("*X*", "helloXworld"));
+		REQUIRE(false == match("*Y*", "helloXworld"));
+
+		REQUIRE(true == match("?X*world", "XXworld"));
+		REQUIRE(false == match("?X*world", "XYworld"));
+
+
+	}
+
 
 	SECTION("try_index_of")
 	{

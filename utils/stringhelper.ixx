@@ -244,5 +244,21 @@ export namespace deckard::string
 		return trim_back(s);
 	};
 
+	// match
+
+	bool match(std::string_view match_str, std::string_view input)
+	{
+		if (match_str.empty() && input.empty())
+			return true;
+		else if (match_str.starts_with('*') && match_str.size() > 1 && input.empty())
+			return false;
+		else if (match_str.starts_with('?') || (!match_str.empty() and !input.empty() and match_str[0] == input[0]))
+			return match(match_str.substr(1), input.substr(1));
+		else if (match_str.starts_with('*'))
+			return match(match_str.substr(1), input) || match(match_str, input.substr(1));
+
+		return false;
+	}
+
 
 } // namespace deckard::string
