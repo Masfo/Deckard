@@ -7,13 +7,32 @@ import deckard.enums;
 
 export namespace deckard::string
 {
-	constexpr std::string_view alphanum_string{" \t\f\n\r\v0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+	constexpr std::string_view alphanum_string{"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
 
-	constexpr std::string_view whitespace_string{alphanum_string.substr(0, 6)};
-	constexpr std::string_view digit_string{alphanum_string.substr(6, 10)};
-	constexpr std::string_view lowercase_string{alphanum_string.substr(16, 26)};
-	constexpr std::string_view uppercase_string{alphanum_string.substr(42,26)};
-	constexpr std::string_view alphabet_string{alphanum_string.substr(16, 52)};
+	constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
+
+	constexpr std::string_view digit_string{alphanum_string.substr(0, 10)};
+	constexpr std::string_view lowercase_string{alphanum_string.substr(digit_string.size(), 26)};
+	constexpr std::string_view uppercase_string{alphanum_string.substr(digit_string.size()+lowercase_string.size(),26)};
+	constexpr std::string_view alphabet_string{alphanum_string.substr(digit_string.size(), 52)};
+
+	static_assert(whitespace_string[0] == ' ');
+	static_assert(whitespace_string[5] == '\v');
+	static_assert(digit_string[0] == '0');
+	static_assert(digit_string[9] == '9');
+	static_assert(lowercase_string[0] == 'a');
+	static_assert(lowercase_string[25] == 'z');
+	static_assert(uppercase_string[0] == 'A');
+	static_assert(uppercase_string[25] == 'Z');
+	static_assert(alphabet_string[0] == 'a');
+	static_assert(alphabet_string[51] == 'Z');
+
+
+
+
+
+
+
 
 
 
