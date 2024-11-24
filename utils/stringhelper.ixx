@@ -264,17 +264,16 @@ export namespace deckard::string
 	};
 
 	// match
-
-	bool match(std::string_view match_str, std::string_view input)
+	bool match(std::string_view pattern, std::string_view input)
 	{
-		if (match_str.empty() && input.empty())
+		if (pattern.empty() && input.empty())
 			return true;
-		else if (match_str.starts_with('*') && match_str.size() > 1 && input.empty())
+		else if (pattern.starts_with('*') && pattern.size() > 1 && input.empty())
 			return false;
-		else if (match_str.starts_with('?') || (!match_str.empty() and !input.empty() and match_str[0] == input[0]))
-			return match(match_str.substr(1), input.substr(1));
-		else if (match_str.starts_with('*'))
-			return match(match_str.substr(1), input) || match(match_str, input.substr(1));
+		else if (pattern.starts_with('?') || (!pattern.empty() and !input.empty() and pattern[0] == input[0]))
+			return match(pattern.substr(1), input.substr(1));
+		else if (pattern.starts_with('*'))
+			return match(pattern.substr(1), input) || match(pattern, input.substr(1));
 
 		return false;
 	}

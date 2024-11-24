@@ -481,30 +481,17 @@ struct Tree
 #endif
 
 
-bool match(std::string_view s1, std::string_view s2)
-{
-	if (s1.empty() && s2.empty())
-		return true;
-	else if (s1.starts_with('*') && s1.size() > 1 && s2.empty())
-		return false;
-	else if (s1.starts_with('?') || (!s1.empty() and !s2.empty() and s1[0] == s2[0]))
-		return match(s1.substr(1), s2.substr(1));
-	else if (s1.starts_with('*'))
-		return match(s1.substr(1), s2) || match(s1, s2.substr(1));
-
-	return false;
-}
 
 void test_cb01() { dbg::println("cb test 01"); }
 
 void test_cb02() { dbg::println("cb test 02"); }
 
-
 template<typename... Args>
 auto varsum(Args&&... args)
 {
 	return std::make_tuple(((args), ...)); // Performs a binary right fold with addition
-} 
+}
+
 
 int deckard_main()
 {
@@ -522,11 +509,14 @@ int deckard_main()
 #endif
 	// ###################
 
+
+	// ###################
+
 	using enum string::strip_option;
 	string::strip_option op{};
-	auto i22 =strip("ako",op);
+	auto                 i22 = strip("ako", op);
 
-	
+
 	auto        vkox = varsum<i32, std::string>(1, "555");
 	std::string stt("hello world");
 
@@ -536,7 +526,7 @@ int deckard_main()
 
 	// ###################
 
-	dbg::println("{}", match("*X*", "qH1") ? "match!" : "not found");
+	dbg::println("{}", string::match("*X*", "qH1") ? "match!" : "not found");
 
 	// ###################
 
