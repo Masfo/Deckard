@@ -191,19 +191,19 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 	return {bytes_read, codepoint};
 }
 
-template<typename type = u8, size_t SSO_CAPACITY = 32, typename Allocator = std::allocator<type>>
+template<typename type = u8, size_t SBO_CAPACITY = 32, typename Allocator = std::allocator<type>>
 union basic_smallbuffer
 {
 	using pointer   = type*;
 	using size_type = u32;
 
-	struct SSO
+	struct SBO
 	{
-		type str[SSO_CAPACITY - 1]{0}; // data() bytes
-		type len{sizeof(str)};         // (1, 31) when Small
-	} sso{};
+		type buffer[SBO_CAPACITY - 1]{0}; // data() bytes
+		type len{sizeof(buffer)};         // (1, 31) when Small
+	} sbo{};
 
-	struct NonSSO
+	struct NonSBO
 	{
 		size_type size;
 		size_type capacity;
@@ -214,26 +214,77 @@ union basic_smallbuffer
 
 			struct
 			{
-				type padding[sizeof(SSO) - sizeof(pointer) - 1]; // never accessed via this reference
+				type padding[sizeof(SBO) - sizeof(pointer) - 1]; // never accessed via this reference
 				type len;                                        // 0x00 when Big
 			} ptrbytes;
 		} buffer;
-	} nonsso;
+	} nonsbo;
 
-	bool is_sso() const { return sso.len > 0; }
+	size_type insert(std::span<type> buffer)
+	{
+		const size_type len = as<size_type>(buffer.size_bytes());
 
-	void set_sso_len(type newlen) { sso.len = std::min<type>(newlen, sizeof(sso.str)); }
+		if (len <= sizeof(sbo.buffer))
+		{
+			std::memcpy(sbo.buffer, buffer.data(), len);
+			sbo.len = len;
+		}
+		else
+		{
+			auto newsize = reallocate(len);
+			std::memcpy(nonsbo.buffer.ptr, buffer.data(), newsize);
+			nonsbo.size = newsize;
+		}
 
-	pointer data() { return is_sso() ? sso.str : nonsso.buffer.ptr; }
 
-	size_type size() const { return is_sso() ? sso.len : nonsso.size; }
+		return len;
+	}
 
-	size_type capacity() const { return is_sso() ? sizeof(sso.str) : nonsso.capacity; }
+	size_type reallocate(size_type newsize)
+	{
+
+		if (newsize == 0 or newsize == nonsbo.size)
+			return newsize;
+
+		// TODO: new size is <= SBO.len
+
+
+		if (is_sbo())
+		{
+			Allocator allocator{};
+			pointer   newptr = allocator.allocate(newsize);
+			if (newptr != nullptr)
+			{
+				std::memcpy(newptr, sbo.buffer, sbo.len);
+				sbo.len     = 0;
+				nonsbo.size = newsize;
+
+				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
+
+				if (old != nullptr)
+					allocator.deallocate(old, nonsbo.size);
+			}
+		}
+		else
+		{
+			todo("from nonsbo to sbo");
+		}
+
+		return newsize;
+	}
+
+	bool is_sbo() const { return sbo.len > 0; }
+
+	pointer data() { return is_sbo() ? sbo.str : nonsbo.buffer.ptr; }
+
+	size_type size() const { return is_sbo() ? sbo.len : nonsbo.size; }
+
+	size_type capacity() const { return is_sbo() ? sizeof(sbo.buffer) : nonsbo.capacity; }
 
 	std::string_view data() const
 	{
-		if (is_sso())
-			return {sso.str, sizeof(sso.str) - sso.str};
+		if (is_sbo())
+			return {sbo.buffer, sizeof(sbo.buffer) - sbo.buffer};
 
 		todo();
 		return {};
@@ -481,7 +532,6 @@ struct Tree
 #endif
 
 
-
 void test_cb01() { dbg::println("cb test 01"); }
 
 void test_cb02() { dbg::println("cb test 02"); }
@@ -491,7 +541,6 @@ auto varsum(Args&&... args)
 {
 	return std::make_tuple(((args), ...)); // Performs a binary right fold with addition
 }
-
 
 int deckard_main()
 {
@@ -657,11 +706,27 @@ int deckard_main()
 
 
 	SmallStringBuffer sbo;
-	sbo.set_sso_len(12);
-
 
 	dbg::println("SmallBuffer {}", sizeof(u8str));
-	std::string input = "2 + 3 * (4 - 5)";
+
+	std::string input  = "AAAABBBB";
+	auto        lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
+	dbg::println("insert small buffer: {}/{}/{}", lensbo, sbo.size(), sbo.capacity());
+
+
+	input  = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333";
+	lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
+	dbg::println("insert big buffer 1: {}/{}/{}", lensbo, sbo.size(), sbo.capacity());
+
+
+	input  = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333444455556666777788889999";
+	lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
+	dbg::println("insert big buffer 2: {}/{}/{}", lensbo, sbo.size(), sbo.capacity());
+
+
+	int kxko = 0;
+
+
 	// Lexer       lexer(input);
 	// Parser      parser(lexer);
 	// int         result = parser.expression();
