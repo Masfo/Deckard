@@ -157,6 +157,10 @@ export namespace deckard
 
 	auto to_extent(const RECT& r) -> extent<u16> { return extent{static_cast<u16>(r.right - r.left), static_cast<u16>(r.bottom - r.top)}; }
 
+
+	export template<typename T>
+	concept HasDataMember = requires(const T t) { t.data(); };
+
 	export template<typename T>
 	concept basic_container = requires(T cont) { requires std::ranges::range<T>; };
 

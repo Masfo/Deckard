@@ -37,8 +37,6 @@ export namespace deckard
 	inline constexpr repeat_t<Count> repeat;
 
 
-	template<typename T>
-	concept HasDataMember = requires(T obj) { obj.data(); };
 
 	export template<typename To, typename From>
 	To load_as(const From from)
