@@ -231,13 +231,17 @@ union basic_smallbuffer
 		}
 		else
 		{
+			// TODO: reallocate just allocates, copy is another function
 			auto newsize = reallocate(len);
-			std::memcpy(nonsbo.buffer.ptr, buffer.data(), newsize);
-			nonsbo.size = newsize;
 		}
 
 
 		return len;
+	}
+
+	void resize(size_type newsize)
+	{
+		//
 	}
 
 	size_type reallocate(size_type newsize)
@@ -249,7 +253,7 @@ union basic_smallbuffer
 		// TODO: new size is <= SBO.len
 
 
-		if (is_sbo())
+		if (is_sbo() and newsize > sbo.len)
 		{
 			Allocator allocator{};
 			pointer   newptr = allocator.allocate(newsize);
@@ -258,6 +262,8 @@ union basic_smallbuffer
 				std::memcpy(newptr, sbo.buffer, sbo.len);
 				sbo.len     = 0;
 				nonsbo.size = newsize;
+				// TODO:
+				nonsbo.capacity = newsize;
 
 				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
 
@@ -536,10 +542,35 @@ void test_cb01() { dbg::println("cb test 01"); }
 
 void test_cb02() { dbg::println("cb test 02"); }
 
-template<typename... Args>
-auto varsum(Args&&... args)
+std::string convert_str(const  auto arg)
 {
-	return std::make_tuple(((args), ...)); // Performs a binary right fold with addition
+	if constexpr (std::is_same_v<bool, std::remove_cv_t<decltype(arg)>>)
+		return "bool";
+
+
+
+	if constexpr (std::is_integral_v<std::remove_cv_t<decltype(arg)>>)
+		return "int";
+
+	if constexpr (std::is_floating_point_v<std::remove_cv_t<decltype(arg)>>)
+		return "float";
+
+
+	if constexpr (std::is_convertible_v<std::remove_cv_t<decltype(arg)>, std::string_view>)
+		return "string";
+
+	//if constexpr (std::is_pointer_v<std::remove_cv_t<decltype(arg)>>)
+	//	return "pointer";
+
+	dbg::panic("unhandled type");
+}
+
+template<typename... Args>
+auto varsum(Args... args)
+{
+	(dbg::println("{} - {}", args, convert_str(args)), ...);
+
+	return std::make_tuple(args...); // Performs a binary right fold with addition
 }
 
 int deckard_main()
@@ -557,9 +588,19 @@ int deckard_main()
 	dbg::println();
 #endif
 	// ###################
+	u32         q2{};
+	i16         q22{};
+	std::string xjk1("uie");
+	int*        x{};
+	// 12345678901234567890123456789012
+	// 00111110110011001100110011001101
+	dbg::println("{:032b}", std::bit_cast<u32>(0.4f));
 
+	auto oke = varsum("🐱", "constchar*",xjk1, "hello"sv, 1, 3.4, 2.3f, q2, true, q22);
 
 	// ###################
+
+
 
 	using enum string::strip_option;
 	string::strip_option op{};
