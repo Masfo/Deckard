@@ -241,7 +241,77 @@ union basic_smallbuffer
 
 	void resize(size_type newsize)
 	{
-		//
+		Allocator allocator{};
+		// newsize *= 2;
+
+		if (is_sbo() and newsize > sbo.len)
+		{
+			// reallocate to heap
+			pointer newptr = allocator.allocate(newsize);
+			if (newptr != nullptr)
+			{
+				size_type oldsize = size();
+				std::memcpy(newptr, data(), oldsize);
+				//
+				nonsbo.size     = oldsize;
+				nonsbo.capacity = newsize;
+
+				sbo.len     = 0;
+				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
+				if (old != nullptr)
+					allocator.deallocate(old, nonsbo.size);
+			}
+			return;
+		}
+
+		if (is_sbo() and newsize <= sbo.len)
+		{
+			sbo.len = newsize;
+			return;
+		}
+
+		if (not is_sbo() and newsize > nonsbo.size)
+		{
+			// heap to larger heap
+			pointer newptr = allocator.allocate(newsize);
+			if (newptr != nullptr)
+			{
+				//
+				size_type oldsize = size();
+				std::memcpy(newptr, data(), oldsize);
+				nonsbo.size     = newsize;
+				nonsbo.capacity = newsize;
+				sbo.len         = 0;
+
+				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
+				if (old != nullptr)
+					allocator.deallocate(old, oldsize);
+			}
+			return;
+		}
+
+		if (not is_sbo() and newsize <= nonsbo.size)
+		{
+			// heap to small buffer
+			std::memcpy(sbo.buffer, nonsbo.buffer.ptr, newsize);
+
+			allocator.deallocate(nonsbo.buffer.ptr, 0);
+			nonsbo.size = nonsbo.capacity = 0;
+			sbo.len                       = newsize;
+			return;
+		}
+	}
+
+	void fill(char c, size_type count)
+	{
+		std::fill_n(data(), count, c);
+		if (is_sbo())
+			sbo.len = count;
+		else
+		{
+			sbo.len     = 0;
+			nonsbo.size = count;
+		}
 	}
 
 	size_type reallocate(size_type newsize)
@@ -281,7 +351,7 @@ union basic_smallbuffer
 
 	bool is_sbo() const { return sbo.len > 0; }
 
-	pointer data() { return is_sbo() ? sbo.str : nonsbo.buffer.ptr; }
+	pointer data() { return is_sbo() ? sbo.buffer : nonsbo.buffer.ptr; }
 
 	size_type size() const { return is_sbo() ? sbo.len : nonsbo.size; }
 
@@ -297,6 +367,8 @@ union basic_smallbuffer
 	}
 
 	void set(std::string_view input) { }
+
+private:
 };
 
 using SmallStringBuffer = basic_smallbuffer<u8, 32>;
@@ -542,11 +614,10 @@ void test_cb01() { dbg::println("cb test 01"); }
 
 void test_cb02() { dbg::println("cb test 02"); }
 
-std::string convert_str(const  auto arg)
+std::string convert_str(const auto arg)
 {
 	if constexpr (std::is_same_v<bool, std::remove_cv_t<decltype(arg)>>)
 		return "bool";
-
 
 
 	if constexpr (std::is_integral_v<std::remove_cv_t<decltype(arg)>>)
@@ -559,7 +630,7 @@ std::string convert_str(const  auto arg)
 	if constexpr (std::is_convertible_v<std::remove_cv_t<decltype(arg)>, std::string_view>)
 		return "string";
 
-	//if constexpr (std::is_pointer_v<std::remove_cv_t<decltype(arg)>>)
+	// if constexpr (std::is_pointer_v<std::remove_cv_t<decltype(arg)>>)
 	//	return "pointer";
 
 	dbg::panic("unhandled type");
@@ -596,10 +667,9 @@ int deckard_main()
 	// 00111110110011001100110011001101
 	dbg::println("{:032b}", std::bit_cast<u32>(0.4f));
 
-	auto oke = varsum("🐱", "constchar*",xjk1, "hello"sv, 1, 3.4, 2.3f, q2, true, q22);
+	auto oke = varsum("🐱", "constchar*", xjk1, "hello"sv, 1, 3.4, 2.3f, q2, true, q22);
 
 	// ###################
-
 
 
 	using enum string::strip_option;
@@ -745,28 +815,41 @@ int deckard_main()
 	dbg::println("{}", std::in_range<u16>(ab1));
 	dbg::println("{}", std::in_range<i16>(ab1));
 
+	// ########################################################################
 
 	SmallStringBuffer sbo;
 
 	dbg::println("SmallBuffer {}", sizeof(u8str));
 
-	std::string input  = "AAAABBBB";
-	auto        lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
-	dbg::println("insert small buffer: {}/{}/{}", lensbo, sbo.size(), sbo.capacity());
+	std::string input = "AAAABBBB";
+	// auto        lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
+	sbo.resize(8);
+	sbo.fill('A', 8);
+	dbg::println("insert small buffer: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
 
-	input  = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333";
-	lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
-	dbg::println("insert big buffer 1: {}/{}/{}", lensbo, sbo.size(), sbo.capacity());
+	input = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333";
+	// lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
+	sbo.resize(42);
+	sbo.fill('A', 42);
+
+	dbg::println("insert big buffer 1: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
 
-	input  = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333444455556666777788889999";
-	lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
-	dbg::println("insert big buffer 2: {}/{}/{}", lensbo, sbo.size(), sbo.capacity());
+	input = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333444455556666777788889999";
+	// lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
+	sbo.resize(64);
+	sbo.fill('A', 64);
+
+	sbo.resize(8);
+	sbo.fill('B', 8);
+
+	dbg::println("insert big buffer 2: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
 
 	int kxko = 0;
 
+	// ########################################################################
 
 	// Lexer       lexer(input);
 	// Parser      parser(lexer);
