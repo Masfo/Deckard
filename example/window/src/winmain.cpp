@@ -191,187 +191,8 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 	return {bytes_read, codepoint};
 }
 
-template<typename type = u8, size_t SBO_CAPACITY = 32, typename Allocator = std::allocator<type>>
-union basic_smallbuffer
-{
-	using pointer   = type*;
-	using size_type = u32;
 
-	struct SBO
-	{
-		type buffer[SBO_CAPACITY - 1]{0}; // data() bytes
-		type len{sizeof(buffer)};         // (1, 31) when Small
-	} sbo{};
-
-	struct NonSBO
-	{
-		size_type size;
-		size_type capacity;
-
-		union
-		{
-			pointer ptr;
-
-			struct
-			{
-				type padding[sizeof(SBO) - sizeof(pointer) - 1]; // never accessed via this reference
-				type len;                                        // 0x00 when Big
-			} ptrbytes;
-		} buffer;
-	} nonsbo;
-
-	size_type insert(std::span<type> buffer)
-	{
-		const size_type len = as<size_type>(buffer.size_bytes());
-
-		if (len <= sizeof(sbo.buffer))
-		{
-			std::memcpy(sbo.buffer, buffer.data(), len);
-			sbo.len = len;
-		}
-		else
-		{
-			// TODO: reallocate just allocates, copy is another function
-			auto newsize = reallocate(len);
-		}
-
-
-		return len;
-	}
-
-	void resize(size_type newsize)
-	{
-		Allocator allocator{};
-		// newsize *= 2;
-
-		if (is_sbo() and newsize > sbo.len)
-		{
-			// reallocate to heap
-			pointer newptr = allocator.allocate(newsize);
-			if (newptr != nullptr)
-			{
-				size_type oldsize = size();
-				std::memcpy(newptr, data(), oldsize);
-				//
-				nonsbo.size     = oldsize;
-				nonsbo.capacity = newsize;
-
-				sbo.len     = 0;
-				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
-				if (old != nullptr)
-					allocator.deallocate(old, nonsbo.size);
-			}
-			return;
-		}
-
-		if (is_sbo() and newsize <= sbo.len)
-		{
-			sbo.len = newsize;
-			return;
-		}
-
-		if (not is_sbo() and newsize > nonsbo.size)
-		{
-			// heap to larger heap
-			pointer newptr = allocator.allocate(newsize);
-			if (newptr != nullptr)
-			{
-				//
-				size_type oldsize = size();
-				std::memcpy(newptr, data(), oldsize);
-				nonsbo.size     = newsize;
-				nonsbo.capacity = newsize;
-				sbo.len         = 0;
-
-				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
-				if (old != nullptr)
-					allocator.deallocate(old, oldsize);
-			}
-			return;
-		}
-
-		if (not is_sbo() and newsize <= nonsbo.size)
-		{
-			// heap to small buffer
-			std::memcpy(sbo.buffer, nonsbo.buffer.ptr, newsize);
-
-			allocator.deallocate(nonsbo.buffer.ptr, 0);
-			nonsbo.size = nonsbo.capacity = 0;
-			sbo.len                       = newsize;
-			return;
-		}
-	}
-
-	void fill(char c, size_type count)
-	{
-		std::fill_n(data(), count, c);
-		if (is_sbo())
-			sbo.len = count;
-		else
-		{
-			sbo.len     = 0;
-			nonsbo.size = count;
-		}
-	}
-
-	size_type reallocate(size_type newsize)
-	{
-
-		if (newsize == 0 or newsize == nonsbo.size)
-			return newsize;
-
-		// TODO: new size is <= SBO.len
-
-
-		if (is_sbo() and newsize > sbo.len)
-		{
-			Allocator allocator{};
-			pointer   newptr = allocator.allocate(newsize);
-			if (newptr != nullptr)
-			{
-				std::memcpy(newptr, sbo.buffer, sbo.len);
-				sbo.len     = 0;
-				nonsbo.size = newsize;
-				// TODO:
-				nonsbo.capacity = newsize;
-
-				pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
-
-				if (old != nullptr)
-					allocator.deallocate(old, nonsbo.size);
-			}
-		}
-		else
-		{
-			todo("from nonsbo to sbo");
-		}
-
-		return newsize;
-	}
-
-	bool is_sbo() const { return sbo.len > 0; }
-
-	pointer data() { return is_sbo() ? sbo.buffer : nonsbo.buffer.ptr; }
-
-	size_type size() const { return is_sbo() ? sbo.len : nonsbo.size; }
-
-	size_type capacity() const { return is_sbo() ? sizeof(sbo.buffer) : nonsbo.capacity; }
-
-	std::string_view data() const
-	{
-		if (is_sbo())
-			return {sbo.buffer, sizeof(sbo.buffer) - sbo.buffer};
-
-		todo();
-		return {};
-	}
-
-	void set(std::string_view input) { }
-
-private:
-};
-
-using SmallStringBuffer = basic_smallbuffer<u8, 32>;
+using SmallStringBuffer = basic_smallbuffer<32>;
 
 static_assert(sizeof(SmallStringBuffer) == 32, "SmallStringBuffer should be 32-bytes");
 
@@ -644,6 +465,63 @@ auto varsum(Args... args)
 	return std::make_tuple(args...); // Performs a binary right fold with addition
 }
 
+class MyClass
+{
+public:
+	MyClass(int v)
+		: value(v)
+	{
+		dbg::println("ctor: {}", value);
+	}
+
+
+	MyClass(const MyClass& other)
+		: value(other.value)
+	{
+		dbg::println("copy ctor: {}", value);
+	}
+
+	MyClass& operator=(const MyClass& other) 
+	{
+		dbg::println("copy assignment: {}", value);
+
+		value = other.value;
+		return *this;
+	}
+
+	MyClass(MyClass&& other) // move ctor
+		: value(std::move(other.value))
+	{
+		dbg::println("move ctor: {}", value);
+		
+		other.value = -1; // Indicate the object has been moved from
+	}
+
+
+	// Move assignment operator
+	MyClass& operator=(MyClass&& other)
+	{
+		if (this != &other)
+		{
+			value       = std::move(other.value);
+			other.value = -1;
+
+			dbg::println("move assignment: {}", value);
+		}
+		return *this;
+	}
+
+	~MyClass() { dbg::println("dtor: {}", value); }
+
+private:
+	int value{};
+};
+
+MyClass create_class(i32 v) 
+{ 
+	return {v}; 
+}
+
 int deckard_main()
 {
 #ifndef _DEBUG
@@ -658,6 +536,24 @@ int deckard_main()
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+	
+	// ###################
+	{
+		MyClass mc1{123};
+
+		auto mc2 = create_class(666);
+
+		MyClass mc3 = std::move(mc1);
+
+		MyClass mc4 = mc2;
+
+		MyClass mc5{create_class(789)};
+
+		mc3 = mc4;
+
+		int kox = 0;
+	}
+
 	// ###################
 	u32         q2{};
 	i16         q22{};

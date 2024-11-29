@@ -210,6 +210,7 @@ set(DECKARD_SRCS
         utils/commandline.ixx
         utils/stringhelper.ixx
         utils/timers.ixx
+        utils/smallbufferobject.ixx
 
         # Unicode
         unicode/utf8.ixx

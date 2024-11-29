@@ -42,6 +42,7 @@ export import deckard.bitbuffer;
 export import deckard.grid;
 export import deckard.stringhelper;
 export import deckard.timers;
+export import deckard.sbo;
 
 // UTF8
 export import deckard.utf8;

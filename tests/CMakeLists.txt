@@ -58,6 +58,7 @@ target_sources(tests PUBLIC
     tests/ringbuffer_test.cpp
     tests/function_ref_test.cpp
     tests/serializer_test.cpp
+    tests/sbo_test.cpp
 
     # UTF8
     tests/utf8_test.cpp
