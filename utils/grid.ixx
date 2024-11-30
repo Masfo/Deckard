@@ -6,6 +6,7 @@ import deckard.debug;
 import deckard.types;
 import deckard.math;
 import deckard.utils.hash;
+import deckard.as;
 
 namespace deckard
 {
@@ -63,6 +64,8 @@ namespace deckard
 
 		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
 
+		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos[0]), as<u32>(pos[1]), value); }
+
 		void set(u32 x, u32 y, const T& value) { data.set(x, y, value); }
 
 		void clear() { data.clear(); }
@@ -100,9 +103,9 @@ namespace deckard
 			i32 sx = (x1 < x2) ? 1 : -1;
 			i32 sy = (y1 < y2) ? 1 : -1;
 
-			if(dx == 0 and dy == 0)
+			if (dx == 0 and dy == 0)
 			{
-				set(x1,x2, cb());
+				set(x1, x2, cb());
 				return;
 			}
 
