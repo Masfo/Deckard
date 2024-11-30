@@ -763,6 +763,26 @@ namespace std
 {
 	using namespace deckard::math;
 
+	
+	template<arithmetic T>
+	struct hash<vec_n<T, 2>>
+	{
+		size_t operator()(const vec_n<T, 2>& value) const { return deckard::utils::hash_values(value[0], value[1]); }
+	};
+
+	template<arithmetic T>
+	struct hash<vec_n<T, 3>>
+	{
+		size_t operator()(const vec_n<T, 3>& value) const { return deckard::utils::hash_values(value[0], value[1], value[2]); }
+	};
+
+	template<arithmetic T>
+	struct hash<vec_n<T, 4>>
+	{
+		size_t operator()(const vec_n<T, 4>& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
+	};
+
+
 	template<arithmetic T, size_t N>
 	struct hash<vec_n<T, N>>
 	{
