@@ -3,12 +3,14 @@ export module deckard.sbo;
 import std;
 import deckard.types;
 import deckard.as;
+import deckard.assert;
 
 namespace deckard
 {
-	export template<size_t SBO_CAPACITY = 32, typename type=u8>
+	export template<size_t SBO_CAPACITY = 32>
 	union basic_smallbuffer
 	{
+		using type = u8;
 		using pointer   = type*;
 		using size_type = u32;
 
@@ -57,6 +59,7 @@ namespace deckard
 
 		void resize(size_type newsize)
 		{
+		
 			std::allocator<type> allocator{};
 			// newsize *= 2;
 

@@ -43,7 +43,7 @@ export namespace deckard
 	{
 		// TODO: Bitcast
 		To ret{};
-		if constexpr (HasDataMember<From>)
+		if constexpr (requires { from.data(); } )
 			std::memcpy(&ret, from.data(), sizeof(To));
 		else
 			std::memcpy(&ret, from, sizeof(To));
