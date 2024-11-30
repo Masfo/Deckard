@@ -10,6 +10,7 @@ import deckard.math;
 import deckard.utils.hash;
 import deckard.file;
 import deckard.function_ref;
+import deckard.helpers;
 
 namespace deckard
 {
@@ -121,14 +122,41 @@ namespace deckard
 		void dump() const
 		{
 #ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE = 16;
+			constexpr u32 MIN_DUMPSIZE = 96;
+
+			u32 width  = std::min(m_extent.width, MIN_DUMPSIZE);
+			u32 height = std::min(m_extent.height, MIN_DUMPSIZE);
 
 
-			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
+			// TODO: coordinates for 99+ digits
+			if (width < 100)
 			{
+				if (width > 10)
+				{
+					dbg::print("{:4}", "");
+					for (int i : upto(width))
+					{
+						if (i / 10 == 0)
+							dbg::print(" ");
+						else
+							dbg::print("{}", i / 10);
+					}
+					dbg::println();
+				}
+
+				dbg::print("{:4}", "");
+
+				for (int i : upto(width))
+					dbg::print("{}", i % 10);
+				dbg::println();
+			}
+
+			for (u32 y = 0; y < height; y++)
+			{
+				// TODO: 100+
 				dbg::print("{:02}. ", y);
 
-				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
+				for (u32 x = 0; x < width; x++)
 				{
 					dbg::print("{:}", static_cast<U>(get(x, y)));
 				}
@@ -250,14 +278,14 @@ namespace deckard
 		{
 
 #ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE =32;
+			constexpr u32 MIN_DUMPSIZE = 32;
 
 			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
 			{
 				dbg::print("{:02}. ", y);
 				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
 				{
-					dbg::print("{}", get(x, y) ? 1:0);
+					dbg::print("{}", get(x, y) ? 1 : 0);
 				}
 				dbg::println();
 			}
