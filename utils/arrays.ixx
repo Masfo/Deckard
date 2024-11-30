@@ -17,6 +17,12 @@ namespace deckard
 	using namespace deckard::math;
 	using namespace deckard::utils;
 
+	template<typename T>
+	class array2d;
+
+	// template<typename T>
+	// void dump(const array2d<T>& );
+
 	export template<typename T>
 	class array2d
 	{
@@ -118,28 +124,25 @@ namespace deckard
 
 		u32 height() const { return m_extent.height; };
 
-		template<typename U = char>
 		void dump() const
 		{
 #ifdef _DEBUG
 			constexpr u32 MIN_DUMPSIZE = 256;
 
-			u32 width  = std::min(m_extent.width, MIN_DUMPSIZE);
-			u32 height = std::min(m_extent.height, MIN_DUMPSIZE);
+			u32 w = std::min(width(), MIN_DUMPSIZE);
 
-			int maxd = width;
 
 			u32 maxunit{1};
-			for (i32 i : upto_from(0, digits(maxd) - 1))
+			for (i32 i : upto(digits(w) - 1))
 				maxunit *= 10;
 
-			i32 dwidth = digits(maxd);
+			i32 dwidth = digits(w);
 
 			for (int units = maxunit; units >= 1; units /= 10)
 			{
-				dbg::print("{:{}}", "", dwidth + 2);
+				dbg::print("{:{}}", "", dwidth + 1);
 
-				for (int i : upto(maxd))
+				for (int i : upto(w))
 				{
 					int dv = i / units;
 					if (units == 1)
@@ -156,14 +159,13 @@ namespace deckard
 			}
 
 
-			for (u32 y = 0; y < height; y++)
+			for (u32 y = 0; y < height(); y++)
 			{
 				dbg::print("{:0{}}. ", y, dwidth);
 
-				for (u32 x = 0; x < width; x++)
-				{
-					dbg::print("{:}", static_cast<U>(get(x, y)));
-				}
+				for (u32 x = 0; x < width(); x++)
+					dbg::print("{:}", static_cast<char>(get(x, y)));
+
 				dbg::println();
 			}
 			dbg::println();
@@ -277,14 +279,14 @@ namespace deckard
 
 		u32 height() const { return m_extent.height; };
 
-		template<typename U = char>
-		void dump() const
+		template<typename T>
+		void dump(const array2d<T>& buffer)
 		{
 #ifdef _DEBUG
 			constexpr u32 MIN_DUMPSIZE = 256;
 
-			u32 width  = std::min(m_extent.width, MIN_DUMPSIZE);
-			u32 height = std::min(m_extent.height, MIN_DUMPSIZE);
+			u32 width  = std::min(buffer.width(), MIN_DUMPSIZE);
+			u32 height = std::min(buffer.height(), MIN_DUMPSIZE);
 
 			int maxd = width;
 
@@ -320,9 +322,7 @@ namespace deckard
 				dbg::print("{:0{}}. ", y, dwidth);
 
 				for (u32 x = 0; x < width; x++)
-				{
-					dbg::print("{:}", get(x, y) ? 1 : 0);
-				}
+					dbg::print("{:}", buffer.get(x, y) ? 1 : 0);
 				dbg::println();
 			}
 			dbg::println();
@@ -360,26 +360,6 @@ namespace deckard
 			return m_extent.width == lhs.m_extent.width && m_extent.height == lhs.m_extent.height && m_data == lhs.m_data;
 		}
 	};
-
-	// non-members
-
-	export template<typename T>
-	void dump(const array2d<T>& buffer)
-	{
-#ifdef _DEBUG
-		constexpr u32 MIN_DUMPSIZE = 16;
-
-		for (u32 y = 0; y < std::min(buffer.height(), MIN_DUMPSIZE); y++)
-		{
-			for (u32 x = 0; x < std::min(buffer.width(), MIN_DUMPSIZE); x++)
-			{
-				dbg::print("{:}", buffer.get(x, y));
-			}
-			dbg::println();
-		}
-		dbg::println();
-#endif
-	}
 
 } // namespace deckard
 
