@@ -726,13 +726,13 @@ namespace deckard::math
 } // namespace deckard::math
 
 using namespace deckard;
-export using uvec2 = deckard::math::vec_n<u32, 2>;
-export using uvec3 = deckard::math::vec_n<u32, 3>;
-export using uvec4 = deckard::math::vec_n<u32, 4>;
+export using uvec2 = deckard::math::vec_n<u64, 2>;
+export using uvec3 = deckard::math::vec_n<u64, 3>;
+export using uvec4 = deckard::math::vec_n<u64, 4>;
 
-export using ivec2 = deckard::math::vec_n<i32, 2>;
-export using ivec3 = deckard::math::vec_n<i32, 3>;
-export using ivec4 = deckard::math::vec_n<i32, 4>;
+export using ivec2 = deckard::math::vec_n<i64, 2>;
+export using ivec3 = deckard::math::vec_n<i64, 3>;
+export using ivec4 = deckard::math::vec_n<i64, 4>;
 
 namespace deckard::math
 {
