@@ -122,34 +122,38 @@ namespace deckard
 		void dump() const
 		{
 #ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE = 96;
+			constexpr u32 MIN_DUMPSIZE = 256;
 
 			u32 width  = std::min(m_extent.width, MIN_DUMPSIZE);
 			u32 height = std::min(m_extent.height, MIN_DUMPSIZE);
 
+			int maxd = width;
 
-			// TODO: coordinates for 99+ digits
-			if (width < 100)
+			u32 maxunit{1};
+			for (i32 i : upto_from(0, digits(maxd) - 1))
+				maxunit *= 10;
+
+
+			for (int units = maxunit; units >= 1; units /= 10)
 			{
-				if (width > 10)
-				{
-					dbg::print("{:4}", "");
-					for (int i : upto(width))
-					{
-						if (i / 10 == 0)
-							dbg::print(" ");
-						else
-							dbg::print("{}", i / 10);
-					}
-					dbg::println();
-				}
-
 				dbg::print("{:4}", "");
 
-				for (int i : upto(width))
-					dbg::print("{}", i % 10);
+				for (int i : upto(maxd))
+				{
+					int dv = i / units;
+					if (units == 1)
+						dbg::print("{}", i % 10);
+					else
+					{
+						if (i < units)
+							dbg::print(" ");
+						else
+							dbg::print("{}", dv % 10);
+					}
+				}
 				dbg::println();
 			}
+
 
 			for (u32 y = 0; y < height; y++)
 			{
