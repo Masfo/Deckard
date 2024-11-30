@@ -357,6 +357,12 @@ namespace deckard
 			return {};
 		}
 
+		if (f.size() == 0)
+		{
+			dbg::eprintln("read_file: file '{}' is empty", path.generic_string());
+			return {};
+		}
+
 		std::vector<u8> ret;
 		ret.resize(f.size());
 
@@ -426,7 +432,7 @@ namespace deckard
 	// try read
 
 	export template<arithmetic T>
-	std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines=false)
+	std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
@@ -445,7 +451,6 @@ namespace deckard
 		return ret;
 	}
 
-	
 	export template<arithmetic T>
 	std::vector<T> read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
 	{
