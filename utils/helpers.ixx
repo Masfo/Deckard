@@ -36,14 +36,12 @@ export namespace deckard
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
 
-
-
 	export template<typename To, typename From>
 	To load_as(const From from)
 	{
 		// TODO: Bitcast
 		To ret{};
-		if constexpr (requires { from.data(); } )
+		if constexpr (requires { from.data(); })
 			std::memcpy(&ret, from.data(), sizeof(To));
 		else
 			std::memcpy(&ret, from, sizeof(To));
@@ -62,8 +60,6 @@ export namespace deckard
 	{
 		return load_as<To>(from);
 	}
-
-
 
 	template<typename T = u8>
 	constexpr T bitmask(u8 size, u8 offset = 0)
@@ -235,11 +231,24 @@ export namespace deckard
 		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
 	}
 
+	
+	template<typename T, typename... Args>
+	std::array<T, sizeof...(Args)> make_array(Args... args)
+	{
+		return {static_cast<T>(args)...};
+	}
+
 	// make_vector
 	template<class... Ts>
 	constexpr std::vector<typename std::decay<typename std::common_type<Ts...>::type>::type> make_vector(Ts&&... ts)
 	{
 		return std::vector<typename std::decay<typename std::common_type<Ts...>::type>::type>{std::forward<Ts>(ts)...};
+	}
+
+	template<typename T, typename... Args>
+	std::vector<T> make_vector(Args... args)
+	{
+		return {static_cast<T>(args)...};
 	}
 
 	// vmin
@@ -289,22 +298,16 @@ export namespace deckard
 
 	// isrange
 	template<typename T>
-	bool isrange(T c, T a, T b) 
+	bool isrange(T c, T a, T b)
 	{
 		return (c >= a) && (c <= b);
 	}
 
 	// isdigit
-	bool isdigit(char c) 
-	{
-		return isrange(c, '0', '9');
-	}
+	bool isdigit(char c) { return isrange(c, '0', '9'); }
 
 	// isascii
-	bool isascii(char c) 
-	{
-		return isrange(c, 'a', 'z') or isrange(c, 'A', 'Z');
-	}
+	bool isascii(char c) { return isrange(c, 'a', 'z') or isrange(c, 'A', 'Z'); }
 
 	template<arithmetic T = i32>
 	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::optional<T>
