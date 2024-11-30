@@ -67,12 +67,13 @@ export namespace deckard::math
 	}
 
 	// digits
-	u32 digits(i32 num) 
-	{ 
+	template<std::integral T = i32>
+	T digits(T num)
+	{
 		if (num == 0)
 			return 1;
 
-		return as<u32>(std::floor(std::log10(num)) + 1); 
+		return as<T>(std::floor(std::log10(num)) + 1);
 	}
 
 	// is_close_enough
@@ -243,8 +244,8 @@ namespace deckard::math
 					sum += a[i];
 				if (i < b.size())
 					sum += b[i];
-				result[i] = sum % 1000'000000;
-				carry     = sum / 1000'000000;
+				result[i] = sum % 1'000'000'000;
+				carry     = sum / 1'000'000'000;
 			}
 			result.resize(carry ? i + 1 : i);
 			return result;
