@@ -14,7 +14,8 @@ export namespace deckard
 
 
 	// upto 0..n-1, P3060
-	inline constexpr auto upto = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
+	inline constexpr auto upto      = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
+	inline constexpr auto upto_from = []<std::integral I>(I s, I n) { return std::views::iota(s, n); };
 
 
 	// loop (n, n+1, n+..)
@@ -471,8 +472,8 @@ export namespace deckard
 		if (count == 0)
 			return container;
 
-		T      result{};
-		result.resize(container.size()-count);
+		T result{};
+		result.resize(container.size() - count);
 		std::ranges::copy_n(container.begin() + count, result.size(), result.begin());
 		return result;
 	}
