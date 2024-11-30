@@ -567,6 +567,8 @@ int deckard_main()
 
 	// ###################
 
+	auto fdsc = make_array<f32>(1, 2, 3, 4);
+
 
 	using enum string::strip_option;
 	string::strip_option op{};

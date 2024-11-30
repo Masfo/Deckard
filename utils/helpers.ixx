@@ -231,7 +231,6 @@ export namespace deckard
 		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
 	}
 
-	
 	template<typename T, typename... Args>
 	std::array<T, sizeof...(Args)> make_array(Args... args)
 	{
@@ -432,6 +431,61 @@ export namespace deckard
 
 		std::array<T, RSize> result{};
 		std::ranges::copy_n(container.begin(), RSize, result.begin());
+		return result;
+	}
+
+	// head, from index
+	template<ContainerResize T>
+	auto head(const T& container, size_t count = 1)
+	{
+		if (count >= container.size())
+			return container;
+
+		T result{};
+		result.resize(count);
+		std::ranges::copy_n(container.begin(), count, result.begin());
+		return result;
+	}
+
+	template<size_t COUNT, typename T, size_t S>
+	auto head(const std::array<T, S>& container)
+	{
+		static_assert(COUNT <= S, "Can't head longer than container");
+
+
+		std::array<T, COUNT> result{};
+		std::ranges::copy_n(container.begin(), COUNT, result.begin());
+		return result;
+	}
+
+	// tail, from index
+	template<ContainerResize T>
+	auto tail(const T& container, size_t count = 1)
+	{
+		if (count > container.size() or count - container.size() == 0)
+		{
+			return T{};
+		}
+
+
+		if (count == 0)
+			return container;
+
+		T      result{};
+		result.resize(container.size()-count);
+		std::ranges::copy_n(container.begin() + count, result.size(), result.begin());
+		return result;
+	}
+
+	// tail-array
+	template<size_t I, typename T, size_t S>
+	auto tail(const std::array<T, S>& container)
+	{
+		static_assert(I <= S, "Can't tail longer than container");
+
+
+		std::array<T, S - I> result{};
+		std::ranges::copy_n(container.begin() + I, S - I, result.begin());
 		return result;
 	}
 

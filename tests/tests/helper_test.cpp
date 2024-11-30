@@ -166,6 +166,46 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(first == real);
 	}
 
+	SECTION("head")
+	{
+		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::vector<u32> real{10,20,30};
+
+		auto first = head(input,3);
+		REQUIRE(first.size() == real.size());
+		REQUIRE(first == real);
+	}
+
+	SECTION("head-array")
+	{
+		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::array<u32, 3> real{10, 20, 30};
+
+		auto first = head<3>(input);
+		REQUIRE(first.size() == real.size());
+		REQUIRE(first == real);
+	}
+
+	SECTION("tail")
+	{
+		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::vector<u32> real{40, 50, 60, 70, 80};
+	
+		auto first = tail(input,3);
+		REQUIRE(first.size() == real.size());
+		REQUIRE(first == real);
+	}
+
+	SECTION("tail-array") 
+	{ 
+		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::array<u32, 5> real{40, 50, 60, 70, 80};
+		
+		auto first = tail<3>(input);
+		REQUIRE(first.size() == real.size());
+		REQUIRE(first == real);
+	}
+
 	SECTION("last")
 	{
 		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
