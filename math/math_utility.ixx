@@ -9,6 +9,7 @@ module;
 export module deckard.math:utils;
 import std;
 import deckard.types;
+import deckard.as;
 
 export namespace deckard::math
 {
@@ -63,6 +64,15 @@ export namespace deckard::math
 		if (N == T{0})
 			return 0;
 		return (x % N + N) % N;
+	}
+
+	// digits
+	u32 digits(i32 num) 
+	{ 
+		if (num == 0)
+			return 1;
+
+		return as<u32>(std::floor(std::log10(num)) + 1); 
 	}
 
 	// is_close_enough

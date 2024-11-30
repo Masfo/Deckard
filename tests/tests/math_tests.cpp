@@ -59,4 +59,13 @@ TEST_CASE("math.utility", "[math]")
 		REQUIRE(10 == mod(110, 100));
 		REQUIRE(3 == mod(-11, 7));
 	}
+
+	SECTION("digits") 
+	{
+		REQUIRE(1 == digits(0));
+		REQUIRE(1 == digits(1));
+
+		REQUIRE(3 == digits(999));
+		REQUIRE(6 == digits(999999));
+	}
 }
