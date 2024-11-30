@@ -133,10 +133,11 @@ namespace deckard
 			for (i32 i : upto_from(0, digits(maxd) - 1))
 				maxunit *= 10;
 
+			i32 dwidth = digits(maxd);
 
 			for (int units = maxunit; units >= 1; units /= 10)
 			{
-				dbg::print("{:4}", "");
+				dbg::print("{:{}}", "", dwidth + 2);
 
 				for (int i : upto(maxd))
 				{
@@ -157,8 +158,7 @@ namespace deckard
 
 			for (u32 y = 0; y < height; y++)
 			{
-				// TODO: 100+
-				dbg::print("{:02}. ", y);
+				dbg::print("{:0{}}. ", y, dwidth);
 
 				for (u32 x = 0; x < width; x++)
 				{
@@ -277,19 +277,51 @@ namespace deckard
 
 		u32 height() const { return m_extent.height; };
 
-		template<typename U>
+		template<typename U = char>
 		void dump() const
 		{
-
 #ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE = 32;
+			constexpr u32 MIN_DUMPSIZE = 256;
 
-			for (u32 y = 0; y < std::min(m_extent.height, MIN_DUMPSIZE); y++)
+			u32 width  = std::min(m_extent.width, MIN_DUMPSIZE);
+			u32 height = std::min(m_extent.height, MIN_DUMPSIZE);
+
+			int maxd = width;
+
+			u32 maxunit{1};
+			for (i32 i : upto_from(0, digits(maxd) - 1))
+				maxunit *= 10;
+
+			i32 dwidth = digits(maxd);
+
+			for (int units = maxunit; units >= 1; units /= 10)
 			{
-				dbg::print("{:02}. ", y);
-				for (u32 x = 0; x < std::min(m_extent.width, MIN_DUMPSIZE); x++)
+				dbg::print("{:{}}", "", dwidth + 1);
+
+				for (int i : upto(maxd))
 				{
-					dbg::print("{}", get(x, y) ? 1 : 0);
+					int dv = i / units;
+					if (units == 1)
+						dbg::print("{}", i % 10);
+					else
+					{
+						if (i < units)
+							dbg::print(" ");
+						else
+							dbg::print("{}", dv % 10);
+					}
+				}
+				dbg::println();
+			}
+
+
+			for (u32 y = 0; y < height; y++)
+			{
+				dbg::print("{:0{}}. ", y, dwidth);
+
+				for (u32 x = 0; x < width; x++)
+				{
+					dbg::print("{:}", get(x, y) ? 1 : 0);
 				}
 				dbg::println();
 			}
