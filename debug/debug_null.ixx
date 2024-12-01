@@ -5,13 +5,21 @@ module;
 
 export module deckard.debug;
 
-
 import std;
+using namespace std::string_view_literals;
 
 void output_message(const std::string_view message) 
 { std::print(std::cout, "{}"sv, message); }
 
 void error_output_message(const std::string_view message) { std::print(std::cerr, "{}"sv, message); }
+
+
+template<typename... Args>
+auto format(std::string_view fmt, Args&&... args)
+{
+	return std::vformat(fmt, std::make_format_args(args...));
+}
+
 
 struct alignas(64) FormatLocation
 {
