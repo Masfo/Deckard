@@ -17,6 +17,12 @@ export namespace deckard
 	inline constexpr auto upto      = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
 	inline constexpr auto upto_from = []<std::integral I>(I s, I n) { return std::views::iota(s, n); };
 
+	//  for(const auto &i: range(0,100,5))
+	inline constexpr auto range = []<std::integral I, std::integral U>(I begin, U end, U stepsize = 1)
+	{
+		const auto boundary = [end](U i) { return i < end; };
+		return std::ranges::views::iota(begin) | std::ranges::views::stride(stepsize) | std::ranges::views::take_while(boundary);
+	};
 
 	// loop (n, n+1, n+..)
 	inline constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
