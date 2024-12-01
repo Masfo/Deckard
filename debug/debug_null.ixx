@@ -8,9 +8,10 @@ export module deckard.debug;
 
 import std;
 
-void output_message(const std::string_view) { }
+void output_message(const std::string_view) 
+{ std::print(std::cout, "{}"sv, message); }
 
-void error_output_message(const std::string_view) { }
+void error_output_message(const std::string_view) { std::print(std::cerr, "{}"sv, message); }
 
 struct alignas(64) FormatLocation
 {
@@ -40,23 +41,43 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void print(std::string_view, Args&&...)
 	{
+		if constexpr (sizeof...(Args) > 0)
+			output_message(format(fmt, args...));
+		else
+			output_message(fmt);
 	}
 
 	// println
 	template<typename... Args>
 	void println(std::string_view, Args&&...)
 	{
+		if constexpr (sizeof...(Args) > 0)
+		{
+			output_message(format("{}\n"sv, format(fmt, args...)));
+		}
+		else
+		{
+			output_message(format("{}\n"sv, fmt));
+		}
 	}
 
-	void println() { }
+	void println() { output_message("\n"); }
 
 	// eprintln
 	template<typename... Args>
 	void eprintln(std::string_view, Args&&...)
 	{
+		if constexpr (sizeof...(Args) > 0)
+		{
+			error_output_message(format("{}\n"sv, format(fmt, args...)));
+		}
+		else
+		{
+			error_output_message(format("{}\n"sv, fmt));
+		}
 	}
 
-	void eprintln() { }
+	void eprintln() { error_output_message("\n"); }
 
 	template<typename... Args>
 	void if_true(bool, std::string_view, Args&&...)
