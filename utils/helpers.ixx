@@ -368,6 +368,17 @@ export namespace deckard
 		}
 	}
 
+	template<arithmetic T = i32>
+	auto to_number(std::string_view input, int [[maybe_unused]] base = 10) -> T
+	{
+		if (auto result = try_to_number<T>(input, base); result)
+			return *result;
+
+
+		dbg::println("to_number(\"{}\"): failed to convert to number", input);
+		return T{0};
+	}
+
 	template<typename T>
 	concept ContainerResize = requires(T a) {
 		a.size();
