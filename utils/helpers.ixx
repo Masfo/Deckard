@@ -290,6 +290,14 @@ export namespace deckard
 	// vpush
 	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
 
+	// vsort
+
+	template<sortable... Ts>
+	void vsort(Ts&... vs)
+	{
+		(std::ranges::sort(vs), ...);
+	}
+
 	auto try_to_string(const auto input, i32 base = 10) -> std::optional<std::string>
 	{
 		char buffer[32]{0};
