@@ -4,6 +4,8 @@ import std;
 import deckard.helpers;
 import deckard.types;
 import deckard.enums;
+import deckard.debug;
+import deckard.math;
 
 export namespace deckard::string
 {
@@ -13,7 +15,7 @@ export namespace deckard::string
 
 	constexpr std::string_view digit_string{alphanum_string.substr(0, 10)};
 	constexpr std::string_view lowercase_string{alphanum_string.substr(digit_string.size(), 26)};
-	constexpr std::string_view uppercase_string{alphanum_string.substr(digit_string.size()+lowercase_string.size(),26)};
+	constexpr std::string_view uppercase_string{alphanum_string.substr(digit_string.size() + lowercase_string.size(), 26)};
 	constexpr std::string_view alphabet_string{alphanum_string.substr(digit_string.size(), 52)};
 
 	static_assert(whitespace_string[0] == ' ');
@@ -28,14 +30,6 @@ export namespace deckard::string
 	static_assert(alphabet_string[51] == 'Z');
 
 
-
-
-
-
-
-
-
-
 	export enum class strip_option : u8 {
 		digit      = BIT(0),
 		whitespace = BIT(1),
@@ -43,12 +37,12 @@ export namespace deckard::string
 		uppercase  = BIT(3),
 		special    = BIT(4),
 
-		reserved   = BIT(5),
-		reserved2  = BIT(6),
-		reserved3  = BIT(7),
+		reserved  = BIT(5),
+		reserved2 = BIT(6),
+		reserved3 = BIT(7),
 
-		alphabet = lowercase|uppercase,
-		alphanum = alphabet|digit,
+		alphabet = lowercase | uppercase,
+		alphanum = alphabet | digit,
 
 		d  = digit,
 		w  = whitespace,
@@ -61,6 +55,32 @@ export namespace deckard::string
 	};
 
 	consteval void enable_bitmask_operations(strip_option);
+
+	template<typename T>
+	auto convert_to_type(std::string_view input, [[maybe_unused]] std::string_view delims = " ") -> T
+	{
+
+		if constexpr (std::is_same_v<T, char>)
+		{
+			return input[0];
+		}
+
+		if constexpr (std::is_convertible_v<T, std::string_view>)
+		{
+			return T(input);
+		}
+
+		if constexpr (std::is_arithmetic_v<T>)
+		{
+			return to_number<T>(input);
+		}
+
+
+		dbg::panic("conversion not handled");
+	}
+
+	// ###########################################################################
+
 
 	// count
 	i64 count(auto str, std::string_view interests) noexcept
@@ -179,21 +199,6 @@ export namespace deckard::string
 		return output;
 	}
 
-	// split_to
-	template<typename T>
-	auto split_to(std::string_view input, std::string_view delims = " ")
-	{
-		auto splitted = split(input, delims);
-
-		std::vector<T> ret;
-		ret.reserve(splitted.size());
-
-		for (const auto& r : splitted)
-			ret.push_back(convert_to_type<T>(r));
-
-		return ret;
-	}
-
 	// split_once
 	auto split_once(std::string_view str, std::string_view delims = " ")
 	{
@@ -229,6 +234,7 @@ export namespace deckard::string
 		return output;
 	}
 
+	// split_exact
 	std::vector<std::string_view> split_exact(std::string_view str, u64 length)
 	{
 		std::vector<std::string_view> v;
@@ -241,6 +247,7 @@ export namespace deckard::string
 		return v;
 	}
 
+	// split_stride
 	std::vector<std::string_view> split_stride(std::string_view str, u64 stride)
 	{
 		std::vector<std::string_view> v;
@@ -251,6 +258,31 @@ export namespace deckard::string
 				v.emplace_back(str.substr(i, stride));
 		}
 		return v;
+	}
+
+	// split_to_vector
+	template<typename T>
+	auto split_to_vector(std::string_view input, std::string_view delims = " ")
+	{
+		auto splitted = split(input, delims);
+
+		std::vector<T> ret;
+		ret.reserve(splitted.size());
+
+		for (const auto& r : splitted)
+			ret.push_back(convert_to_type<T>(r));
+
+		return ret;
+	}
+
+	template<typename T, size_t COUNT>
+	auto split_to_vector(std::string_view input, std::string_view delims = " ")
+	{
+		auto splitted = split_to_vector<T>(input, delims);
+
+		splitted.resize(COUNT);
+
+		return splitted;
 	}
 
 	// trim

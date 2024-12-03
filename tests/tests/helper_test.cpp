@@ -103,6 +103,20 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(splitted[0] == "hello");
 		REQUIRE(splitted[1] == "world|123");
 	}
+	SECTION("split_to") 
+	{
+		std::string input("12;34;56;78;99");
+		auto        splitted = split_to_vector<i64,5>(input, ";");
+
+		REQUIRE(splitted.size() == 5);
+		REQUIRE(splitted[0] == 12);
+		REQUIRE(splitted[1] == 34);
+		REQUIRE(splitted[2] == 56);
+		REQUIRE(splitted[3] == 78);
+		REQUIRE(splitted[4] == 99);
+
+
+	}
 
 	SECTION("trim")
 	{
