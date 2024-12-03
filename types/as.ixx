@@ -112,6 +112,52 @@ namespace deckard
 		}
 	}
 
+		export template<typename Ret = void*, typename U>
+	constexpr Ret to(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
+	{
+		U value = u;
+
+
+		// pointers
+		if constexpr (std::is_pointer_v<U> and std::is_pointer_v<Ret>)
+		{
+			return (Ret)u;
+		}
+		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
+		{
+			// Enum
+			return as<Ret>(std::to_underlying(u));
+		}
+		else if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
+		{
+// integers
+			return static_cast<Ret>(value);
+		}
+		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
+		{
+			return static_cast<Ret>(u);
+		}
+		else if constexpr (string_like_container<U>)
+		{
+			// TODO: try_to expected?
+			auto v = to_number<Ret>(value);
+			return as<Ret>(v);
+
+		}
+		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
+		{
+
+			auto v = try_to_string<U>(value, base);
+			if (v)
+				return *v;
+			return {};
+		}
+		else
+		{
+			return static_cast<Ret>(u);
+		}
+	}
+
 	export template<typename T = u64, typename U>
 	T address(const U* address)
 	{
