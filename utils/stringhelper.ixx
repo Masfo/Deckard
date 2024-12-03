@@ -179,6 +179,21 @@ export namespace deckard::string
 		return output;
 	}
 
+	// split_to
+	template<typename T>
+	auto split_to(std::string_view input, std::string_view delims = " ")
+	{
+		auto splitted = split(input, delims);
+
+		std::vector<T> ret;
+		ret.reserve(splitted.size());
+
+		for (const auto& r : splitted)
+			ret.push_back(convert_to_type<T>(r));
+
+		return ret;
+	}
+
 	// split_once
 	auto split_once(std::string_view str, std::string_view delims = " ")
 	{
