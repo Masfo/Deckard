@@ -385,6 +385,9 @@ export namespace deckard
 	template<arithmetic T = i32>
 	auto to_number(std::string_view input, int [[maybe_unused]] base = 10) -> T
 	{
+		if (input.empty())
+			return T{0};
+
 		if (auto result = try_to_number<T>(input, base); result)
 			return *result;
 
