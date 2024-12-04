@@ -191,7 +191,6 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 	return {bytes_read, codepoint};
 }
 
-
 using SmallStringBuffer = basic_smallbuffer<32>;
 
 static_assert(sizeof(SmallStringBuffer) == 32, "SmallStringBuffer should be 32-bytes");
@@ -406,11 +405,7 @@ private:
 	}
 };
 
-#if __has_include("generator")
-#error "Generator should now work"
-
-#define generator_work
-
+#if 0
 template<typename T>
 struct Tree
 {
@@ -429,7 +424,6 @@ struct Tree
 	}
 };
 #endif
-
 
 void test_cb01() { dbg::println("cb test 01"); }
 
@@ -474,14 +468,13 @@ public:
 		dbg::println("ctor: {}", value);
 	}
 
-
 	MyClass(const MyClass& other)
 		: value(other.value)
 	{
 		dbg::println("copy ctor: {}", value);
 	}
 
-	MyClass& operator=(const MyClass& other) 
+	MyClass& operator=(const MyClass& other)
 	{
 		dbg::println("copy assignment: {}", value);
 
@@ -493,10 +486,9 @@ public:
 		: value(std::move(other.value))
 	{
 		dbg::println("move ctor: {}", value);
-		
+
 		other.value = -1; // Indicate the object has been moved from
 	}
-
 
 	// Move assignment operator
 	MyClass& operator=(MyClass&& other)
@@ -517,10 +509,7 @@ private:
 	int value{};
 };
 
-MyClass create_class(i32 v) 
-{ 
-	return {v}; 
-}
+MyClass create_class(i32 v) { return {v}; }
 
 int deckard_main()
 {
@@ -529,14 +518,13 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-#ifdef generator_work
+	#if 0
 	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 
 	for (char x : tree->traverse_inorder())
 		dbg::print("{} ", x);
 	dbg::println();
-#endif
-	
+	#endif
 	// ###################
 	{
 		MyClass mc1{123};
