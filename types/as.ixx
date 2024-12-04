@@ -175,8 +175,6 @@ namespace deckard
 			if (v)
 				return to<Ret>(*v);
 
-			dbg::trace(loc);
-			dbg::eprintln("Could not convert input from string");
 			return Ret{0};
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
@@ -187,8 +185,6 @@ namespace deckard
 				return *v;
 
 
-			dbg::trace(loc);
-			dbg::eprintln("Could not convert input to string");
 			return "";
 		}
 		else
