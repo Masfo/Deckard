@@ -387,7 +387,7 @@ namespace deckard
 		return std::string(v.begin(), v.end());
 	}
 
-	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines)
+	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines=true)
 	{
 		using namespace deckard::string;
 
