@@ -36,6 +36,7 @@ namespace deckard
 
 		// TODO: vec2
 
+		// TODO: iterator for every point
 
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
 
@@ -85,6 +86,50 @@ namespace deckard
 		operator auto() const noexcept { return hash(); }
 
 		auto hash(u64 seed = 0) const { return data.hash(seed); }
+
+		auto read_from_line(i32 x1, i32 y1, i32 x2, i32 y2) -> std::vector<T>
+		{
+			std::vector<T> ret{};
+
+			i32 dx = std::abs(x2 - x1);
+			i32 dy = std::abs(y2 - y1);
+			i32 sx = (x1 < x2) ? 1 : -1;
+			i32 sy = (y1 < y2) ? 1 : -1;
+
+			if (dx == 0 and dy == 0)
+			{
+				ret.push_back(at(x1, y1));
+				return ret;
+			}
+
+			i32 err = dx - dy;
+
+			while (true)
+			{
+				if (x1 < 0 or x1 > width() or y1 < 0 or y1 > height())
+					break;
+
+				ret.push_back(get(x1, y1));
+
+				if (x1 == x2 && y1 == y2)
+					break;
+
+				i64 e2 = 2 * err;
+
+				if (e2 > -dy)
+				{
+					err -= dy;
+					x1 += sx;
+				}
+
+				if (e2 < dx)
+				{
+					err += dx;
+					y1 += sy;
+				}
+			}
+			return ret;
+		}
 
 		void line(i32 x1, i32 y1, i32 x2, i32 y2, const T& v)
 		{
