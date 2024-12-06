@@ -87,6 +87,9 @@ namespace deckard
 			return data.get(x, y);
 		}
 
+		T get(const ivec2 pos) const { return data.get(pos[0], pos[1]); }
+
+
 		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
 
 		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos[0]), as<u32>(pos[1]), value); }
