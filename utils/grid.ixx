@@ -327,21 +327,21 @@ namespace deckard
 			return floodfill(x, y, [r](u32, u32) -> T { return r; });
 		}
 
-		// returns points in grid order
+		// find_all
 		[[nodiscard]] auto find_all(const T to_find) const
 		{
-			std::vector<uvec2> points;
+			std::vector<ivec2> points;
 
 			for (u32 y = 0; y < height(); ++y)
 			{
 				for (u32 x = 0; x < width(); ++x)
 				{
 					if (data.get(x, y) == to_find)
-						points.emplace_back(uvec2{x, y});
+						points.emplace_back(ivec2{x, y});
 				}
 			}
 
-			std::ranges::sort(points, grid_order<uvec2>());
+			std::ranges::sort(points, grid_order<ivec2>());
 
 			return points;
 		}
