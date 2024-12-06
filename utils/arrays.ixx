@@ -140,7 +140,7 @@ namespace deckard
 
 			for (int units = maxunit; units >= 1; units /= 10)
 			{
-				dbg::print("{:{}}", "", dwidth + 1);
+				dbg::print("{:{}}", "", dwidth + 2);
 
 				for (int i : upto(w))
 				{

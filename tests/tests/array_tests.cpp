@@ -4,6 +4,7 @@
 import std;
 import deckard.grid;
 import deckard.arrays;
+import deckard.helpers;
 
 using namespace deckard;
 
@@ -130,6 +131,23 @@ TEST_CASE("grid", "[grid]")
 
 		REQUIRE('1' == grid.at(1, 1));
 		REQUIRE('2' == grid.at(1, 2));
+	}
+
+	SECTION("read_from_line")
+	{
+		grid<u8> grid(8, 8);
+
+		for (i32 x : upto(grid.width()))
+			grid.vline(x, 0,  grid.height() - 1, as<u8>(x+1+'0'));
+
+		grid.rectangle(1, 1, 3, 3, '#');
+
+		auto s = grid.read_from_line(0, 0, grid.width() - 2, grid.height() - 2);
+
+		auto real = make_vector<u8>('1','#','#','#','5','6','7');
+		REQUIRE(s.size() == 7);
+		REQUIRE(real == s);
+
 	}
 
 	SECTION("line")

@@ -38,6 +38,30 @@ namespace deckard
 
 		// TODO: iterator for every point
 
+		void read_from_lines(const std::vector<std::string>& lines)
+		{
+			i32 width  = as<i32>(lines[0].size());
+			i32 height = as<i32>(lines.size());
+
+			if (lines.empty() or width == 0 or height == 0)
+				return;
+
+			clear();
+			resize(width, height);
+
+			ivec2 pos;
+			for (const auto& line : lines)
+			{
+				pos[0] = 0;
+				for (const auto& c : line)
+				{
+					set(pos, c);
+					pos[0]++;
+				}
+				pos[1]++;
+			}
+		}
+
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
 
 		T& operator[](const u32 x, const u32 y)
@@ -106,7 +130,7 @@ namespace deckard
 
 			while (true)
 			{
-				if (x1 < 0 or x1 > width() or y1 < 0 or y1 > height())
+				if (x1 < 0 or x1 > as<i32>(width()) or y1 < 0 or y1 > as<i32>(height()))
 					break;
 
 				ret.push_back(get(x1, y1));
@@ -428,7 +452,7 @@ namespace deckard
 		template<typename U = char>
 		void dump() const
 		{
-			data.dump<U>();
+			data.dump();
 		}
 	};
 
