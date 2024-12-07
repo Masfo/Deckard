@@ -481,7 +481,7 @@ export namespace deckard
 
 	// head, from index
 	template<ContainerResize T>
-	auto head(const T& container, size_t count = 1)
+	auto head(const T& container, size_t count)
 	{
 		if (count >= container.size())
 			return container;
@@ -490,6 +490,14 @@ export namespace deckard
 		result.resize(count);
 		std::ranges::copy_n(container.begin(), count, result.begin());
 		return result;
+	}
+
+	template<ContainerResize T>
+	auto head(const T& container)
+	{
+		assert::check(container.size() > 0, "Container must have one or more elements");
+
+		return container[0];
 	}
 
 	template<size_t COUNT, typename T, size_t S>
@@ -503,15 +511,21 @@ export namespace deckard
 		return result;
 	}
 
+	template<size_t COUNT, ContainerResize T>
+	auto head(const T& container)
+	{
+		assert::check(container.size() > 0, "Container must have 1 or more elements");
+		return container[0];
+	}
+
 	// tail, from index
 	template<ContainerResize T>
-	auto tail(const T& container, size_t count = 1)
+	auto tail(const T& container, size_t count)
 	{
 		if (count > container.size() or count - container.size() == 0)
 		{
 			return T{};
 		}
-
 
 		if (count == 0)
 			return container;
@@ -520,6 +534,14 @@ export namespace deckard
 		result.resize(container.size() - count);
 		std::ranges::copy_n(container.begin() + count, result.size(), result.begin());
 		return result;
+	}
+
+	// tail, single
+	template<ContainerResize T>
+	auto tail(const T& container)
+	{
+		assert::check(container.size() > 0, "Container must have 1 or more elements");
+		return container[container.size() - 1];
 	}
 
 	// tail-array
