@@ -89,6 +89,9 @@ namespace deckard
 			m_data[index]   = value;
 		}
 
+		void reset() { fill({}); }
+
+
 		void clear() { m_data.clear(); }
 
 		u32 count(std::string_view input) const
