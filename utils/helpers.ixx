@@ -310,6 +310,14 @@ export namespace deckard
 		return buffer;
 	}
 
+	// concat
+	template<std::integral T=i64>
+	T concat(T a, T b)
+	{
+		i32 numDigits2 = as<i32>(std::log10(b) + 1);
+		return a * T{std::pow(10, numDigits2)} + b;
+	}
+
 	// isrange
 	template<typename T>
 	bool isrange(T c, T a, T b)
