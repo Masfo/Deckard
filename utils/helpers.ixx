@@ -536,13 +536,7 @@ export namespace deckard
 		return result;
 	}
 
-	// tail, single
-	template<ContainerResize T>
-	auto tail(const T& container)
-	{
-		assert::check(container.size() > 0, "Container must have 1 or more elements");
-		return container[container.size() - 1];
-	}
+
 
 	// tail-array
 	template<size_t I, typename T, size_t S>
