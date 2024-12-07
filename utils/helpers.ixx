@@ -311,10 +311,10 @@ export namespace deckard
 	}
 
 	// concat
-	template<std::unsigned_integral T = i64>
+	template<std::integral T = i64>
 	T concat(T x, T y)
 	{
-		T pow{10};
+		size_t pow{10};
 		while (y >= pow)
 			pow *= 10;
 		return x * pow + y;
