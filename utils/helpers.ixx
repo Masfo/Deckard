@@ -310,19 +310,11 @@ export namespace deckard
 		return buffer;
 	}
 
-	unsigned concatenate(unsigned x, unsigned y)
-	{
-		unsigned pow = 10;
-		while (y >= pow)
-			pow *= 10;
-		return x * pow + y;
-	}
-
 	// concat
-	template<std::integral T = i64>
+	template<std::unsigned_integral T = i64>
 	T concat(T x, T y)
 	{
-		i64 pow{10};
+		T pow{10};
 		while (y >= pow)
 			pow *= 10;
 		return x * pow + y;
