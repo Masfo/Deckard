@@ -323,7 +323,7 @@ export namespace deckard
 	template<std::integral T>
 	T concat(T x, T y)
 	{
-		return as<T>(concat(as<u64>(std::abs(x)), as<u64>(std::abs(y))));
+		return as<T>(concat(as<u64>(x), as<u64>(y)));
 	}
 
 	// isrange
