@@ -311,13 +311,19 @@ export namespace deckard
 	}
 
 	// concat
-	template<std::integral T = i64>
+	template<std::unsigned_integral T = u64>
 	T concat(T x, T y)
 	{
 		size_t pow{10};
 		while (y >= pow)
 			pow *= 10;
 		return x * pow + y;
+	}
+
+	template<std::integral T>
+	T concat(T x, T y)
+	{
+		return as<T>(concat(as<u64>(std::abs(x)), as<u64>(std::abs(y))));
 	}
 
 	// isrange
