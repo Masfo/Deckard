@@ -46,8 +46,8 @@ IntegerLiteralSeparator:
     Binary: 4
     Decimal: 3
     Hex: 4
-    DecimalMinDigits: 4
-    HexMinDigits:    6
+    DecimalMinDigits: 6
+    HexMinDigits:    4
 
 
 BinPackArguments: false
