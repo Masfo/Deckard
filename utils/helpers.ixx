@@ -520,7 +520,7 @@ export namespace deckard
 
 	// tail, from index
 	template<ContainerResize T>
-	auto tail(const T& container, size_t count)
+	auto tail(const T& container, size_t count=1)
 	{
 		if (count > container.size() or count - container.size() == 0)
 		{
