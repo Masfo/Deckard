@@ -310,12 +310,22 @@ export namespace deckard
 		return buffer;
 	}
 
+	unsigned concatenate(unsigned x, unsigned y)
+	{
+		unsigned pow = 10;
+		while (y >= pow)
+			pow *= 10;
+		return x * pow + y;
+	}
+
 	// concat
 	template<std::integral T = i64>
-	T concat(T a, T b)
+	T concat(T x, T y)
 	{
-		i32 numDigits2 = as<i32>(std::log10(b) + 1);
-		return a * as<T>(std::pow(10, numDigits2)) + b;
+		i64 pow{10};
+		while (y >= pow)
+			pow *= 10;
+		return x * pow + y;
 	}
 
 	// isrange
