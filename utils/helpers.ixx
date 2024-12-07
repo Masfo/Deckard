@@ -311,11 +311,11 @@ export namespace deckard
 	}
 
 	// concat
-	template<std::integral T=i64>
+	template<std::integral T = i64>
 	T concat(T a, T b)
 	{
 		i32 numDigits2 = as<i32>(std::log10(b) + 1);
-		return a * T{std::pow(10, numDigits2)} + b;
+		return a * as<T>(std::pow(10, numDigits2)) + b;
 	}
 
 	// isrange
