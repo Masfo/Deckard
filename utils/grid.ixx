@@ -89,7 +89,6 @@ namespace deckard
 
 		T get(const ivec2 pos) const { return data.get(pos[0], pos[1]); }
 
-
 		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
 
 		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos[0]), as<u32>(pos[1]), value); }
@@ -101,6 +100,8 @@ namespace deckard
 		u32 count(std::string_view input) const { return data.count(input); }
 
 		bool valid(const u32 x, const u32 y) const { return data.valid(x, y); }
+
+		bool valid(ivec2 c) const { return data.valid(c[0], c[1]); }
 
 		u32 width() const { return data.width(); };
 

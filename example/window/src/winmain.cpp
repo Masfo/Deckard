@@ -518,13 +518,13 @@ int deckard_main()
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	#if 0
+#if 0
 	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 
 	for (char x : tree->traverse_inorder())
 		dbg::print("{} ", x);
 	dbg::println();
-	#endif
+#endif
 	// ###################
 	{
 		MyClass mc1{123};
@@ -668,7 +668,7 @@ int deckard_main()
 	}
 
 
-	constexpr u32 bulk_insert_count = 10'000;
+	constexpr u32 bulk_insert_count = 10000;
 
 	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
 
@@ -682,7 +682,7 @@ int deckard_main()
 		for (int k : upto(bulk_insert_count))
 		{
 			db.bind(std::format("data/level{:03}/sprite_{:4}_{:02d}.qoi", random::randu32(0, 999), random::alpha(4), k),
-					random::randu32(1, 16 * 2'048),
+					random::randu32(1, 16 * 2048),
 					"ABCD",
 					"DATA");
 			db.commit();
@@ -804,7 +804,7 @@ int deckard_main()
 
 	vulkanapp app01(
 	  {.title  = "Example 01", //
-	   .width  = 1'280,
+	   .width  = 1280,
 	   .height = 720,
 	   .flags  = Attribute::vsync | Attribute::resizable});
 
