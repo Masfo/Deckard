@@ -21,6 +21,21 @@ namespace deckard
 
 	// TODO: non-member drawings
 
+	const ivec2 north{0, -1};
+	const ivec2 east{1, 0};
+	const ivec2 south{0, 1};
+	const ivec2 west{-1, 0};
+
+	const ivec2 up{north};
+	const ivec2 left{west};
+	const ivec2 down{south};
+	const ivec2 right{east};
+
+	const ivec2 north_east{north + east};
+	const ivec2 south_east{south + east};
+	const ivec2 south_west{south + west};
+	const ivec2 north_west{north + west};
+
 	export template<typename T = u8, typename BufferType = array2d<T>>
 	class grid
 	{
@@ -28,6 +43,8 @@ namespace deckard
 		BufferType data;
 
 	public:
+		using FunctionOp = const std::function<void(const ivec2, const T)>;
+
 		// friend void dump(const grid&);
 
 		grid() = default;
@@ -62,11 +79,12 @@ namespace deckard
 			}
 		}
 
+		T operator[](const ivec2 pos) const { return data.get(pos[0], pos[1]); }
+
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
 
 		T& operator[](const u32 x, const u32 y)
 		requires not std::is_same_v<T, bool>
-
 		{
 			return data.get(x, y);
 		}
@@ -89,6 +107,27 @@ namespace deckard
 
 		T get(const ivec2 pos) const { return data.get(pos[0], pos[1]); }
 
+		std::optional<T> try_at(const ivec2 pos) const
+		{
+			if (valid(pos))
+				return get(pos);
+			return {};
+		}
+
+		void for_each(const FunctionOp& op) const
+		{
+			for (auto y = 0; y < height(); ++y)
+			{
+				for (auto x = 0; x < width(); ++x)
+				{
+					if (auto v = try_at(ivec2{x, y}); v.has_value())
+					{
+						op(ivec2{x, y}, *v);
+					}
+				}
+			}
+		}
+
 		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
 
 		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos[0]), as<u32>(pos[1]), value); }
@@ -102,6 +141,8 @@ namespace deckard
 		bool valid(const u32 x, const u32 y) const { return data.valid(x, y); }
 
 		bool valid(ivec2 c) const { return data.valid(c[0], c[1]); }
+
+		auto neighbours4(ivec2 pos) const { return make_array(at(pos + north), at(pos + east), at(pos + south), at(pos + west)); }
 
 		u32 width() const { return data.width(); };
 
