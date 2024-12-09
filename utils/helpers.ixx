@@ -326,6 +326,55 @@ export namespace deckard
 		return as<T>(concat(as<u64>(x), as<u64>(y)));
 	}
 
+	// kcombo
+	template<std::ranges::input_range O, std::ranges::input_range T, std::ranges::input_range R>
+	void kcombo_util(const O& r, i32 start, i32 count, i32 subindex, T& current, R& ret)
+	{
+		if (count == 0)
+		{
+			ret.emplace_back(current);
+			return;
+		}
+
+		for (auto i = start; i < r.size(); ++i)
+		{
+			current[subindex] = r[i];
+			kcombo_util(r, i + 1, count - 1, subindex + 1, current, ret);
+		}
+	}
+
+	template<std::ranges::input_range R>
+	auto kcombo(const R& r, i32 count = 2)
+	{
+		using range_type = std::ranges::range_value_t<R>;
+		using sub_range  = std::vector<range_type>;
+
+		std::vector<sub_range> ret;
+		sub_range              current(count, {});
+
+		kcombo_util(r, 0, count, 0, current, ret);
+
+		return ret;
+	}
+
+	template<size_t COUNT, std::ranges::input_range R>
+	auto kcombo(const R& r)
+	{
+		using range_type = std::ranges::range_value_t<R>;
+		using sub_range  = std::array<range_type, COUNT>;
+
+		static_assert(COUNT > 1, "kcombo is for two or more items");
+
+		std::vector<sub_range> ret;
+		sub_range              current{};
+
+		kcombo_util(r, 0, COUNT, 0, current, ret);
+
+		return ret;
+	}
+
+
+
 	// isrange
 	template<typename T>
 	bool isrange(T c, T a, T b)

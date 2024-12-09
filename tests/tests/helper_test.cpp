@@ -40,13 +40,12 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(split_view[1] == "world"sv);
 
 
-		input = "aa,bb.cc";
+		input    = "aa,bb.cc";
 		splitted = split(input, ",.");
 		REQUIRE(splitted.size() == 3);
 		REQUIRE(splitted[0] == "aa");
 		REQUIRE(splitted[1] == "bb");
 		REQUIRE(splitted[2] == "cc");
-
 	}
 
 
@@ -118,8 +117,6 @@ TEST_CASE("helpers", "[helpers]")
 
 		REQUIRE(true == match("?X*world", "XXworld"));
 		REQUIRE(false == match("?X*world", "XYworld"));
-
-
 	}
 
 
@@ -169,9 +166,9 @@ TEST_CASE("helpers", "[helpers]")
 	SECTION("head")
 	{
 		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
-		std::vector<u32> real{10,20,30};
+		std::vector<u32> real{10, 20, 30};
 
-		auto first = head(input,3);
+		auto first = head(input, 3);
 		REQUIRE(first.size() == real.size());
 		REQUIRE(first == real);
 	}
@@ -190,17 +187,17 @@ TEST_CASE("helpers", "[helpers]")
 	{
 		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
 		std::vector<u32> real{40, 50, 60, 70, 80};
-	
-		auto first = tail(input,3);
+
+		auto first = tail(input, 3);
 		REQUIRE(first.size() == real.size());
 		REQUIRE(first == real);
 	}
 
-	SECTION("tail-array") 
-	{ 
+	SECTION("tail-array")
+	{
 		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
 		std::array<u32, 5> real{40, 50, 60, 70, 80};
-		
+
 		auto first = tail<3>(input);
 		REQUIRE(first.size() == real.size());
 		REQUIRE(first == real);
@@ -243,15 +240,15 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(input == "ACE");
 	}
 
-	SECTION("strip-option") 
+	SECTION("strip-option")
 	{
 		std::string input("+ABC x 123 y DEF-");
 
 		using enum string::strip_option;
-		input = strip(input, w|u|d);
+		input = strip(input, w | u | d);
 		REQUIRE(input == "+xy-");
 
-		REQUIRE("123" == strip("123abcABC\t#", a|w|s));
+		REQUIRE("123" == strip("123abcABC\t#", a | w | s));
 	}
 
 	SECTION("try_to_string")
@@ -269,6 +266,65 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE("-100" == *a);
 	}
 
+	SECTION("concat/integer")
+	{
+		//
+		REQUIRE(1080 == concat(10, 80));
+	}
+
+	SECTION("kcombo/dynamic")
+	{
+		const auto dyna = kcombo("ABCD"sv, 2);
+
+		REQUIRE(dyna.size() == 6);
+		REQUIRE(dyna[0] == make_vector('A', 'B'));
+		REQUIRE(dyna[1] == make_vector('A', 'C'));
+		REQUIRE(dyna[2] == make_vector('A', 'D'));
+		REQUIRE(dyna[3] == make_vector('B', 'C'));
+		REQUIRE(dyna[4] == make_vector('B', 'D'));
+		REQUIRE(dyna[5] == make_vector('C', 'D'));
+
+		for (const auto& [i,v] : std::views::enumerate(kcombo("ABCD"sv, 2)))
+		{
+			REQUIRE(v == dyna[i]);
+		}
+
+
+
+		const auto dyna3 = kcombo("ABCD"sv, 3);
+		REQUIRE(dyna.size() == 4);
+		REQUIRE(dyna[0] == make_vector('A', 'B', 'C'));
+		REQUIRE(dyna[1] == make_vector('A', 'B', 'D'));
+		REQUIRE(dyna[2] == make_vector('A', 'C', 'D'));
+		REQUIRE(dyna[3] == make_vector('B', 'C', 'D'));
+	}
+
+	SECTION("kcombo/static")
+	{
+		const auto dyna = kcombo<2>("ABCD"sv);
+
+		REQUIRE(dyna.size() == 6);
+		REQUIRE(dyna[0] == make_array('A', 'B'));
+		REQUIRE(dyna[1] == make_array('A', 'C'));
+		REQUIRE(dyna[2] == make_array('A', 'D'));
+		REQUIRE(dyna[3] == make_array('B', 'C'));
+		REQUIRE(dyna[4] == make_array('B', 'D'));
+		REQUIRE(dyna[5] == make_array('C', 'D'));
+
+		i32 i = 0;
+		for (const auto [a,b] : kcombo<2>("ABCD"sv))
+		{
+			REQUIRE(make_array(a, b) == dyna[i++]);
+		}
+
+
+		for (const auto [index, v] : std::views::enumerate(kcombo<2>("ABCD"sv)))
+		{
+			const auto [a, b] = v;
+			REQUIRE(make_array(a, b) == dyna[index]);
+		}
+	}
+
 	SECTION("try_to_number")
 	{
 		std::string input("123456");
@@ -276,7 +332,7 @@ TEST_CASE("helpers", "[helpers]")
 		auto a = try_to_number(input);
 
 		REQUIRE(a.has_value() == true);
-		REQUIRE(*a == 123456);
+		REQUIRE(*a == 123'456);
 
 		input  = "123.456";
 		auto b = try_to_number<f32>(input);
