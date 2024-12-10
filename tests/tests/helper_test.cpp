@@ -292,11 +292,11 @@ TEST_CASE("helpers", "[helpers]")
 
 
 		const auto dyna3 = kcombo("ABCD"sv, 3);
-		REQUIRE(dyna.size() == 4);
-		REQUIRE(dyna[0] == make_vector('A', 'B', 'C'));
-		REQUIRE(dyna[1] == make_vector('A', 'B', 'D'));
-		REQUIRE(dyna[2] == make_vector('A', 'C', 'D'));
-		REQUIRE(dyna[3] == make_vector('B', 'C', 'D'));
+		REQUIRE(dyna3.size() == 4);
+		REQUIRE(dyna3[0] == make_vector('A', 'B', 'C'));
+		REQUIRE(dyna3[1] == make_vector('A', 'B', 'D'));
+		REQUIRE(dyna3[2] == make_vector('A', 'C', 'D'));
+		REQUIRE(dyna3[3] == make_vector('B', 'C', 'D'));
 	}
 
 	SECTION("kcombo/static")
@@ -363,6 +363,12 @@ TEST_CASE("helpers", "[helpers]")
 		input  = "hello";
 		auto f = try_to_number<i16>(input);
 		REQUIRE(f.has_value() == false);
+	}
+
+	SECTION("to_number")
+	{ 
+		REQUIRE(123 == to_number("123"));
+		REQUIRE(0 == to_number("xyz"));
 	}
 
 	SECTION("as")
