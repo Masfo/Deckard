@@ -670,6 +670,12 @@ export namespace deckard
 		return {v / divisor, v % divisor};
 	}
 
+	template<std::integral T>
+	auto split(T v) -> std::pair<T, T>
+	{
+		return split(std::abs(v));
+	}
+
 	// Prettys
 	std::string human_readable_bytes(u64 bytes)
 	{
