@@ -326,6 +326,15 @@ export namespace deckard
 		return as<T>(concat(as<u64>(x), as<u64>(y)));
 	}
 
+	template<arithmetic A, arithmetic... Args>
+	constexpr A concat(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return concat(a, b);
+		else
+			return concat(concat(a, b), args...);
+	}
+
 	// concat/vector
 	template<std::ranges::input_range... Rs>
 	auto concat(const Rs... rs)
@@ -338,8 +347,6 @@ export namespace deckard
 		(std::ranges::copy(rs.begin(), rs.end(), std::back_inserter(ret)), ...);
 		return ret;
 	}
-
-
 
 	template<typename Type, std::size_t... sizes>
 	auto concat(const std::array<Type, sizes>&... arrays)
@@ -646,6 +653,21 @@ export namespace deckard
 		std::array<T, RSize> result{};
 		std::ranges::copy_n(container.rbegin(), RSize, result.rbegin());
 		return result;
+	}
+
+	// count_digits
+	template<arithmetic T>
+	size_t count_digits(T v)
+	{
+		return static_cast<size_t>(std::log10(v) + 1);
+	}
+
+	// split integer
+	template<std::unsigned_integral T>
+	auto split(T v) -> std::pair<T, T>
+	{
+		auto divisor = std::pow(10, count_digits(v) / 2);
+		return {v / divisor, v % divisor};
 	}
 
 	// Prettys

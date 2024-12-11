@@ -266,7 +266,12 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE("-100" == *a);
 	}
 
-	SECTION("concat/integer") { REQUIRE(1080 == concat(10, 80)); }
+	SECTION("concat/integer") 
+	{
+		REQUIRE(1080 == concat(10, 80));
+
+		REQUIRE(1234 == concat(1, 2, 3, 4));
+	}
 
 	SECTION("concat/vector")
 	{
