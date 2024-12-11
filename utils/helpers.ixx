@@ -326,6 +326,32 @@ export namespace deckard
 		return as<T>(concat(as<u64>(x), as<u64>(y)));
 	}
 
+	// concat/vector
+	template<std::ranges::input_range... Rs>
+	auto concat(const Rs... rs)
+	{
+
+		using TYPE = std::common_type_t<std::decay_t<Rs>...>;
+		TYPE ret{};
+		ret.reserve((rs.size() + ...));
+
+		(std::ranges::copy(rs.begin(), rs.end(), std::back_inserter(ret)), ...);
+		return ret;
+	}
+
+
+
+	template<typename Type, std::size_t... sizes>
+	auto concat(const std::array<Type, sizes>&... arrays)
+	{
+		std::array<Type, (sizes + ...)> result;
+		std::size_t                     index{};
+
+		((std::copy_n(arrays.begin(), sizes, result.begin() + index), index += sizes), ...);
+
+		return result;
+	}
+
 	// kcombo
 	template<std::ranges::input_range O, std::ranges::input_range T, std::ranges::input_range R>
 	void kcombo_util(const O& r, i32 start, i32 count, i32 subindex, T& current, R& ret)
@@ -372,8 +398,6 @@ export namespace deckard
 
 		return ret;
 	}
-
-
 
 	// isrange
 	template<typename T>
@@ -569,7 +593,7 @@ export namespace deckard
 
 	// tail, from index
 	template<ContainerResize T>
-	auto tail(const T& container, size_t count=1)
+	auto tail(const T& container, size_t count = 1)
 	{
 		if (count > container.size() or count - container.size() == 0)
 		{
@@ -584,8 +608,6 @@ export namespace deckard
 		std::ranges::copy_n(container.begin() + count, result.size(), result.begin());
 		return result;
 	}
-
-
 
 	// tail-array
 	template<size_t I, typename T, size_t S>
@@ -670,7 +692,7 @@ export namespace deckard
 				ret += std::format("{}{} {}", (ret.empty() ? "" : ", "), count, unitstr);
 		};
 
-		add_unit(1'024 * 1_TiB, "PiB");
+		add_unit(1024 * 1_TiB, "PiB");
 		add_unit(1_TiB, "TiB");
 		add_unit(1_GiB, "GiB");
 		add_unit(1_MiB, "MiB");

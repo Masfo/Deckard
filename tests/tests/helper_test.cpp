@@ -266,10 +266,28 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE("-100" == *a);
 	}
 
-	SECTION("concat/integer")
+	SECTION("concat/integer") { REQUIRE(1080 == concat(10, 80)); }
+
+	SECTION("concat/vector")
 	{
-		//
-		REQUIRE(1080 == concat(10, 80));
+		auto v1 = make_vector(1, 2);
+		auto v2 = make_vector(3, 4);
+		auto v3 = make_vector(5, 6);
+		auto v4 = concat(v1, v2, v3);
+
+		REQUIRE(v4.size() == 6);
+		REQUIRE(v4 == make_vector(1, 2, 3, 4, 5, 6));
+	}
+
+	SECTION("concat/array")
+	{
+		auto v1 = make_array(1, 2);
+		auto v2 = make_array(3, 4);
+		auto v3 = make_array(5, 6);
+		auto v4 = concat(v1, v2, v3);
+
+		REQUIRE(v4.size() == 6);
+		REQUIRE(v4 == make_array(1, 2, 3, 4, 5, 6));
 	}
 
 	SECTION("kcombo/dynamic")
@@ -284,11 +302,10 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(dyna[4] == make_vector('B', 'D'));
 		REQUIRE(dyna[5] == make_vector('C', 'D'));
 
-		for (const auto& [i,v] : std::views::enumerate(kcombo("ABCD"sv, 2)))
+		for (const auto& [i, v] : std::views::enumerate(kcombo("ABCD"sv, 2)))
 		{
 			REQUIRE(v == dyna[i]);
 		}
-
 
 
 		const auto dyna3 = kcombo("ABCD"sv, 3);
@@ -312,7 +329,7 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(dyna[5] == make_array('C', 'D'));
 
 		i32 i = 0;
-		for (const auto [a,b] : kcombo<2>("ABCD"sv))
+		for (const auto [a, b] : kcombo<2>("ABCD"sv))
 		{
 			REQUIRE(make_array(a, b) == dyna[i++]);
 		}
@@ -366,7 +383,7 @@ TEST_CASE("helpers", "[helpers]")
 	}
 
 	SECTION("to_number")
-	{ 
+	{
 		REQUIRE(123 == to_number("123"));
 		REQUIRE(0 == to_number("xyz"));
 	}

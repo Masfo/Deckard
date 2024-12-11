@@ -733,6 +733,16 @@ int deckard_main()
 	dbg::println("insert big buffer 2: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
 
+	auto v1 = make_vector(1, 2, 3);
+	auto v2 = make_vector(4, 5, 6);
+
+	auto v3 = concat(v1, v2);
+
+	auto v4 = make_array(1, 2, 3);
+	auto v5 = make_array(4, 5, 6);
+	auto v6 = concat(v4,v5);
+
+
 	int kxko = 0;
 
 	// ########################################################################
