@@ -674,7 +674,7 @@ export namespace deckard
 		}
 
 		template<arithmetic T>
-		friend decltype(auto) operator|(T&& v, even_fn fun)
+		friend auto operator|(T&& v, even_fn fun)
 		{
 			return fun(std::forward<T>(v));
 		}
@@ -692,7 +692,7 @@ export namespace deckard
 		}
 
 		template<arithmetic T>
-		friend decltype(auto) operator|(T&& v, odd_fn fun)
+		friend auto operator|(T&& v, odd_fn fun)
 		{
 			return fun(std::forward<T>(v));
 		}
