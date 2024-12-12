@@ -655,25 +655,48 @@ export namespace deckard
 		return result;
 	}
 
-	// count_digits
 	template<arithmetic T>
+	constexpr T pow10(T n)
+	{
+		T result = 1;
+		for (size_t i = 1; i <= n; ++i)
+			result *= 10;
+		return result;
+	}
+
+	// count_digits, only positives, takes abs
+	template<std::unsigned_integral T>
 	size_t count_digits(T v)
 	{
+		if (v == 0)
+			return 1;
 		return static_cast<size_t>(std::log10(v) + 1);
 	}
 
-	// split integer
-	template<std::unsigned_integral T>
-	auto split(T v) -> std::pair<T, T>
+		template<std::signed_integral T>
+	size_t count_digits(T v)
 	{
-		auto divisor = std::pow(10, count_digits(v) / 2);
-		return {v / divisor, v % divisor};
+			return count_digits(as<u64>(v < 0 ? -v : v));
 	}
 
-	template<std::integral T>
-	auto split(T v) -> std::pair<T, T>
+
+
+	template<std::unsigned_integral T, std::unsigned_integral R = u64>
+	auto split_digit(T v) -> std::pair<R, R>
 	{
-		return split(std::abs(v));
+		assert::check(v >= 10, "Cannot split single digit");
+
+		auto divisor = as<size_t>(pow10(count_digits(v) / 2));
+		R    r1      = v / divisor;
+		R    r2      = v - r1 * divisor;
+		return std::make_pair(r1, r2);
+	}
+
+	template<std::signed_integral T, std::unsigned_integral R = u64>
+	auto split_digit(T v) -> std::pair<R, R>
+	{
+		size_t nv = as<size_t>(std::abs(v));
+		return split_digit<R>(nv);
 	}
 
 	// Prettys

@@ -273,6 +273,23 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(1234 == concat(1, 2, 3, 4));
 	}
 
+	SECTION("count digits") 
+	{ 
+		REQUIRE(1 == count_digits(0));
+
+		REQUIRE(2 == count_digits(10));
+		REQUIRE(20 == count_digits(0xFFFF'FFFF'FFFF'FFFF));
+
+		REQUIRE(4 == count_digits(-2024));
+
+	}
+
+	SECTION("split digit")
+	{ 
+		REQUIRE(split_digit<int>(1080) == std::make_pair(10, 80));
+		REQUIRE(split_digit(2048) == std::pair<u64,u64>{20, 48});
+	}
+
 	SECTION("concat/vector")
 	{
 		auto v1 = make_vector(1, 2);
