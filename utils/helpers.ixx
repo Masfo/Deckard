@@ -665,17 +665,41 @@ export namespace deckard
 	}
 
 	// odd
-	template<arithmetic T>
-	constexpr bool is_odd(T v)
+	struct even_fn
 	{
-		return (v & 1) != 0;
-	}
+		template<arithmetic T>
+		auto operator()(T&& v) const -> bool
+		{
+			return (v & 1) == 0;
+		}
 
-	template<arithmetic T>
-	constexpr bool is_even(T v)
+		template<arithmetic T>
+		friend decltype(auto) operator|(T&& v, even_fn fun)
+		{
+			return fun(std::forward<T>(v));
+		}
+	};
+
+	constexpr even_fn is_even;
+
+
+	struct odd_fn
 	{
-		return not is_odd(v);
-	}
+		template<arithmetic T>
+		auto operator()(T&& v) const -> bool
+		{
+			return (v & 1) != 0;
+		}
+
+		template<arithmetic T>
+		friend decltype(auto) operator|(T&& v, odd_fn fun)
+		{
+			return fun(std::forward<T>(v));
+		}
+	};
+
+	constexpr odd_fn is_odd;
+
 
 	// count_digits, only positives, takes abs
 	template<std::unsigned_integral T>

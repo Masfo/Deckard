@@ -297,6 +297,10 @@ TEST_CASE("helpers", "[helpers]")
 
 		REQUIRE(is_odd(-2) == false);
 		REQUIRE(is_even(-2) == true);
+
+		REQUIRE(true == (5 | is_odd));
+		REQUIRE(true == (4 | is_even));
+
 	}
 
 	SECTION("split digit")
