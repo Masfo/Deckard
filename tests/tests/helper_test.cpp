@@ -284,10 +284,37 @@ TEST_CASE("helpers", "[helpers]")
 
 	}
 
+	SECTION("even/odd") 
+	{ 
+		REQUIRE(is_even(0) != is_odd(0));
+
+		REQUIRE(is_odd(1) == true);
+		REQUIRE(is_odd(2) == false);
+
+		REQUIRE(is_even(1) == false);
+		REQUIRE(is_even(2) == true);
+
+
+		REQUIRE(is_odd(-2) == false);
+		REQUIRE(is_even(-2) == true);
+	}
+
 	SECTION("split digit")
 	{ 
-		REQUIRE(split_digit<int>(1080) == std::make_pair(10, 80));
+		REQUIRE(split_digit(1080) == std::make_pair(10, 80));
+		REQUIRE(split_digit(-1080) == std::make_pair(-10, 80));
+
+		REQUIRE(split_digit(12) == std::make_pair(1, 2));
+		REQUIRE(split_digit(-12) == std::make_pair(-1, 2));
+
+
+
 		REQUIRE(split_digit(2048) == std::pair<u64,u64>{20, 48});
+
+		REQUIRE(split_digit(123'456_u64) == std::make_pair(123, 456));
+		REQUIRE(split_digit(9876543) == std::make_pair(9876, 543));
+
+
 	}
 
 	SECTION("concat/vector")

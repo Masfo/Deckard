@@ -69,9 +69,6 @@ export module std;
 #include <fstream>
 #include <functional>
 #include <future>
-#if _HAS_CXX23
-#include <generator>
-#endif // _HAS_CXX23
 #include <initializer_list>
 #include <iomanip>
 #include <ios>

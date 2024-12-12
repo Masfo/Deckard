@@ -664,40 +664,48 @@ export namespace deckard
 		return result;
 	}
 
+	// odd
+	template<arithmetic T>
+	constexpr bool is_odd(T v)
+	{
+		return (v & 1) != 0;
+	}
+
+	template<arithmetic T>
+	constexpr bool is_even(T v)
+	{
+		return not is_odd(v);
+	}
+
 	// count_digits, only positives, takes abs
 	template<std::unsigned_integral T>
-	size_t count_digits(T v)
+	constexpr size_t count_digits(T v)
 	{
 		if (v == 0)
 			return 1;
 		return static_cast<size_t>(std::log10(v) + 1);
 	}
 
-		template<std::signed_integral T>
-	size_t count_digits(T v)
+	template<std::signed_integral T>
+	constexpr size_t count_digits(T v)
 	{
-			return count_digits(as<u64>(v < 0 ? -v : v));
+		return count_digits(as<u64>(v < 0 ? -v : v));
+	}
+
+	template<std::integral T>
+	constexpr auto split_digit(T v) -> std::pair<T, T>
+	{
+		const u32 digit_count = count_digits(v);
+		assert::check(digit_count > 1, "Cannot split single digit");
+
+		auto divisor = as<T>(pow10(digit_count / 2));
+
+		T    r1      = static_cast<T>(v / divisor);
+		T    r2      = static_cast<T>(v - r1 * divisor);
+		return std::make_pair(r1, r2<0?-r2:r2);
 	}
 
 
-
-	template<std::unsigned_integral T, std::unsigned_integral R = u64>
-	auto split_digit(T v) -> std::pair<R, R>
-	{
-		assert::check(v >= 10, "Cannot split single digit");
-
-		auto divisor = as<size_t>(pow10(count_digits(v) / 2));
-		R    r1      = v / divisor;
-		R    r2      = v - r1 * divisor;
-		return std::make_pair(r1, r2);
-	}
-
-	template<std::signed_integral T, std::unsigned_integral R = u64>
-	auto split_digit(T v) -> std::pair<R, R>
-	{
-		size_t nv = as<size_t>(std::abs(v));
-		return split_digit<R>(nv);
-	}
 
 	// Prettys
 	std::string human_readable_bytes(u64 bytes)
