@@ -155,6 +155,44 @@ export namespace deckard::math
 
 export namespace deckard::math
 {
+	i32 sqrt(i32 v)
+	{
+		u32 b = 1 << 30, q = 0, r = v;
+		while (b > r)
+			b >>= 2;
+		while (b > 0)
+		{
+			u32 t = q + b;
+			q >>= 1;
+			if (r >= t)
+			{
+				r -= t;
+				q += b;
+			}
+			b >>= 2;
+		}
+		return q;
+	}
+
+	i64 sqrt(i64 v)
+	{
+		u64 b = ((u64)1) << 62, q = 0, r = v;
+		while (b > r)
+			b >>= 2;
+		while (b > 0)
+		{
+			u64 t = q + b;
+			q >>= 1;
+			if (r >= t)
+			{
+				r -= t;
+				q += b;
+			}
+			b >>= 2;
+		}
+		return q;
+	}
+
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)
 	{

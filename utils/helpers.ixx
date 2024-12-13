@@ -287,6 +287,16 @@ export namespace deckard
 			return vlcm(vlcm(a, b), args...);
 	}
 
+	// vgcd
+	template<class A, class... Args>
+	constexpr A vgcd(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return std::gcd(a, b);
+		else
+			return vgcd(vgcd(a, b), args...);
+	}
+
 	// vpush
 	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
 
@@ -682,7 +692,6 @@ export namespace deckard
 
 	constexpr even_fn is_even;
 
-
 	struct odd_fn
 	{
 		template<arithmetic T>
@@ -699,7 +708,6 @@ export namespace deckard
 	};
 
 	constexpr odd_fn is_odd;
-
 
 	// count_digits, only positives, takes abs
 	template<std::unsigned_integral T>
@@ -724,12 +732,10 @@ export namespace deckard
 
 		auto divisor = as<T>(pow10(digit_count / 2));
 
-		T    r1      = static_cast<T>(v / divisor);
-		T    r2      = static_cast<T>(v - r1 * divisor);
-		return std::make_pair(r1, r2<0?-r2:r2);
+		T r1 = static_cast<T>(v / divisor);
+		T r2 = static_cast<T>(v - r1 * divisor);
+		return std::make_pair(r1, r2 < 0 ? -r2 : r2);
 	}
-
-
 
 	// Prettys
 	std::string human_readable_bytes(u64 bytes)
