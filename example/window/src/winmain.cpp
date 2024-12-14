@@ -778,6 +778,10 @@ int deckard_main()
 	u32 index = 0;
 
 
+	for (auto i : range(10, 15))
+	{
+	}
+
 
 	auto [bytes, codepoint] = decode_codepoint({(u8*)u8str_d.data(), u8str_d.size()}, index);
 
