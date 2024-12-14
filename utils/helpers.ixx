@@ -267,6 +267,17 @@ export namespace deckard
 			return sum(sum(a, b), args...);
 	}
 
+	
+	// subtract
+	template<class A, class... Args>
+	constexpr A subtract(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return a - b;
+		else
+			return subtract(subtract(a, b), args...);
+	}
+
 	// product
 	template<class A, class... Args>
 	constexpr A product(A a, A b, Args... args)
@@ -278,44 +289,45 @@ export namespace deckard
 	}
 
 
+
 	// min
-	template<class A, class... Args>
-	constexpr A min(A a, A b, Args... args)
+	template<std::integral A, std::integral... Args>
+	constexpr A vmin(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::min(a, b);
 		else
-			return min(min(a, b), args...);
+			return vmin(vmin(a, b), args...);
 	}
 
 	// max
-	template<class A, class... Args>
-	constexpr A max(A a, A b, Args... args)
+	template<std::integral A, std::integral... Args>
+	constexpr A vmax(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::max(a, b);
 		else
-			return max(max(a, b), args...);
+			return vmax(vmax(a, b), args...);
 	}
 
 	// lcm
-	template<class A, class... Args>
-	constexpr A lcm(A a, A b, Args... args)
+	template<std::integral A, std::integral... Args>
+	constexpr A vlcm(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::lcm(a, b);
 		else
-			return lcm(lcm(a, b), args...);
+			return vlcm(vlcm(a, b), args...);
 	}
 
 	// gcd
-	template<class A, class... Args>
-	constexpr A gcd(A a, A b, Args... args)
+	template<std::integral A, std::integral... Args>
+	constexpr A vgcd(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::gcd(a, b);
 		else
-			return gcd(gcd(a, b), args...);
+			return vgcd(vgcd(a, b), args...);
 	}
 
 	// push
