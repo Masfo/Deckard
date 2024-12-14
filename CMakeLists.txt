@@ -62,7 +62,7 @@ if(MSVC)
 
     #set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-    set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    #set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
     # Enable Hot Reload for MSVC compilers if supported.
 

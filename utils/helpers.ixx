@@ -257,53 +257,73 @@ export namespace deckard
 		return {static_cast<T>(args)...};
 	}
 
-	// vmin
+	// sum
 	template<class A, class... Args>
-	constexpr A vmin(A a, A b, Args... args)
+	constexpr A sum(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return a + b;
+		else
+			return sum(sum(a, b), args...);
+	}
+
+	// product
+	template<class A, class... Args>
+	constexpr A product(A a, A b, Args... args)
+	{
+		if constexpr (sizeof...(args) == 0)
+			return a * b;
+		else
+			return product(product(a, b), args...);
+	}
+
+
+	// min
+	template<class A, class... Args>
+	constexpr A min(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::min(a, b);
 		else
-			return vmin(vmin(a, b), args...);
+			return min(min(a, b), args...);
 	}
 
-	// vmax
+	// max
 	template<class A, class... Args>
-	constexpr A vmax(A a, A b, Args... args)
+	constexpr A max(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::max(a, b);
 		else
-			return vmax(vmax(a, b), args...);
+			return max(max(a, b), args...);
 	}
 
-	// vlcm
+	// lcm
 	template<class A, class... Args>
-	constexpr A vlcm(A a, A b, Args... args)
+	constexpr A lcm(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::lcm(a, b);
 		else
-			return vlcm(vlcm(a, b), args...);
+			return lcm(lcm(a, b), args...);
 	}
 
-	// vgcd
+	// gcd
 	template<class A, class... Args>
-	constexpr A vgcd(A a, A b, Args... args)
+	constexpr A gcd(A a, A b, Args... args)
 	{
 		if constexpr (sizeof...(args) == 0)
 			return std::gcd(a, b);
 		else
-			return vgcd(vgcd(a, b), args...);
+			return gcd(gcd(a, b), args...);
 	}
 
-	// vpush
-	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
+	// push
+	auto push = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
 
 	// vsort
-
 	template<sortable... Ts>
-	void vsort(Ts&... vs)
+	void sort(Ts&... vs)
 	{
 		(std::ranges::sort(vs), ...);
 	}
