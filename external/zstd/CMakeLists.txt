@@ -68,8 +68,8 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
         compress/zstd_ldm_geartab.h
         compress/zstd_opt.c
         compress/zstd_opt.h
-        #compress/zstd_preSplit.c
-        #compress/zstd_preSplit.h
+        #compress/zstd_preSplit.c               # Dev branch > 1.5.6
+        #compress/zstd_preSplit.h               # Dev branch > 1.5.6
         compress/zstdmt_compress.c
         compress/zstdmt_compress.h
 
@@ -127,7 +127,7 @@ add_library(ZSTD STATIC
         compress/zstd_lazy.c
         compress/zstd_ldm.c
         compress/zstd_opt.c
-        #compress/zstd_preSplit.c
+        #compress/zstd_preSplit.c           # Dev branch > 1.5.6
         compress/zstdmt_compress.c
 
         decompress/huf_decompress.c
