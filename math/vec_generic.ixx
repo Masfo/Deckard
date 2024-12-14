@@ -308,6 +308,22 @@ namespace deckard::math
 			return result;
 		}
 
+		// mod
+		constexpr void operator%=(const vec_type& other)
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				m_data[i] = mod(m_data[i], other[i]);
+			}
+		}
+
+		constexpr vec_type operator%(const vec_type& other) const
+		{
+			vec_type result = *this;
+			result %= other;
+			return result;
+		}
+
 		// unary
 		constexpr vec_type& operator-()
 		{
