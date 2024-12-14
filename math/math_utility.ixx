@@ -155,6 +155,33 @@ export namespace deckard::math
 
 export namespace deckard::math
 {
+	template<arithmetic T>
+	auto egcd(T a, T b) -> std::tuple<T, T, T>
+	{
+		T x1 = 1, y1 = 0, x2 = 0, y2 = 1;
+		T temp{};
+
+		while (b != 0)
+		{
+			T q = a / b;
+			T r = a % b;
+
+			temp = x1;
+			x1   = x2;
+			x2   = temp - q * x2;
+
+			temp = y1;
+			y1   = y2;
+			y2   = temp - q * y2;
+
+			a = b;
+			b = r;
+		}
+
+
+		return {a, x1, y1};
+	}
+
 	i32 sqrt(i32 v)
 	{
 		u32 b = 1 << 30, q = 0, r = v;
