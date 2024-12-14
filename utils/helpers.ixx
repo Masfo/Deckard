@@ -323,7 +323,7 @@ export namespace deckard
 
 	// vsort
 	template<sortable... Ts>
-	void sort(Ts&... vs)
+	void vsort(Ts&... vs)
 	{
 		(std::ranges::sort(vs), ...);
 	}
