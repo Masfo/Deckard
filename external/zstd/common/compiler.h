@@ -27,7 +27,7 @@
 #  define INLINE_KEYWORD
 #endif
 
-#if defined(__GNUC__) || defined(__IAR_SYSTEMS_ICC__)
+#if defined(__GNUC__) || defined(__ICCARM__)
 #  define FORCE_INLINE_ATTR __attribute__((always_inline))
 #elif defined(_MSC_VER)
 #  define FORCE_INLINE_ATTR __forceinline
@@ -54,7 +54,7 @@
 #endif
 
 /* UNUSED_ATTR tells the compiler it is okay if the function is unused. */
-#if defined(__GNUC__) || defined(__IAR_SYSTEMS_ICC__)
+#if defined(__GNUC__)
 #  define UNUSED_ATTR __attribute__((unused))
 #else
 #  define UNUSED_ATTR
@@ -95,8 +95,6 @@
 #ifndef MEM_STATIC  /* already defined in Linux Kernel mem.h */
 #if defined(__GNUC__)
 #  define MEM_STATIC static __inline UNUSED_ATTR
-#elif defined(__IAR_SYSTEMS_ICC__)
-#  define MEM_STATIC static inline UNUSED_ATTR
 #elif defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #  define MEM_STATIC static inline
 #elif defined(_MSC_VER)
@@ -110,7 +108,7 @@
 #ifdef _MSC_VER
 #  define FORCE_NOINLINE static __declspec(noinline)
 #else
-#  if defined(__GNUC__) || defined(__IAR_SYSTEMS_ICC__)
+#  if defined(__GNUC__) || defined(__ICCARM__)
 #    define FORCE_NOINLINE static __attribute__((__noinline__))
 #  else
 #    define FORCE_NOINLINE static
@@ -119,7 +117,7 @@
 
 
 /* target attribute */
-#if defined(__GNUC__) || defined(__IAR_SYSTEMS_ICC__)
+#if defined(__GNUC__) || defined(__ICCARM__)
 #  define TARGET_ATTRIBUTE(target) __attribute__((__target__(target)))
 #else
 #  define TARGET_ATTRIBUTE(target)
@@ -278,12 +276,6 @@
 *  Alignment check
 *****************************************************************/
 
-/* @return 1 if @u is a 2^n value, 0 otherwise
- * useful to check a value is valid for alignment restrictions */
-MEM_STATIC int ZSTD_isPower2(size_t u) {
-    return (u & (u-1)) == 0;
-}
-
 /* this test was initially positioned in mem.h,
  * but this file is removed (or replaced) for linux kernel
  * so it's now hosted in compiler.h,
@@ -332,7 +324,7 @@ MEM_STATIC int ZSTD_isPower2(size_t u) {
 #endif
 
 /**
- * Helper function to perform a wrapped pointer difference without triggering
+ * Helper function to perform a wrapped pointer difference without trigging
  * UBSAN.
  *
  * @returns lhs - rhs with wrapping
