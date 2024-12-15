@@ -315,6 +315,8 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(split_digit(2048) == std::pair<u64,u64>{20, 48});
 
 		REQUIRE(split_digit(123'456_u64) == std::make_pair(123, 456));
+		REQUIRE(split_digit(123'456_i64) == std::make_pair(123, 456));
+
 		REQUIRE(split_digit(9876543) == std::make_pair(9876, 543));
 
 

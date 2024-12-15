@@ -756,7 +756,7 @@ export namespace deckard
 		return count_digits(as<u64>(v < 0 ? -v : v));
 	}
 
-	template<std::integral T>
+	template<arithmetic T>
 	constexpr auto split_digit(T v) -> std::pair<T, T>
 	{
 		const u32 digit_count = count_digits(v);
