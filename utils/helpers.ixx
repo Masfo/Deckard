@@ -331,7 +331,7 @@ export namespace deckard
 	}
 
 	// push
-	auto push = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
+	auto vpush = [](auto& vec, auto&&... items) { (vec.push_back(std::forward<decltype(items)>(items)), ...); };
 
 	// vsort
 	template<sortable... Ts>
