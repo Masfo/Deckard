@@ -21,8 +21,6 @@ namespace deckard::math
 
 		constexpr vec_n() = default;
 
-		constexpr vec_n(T scalar) { m_data.fill(scalar); }
-
 		constexpr vec_n(T x, T y)
 		requires(N >= 2)
 		{
@@ -45,6 +43,14 @@ namespace deckard::math
 			m_data[1] = y;
 			m_data[2] = z;
 			m_data[3] = w;
+		}
+
+		template<typename U, typename S>
+		constexpr vec_n(const vec_n<U, 2>& v)
+		requires(N == 2)
+		{
+			m_data[0] = v[0];
+			m_data[1] = v[1];
 		}
 
 		template<typename U, typename S>
@@ -779,7 +785,6 @@ namespace std
 {
 	using namespace deckard::math;
 
-	
 	template<arithmetic T>
 	struct hash<vec_n<T, 2>>
 	{
@@ -797,7 +802,6 @@ namespace std
 	{
 		size_t operator()(const vec_n<T, 4>& value) const { return deckard::utils::hash_values(value[0], value[1], value[2], value[3]); }
 	};
-
 
 	template<arithmetic T, size_t N>
 	struct hash<vec_n<T, N>>
