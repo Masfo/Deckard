@@ -119,6 +119,27 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(false == match("?X*world", "XYworld"));
 	}
 
+	SECTION("ints/static")
+	{
+		auto [p1, p2, p3, p4] = ints<4>("p=12,34 v=45,56");
+
+		REQUIRE(p1 == 12);
+		REQUIRE(p2 == 34);
+		REQUIRE(p3 == 45);
+		REQUIRE(p4 == 56);
+	}
+
+	SECTION("ints/dynamic")
+	{
+		auto ps = ints("0: p=12,34 v=45,56");
+		REQUIRE(ps.size() == 5);
+		REQUIRE(ps[0] == 0);
+		REQUIRE(ps[1] == 12);
+		REQUIRE(ps[2] == 34);
+		REQUIRE(ps[3] == 45);
+		REQUIRE(ps[4] == 56);
+	}
+
 
 	SECTION("try_index_of")
 	{
@@ -244,11 +265,20 @@ TEST_CASE("helpers", "[helpers]")
 	{
 		std::string input("+ABC x 123 y DEF-");
 
-		using enum string::strip_option;
+		using enum string::option;
 		input = strip(input, w | u | d);
 		REQUIRE(input == "+xy-");
 
 		REQUIRE("123" == strip("123abcABC\t#", a | w | s));
+	}
+
+	SECTION("include only")
+	{
+		std::string input("ABC123DEF");
+
+		using enum string::option;
+		input = include_only(input, d);
+		REQUIRE(input == "123");
 	}
 
 	SECTION("try_to_string")
@@ -266,26 +296,25 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE("-100" == *a);
 	}
 
-	SECTION("concat/integer") 
+	SECTION("concat/integer")
 	{
 		REQUIRE(1080 == concat(10, 80));
 
 		REQUIRE(1234 == concat(1, 2, 3, 4));
 	}
 
-	SECTION("count digits") 
-	{ 
+	SECTION("count digits")
+	{
 		REQUIRE(1 == count_digits(0));
 
 		REQUIRE(2 == count_digits(10));
 		REQUIRE(20 == count_digits(0xFFFF'FFFF'FFFF'FFFF));
 
 		REQUIRE(4 == count_digits(-2024));
-
 	}
 
-	SECTION("even/odd") 
-	{ 
+	SECTION("even/odd")
+	{
 		REQUIRE(is_even(0) != is_odd(0));
 
 		REQUIRE(is_odd(1) == true);
@@ -300,11 +329,10 @@ TEST_CASE("helpers", "[helpers]")
 
 		REQUIRE(true == (5 | is_odd));
 		REQUIRE(true == (4 | is_even));
-
 	}
 
 	SECTION("split digit")
-	{ 
+	{
 		REQUIRE(split_digit(1080) == std::make_pair(10, 80));
 		REQUIRE(split_digit(-1080) == std::make_pair(-10, 80));
 
@@ -312,14 +340,12 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(split_digit(-12) == std::make_pair(-1, 2));
 
 
-		REQUIRE(split_digit(2048) == std::pair<u64,u64>{20, 48});
+		REQUIRE(split_digit(2048) == std::pair<u64, u64>{20, 48});
 
 		REQUIRE(split_digit(123'456_u64) == std::make_pair(123, 456));
 		REQUIRE(split_digit(123'456_i64) == std::make_pair(123, 456));
 
-		REQUIRE(split_digit(9876543) == std::make_pair(9876, 543));
-
-
+		REQUIRE(split_digit(9'876'543) == std::make_pair(9876, 543));
 	}
 
 	SECTION("concat/vector")

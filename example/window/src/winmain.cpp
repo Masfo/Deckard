@@ -555,12 +555,17 @@ int deckard_main()
 
 	// ###################
 
+
+
+
 	auto fdsc = make_array<f32>(1, 2, 3, 4);
 
 
-	using enum string::strip_option;
-	string::strip_option op{};
+	using enum string::option;
+	string::option op{};
 	auto                 i22 = strip("ako", op);
+
+	auto io = include_only(string::replace("p=12,36 v=45,99", ",", " "), w|d);
 
 
 	auto        vkox = varsum<i32, std::string>(1, "555");

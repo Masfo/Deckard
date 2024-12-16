@@ -379,4 +379,71 @@ export namespace deckard::string
 	}
 
 
+	// ints
+	template<size_t N, arithmetic T = i64>
+	constexpr auto ints(std::string_view str) -> std::array<i64, N>
+	{
+		std::array<T, N> ret{};
+
+		i64    acc   = 0;
+		bool   added = false;
+		size_t index = 0;
+		for (const auto& c : str)
+		{
+			if (index >= N)
+				break;
+
+			if (in_range(0, 9, c - '0'))
+			{
+				acc *= 10;
+				acc += c - '0';
+				added = true;
+				continue;
+			}
+
+			if (added)
+			{
+				ret[index++] = acc;
+				acc          = 0;
+				added        = false;
+			}
+		}
+
+		if (added and index < N)
+			ret[index++] = acc;
+
+		return ret;
+	}
+
+	template<arithmetic T = i64>
+	constexpr auto ints(std::string_view str) -> std::vector<T>
+	{
+		std::vector<T> ret{};
+
+		i64  acc   = 0;
+		bool added = false;
+		for (const auto& c : str)
+		{
+			if (in_range(0, 9, c - '0'))
+			{
+				acc *= 10;
+				acc += c - '0';
+				added = true;
+				continue;
+			}
+
+			if (added)
+			{
+				ret.emplace_back(acc);
+				acc   = 0;
+				added = false;
+			}
+		}
+
+		if (added)
+			ret.emplace_back(acc);
+
+		return ret;
+	}
+
 } // namespace deckard::string
