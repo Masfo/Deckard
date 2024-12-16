@@ -273,7 +273,6 @@ export namespace deckard
 			return sum(sum(a, b), args...);
 	}
 
-	
 	// subtract
 	template<class A, class... Args>
 	constexpr A subtract(A a, A b, Args... args)
@@ -293,8 +292,6 @@ export namespace deckard
 		else
 			return product(product(a, b), args...);
 	}
-
-
 
 	// min
 	template<std::integral A, std::integral... Args>
@@ -712,7 +709,7 @@ export namespace deckard
 		return result;
 	}
 
-	// odd
+	// even
 	struct even_fn
 	{
 		template<arithmetic T>
@@ -730,6 +727,7 @@ export namespace deckard
 
 	constexpr even_fn is_even;
 
+	// odd
 	struct odd_fn
 	{
 		template<arithmetic T>
@@ -772,7 +770,11 @@ export namespace deckard
 
 		T r1 = static_cast<T>(v / divisor);
 		T r2 = static_cast<T>(v - r1 * divisor);
-		return std::make_pair(r1, r2 < 0 ? -r2 : r2);
+		if constexpr(std::is_unsigned_v<T>)
+			return std::make_pair(r1, r2);
+		else
+			return std::make_pair(r1, r2<0?-r2:r2);
+
 	}
 
 	// Prettys
