@@ -30,7 +30,7 @@ export namespace deckard::string
 	static_assert(alphabet_string[51] == 'Z');
 
 
-	export enum class strip_option : u8 {
+	export enum class option : u8 {
 		digit      = BIT(0),
 		whitespace = BIT(1),
 		lowercase  = BIT(2),
@@ -43,6 +43,7 @@ export namespace deckard::string
 
 		alphabet = lowercase | uppercase,
 		alphanum = alphabet | digit,
+		all = whitespace | alphanum | special,
 
 		d  = digit,
 		w  = whitespace,
@@ -54,7 +55,7 @@ export namespace deckard::string
 
 	};
 
-	consteval void enable_bitmask_operations(strip_option);
+	consteval void enable_bitmask_operations(option);
 
 	template<typename T>
 	auto convert_to_type(std::string_view input, [[maybe_unused]] std::string_view delims = " ") -> T
@@ -127,32 +128,32 @@ export namespace deckard::string
 
 	// strip - option
 	// input = strip(input, w|u|d);
-	std::string strip(std::string_view str, strip_option option = strip_option::whitespace)
+	std::string strip(std::string_view str, option opt = option::whitespace)
 	{
-		using enum strip_option;
+		using enum option;
 		std::string ret{str};
 
 
-		if (std::to_underlying(option) == 0)
+		if (std::to_underlying(opt) == 0)
 			return ret;
 
 
-		if (option && whitespace)
+		if (opt && whitespace)
 		{
 			ret = strip(ret, '\t', '\r');
 			ret = strip(ret, ' ');
 		}
 
-		if (option && digit)
+		if (opt && digit)
 			ret = strip(ret, '0', '9');
 
-		if (option && lowercase)
+		if (opt && lowercase)
 			ret = strip(ret, 'a', 'z');
 
-		if (option && uppercase)
+		if (opt && uppercase)
 			ret = strip(ret, 'A', 'Z');
 
-		if (option && special)
+		if (opt && special)
 		{
 			ret = strip(ret, '!', '/');
 			ret = strip(ret, ':', '@');
@@ -162,6 +163,58 @@ export namespace deckard::string
 
 		return ret;
 	}
+
+		// include_only
+	std::string include_only(std::string_view input, option opt = option::all, std::string_view extra = "") 
+	{
+		using enum option;
+
+		std::string ret;
+		ret.reserve(input.size());
+		for (const char& c : input)
+		{
+			if (opt && whitespace)
+			{
+				if(in_range( '\t', '\r', c) or c == ' ')
+					ret += c;
+			}
+
+			if (opt && digit)
+			{
+				if(in_range('0','9', c))
+				ret+=c;
+			}
+
+			if (opt && lowercase)
+			{
+				if (in_range('a', 'a', c))
+					ret += c;
+			}
+
+			if (opt && uppercase)
+			{
+				if (in_range('A', 'Z', c))
+					ret += c;
+			}
+
+			if (opt && special)
+			{
+				if (in_range('!', '/', c))
+					ret += c;
+				if (in_range(':', '@', c))
+					ret += c;
+				if (in_range('[', '`', c))
+					ret += c;
+				if (in_range('{', '~', c))
+					ret += c;
+			}
+
+			if (extra.contains(c))
+				ret += c;
+		}
+		return ret;
+	}
+
 
 	// replace
 	std::string replace(std::string_view subject, const std::string_view search, std::string_view replace)
