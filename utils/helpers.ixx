@@ -74,6 +74,12 @@ export namespace deckard
 		return ((1 << size) - 1) << offset;
 	}
 
+	template<typename T>
+	constexpr bool in_range(T a, T b, T c)
+	{
+		return c >= a and c <= b;
+	}
+
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
 	auto clock_now() { return std::chrono::steady_clock::now(); }
