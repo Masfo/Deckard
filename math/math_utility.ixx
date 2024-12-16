@@ -58,10 +58,10 @@ export namespace deckard::math
 	}
 
 	// mod
-	template<std::integral T = i64>
-	T mod(T x, T N)
+	template<std::integral T, std::integral U>
+	T mod(T x, U N)
 	{
-		if (N == T{0})
+		if (N == U{0})
 			return 0;
 		return (x % N + N) % N;
 	}
