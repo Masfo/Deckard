@@ -91,7 +91,6 @@ namespace deckard
 
 		void reset() { fill({}); }
 
-
 		void clear() { m_data.clear(); }
 
 		u32 count(std::string_view input) const
@@ -136,10 +135,10 @@ namespace deckard
 
 
 			u32 maxunit{1};
-			for (i32 i : upto(digits(w) - 1))
+			for (i32 i : upto(count_digits(w) - 1))
 				maxunit *= 10;
 
-			i32 dwidth = digits(w);
+			i32 dwidth = count_digits(w);
 
 			for (int units = maxunit; units >= 1; units /= 10)
 			{
