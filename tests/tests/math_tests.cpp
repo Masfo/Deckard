@@ -4,6 +4,8 @@
 
 import std;
 import deckard.math;
+import deckard.helpers;
+using namespace deckard;
 
 using namespace deckard::math;
 using namespace Catch::Matchers;
@@ -62,10 +64,10 @@ TEST_CASE("math.utility", "[math]")
 
 	SECTION("digits") 
 	{
-		REQUIRE(1 == digits(0));
-		REQUIRE(1 == digits(1));
+		REQUIRE(1 == count_digits(0));
+		REQUIRE(1 == count_digits(1));
 
-		REQUIRE(3 == digits(999));
-		REQUIRE(6 == digits(999999));
+		REQUIRE(3 == count_digits(999));
+		REQUIRE(6 == count_digits(999999));
 	}
 }

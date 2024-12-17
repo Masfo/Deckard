@@ -58,7 +58,7 @@ export namespace deckard::math
 	}
 
 	// mod
-	template<std::integral T, std::integral U>
+	template<arithmetic T, arithmetic U>
 	T mod(T x, U N)
 	{
 		if (N == U{0})
@@ -66,15 +66,7 @@ export namespace deckard::math
 		return (x % N + N) % N;
 	}
 
-	// digits
-	template<std::integral T = i32>
-	T digits(T num)
-	{
-		if (num == 0)
-			return 1;
 
-		return as<T>(std::floor(std::log10(num)) + 1);
-	}
 
 	// is_close_enough
 	template<std::floating_point T>
