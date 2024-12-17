@@ -484,7 +484,7 @@ namespace deckard::math
 				U tmp = as<U>(std::abs(m_data[i] - other[i]));
 				result += tmp * tmp;
 			}
-			return sse_sqrt(result);
+			return std::sqrt(result);
 		}
 
 		// clamp
