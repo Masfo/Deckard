@@ -43,6 +43,10 @@ namespace deckard
 		{
 		}
 
+		T operator[](const ivec2 v) const { return at(v[0], v[1]); }
+
+		T& operator[](const ivec2 v) { return at(v[0], v[1]); }
+
 		T operator[](const u32 index) const { return m_data[index]; }
 
 		T& operator[](const u32 index) { return m_data[index]; }
@@ -52,6 +56,8 @@ namespace deckard
 		T& operator[](const u32 x, const u32 y) { return at(x, y); }
 
 		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
+
+		bool valid(const ivec2& v) const { return valid(v[0], v[1]); }
 
 		auto data() const { return m_data.data(); }
 
@@ -78,6 +84,8 @@ namespace deckard
 			const u32 index = index_from_2d(x, y, m_extent.width);
 			return m_data[index];
 		}
+
+		void set(const ivec2& v, const T& value) { set(v[0], v[1], value); }
 
 		void set(u32 x, u32 y, const T& value)
 		{
@@ -280,15 +288,14 @@ namespace deckard
 		u32 width() const { return m_extent.width; };
 
 		u32 height() const { return m_extent.height; };
-
-		template<typename T>
-		void dump(const array2d<T>& buffer)
+#if 0
+		void dump()
 		{
 #ifdef _DEBUG
 			constexpr u32 MIN_DUMPSIZE = 256;
 
-			u32 width  = std::min(buffer.width(), MIN_DUMPSIZE);
-			u32 height = std::min(buffer.height(), MIN_DUMPSIZE);
+			u32 width  = std::min(width(), MIN_DUMPSIZE);
+			u32 height = std::min(height(), MIN_DUMPSIZE);
 
 			int maxd = width;
 
@@ -330,6 +337,7 @@ namespace deckard
 			dbg::println();
 #endif
 		}
+#endif
 
 		operator hash_type() const noexcept { return hash(); }
 
