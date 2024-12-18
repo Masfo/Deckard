@@ -121,22 +121,26 @@ TEST_CASE("helpers", "[helpers]")
 
 	SECTION("ints/static")
 	{
-		auto [p1, p2, p3, p4] = ints<4>("p=12,34 v=45,56");
+		auto [p1, p2, p3, p4] = ints<4>("p=-12,34 v=45,56");
 
-		REQUIRE(p1 == 12);
+		REQUIRE(p1 == -12);
 		REQUIRE(p2 == 34);
 		REQUIRE(p3 == 45);
 		REQUIRE(p4 == 56);
+
+
+		auto t1 = ints<1>("hello 123");
+		REQUIRE(t1 == 123);
 	}
 
 	SECTION("ints/dynamic")
 	{
-		auto ps = ints("0: p=12,34 v=45,56");
+		auto ps = ints("0: p=12,34 v=-45,56");
 		REQUIRE(ps.size() == 5);
 		REQUIRE(ps[0] == 0);
 		REQUIRE(ps[1] == 12);
 		REQUIRE(ps[2] == 34);
-		REQUIRE(ps[3] == 45);
+		REQUIRE(ps[3] == -45);
 		REQUIRE(ps[4] == 56);
 	}
 

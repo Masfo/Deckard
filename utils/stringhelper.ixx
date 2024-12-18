@@ -6,6 +6,7 @@ import deckard.types;
 import deckard.enums;
 import deckard.debug;
 import deckard.math;
+import deckard.assert;
 
 export namespace deckard::string
 {
@@ -43,7 +44,7 @@ export namespace deckard::string
 
 		alphabet = lowercase | uppercase,
 		alphanum = alphabet | digit,
-		all = whitespace | alphanum | special,
+		all      = whitespace | alphanum | special,
 
 		d  = digit,
 		w  = whitespace,
@@ -164,8 +165,8 @@ export namespace deckard::string
 		return ret;
 	}
 
-		// include_only
-	std::string include_only(std::string_view input, option opt = option::all, std::string_view extra = "") 
+	// include_only
+	std::string include_only(std::string_view input, option opt = option::all, std::string_view extra = "")
 	{
 		using enum option;
 
@@ -175,14 +176,14 @@ export namespace deckard::string
 		{
 			if (opt && whitespace)
 			{
-				if(in_range( '\t', '\r', c) or c == ' ')
+				if (in_range('\t', '\r', c) or c == ' ')
 					ret += c;
 			}
 
 			if (opt && digit)
 			{
-				if(in_range('0','9', c))
-				ret+=c;
+				if (in_range('0', '9', c))
+					ret += c;
 			}
 
 			if (opt && lowercase)
@@ -214,7 +215,6 @@ export namespace deckard::string
 		}
 		return ret;
 	}
-
 
 	// replace
 	std::string replace(std::string_view subject, const std::string_view search, std::string_view replace)
@@ -378,20 +378,29 @@ export namespace deckard::string
 		return false;
 	}
 
-
 	// ints
 	template<size_t N, arithmetic T = i64>
-	constexpr auto ints(std::string_view str) -> std::array<i64, N>
+	requires(N > 1)
+	constexpr auto ints(const std::string_view str) -> std::array<T, N>
 	{
 		std::array<T, N> ret{};
 
-		i64    acc   = 0;
-		bool   added = false;
+		T    acc   = 0;
+		bool added = false;
+		bool neg   = false;
+
 		size_t index = 0;
 		for (const auto& c : str)
 		{
+
 			if (index >= N)
 				break;
+
+			if (c == '-' and neg == false)
+			{
+				neg = true;
+				continue;
+			}
 
 			if (in_range(0, 9, c - '0'))
 			{
@@ -401,29 +410,101 @@ export namespace deckard::string
 				continue;
 			}
 
-			if (added)
+			if (added and index < N)
 			{
-				ret[index++] = acc;
-				acc          = 0;
-				added        = false;
+				if constexpr (std::is_unsigned_v<T>)
+					ret[index++] = acc;
+				else
+					ret[index++] = neg ? -acc : acc;
+
+				added = false;
+				neg   = false;
+				acc   = 0;
 			}
 		}
 
+
 		if (added and index < N)
-			ret[index++] = acc;
+		{
+			if constexpr (std::is_unsigned_v<T>)
+				ret[index++] = acc;
+			else
+				ret[index++] = neg ? -acc : acc;
+
+			added = false;
+			neg   = false;
+			acc   = 0;
+		}
+
+		if constexpr (N == 1)
+			return ret[0];
 
 		return ret;
 	}
 
+	template<size_t N, arithmetic T = i64>
+	requires(N == 1)
+	constexpr auto ints(const std::string_view str) -> T
+	{
+		T ret{};
+
+		T    acc   = 0;
+		bool added = false;
+		bool neg   = false;
+
+		for (const auto& c : str)
+		{
+
+			if (c == '-' and neg == false)
+			{
+				neg = true;
+				continue;
+			}
+
+			if (in_range(0, 9, c - '0'))
+			{
+				acc *= 10;
+				acc += c - '0';
+				added = true;
+				continue;
+			}
+
+
+			if (added)
+			{
+				if constexpr (std::is_unsigned_v<T>)
+					return acc;
+				else
+					return neg ? -acc : acc;
+			}
+			assert::check(not added, "ints<1> should have yielded a number");
+		}
+
+		if (added)
+		{
+			if constexpr (std::is_unsigned_v<T>)
+				return acc;
+			else
+				return neg ? -acc : acc;
+		}
+		assert::check(not added, "ints<1> should have yielded a number");
+	}
+
 	template<arithmetic T = i64>
-	constexpr auto ints(std::string_view str) -> std::vector<T>
+	constexpr auto ints(const std::string_view str) -> std::vector<T>
 	{
 		std::vector<T> ret{};
 
-		i64  acc   = 0;
+		T    acc   = 0;
 		bool added = false;
+		bool neg   = false;
 		for (const auto& c : str)
 		{
+			if (c == '-' and neg == false)
+			{
+				neg = true;
+				continue;
+			}
 			if (in_range(0, 9, c - '0'))
 			{
 				acc *= 10;
@@ -434,14 +515,27 @@ export namespace deckard::string
 
 			if (added)
 			{
-				ret.emplace_back(acc);
+
+				if constexpr (std::is_unsigned_v<T>)
+					ret.emplace_back(acc);
+				else
+					ret.emplace_back(neg ? -acc : acc);
 				acc   = 0;
 				added = false;
+				neg   = false;
 			}
 		}
-
 		if (added)
-			ret.emplace_back(acc);
+		{
+
+			if constexpr (std::is_unsigned_v<T>)
+				ret.emplace_back(acc);
+			else
+				ret.emplace_back(neg ? -acc : acc);
+			acc   = 0;
+			added = false;
+			neg   = false;
+		}
 
 		return ret;
 	}

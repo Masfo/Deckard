@@ -763,7 +763,7 @@ export namespace deckard
 	template<arithmetic T>
 	constexpr auto split_digit(T v) -> std::pair<T, T>
 	{
-		const u32 digit_count = count_digits(v);
+		const auto digit_count = count_digits(v);
 		assert::check(digit_count > 1, "Cannot split single digit");
 
 		auto divisor = as<T>(pow10(digit_count / 2));
