@@ -14,7 +14,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 	{
 		binary::tree<i32> tree;
 
-		REQUIRE(tree.size() == 0);
+		REQUIRE(tree.size() == 0+1);
 		REQUIRE(tree.empty() == true);
 	}
 

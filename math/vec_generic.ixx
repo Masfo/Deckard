@@ -474,7 +474,7 @@ namespace deckard::math
 			return result;
 		}
 
-		// manhattan distance
+		// distance
 		template<typename U = T>
 		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const
 		{
@@ -485,6 +485,17 @@ namespace deckard::math
 				result += tmp * tmp;
 			}
 			return std::sqrt(result);
+		}
+
+		// manhattan distance
+		template<typename U = T>
+		[[nodiscard("Use the distance value")]] constexpr U manhattan_distance(const vec_type& other) const
+		{
+			U result{};
+			for (size_t i = 0; i < N; ++i)
+				result += as<U>(std::abs(m_data[i] - other[i]));
+
+			return result;
 		}
 
 		// clamp
@@ -648,6 +659,12 @@ namespace deckard::math
 	[[nodiscard("Use the distance value")]] constexpr T distance(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
 	{
 		return lhs.distance<T>(rhs);
+	}
+
+	export template<typename T, size_t N>
+	[[nodiscard("Use the distance value")]] constexpr T manhattan_distance(const vec_n<T, N>& lhs, const vec_n<T, N>& rhs)
+	{
+		return lhs.manhattan_distance<T>(rhs);
 	}
 
 	export template<typename T, typename U = T, size_t N>
