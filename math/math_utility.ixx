@@ -66,6 +66,12 @@ export namespace deckard::math
 		return (x % N + N) % N;
 	}
 
+	// absolute difference
+	template<arithmetic T, arithmetic U>
+	T abs_diff( T x, U y)
+	{
+		return std::abs(x-y);
+	}
 
 
 	// is_close_enough

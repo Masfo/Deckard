@@ -481,7 +481,7 @@ namespace deckard::math
 			U result{};
 			for (size_t i = 0; i < N; ++i)
 			{
-				U tmp = as<U>(std::abs(m_data[i] - other[i]));
+				U tmp = as<U>(abs_diff(m_data[i], other[i]));
 				result += tmp * tmp;
 			}
 			return std::sqrt(result);
@@ -493,7 +493,7 @@ namespace deckard::math
 		{
 			U result{};
 			for (size_t i = 0; i < N; ++i)
-				result += as<U>(std::abs(m_data[i] - other[i]));
+				result += as<U>(abs_diff(m_data[i], other[i]));
 
 			return result;
 		}
