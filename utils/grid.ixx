@@ -31,6 +31,10 @@ namespace deckard
 	const ivec2 down{south};
 	const ivec2 right{east};
 
+
+	const ivec2 vertical(0, 1);
+	const ivec2 horizontal(1, 0);
+
 	const ivec2 north_east{north + east};
 	const ivec2 south_east{south + east};
 	const ivec2 south_west{south + west};
