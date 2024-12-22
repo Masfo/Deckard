@@ -177,6 +177,9 @@ set(DECKARD_SRCS
         math/vec2_sse.ixx
         math/vec3_sse.ixx
         math/vec4_sse.ixx
+        math/generic_vec2.ixx
+        math/generic_vec3.ixx
+        math/generic_vec4.ixx
         math/quaternion.ixx
 
         # Net
