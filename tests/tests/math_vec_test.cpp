@@ -5,6 +5,7 @@
 import deckard.debug;
 import deckard.helpers;
 import deckard.math;
+import deckard.types;
 
 
 import std;
@@ -13,6 +14,182 @@ using namespace Catch::Matchers;
 
 using namespace std::string_literals;
 using namespace deckard::math;
+using namespace deckard;
+
+TEST_CASE("ivec2", "[vec][ivec2][math]")
+{
+	SECTION("constructor")
+	{
+		const ivec2 v0{2};
+		REQUIRE(v0.x == 2);
+		REQUIRE(v0.y == 2);
+
+		const ivec2 v01{2, 9};
+		REQUIRE(v01.x == 2);
+		REQUIRE(v01.y == 9);
+
+		ivec2 v(1);
+		REQUIRE(v.x == 1);
+		REQUIRE(v.y == 1);
+
+		ivec2 v2(1, 0);
+		REQUIRE(v2.has_zero() == true);
+
+		ivec2 v3(0);
+		REQUIRE(v3.is_zero() == true);
+	}
+
+	SECTION("compares")
+	{
+		// lt
+		const ivec2 a{0, 0};
+		const ivec2 b{1, 1};
+
+		REQUIRE(a < b);
+		REQUIRE(a != b);
+
+		const ivec2 c{2, 2};
+		const ivec2 d{2, 2};
+		REQUIRE((c < d) == false);
+		REQUIRE(c == d);
+
+		const ivec2 e{1, 1};
+		const ivec2 f{1, 1};
+		REQUIRE(false == (e < f));
+		REQUIRE(true == (e <= f));
+		REQUIRE(false == (e > f));
+		REQUIRE(true == (e >= f));
+		REQUIRE(e == f);
+
+		const ivec2 g{1, 1};
+		const ivec2 h{2, 1};
+		REQUIRE(h >= g);
+		REQUIRE(h > g);
+	}
+
+	SECTION("basic math")
+	{
+		const ivec2 v1{2};
+		const ivec2 v2{2, 3};
+
+		const ivec2 add = v1 + v2;
+		const ivec2 sub = v1 - v2;
+		const ivec2 mul = v1 * v2;
+		const ivec2 div = v1 / v2;
+
+		const ivec2 add_result{4, 5};
+		const ivec2 sub_result{0, -1};
+		const ivec2 mul_result{4, 6};
+		const ivec2 div_result{1, 0};
+
+		REQUIRE(true == add.equals(add_result));
+		REQUIRE(true == sub.equals(sub_result));
+		REQUIRE(true == mul.equals(mul_result));
+		REQUIRE(true == div.equals(div_result));
+
+
+		ivec2 sres(4);
+		sres /= 2;
+		REQUIRE(sres.equals(ivec2(2)));
+		sres *= 3;
+		REQUIRE(sres.equals(ivec2(6)));
+		sres += 1;
+		REQUIRE(sres.equals(ivec2(7)));
+		sres -= 5;
+		REQUIRE(sres.equals(ivec2(2)));
+
+		// ++ --
+		ivec2 ppv(1, 2);
+		REQUIRE(ppv == ivec2(1, 2));
+		ivec2 post = ppv++;
+		REQUIRE(post == ivec2(1, 2));
+		ivec2 pre = ++ppv;
+		REQUIRE(pre == ivec2(3, 4));
+
+
+		post = ppv--;
+		REQUIRE(post == ivec2(3, 4));
+		pre = --ppv;
+		REQUIRE(pre == ivec2(1, 2));
+	}
+
+	SECTION("ivec2 other functions")
+	{
+		//
+		const ivec2 v1{2};
+		const ivec2 v2{9, -1};
+
+		const ivec2 minimum = min(v1, v2);
+		REQUIRE(true == minimum.equals(ivec2{2, -1}));
+
+		const ivec2 maximum = max(v1, v2);
+		REQUIRE(true == maximum.equals(ivec2{9, 2}));
+
+		const auto absolute = abs(v2);
+		REQUIRE(true == absolute.equals({9, 1}));
+
+		const auto dist = distance(v1, v2);
+		REQUIRE(dist == 10);
+
+		const ivec2 clamped = clamp(v2, 7, 5);
+		REQUIRE(true == clamped.equals(ivec2{7, 5}));
+	}
+	SECTION("ivec2 cross/dot/length/normal/project/angle")
+	{
+		//
+		const ivec2 a{3, 4};
+		const ivec2 b{1, -2};
+
+		const auto dotted = dot(a, b);
+		REQUIRE(dotted == -5);
+
+
+		const ivec2  c{1, 2};
+		const ivec2  d{3, 4};
+		const auto crossed = cross(c, d);
+		REQUIRE(crossed == -2);
+
+		// length
+		const ivec2 lvec{3, 5};
+		const auto len = length(lvec);
+		REQUIRE(len == 8);
+
+		// normalize inplace
+		//ivec2 normalize_inplace = lvec;
+		//normalize_inplace.normalize();
+		//REQUIRE(normalize_inplace == ivec2(1,1));
+
+		// normalize
+		//const ivec2 normalized = lvec.normalize();
+		//REQUIRE(true == normalized.equals(ivec2{1, 1}));
+
+
+
+		// project
+		//const ivec2 pA{3, 4};
+		//const ivec2 pB{2, -1};
+		//
+		//const ivec2 projected = project(pA, pB);
+		//REQUIRE(true == projected.equals(ivec2{2, 4}));
+		//
+		//const ivec2 projected2 = project(pB, pA);
+		//REQUIRE(true == projected2.equals(ivec2{2, 2}));
+
+		// angle
+		const ivec2 angleA{3, 4};
+		const ivec2 angleB{2, -1};
+		const f32 angle_between = angle(angleA, angleB);
+		REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
+#if 0
+		//
+		//// reflected
+		//const ivec2 dir{9, -1};
+		//const ivec2 normal{3.14f, 5.11f};
+		//ivec2       reflected = reflect(dir, normal);
+		//REQUIRE(reflected == ivec2(-136.382004f, -237.593002f));
+#endif
+	}
+}
 
 // vec2
 TEST_CASE("vec 2", "[vec][vec2][math]")
@@ -22,7 +199,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 
 	SECTION("constructor")
 	{
-		vec2 v{1.0f};
+		vec2 v{1};
 		REQUIRE(v[0] == 1.0f);
 		REQUIRE(v[1] == 1.0f);
 
@@ -740,7 +917,7 @@ TEST_CASE("sin/cos benchmark")
 
 	mt.seed(123);
 #ifndef _DEBUG
-	constexpr int width = 100000;
+	constexpr int width = 100'000;
 #else
 	constexpr int width = 100;
 #endif
@@ -816,7 +993,7 @@ TEST_CASE("sqrt test", "[math]")
 
 	mt.seed(123);
 #ifndef _DEBUG
-	constexpr int width = 100000;
+	constexpr int width = 100'000;
 #else
 	constexpr int width = 100;
 #endif
@@ -862,7 +1039,7 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	std::vector<sse::vec4>       sse;
 	std::vector<vec_n<float, 4>> generic;
 #ifndef _DEBUG
-	constexpr int width = 100000;
+	constexpr int width = 100'000;
 #else
 	constexpr int width = 100;
 #endif

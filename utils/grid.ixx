@@ -73,17 +73,17 @@ namespace deckard
 			ivec2 pos;
 			for (const auto& line : lines)
 			{
-				pos[0] = 0;
+				pos.x = 0;
 				for (const auto& c : line)
 				{
 					set(pos, c);
-					pos[0]++;
+					pos.x++;
 				}
-				pos[1]++;
+				pos.y++;
 			}
 		}
 
-		T operator[](const ivec2 pos) const { return data.get(pos[0], pos[1]); }
+		T operator[](const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
 
@@ -109,7 +109,7 @@ namespace deckard
 			return data.get(x, y);
 		}
 
-		T get(const ivec2 pos) const { return data.get(pos[0], pos[1]); }
+		T get(const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
 		std::optional<T> try_at(const ivec2 pos) const
 		{
@@ -134,7 +134,7 @@ namespace deckard
 
 		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
 
-		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos[0]), as<u32>(pos[1]), value); }
+		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos.x), as<u32>(pos.y), value); }
 
 		void set(u32 x, u32 y, const T& value) { data.set(x, y, value); }
 
