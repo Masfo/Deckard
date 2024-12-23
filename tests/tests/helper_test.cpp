@@ -121,9 +121,9 @@ TEST_CASE("helpers", "[helpers]")
 
 	SECTION("ints/static")
 	{
-		auto [p1, p2, p3, p4] = ints<4>("p=-12,34 v=45,56");
+		auto [p1, p2, p3, p4] = ints<4>("p=-66,34 v=45,56");
 
-		REQUIRE(p1 == -12);
+		REQUIRE(p1 == -66);
 		REQUIRE(p2 == 34);
 		REQUIRE(p3 == 45);
 		REQUIRE(p4 == 56);

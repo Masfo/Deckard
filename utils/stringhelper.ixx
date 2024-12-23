@@ -420,8 +420,8 @@ export namespace deckard::string
 				added = false;
 				neg   = false;
 				acc   = 0;
+
 			}
-			assert::check(added, std::format("\"{}\" does not contain a number", str));
 
 		}
 
@@ -437,6 +437,8 @@ export namespace deckard::string
 			neg   = false;
 			acc   = 0;
 		}
+		
+		assert::check(not added, std::format("\"{}\" does not contain a number", str));
 
 		if constexpr (N == 1)
 			return ret[0];
@@ -479,7 +481,6 @@ export namespace deckard::string
 				else
 					return neg ? -acc : acc;
 			}
-			assert::check(not added, "ints<1> should have yielded a number");
 		}
 
 		if (added)
@@ -490,6 +491,7 @@ export namespace deckard::string
 				return neg ? -acc : acc;
 		}
 		assert::check(added, std::format("\"{}\" does not contain a number", str));
+		return -1;
 	}
 
 	template<arithmetic T = i64>
@@ -539,7 +541,6 @@ export namespace deckard::string
 			neg   = false;
 		}
 
-		assert::check(added, std::format("\"{}\" does not contain a number", str));
 
 		return ret;
 	}
