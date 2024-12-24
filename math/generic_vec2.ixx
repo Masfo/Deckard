@@ -348,10 +348,10 @@ namespace deckard::math
 		constexpr void normalize()
 		requires(std::is_floating_point_v<T>)
 		{
-			*this /= length();
+			*this /= length<T>();
 		}
 
-		template<arithmetic U = T>
+		template<std::floating_point T=f32>
 		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const
 		{
 			if (other.has_zero())
@@ -360,10 +360,10 @@ namespace deckard::math
 				return vec_type::zero();
 			}
 
-			auto dot_ab   = dot(other);
-			auto b_length = other.length();
+			auto dot_ab   = dot<T>(other);
+			auto b_length = other.length<T>();
 
-			U projection_scalar = dot_ab / (b_length * b_length);
+			T projection_scalar = dot_ab / (b_length * b_length);
 			return other * projection_scalar;
 		}
 
@@ -376,7 +376,7 @@ namespace deckard::math
 				return T{0.0};
 			}
 
-			T cosTheta = dot(other) / (length() * other.length());
+			T cosTheta = dot<T>(other) / (length<T>() * other.length<T>());
 
 			return std::acos(cosTheta) * T(180.0) / std::numbers::pi_v<T>;
 		}

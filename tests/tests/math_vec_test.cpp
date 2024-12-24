@@ -166,14 +166,14 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 
 
 		// project
-		//const ivec2 pA{3, 4};
-		//const ivec2 pB{2, -1};
-		//
-		//const ivec2 projected = project(pA, pB);
-		//REQUIRE(true == projected.equals(ivec2{2, 4}));
-		//
-		//const ivec2 projected2 = project(pB, pA);
-		//REQUIRE(true == projected2.equals(ivec2{2, 2}));
+		const ivec2 pA{3, 4};
+		const ivec2 pB{2, -1};
+		
+		const ivec2 projected = project(pA, pB);
+		REQUIRE(true == projected.equals(ivec2{2, 4}));
+		
+		const ivec2 projected2 = project(pB, pA);
+		REQUIRE(true == projected2.equals(ivec2{2, 2}));
 
 		// angle
 		const ivec2 angleA{3, 4};
