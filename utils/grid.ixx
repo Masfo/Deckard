@@ -144,7 +144,7 @@ namespace deckard
 
 		bool valid(const u32 x, const u32 y) const { return data.valid(x, y); }
 
-		bool valid(ivec2 c) const { return data.valid(c[0], c[1]); }
+		bool valid(ivec2 c) const { return data.valid(c.x, c.y); }
 
 		auto neighbours4(ivec2 pos) const { return make_array(at(pos + north), at(pos + east), at(pos + south), at(pos + west)); }
 
@@ -390,7 +390,7 @@ namespace deckard
 				}
 			}
 
-			std::ranges::sort(points, grid_order<ivec2>());
+			std::ranges::sort(points, grid_order);
 
 			return points;
 		}
