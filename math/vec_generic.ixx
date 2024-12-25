@@ -770,7 +770,7 @@ export using uvec2 = deckard::math::vec_n<u64, 2>;
 export using uvec3 = deckard::math::vec_n<u64, 3>;
 export using uvec4 = deckard::math::vec_n<u64, 4>;
 
-//export using ivec2 = deckard::math::vec_n<i64, 2>;
+// export using ivec2 = deckard::math::vec_n<i64, 2>;
 export using ivec2 = deckard::math::generic_vec2<i64>;
 
 export using ivec3 = deckard::math::vec_n<i64, 3>;
@@ -778,22 +778,18 @@ export using ivec4 = deckard::math::vec_n<i64, 4>;
 
 namespace deckard::math
 {
-
-	export template<typename T>
-	struct grid_order
+	export auto grid_order = [](const ivec2& v1, const ivec2& v2) -> bool
 	{
-		inline bool operator()(const T& v1, const T& v2) const { return (v1[1] < v2[1]) || (v1[1] == v2[1] && v1[0] < v2[0]); }
+		//
+		return (v1.y < v2.y) || (v1.y == v2.y && v1.x < v2.x);
 	};
 
-	export template<typename T>
-	struct grid_order_reverse
+	export auto grid_order_reverse = [](const ivec2& v1, const ivec2& v2) -> bool
 	{
-		inline bool operator()(const T& v1, const T& v2) const
-		{
-			//
-			return (v1[1] > v2[1]) || (v1[1] == v2[1] && v1[0] > v2[0]);
-		}
+		//
+		return (v1.y > v2.y) || (v1.y == v2.y && v1.x > v2.x);
 	};
+
 
 } // namespace deckard::math
 
