@@ -91,7 +91,7 @@ export namespace deckard::math
 	template<std::integral T>
 	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T error = T{0})
 	{
-		return std::abs(A) == T{0};
+		return std::abs<T>(A) == T{0};
 	}
 
 	// is_close_enough
