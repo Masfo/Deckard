@@ -386,7 +386,7 @@ namespace deckard
 				for (u32 x = 0; x < width(); ++x)
 				{
 					if (data.get(x, y) == to_find)
-						points.emplace_back({x, y});
+						points.emplace_back(ivec2{x, y});
 				}
 			}
 
