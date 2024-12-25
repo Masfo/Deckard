@@ -226,7 +226,7 @@ export namespace deckard::math
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)
 	{
-		return x * width + y;
+		return y * width + x;
 	}
 
 	template<std::integral T, std::integral U = T, std::integral I = T>
