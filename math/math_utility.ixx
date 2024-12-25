@@ -235,6 +235,7 @@ export namespace deckard::math
 		return (z * height * depth) + (y * depth) + x;
 	}
 
+
 	template<std::integral T>
 	constexpr bool is_prime(T n)
 	{
