@@ -363,10 +363,7 @@ namespace deckard::math
 			return result.x + result.y;
 		}
 
-		[[nodiscard("Use the cross product")]] constexpr type cross(const vec_type& other) const 
-		{
-			return (x * other.y) - (y * other.x); 
-		}
+		[[nodiscard("Use the cross product")]] constexpr type cross(const vec_type& other) const { return (x * other.y) - (y * other.x); }
 
 		// static
 		static inline vec_type zero() { return vec_type(T{0}); }
@@ -395,7 +392,7 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the distance value")]] constexpr generic_vec2<T> distance(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the distance value")]] constexpr T distance(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.distance(rhs);
 	}
@@ -424,7 +421,7 @@ namespace deckard::math
 		return rhs.length();
 	}
 
-	#if 0
+#if 0
 	export template<arithmetic T>
 	constexpr void normalize(const generic_vec2<T>& rhs)
 	{
@@ -448,7 +445,7 @@ namespace deckard::math
 	{
 		return lhs.reflect<R>(rhs);
 	}
-	#endif
+#endif
 
 
 } // namespace deckard::math
