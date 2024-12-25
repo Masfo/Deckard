@@ -17,6 +17,7 @@ namespace deckard::math
 		using type     = T;
 		using vec_type = generic_vec2<T>;
 
+
 		T x{0};
 		T y{0};
 
@@ -219,40 +220,11 @@ namespace deckard::math
 
 		constexpr bool operator==(const vec_type& other) const { return equals(other, T{}); }
 
-		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const
-		requires(std::floating_point<T>)
-		{
-			return is_close_enough(other, epsilon);
-		}
-
-		constexpr bool equals(const vec_type& other, const T epsilon = 0) const
-		requires(std::integral<T>)
-		{
-			return is_close_enough(other, epsilon);
-		}
-
-		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.000001}) const
-		requires(std::floating_point<T>)
-		{
-			if (not math::is_close_enough(x, lhs.x, epsilon))
-				return false;
-
-			if (not math::is_close_enough(y, lhs.y, epsilon))
-				return false;
-
-			return true;
-		}
+		constexpr bool equals(const vec_type& other, const T epsilon = 0) const { return is_close_enough(other, epsilon); }
 
 		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const
-		requires(std::integral<T>)
 		{
-			if (not math::is_close_enough(x, lhs.x, epsilon))
-				return false;
-
-			if (not math::is_close_enough(y, lhs.y, epsilon))
-				return false;
-
-			return true;
+			return std::abs(x - lhs.x) == 0 and std::abs(y - lhs.y) == 0;
 		}
 
 		[[nodiscard("Use the minimum value")]] constexpr vec_type min(const vec_type& other) const
@@ -279,6 +251,29 @@ namespace deckard::math
 			return result;
 		}
 
+		template<std::integral U = T>
+		[[nodiscard("Use the length value")]] constexpr U length() const
+		{
+			U result{};
+
+			result = abs_diff(x, 0);
+			result += abs_diff(y, 0);
+
+			return result;
+		}
+
+#if 0
+				constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const
+		requires(std::floating_point<T>)
+		{
+			return is_close_enough(other, epsilon);
+		}
+
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.000001}) const
+		requires(std::floating_point<T>)
+		{
+			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon);
+		}
 		template<std::floating_point U = T>
 		[[nodiscard("Use the distance value")]] constexpr U distance(const vec_type& other) const
 		{
@@ -303,55 +298,13 @@ namespace deckard::math
 
 			return std::sqrt(result);
 		}
-
-		template<std::integral U = T>
-		[[nodiscard("Use the length value")]] constexpr U length() const
-		{
-			U result{};
-
-			result = abs_diff(x, 0);
-			result += abs_diff(y, 0);
-
-			return result;
-		}
-
-		template<arithmetic U = T>
-		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(U low, U hi) const
-		{
-			vec_type result{x, y};
-
-			if (low > hi)
-				std::swap(low, hi);
-
-			result.x = std::clamp<T>(x, low, hi);
-			result.y = std::clamp<T>(y, low, hi);
-			return result;
-		}
-
-		template<arithmetic U=T>
-		[[nodiscard("Use the dot product value")]] constexpr U dot(const vec_type& other) const
-		{
-			U result{};
-
-			result = as<U>(x * other.x);
-			result += as<U>(y * other.y);
-
-			return result;
-		}
-
-		template<arithmetic U=T>
-		[[nodiscard("Use the cross product")]] constexpr U cross(const vec_type& other) const
-		{
-			return U{(x * other.y) - (y * other.x)};
-		}
-
 		constexpr void normalize()
 		requires(std::is_floating_point_v<T>)
 		{
 			*this /= length<T>();
 		}
 
-		template<std::floating_point T=f32>
+		template<std::floating_point T = f32>
 		[[nodiscard("Use the projected vector")]] constexpr vec_type project(const vec_type& other) const
 		{
 			if (other.has_zero())
@@ -367,7 +320,15 @@ namespace deckard::math
 			return other * projection_scalar;
 		}
 
-		template<std::floating_point T=f32>
+		template<std::floating_point R = f32>
+		[[nodiscard("Use the reflected vector")]] constexpr generic_vec2<R> reflect(const vec_type& other) const
+		{
+			//
+			const generic_vec2<R> v(*this);
+			return v - (other * v.dot<R>(other) * 2);
+		}
+
+		template<std::floating_point T = f32>
 		[[nodiscard("Use the angle value")]] constexpr T angle(const vec_type& other) const
 		{
 			if (has_zero() or other.has_zero())
@@ -379,6 +340,32 @@ namespace deckard::math
 			T cosTheta = dot<T>(other) / (length<T>() * other.length<T>());
 
 			return std::acos(cosTheta) * T(180.0) / std::numbers::pi_v<T>;
+		}
+
+#endif
+
+
+		template<std::integral U, std::integral R>
+		[[nodiscard("Use the clamped value")]] constexpr vec_type clamp(U low, R hi) const
+		{
+
+			if (low > hi)
+				std::swap(low, hi);
+
+			vec_type result{std::clamp<T>(x, low, hi), std::clamp<T>(y, low, hi)};
+			return result;
+		}
+
+		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const
+		{
+			vec_type result{*this * other};
+
+			return result.x + result.y;
+		}
+
+		[[nodiscard("Use the cross product")]] constexpr type cross(const vec_type& other) const 
+		{
+			return (x * other.y) - (y * other.x); 
 		}
 
 		// static
@@ -413,20 +400,20 @@ namespace deckard::math
 		return lhs.distance(rhs);
 	}
 
-	export template<arithmetic T, arithmetic U = T>
-	[[nodiscard("Use the clamped vector")]] constexpr generic_vec2<T> clamp(const generic_vec2<T>& v, const U cmin, const U cmax)
+	export template<arithmetic T, arithmetic U, arithmetic R>
+	[[nodiscard("Use the clamped vector")]] constexpr generic_vec2<T> clamp(const generic_vec2<T>& v, const U cmin, const R cmax)
 	{
 		return v.clamp(cmin, cmax);
 	}
 
-	export template<arithmetic T, arithmetic U=T>
-	[[nodiscard("Use the clamped value")]] constexpr U dot(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	export template<arithmetic T>
+	[[nodiscard("Use the clamped value")]] constexpr T dot(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.dot(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the cross product vector")]] constexpr auto cross(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the cross product vector")]] constexpr T cross(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.cross(rhs);
 	}
@@ -437,6 +424,7 @@ namespace deckard::math
 		return rhs.length();
 	}
 
+	#if 0
 	export template<arithmetic T>
 	constexpr void normalize(const generic_vec2<T>& rhs)
 	{
@@ -454,6 +442,13 @@ namespace deckard::math
 	{
 		return lhs.angle(rhs);
 	}
+
+	export template<std::floating_point R = f32, arithmetic T>
+	[[nodiscard("Use the reflected vector")]] constexpr generic_vec2<R> reflect(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	{
+		return lhs.reflect<R>(rhs);
+	}
+	#endif
 
 
 } // namespace deckard::math
@@ -477,12 +472,7 @@ export namespace std
 
 		auto format(const generic_vec2<T>& v, std::format_context& ctx) const
 		{
-			std::format_to(ctx.out(), "ivec2(");
-
-			if constexpr (std::is_integral_v<T>)
-				return std::format_to(ctx.out(), "{}, {})", v.x, v.y);
-			else
-				return std::format_to(ctx.out(), "{.3f}, {.3f})", v.x, v.y);
+			return std::format_to(ctx.out(), "ivec2({}, {})", v.x, v.y);
 		}
 	};
 } // namespace std

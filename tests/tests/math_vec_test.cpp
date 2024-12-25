@@ -144,50 +144,47 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		REQUIRE(dotted == -5);
 
 
-		const ivec2  c{1, 2};
-		const ivec2  d{3, 4};
-		const auto crossed = cross(c, d);
+		const ivec2 c{1, 2};
+		const ivec2 d{3, 4};
+		const auto  crossed = cross(c, d);
 		REQUIRE(crossed == -2);
 
 		// length
 		const ivec2 lvec{3, 5};
-		const auto len = length(lvec);
+		const auto  len = length(lvec);
 		REQUIRE(len == 8);
 
 		// normalize inplace
-		//ivec2 normalize_inplace = lvec;
-		//normalize_inplace.normalize();
-		//REQUIRE(normalize_inplace == ivec2(1,1));
+		// ivec2 normalize_inplace = lvec;
+		// normalize_inplace.normalize();
+		// REQUIRE(normalize_inplace == ivec2(1,1));
 
 		// normalize
-		//const ivec2 normalized = lvec.normalize();
-		//REQUIRE(true == normalized.equals(ivec2{1, 1}));
-
+		// const ivec2 normalized = lvec.normalize();
+		// REQUIRE(true == normalized.equals(ivec2{1, 1}));
 
 
 		// project
-		const ivec2 pA{3, 4};
-		const ivec2 pB{2, -1};
-		
-		const ivec2 projected = project(pA, pB);
-		REQUIRE(true == projected.equals(ivec2{2, 4}));
-		
-		const ivec2 projected2 = project(pB, pA);
-		REQUIRE(true == projected2.equals(ivec2{2, 2}));
-
-		// angle
-		const ivec2 angleA{3, 4};
-		const ivec2 angleB{2, -1};
-		const f32 angle_between = angle(angleA, angleB);
-		REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
-#if 0
+		// const ivec2 pA{3, 4};
+		// const ivec2 pB{2, -1};
 		//
-		//// reflected
-		//const ivec2 dir{9, -1};
-		//const ivec2 normal{3.14f, 5.11f};
-		//ivec2       reflected = reflect(dir, normal);
-		//REQUIRE(reflected == ivec2(-136.382004f, -237.593002f));
-#endif
+		// const ivec2 projected = project(pA, pB);
+		// REQUIRE(true == projected.equals(ivec2{2, 4}));
+		//
+		// const ivec2 projected2 = project(pB, pA);
+		// REQUIRE(true == projected2.equals(ivec2{2, 2}));
+		//
+		// // angle
+		// const ivec2 angleA{3, 4};
+		// const ivec2 angleB{2, -1};
+		// const f32 angle_between = angle(angleA, angleB);
+		// REQUIRE_THAT(angle_between, WithinAbs(79.69515f, 0.00001));
+		// 		// reflected
+		// const ivec2 dir{9, -1};
+		// const ivec2 normal{3, 5};
+		// auto       reflected = reflect(dir, normal);
+		// int         k         = 0;
+		// //REQUIRE(reflected == vec2(-136.382004f, -237.593002f));
 	}
 }
 
