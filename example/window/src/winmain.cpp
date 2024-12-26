@@ -542,6 +542,13 @@ int deckard_main()
 		int kox = 0;
 	}
 
+	//std::vector<i32> cps{-1,0,1};
+	//for (const auto& [x, y, z] : std::views::cartesian_product(cps,cps,cps))
+	//{
+	//	dbg::println("{} {} {}", x,y,z);
+	//}
+
+
 	// ###################
 	u32         q2{};
 	i16         q22{};
