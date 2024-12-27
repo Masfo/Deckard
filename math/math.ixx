@@ -16,6 +16,10 @@ import deckard.types;
 namespace deckard::math
 {
 
+export using uvec2 = generic_vec2<u64>;
+export using uvec3 = generic_vec3<u64>;
+export using uvec4 = generic_vec4<u64>;
+
 export using ivec2 = generic_vec2<i64>;
 export using ivec3 = generic_vec3<i64>;
 export using ivec4 = generic_vec4<i64>;
