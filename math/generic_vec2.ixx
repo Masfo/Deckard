@@ -35,15 +35,29 @@ namespace deckard::math
 		{
 		}
 
-		constexpr bool has_zero() const { return x == T{0} or y == T{0}; };
-
-		constexpr bool is_zero() const { return x == T{0} and y == T{0}; };
-
-		constexpr bool has_inf() const
-		requires(std::is_floating_point_v<T>)
+		constexpr bool has_zero() const
+		requires(std::is_integral_v<T>)
 		{
 			return x == T{0} or y == T{0};
-		};
+		}
+
+		constexpr bool is_zero() const
+		requires(std::is_integral_v<T>)
+		{
+			return x == T{0} and y == T{0};
+		}
+
+		constexpr bool has_zero() const
+		requires(std::is_floating_point_v<T>)
+		{
+			return math::is_close_enough_zero(x) or math::is_close_enough_zero(y);
+		}
+
+		constexpr bool is_zero() const
+		requires(std::is_floating_point_v<T>)
+		{
+			return equals(zero());
+		}
 
 		constexpr vec_type& operator++()
 		{
@@ -71,6 +85,13 @@ namespace deckard::math
 			return tmp;
 		}
 
+		// add
+		constexpr void operator+=(const T scalar)
+		{
+			x += scalar;
+			y += scalar;
+		}
+
 		constexpr void operator+=(const vec_type& other)
 		{
 			x += other.x;
@@ -91,31 +112,10 @@ namespace deckard::math
 			y -= other.y;
 		}
 
-		constexpr void operator+=(const T scalar)
-		{
-			x += scalar;
-			y += scalar;
-		}
-
 		constexpr void operator-=(const T scalar)
 		{
 			x -= scalar;
 			y -= scalar;
-		}
-
-		constexpr void operator*=(const T scalar)
-		{
-			x *= scalar;
-			y *= scalar;
-		}
-
-		void operator/=(const T scalar)
-		{
-			if (scalar == T{0})
-				dbg::panic("divide by zero: {} / {}", *this, scalar);
-
-			x /= scalar;
-			y /= scalar;
 		}
 
 		constexpr vec_type operator-(const vec_type& other) const
@@ -126,6 +126,12 @@ namespace deckard::math
 		}
 
 		// mul
+		constexpr void operator*=(const T scalar)
+		{
+			x *= scalar;
+			y *= scalar;
+		}
+
 		constexpr void operator*=(const vec_type& other)
 		{
 			x *= other.x;
@@ -139,6 +145,7 @@ namespace deckard::math
 			return result;
 		}
 
+		// div
 		constexpr void operator/=(const vec_type& other)
 		{
 			if (other.has_zero())
@@ -148,7 +155,6 @@ namespace deckard::math
 			y /= other.y;
 		}
 
-		// div
 		constexpr vec_type operator/(const vec_type& other) const
 		{
 			if (other.has_zero())
@@ -159,9 +165,28 @@ namespace deckard::math
 			return result;
 		}
 
-		// div
-		template<typename U = T>
-		constexpr vec_type operator/(const U& scalar) const
+		void operator/=(const T scalar)
+		requires(std::is_floating_point_v<T>)
+		{
+			if (math::is_close_enough_zero(scalar))
+				dbg::panic("divide by zero: {} / {}", *this, scalar);
+
+			x /= scalar;
+			y /= scalar;
+		}
+
+		void operator/=(const T scalar)
+		requires(std::is_integral_v<T>)
+		{
+			if (scalar == T{0})
+				dbg::panic("divide by zero: {} / {}", *this, scalar);
+
+			x /= scalar;
+			y /= scalar;
+		}
+
+		constexpr vec_type operator/(const T& scalar) const
+		requires(std::is_integral_v<T>)
 		{
 			if (math::is_close_enough_zero(scalar))
 				dbg::panic("divide by scalar zero: {} / {}", *this, scalar);

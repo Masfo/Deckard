@@ -728,6 +728,7 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 div_scalar = v1 / 4;
 
 
+
 		const vec4 add_scalar_result{6.0f, 6.0f, 6.0f, 6.0f};
 		const vec4 sub_scalar_result{-2.0f, -2.0f, -2.0f, -2.0f};
 		const vec4 mul_scalar_result{8.0f, 8.0f, 8.0f, 8.0f};

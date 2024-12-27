@@ -69,22 +69,13 @@ namespace deckard::math
 		constexpr bool has_zero() const
 		requires(std::is_floating_point_v<T>)
 		{
-			todo();
-			return x == T{0} or y == T{0} or z == T{0};
+			return math::is_close_enough_zero(x) or math::is_close_enough_zero(y) or math::is_close_enough_zero(z);
 		}
 
 		constexpr bool is_zero() const
 		requires(std::is_floating_point_v<T>)
 		{
-			todo();
-			return x == T{0} and y == T{0} and z == T{0};
-		}
-
-		constexpr bool has_inf() const
-		requires(std::is_floating_point_v<T>)
-		{
-			todo();
-			return x == T{0} or y == T{0};
+			return equals(zero());
 		}
 
 		constexpr vec_type& operator++()
@@ -113,11 +104,19 @@ namespace deckard::math
 			return tmp;
 		}
 
+		// add
 		constexpr void operator+=(const vec_type& other)
 		{
 			x += other.x;
 			y += other.y;
 			z += other.z;
+		}
+
+		constexpr void operator+=(const T scalar)
+		{
+			x += scalar;
+			y += scalar;
+			z += scalar;
 		}
 
 		constexpr vec_type operator+(const vec_type& other) const
@@ -135,18 +134,33 @@ namespace deckard::math
 			z -= other.z;
 		}
 
-		constexpr void operator+=(const T scalar)
-		{
-			x += scalar;
-			y += scalar;
-			z += scalar;
-		}
-
 		constexpr void operator-=(const T scalar)
 		{
 			x -= scalar;
 			y -= scalar;
 			z -= scalar;
+		}
+
+		// mul
+		constexpr void operator*=(const vec_type& other)
+		{
+			x *= other.x;
+			y *= other.y;
+			z *= other.z;
+		}
+
+		constexpr vec_type operator*(const vec_type& other) const
+		{
+			vec_type result = *this;
+			result *= other;
+			return result;
+		}
+
+		constexpr vec_type operator-(const vec_type& other) const
+		{
+			vec_type result = *this;
+			result -= other;
+			return result;
 		}
 
 		constexpr void operator*=(const T scalar)
@@ -156,11 +170,33 @@ namespace deckard::math
 			z *= scalar;
 		}
 
+
+	// div
+		constexpr void operator/=(const vec_type& other)
+		{
+			if (other.has_zero())
+				dbg::panic("divide by zero: {} / {}", *this, other);
+
+			x /= other.x;
+			y /= other.y;
+			z /= other.z;
+
+		}
+
+		constexpr vec_type operator/(const vec_type& other) const
+		{
+			if (other.has_zero())
+				dbg::panic("divide by zero: {} / {}", *this, other);
+
+			vec_type result = *this;
+			result /= other;
+			return result;
+		}
+
 		void operator/=(const T scalar)
 		requires(std::is_floating_point_v<T>)
 		{
-			todo(); // scalar is_close_enough check floatingpoint
-			if (scalar == T{0})
+			if (math::is_close_enough_zero(scalar))
 				dbg::panic("divide by zero: {} / {}", *this, scalar);
 
 			x /= scalar;
@@ -179,50 +215,6 @@ namespace deckard::math
 			z /= scalar;
 		}
 
-		constexpr vec_type operator-(const vec_type& other) const
-		{
-			vec_type result = *this;
-			result -= other;
-			return result;
-		}
-
-		// mul
-		constexpr void operator*=(const vec_type& other)
-		{
-			x *= other.x;
-			y *= other.y;
-			z *= other.z;
-		}
-
-		constexpr vec_type operator*(const vec_type& other) const
-		{
-			vec_type result = *this;
-			result *= other;
-			return result;
-		}
-
-		constexpr void operator/=(const vec_type& other)
-		{
-			if (other.has_zero())
-				dbg::panic("divide by zero: {} / {}", *this, other);
-
-			x /= other.x;
-			y /= other.y;
-			z /= other.z;
-		}
-
-		// div
-		constexpr vec_type operator/(const vec_type& other) const
-		{
-			if (other.has_zero())
-				dbg::panic("divide by zero: {} / {}", *this, other);
-
-			vec_type result = *this;
-			result /= other;
-			return result;
-		}
-
-		// div
 		constexpr vec_type operator/(const T& scalar) const
 		requires(std::is_integral_v<T>)
 		{
