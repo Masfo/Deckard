@@ -511,6 +511,34 @@ private:
 
 MyClass create_class(i32 v) { return {v}; }
 
+union alignas(alignof(__m128)) float4
+{
+	struct
+	{
+		float x, y, z, w;
+	};
+
+	__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
+
+};
+
+constexpr void operator+=(const float4& lhs, float4 &rhs)
+{
+	rhs.x += lhs.x;
+	rhs.y += lhs.y;
+	rhs.z += lhs.z;
+	rhs.w += lhs.w;
+}
+
+auto operator+(const float4& lhs, const float4& rhs)
+{
+	float4 result{lhs};
+
+	result.reg = _mm_add_ps(lhs.reg, rhs.reg);
+
+	return result;
+}
+
 int deckard_main()
 {
 #ifndef _DEBUG
@@ -525,6 +553,22 @@ int deckard_main()
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+	// ###################
+
+	float4 vf4;
+	vf4.x = 1.5f;
+	vf4.y = 3.0f;
+	vf4.z = 4.5f;
+	vf4.w = 6.0f;
+
+	dbg::println("{}, {}, {}, {}", vf4.x, vf4.y, vf4.z, vf4.w);
+
+	auto fla = vf4 + vf4;
+	dbg::println("{}, {}, {}, {}", fla.x, fla.y, fla.z, fla.w);
+
+	int jas = 9;
+
+
 	// ###################
 	{
 		MyClass mc1{123};
@@ -542,11 +586,11 @@ int deckard_main()
 		int kox = 0;
 	}
 
-	//std::vector<i32> cps{-1,0,1};
-	//for (const auto& [x, y, z] : std::views::cartesian_product(cps,cps,cps))
+	// std::vector<i32> cps{-1,0,1};
+	// for (const auto& [x, y, z] : std::views::cartesian_product(cps,cps,cps))
 	//{
 	//	dbg::println("{} {} {}", x,y,z);
-	//}
+	// }
 
 
 	// ###################
@@ -563,16 +607,14 @@ int deckard_main()
 	// ###################
 
 
-
-
 	auto fdsc = make_array<f32>(1, 2, 3, 4);
 
 
 	using enum string::option;
 	string::option op{};
-	auto                 i22 = strip("ako", op);
+	auto           i22 = strip("ako", op);
 
-	auto io = include_only(string::replace("p=12,36 v=45,99", ",", " "), w|d);
+	auto io = include_only(string::replace("p=12,36 v=45,99", ",", " "), w | d);
 
 
 	auto        vkox = varsum<i32, std::string>(1, "555");
@@ -756,7 +798,7 @@ int deckard_main()
 
 	auto v4 = make_array(1, 2, 3);
 	auto v5 = make_array(4, 5, 6);
-	auto v6 = concat(v4,v5);
+	auto v6 = concat(v4, v5);
 
 
 	int kxko = 0;
