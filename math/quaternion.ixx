@@ -6,13 +6,15 @@ import deckard.assert;
 import deckard.types;
 import deckard.debug;
 
-import :vec3_sse;
+import :vec3;
+import :vec4;
 import :matrix;
 import :utils;
 import std;
 
 namespace deckard::math
 {
+	#if 0
 	using m128 = __m128;
 
 	union QuatData
@@ -425,8 +427,6 @@ namespace deckard::math
 		const float half = angle * 0.5f;
 		return quat(0, 0, std::sin(half), std::cos(half));
 	}
+	#endif
 } // namespace deckard::math
 
-export using quat = deckard::math::quat;
-
-static_assert(sizeof(quat) == 16, "quat sse should be 16-bytes");

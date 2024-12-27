@@ -9,6 +9,7 @@ import deckard.debug;
 
 namespace deckard::math::sse
 {
+	#if 0
 	using m128 = __m128;
 
 	union vec4data
@@ -373,9 +374,9 @@ namespace deckard::math::sse
 	{
 		return {std::sin(lhs[0]), std::sin(lhs[1]), std::sin(lhs[2]), std::sin(lhs[3])};
 	}
-
+	#endif
 
 } // namespace deckard::math::sse
 
-export using vec4 = deckard::math::sse::vec4;
-static_assert(sizeof(vec4) == 16, "vec4 sse should be 16-bytes");
+//export using vec4 = deckard::math::sse::vec4;
+//static_assert(sizeof(vec4) == 16, "vec4 sse should be 16-bytes");

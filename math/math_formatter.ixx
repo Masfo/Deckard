@@ -17,7 +17,7 @@ import deckard.utils.hash;
 namespace std
 {
 	using namespace deckard::math;
-
+	#if 0
 	// vec 2 formatter
 	template<>
 	struct hash<sse::vec2>
@@ -95,7 +95,7 @@ namespace std
 			  ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, {:.5f})", vec.data.c.w, vec.data.c.x, vec.data.c.y, vec.data.c.z);
 		}
 	};
-
+	#endif
 #if 0
 	// vec_n_sse formatter
 	template<size_t N>
@@ -125,7 +125,7 @@ namespace std
 	};
 #endif
 
-
+	#if 0
 	template<>
 	struct hash<mat4_generic>
 	{
@@ -147,7 +147,7 @@ namespace std
 			return std::format_to(ctx.out(), ")");
 		}
 	};
-
+	#endif
 	// Big num
 
 	template<>

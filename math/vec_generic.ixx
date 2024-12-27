@@ -2,6 +2,7 @@
 export module deckard.math:vec.generic;
 import :utils;
 import :vec2;
+import :vec4;
 
 import std;
 import deckard.debug;
@@ -12,7 +13,7 @@ import deckard.utils.hash;
 
 namespace deckard::math
 {
-
+	#if 0
 	export template<arithmetic T, size_t N>
 	requires(N > 1)
 	struct vec_n
@@ -762,43 +763,20 @@ namespace deckard::math
 		return lhs.safe_divide(scalar);
 	}
 
-
+	#endif
 } // namespace deckard::math
 
-using namespace deckard;
-export using uvec2 = deckard::math::vec_n<u64, 2>;
-export using uvec3 = deckard::math::vec_n<u64, 3>;
-export using uvec4 = deckard::math::vec_n<u64, 4>;
-
-// export using ivec2 = deckard::math::vec_n<i64, 2>;
-export using ivec2 = deckard::math::generic_vec2<i64>;
-
-export using ivec3 = deckard::math::vec_n<i64, 3>;
-export using ivec4 = deckard::math::vec_n<i64, 4>;
-
-namespace deckard::math
-{
-	export auto grid_order = [](const ivec2& v1, const ivec2& v2) -> bool
-	{
-		//
-		return (v1.y < v2.y) || (v1.y == v2.y && v1.x < v2.x);
-	};
-
-	export auto grid_order_reverse = [](const ivec2& v1, const ivec2& v2) -> bool
-	{
-		//
-		return (v1.y > v2.y) || (v1.y == v2.y && v1.x > v2.x);
-	};
 
 
-} // namespace deckard::math
 
-static_assert(sizeof(deckard::math::vec_n<f32, 4>) == 16);
-static_assert(sizeof(deckard::math::vec_n<f32, 3>) == 12);
-static_assert(sizeof(deckard::math::vec_n<f32, 2>) == 8);
 
+//static_assert(sizeof(deckard::math::vec_n<f32, 4>) == 16);
+//static_assert(sizeof(deckard::math::vec_n<f32, 3>) == 12);
+//static_assert(sizeof(deckard::math::vec_n<f32, 2>) == 8);
+#if 0
 namespace std
 {
+
 	using namespace deckard::math;
 
 	template<arithmetic T>
@@ -850,3 +828,4 @@ namespace std
 		}
 	};
 } // namespace std
+#endif

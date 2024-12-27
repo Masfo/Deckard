@@ -1,9 +1,9 @@
 
 export module deckard.math:matrix;
 import :vec.generic;
-import :vec2_sse;
-import :vec3_sse;
-import :vec4_sse;
+//import :vec2_sse;
+//import :vec3_sse;
+//import :vec4_sse;
 
 import std;
 import deckard.assert;
@@ -14,7 +14,7 @@ import deckard.utils.hash;
 
 namespace deckard::math
 {
-
+	#if 0
 	class mat4_generic
 	{
 	private:
@@ -63,22 +63,22 @@ namespace deckard::math
 
 		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3)
 		{
-			data[0]  = v0[0];
-			data[1]  = v0[1];
-			data[2]  = v0[2];
-			data[3]  = v0[3];
-			data[4]  = v1[0];
-			data[5]  = v1[1];
-			data[6]  = v1[2];
-			data[7]  = v1[3];
-			data[8]  = v2[0];
-			data[9]  = v2[1];
-			data[10] = v2[2];
-			data[11] = v2[3];
-			data[12] = v3[0];
-			data[13] = v3[1];
-			data[14] = v3[2];
-			data[15] = v3[3];
+			data[0]  = v0.x;
+			data[1]  = v0.y;
+			data[2]  = v0.z;
+			data[3]  = v0.w;
+			data[4]  = v1.x;
+			data[5]  = v1.y;
+			data[6]  = v1.z;
+			data[7]  = v1.w;
+			data[8]  = v2.x;
+			data[9]  = v2.y;
+			data[10] = v2.z;
+			data[11] = v2.w;
+			data[12] = v3.x;
+			data[13] = v3.y;
+			data[14] = v3.z;
+			data[15] = v3.w;
 		}
 
 		const f32& operator[](std::size_t i, std::size_t j) const
@@ -133,10 +133,10 @@ namespace deckard::math
 
 		vec4 operator*(const vec4& v) const
 		{
-			return vec4(data[0] * v[0] + data[4] * v[1] + data[8] * v[2] + data[12] * v[3],
-						data[1] * v[0] + data[5] * v[1] + data[9] * v[2] + data[13] * v[3],
-						data[2] * v[0] + data[6] * v[1] + data[10] * v[2] + data[14] * v[3],
-						data[3] * v[0] + data[7] * v[1] + data[11] * v[2] + data[15] * v[3]);
+			return vec4(data[0] * v.x + data[4] * v.y + data[8] *  v.z + data[12] * v.w,
+						data[1] * v.x + data[5] * v.y + data[9] *  v.z + data[13] * v.w,
+						data[2] * v.x + data[6] * v.y + data[10] * v.z + data[14] * v.w,
+						data[3] * v.x + data[7] * v.y + data[11] * v.z + data[15] * v.w);
 		}
 
 		mat4_generic operator-() const
@@ -358,11 +358,11 @@ namespace deckard::math
 		temp = model * temp;
 		temp = proj * temp;
 
-		temp /= temp[3];
+		temp /= temp.z;
 
 		temp    = temp * 0.5f + 0.5f;
-		temp[0] = temp[0] * viewport[2] + viewport[0];
-		temp[1] = temp[1] * viewport[3] + viewport[1];
+		temp.x = temp.x * viewport.z + viewport.x;
+		temp.y = temp.y * viewport.w + viewport.y;
 
 		return vec3{temp};
 	}
@@ -438,8 +438,7 @@ namespace deckard::math
 	//			direction : (front - back).normalize(),
 	//		};
 	// }
-
+	#endif
 	// rotate around unit vector
 } // namespace deckard::math
 
-export using mat4 = deckard::math::mat4_generic;
