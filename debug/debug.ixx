@@ -126,10 +126,10 @@ export namespace deckard::dbg
 		}
 	}
 
-	std::string who_called_me()
+	std::string who_called_me(int index = 2)
 	{
 		auto strace = std::stacktrace::current();
-		return std::to_string(strace[2]);
+		return std::to_string(strace[index]);
 	}
 
 	void stacktrace(std::string_view file_to_ignore = __FILE__)
@@ -186,10 +186,14 @@ export namespace deckard
 	template<typename... Args>
 	void todo(std::string_view fmt, Args&&... args)
 	{
-		deckard::dbg::println(format(fmt, args...));
-		deckard::dbg::breakpoint();
+		dbg::eprintln(dbg::who_called_me());
+		dbg::panic(std::format("TODO{} {}", fmt.empty() ? "" : ":", format(fmt, args...)));
 	}
 
-	void todo() { todo(""); }
+	void todo()
+	{
+		dbg::eprintln(dbg::who_called_me());
+		dbg::panic(std::format("TODO"));
+	}
 
 } // namespace deckard

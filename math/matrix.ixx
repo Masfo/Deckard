@@ -1,6 +1,7 @@
 
 export module deckard.math:matrix;
 import :vec.generic;
+import :vec4;
 //import :vec2_sse;
 //import :vec3_sse;
 //import :vec4_sse;
@@ -14,6 +15,22 @@ import deckard.utils.hash;
 
 namespace deckard::math
 {
+
+	template<typename T>
+	class mat4_generic
+	{
+		std::array<generic_vec4<f32>, 4> m;
+
+	};
+
+	template<typename T>
+	mat4_generic<T> operator*(const mat4_generic<T>& lhs, const mat4_generic<T>& rhs)
+	{
+		mat4_generic<T> result;
+
+		return result;
+	}
+
 	#if 0
 	class mat4_generic
 	{

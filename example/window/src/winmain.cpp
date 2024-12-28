@@ -459,6 +459,141 @@ auto varsum(Args... args)
 	return std::make_tuple(args...); // Performs a binary right fold with addition
 }
 
+
+auto eval = [](std::string_view input) -> std::expected<i64, std::string>
+{
+#if 0
+	// precedence, right
+	//std::unordered_map<char, std::pair<std::pair<i8, bool>, std::function<i64(i64, i64)>>> funcs;
+
+	std::unordered_map<char, u8> precedence;
+	precedence['+'] = 2;
+	precedence['-'] = 2;
+	precedence['*'] = 3;
+	precedence['/'] = 3;
+	precedence['^'] = 4;
+
+	std::unordered_map<char, bool> right_assoc;
+	right_assoc['+'] = false;
+	right_assoc['-'] = false;
+	right_assoc['*'] = false;
+	right_assoc['/'] = false;
+	right_assoc['^'] = true;
+
+	//funcs['+'] = {{2, false}, [](i64 a, i64 b) { return a + b; }};
+	//funcs['-'] = {{2, false}, [](i64 a, i64 b) { return a - b; }};
+	//funcs['*'] = {{3, false}, [](i64 a, i64 b) { return a * b; }};
+	//funcs['/'] = {{3, false}, [](i64 a, i64 b) { return a / b; }};
+	//funcs['^'] = {{4, true}, [](i64 a, i64 b) { return (i64)std::pow(a, b); }};
+	enum type
+	{
+		ADD,
+		SUB,
+		MUL,
+		DIV,
+		POW,
+		INT64
+	};
+
+	struct value
+	{
+		type type;
+		i64  v{};
+	};
+
+
+	std::stack<char>  opstack;
+	std::stack<value> output;
+
+	bool negate = false;
+	for (u32 i = 0; i < input.size(); ++i)
+	{
+		if (input[i] == ' ')
+			continue;
+
+		if (input[i] == '-' and i + 1 < input.size() and isdigit(input[i + 1]))
+		{
+			negate = true;
+			continue;
+		}
+		else if (isdigit(input[i]))
+		{
+			i64 acc{0};
+			while (i < input.size() and isdigit(input[i]))
+			{
+				acc = acc * 10 + (int)input[i] - '0';
+				i++;
+			}
+			i--;
+			output.push(negate ? value{INT64, -acc} : value{INT64, acc});
+			negate = false;
+		}
+		else if (input[i] == '(')
+		{
+			opstack.push(input[i]);
+		}
+		else if (input[i] == ')')
+		{
+			while (not opstack.empty())
+			{
+				auto op = opstack.top();
+				opstack.pop();
+				if (op == '(')
+					break;
+
+				switch (op)
+				{
+					case '+': output.push({ADD, 0}); break;
+					case '-': output.push({SUB, 0}); break;
+					case '*': output.push({MUL, 0}); break;
+					case '/': output.push({DIV, 0}); break;
+					case '^': output.push({POW, 0}); break;
+					default: dbg::println("Unknown op '{}'", op); break;
+				}
+			}
+		}
+		else
+		{
+			if (funcs.contains(input[i]))
+			{
+				while (not opstack.empty())
+				{
+					auto op = opstack.top();
+					if (op == '(')
+						break;
+
+					if (funcs[input[i]].first.first > funcs[op].first.first)
+						break;
+					opstack.pop();
+
+					switch (op)
+					{
+						case '+': output.push({ADD, 0}); break;
+						case '-': output.push({SUB, 0}); break;
+						case '*': output.push({MUL, 0}); break;
+						case '/': output.push({DIV, 0}); break;
+						case '^': output.push({POW, 0}); break;
+						default: dbg::println("Unknown op '{}'", op); break;
+					}
+					opstack.push(input[i]);
+				}
+			}
+			else
+			{
+				opstack.push(input[i]);
+			}
+		}
+	}
+
+	std::stack<i64> result;
+	for (const auto& elem : output)
+	{
+	}
+	#endif
+	return -1;
+
+};
+
 class MyClass
 {
 public:
@@ -519,10 +654,9 @@ union alignas(alignof(__m128)) float4
 	};
 
 	__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
-
 };
 
-constexpr void operator+=(const float4& lhs, float4 &rhs)
+constexpr void operator+=(const float4& lhs, float4& rhs)
 {
 	rhs.x += lhs.x;
 	rhs.y += lhs.y;
@@ -532,7 +666,7 @@ constexpr void operator+=(const float4& lhs, float4 &rhs)
 
 auto operator+(const float4& lhs, const float4& rhs)
 {
-	float4 result{lhs};
+	float4 result{};
 
 	result.reg = _mm_add_ps(lhs.reg, rhs.reg);
 
@@ -553,6 +687,9 @@ int deckard_main()
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+
+	auto result_eval = eval("2^3^2");
+
 	// ###################
 
 	float4 vf4;
