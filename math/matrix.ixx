@@ -1,10 +1,5 @@
 
-export module deckard.math:matrix;
-import :vec.generic;
-import :vec4;
-//import :vec2_sse;
-//import :vec3_sse;
-//import :vec4_sse;
+export module deckard.matrix;
 
 import std;
 import deckard.assert;
@@ -12,26 +7,205 @@ import deckard.types;
 import deckard.debug;
 import deckard.assert;
 import deckard.utils.hash;
+import deckard.vec;
+import deckard.math.utils;
 
 namespace deckard::math
 {
 
-	template<typename T>
-	class mat4_generic
+	struct mat4_generic
 	{
-		std::array<generic_vec4<f32>, 4> m;
 
+		using type = vec4;
+		std::array<type, 4> mat;
+
+		struct fill
+		{
+		} inline static fill;
+
+
+		// identity
+
+
+		mat4_generic() = default;
+
+		explicit mat4_generic(f32 scalar) // identity
+		{
+			mat[0].x = scalar;
+			mat[1].y = scalar;
+			mat[2].z = scalar;
+			mat[3].w = scalar;
+		}
+
+		mat4_generic(const f32 v, struct fill) 
+		{ 
+			mat[0] = {v, v, v, v};
+			mat[1] = {v, v, v, v};
+			mat[2] = {v, v, v, v};
+			mat[3] = {v, v, v, v};
+		}
+
+		mat4_generic(f32 e00, f32 e01, f32 e02, f32 e03, f32 e04, f32 e05, f32 e06, f32 e07, f32 e08, f32 e09, f32 e10, f32 e11, f32 e12,
+					 f32 e13, f32 e14, f32 e15)
+		{
+			mat[0] = {e00, e01, e02, e03};
+			mat[1] = {e04, e05, e06, e07};
+			mat[2] = {e08, e09, e10, e11};
+			mat[3] = {e12, e13, e14, e15};
+		}
+
+		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3)
+		{
+			mat[0] = v0;
+			mat[1] = v1;
+			mat[2] = v2;
+			mat[3] = v3;
+		}
+
+		vec4& operator[](size_t index)
+		{
+			assert::check(index < mat.size(), "mat4: indexing out-of-bounds");
+			return mat[index];
+		}
+
+		const vec4& operator[](size_t index) const
+		{
+			assert::check(index < mat.size(), "mat4: indexing out-of-bounds");
+			return mat[index];
+		}
+
+		mat4_generic operator*(const mat4_generic& rhs) const
+		{
+			mat4_generic result;
+
+			const vec4 col0(rhs[0].x, rhs[1].x, rhs[2].x, rhs[3].x);
+			const vec4 col1(rhs[0].y, rhs[1].y, rhs[2].y, rhs[3].y);
+			const vec4 col2(rhs[0].z, rhs[1].z, rhs[2].z, rhs[3].z);
+			const vec4 col3(rhs[0].w, rhs[1].w, rhs[2].w, rhs[3].w);
+
+			for (int i = 0; i < 4; ++i)
+			{
+				result[i].x = sum(mat[i] * col0);
+				result[i].y = sum(mat[i] * col1);
+				result[i].z = sum(mat[i] * col2);
+				result[i].w = sum(mat[i] * col3);
+			}
+
+			return result;
+		}
+
+		void operator*=(const mat4_generic& rhs) { *this = *this * rhs; }
+
+		mat4_generic operator+(const mat4_generic& rhs) const
+		{
+			mat4_generic result;
+
+			result[0] = mat[0] + rhs[0];
+			result[1] = mat[1] + rhs[1];
+			result[2] = mat[2] + rhs[2];
+			result[3] = mat[3] + rhs[3];
+
+			return result;
+		}
+
+		mat4_generic operator-(const mat4_generic& rhs) const
+		{
+			mat4_generic result;
+
+			result[0] = mat[0] - rhs[0];
+			result[1] = mat[1] - rhs[1];
+			result[2] = mat[2] - rhs[2];
+			result[3] = mat[3] - rhs[3];
+
+			return result;
+		}
+
+		mat4_generic operator-() const
+		{
+			mat4_generic m(*this);
+
+			m *= mat4_generic(-1.0f);
+			return m;
+		}
+
+		mat4_generic operator+() const { return *this; }
+
+		vec4 operator*(const vec4& rhs)
+		{
+			vec4 result;
+			return result;
+		}
+
+		mat4_generic operator/(const f32 scalar) const
+		{
+			if (math::is_close_enough_zero(scalar))
+				dbg::panic("divide by zero: {} / {}", *this, scalar);
+
+			mat4_generic result;
+
+			result[0] = mat[0] / scalar;
+			result[1] = mat[1] / scalar;
+			result[2] = mat[2] / scalar;
+			result[3] = mat[3] / scalar;
+
+			return result;
+		}
+
+		bool operator==(const mat4_generic& lhs) const { return is_close_enough(lhs); }
+
+		bool equals(const mat4_generic& lhs) const { return is_close_enough(lhs); }
+
+		bool is_close_enough(const mat4_generic& lhs) const
+		{
+			return mat[0] == lhs[0] and mat[1] == lhs[1] and mat[2] == lhs[2] and mat[3] == lhs[3];
+		}
+
+		static mat4_generic identity() { return mat4_generic(1.0f); }
 	};
 
-	template<typename T>
-	mat4_generic<T> operator*(const mat4_generic<T>& lhs, const mat4_generic<T>& rhs)
-	{
-		mat4_generic<T> result;
+	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs * rhs; }
 
-		return result;
+	 export void operator/=(mat4_generic& lhs, const f32 rhs) { lhs = lhs / rhs; }
+	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs + rhs; }
+
+	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs - rhs; }
+
+	export mat4_generic transpose(const mat4_generic& mat)
+	{
+		const vec4 col0(mat[0].x, mat[1].x, mat[2].x, mat[3].x);
+		const vec4 col1(mat[0].y, mat[1].y, mat[2].y, mat[3].y);
+		const vec4 col2(mat[0].z, mat[1].z, mat[2].z, mat[3].z);
+		const vec4 col3(mat[0].w, mat[1].w, mat[2].w, mat[3].w);
+
+		return mat4_generic(col0, col1, col2, col3);
 	}
 
-	#if 0
+	export vec4 operator*(const mat4_generic& rhs, const vec4& lhs)
+	{
+		return vec4(sum(lhs * rhs[0]), sum(lhs * rhs[1]), sum(lhs * rhs[2]), sum(lhs * rhs[3]));
+	}
+
+	export vec4 operator*(const vec4& lhs, const mat4_generic& rhs)
+	{
+	
+		vec4 const Mov0(lhs.x);
+		vec4 const Mov1(lhs.y);
+		vec4 const Mul0 = rhs[0] * Mov0;
+		vec4 const Mul1 = rhs[1] * Mov1;
+		vec4 const Add0 = Mul0 + Mul1;
+		vec4 const Mov2(lhs.z);
+		vec4 const Mov3(lhs.w);
+		vec4 const Mul2 = rhs[2] * Mov2;
+		vec4 const Mul3 = rhs[3] * Mov3;
+		vec4 const Add1 = Mul2 + Mul3;
+		vec4 const Add2 = Add0 + Add1;
+		return Add2;
+	}
+
+	export using mat4 = mat4_generic;
+
+
+#if 0
 	class mat4_generic
 	{
 	private:
@@ -455,7 +629,31 @@ namespace deckard::math
 	//			direction : (front - back).normalize(),
 	//		};
 	// }
-	#endif
+#endif
 	// rotate around unit vector
 } // namespace deckard::math
 
+namespace std
+{
+	template<>
+	struct hash<mat4_generic>
+	{
+		size_t operator()(const mat4_generic& value) const { return deckard::utils::hash_values(value); }
+	};
+
+	template<>
+	struct formatter<mat4_generic>
+	{
+		// TODO: Parse single or multi row?
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const mat4_generic& m, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "mat4(({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[0].x, m[0].y, m[0].z, m[0].w);
+			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[1].x, m[1].y, m[1].z, m[1].w);
+			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[2].x, m[2].y, m[2].z, m[2].w);
+			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f})", m[3].x, m[3].y, m[3].z, m[3].w);
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+} // namespace std
