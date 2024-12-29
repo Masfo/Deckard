@@ -1,5 +1,4 @@
-export module deckard.math:vec4;
-import :utils;
+export module deckard.vec:vec4;
 import :vec3;
 
 import std;
@@ -13,7 +12,7 @@ namespace deckard::math
 {
 
 	export template<arithmetic T>
-	struct generic_vec4
+	struct alignas(alignof(T)) generic_vec4
 	{
 		using type     = T;
 		using vec_type = generic_vec4<T>;
@@ -568,8 +567,17 @@ namespace deckard::math
 		return lhs.reflect(rhs);
 	}
 
+	export template<arithmetic T>
+	[[nodiscard("Use the summed vector value")]] constexpr T sum(const generic_vec4<T>& lhs)
+	{
+		return lhs.x + lhs.y + lhs.z + lhs.w;
+	}
+
+	export using vec4 = generic_vec4<f32>;
 
 } // namespace deckard::math
+
+
 
 export namespace std
 {

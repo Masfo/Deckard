@@ -1,5 +1,5 @@
-export module deckard.math:vec2;
-import :utils;
+export module deckard.vec:vec2;
+
 
 import std;
 import deckard.debug;
@@ -7,6 +7,7 @@ import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.utils.hash;
+import deckard.math.utils;
 
 namespace deckard::math
 {
@@ -493,6 +494,11 @@ namespace deckard::math
 		return lhs.reflect(rhs);
 	}
 
+	export template<arithmetic T>
+	[[nodiscard("Use the summed vector value")]] constexpr T sum(const generic_vec2<T>& lhs)
+	{
+		return lhs.x + lhs.y;
+	}
 
 } // namespace deckard::math
 
