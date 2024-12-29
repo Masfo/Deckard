@@ -2,7 +2,6 @@ export module deckard.math:easing;
 
 import deckard.types;
 import deckard.as;
-import :utils;
 
 export namespace deckard::math
 {
