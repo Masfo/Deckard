@@ -6,10 +6,6 @@ import deckard.assert;
 import deckard.types;
 import deckard.debug;
 
-import :vec3;
-import :vec4;
-import :matrix;
-import :utils;
 import std;
 
 namespace deckard::math

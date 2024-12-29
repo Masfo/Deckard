@@ -2,8 +2,6 @@ module;
 #include <intrin.h>
 
 export module deckard.math:vec4_sse;
-import :vec3_sse;
-import :utils;
 import deckard.assert;
 import deckard.debug;
 
