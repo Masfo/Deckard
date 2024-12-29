@@ -1,11 +1,11 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-
 import deckard.debug;
 import deckard.helpers;
 import deckard.math;
 import deckard.types;
+import deckard.vec;
 
 
 import std;

@@ -10,7 +10,113 @@ using namespace std::string_literals;
 
 TEST_CASE("matrix generic", "[matrix]")
 {
-	#if 0
+
+	SECTION("constructors")
+	{
+		mat4 identity(1.0f);
+
+		REQUIRE(identity[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(identity[1] == vec4{0.0f, 1.0f, 0.0f, 0.0f});
+		REQUIRE(identity[2] == vec4{0.0f, 0.0f, 1.0f, 0.0f});
+		REQUIRE(identity[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+
+		mat4 m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+		REQUIRE(m[0] == vec4{1.0f, 2.0f, 3.0f, 4.0f});
+		REQUIRE(m[1] == vec4{5.0f, 6.0f, 7.0f, 8.0f});
+		REQUIRE(m[2] == vec4{9.0f, 10.0f, 11.0f, 12.0f});
+		REQUIRE(m[3] == vec4{13.0f, 14.0f, 15.0f, 16.0f});
+	}
+
+	SECTION("multiply with identity")
+	{
+		const mat4 m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+		mat4       mul = m * mat4::identity();
+
+		REQUIRE(mul[0] == vec4{1.0f, 2.0f, 3.0f, 4.0f});
+		REQUIRE(mul[1] == vec4{5.0f, 6.0f, 7.0f, 8.0f});
+		REQUIRE(mul[2] == vec4{9.0f, 10.0f, 11.0f, 12.0f});
+		REQUIRE(mul[3] == vec4{13.0f, 14.0f, 15.0f, 16.0f});
+	}
+
+	SECTION("multiply with self")
+	{
+		const mat4 m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+		mat4       mul = m * m;
+
+		REQUIRE(mul[0] == vec4{90.0f, 100.0f, 110.0f, 120.0f});
+		REQUIRE(mul[1] == vec4{202.0f, 228.0f, 254.0f, 280.0f});
+		REQUIRE(mul[2] == vec4{314.0f, 356.0f, 398.0f, 440.0f});
+		REQUIRE(mul[3] == vec4{426.0f, 484.0f, 542.0f, 600.0f});
+	}
+
+	SECTION("add")
+	{
+		const mat4 m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+		mat4       mul = m + m;
+		REQUIRE(mul[0] == vec4{2.0f, 4.0f, 6.0f, 8.0f});
+		REQUIRE(mul[1] == vec4{10.0f, 12.0f, 14.0f, 16.0f});
+		REQUIRE(mul[2] == vec4{18.0f, 20.0f, 22.0f, 24.0f});
+		REQUIRE(mul[3] == vec4{26.0f, 28.0f, 30.0f, 32.0f});
+	}
+
+	SECTION("sub")
+	{
+		const mat4 m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+		mat4       mul = m - m;
+		REQUIRE(mul[0] == vec4::zero());
+		REQUIRE(mul[1] == vec4::zero());
+		REQUIRE(mul[2] == vec4::zero());
+		REQUIRE(mul[3] == vec4::zero());
+	}
+
+	SECTION("transpose")
+	{
+		const mat4 real{1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16};
+		mat4       m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+
+		auto tranposed = transpose(m);
+		REQUIRE(real == tranposed);
+	}
+
+	SECTION("multiply vec4")
+	{
+		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		const vec4       v(2.0f, 3.5f, 4.5f, 6.0f);
+
+		REQUIRE(m * v == vec4{46.5f, 110.5f, 174.5f, 238.5f});
+		REQUIRE(v * m == vec4{138.0f, 154.0f, 170.0f, 186.0f});
+
+	}
+
+	
+	SECTION("divide by scalar")
+	{
+		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		const auto div2 = m / 2;
+		REQUIRE(div2[0] == vec4{0.5f, 1.0f, 1.5f, 2.0f});
+		REQUIRE(div2[1] == vec4{2.5f, 3.0f, 3.5f, 4.0f});
+		REQUIRE(div2[2] == vec4{4.5f, 5.0f, 5.5f, 6.0f});
+		REQUIRE(div2[3] == vec4{6.5f, 7.0f, 7.5f, 8.0f});
+	}
+
+	SECTION("negate")
+	{
+		const mat4 a(-4, mat4::fill);
+		mat4       m(4, mat4::fill);
+
+		REQUIRE(a == -m);
+	}
+
+	SECTION("equals")
+	{
+		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0f};
+		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.001f};
+
+		REQUIRE(m == m);
+		REQUIRE(m != m2);
+	}
+
+#if 0
 	SECTION("identity")
 	{
 		mat4 m = mat4::identity();
