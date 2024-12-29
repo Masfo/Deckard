@@ -10,6 +10,7 @@ import deckard.utils.hash;
 
 namespace deckard::math
 {
+	class mat4_generic;
 
 	export template<arithmetic T>
 	struct alignas(alignof(T)) generic_vec4
@@ -132,7 +133,6 @@ namespace deckard::math
 			result += other;
 			return result;
 		}
-
 
 		constexpr void operator+=(const T scalar)
 		{
@@ -576,8 +576,6 @@ namespace deckard::math
 	export using vec4 = generic_vec4<f32>;
 
 } // namespace deckard::math
-
-
 
 export namespace std
 {

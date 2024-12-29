@@ -169,17 +169,18 @@ set(DECKARD_SRCS
         # Math
         math/math.ixx
         math/ease_functions.ixx
-        math/math_formatter.ixx
-        math/matrix.ixx
         math/math_utility.ixx
-        math/vec_generic.ixx
-        math/vec_sse_generic.ixx
-        math/vec2_sse.ixx
-        math/vec3_sse.ixx
+        
+        
+        math/matrix.ixx
+
         math/vec4_sse.ixx
+
+        math/generic_vec.ixx
         math/generic_vec2.ixx
         math/generic_vec3.ixx
         math/generic_vec4.ixx
+
         math/quaternion.ixx
 
         # Net

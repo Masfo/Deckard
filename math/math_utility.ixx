@@ -6,7 +6,7 @@ module;
 #include <xmmintrin.h>
 
 
-export module deckard.math:utils;
+export module deckard.math.utils;
 import std;
 import deckard.types;
 import deckard.as;
