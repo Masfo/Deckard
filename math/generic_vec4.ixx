@@ -312,7 +312,7 @@ namespace deckard::math
 
 		constexpr auto operator<=>(const vec_type& other) const = default;
 
-		constexpr bool operator==(const vec_type& other) const { return equals(other, T{}); }
+		constexpr bool operator==(const vec_type& other) const { return equals(other); }
 
 		constexpr bool equals(const vec_type& other, const T epsilon = 0) const
 		requires(std::is_integral_v<T>)
@@ -327,13 +327,13 @@ namespace deckard::math
 				   std::abs(w - lhs.w) == epsilon;
 		}
 
-		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const
+		constexpr bool equals(const vec_type& other, const T epsilon = T{0.00001}) const
 		requires(std::is_floating_point_v<T>)
 		{
 			return is_close_enough(other, epsilon);
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.000001}) const
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.00001}) const
 		requires(std::is_floating_point_v<T>)
 		{
 			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon) and

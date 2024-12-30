@@ -75,7 +75,7 @@ export namespace deckard::math
 
 	// is_close_enough
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-7})
+	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-5})
 	{
 		const T diff    = A - B;
 		const T absdiff = std::abs(diff);
@@ -83,7 +83,7 @@ export namespace deckard::math
 	}
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T error = T{1e-7})
+	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T error = T{1e-5})
 	{
 		return std::abs(A) <= error;
 	}

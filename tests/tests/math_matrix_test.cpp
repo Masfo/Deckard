@@ -81,14 +81,13 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("multiply vec4")
 	{
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-		const vec4       v(2.0f, 3.5f, 4.5f, 6.0f);
+		const vec4 v(2.0f, 3.5f, 4.5f, 6.0f);
 
 		REQUIRE(m * v == vec4{46.5f, 110.5f, 174.5f, 238.5f});
 		REQUIRE(v * m == vec4{138.0f, 154.0f, 170.0f, 186.0f});
-
 	}
 
-	
+
 	SECTION("divide by scalar")
 	{
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
@@ -114,6 +113,21 @@ TEST_CASE("matrix generic", "[matrix]")
 
 		REQUIRE(m == m);
 		REQUIRE(m != m2);
+	}
+
+	SECTION("lookat_rh")
+	{
+		mat4 lat = lookat_rh(
+		  vec3(4, 10, 3), //
+		  vec3(0, 0, 0),  //
+		  vec3(0, 1, 0)   //
+		);
+
+
+		REQUIRE(lat[0] == vec4{0.59999f, -0.71554f, 0.35777f, 0.0f});
+		REQUIRE(lat[1] == vec4{0.0f, 0.44721f, 0.89442f, 0.0f});
+		REQUIRE(lat[2] == vec4{-0.80000f, -0.53665f, 0.26832f, 0.0f});
+		REQUIRE(lat[3] == vec4{0.0f, -0.0f, -11.18033f, 1.0f});
 	}
 
 #if 0

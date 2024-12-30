@@ -23,7 +23,6 @@ namespace deckard::math
 		{
 		} inline static fill;
 
-
 		// identity
 
 
@@ -37,8 +36,8 @@ namespace deckard::math
 			mat[3].w = scalar;
 		}
 
-		mat4_generic(const f32 v, struct fill) 
-		{ 
+		mat4_generic(const f32 v, struct fill)
+		{
 			mat[0] = {v, v, v, v};
 			mat[1] = {v, v, v, v};
 			mat[2] = {v, v, v, v};
@@ -165,20 +164,11 @@ namespace deckard::math
 
 	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs * rhs; }
 
-	 export void operator/=(mat4_generic& lhs, const f32 rhs) { lhs = lhs / rhs; }
+	export void operator/=(mat4_generic& lhs, const f32 rhs) { lhs = lhs / rhs; }
+
 	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs + rhs; }
 
 	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs - rhs; }
-
-	export mat4_generic transpose(const mat4_generic& mat)
-	{
-		const vec4 col0(mat[0].x, mat[1].x, mat[2].x, mat[3].x);
-		const vec4 col1(mat[0].y, mat[1].y, mat[2].y, mat[3].y);
-		const vec4 col2(mat[0].z, mat[1].z, mat[2].z, mat[3].z);
-		const vec4 col3(mat[0].w, mat[1].w, mat[2].w, mat[3].w);
-
-		return mat4_generic(col0, col1, col2, col3);
-	}
 
 	export vec4 operator*(const mat4_generic& rhs, const vec4& lhs)
 	{
@@ -187,7 +177,6 @@ namespace deckard::math
 
 	export vec4 operator*(const vec4& lhs, const mat4_generic& rhs)
 	{
-	
 		vec4 const Mov0(lhs.x);
 		vec4 const Mov1(lhs.y);
 		vec4 const Mul0 = rhs[0] * Mov0;
@@ -200,6 +189,30 @@ namespace deckard::math
 		vec4 const Add1 = Mul2 + Mul3;
 		vec4 const Add2 = Add0 + Add1;
 		return Add2;
+	}
+
+	export mat4_generic transpose(const mat4_generic& mat)
+	{
+		const vec4 col0(mat[0].x, mat[1].x, mat[2].x, mat[3].x);
+		const vec4 col1(mat[0].y, mat[1].y, mat[2].y, mat[3].y);
+		const vec4 col2(mat[0].z, mat[1].z, mat[2].z, mat[3].z);
+		const vec4 col3(mat[0].w, mat[1].w, mat[2].w, mat[3].w);
+
+		return mat4_generic(col0, col1, col2, col3);
+	}
+
+	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up)
+	{
+		//
+		vec3 f = normalized(center - eye);
+		vec3 s = normalized(cross(f, up));
+		vec3 u = cross(s, f);
+
+		return mat4_generic(
+		  vec4(s.x, u.x, -f.x, 0.0f), //
+		  vec4(s.y, u.y, -f.y, 0.0f), //
+		  vec4(s.z, u.z, -f.z, 0.0f), //
+		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 	}
 
 	export using mat4 = mat4_generic;
