@@ -129,12 +129,6 @@ namespace deckard::math
 
 		mat4_generic operator+() const { return *this; }
 
-		vec4 operator*(const vec4& rhs)
-		{
-			vec4 result;
-			return result;
-		}
-
 		mat4_generic operator/(const f32 scalar) const
 		{
 			if (math::is_close_enough_zero(scalar))
@@ -265,6 +259,26 @@ namespace deckard::math
 		  vec4(s.y, u.y, -f.y, 0.0f), //
 		  vec4(s.z, u.z, -f.z, 0.0f), //
 		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
+	}
+
+	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far)
+	{
+		f32 const tanHalfFovy = std::tan(fov / 2.0f);
+
+		return mat4_generic(
+		  vec4(1.0f / (aspect * tanHalfFovy), 0.0f, 0.0f, 0.0f),
+		  vec4(0.0f, 1.0f / tanHalfFovy, 0.0f, 0.0f),
+		  vec4(0.0f, 0.0f, -(far + near) / (far - near), -1.0f),
+		  vec4(0.0f, 0.0f, -(2.0f * far * near) / (far - near), 0.0f));
+	}
+
+	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
+	{
+		return mat4_generic(
+		  vec4(2 / (right - left), 0.0f, 0.0f, 0.0f),
+		  vec4(0.0f, 2 / (top - bottom), 0.0f, 0.0f),
+		  vec4(0.0f, 0.0f, -(2 / (far - near)), 0.0f),
+		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
 
 	export using mat4 = mat4_generic;
