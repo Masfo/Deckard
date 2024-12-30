@@ -159,6 +159,50 @@ namespace deckard::math
 			return mat[0] == lhs[0] and mat[1] == lhs[1] and mat[2] == lhs[2] and mat[3] == lhs[3];
 		}
 
+		mat4_generic scale(const vec3& scale) const
+		{
+			const vec4 XS(scale.x);
+			const vec4 YS(scale.y);
+			const vec4 ZS(scale.z);
+
+			return mat4_generic(mat[0] * XS, mat[1] * YS, mat[2] * ZS, mat[3]);
+		}
+
+		mat4_generic rotate(f32 radians, const vec3& v) const
+		{
+			f32 a = radians;
+			f32 c = std::cos(a);
+			f32 s = std::sin(a);
+
+			vec3 axis(v.normalized());
+			vec3 temp(axis * (1.0f - c));
+
+			const mat4_generic Rotate(
+			  vec4(c + temp.x * axis.x, temp.x * axis.y + s * axis.z, temp.x * axis.z - s * axis.y, 0.0f),
+			  vec4(0 + temp.y * axis.x - s * axis.z, c + temp.y * axis.y, temp.y * axis.z + s * axis.x, 0.0f),
+			  vec4(0 + temp.z * axis.x + s * axis.y, temp.z * axis.y - s * axis.x, c + temp.z * axis.z, 0.0f),
+			  vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+			return *this * Rotate;
+		}
+
+		mat4_generic translate(const vec3& translate) const
+		{
+			mat4_generic   result(*this);
+			result[3] = mat[0] * translate.x + mat[1] * translate.y + mat[2] * translate.z + mat[3];
+			return result;
+
+
+			//vec4 v(mat[0].x, mat[0].y, mat[0].z, 1.0f);
+			//
+			//v *= translate.x;
+			//v += mat[1] * translate.y;
+			//v += mat[2] * translate.z;
+			//v += mat[3];
+			//
+			//return mat4_generic(mat[0], mat[1], mat[2], v);
+		}
+
 		static mat4_generic identity() { return mat4_generic(1.0f); }
 	};
 
@@ -200,6 +244,14 @@ namespace deckard::math
 
 		return mat4_generic(col0, col1, col2, col3);
 	}
+
+
+	export mat4_generic scale(const mat4_generic& mat, const vec3& scale) { return mat.scale(scale); }
+
+	export mat4_generic translate(const mat4_generic& mat, const vec3& translate) { return mat.translate(translate); }
+
+	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v) { return m.rotate(radians, v); }
+
 
 	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up)
 	{

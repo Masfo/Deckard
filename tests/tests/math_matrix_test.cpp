@@ -130,6 +130,120 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(lat[3] == vec4{0.0f, -0.0f, -11.18033f, 1.0f});
 	}
 
+	SECTION("scale")
+	{
+		mat4 scal{1.0f, 2.0f, 4.0f, 8.0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.2f, 2.4f, 3.6f, 4.8f, 8.0f, 8.0f, 8.0f, 8.0f};
+		scal = scale(scal, vec3(2.0f, 3.0f, 4.0f));
+
+		REQUIRE(scal[0] == vec4{2.0f, 4.0f, 8.0f, 16.0f});
+		REQUIRE(scal[1] == vec4{0.6f, 1.2f, 1.8f, 2.4f});
+		REQUIRE(scal[2] == vec4{4.8f, 9.6f, 14.4f, 19.2f});
+		REQUIRE(scal[3] == vec4{8.0f, 8.0f, 8.0f, 8.0f});
+	}
+
+	SECTION("translate")
+	{
+		mat4 transl{1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 10, 10, 10, 10};
+		transl = translate(transl, vec3(2.0f, 30.0f, 4.0f));
+
+		REQUIRE(transl[0] == vec4{1.0f, 1.0f, 1.0f, 1.0f});
+		REQUIRE(transl[1] == vec4{2.0f, 2.0f, 2.0f, 2.0f});
+		REQUIRE(transl[2] == vec4{3.0f, 3.0f, 3.0f, 3.0f});
+		REQUIRE(transl[3] == vec4{84.0f, 84.0f, 84.0f, 84.0f});
+
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		REQUIRE(transl[0] == vec4{1.0f, 1.0f, 1.0f, 1.0f});
+		REQUIRE(transl[1] == vec4{2.0f, 2.0f, 2.0f, 2.0f});
+		REQUIRE(transl[2] == vec4{3.0f, 3.0f, 3.0f, 3.0f});
+		REQUIRE(transl[3] == vec4{84.0f, 84.0f, 84.0f, 84.0f});
+	}
+
+	SECTION("perspective")
+	{
+		auto persp = perspective(to_radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
+
+		REQUIRE(persp[0] == vec4{0.61386f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(persp[1] == vec4{0.0f, 1.09131f, 0.0f, 0.0f});
+		REQUIRE(persp[2] == vec4{0.0f, 0.0f, -1.00200f, -1.0f});
+		REQUIRE(persp[3] == vec4{0.0f, 0.0f, -0.20020f, 0.0f});
+	}
+
+	SECTION("ortho")
+	{
+		auto orthopers = ortho(0, 400, 0, 400, -1, 1);
+
+		REQUIRE(orthopers[0] == vec4{0.00500f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(orthopers[1] == vec4{0.0f, 0.00500f, 0.0f, 0.0f});
+		REQUIRE(orthopers[2] == vec4{0.0f, 0.0f, -1.0f, 0.0f});
+		REQUIRE(orthopers[3] == vec4{-1.0f, -1.0f, -0.0f, 1.0f});
+	}
+
+	SECTION("Rotate X")
+	{
+
+		mat4 rot = rotate(mat4(1.0f), 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		
+
+		REQUIRE(rot[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(rot[1] == vec4{0.0f, -0.80114f, -0.59847f, 0.0f});
+		REQUIRE(rot[2] == vec4{0.0f, 0.59847f, -0.80114f, 0.0f});
+		REQUIRE(rot[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+	}
+
+		SECTION("Rotate Y")
+	{
+		mat4 rot = rotate(mat4(1.0f), -0.5f, vec3(0.0f, 1.0f, 0.0f));
+
+		REQUIRE(rot[0] == vec4{0.87758f, 0.0f, 0.47943f, 0.0f});
+		REQUIRE(rot[1] == vec4{0.0f, 1.0f, 0.0, 0.0f});
+		REQUIRE(rot[2] == vec4{-0.47943f, 0.0f, 0.87758f, 0.0f});
+		REQUIRE(rot[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+	}
+
+	SECTION("Rotate Z")
+	{
+		mat4 rot = rotate(mat4(1.0f), 3.75f, vec3(0.0f, 0.0f, 1.0f));
+
+		REQUIRE(rot[0] == vec4{-0.82056f, -0.57156f, 0.0f, 0.0f});
+		REQUIRE(rot[1] == vec4{0.57156f, -0.82056f, 0.0, 0.0f});
+		REQUIRE(rot[2] == vec4{0.0f, 0.0f, 1.0f, 0.0f});
+		REQUIRE(rot[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+	}
+
+	SECTION("full MVP")
+	{
+
+		mat4 Projection    = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		
+		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+
+		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+		mat4 Model         = scale(mat4(1.0f), vec3(0.5f));
+		mat4 MVP           = Projection * View * Model;
+
+		auto        fmt = std::format("{}", MVP);
+		std::string test(
+		  "mat4((-0.37675, 0.65689, 0.36497, 0.36424),\n"
+		  "     (0.00000, -0.96707, 0.29984, 0.29924),\n"
+		  "     (-0.82321, -0.30063, -0.16703, -0.16670),\n"
+		  "     (0.00000, 0.00000, 4.80981, 5.00000))");
+
+		REQUIRE(fmt == test);
+
+
+		//auto        inv    = inverse(MVP);
+		//auto        invfmt = std::format("{}", inv);
+		//std::string invtest(
+		//  "mat4((-0.45966, 0.00000, -1.00438, -0.00000),\n"
+		//  "     (0.45082, -0.66369, -0.20632, -0.00000),\n"
+		//  "     (36.38750, 29.89371, -16.65302, -4.99500),\n"
+		//  "     (-35.00340, -28.75661, 16.01957, 5.00500))");
+		//
+		//REQUIRE(invfmt == invtest);
+	}
+
+
 #if 0
 	SECTION("identity")
 	{
