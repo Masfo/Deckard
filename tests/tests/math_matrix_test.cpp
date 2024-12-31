@@ -83,8 +83,8 @@ TEST_CASE("matrix generic", "[matrix]")
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 		const vec4 v(2.0f, 3.5f, 4.5f, 6.0f);
 
-		REQUIRE(m * v == vec4{46.5f, 110.5f, 174.5f, 238.5f});
-		REQUIRE(v * m == vec4{138.0f, 154.0f, 170.0f, 186.0f});
+		REQUIRE(m * v == vec4{138.0f, 154.0f, 170.0f, 186.0f});
+		REQUIRE(v * m == vec4{46.5f, 110.5f, 174.5f, 238.5f});
 	}
 
 
@@ -176,6 +176,17 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(orthopers[1] == vec4{0.0f, 0.00500f, 0.0f, 0.0f});
 		REQUIRE(orthopers[2] == vec4{0.0f, 0.0f, -1.0f, 0.0f});
 		REQUIRE(orthopers[3] == vec4{-1.0f, -1.0f, -0.0f, 1.0f});
+	}
+
+	
+	SECTION("frustum")
+	{
+		auto fr = frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 100.0f);
+		
+		REQUIRE(fr[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(fr[1] == vec4{0.0f, 1.0f, 0.0f, 0.0f});
+		REQUIRE(fr[2] == vec4{0.0f, 0.0f, -1.02020f, -1.0f});
+		REQUIRE(fr[3] == vec4{0.0f, 0.0f, -2.02020f, 0.0f});
 	}
 
 	SECTION("Rotate X")
@@ -272,6 +283,58 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	}
 
+	SECTION("project/unproject")
+	{
+		vec3 point(1.0f, -2.0f, 3.0f);
+
+		mat4 model = translate(mat4(1.0f), vec3(0.0f, 0.0f, -10.0f));
+		vec4 viewport(0.0f, 0.0f, 640.0f, 360.0f);
+		mat4 projection = frustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 100.0f);
+
+
+		vec3 projected   = project(point, model, projection, viewport);
+		vec3 unprojected = unproject(projected, model, projection, viewport);
+
+		REQUIRE(projected == vec3(365.71429f, 128.57142f, 0.86580f));
+
+		REQUIRE(point == unprojected);
+	}
+
+
+	SECTION("unproject")
+	{
+		vec2  mouse{100.0f, 124.0f};
+		float width      = 1920.0f;
+		float height     = 1080.0f;
+		mat4  Projection = perspective(to_radians(85.0f), width / height, 0.1f, 100.0f);
+
+		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
+		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+
+		vec3 mouse_world_nearplane =
+		  unproject(vec3(mouse.x * width, mouse.y * height, 0.0f), View, Projection, vec4(0, 0, width, height));
+
+		vec3 mouse_world_farplane = unproject(vec3(mouse.x * width, mouse.y * height, 1.0f), View, Projection, vec4(0, 0, width, height));
+
+
+		REQUIRE(mouse_world_nearplane == vec3(-4.7432f, -21.0652f, -33.4807f));
+		REQUIRE(mouse_world_farplane == vec3(-1109.416f, -18156.472f, -35302.859f));
+	}
+
+	SECTION("format")
+	{
+		const mat4 m(1.0f);
+		auto       fmt = std::format("{}", m);
+
+		std::string test(
+		  "mat4((1.00000, 0.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 1.00000, 0.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, 1.00000, 0.00000),\n"
+		  "     (0.00000, 0.00000, 0.00000, 1.00000))");
+
+		REQUIRE(fmt == test);
+	}
 
 #if 0
 	SECTION("identity")

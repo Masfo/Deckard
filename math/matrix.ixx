@@ -73,7 +73,7 @@ namespace deckard::math
 			return mat[index];
 		}
 
-		mat4_generic operator*(const f32 scalar)const 
+		mat4_generic operator*(const f32 scalar) const
 		{
 			return mat4_generic(mat[0] * scalar, mat[1] * scalar, mat[2] * scalar, mat[3] * scalar);
 		}
@@ -221,9 +221,9 @@ namespace deckard::math
 			f32 Coef14 = mat[1].x * mat[3].w - mat[3].x * mat[1].w;
 			f32 Coef15 = mat[1].x * mat[2].w - mat[2].x * mat[1].w;
 
-			f32 Coef16 = mat[2].x * mat[3].z- mat[3].x * mat[2].z;
-			f32 Coef18 = mat[1].x * mat[3].z- mat[3].x * mat[1].z;
-			f32 Coef19 = mat[1].x * mat[2].z- mat[2].x * mat[1].z;
+			f32 Coef16 = mat[2].x * mat[3].z - mat[3].x * mat[2].z;
+			f32 Coef18 = mat[1].x * mat[3].z - mat[3].x * mat[1].z;
+			f32 Coef19 = mat[1].x * mat[2].z - mat[2].x * mat[1].z;
 
 			f32 Coef20 = mat[2].x * mat[3].y - mat[3].x * mat[2].y;
 			f32 Coef22 = mat[1].x * mat[3].y - mat[3].x * mat[1].y;
@@ -272,24 +272,25 @@ namespace deckard::math
 
 	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs - rhs; }
 
-
-
-	export vec4 operator*(const mat4_generic& rhs, const vec4& lhs)
-	{
-		return vec4(sum(lhs * rhs[0]), sum(lhs * rhs[1]), sum(lhs * rhs[2]), sum(lhs * rhs[3]));
-	}
-
 	export vec4 operator*(const vec4& lhs, const mat4_generic& rhs)
 	{
-		vec4 const Mov0(lhs.x);
-		vec4 const Mov1(lhs.y);
-		vec4 const Mul0 = rhs[0] * Mov0;
-		vec4 const Mul1 = rhs[1] * Mov1;
+		return vec4(rhs[0].x * lhs.x + rhs[0].y * lhs.y + rhs[0].z * lhs.z + rhs[0].w * lhs.w,
+					rhs[1].x * lhs.x + rhs[1].y * lhs.y + rhs[1].z * lhs.z + rhs[1].w * lhs.w,
+					rhs[2].x * lhs.x + rhs[2].y * lhs.y + rhs[2].z * lhs.z + rhs[2].w * lhs.w,
+					rhs[3].x * lhs.x + rhs[3].y * lhs.y + rhs[3].z * lhs.z + rhs[3].w * lhs.w);
+	}
+
+	export vec4 operator*(const mat4_generic& lhs, const vec4& rhs)
+	{
+		vec4 const Mov0(rhs.x);
+		vec4 const Mov1(rhs.y);
+		vec4 const Mul0 = lhs[0] * Mov0;
+		vec4 const Mul1 = lhs[1] * Mov1;
 		vec4 const Add0 = Mul0 + Mul1;
-		vec4 const Mov2(lhs.z);
-		vec4 const Mov3(lhs.w);
-		vec4 const Mul2 = rhs[2] * Mov2;
-		vec4 const Mul3 = rhs[3] * Mov3;
+		vec4 const Mov2(rhs.z);
+		vec4 const Mov3(rhs.w);
+		vec4 const Mul2 = lhs[2] * Mov2;
+		vec4 const Mul3 = lhs[3] * Mov3;
 		vec4 const Add1 = Mul2 + Mul3;
 		vec4 const Add2 = Add0 + Add1;
 		return Add2;
@@ -346,6 +347,52 @@ namespace deckard::math
 	}
 
 	export mat4_generic inverse(const mat4_generic& mat) { return mat.inverse(); }
+
+	export vec3 project(const vec3& obj, const mat4_generic model, const mat4_generic& proj, const vec4& viewport)
+	{
+		vec4 tmp(obj, 1.0f);
+		tmp = model * tmp;
+		tmp = proj * tmp;
+
+		tmp /= tmp.w;
+		tmp   = tmp * 0.5f + 0.5f;
+		tmp.x = tmp.x * viewport.z + viewport.x;
+		tmp.y = tmp.y * viewport.w + viewport.y;
+
+		return vec3(tmp);
+	}
+
+	export vec3 unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport)
+	{
+		mat4_generic inv = inverse(proj * model);
+
+		vec4 temp(win, 1.0f);
+
+		temp.x = (temp.x - viewport.x) / viewport.z;
+		temp.y = (temp.y - viewport.y) / viewport.w;
+
+		temp = temp * 2.0f - 1.0f;
+
+		vec4 obj = inv * temp;
+		obj /= obj.w;
+
+		return vec3{obj};
+	}
+
+	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
+	{
+		mat4_generic result(0);
+
+		result[0].x = (2.0f * near) / (right - left);
+		result[1].y = (2.0f * near) / (top - bottom);
+		result[2].x = (right + left) / (right - left);
+		result[2].y = (top + bottom) / (top - bottom);
+		result[2].z = -(far + near) / (far - near);
+		result[2].w = -1.0f;
+		result[3].z = -(2.0f * far * near) / (far - near);
+
+		return result;
+	}
 
 	export using mat4 = mat4_generic;
 
