@@ -35,7 +35,7 @@ namespace deckard::math
 		{
 		}
 
-		constexpr generic_vec4(generic_vec3<T> v, T sw)
+		constexpr generic_vec4(const generic_vec3<T> &v, T sw)
 			: x(v.x)
 			, y(v.y)
 			, z(v.z)
@@ -310,6 +310,9 @@ namespace deckard::math
 			w = v[3];
 		}
 
+
+		constexpr operator generic_vec3<T>() const { return generic_vec3<T>(x, y, z); }
+
 		constexpr auto operator<=>(const vec_type& other) const = default;
 
 		constexpr bool operator==(const vec_type& other) const { return equals(other); }
@@ -327,13 +330,13 @@ namespace deckard::math
 				   std::abs(w - lhs.w) == epsilon;
 		}
 
-		constexpr bool equals(const vec_type& other, const T epsilon = T{0.00001}) const
+		constexpr bool equals(const vec_type& other, const T epsilon = T{0.0001}) const
 		requires(std::is_floating_point_v<T>)
 		{
 			return is_close_enough(other, epsilon);
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.00001}) const
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.0001}) const
 		requires(std::is_floating_point_v<T>)
 		{
 			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon) and

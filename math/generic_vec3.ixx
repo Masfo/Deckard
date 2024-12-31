@@ -170,8 +170,7 @@ namespace deckard::math
 			z *= scalar;
 		}
 
-
-	// div
+		// div
 		constexpr void operator/=(const vec_type& other)
 		{
 			if (other.has_zero())
@@ -180,7 +179,6 @@ namespace deckard::math
 			x /= other.x;
 			y /= other.y;
 			z /= other.z;
-
 		}
 
 		constexpr vec_type operator/(const vec_type& other) const
@@ -284,11 +282,17 @@ namespace deckard::math
 			z = v[2];
 		}
 
+		constexpr operator generic_vec2<T>() const { return generic_vec2<T>(x, y); }
+
 		constexpr auto operator<=>(const vec_type& other) const = default;
 
-		constexpr bool operator==(const vec_type& other) const { return equals(other, T{}); }
+		constexpr bool operator==(const vec_type& other) const { return equals(other); }
 
-		constexpr bool equals(const vec_type& other, const T epsilon = 0) const { return is_close_enough(other, epsilon); }
+		constexpr bool equals(const vec_type& other, const T epsilon = T{0})const
+		requires(std::is_integral_v<T>)
+		{
+			return is_close_enough(other, epsilon);
+		}
 
 		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const
 		requires(std::is_integral_v<T>)
@@ -296,13 +300,13 @@ namespace deckard::math
 			return std::abs(x - lhs.x) == epsilon and std::abs(y - lhs.y) == epsilon and std::abs(z - lhs.z) == epsilon;
 		}
 
-		constexpr bool equals(const vec_type& other, const T epsilon = T(0.000001)) const
+		constexpr bool equals(const vec_type& other) const
 		requires(std::floating_point<T>)
 		{
-			return is_close_enough(other, epsilon);
+			return is_close_enough(other);
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.000001}) const
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.001}) const
 		requires(std::floating_point<T>)
 		{
 			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon) and
