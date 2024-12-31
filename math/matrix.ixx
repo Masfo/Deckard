@@ -73,22 +73,24 @@ namespace deckard::math
 			return mat[index];
 		}
 
+		mat4_generic operator*(const f32 scalar)const 
+		{
+			return mat4_generic(mat[0] * scalar, mat[1] * scalar, mat[2] * scalar, mat[3] * scalar);
+		}
+
 		mat4_generic operator*(const mat4_generic& rhs) const
 		{
+			vec4 const SrcB0 = rhs[0];
+			vec4 const SrcB1 = rhs[1];
+			vec4 const SrcB2 = rhs[2];
+			vec4 const SrcB3 = rhs[3];
+
 			mat4_generic result;
 
-			const vec4 col0(rhs[0].x, rhs[1].x, rhs[2].x, rhs[3].x);
-			const vec4 col1(rhs[0].y, rhs[1].y, rhs[2].y, rhs[3].y);
-			const vec4 col2(rhs[0].z, rhs[1].z, rhs[2].z, rhs[3].z);
-			const vec4 col3(rhs[0].w, rhs[1].w, rhs[2].w, rhs[3].w);
-
-			for (int i = 0; i < 4; ++i)
-			{
-				result[i].x = sum(mat[i] * col0);
-				result[i].y = sum(mat[i] * col1);
-				result[i].z = sum(mat[i] * col2);
-				result[i].w = sum(mat[i] * col3);
-			}
+			result[0] = mat[0] * SrcB0.x + mat[1] * SrcB0.y + mat[2] * SrcB0.z + mat[3] * SrcB0.w;
+			result[1] = mat[0] * SrcB1.x + mat[1] * SrcB1.y + mat[2] * SrcB1.z + mat[3] * SrcB1.w;
+			result[2] = mat[0] * SrcB2.x + mat[1] * SrcB2.y + mat[2] * SrcB2.z + mat[3] * SrcB2.w;
+			result[3] = mat[0] * SrcB3.x + mat[1] * SrcB3.y + mat[2] * SrcB3.z + mat[3] * SrcB3.w;
 
 			return result;
 		}
@@ -164,37 +166,99 @@ namespace deckard::math
 
 		mat4_generic rotate(f32 radians, const vec3& v) const
 		{
-			f32 a = radians;
-			f32 c = std::cos(a);
-			f32 s = std::sin(a);
+			const f32 a = radians;
+			const f32 c = std::cos(a);
+			const f32 s = std::sin(a);
 
 			vec3 axis(v.normalized());
 			vec3 temp(axis * (1.0f - c));
 
-			const mat4_generic Rotate(
-			  vec4(c + temp.x * axis.x, temp.x * axis.y + s * axis.z, temp.x * axis.z - s * axis.y, 0.0f),
-			  vec4(0 + temp.y * axis.x - s * axis.z, c + temp.y * axis.y, temp.y * axis.z + s * axis.x, 0.0f),
-			  vec4(0 + temp.z * axis.x + s * axis.y, temp.z * axis.y - s * axis.x, c + temp.z * axis.z, 0.0f),
-			  vec4(0.0f, 0.0f, 0.0f, 1.0f));
+			mat4_generic rotate;
+			rotate[0].x = c + temp.x * axis.x;
+			rotate[0].y = temp.x * axis.y + s * axis.z;
+			rotate[0].z = temp.x * axis.z - s * axis.y;
 
-			return *this * Rotate;
+			rotate[1].x = temp.y * axis.x - s * axis.z;
+			rotate[1].y = c + temp.y * axis.y;
+			rotate[1].z = temp.y * axis.z + s * axis.x;
+
+			rotate[2].x = temp.z * axis.x + s * axis.y;
+			rotate[2].y = temp.z * axis.y - s * axis.x;
+			rotate[2].z = c + temp.z * axis.z;
+
+			mat4_generic result;
+
+			result[0] = mat[0] * rotate[0].x + mat[1] * rotate[0].y + mat[2] * rotate[0].z;
+			result[1] = mat[0] * rotate[1].x + mat[1] * rotate[1].y + mat[2] * rotate[1].z;
+			result[2] = mat[0] * rotate[2].x + mat[1] * rotate[2].y + mat[2] * rotate[2].z;
+			result[3] = mat[3];
+
+			return result;
 		}
 
 		mat4_generic translate(const vec3& translate) const
 		{
-			mat4_generic   result(*this);
+			mat4_generic result(*this);
 			result[3] = mat[0] * translate.x + mat[1] * translate.y + mat[2] * translate.z + mat[3];
 			return result;
+		}
 
+		mat4_generic inverse() const
+		{
+			f32 Coef00 = mat[2].z * mat[3].w - mat[3].z * mat[2].w;
+			f32 Coef02 = mat[1].z * mat[3].w - mat[3].z * mat[1].w;
+			f32 Coef03 = mat[1].z * mat[2].w - mat[2].z * mat[1].w;
 
-			//vec4 v(mat[0].x, mat[0].y, mat[0].z, 1.0f);
-			//
-			//v *= translate.x;
-			//v += mat[1] * translate.y;
-			//v += mat[2] * translate.z;
-			//v += mat[3];
-			//
-			//return mat4_generic(mat[0], mat[1], mat[2], v);
+			f32 Coef04 = mat[2].y * mat[3].w - mat[3].y * mat[2].w;
+			f32 Coef06 = mat[1].y * mat[3].w - mat[3].y * mat[1].w;
+			f32 Coef07 = mat[1].y * mat[2].w - mat[2].y * mat[1].w;
+
+			f32 Coef08 = mat[2].y * mat[3].z - mat[3].y * mat[2].z;
+			f32 Coef10 = mat[1].y * mat[3].z - mat[3].y * mat[1].z;
+			f32 Coef11 = mat[1].y * mat[2].z - mat[2].y * mat[1].z;
+
+			f32 Coef12 = mat[2].x * mat[3].w - mat[3].x * mat[2].w;
+			f32 Coef14 = mat[1].x * mat[3].w - mat[3].x * mat[1].w;
+			f32 Coef15 = mat[1].x * mat[2].w - mat[2].x * mat[1].w;
+
+			f32 Coef16 = mat[2].x * mat[3].z- mat[3].x * mat[2].z;
+			f32 Coef18 = mat[1].x * mat[3].z- mat[3].x * mat[1].z;
+			f32 Coef19 = mat[1].x * mat[2].z- mat[2].x * mat[1].z;
+
+			f32 Coef20 = mat[2].x * mat[3].y - mat[3].x * mat[2].y;
+			f32 Coef22 = mat[1].x * mat[3].y - mat[3].x * mat[1].y;
+			f32 Coef23 = mat[1].x * mat[2].y - mat[2].x * mat[1].y;
+
+			vec4 Fac0(Coef00, Coef00, Coef02, Coef03);
+			vec4 Fac1(Coef04, Coef04, Coef06, Coef07);
+			vec4 Fac2(Coef08, Coef08, Coef10, Coef11);
+			vec4 Fac3(Coef12, Coef12, Coef14, Coef15);
+			vec4 Fac4(Coef16, Coef16, Coef18, Coef19);
+			vec4 Fac5(Coef20, Coef20, Coef22, Coef23);
+
+			vec4 Vec0(mat[1].x, mat[0].x, mat[0].x, mat[0].x);
+			vec4 Vec1(mat[1].y, mat[0].y, mat[0].y, mat[0].y);
+			vec4 Vec2(mat[1].z, mat[0].z, mat[0].z, mat[0].z);
+			vec4 Vec3(mat[1].w, mat[0].w, mat[0].w, mat[0].w);
+
+			vec4 Inv0(Vec1 * Fac0 - Vec2 * Fac1 + Vec3 * Fac2);
+			vec4 Inv1(Vec0 * Fac0 - Vec2 * Fac3 + Vec3 * Fac4);
+			vec4 Inv2(Vec0 * Fac1 - Vec1 * Fac3 + Vec3 * Fac5);
+			vec4 Inv3(Vec0 * Fac2 - Vec1 * Fac4 + Vec2 * Fac5);
+
+			vec4 SignA(+1, -1, +1, -1);
+			vec4 SignB(-1, +1, -1, +1);
+
+			mat4_generic Inverse(Inv0 * SignA, Inv1 * SignB, Inv2 * SignA, Inv3 * SignB);
+
+			vec4 Row0(Inverse[0].x, Inverse[1].x, Inverse[2].x, Inverse[3].x);
+
+			vec4 Dot0(mat[0] * Row0);
+			f32  Dot1 = (Dot0.x + Dot0.y) + (Dot0.z + Dot0.w);
+
+			f32 OneOverDeterminant = 1.0f / Dot1;
+
+			return Inverse * OneOverDeterminant;
 		}
 
 		static mat4_generic identity() { return mat4_generic(1.0f); }
@@ -207,6 +271,8 @@ namespace deckard::math
 	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs + rhs; }
 
 	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs - rhs; }
+
+
 
 	export vec4 operator*(const mat4_generic& rhs, const vec4& lhs)
 	{
@@ -239,13 +305,11 @@ namespace deckard::math
 		return mat4_generic(col0, col1, col2, col3);
 	}
 
-
 	export mat4_generic scale(const mat4_generic& mat, const vec3& scale) { return mat.scale(scale); }
 
 	export mat4_generic translate(const mat4_generic& mat, const vec3& translate) { return mat.translate(translate); }
 
 	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v) { return m.rotate(radians, v); }
-
 
 	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up)
 	{
@@ -280,6 +344,8 @@ namespace deckard::math
 		  vec4(0.0f, 0.0f, -(2 / (far - near)), 0.0f),
 		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
+
+	export mat4_generic inverse(const mat4_generic& mat) { return mat.inverse(); }
 
 	export using mat4 = mat4_generic;
 

@@ -182,7 +182,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	{
 
 		mat4 rot = rotate(mat4(1.0f), 2.5f, vec3(-1.0f, 0.0f, 0.0f));
-		
+
 
 		REQUIRE(rot[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
 		REQUIRE(rot[1] == vec4{0.0f, -0.80114f, -0.59847f, 0.0f});
@@ -190,7 +190,7 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(rot[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
 	}
 
-		SECTION("Rotate Y")
+	SECTION("Rotate Y")
 	{
 		mat4 rot = rotate(mat4(1.0f), -0.5f, vec3(0.0f, 1.0f, 0.0f));
 
@@ -210,37 +210,66 @@ TEST_CASE("matrix generic", "[matrix]")
 		REQUIRE(rot[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
 	}
 
+	
+	SECTION("inverse")
+	{
+		mat4 Projection = perspective(to_radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
+		mat4 inv        = inverse(Projection);
+
+		REQUIRE(inv[0] == vec4{1.62903f, 0.0f, -0.0f, 0.0f});
+		REQUIRE(inv[1] == vec4{0.0f, 0.91633f, 0.0f, -0.0f});
+		REQUIRE(inv[2] == vec4{-0.0f, 0.0f, -0.0f, -4.99500f});
+		REQUIRE(inv[3] == vec4{0.0f, -0.0f, -1.0f, 5.00500f});
+	}
+
+
 	SECTION("full MVP")
 	{
 
-		mat4 Projection    = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		mat4 Projection = perspective(to_radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
+		REQUIRE(Projection[0] == vec4{1.810660f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(Projection[1] == vec4{0.0f, 2.41421f, 0.0f, 0.0f});
+		REQUIRE(Projection[2] == vec4{0.0f, 0.0f, -1.00200f, -1.0f});
+		REQUIRE(Projection[3] == vec4{0.0f, 0.0f, -0.20020f, 0.0f});
+
 		mat4 ViewTranslate = translate(mat4(1.0f), vec3(0.0f, 0.0f, -5.0f));
-		
-		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		REQUIRE(ViewTranslate[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(ViewTranslate[1] == vec4{0.0f, 1.0f, 0.0f, 0.0f});
+		REQUIRE(ViewTranslate[2] == vec4{0.0f, 0.0f, 1.0f, 0.0f});
+		REQUIRE(ViewTranslate[3] == vec4{0.0f, 0.0f, -5.0f, 1.0f});
 
-		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
-		mat4 Model         = scale(mat4(1.0f), vec3(0.5f));
-		mat4 MVP           = Projection * View * Model;
+		mat4 ViewRotateX = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
+		REQUIRE(ViewRotateX[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(ViewRotateX[1] == vec4{0.0f, -0.80114f, -0.59847f, 0.0f});
+		REQUIRE(ViewRotateX[2] == vec4{0.0f, 0.59847f, -0.80114f, 0.0f});
+		REQUIRE(ViewRotateX[3] == vec4{0.0f, 0.0f, -5.0f, 1.0f});
 
-		auto        fmt = std::format("{}", MVP);
-		std::string test(
-		  "mat4((-0.37675, 0.65689, 0.36497, 0.36424),\n"
-		  "     (0.00000, -0.96707, 0.29984, 0.29924),\n"
-		  "     (-0.82321, -0.30063, -0.16703, -0.16670),\n"
-		  "     (0.00000, 0.00000, 4.80981, 5.00000))");
-
-		REQUIRE(fmt == test);
+		mat4 View = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
+		REQUIRE(View[0] == vec4{-0.41614f, 0.54418f, -0.72847f, 0.0f});
+		REQUIRE(View[1] == vec4{0.0f, -0.80114f, -0.59847f, 0.0f});
+		REQUIRE(View[2] == vec4{-0.90929f, -0.24905f, 0.33339f, 0.0f});
+		REQUIRE(View[3] == vec4{0.0f, 0.0f, -5.0f, 1.0f});
 
 
-		//auto        inv    = inverse(MVP);
-		//auto        invfmt = std::format("{}", inv);
-		//std::string invtest(
-		//  "mat4((-0.45966, 0.00000, -1.00438, -0.00000),\n"
-		//  "     (0.45082, -0.66369, -0.20632, -0.00000),\n"
-		//  "     (36.38750, 29.89371, -16.65302, -4.99500),\n"
-		//  "     (-35.00340, -28.75661, 16.01957, 5.00500))");
-		//
-		//REQUIRE(invfmt == invtest);
+		mat4 Model = scale(mat4(1.0f), vec3(0.5f));
+		REQUIRE(Model[0] == vec4{0.5f, 0.0f, 0.0f, 0.0f});
+		REQUIRE(Model[1] == vec4{0.0f, 0.5f, 0.0f, 0.0f});
+		REQUIRE(Model[2] == vec4{0.0f, 0.0f, 0.5f, 0.0f});
+		REQUIRE(Model[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+
+		mat4 MVP = Projection * View * Model;
+		REQUIRE(MVP[0] == vec4{-0.37675f, 0.65689f, 0.36496f, 0.36423f});
+		REQUIRE(MVP[1] == vec4{0.0f, -0.96706f, 0.29983f, 0.29923f});
+		REQUIRE(MVP[2] == vec4{-0.82321f, -0.30063f, -0.16703f, -0.16670f});
+		REQUIRE(MVP[3] == vec4{0.0f, 0.0f, 4.80981f, 5.0f});
+
+
+		auto inv = inverse(MVP);
+		REQUIRE(inv[0] == vec4{-0.45966f, 0.0f, -1.00438f, 0.0f});
+		REQUIRE(inv[1] == vec4{0.450821f, -0.66368f, -0.20632f, 0.0f});
+		REQUIRE(inv[2] == vec4{36.38748f, 29.89369f, -16.65300f, -4.99500f});
+		REQUIRE(inv[3] == vec4{-35.00337f, -28.75659f, 16.01955f, 5.00500f});
+
 	}
 
 
