@@ -459,7 +459,6 @@ auto varsum(Args... args)
 	return std::make_tuple(args...); // Performs a binary right fold with addition
 }
 
-
 auto eval = [](std::string_view input) -> std::expected<i64, std::string>
 {
 #if 0
@@ -589,9 +588,8 @@ auto eval = [](std::string_view input) -> std::expected<i64, std::string>
 	for (const auto& elem : output)
 	{
 	}
-	#endif
+#endif
 	return -1;
-
 };
 
 class MyClass
@@ -653,16 +651,19 @@ union alignas(alignof(__m128)) float4
 		float x, y, z, w;
 	};
 
+	float4() = default;
+	float4(f32 v1, f32 v2, f32 v3, f32 v4)
+	{
+		x = v1;
+		y = v2;
+		z = v3;
+		w = v4;
+	}
+
 	__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
 };
 
-constexpr void operator+=(const float4& lhs, float4& rhs)
-{
-	rhs.x += lhs.x;
-	rhs.y += lhs.y;
-	rhs.z += lhs.z;
-	rhs.w += lhs.w;
-}
+void operator+=(float4& lhs, const float4& rhs) { lhs.reg = _mm_add_ps(lhs.reg, rhs.reg); }
 
 auto operator+(const float4& lhs, const float4& rhs)
 {
@@ -687,6 +688,15 @@ int deckard_main()
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+
+	float4 test(3, 1, 13, 7);
+	float4 test2(8, 6, 4, 2);
+
+	auto ttest2 = test + test2;
+	test += test;
+
+	dbg::println("{}", ttest2.x);
+
 
 	auto result_eval = eval("2^3^2");
 
