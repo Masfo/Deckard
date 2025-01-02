@@ -35,7 +35,7 @@ namespace deckard::math
 		{
 		}
 
-		constexpr generic_vec4(const generic_vec3<T> &v, T sw)
+		constexpr generic_vec4(const generic_vec3<T>& v, T sw)
 			: x(v.x)
 			, y(v.y)
 			, z(v.z)
@@ -118,161 +118,6 @@ namespace deckard::math
 			return tmp;
 		}
 
-		// add
-		constexpr void operator+=(const vec_type& other)
-		{
-			x += other.x;
-			y += other.y;
-			z += other.z;
-			w += other.w;
-		}
-
-		constexpr vec_type operator+(const vec_type& other) const
-		{
-			vec_type result = *this;
-			result += other;
-			return result;
-		}
-
-		constexpr void operator+=(const T scalar)
-		{
-			x += scalar;
-			y += scalar;
-			z += scalar;
-			w += scalar;
-		}
-
-		// sub
-		constexpr void operator-=(const vec_type& other)
-		{
-			x -= other.x;
-			y -= other.y;
-			z -= other.z;
-			w -= other.w;
-		}
-
-		constexpr void operator-=(const T scalar)
-		{
-			x -= scalar;
-			y -= scalar;
-			z -= scalar;
-			w -= scalar;
-		}
-
-		constexpr vec_type operator-(const vec_type& other) const
-		{
-			vec_type result = *this;
-			result -= other;
-			return result;
-		}
-
-		// mul
-		constexpr void operator*=(const T scalar)
-		{
-			x *= scalar;
-			y *= scalar;
-			z *= scalar;
-			w *= scalar;
-		}
-
-		constexpr void operator*=(const vec_type& other)
-		{
-			x *= other.x;
-			y *= other.y;
-			z *= other.z;
-			w *= other.w;
-		}
-
-		constexpr vec_type operator*(const vec_type& other) const
-		{
-			vec_type result = *this;
-			result *= other;
-			return result;
-		}
-
-		// div
-		constexpr void operator/=(const vec_type& other)
-		{
-			if (other.has_zero())
-				dbg::panic("divide by zero: {} / {}", *this, other);
-
-			x /= other.x;
-			y /= other.y;
-			z /= other.z;
-			w /= other.w;
-		}
-
-		constexpr vec_type operator/(const vec_type& other) const
-		{
-			if (other.has_zero())
-				dbg::panic("divide by zero: {} / {}", *this, other);
-
-			vec_type result = *this;
-			result /= other;
-			return result;
-		}
-
-		void operator/=(const T scalar)
-		requires(std::is_floating_point_v<T>)
-		{
-			if (math::is_close_enough_zero(scalar))
-				dbg::panic("divide by zero: {} / {}", *this, scalar);
-
-			x /= scalar;
-			y /= scalar;
-			z /= scalar;
-			w /= scalar;
-		}
-
-		void operator/=(const T scalar)
-		requires(std::is_integral_v<T>)
-		{
-			if (scalar == T{0})
-				dbg::panic("divide by zero: {} / {}", *this, scalar);
-
-			x /= scalar;
-			y /= scalar;
-			z /= scalar;
-			w /= scalar;
-		}
-
-		constexpr vec_type operator/(const T& scalar) const
-		requires(std::is_integral_v<T>)
-		{
-			if (math::is_close_enough_zero(scalar))
-				dbg::panic("divide by scalar zero: {} / {}", *this, scalar);
-
-			vec_type result = *this;
-			result /= scalar;
-			return result;
-		}
-
-		// mod
-		constexpr void operator%=(const vec_type& other)
-		requires(std::is_integral_v<T>)
-		{
-			x = mod(x, other.x);
-			y = mod(y, other.y);
-			z = mod(y, other.z);
-			w = mod(y, other.w);
-		}
-
-		constexpr void operator%=(const vec_type& other)
-		requires(std::is_floating_point_v<T>)
-		{
-			x = std::fmodf(x, other.x);
-			y = std::fmodf(y, other.y);
-			z = std::fmodf(y, other.z);
-			w = std::fmodf(y, other.w);
-		}
-
-		constexpr vec_type operator%(const vec_type& other) const
-		{
-			vec_type result = *this;
-			result %= other;
-			return result;
-		}
-
 		// unary
 		constexpr vec_type& operator-()
 		{
@@ -309,7 +154,6 @@ namespace deckard::math
 			z = v[2];
 			w = v[3];
 		}
-
 
 		constexpr operator generic_vec3<T>() const { return generic_vec3<T>(x, y, z); }
 
@@ -503,6 +347,173 @@ namespace deckard::math
 	};
 
 	// Free functions
+	// add
+
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator+=(generic_vec4<T>& lhs, const U& scalar)
+	{
+		lhs += generic_vec4<T>(as<T>(scalar));
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator+(const generic_vec4<T>& lhs, const U& scalar)
+	{
+		generic_vec4<T> result(lhs);
+		result += generic_vec4<T>(as<T>(scalar));
+		return result;
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator+(const generic_vec4<T>& lhs, const generic_vec4<U>& rhs)
+	{
+		generic_vec4<T> result(lhs);
+		result += rhs;
+		return result;
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator+=(generic_vec4<T>& lhs, const generic_vec4<U>& rhs)
+	{
+		lhs.x += rhs.x;
+		lhs.y += rhs.y;
+		lhs.z += rhs.z;
+		lhs.w += rhs.w;
+	}
+
+	// sub
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator-=(generic_vec4<T>& lhs, const U& scalar)
+	{
+		lhs -= generic_vec4<T>(as<T>(scalar));
+	}
+
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator-(const generic_vec4<T>& lhs, const U& scalar)
+	{
+		generic_vec4<T> result(lhs);
+		result -= generic_vec4<T>(as<T>(scalar));
+		return result;
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator-(const generic_vec4<T>& lhs, const generic_vec4<U>& rhs)
+	{
+		generic_vec4<T> result(lhs);
+		result -= rhs;
+		return result;
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator-=(generic_vec4<T>& lhs, const generic_vec4<U>& rhs)
+	{
+		lhs.x -= rhs.x;
+		lhs.y -= rhs.y;
+		lhs.z -= rhs.z;
+		lhs.w -= rhs.w;
+	}
+
+	// mul
+
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator*=(generic_vec4<T>& lhs, const U& scalar)
+	{
+		lhs *= generic_vec4<T>(scalar);
+	}
+
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator*(const generic_vec4<T>& lhs, const U& scalar)
+	{
+		generic_vec4<T> result(lhs);
+		result *= generic_vec4<T>(as<T>(scalar));
+		return result;
+	}
+
+	export template<arithmetic T>
+	constexpr generic_vec4<T> operator*(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		generic_vec4<T> result(lhs);
+		result *= rhs;
+		return result;
+	}
+
+	export template<arithmetic T>
+	constexpr void operator*=(generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		lhs.x *= rhs.x;
+		lhs.y *= rhs.y;
+		lhs.z *= rhs.z;
+		lhs.w *= rhs.w;
+	}
+
+	// div
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator/(const generic_vec4<T>& lhs, const U scalar)
+	{
+		if (math::is_close_enough_zero(as<T>(scalar)))
+			dbg::panic("divide by zero: {} / {}", lhs, scalar);
+
+		generic_vec4<T> result(lhs);
+		result /= generic_vec4<T>(as<T>(scalar));
+		return result;
+	}
+
+	export template<arithmetic T>
+	constexpr generic_vec4<T> operator/(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		generic_vec4<T> result(lhs);
+		result /= rhs;
+		return result;
+	}
+
+	export template<arithmetic T>
+	constexpr void operator/=(generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		if (rhs.has_zero())
+			dbg::panic("divide by zero: {} / {}", lhs, rhs);
+
+		lhs.x /= rhs.x;
+		lhs.y /= rhs.y;
+		lhs.z /= rhs.z;
+		lhs.w /= rhs.w;
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator/=(generic_vec4<T>& lhs, const U& scalar)
+	{
+		lhs /= generic_vec4<T>(scalar);
+	}
+
+	// mod
+	export template<arithmetic T>
+	constexpr void operator%=(generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	requires(std::is_integral_v<T>)
+	{
+		lhs.x = mod(lhs.x, rhs.x);
+		lhs.y = mod(lhs.y, rhs.y);
+		lhs.z = mod(lhs.y, rhs.z);
+		lhs.w = mod(lhs.y, rhs.w);
+	}
+
+	export template<arithmetic T>
+	constexpr void operator%=(generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	requires(std::is_floating_point_v<T>)
+	{
+		lhs.x = std::fmodf(lhs.x, rhs.x);
+		lhs.y = std::fmodf(lhs.y, rhs.y);
+		lhs.z = std::fmodf(lhs.y, rhs.z);
+		lhs.w = std::fmodf(lhs.y, rhs.w);
+	}
+
+	export template<arithmetic T>
+	constexpr generic_vec4<T> operator%=(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		generic_vec4<T> result(lhs);
+		result %= rhs;
+		return result;
+	}
 
 	export template<arithmetic T>
 	[[nodiscard("Use the maximum value")]] constexpr generic_vec4<T> min(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)

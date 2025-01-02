@@ -674,6 +674,42 @@ auto operator+(const float4& lhs, const float4& rhs)
 	return result;
 }
 
+struct float4_2
+{
+
+	union
+	{
+		__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
+
+		struct
+		{
+			f32 x;
+			f32 y;
+			f32 z;
+			f32 w;
+		};
+	};
+	float4_2() = default;
+
+	float4_2(f32 v1, f32 v2, f32 v3, f32 v4)
+	{
+		x = v1;
+		y = v2;
+		z = v3;
+		w = v4;
+	}
+};
+
+
+auto operator+(const float4_2& lhs, const float4_2& rhs)
+{
+	float4_2 result{};
+
+	result.reg = _mm_add_ps(lhs.reg, rhs.reg);
+
+	return result;
+}
+
 int deckard_main()
 {
 #ifndef _DEBUG
@@ -688,6 +724,14 @@ int deckard_main()
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+
+	float4_2 t32_0(1.0f,2.0f,3.0f,4.0f);
+	float4_2 t32_1(1.0f,2.0f,3.0f,4.0f);
+	auto     res_t32 = t32_0 + (t32_1 + t32_0);
+	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
+
+
+
 
 	float4 test(3, 1, 13, 7);
 	float4 test2(8, 6, 4, 2);
