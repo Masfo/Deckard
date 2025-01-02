@@ -12,6 +12,7 @@ import deckard.file;
 import deckard.function_ref;
 import deckard.helpers;
 
+
 namespace deckard
 {
 	using namespace deckard::math;

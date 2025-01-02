@@ -10,7 +10,6 @@ import deckard.utils.hash;
 
 namespace deckard::math
 {
-	class mat4_generic;
 
 	export template<arithmetic T>
 	struct alignas(alignof(T)) generic_vec4
@@ -286,7 +285,7 @@ namespace deckard::math
 			}
 
 			auto dot_ab   = dot(other);
-			auto b_length = other.length<T>();
+			auto b_length = other.length();
 
 			T projection_scalar = dot_ab / (b_length * b_length);
 			return other * projection_scalar;
@@ -347,8 +346,8 @@ namespace deckard::math
 	};
 
 	// Free functions
-	// add
 
+	// add
 	export template<arithmetic T, arithmetic U>
 	constexpr void operator+=(generic_vec4<T>& lhs, const U& scalar)
 	{
@@ -387,7 +386,6 @@ namespace deckard::math
 		lhs -= generic_vec4<T>(as<T>(scalar));
 	}
 
-
 	export template<arithmetic T, arithmetic U>
 	constexpr generic_vec4<T> operator-(const generic_vec4<T>& lhs, const U& scalar)
 	{
@@ -414,13 +412,11 @@ namespace deckard::math
 	}
 
 	// mul
-
 	export template<arithmetic T, arithmetic U>
 	constexpr void operator*=(generic_vec4<T>& lhs, const U& scalar)
 	{
 		lhs *= generic_vec4<T>(scalar);
 	}
-
 
 	export template<arithmetic T, arithmetic U>
 	constexpr generic_vec4<T> operator*(const generic_vec4<T>& lhs, const U& scalar)
@@ -448,7 +444,6 @@ namespace deckard::math
 	}
 
 	// div
-
 	export template<arithmetic T, arithmetic U>
 	constexpr generic_vec4<T> operator/(const generic_vec4<T>& lhs, const U scalar)
 	{

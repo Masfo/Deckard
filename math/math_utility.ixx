@@ -1,9 +1,9 @@
 module;
-#include <algorithm>
-#include <functional>
+//#include <algorithm>
+//#include <functional>
 #include <immintrin.h>
-#include <pmmintrin.h>
-#include <xmmintrin.h>
+//#include <pmmintrin.h>
+//#include <xmmintrin.h>
 
 
 export module deckard.math.utils;

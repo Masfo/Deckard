@@ -326,7 +326,7 @@ TEST_CASE("matrix generic", "[matrix]")
 
 
 		REQUIRE(mouse_world_nearplane == vec3(-4.7432f, -21.0652f, -33.4807f));
-		REQUIRE(mouse_world_farplane == vec3(-1109.416f, -18156.472f, -35302.859f));
+		REQUIRE(mouse_world_farplane == vec3(-1109.41699f, -18156.4727f, -35302.8594f));
 	}
 
 	SECTION("format")
