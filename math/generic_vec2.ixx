@@ -555,7 +555,6 @@ namespace deckard::math
 		return lhs.x + lhs.y + lhs.z;
 	}
 
-	export using vec2 = generic_vec2<f32>;
 
 } // namespace deckard::math
 
