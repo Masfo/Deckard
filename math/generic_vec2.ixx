@@ -8,7 +8,6 @@ import deckard.assert;
 import deckard.utils.hash;
 import deckard.math.utils;
 
-
 namespace deckard::math
 {
 
@@ -42,7 +41,6 @@ namespace deckard::math
 			, y(sy)
 		{
 		}
-
 
 		constexpr bool has_zero() const
 		requires(std::is_integral_v<T>)
@@ -275,7 +273,7 @@ namespace deckard::math
 			return result;
 		}
 
-			[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const
+		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const
 		{
 			vec_type result{*this * other};
 
@@ -432,6 +430,12 @@ namespace deckard::math
 	}
 
 	// mod
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator%=(generic_vec2<T>& lhs, const U& scalar)
+	{
+		lhs %= generic_vec2<T>(scalar);
+	}
+
 	export template<arithmetic T>
 	constexpr void operator%=(generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	requires(std::is_integral_v<T>)
@@ -455,6 +459,16 @@ namespace deckard::math
 		result %= rhs;
 		return result;
 	}
+
+	export template<arithmetic T>
+	constexpr generic_vec2<T> operator%(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	{
+		generic_vec2<T> result(lhs);
+		result %= rhs;
+		return result;
+	}
+
+	//
 
 	export template<arithmetic T>
 	[[nodiscard("Use the maximum value")]] constexpr generic_vec2<T> min(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)

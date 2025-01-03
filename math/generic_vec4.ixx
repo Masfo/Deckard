@@ -238,7 +238,6 @@ namespace deckard::math
 		template<std::integral U = T>
 		[[nodiscard("Use the length value")]] constexpr U length() const
 		requires(std::is_integral_v<T>)
-
 		{
 			U result{};
 
@@ -482,6 +481,12 @@ namespace deckard::math
 	}
 
 	// mod
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator%=(generic_vec4<T>& lhs, const U& scalar)
+	{
+		lhs %= generic_vec4<T>(scalar);
+	}
+
 	export template<arithmetic T>
 	constexpr void operator%=(generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	requires(std::is_integral_v<T>)
@@ -504,6 +509,14 @@ namespace deckard::math
 
 	export template<arithmetic T>
 	constexpr generic_vec4<T> operator%=(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		generic_vec4<T> result(lhs);
+		result %= rhs;
+		return result;
+	}
+
+	export template<arithmetic T>
+	constexpr generic_vec4<T> operator%(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		generic_vec4<T> result(lhs);
 		result %= rhs;

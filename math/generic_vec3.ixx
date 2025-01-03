@@ -467,6 +467,12 @@ namespace deckard::math
 	}
 
 	// mod
+	export template<arithmetic T, arithmetic U>
+	constexpr void operator%=(generic_vec3<T>& lhs, const U& scalar)
+	{
+		lhs %= generic_vec2<T>(scalar);
+	}
+
 	export template<arithmetic T>
 	constexpr void operator%=(generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	requires(std::is_integral_v<T>)
@@ -492,6 +498,19 @@ namespace deckard::math
 		result %= rhs;
 		return result;
 	}
+
+	
+	export template<arithmetic T>
+	constexpr generic_vec3<T> operator%(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	{
+		generic_vec3<T> result(lhs);
+		result %= rhs;
+		return result;
+	}
+
+
+
+	// 
 
 	export template<arithmetic T>
 	[[nodiscard("Use the maximum value")]] constexpr generic_vec3<T> min(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)

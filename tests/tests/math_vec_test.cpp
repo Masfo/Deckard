@@ -76,16 +76,22 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		const ivec2 sub = v1 - v2;
 		const ivec2 mul = v1 * v2;
 		const ivec2 div = v1 / v2;
+		const ivec2 mod = v1 % v2;
+
 
 		const ivec2 add_result{4, 5};
 		const ivec2 sub_result{0, -1};
 		const ivec2 mul_result{4, 6};
 		const ivec2 div_result{1, 0};
+		const ivec2 mod_result{0, 2};
+
 
 		REQUIRE(true == add.equals(add_result));
 		REQUIRE(true == sub.equals(sub_result));
 		REQUIRE(true == mul.equals(mul_result));
 		REQUIRE(true == div.equals(div_result));
+		REQUIRE(true == mod.equals(mod_result));
+
 
 
 		ivec2 sres(4);
@@ -97,6 +103,11 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		REQUIRE(sres.equals(ivec2(7)));
 		sres -= 5;
 		REQUIRE(sres.equals(ivec2(2)));
+
+		sres += 6;
+		sres %= 5;
+		REQUIRE(sres.equals(ivec2(3)));
+
 
 		// ++ --
 		ivec2 ppv(1, 2);
@@ -271,16 +282,21 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 sub = v1 - v2;
 		const vec2 mul = v1 * v2;
 		const vec2 div = v1 / v2;
+		const vec2 mod = v1 % v2;
+
 
 		const vec2 add_result{4.0f, 5.0f};
 		const vec2 sub_result{0.0f, -1.0f};
 		const vec2 mul_result{4.0f, 6.0f};
 		const vec2 div_result{1.0f, 0.666666627f};
+		const vec2 mod_result{0.0f, 2.0f};
 
 		REQUIRE(true == add.equals(add_result));
 		REQUIRE(true == sub.equals(sub_result));
 		REQUIRE(true == mul.equals(mul_result));
 		REQUIRE(true == div.equals(div_result));
+		REQUIRE(true == mod.equals(mod_result));
+
 
 
 		vec2 sres(4.0);
@@ -292,6 +308,9 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(sres.equals(vec2(7.0f)));
 		sres -= 5.0f;
 		REQUIRE(sres.equals(vec2(2.0f)));
+		sres %= 1.5f;
+		REQUIRE(sres.equals(vec2(0.5f)));
+
 
 		// ++ --
 		vec2 ppv(1, 2);
