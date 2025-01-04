@@ -1,8 +1,11 @@
 cmake_minimum_required (VERSION 3.23)
 
 set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.6.zip)
+#setT(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/heads/dev.zip)
 get_filename_component(ZSTD_ZIP_NAME ${ZSTD_ZIP_URL} NAME)
 set(ZSTD_ZIP_NAME_NOEXT zstd-1.5.6)
+#set(ZSTD_ZIP_NAME_NOEXT zstd-dev)
+
 
  
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
@@ -72,7 +75,6 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
         #compress/zstd_preSplit.h               # Dev branch > 1.5.6
         compress/zstdmt_compress.c
         compress/zstdmt_compress.h
-
 
         decompress/huf_decompress.c
         decompress/zstd_ddict.c

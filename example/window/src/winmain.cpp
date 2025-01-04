@@ -644,22 +644,15 @@ private:
 
 MyClass create_class(i32 v) { return {v}; }
 
-
-struct float4_2
+union float4_2
 {
 
-	union
-	{
-		__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
+	__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
 
-		struct
-		{
-			f32 x;
-			f32 y;
-			f32 z;
-			f32 w;
-		};
-	};
+	f32 x;
+	f32 y;
+	f32 z;
+	f32 w;
 
 	float4_2() = default;
 
@@ -680,6 +673,7 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 
 	return result;
 }
+
 
 
 i32 deckard_main(std::string_view commandline)
@@ -710,11 +704,9 @@ i32 deckard_main(std::string_view commandline)
 	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
 
 
-
 	auto result_eval = eval("2^3^2");
 
 	// ###################
-
 
 
 	// ###################
