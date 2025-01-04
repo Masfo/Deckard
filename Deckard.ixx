@@ -108,11 +108,12 @@ void redirect_console(bool show)
 #endif
 }
 
-extern "C" int deckard_main();
+using namespace deckard;
 
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+extern "C" i32 deckard_main(std::string_view);
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
-	using namespace deckard;
 
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");
@@ -133,7 +134,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 	// main
-	int ret = deckard_main();
+	int ret = deckard_main(commandline);
 
 	//
 	dbg::println("Deinitializing");

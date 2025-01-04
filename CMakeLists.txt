@@ -283,9 +283,17 @@ set(DECKARD_SRCS
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
 # $<$<NOT:$<PLATFORM_ID:Windows>>:file.cpp>
 
+    enable_language(ASM_MASM)
+    if(NOT CMAKE_ASM_MASM_COMPILER_WORKS)
+        message(FATAL ERROR "MSVC x86_64 target requires a working assembler")
+    endif()
+
 
 target_sources(deckard PUBLIC
 )
+
+
+
 
 target_sources(deckard
 	PUBLIC
@@ -293,7 +301,7 @@ target_sources(deckard
 	FILES ${DECKARD_SRCS}
 )
 
-target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
+#target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
 
 add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
@@ -306,6 +314,7 @@ set(THIRD_PARTY_LIBS
     opengl32.lib
     ws2_32
     xinput
+    #cpuid
    # libcpmtd.lib
    # libcmtd.lib
    # libconcrtd.lib

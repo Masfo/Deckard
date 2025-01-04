@@ -644,36 +644,6 @@ private:
 
 MyClass create_class(i32 v) { return {v}; }
 
-union alignas(alignof(__m128)) float4
-{
-	struct
-	{
-		float x, y, z, w;
-	};
-
-	float4() = default;
-
-	float4(f32 v1, f32 v2, f32 v3, f32 v4)
-	{
-		x = v1;
-		y = v2;
-		z = v3;
-		w = v4;
-	}
-
-	__m128 reg{0.0f, 0.0f, 0.0f, 0.0f};
-};
-
-void operator+=(float4& lhs, const float4& rhs) { lhs.reg = _mm_add_ps(lhs.reg, rhs.reg); }
-
-auto operator+(const float4& lhs, const float4& rhs)
-{
-	float4 result{};
-
-	result.reg = _mm_add_ps(lhs.reg, rhs.reg);
-
-	return result;
-}
 
 struct float4_2
 {
@@ -711,7 +681,8 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 	return result;
 }
 
-int deckard_main()
+
+i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
@@ -726,6 +697,7 @@ int deckard_main()
 	dbg::println();
 #endif
 
+	dbg::println("commandline: {}", commandline);
 
 	deckard::random::xoroshiro256 xshift(0);
 
@@ -738,31 +710,11 @@ int deckard_main()
 	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
 
 
-	float4 test(3, 1, 13, 7);
-	float4 test2(8, 6, 4, 2);
-
-	auto ttest2 = test + test2;
-	test += test;
-
-	dbg::println("{}", ttest2.x);
-
 
 	auto result_eval = eval("2^3^2");
 
 	// ###################
 
-	float4 vf4;
-	vf4.x = 1.5f;
-	vf4.y = 3.0f;
-	vf4.z = 4.5f;
-	vf4.w = 6.0f;
-
-	dbg::println("{}, {}, {}, {}", vf4.x, vf4.y, vf4.z, vf4.w);
-
-	auto fla = vf4 + vf4;
-	dbg::println("{}, {}, {}, {}", fla.x, fla.y, fla.z, fla.w);
-
-	int jas = 9;
 
 
 	// ###################
