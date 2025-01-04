@@ -309,7 +309,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	}
 
 
-	SECTION("unproject")
+	SECTION("project plane")
 	{
 		vec2  mouse{100.0f, 124.0f};
 		float width      = 1920.0f;

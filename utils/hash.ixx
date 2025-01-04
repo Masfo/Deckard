@@ -20,7 +20,7 @@ namespace deckard::utils
 	  (__TIME__[1] - '0') * 3'600 + (__TIME__[0] - '0') * 36'000;
 
 	template<typename T>
-	constexpr T xorshift(const T& n, int i)
+	constexpr T simple_xorshift(const T& n, int i)
 	{
 		return n ^ (n >> i);
 	}
@@ -29,7 +29,7 @@ namespace deckard::utils
 	{
 		constexpr u32 p = 0x5555'5555ul;
 		constexpr u32 c = 0xCC0F'8E27ul;
-		return c * xorshift(p * xorshift(n, 16), 16);
+		return c * simple_xorshift(p * simple_xorshift(n, 16), 16);
 	}
 
 	constexpr u64 distribute(const u64& n)
@@ -37,7 +37,7 @@ namespace deckard::utils
 		constexpr u64 p = 0x5555'5555'5555'5555ull;
 		constexpr u64 c = 0xF04E'EA49'71D6'05C7ull;
 
-		return c * xorshift(p * xorshift(n, 32), 32);
+		return c * simple_xorshift(p * simple_xorshift(n, 32), 32);
 	}
 
 	export template<typename T, typename... Rest>

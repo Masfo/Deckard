@@ -652,6 +652,7 @@ union alignas(alignof(__m128)) float4
 	};
 
 	float4() = default;
+
 	float4(f32 v1, f32 v2, f32 v3, f32 v4)
 	{
 		x = v1;
@@ -689,6 +690,7 @@ struct float4_2
 			f32 w;
 		};
 	};
+
 	float4_2() = default;
 
 	float4_2(f32 v1, f32 v2, f32 v3, f32 v4)
@@ -699,7 +701,6 @@ struct float4_2
 		w = v4;
 	}
 };
-
 
 auto operator+(const float4_2& lhs, const float4_2& rhs)
 {
@@ -725,12 +726,16 @@ int deckard_main()
 	dbg::println();
 #endif
 
-	float4_2 t32_0(1.0f,2.0f,3.0f,4.0f);
-	float4_2 t32_1(1.0f,2.0f,3.0f,4.0f);
+
+	deckard::random::xoroshiro256 xshift(0);
+
+	repeat<10> = [&] { dbg::println("xshift: {:X}", xshift.next()); };
+
+
+	float4_2 t32_0(1.0f, 2.0f, 3.0f, 4.0f);
+	float4_2 t32_1(1.0f, 2.0f, 3.0f, 4.0f);
 	auto     res_t32 = t32_0 + (t32_1 + t32_0);
 	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
-
-
 
 
 	float4 test(3, 1, 13, 7);

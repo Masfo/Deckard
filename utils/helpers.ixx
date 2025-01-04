@@ -28,6 +28,8 @@ export namespace deckard
 	inline constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
 
 	// repeat
+	// repeat<10> = [&] { dbg::println("xshift: {:X}", xshift.next()); };
+	//
 	template<size_t Count>
 	struct repeat_t final
 	{
