@@ -17,6 +17,7 @@ export import deckard.enums;
 // File
 export import deckard.filemonitor;
 export import deckard.file;
+export import deckard.ini;
 
 
 // Math

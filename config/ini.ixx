@@ -4,6 +4,7 @@ export module deckard.ini;
 import std;
 import deckard.lexer;
 import deckard.types;
+import deckard.file;
 
 namespace fs = std::filesystem;
 
@@ -17,6 +18,18 @@ namespace deckard::ini
 		std::vector<inivalue> value;      // value
 		std::string_view      comment;    // # comment
 	};
+	/*
+	* [section] # comment
+	*  integer = 123
+	*  float = 3.14
+	*  string = "hello"
+	*  ip = 10.0.0.12
+	*  date = 2024-12-31
+	*  boolean = true
+	*  ports = [8001,8002,8002]
+	*  target = [ cpu=90, case=55 ]		# target.cpu, target.case, target[0].cpu
+	*  target = [ [cpu=90, case=55], [cpu=12, case=20]]		# target[0].cpu, target[1].cpu
+	*/
 
 	/*
 	 * ini["section"]["key"] = "new string"s;
@@ -40,7 +53,10 @@ namespace deckard::ini
 	export class ini
 	{
 	public:
-		// ini(fs::path filename) { m_tokens.open(filename); }
+		 ini(fs::path filename) 
+		 { data = read_text_file(filename);
+		 }
+
 
 		value& operator[](std::string_view key)
 		{
@@ -55,6 +71,7 @@ namespace deckard::ini
 		void write() { }
 
 	private:
+		std::string        data;
 		std::vector<value> kv_map;
 		//	lexer::tokenizer   m_tokens;
 	};

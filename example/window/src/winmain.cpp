@@ -291,10 +291,6 @@ std::vector<int> multiply_large_numbers(const std::vector<int>& num1, const std:
 	return result;
 }
 
-extern "C" struct sqlite3_value;
-extern "C" struct sqlite3_context;
-extern "C" f64  sqlite3_value_double(sqlite3_value*);
-extern "C" void sqlite3_result_double(sqlite3_context*, f64);
 
 template<typename T = u8, typename Allocator = std::allocator<T>>
 class TestAllocator
@@ -674,6 +670,24 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 	return result;
 }
 
+static const unsigned int BORD[] = {0x5555'5555, 0x3333'3333, 0x0F0F'0F0F, 0x00FF'00FF};
+static const unsigned int SORD[] = {1, 2, 4, 8};
+
+unsigned int zorder2D(unsigned x, unsigned y)
+{
+
+	x = (x | (x << SORD[3])) & BORD[3];
+	x = (x | (x << SORD[2])) & BORD[2];
+	x = (x | (x << SORD[1])) & BORD[1];
+	x = (x | (x << SORD[0])) & BORD[0];
+
+	y = (y | (y << SORD[3])) & BORD[3];
+	y = (y | (y << SORD[2])) & BORD[2];
+	y = (y | (y << SORD[1])) & BORD[1];
+	y = (y | (y << SORD[0])) & BORD[0];
+	return x | (y << 1);
+}
+
 
 
 i32 deckard_main(std::string_view commandline)
@@ -690,6 +704,33 @@ i32 deckard_main(std::string_view commandline)
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+
+	ini::ini cfg("input.ini");
+
+	int koq = 0755;
+
+	  const unsigned nx = 8, ny = 8;
+	unsigned       res[ny][nx];
+
+	for (unsigned y = 0; y < ny; y++)
+	{
+		for (unsigned x = 0; x < nx; x++)
+		{
+			res[y][x] = zorder2D(x, y);
+			dbg::println("xy={} {} z={}", x, y, res[y][x]);
+		}
+	}
+
+	dbg::println("after");
+	for (unsigned y = 0; y < ny; y++)
+	{
+		for (unsigned x = 0; x < nx; x++)
+		{
+			dbg::println("{:4d}", res[y][x]);
+		}
+		dbg::println();
+	}
+
 
 	dbg::println("commandline: {}", commandline);
 
