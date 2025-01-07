@@ -93,7 +93,6 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		REQUIRE(true == mod.equals(mod_result));
 
 
-
 		ivec2 sres(4);
 		sres /= 2;
 		REQUIRE(sres.equals(ivec2(2)));
@@ -197,6 +196,15 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		// int         k         = 0;
 		// //REQUIRE(reflected == vec2(-136.382004f, -237.593002f));
 	}
+
+	SECTION("1d/2d indexing")
+	{
+		// 0 1 2
+		// 3 4 5
+		// 6 7 8
+		REQUIRE(4 == from_2d_to_index(ivec2{1, 1}, 3));
+		REQUIRE(ivec2{1, 1} == from_index_to_2d(4, 3));
+	}
 }
 
 // vec2
@@ -224,14 +232,14 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		// inf
 		// vec2 vinf = vec2::inf();
 		// REQUIRE(vinf.is_inf() == true);
-		// 
+		//
 		// vinf = vec2(0, std::numeric_limits<float>::infinity());
 		// REQUIRE(vinf.has_inf() == true);
-		// 
+		//
 		// // nan
 		// vec2 vnan = vec2::nan();
 		// REQUIRE(vnan.is_nan() == true);
-		// 
+		//
 		// vec2 vnan2(0, std::numeric_limits<float>::quiet_NaN());
 		// REQUIRE(vnan2.has_nan() == true);
 
@@ -298,7 +306,6 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		REQUIRE(true == mod.equals(mod_result));
 
 
-
 		vec2 sres(4.0);
 		sres /= 2.0f;
 		REQUIRE(sres.equals(vec2(2.0f)));
@@ -348,6 +355,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		const vec2 clamped = clamp(v2, 2.0f, 3.0f);
 		REQUIRE(true == clamped.equals(vec2{3.0f, 2.0f}));
 	}
+
 
 	SECTION("vec2 cross/dot/length/normal/project/angle")
 	{
@@ -437,9 +445,9 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		REQUIRE(v5.has_zero() == true);
 
 
-		//vec3 v6 = vec3(1.0f).safe_divide(v5);
-		//REQUIRE(v6.has_inf() == true);
-		//REQUIRE(v6.is_inf() == true);
+		// vec3 v6 = vec3(1.0f).safe_divide(v5);
+		// REQUIRE(v6.has_inf() == true);
+		// REQUIRE(v6.is_inf() == true);
 
 
 		vec2 v8(6.0f, 2.0f);
@@ -452,16 +460,16 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		// inf
 		// vec3 vinf = vec3::inf();
 		// REQUIRE(vinf.is_inf() == true);
-		// 
+		//
 		// vinf = vec3(0, 1, std::numeric_limits<float>::infinity());
 		// REQUIRE(vinf.has_inf() == true);
-		// 
+		//
 		// // nan
 		// vec3 vnan = vec3::nan();
 		// REQUIRE(vnan.is_nan() == true);
 		// vnan = vec3(std::numeric_limits<float>::quiet_NaN(), 1, 2);
 		// REQUIRE(vnan.has_nan() == true);
-		// 
+		//
 		// vec3 vnan2(0, 1, std::numeric_limits<float>::quiet_NaN());
 		// REQUIRE(vnan2.has_nan() == true);
 
@@ -473,8 +481,8 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		vzero = vec3(1, 0, 1);
 		REQUIRE(vzero.has_zero() == true);
 
-	//	REQUIRE(vec3(1.0).is_nan() == false);
-	//	REQUIRE(vec3(1.0).has_nan() == false);
+		//	REQUIRE(vec3(1.0).is_nan() == false);
+		//	REQUIRE(vec3(1.0).has_nan() == false);
 	}
 
 	SECTION("basic math")
@@ -747,7 +755,6 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 div_scalar = v1 / 4;
 
 
-
 		const vec4 add_scalar_result{6.0f, 6.0f, 6.0f, 6.0f};
 		const vec4 sub_scalar_result{-2.0f, -2.0f, -2.0f, -2.0f};
 		const vec4 mul_scalar_result{8.0f, 8.0f, 8.0f, 8.0f};
@@ -866,23 +873,23 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		REQUIRE(h > g);
 
 		// inf
-		//vec4 vinf = vec4::inf();
-		//REQUIRE(vinf.is_inf() == true);
+		// vec4 vinf = vec4::inf();
+		// REQUIRE(vinf.is_inf() == true);
 		//
-		//vinf = vec4(0, 1, 2, std::numeric_limits<float>::infinity());
-		//REQUIRE(vinf.has_inf() == true);
+		// vinf = vec4(0, 1, 2, std::numeric_limits<float>::infinity());
+		// REQUIRE(vinf.has_inf() == true);
 
 		// nan
 		// vec4 vnan = vec4::nan();
 		// REQUIRE(vnan.is_nan() == true);
-		// 
+		//
 		// vnan = vec4(std::numeric_limits<float>::quiet_NaN(), 1, 2, 3);
 		// REQUIRE(vnan.has_nan() == true);
-		// 
+		//
 		// REQUIRE(vec4(1.0).is_nan() == false);
 		// REQUIRE(vec4(1.0).has_nan() == false);
-		// 
-		// 
+		//
+		//
 		// vec4 vnan2(0, 1, 3, std::numeric_limits<float>::quiet_NaN());
 		// REQUIRE(vnan2.has_nan() == true);
 

@@ -11,6 +11,7 @@ import std;
 import deckard.types;
 import deckard.as;
 
+
 export namespace deckard::math
 {
 
@@ -223,11 +224,16 @@ export namespace deckard::math
 		return q;
 	}
 
+
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)
 	{
 		return y * width + x;
 	}
+
+
+
+
 
 	template<std::integral T, std::integral U = T, std::integral I = T>
 	constexpr T index_from_3d(T x, T y, T z, U height, I depth)

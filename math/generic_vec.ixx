@@ -1,8 +1,8 @@
 export module deckard.vec;
 
-import :vec2;
-import :vec3;
-import :vec4;
+export import :vec2;
+export import :vec3;
+export import :vec4;
 
 export namespace deckard::math
 {
@@ -35,5 +35,29 @@ export namespace deckard::math
 	static_assert(sizeof(vec3) == 3 * sizeof(f32));
 	static_assert(sizeof(vec4) == 4 * sizeof(f32));
 
+	template<std::integral T, std::integral U>
+	constexpr T from_2d_to_index(const generic_vec2<T>& v, U width)
+	{
+		return index_from_2d(v.x, v.y, width);
+	}
+
+	
+	template<std::integral T, std::integral U, std::integral I>
+	constexpr T from_3d_to_index(const generic_vec3<T>& v, U width, I height)
+	{
+		return index_from_3d(v.x, v.y, width, height);
+	}
+
+	template<std::integral T, std::integral U>
+	constexpr generic_vec2<T> from_index_to_2d(const T& index, U width)
+	{
+		return {index % width, index / width};
+	}
+
+	template<std::integral T, std::integral U, std::integral I>
+	constexpr generic_vec3<T> from_index_to_3d(const T& index, U width, I height)
+	{
+		return {index % width, mod((index / width), height), index / (width * height)};
+	}
 
 } // namespace deckard::math
