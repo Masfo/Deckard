@@ -10,6 +10,7 @@ import deckard.debug;
 namespace deckard::utf8
 {
 
+	export constexpr bool is_continuation_byte(const u8 byte) { return (byte & 0xC0) == 0x80; }
 
 	export constexpr u32 codepoint_width(char32_t codepoint)
 	{
@@ -18,9 +19,9 @@ namespace deckard::utf8
 			return 1;
 		if (codepoint < 0x800)
 			return 2;
-		if (codepoint < 0x10000)
+		if (codepoint < 0x1'0000)
 			return 3;
-		if (codepoint < 0x20000)
+		if (codepoint < 0x2'0000)
 			return 4;
 		if (codepoint < 0x400'0000)
 			return 5;
