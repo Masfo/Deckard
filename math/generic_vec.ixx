@@ -41,7 +41,6 @@ export namespace deckard::math
 		return index_from_2d(v.x, v.y, width);
 	}
 
-	
 	template<std::integral T, std::integral U, std::integral I>
 	constexpr T from_3d_to_index(const generic_vec3<T>& v, U width, I height)
 	{

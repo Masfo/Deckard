@@ -129,7 +129,7 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE(p4 == 56);
 
 
-		auto t1 = ints<1>("hello 123");
+		i64 t1 = ints<1>("hello 123");
 		REQUIRE(t1 == 123);
 	}
 

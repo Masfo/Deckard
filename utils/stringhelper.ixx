@@ -379,7 +379,7 @@ export namespace deckard::string
 	}
 
 	// ints
-	template<size_t N, arithmetic T = i64>
+	template<size_t N, std::integral T = i64>
 	requires(N > 1)
 	constexpr auto ints(const std::string_view str) -> std::array<T, N>
 	{
@@ -446,7 +446,7 @@ export namespace deckard::string
 		return ret;
 	}
 
-	template<size_t N, arithmetic T = i64>
+	template<size_t N, std::integral T = i64>
 	requires(N == 1)
 	constexpr auto ints(const std::string_view str) -> T
 	{
@@ -494,7 +494,7 @@ export namespace deckard::string
 		return -1;
 	}
 
-	template<arithmetic T = i64>
+	template<std::integral T = i64>
 	constexpr auto ints(const std::string_view str) -> std::vector<T>
 	{
 		std::vector<T> ret{};

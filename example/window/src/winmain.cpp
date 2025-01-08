@@ -670,21 +670,21 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 	return result;
 }
 
-static const unsigned int BORD[] = {0x5555'5555, 0x3333'3333, 0x0F0F'0F0F, 0x00FF'00FF};
-static const unsigned int SORD[] = {1, 2, 4, 8};
 
-unsigned int zorder2D(unsigned x, unsigned y)
+u32 to_zorder2D_index(u32 x, u32 y)
 {
+	static constexpr u32 S[] = {1, 2, 4, 8};
+	static constexpr u32 B[] = {0x5555'5555, 0x3333'3333, 0x0F0F'0F0F, 0x00FF'00FF};
 
-	x = (x | (x << SORD[3])) & BORD[3];
-	x = (x | (x << SORD[2])) & BORD[2];
-	x = (x | (x << SORD[1])) & BORD[1];
-	x = (x | (x << SORD[0])) & BORD[0];
+	x = (x | (x << S[3])) & B[3];
+	x = (x | (x << S[2])) & B[2];
+	x = (x | (x << S[1])) & B[1];
+	x = (x | (x << S[0])) & B[0];
 
-	y = (y | (y << SORD[3])) & BORD[3];
-	y = (y | (y << SORD[2])) & BORD[2];
-	y = (y | (y << SORD[1])) & BORD[1];
-	y = (y | (y << SORD[0])) & BORD[0];
+	y = (y | (y << S[3])) & B[3];
+	y = (y | (y << S[2])) & B[2];
+	y = (y | (y << S[1])) & B[1];
+	y = (y | (y << S[0])) & B[0];
 	return x | (y << 1);
 }
 
@@ -716,7 +716,7 @@ i32 deckard_main(std::string_view commandline)
 	{
 		for (unsigned x = 0; x < nx; x++)
 		{
-			res[y][x] = zorder2D(x, y);
+			res[y][x] = to_zorder2D_index(x, y);
 			dbg::println("xy={} {} z={}", x, y, res[y][x]);
 		}
 	}
