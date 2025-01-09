@@ -20,7 +20,7 @@ export namespace deckard
 	//  for(const auto &i: range(0,100,5))
 	inline constexpr auto range = []<std::integral I, std::integral U>(I begin, U end, I stepsize = 1)
 	{
-		const  auto boundary = [end](U i) { return i < end; };
+		const auto boundary = [end](U i) { return i < end; };
 		return std::ranges::views::iota(begin) | std::ranges::views::stride(stepsize) | std::ranges::views::take_while(boundary);
 	};
 
@@ -44,7 +44,6 @@ export namespace deckard
 
 	template<size_t Count>
 	inline constexpr repeat_t<Count> repeat;
-
 
 	export template<typename To, typename From>
 	To load_as(const From from)
@@ -748,9 +747,12 @@ export namespace deckard
 
 	constexpr odd_fn is_odd;
 
+	inline size_t int_log2(uint64_t x) { return 63 - std::countl_zero(x | 1); }
+
+
+	#ifdef _DEBUG
 	// count_digits, only positives, takes abs
-	template<std::unsigned_integral T>
-	constexpr size_t count_digits(T v)
+	size_t count_digits(const u64 v)
 	{
 		if (v == 0)
 			return 1;
@@ -758,11 +760,47 @@ export namespace deckard
 	}
 
 	template<std::signed_integral T>
-	constexpr size_t count_digits(T v)
+	size_t count_digits(T v)
 	{
 		return count_digits(as<u64>(v < 0 ? -v : v));
 	}
+	#else
 
+	// count_digits, only positives, takes abs
+	size_t count_digits(const u64 v)
+	{
+		constexpr uint64_t table[] = {
+		  9,
+		  99,
+		  999,
+		  9999,
+		  99999,
+		  999'999,
+		  9'999'999,
+		  99'999'999,
+		  999'999'999,
+		  9'999'999'999,
+		  99'999'999'999,
+		  999'999'999'999,
+		  9'999'999'999'999,
+		  99'999'999'999'999,
+		  999'999'999'999'999ULL,
+		  9'999'999'999'999'999ULL,
+		  99'999'999'999'999'999ULL,
+		  999'999'999'999'999'999ULL,
+		  9'999'999'999'999'999'999ULL};
+
+		size_t y = (19 * int_log2(v) >> 6);
+		y += v > table[y];
+		return y + 1;
+	}
+
+	template<std::signed_integral T>
+	size_t count_digits(T v)
+	{
+		return count_digits(as<u64>(v < 0 ? -v : v));
+	}
+	#endif
 	template<arithmetic T>
 	constexpr auto split_digit(T v) -> std::pair<T, T>
 	{
@@ -773,11 +811,10 @@ export namespace deckard
 
 		T r1 = static_cast<T>(v / divisor);
 		T r2 = static_cast<T>(v - r1 * divisor);
-		if constexpr(std::is_unsigned_v<T>)
+		if constexpr (std::is_unsigned_v<T>)
 			return std::make_pair(r1, r2);
 		else
-			return std::make_pair(r1, r2<0?-r2:r2);
-
+			return std::make_pair(r1, r2 < 0 ? -r2 : r2);
 	}
 
 	// Prettys
@@ -884,8 +921,6 @@ export namespace deckard
 		return result;
 	}
 
-
-	
 	// ###############################
 
 	template<i32 S, i32 E, i32 STEP = 1>
