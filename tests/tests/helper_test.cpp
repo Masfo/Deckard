@@ -1,3 +1,4 @@
+#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -504,3 +505,4 @@ TEST_CASE("helpers", "[helpers]")
 		REQUIRE("1 MiB, 256 KiB, 128 bytes"sv == pretty_bytes(1_MiB + 256_KiB + 128));
 	}
 }
+

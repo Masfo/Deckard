@@ -690,6 +690,8 @@ u32 to_zorder2D_index(u32 x, u32 y)
 
 
 
+
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
@@ -704,6 +706,9 @@ i32 deckard_main(std::string_view commandline)
 		dbg::print("{} ", x);
 	dbg::println();
 #endif
+
+	dbg::println("d {}", count_digits(-51));
+
 
 	ini::ini cfg("input.ini");
 
