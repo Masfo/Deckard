@@ -291,7 +291,6 @@ std::vector<int> multiply_large_numbers(const std::vector<int>& num1, const std:
 	return result;
 }
 
-
 template<typename T = u8, typename Allocator = std::allocator<T>>
 class TestAllocator
 {
@@ -670,11 +669,6 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 	return result;
 }
 
-
-
-
-
-
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
@@ -696,30 +690,6 @@ i32 deckard_main(std::string_view commandline)
 	ini::ini cfg("input.ini");
 
 	int koq = 0755;
-
-
-
-	  const unsigned nx = 8, ny = 8;
-	unsigned       res[ny][nx];
-
-	for (unsigned y = 0; y < ny; y++)
-	{
-		for (unsigned x = 0; x < nx; x++)
-		{
-			res[y][x] = to_zorder2D_index(x, y);
-			dbg::println("xy={} {} z={}", x, y, res[y][x]);
-		}
-	}
-
-	dbg::println("after");
-	for (unsigned y = 0; y < ny; y++)
-	{
-		for (unsigned x = 0; x < nx; x++)
-		{
-			dbg::println("{:4d}", res[y][x]);
-		}
-		dbg::println();
-	}
 
 
 	dbg::println("commandline: {}", commandline);
@@ -847,7 +817,20 @@ i32 deckard_main(std::string_view commandline)
 	ptr[0] = 'A';
 
 	std::string sss("\x41\xC3\x84\xE2\x86\xA5\xF0\x9F\x8C\x8D"sv);
-	auto        i = utf8::length(sss);
+	dbg::println("len: {}", utf8::length(sss).value_or(-1));
+
+
+	dbg::println("  valid string    = {}", utf8::is_valid("\xf0\x90\x8c\xbc"));
+	dbg::println("invalid 2nd octet = {}", utf8::is_valid("\xf0\x28\x8c\xbc"));
+	dbg::println("invalid 3rd octet = {}", utf8::is_valid("\xf0\x90\x28\xbc"));
+	dbg::println("invalid 4th octet = {}", utf8::is_valid("\xf0\x28\x8c\x28"));
+
+	bool        ivalid = utf8::is_valid(sss);
+
+	dbg::println("len: {}", utf8::length("a√πa").value_or(-1));
+	dbg::println("len: {}", utf8::length("\xf0\x28\x8c\xbc").value_or(-1));
+
+
 
 
 	int j = 0;

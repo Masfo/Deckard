@@ -1,4 +1,5 @@
 export module deckard.utf8:string;
+import :codepoints;
 
 import std;
 import deckard.types;
@@ -58,17 +59,50 @@ namespace deckard::utf8
 		return state.state = utf8_table[256 + state.state + type];
 	}
 
-	export u32 length(const std::span<u8> buffer)
+	export std::optional<i32> length(const std::span<u8> buffer)
 	{
-		u32 size{};
-		for (const auto& c : buffer)
-			size += (c & 0xC0) != 0x80;
-		return size;
+		if (buffer.empty())
+			return {};
+
+		const u8* ptr    = buffer.data();
+		const u8* endptr = buffer.data() + buffer.size_bytes();
+		i32       len{};
+		bool      valid = true;
+
+		for (; (ptr < endptr) && valid; len++)
+		{
+			valid = (*ptr & 0x80) == 0 or ((*ptr & 0xE0) == 0xC0 && (*(ptr + 1) & 0xC0) == 0x80) or
+					((*ptr & 0xF0) == 0xE0 && (*(ptr + 1) & 0xC0) == 0x80 && (*(ptr + 2) & 0xC0) == 0x80) or
+					((*ptr & 0xF8) == 0xF0 && (*(ptr + 1) & 0xC0) == 0x80 && (*(ptr + 2) & 0xC0) == 0x80 && (*(ptr + 3) & 0xC0) == 0x80);
+
+			i32 v1 = ((*ptr & 0x80) >> 7) & ((*ptr & 0x40) >> 6);
+			i32 v2 = (*ptr & 0x20) >> 5;
+			i32 v3 = (*ptr & 0x10) >> 4;
+			ptr += 1 + ((v1 << v2) | (v1 & v3));
+		}
+		if (valid)
+			return len;
+
+		return {};
 	}
 
-	export u32 length(std::string_view buffer) { return length(std::span<u8>{as<u8*>(buffer.data()), as<u32>(buffer.length())}); }
+	export auto length(std::string_view buffer) { return length(std::span<u8>{as<u8*>(buffer.data()), as<u32>(buffer.length())}); }
 
-	export u32 length(const char* str, u32 len) { return length(std::span<u8>{as<u8*>(str), len}); }
+	export auto length(const char* str, u32 len) { return length(std::span<u8>{as<u8*>(str), len}); }
+
+	export bool is_valid(std::string_view buffer)
+	{
+		auto ret = length(std::span<u8>{as<u8*>(buffer.data()), as<u32>(buffer.length())});
+
+		return ret ? true : false;
+	}
+
+	export bool is_valid(const char* str, u32 len)
+	{
+		auto ret = length(std::span<u8>{as<u8*>(str), len});
+
+		return ret ? true : false;
+	}
 
 	export class string
 	{
