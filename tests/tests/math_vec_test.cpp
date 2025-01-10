@@ -207,6 +207,26 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 	}
 }
 
+
+TEST_CASE("uvec2", "[vec][uvec2][math]")
+{
+	SECTION("zorder") 
+	{
+		auto correct = make_vector<u32>(0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15);
+
+		u32 index = 0;
+		for (const u32& y : upto(4))
+		{
+			for (const u32& x : upto(4))
+			{
+				REQUIRE(correct[index++] == to_zorder(x, y));
+			}
+		}
+
+
+	}
+}
+
 // vec2
 TEST_CASE("vec 2", "[vec][vec2][math]")
 {

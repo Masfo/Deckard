@@ -671,23 +671,6 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 }
 
 
-u32 to_zorder2D_index(u32 x, u32 y)
-{
-	static constexpr u32 S[] = {1, 2, 4, 8};
-	static constexpr u32 B[] = {0x5555'5555, 0x3333'3333, 0x0F0F'0F0F, 0x00FF'00FF};
-
-	x = (x | (x << S[3])) & B[3];
-	x = (x | (x << S[2])) & B[2];
-	x = (x | (x << S[1])) & B[1];
-	x = (x | (x << S[0])) & B[0];
-
-	y = (y | (y << S[3])) & B[3];
-	y = (y | (y << S[2])) & B[2];
-	y = (y | (y << S[1])) & B[1];
-	y = (y | (y << S[0])) & B[0];
-	return x | (y << 1);
-}
-
 
 
 
@@ -713,6 +696,8 @@ i32 deckard_main(std::string_view commandline)
 	ini::ini cfg("input.ini");
 
 	int koq = 0755;
+
+
 
 	  const unsigned nx = 8, ny = 8;
 	unsigned       res[ny][nx];
