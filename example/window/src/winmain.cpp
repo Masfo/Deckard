@@ -669,12 +669,65 @@ auto operator+(const float4_2& lhs, const float4_2& rhs)
 	return result;
 }
 
+template<typename T>
+struct Noisy
+{
+	Noisy() { dbg::println("{default-ctor}"); }
+
+	explicit Noisy(T t)
+		: value_{std::move(t)}
+	{
+		dbg::println("[default-ctor] {}", value_);
+	}
+
+	~Noisy() { dbg::println("[dtor] {}", value_);}
+
+	Noisy(const Noisy& other)
+		: value_{other.value_}
+	{
+
+		dbg::println("[copy-ctor] {}", other.value_);
+	}
+
+	Noisy(Noisy&& other) noexcept
+	{
+		dbg::println("[move-ctor] {} = {}", value_, other.value_);
+		std::swap(value_, other.value_);
+	}
+
+	Noisy& operator=(const Noisy& other)
+	{
+		dbg::println("[copy-assign] {} = {}", value_, other.value_);
+		value_ = other.value_;
+		return *this;
+	}
+
+	Noisy& operator=(Noisy&& other) noexcept
+	{
+		dbg::println("[move-assign] {} = {}", value_, other.value_);
+		value_ = std::move(other.value_);
+		return *this;
+	}
+
+	T value_{0};
+};
+
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+
+	Noisy<int> n1 {456};
+
+	Noisy<int> n2 = std::move(n1);
+	
+
+	int k = 0;
+
 
 #if 0
 	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
