@@ -8,16 +8,20 @@ import deckard.assert;
 namespace deckard
 {
 	export template<size_t SBO_CAPACITY = 32>
+		requires(SBO_CAPACITY >= 16)
 	union basic_smallbuffer
 	{
-		using type = u8;
-		using pointer   = type*;
-		using size_type = u32;
+		using type            = u8;
+		using pointer         = type*;
+		using reference       = type&;
+		using const_reference = const type&;
+		using size_type       = u32;
 
 		struct SBO
 		{
-			type buffer[SBO_CAPACITY - 1]{0}; // data() bytes
-			type len{sizeof(buffer)};         // (1, 31) when Small
+			type buffer[SBO_CAPACITY - 2]{0}; // data() bytes
+			type len{sizeof(buffer)};         //
+			type is_sbo{0};		// SBO = 0, Heap = 1
 		} sbo{};
 
 		struct NonSBO
@@ -31,35 +35,77 @@ namespace deckard
 
 				struct
 				{
-					type padding[sizeof(SBO) - sizeof(pointer) - 1]; // never accessed via this reference
-					type len;                                        // 0x00 when Big
+					type padding[sizeof(SBO) - sizeof(pointer) - 2]; // never accessed via this reference
+					type len;
+					type is_sbo;                                        // Heap = 1
 				} ptrbytes;
 			} buffer;
 		} nonsbo;
 
-		size_type insert(std::span<type> buffer)
+	private:
+		void set_size(size_type size)
+		{
+			if (is_sbo())
+				sbo.len = as<type>(capacity() - size);
+			else
+				nonsbo.size = size;
+		}
+
+	public:
+		[[nodiscard("")]] reference operator[](size_t index)
+		{
+			assert::check(index < capacity(), "Indexing out-of-bounds");
+
+			if (is_sbo())
+				return sbo.buffer[index];
+			else
+				return nonsbo.buffer.ptr[index];
+		}
+
+		[[nodiscard("")]] const_reference operator[](size_t index) const
+		{
+			assert::check(index > capacity(), "Indexing out-of-bounds");
+
+			if (is_sbo())
+				return sbo.buffer[index];
+			else
+				return nonsbo.buffer.ptr[index];
+		}
+
+		size_type insert_into(size_t index, std::span<type> buffer)
 		{
 			const size_type len = as<size_type>(buffer.size_bytes());
 
-			if (len <= sizeof(sbo.buffer))
-			{
-				std::memcpy(sbo.buffer, buffer.data(), len);
-				sbo.len = len;
-			}
-			else
-			{
-				// TODO: reallocate just allocates, copy is another function
-			}
+			return 0;
+		}
 
+		void append(const std::span<type> buffer)
+		{
+			const size_type bufferlen = as<size_type>(buffer.size_bytes());
 
-			return len;
+			size_type old_size = size();
+			if (is_sbo() and (old_size + bufferlen) < as<type>(capacity()))
+			{
+				sbo.buffer[old_size] = buffer[0];
+				set_size(old_size + 1);
+			}
+		}
+
+		void push_back(const type value)
+		{
+			size_type old_size = size();
+			if (is_sbo() and (old_size + 1) <= capacity())
+			{
+				sbo.buffer[old_size] = value;
+				set_size(old_size + 1);
+			}
 		}
 
 		void resize(i32 newsize) { resize(as<size_type>(newsize)); }
 
 		void resize(size_type newsize)
 		{
-		
+
 			std::allocator<type> allocator{};
 			// newsize *= 2;
 
@@ -121,30 +167,21 @@ namespace deckard
 			}
 		}
 
-		void fill(char c, size_type count)
+		void fill(type value)
 		{
-			std::fill_n(data(), count, c);
-			if (is_sbo())
-				sbo.len = as<type>(count);
-			else
-			{
-				sbo.len     = 0;
-				nonsbo.size = count;
-			}
+			std::fill_n(data(), capacity(), value);
+			set_size(capacity());
 		}
 
-	
-		bool is_sbo() const { return sbo.len > 0; }
+		bool is_sbo() const { return sbo.is_sbo == 0; }
 
 		pointer data() { return is_sbo() ? sbo.buffer : nonsbo.buffer.ptr; }
 
-		size_type size() const { return is_sbo() ? sbo.len : nonsbo.size; }
+		size_type size() const { return is_sbo() ? capacity() - sbo.len : nonsbo.size; }
 
 		size_type capacity() const { return is_sbo() ? sizeof(sbo.buffer) : nonsbo.capacity; }
 
 
-
-
 	private:
 	};
-}
+} // namespace deckard

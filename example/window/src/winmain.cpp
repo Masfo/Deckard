@@ -968,6 +968,28 @@ i32 deckard_main(std::string_view commandline)
 
 	// ########################################################################
 
+	std::allocator<u8> allocator;
+	dbg::println("sizeof allocator: {}", sizeof(allocator));
+
+	u8* u8ptr = nullptr;
+	{
+
+		u8ptr = allocator.allocate(128);
+
+		std::uninitialized_fill(u8ptr, u8ptr + 128, (u8)'Q');
+		
+
+	}
+	{
+
+		std::destroy_n(u8ptr, 128);
+		allocator.deallocate(u8ptr, 128);
+
+	}
+
+	u8ptr[0] = (u8)'X';
+	// ########################################################################
+
 	SmallStringBuffer sbo;
 
 	dbg::println("SmallBuffer {}", sizeof(u8str));
@@ -975,14 +997,15 @@ i32 deckard_main(std::string_view commandline)
 	std::string input = "AAAABBBB";
 	// auto        lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
 	sbo.resize(8);
-	sbo.fill('A', 8);
+	sbo.fill('A');
 	dbg::println("insert small buffer: {}/{}/{}", -1, sbo.size(), sbo.capacity());
+	dbg::println("str: {}", (const char*)sbo.data());
 
 
 	input = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333";
 	// lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
 	sbo.resize(42);
-	sbo.fill('A', 42);
+	sbo.fill('A');
 
 	dbg::println("insert big buffer 1: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
@@ -990,10 +1013,10 @@ i32 deckard_main(std::string_view commandline)
 	input = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333444455556666777788889999";
 	// lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
 	sbo.resize(64);
-	sbo.fill('A', 64);
+	sbo.fill('A');
 
 	sbo.resize(8);
-	sbo.fill('B', 8);
+	sbo.fill('B');
 
 	dbg::println("insert big buffer 2: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
