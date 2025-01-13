@@ -8,7 +8,7 @@ import deckard.assert;
 namespace deckard
 {
 	export template<size_t SBO_CAPACITY = 32>
-		requires(SBO_CAPACITY >= 16)
+	requires(SBO_CAPACITY >= 16)
 	union basic_smallbuffer
 	{
 		using type            = u8;
@@ -21,7 +21,7 @@ namespace deckard
 		{
 			type buffer[SBO_CAPACITY - 2]{0}; // data() bytes
 			type len{sizeof(buffer)};         //
-			type is_sbo{0};		// SBO = 0, Heap = 1
+			type is_sbo{0};                   // SBO = 0, Heap = 1
 		} sbo{};
 
 		struct NonSBO
@@ -37,7 +37,7 @@ namespace deckard
 				{
 					type padding[sizeof(SBO) - sizeof(pointer) - 2]; // never accessed via this reference
 					type len;
-					type is_sbo;                                        // Heap = 1
+					type is_sbo;                                     // Heap = 1
 				} ptrbytes;
 			} buffer;
 		} nonsbo;
@@ -101,68 +101,13 @@ namespace deckard
 			}
 		}
 
-		void resize(i32 newsize) { resize(as<size_type>(newsize)); }
-
 		void resize(size_type newsize)
 		{
 
-			std::allocator<type> allocator{};
-			// newsize *= 2;
-
-			if (is_sbo() and newsize > sbo.len)
+			if (is_sbo() and newsize <= sbo_size())
 			{
-				// reallocate to heap
-				pointer newptr = allocator.allocate(newsize);
-				if (newptr != nullptr)
-				{
-					size_type oldsize = size();
-					std::memcpy(newptr, data(), oldsize);
-					//
-					nonsbo.size     = oldsize;
-					nonsbo.capacity = newsize;
-
-					sbo.len     = 0;
-					pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
-					if (old != nullptr)
-						allocator.deallocate(old, nonsbo.size);
-				}
-				return;
-			}
-
-			if (is_sbo() and newsize <= sbo.len)
-			{
-				sbo.len = as<type>(newsize);
-				return;
-			}
-
-			if (not is_sbo() and newsize > nonsbo.size)
-			{
-				// heap to larger heap
-				pointer newptr = allocator.allocate(newsize);
-				if (newptr != nullptr)
-				{
-					//
-					size_type oldsize = size();
-					std::memcpy(newptr, data(), oldsize);
-					nonsbo.size     = newsize;
-					nonsbo.capacity = newsize;
-					sbo.len         = 0;
-
-					pointer old = std::exchange(nonsbo.buffer.ptr, newptr);
-					if (old != nullptr)
-						allocator.deallocate(old, oldsize);
-				}
-				return;
-			}
-
-			if (not is_sbo() and newsize <= nonsbo.size)
-			{
-				// heap to small buffer
-				std::memcpy(sbo.buffer, nonsbo.buffer.ptr, newsize);
-
-				allocator.deallocate(nonsbo.buffer.ptr, 0);
-				nonsbo.size = nonsbo.capacity = 0;
-				sbo.len                       = as<type>(newsize);
+				set_size(newsize);
+				std::fill_n(data()+newsize, capacity()-newsize, 0);
 				return;
 			}
 		}
@@ -175,13 +120,25 @@ namespace deckard
 
 		bool is_sbo() const { return sbo.is_sbo == 0; }
 
-		pointer data() { return is_sbo() ? sbo.buffer : nonsbo.buffer.ptr; }
+		pointer data() const { return is_sbo() ? sbo_data() : nonsbo_data(); }
 
-		size_type size() const { return is_sbo() ? capacity() - sbo.len : nonsbo.size; }
 
-		size_type capacity() const { return is_sbo() ? sizeof(sbo.buffer) : nonsbo.capacity; }
+
+		size_type size() const { return is_sbo() ? sbo_size() : nonsbo_size(); }
+
+
+
+		size_type capacity() const { return is_sbo() ? sbo_capacity() : nonsbo_capacity(); }
 
 
 	private:
+		pointer sbo_data() const { return as<pointer>(sbo.buffer); }
+		pointer nonsbo_data() const { return nonsbo.buffer.ptr; }
+		size_type sbo_size() const { return sizeof(sbo.buffer) - sbo.len; }
+		size_type nonsbo_size() const { return nonsbo.size; }
+
+		size_type sbo_capacity() const { return sizeof(sbo.buffer); }
+
+		size_type nonsbo_capacity() const { return nonsbo.capacity; }
 	};
 } // namespace deckard
