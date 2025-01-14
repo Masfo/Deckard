@@ -3,6 +3,7 @@
 
 import std;
 import deckard.sbo;
+import deckard.as;
 import deckard.helpers;
 
 using namespace deckard;
@@ -52,7 +53,7 @@ TEST_CASE("basic_small_buffer", "[sbo]")
 		basic_smallbuffer<16> sbo;
 
 		for (u32 i : upto(sbo.capacity()))
-			sbo.push_back('0'+i);
+			sbo.push_back(as<u8>('0'+i));
 
 		REQUIRE(sbo.size() == sbo.capacity());
 		REQUIRE(sbo.capacity() == 14);
@@ -72,15 +73,35 @@ TEST_CASE("basic_small_buffer", "[sbo]")
 
 	}
 
-	SECTION("push_back until resize to heap")
+	SECTION("resize same size")
 	{
 		//
 		basic_smallbuffer<16> sbo;
+
+		for (u32 i : upto(sbo.capacity()))
+			sbo.push_back(as<u8>('0' + i));
+
+		REQUIRE(sbo.size() == sbo.capacity());
+		REQUIRE(sbo.capacity() == 14);
+
+		sbo.resize(sbo.size());
+
+		REQUIRE(sbo.size() == sbo.capacity());
+		REQUIRE(sbo.capacity() == 14);
 	}
 
-	SECTION("resize from heap back to small buffer")
+	SECTION("resize from SBO to non SBO")
 	{
 		//
 		basic_smallbuffer<16> sbo;
+	
+		REQUIRE(sbo.size() == 0);
+		REQUIRE(sbo.capacity() == 14);
+
+
+		sbo.resize(sbo.capacity() * 2);
+
+		REQUIRE(sbo.size() == 0);
+		REQUIRE(sbo.capacity() == 14*2);
 	}
 }
