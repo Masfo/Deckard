@@ -53,6 +53,10 @@ namespace deckard
 #endif
 			return (Ret)u;
 		}
+		else if constexpr (std::is_pointer_v<Ret> and std::is_integral_v<U>)
+		{
+			return reinterpret_cast<Ret>(u);
+		}
 		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
 		{
 			// Enum
