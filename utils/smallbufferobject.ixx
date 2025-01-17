@@ -8,6 +8,166 @@ import deckard.debug;
 
 namespace deckard
 {
+	namespace detail
+	{
+		template<int N>
+		bool msb(unsigned char byte)
+		{
+			return byte & (1u << (8 - N - 1));
+		}
+
+		template<int N>
+		bool lsb(unsigned char byte)
+		{
+			return byte & (1u << N);
+		}
+
+		template<int N>
+		void set_msb(unsigned char& byte, bool bit)
+		{
+			if (bit)
+				byte |= 1u << (8 - N - 1);
+			else
+				byte &= ~(1u << (8 - N - 1));
+		}
+
+		template<typename T>
+		unsigned char& most_sig_byte(T& obj)
+		{
+			return *(reinterpret_cast<unsigned char*>(&obj) + sizeof(obj) - 1);
+		}
+
+	} // namespace detail
+
+	struct fbsbo
+	{
+		using type            = u8;
+		using pointer         = type*;
+		using reference       = type&;
+		using const_reference = const type&;
+		using size_type       = u32;
+
+		struct normal
+		{
+			size_type large : 1;
+			size_type capacity : sizeof(size_type) * 8 - 1;
+			size_type size;
+			pointer   data;
+		};
+
+		struct sbo
+		{
+			type large : 1;
+			type size : (sizeof(type) * 8) - 1;
+			type padding[sizeof(size_type) - sizeof(type)];
+			type data[sizeof(normal) - (sizeof(type)) * 3 - 1];
+		};
+
+		static_assert(sizeof(normal) == sizeof(sbo));
+
+		union
+		{
+			sbo    small;
+			normal large;
+		} packed;
+
+		bool is_large() const { return true; }
+
+	public:
+	};
+
+	constexpr auto fbnormalsize = sizeof(fbsbo::normal);
+	constexpr auto fbsbosize = sizeof(fbsbo::sbo);
+
+
+
+
+	export template<size_t SBO_CAPACITY = 32>
+	requires(SBO_CAPACITY >= 16)
+	class alignas(16) smallbuffer
+	{
+	public:
+		using type            = u8;
+		using pointer         = type*;
+		using reference       = type&;
+		using const_reference = const type&;
+		using size_type       = u32;
+
+		smallbuffer()
+		{
+			m_data.non_sbo.ptr      = nullptr;
+			m_data.non_sbo.size     = 0;
+			m_data.non_sbo.capacity = sbo_capacity;
+		}
+
+		std::size_t size() const noexcept
+		{
+			if (sbo())
+				return sbo_size();
+			else
+				return read_non_sbo_data().first;
+		}
+
+		std::size_t capacity() const noexcept
+		{
+			if (sbo())
+				return sizeof(m_data) - 1;
+			else
+				return read_non_sbo_data().second;
+		}
+
+
+	private:
+		std::pair<std::size_t, std::size_t> read_non_sbo_data() const
+		{
+			auto size     = m_data.non_sbo.size;
+			auto capacity = m_data.non_sbo.capacity;
+
+			auto& size_hsb = detail::most_sig_byte(size);
+			auto& cap_hsb  = detail::most_sig_byte(capacity);
+
+			// Remember to negate the high bits
+			auto const cap_high_bit     = detail::lsb<0>(cap_hsb);
+			auto const size_high_bit    = !detail::lsb<1>(cap_hsb);
+			auto const cap_sec_high_bit = detail::msb<0>(size_hsb);
+
+			detail::set_msb<0>(size_hsb, size_high_bit);
+
+			cap_hsb >>= 2;
+			detail::set_msb<0>(cap_hsb, cap_high_bit);
+			detail::set_msb<1>(cap_hsb, cap_sec_high_bit);
+
+			return std::make_pair(size, capacity);
+		}
+
+		std::size_t sbo_size() const noexcept { return sbo_capacity - (sbo_capacity - ((m_data.sbo.size >> 2) & 63u)); }
+
+		bool sbo() const noexcept { return not detail::lsb<0>(m_data.sbo.size) && not detail::lsb<1>(m_data.sbo.size); }
+
+		union Data
+		{
+			struct NonSBO
+			{
+				pointer   ptr;
+				size_type size;
+				size_type capacity;
+			} non_sbo;
+
+			struct SBO
+			{
+				type data[sizeof(NonSBO) - (sizeof(NonSBO) - SBO_CAPACITY) - 1];
+				type size;
+			} sbo;
+		} m_data;
+
+		static std::size_t const sbo_capacity = sizeof(typename Data::SBO) - 1;
+
+	public:
+	};
+
+	static_assert(sizeof(smallbuffer<16>) == 16);
+	static_assert(sizeof(smallbuffer<32>) == 32);
+
 	export template<size_t SBO_CAPACITY = 32>
 	requires(SBO_CAPACITY >= 16)
 	union alignas(16) basic_smallbuffer
@@ -36,9 +196,9 @@ namespace deckard
 
 				struct
 				{
-					type padding[sizeof(sbo.buffer) - sizeof(pointer)-2]; // never accessed via this reference
+					type padding[sizeof(sbo.buffer) - sizeof(pointer) - 2]; // never accessed via this reference
 					type len;
-					type is_sbo;                                        // Heap = 1
+					type is_sbo;                                            // Heap = 1
 				} ptrbytes;
 			} buffer;
 
@@ -58,10 +218,16 @@ namespace deckard
 				std::allocator<u8> allocator;
 				auto               ptr_int = reinterpret_cast<u64>(nonsbo.buffer.ptr);
 
+				dbg::println("dealloc nonsbo ptr: {:X}", address(nonsbo.buffer.ptr));
+
+
 				u64 mask   = ((1ULL << 48) - 1);
 				u64 masked = ptr_int & mask; // TODO: is is safe???
 
 				auto ptr = as<pointer>(masked);
+
+				dbg::println("dealloc masked ptr: {:X}", masked);
+
 
 				allocator.deallocate(ptr, nonsbo.size);
 				nonsbo.buffer.ptr = nullptr;

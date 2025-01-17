@@ -8,6 +8,17 @@ import deckard.helpers;
 
 using namespace deckard;
 
+TEST_CASE("basic_smallbuffer", "[sbo]")
+{
+	SECTION("constructor (small buffer)")
+	{
+		smallbuffer<16> sbo;
+
+		REQUIRE(sbo.size() == 0);
+		REQUIRE(sbo.capacity() == 15);
+	}
+}
+
 TEST_CASE("basic_small_buffer", "[sbo]")
 {
 	SECTION("constructor (small buffer)")

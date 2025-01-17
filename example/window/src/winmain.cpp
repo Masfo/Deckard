@@ -680,7 +680,7 @@ struct Noisy
 		dbg::println("[default-ctor] {}", value_);
 	}
 
-	~Noisy() { dbg::println("[dtor] {}", value_);}
+	~Noisy() { dbg::println("[dtor] {}", value_); }
 
 	Noisy(const Noisy& other)
 		: value_{other.value_}
@@ -712,6 +712,65 @@ struct Noisy
 	T value_{0};
 };
 
+struct datablock
+{
+	u8 data[32];
+};
+
+struct small
+{
+	u8 data[31];
+
+	u8 is_sbo : 1; // LSB
+	u8 size : 7;
+};
+
+struct large
+{
+	u8* ptr;
+	u8  padding[sizeof(small) - 1 - sizeof(u8*)];
+
+	u8 is_sbo : 1; // LSB
+	u8 size : 7;   //
+};
+
+static_assert(sizeof(small) == sizeof(large));
+static_assert(sizeof(small) == sizeof(datablock));
+
+struct sbo
+{
+	sbo()
+	{
+		packed.msmall.is_sbo = 0;
+		packed.msmall.size   = 0;
+		std::ranges::fill_n(packed.msmall.data, sizeof(packed.msmall.data), 0);
+	}
+
+	union
+	{
+		small     msmall;
+		large     mlarge;
+		datablock data;
+	} packed;
+
+	void set_sbo(bool v) { packed.msmall.is_sbo = v ? 1 : 0; }
+
+	void set_size(u32 size) { packed.msmall.size = size; }
+
+	u32 get_size() const { return (u32)(packed.msmall.size); }
+
+	bool is_sbo() const { return packed.msmall.is_sbo; }
+
+	void set_ptr(u8* p) { packed.mlarge.ptr = p; }
+
+	void dump(std::string_view str) const
+	{
+		dbg::print("{}: ", str);
+		for (int i = 0; i < 32; ++i)
+			dbg::print("{:X}", packed.data.data[i]);
+		dbg::println();
+	}
+};
 
 i32 deckard_main(std::string_view commandline)
 {
@@ -720,11 +779,50 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	{ //          1         2         3
+		// 12345678901234567890123456789012
+		// 00000000000000000000000000000000
+		sbo test;
 
-	Noisy<int> n1 {456};
+		test.dump("0");
+
+		test.set_sbo(true);
+		test.dump("sbo true");
+		test.set_sbo(false);
+
+		test.set_size(24);
+		test.dump("size 24");
+		test.set_size(0);
+
+		dbg::println("getsize 1 {} ", test.get_size());
+		dbg::println("sbo 1 {} ", test.is_sbo());
+		test.dump("1");
+
+
+		test.set_sbo(false);
+		test.set_size(0x3F);
+		dbg::println("getsize 2 {} ", test.get_size());
+		dbg::println("sbo 2 {} ", test.is_sbo());
+		test.dump("2");
+
+		test.set_size(0x7F);
+		test.dump("3");
+
+		test.set_sbo(true);
+		test.dump("4");
+
+
+		dbg::println("{} / {} / {} / {}", sizeof(test.packed.msmall), sizeof(test.packed.mlarge), sizeof(test.packed), sizeof(sbo));
+
+		test.set_ptr((u8*)&deckard_main);
+
+		int q = 0;
+	}
+
+	Noisy<int> n1{456};
 
 	Noisy<int> n2 = std::move(n1);
-	
+
 
 	int k = 0;
 
@@ -878,12 +976,14 @@ i32 deckard_main(std::string_view commandline)
 	dbg::println("invalid 3rd octet = {}", utf8::is_valid("\xf0\x90\x28\xbc"));
 	dbg::println("invalid 4th octet = {}", utf8::is_valid("\xf0\x28\x8c\x28"));
 
-	bool        ivalid = utf8::is_valid(sss);
+	bool ivalid = utf8::is_valid(sss);
 
 	dbg::println("len: {}", utf8::length("a√πa").value_or(-1));
 	dbg::println("len: {}", utf8::length("\xf0\x28\x8c\xbc").value_or(-1));
 
-
+	LPCWSTR     cmdstr  = L"a√aπa";
+	const char* cmdstr2 = "B";
+	cmdstr2             = "\xe2\x88\x9a";
 
 
 	int j = 0;
@@ -977,14 +1077,11 @@ i32 deckard_main(std::string_view commandline)
 		u8ptr = allocator.allocate(128);
 
 		std::uninitialized_fill(u8ptr, u8ptr + 128, (u8)'Q');
-		
-
 	}
 	{
 
 		std::destroy_n(u8ptr, 128);
 		allocator.deallocate(u8ptr, 128);
-
 	}
 
 	u8ptr[0] = (u8)'X';

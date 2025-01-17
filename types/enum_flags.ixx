@@ -91,6 +91,7 @@ export namespace deckard
 
 	// P3070r0 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
 	//      r1 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3070r1.html
+	//		r2 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3070r2.html
 	template<EnumFlagType T>
 	auto format_as(T f)
 	{
