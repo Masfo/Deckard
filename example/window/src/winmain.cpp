@@ -712,14 +712,55 @@ struct Noisy
 	T value_{0};
 };
 
+template<size_t SBO_SIZE=32>
+requires(SBO_SIZE >= 16)
+class alignas(8) variant_sbo
+{
+	using type            = u8;
+	using pointer         = type*;
+	using reference       = type&;
+	using const_reference = const type&;
+	using size_type       = u32;
+
+	struct alignas(1) small
+	{
+		std::array<type, SBO_SIZE - 1> data{0};
+		type                           size{0};
+	};
+
+	static_assert(sizeof(small) == SBO_SIZE);
+
+	struct alignas(1) large
+	{
+		pointer ptr{nullptr};
+		size_type size{0};
+		size_type capacity{0};
+	};
+
+	static_assert(sizeof(large) == sizeof(pointer) + sizeof(size_type) + sizeof(size_type));
+	static_assert(sizeof(large) <= sizeof(small));
+
+
+public:
+	std::variant<std::monostate, small, large> packed = small{};
+};
+
+
+constexpr auto sizevsbo = sizeof(variant_sbo<24>);
+
+static_assert(sizeof(variant_sbo<24>) == 32);
+
+
+constexpr u32 SBO_SIZE = 24;
+
 struct datablock
 {
-	u8 data[32];
+	u8 data[SBO_SIZE];
 };
 
 struct small
 {
-	u8 data[31];
+	u8 data[SBO_SIZE - 1];
 
 	u8 is_sbo : 1; // LSB
 	u8 size : 7;
@@ -727,11 +768,13 @@ struct small
 
 struct large
 {
-	u8* ptr;
-	u8  padding[sizeof(small) - 1 - sizeof(u8*)];
+	u8* dataptr;
+	u32 size; // TODO: save size and cap with data at heap
+	u32 capacity;
+	u8  padding[sizeof(small) - sizeof(dataptr) - sizeof(size) - sizeof(capacity) - 1];
 
 	u8 is_sbo : 1; // LSB
-	u8 size : 7;   //
+	u8 unused : 7; //
 };
 
 static_assert(sizeof(small) == sizeof(large));
@@ -761,14 +804,22 @@ struct sbo
 
 	bool is_sbo() const { return packed.msmall.is_sbo; }
 
-	void set_ptr(u8* p) { packed.mlarge.ptr = p; }
+	void set_ptr(u8* p) { packed.mlarge.dataptr = p; }
 
 	void dump(std::string_view str) const
 	{
 		dbg::print("{}: ", str);
-		for (int i = 0; i < 32; ++i)
-			dbg::print("{:X}", packed.data.data[i]);
+		for (int i = 0; i < sizeof(packed.data.data); ++i)
+			dbg::print("{:08b}", packed.data.data[i]);
 		dbg::println();
+	}
+
+	std::span<u8> data() const
+	{
+		if (is_sbo())
+			return {(u8*)packed.msmall.data, packed.msmall.size};
+
+		return {};
 	}
 };
 
@@ -779,16 +830,17 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	{ //          1         2         3
-		// 12345678901234567890123456789012
-		// 00000000000000000000000000000000
+	{
 		sbo test;
-
-		test.dump("0");
+		dbg::println("{} / {} / {} / {}", sizeof(test.packed.msmall), sizeof(test.packed.mlarge), sizeof(test.packed), sizeof(sbo));
+		dbg::println("SBO: {}", sizeof(test.packed.msmall.data));
+		test.dump("sbo zero:");
 
 		test.set_sbo(true);
-		test.dump("sbo true");
+		test.dump("sbo true:");
 		test.set_sbo(false);
+		test.dump("sbo fals:");
+
 
 		test.set_size(24);
 		test.dump("size 24");
@@ -811,8 +863,6 @@ i32 deckard_main(std::string_view commandline)
 		test.set_sbo(true);
 		test.dump("4");
 
-
-		dbg::println("{} / {} / {} / {}", sizeof(test.packed.msmall), sizeof(test.packed.mlarge), sizeof(test.packed), sizeof(sbo));
 
 		test.set_ptr((u8*)&deckard_main);
 
