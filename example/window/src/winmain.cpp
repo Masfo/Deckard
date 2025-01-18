@@ -712,44 +712,6 @@ struct Noisy
 	T value_{0};
 };
 
-template<size_t SBO_SIZE=32>
-requires(SBO_SIZE >= 16)
-class alignas(8) variant_sbo
-{
-	using type            = u8;
-	using pointer         = type*;
-	using reference       = type&;
-	using const_reference = const type&;
-	using size_type       = u32;
-
-	struct alignas(1) small
-	{
-		std::array<type, SBO_SIZE - 1> data{0};
-		type                           size{0};
-	};
-
-	static_assert(sizeof(small) == SBO_SIZE);
-
-	struct alignas(1) large
-	{
-		pointer ptr{nullptr};
-		size_type size{0};
-		size_type capacity{0};
-	};
-
-	static_assert(sizeof(large) == sizeof(pointer) + sizeof(size_type) + sizeof(size_type));
-	static_assert(sizeof(large) <= sizeof(small));
-
-
-public:
-	std::variant<std::monostate, small, large> packed = small{};
-};
-
-
-constexpr auto sizevsbo = sizeof(variant_sbo<24>);
-
-static_assert(sizeof(variant_sbo<24>) == 32);
-
 
 constexpr u32 SBO_SIZE = 24;
 

@@ -5,17 +5,38 @@ import std;
 import deckard.sbo;
 import deckard.as;
 import deckard.helpers;
+import deckard.debug;
 
 using namespace deckard;
 
-TEST_CASE("basic_smallbuffer", "[sbo]")
+TEST_CASE("sbo", "[sbov2]")
 {
-	SECTION("constructor (small buffer)")
-	{
-		smallbuffer<16> sbo;
 
-		REQUIRE(sbo.size() == 0);
-		REQUIRE(sbo.capacity() == 15);
+	SECTION("constructor (small)")
+	{
+		v2::sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+	}
+
+	SECTION("indexing (small)")
+	{
+		v2::sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('Q');
+
+		REQUIRE(ss[0] == 'Q');
+		REQUIRE(ss.size() == 1);
+
+		ss.push_back('B');
+		REQUIRE(ss[1] == 'B');
+		REQUIRE(ss.size() == 2);
+
+
 	}
 }
 

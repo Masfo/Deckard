@@ -77,10 +77,7 @@ namespace deckard
 	};
 
 	constexpr auto fbnormalsize = sizeof(fbsbo::normal);
-	constexpr auto fbsbosize = sizeof(fbsbo::sbo);
-
-
-
+	constexpr auto fbsbosize    = sizeof(fbsbo::sbo);
 
 	export template<size_t SBO_CAPACITY = 32>
 	requires(SBO_CAPACITY >= 16)
@@ -377,5 +374,172 @@ namespace deckard
 
 	static_assert(sizeof(basic_smallbuffer<16>) == 16);
 	static_assert(sizeof(basic_smallbuffer<32>) == 32);
+
+	// ###########################################################################
+
+	export namespace v2
+	{
+		export template<size_t SIZE = 32>
+		requires(SIZE >= 24)
+		class sbo
+		{
+			static_assert(SIZE >= 24, "Minimum size is 24 bytes");
+
+		private:
+			using type            = u8;
+			using pointer         = type*;
+			using reference       = type&;
+			using const_reference = const type&;
+			using size_type       = u32;
+
+			struct small
+			{
+				std::array<type, SIZE - 1> data;
+
+				type is_large : 1; // LSB
+				type size : 7;     //
+			};
+
+			static_assert(sizeof(small) == SIZE);
+
+			struct large
+			{
+				pointer   ptr;
+				size_type size;
+				size_type capacity;
+				type      padding[sizeof(small) - sizeof(ptr) - sizeof(size) - sizeof(capacity) - 1];
+
+				type is_large : 1; // LSB
+				type unused : 7;   //
+			};
+
+			static_assert(sizeof(large) == sizeof(small));
+
+			union
+			{
+				small small;
+				large large;
+			} packed;
+
+			void set_large(bool value) { packed.small.is_large = value ? 1 : 0; }
+
+			bool is_large() const { return packed.small.is_large == 1 ? true : false; }
+
+			// size
+			size_t large_size() const { return packed.large.size; }
+
+			size_t small_size() const { return packed.small.size; }
+
+			void increase_size(size_type size = 1) 
+			{
+				if (is_large())
+				{
+					assert::check(packed.large.size <= large_capacity(), "Large SBO: Over capacity");
+					packed.large.size += size;
+				}
+				else
+				{
+					assert::check(packed.small.size <= small_capacity(), "Small SBO: Over capacity");
+					packed.small.size += as<u8>(size);
+				}
+			}
+
+
+			// capacity
+			size_t small_capacity() const { return packed.small.data.size(); }
+
+			size_t large_capacity() const { return packed.large.capacity; }
+
+		public:
+			sbo()
+			{
+				std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0u);
+				packed.small.is_large = 0;
+				packed.small.size     = 0;
+			}
+
+			size_t size() const
+			{
+				return is_large() ? large_size() : small_size();
+			}
+
+			size_t capacity() const
+			{
+				return is_large() ? large_capacity() : small_capacity();
+			}
+
+			[[nodiscard("")]] reference operator[](size_t index)
+			{
+				assert::check(index < capacity(), "Indexing out-of-bounds");
+
+				if (is_large())
+				{
+					assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
+					return packed.large.ptr[index];
+				}
+				else
+				{
+					return packed.small.data[index];
+				}
+			}
+
+			[[nodiscard("")]] const_reference operator[](size_t index) const
+			{
+				assert::check(index > capacity(), "Indexing out-of-bounds");
+
+
+				if (is_large())
+				{
+					assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
+					return packed.large.ptr[index];
+				}
+				else
+				{
+					return packed.small.data[index];
+				}
+			}
+
+			void push_back(const type& v)
+			{ 
+				if (is_large())
+				{
+					packed.large.ptr[large_size()] = v;
+					increase_size();
+				}
+				else
+				{
+					packed.small.data[small_size()] = v;
+					increase_size();
+				}
+			}
+
+			void set_test() 
+			{ 
+				packed.small.data[0] = 'A';
+				packed.small.data[1] = 'B';
+				packed.small.data[2] = 'C';
+				packed.small.data[3] = 'D';
+
+				packed.small.size = 4;
+
+			}
+
+			std::span<type> data() const
+			{
+				if (is_large())
+				{
+					return {packed.large.ptr, packed.large.size};
+				}
+				else
+				{
+					return {(pointer)packed.small.data.data(), packed.small.size};
+				}
+			}
+		};
+
+		static_assert(sizeof(sbo<24>) == 24);
+		static_assert(sizeof(sbo<32>) == 32);
+
+	}; // namespace v2
 
 } // namespace deckard
