@@ -379,6 +379,8 @@ namespace deckard
 
 	export namespace v2
 	{
+
+
 		export template<size_t SIZE = 32>
 		requires(SIZE >= 24)
 		class sbo
@@ -421,16 +423,32 @@ namespace deckard
 				large large;
 			} packed;
 
+			void set_size(size_t newsize)
+			{
+				if (is_large())
+					packed.large.size = as<size_type>(newsize);
+				else
+					packed.small.size = as<type>(newsize);
+			}
+
+			void set_capacity(size_t newcapacity)
+			{
+				if (is_large())
+					packed.large.capacity = as<size_type>(newcapacity);
+			}
+
 			void set_large(bool value) { packed.small.is_large = value ? 1 : 0; }
 
 			bool is_large() const { return packed.small.is_large == 1 ? true : false; }
+
+			bool is_small() const { return not is_large(); }
 
 			// size
 			size_t large_size() const { return packed.large.size; }
 
 			size_t small_size() const { return packed.small.size; }
 
-			void increase_size(size_type size = 1) 
+			void increase_size(size_type size = 1)
 			{
 				if (is_large())
 				{
@@ -440,33 +458,121 @@ namespace deckard
 				else
 				{
 					assert::check(packed.small.size <= small_capacity(), "Small SBO: Over capacity");
-					packed.small.size += as<u8>(size);
+					if (packed.small.size + size <= small_capacity())
+						packed.small.size += as<u8>(size);
 				}
 			}
-
 
 			// capacity
 			size_t small_capacity() const { return packed.small.data.size(); }
 
 			size_t large_capacity() const { return packed.large.capacity; }
 
-		public:
-			sbo()
+			// data
+
+			pointer large_rawptr() const { return packed.large.ptr; }
+
+			pointer small_rawptr() const { return as<pointer>(packed.small.data.data()); }
+
+			pointer rawptr() const
 			{
+				if (is_large())
+					return large_rawptr();
+				else
+					return small_rawptr();
+			}
+
+			std::span<type> large_data() const { return {packed.large.ptr, packed.large.size}; }
+
+			std::span<type> small_data() const { return {(pointer)packed.small.data.data(), packed.small.size}; }
+
+			void reset()
+			{
+				if (is_large())
+				{
+					delete[] packed.large.ptr;
+				}
+
 				std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0u);
-				packed.small.is_large = 0;
 				packed.small.size     = 0;
+				packed.small.is_large = 0;
 			}
 
-			size_t size() const
+			void clone(const sbo& from)
 			{
-				return is_large() ? large_size() : small_size();
+				reset();
+				if (from.is_small())
+				{
+					set_size(from.small_size());
+					std::memcpy(&packed.small.data[0], &from.packed.small.data[0], from.small_size());
+				}
+				else
+				{
+					set_large(true);
+					set_size(from.large_size());
+					set_capacity(from.large_capacity());
+
+					pointer newptr = new type[packed.large.capacity];
+
+					if (newptr != nullptr)
+					{
+						std::copy(from.packed.large.ptr, from.packed.large.ptr + large_size(), newptr);
+						packed.large.ptr = newptr;
+					}
+				}
 			}
 
-			size_t capacity() const
+		public:
+			sbo() { reset(); }
+
+			// Copy
+			sbo(sbo const& other) { clone(other); }
+
+			sbo& operator=(sbo const& other)
 			{
-				return is_large() ? large_capacity() : small_capacity();
+				clone(other);
+				return *this;
 			}
+
+			// Move
+			sbo(sbo&&)            = delete;
+			sbo& operator=(sbo&&) = delete;
+
+			~sbo() noexcept { reset(); }
+
+			bool empty() const { return size() == 0; }
+
+			size_t max_size() const
+			{
+				if (is_small())
+					return packed.small.data.size();
+				else
+					return limits::max<size_type>;
+			}
+
+			void clear()
+			{
+				if (is_small())
+				{
+					std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0u);
+					packed.small.size = 0;
+				}
+				else
+				{
+					std::ranges::fill_n(packed.large.ptr, packed.large.size, 0u);
+					packed.large.size = 0;
+				}
+			}
+
+			void shrink_to_fit() { }
+
+			type front() const { return rawptr()[0]; }
+
+			type back() const { return rawptr()[size() - 1]; }
+
+			size_t size() const { return is_large() ? large_size() : small_size(); }
+
+			size_t capacity() const { return is_large() ? large_capacity() : small_capacity(); }
 
 			[[nodiscard("")]] reference operator[](size_t index)
 			{
@@ -500,7 +606,7 @@ namespace deckard
 			}
 
 			void push_back(const type& v)
-			{ 
+			{
 				if (is_large())
 				{
 					packed.large.ptr[large_size()] = v;
@@ -513,15 +619,82 @@ namespace deckard
 				}
 			}
 
-			void set_test() 
-			{ 
+			// resize
+			void resize(size_t newsize)
+			{
+				// small -> large
+				// large -> larger
+				// larger -> large
+				// large -> small
+
+				if ((not is_large() and newsize <= small_capacity()) or (is_large() and newsize == large_capacity()))
+					return;
+
+
+				if (is_large() and newsize < large_capacity() and newsize > small_capacity())
+				{
+					set_capacity(newsize);
+					return;
+				}
+				if (is_large() and newsize < small_capacity())
+				{
+					set_size(large_size());
+					set_large(false);
+					return;
+				}
+
+
+				if ((not is_large() and newsize > small_capacity()) or (is_large() and newsize > large_size())) // smaller -> larger
+				{
+					size_t  oldsize      = size();
+					size_t  new_capacity = std::max(newsize, capacity() * 2);
+					pointer newptr       = new type[new_capacity];
+					std::uninitialized_fill(newptr, newptr + new_capacity, 0);
+
+					pointer oldptr = rawptr();
+					if (newptr != nullptr)
+					{
+						std::copy(oldptr, oldptr + std::min(oldsize, newsize), newptr);
+					}
+
+
+					if (is_large())
+						delete[] packed.large.ptr;
+
+					packed.large.ptr = newptr;
+					set_large(true);
+					set_capacity(new_capacity);
+					set_size(oldsize);
+
+
+					return;
+				}
+
+
+				if (is_large() and newsize > size())
+				{
+					size_t  new_capacity = std::max(newsize + 1, large_capacity() * 2);
+					pointer ptr          = new type[new_capacity];
+					if (ptr != nullptr)
+					{
+						std::copy(packed.large.ptr, packed.large.ptr + std::min(large_size(), newsize), ptr);
+					}
+
+					delete[] packed.large.ptr;
+					packed.large.ptr = ptr;
+					set_capacity(new_capacity);
+					return;
+				}
+			}
+
+			void set_test()
+			{
 				packed.small.data[0] = 'A';
 				packed.small.data[1] = 'B';
 				packed.small.data[2] = 'C';
 				packed.small.data[3] = 'D';
 
 				packed.small.size = 4;
-
 			}
 
 			std::span<type> data() const

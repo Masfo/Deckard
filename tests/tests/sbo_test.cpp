@@ -11,18 +11,113 @@ using namespace deckard;
 
 TEST_CASE("sbo", "[sbov2]")
 {
-
+	using namespace v2;
 	SECTION("constructor (small)")
 	{
-		v2::sbo<32> ss;
+		sbo<32> ss;
 
 		REQUIRE(ss.size() == 0);
 		REQUIRE(ss.capacity() == 31);
 	}
 
+	SECTION("copy c-tor (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss[0] == 'A');
+
+		sbo<32> copy(ss);
+		
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 31);
+		REQUIRE(copy[0] == 'A');
+
+	}
+
+	SECTION("copy assign (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss[0] == 'A');
+
+		sbo<32> copy;
+		copy = ss;
+
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 31);
+		REQUIRE(copy[0] == 'A');
+	}
+
+	
+	SECTION("copy c-tor (large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.resize(128);
+
+		sbo<32> copy(ss);
+
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 128);
+		REQUIRE(copy[0] == 'A');
+	}
+
+
 	SECTION("indexing (small)")
 	{
-		v2::sbo<32> ss;
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+
+		REQUIRE(ss[0] == 0);
+		REQUIRE(ss.size() == 0);
+	}
+
+
+	SECTION("push_back (small)")
+	{
+		sbo<32> ss;
 
 		REQUIRE(ss.size() == 0);
 		REQUIRE(ss.capacity() == 31);
@@ -35,11 +130,105 @@ TEST_CASE("sbo", "[sbov2]")
 		ss.push_back('B');
 		REQUIRE(ss[1] == 'B');
 		REQUIRE(ss.size() == 2);
+	}
+
+	SECTION("resize (small -> large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
 
 
+		ss.push_back('A');
+		REQUIRE(ss[0] == 'A');
+
+		ss.resize(128);
+
+		REQUIRE(ss.size() == 1);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss[0] == 'A');
+	}
+
+
+	SECTION("resize (larger -> large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.resize(128);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+
+		ss.resize(40);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 40);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+	SECTION("resize (large -> small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+
+		ss.resize(128);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+
+		ss.resize(15);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+	}
+
+	SECTION("clear (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.push_back('A');
+		REQUIRE(ss.size() == 1);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.clear();
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+	}
+
+	SECTION("clear (large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.push_back('A');
+		ss.resize(128);
+
+		REQUIRE(ss.size() == 1);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.clear();
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 }
 
+// OLD
 TEST_CASE("basic_small_buffer", "[sbo]")
 {
 	SECTION("constructor (small buffer)")
@@ -85,13 +274,13 @@ TEST_CASE("basic_small_buffer", "[sbo]")
 		basic_smallbuffer<16> sbo;
 
 		for (u32 i : upto(sbo.capacity()))
-			sbo.push_back(as<u8>('0'+i));
+			sbo.push_back(as<u8>('0' + i));
 
 		REQUIRE(sbo.size() == sbo.capacity());
 		REQUIRE(sbo.capacity() == 14);
 
 		for (u32 i : range(0, sbo.capacity()))
-			REQUIRE(sbo[i] == '0'+i);
+			REQUIRE(sbo[i] == '0' + i);
 
 		sbo.resize(2);
 
@@ -102,7 +291,6 @@ TEST_CASE("basic_small_buffer", "[sbo]")
 		REQUIRE(sbo[1] == '1');
 		for (u32 i : range(2, sbo.capacity()))
 			REQUIRE(sbo[i] == 0);
-
 	}
 
 	SECTION("resize same size")
@@ -126,7 +314,7 @@ TEST_CASE("basic_small_buffer", "[sbo]")
 	{
 		//
 		basic_smallbuffer<16> sbo;
-	
+
 		REQUIRE(sbo.size() == 0);
 		REQUIRE(sbo.capacity() == 14);
 
@@ -134,6 +322,6 @@ TEST_CASE("basic_small_buffer", "[sbo]")
 		sbo.resize(sbo.capacity() * 2);
 
 		REQUIRE(sbo.size() == 0);
-		REQUIRE(sbo.capacity() == 14*2);
+		REQUIRE(sbo.capacity() == 14 * 2);
 	}
 }

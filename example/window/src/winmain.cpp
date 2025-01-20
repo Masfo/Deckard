@@ -855,6 +855,13 @@ i32 deckard_main(std::string_view commandline)
 	int koq = 0755;
 
 
+	auto vq1 = make_vector(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+	dbg::println("before: size: {}, cap: {}, maxsize: {}", vq1.size(), vq1.capacity(), vq1.max_size());
+	vq1.clear();
+	dbg::println("after : size: {}, cap: {}, maxsize: {}", vq1.size(), vq1.capacity(), vq1.max_size());
+
+
+
 	dbg::println("commandline: {}", commandline);
 
 	deckard::random::xoroshiro256 xshift(0);
