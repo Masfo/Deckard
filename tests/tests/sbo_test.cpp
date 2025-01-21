@@ -20,6 +20,179 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.capacity() == 31);
 	}
 
+	SECTION("move c-tor (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss[0] == 'A');
+
+		sbo<32> copy(std::move(ss));
+
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 31);
+		REQUIRE(copy[0] == 'A');
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+	}
+
+	SECTION("move assign self (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss[0] == 'A');
+
+		ss = std::move(ss);
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss[0] == 'A');
+	}
+
+	SECTION("move assignment (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss[0] == 'A');
+
+		sbo<32> copy;
+
+		copy = std::move(ss);
+
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 31);
+		REQUIRE(copy[0] == 'A');
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+	}
+
+	SECTION("move c-tor (large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.resize(128);
+
+		sbo<32> copy(std::move(ss));
+
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 128);
+		REQUIRE(copy[0] == 'A');
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+	}
+
+	SECTION("move assignment (large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.resize(128);
+
+		sbo<32> copy;
+		copy = std::move(ss);
+
+		REQUIRE(copy.size() == 6);
+		REQUIRE(copy.capacity() == 128);
+		REQUIRE(copy[0] == 'A');
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+	}
+
+	SECTION("move assignment self (large)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.resize(128);
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 128);
+
+		ss = std::move(ss);
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 128);
+	}
+
 	SECTION("copy c-tor (small)")
 	{
 		sbo<32> ss;
@@ -34,17 +207,15 @@ TEST_CASE("sbo", "[sbov2]")
 		ss.push_back('F');
 
 
-
 		REQUIRE(ss.size() == 6);
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss[0] == 'A');
 
 		sbo<32> copy(ss);
-		
+
 		REQUIRE(copy.size() == 6);
 		REQUIRE(copy.capacity() == 31);
 		REQUIRE(copy[0] == 'A');
-
 	}
 
 	SECTION("copy assign (small)")
@@ -73,7 +244,7 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(copy[0] == 'A');
 	}
 
-	
+
 	SECTION("copy c-tor (large)")
 	{
 		sbo<32> ss;
@@ -130,6 +301,24 @@ TEST_CASE("sbo", "[sbov2]")
 		ss.push_back('B');
 		REQUIRE(ss[1] == 'B');
 		REQUIRE(ss.size() == 2);
+	}
+
+	SECTION("push_back (small -> large)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		repeat<64> = [&] { ss.push_back('A'); };
+
+		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss.size() == 64);
+		REQUIRE(ss.capacity() == 64);
+
+		ss.push_back('B');
+		REQUIRE(ss.size() == 65);
+		REQUIRE(ss.capacity() == 128);
 	}
 
 	SECTION("resize (small -> large)")
@@ -204,7 +393,37 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.size() == 0);
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
+	}
 
+
+	SECTION("shrink_to_fit (large -> small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		ss.resize(128);
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+		REQUIRE(ss[0] == 'A');
+
+
+		ss.shrink_to_fit();
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+		REQUIRE(ss[0] == 'A');
 	}
 
 	SECTION("clear (large)")

@@ -712,78 +712,12 @@ struct Noisy
 	T value_{0};
 };
 
-
-constexpr u32 SBO_SIZE = 24;
-
-struct datablock
+u32 BinaryToGray(u32 num)
 {
-	u8 data[SBO_SIZE];
-};
+	return num ^ (num >> 1); // The operator >> is shift right. The operator ^ is exclusive or.
+}
 
-struct small
-{
-	u8 data[SBO_SIZE - 1];
 
-	u8 is_sbo : 1; // LSB
-	u8 size : 7;
-};
-
-struct large
-{
-	u8* dataptr;
-	u32 size; // TODO: save size and cap with data at heap
-	u32 capacity;
-	u8  padding[sizeof(small) - sizeof(dataptr) - sizeof(size) - sizeof(capacity) - 1];
-
-	u8 is_sbo : 1; // LSB
-	u8 unused : 7; //
-};
-
-static_assert(sizeof(small) == sizeof(large));
-static_assert(sizeof(small) == sizeof(datablock));
-
-struct sbo
-{
-	sbo()
-	{
-		packed.msmall.is_sbo = 0;
-		packed.msmall.size   = 0;
-		std::ranges::fill_n(packed.msmall.data, sizeof(packed.msmall.data), 0);
-	}
-
-	union
-	{
-		small     msmall;
-		large     mlarge;
-		datablock data;
-	} packed;
-
-	void set_sbo(bool v) { packed.msmall.is_sbo = v ? 1 : 0; }
-
-	void set_size(u32 size) { packed.msmall.size = size; }
-
-	u32 get_size() const { return (u32)(packed.msmall.size); }
-
-	bool is_sbo() const { return packed.msmall.is_sbo; }
-
-	void set_ptr(u8* p) { packed.mlarge.dataptr = p; }
-
-	void dump(std::string_view str) const
-	{
-		dbg::print("{}: ", str);
-		for (int i = 0; i < sizeof(packed.data.data); ++i)
-			dbg::print("{:08b}", packed.data.data[i]);
-		dbg::println();
-	}
-
-	std::span<u8> data() const
-	{
-		if (is_sbo())
-			return {(u8*)packed.msmall.data, packed.msmall.size};
-
-		return {};
-	}
-};
 
 i32 deckard_main(std::string_view commandline)
 {
@@ -792,44 +726,11 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	for (u32 i = 0; i < 100; i++)
 	{
-		sbo test;
-		dbg::println("{} / {} / {} / {}", sizeof(test.packed.msmall), sizeof(test.packed.mlarge), sizeof(test.packed), sizeof(sbo));
-		dbg::println("SBO: {}", sizeof(test.packed.msmall.data));
-		test.dump("sbo zero:");
-
-		test.set_sbo(true);
-		test.dump("sbo true:");
-		test.set_sbo(false);
-		test.dump("sbo fals:");
-
-
-		test.set_size(24);
-		test.dump("size 24");
-		test.set_size(0);
-
-		dbg::println("getsize 1 {} ", test.get_size());
-		dbg::println("sbo 1 {} ", test.is_sbo());
-		test.dump("1");
-
-
-		test.set_sbo(false);
-		test.set_size(0x3F);
-		dbg::println("getsize 2 {} ", test.get_size());
-		dbg::println("sbo 2 {} ", test.is_sbo());
-		test.dump("2");
-
-		test.set_size(0x7F);
-		test.dump("3");
-
-		test.set_sbo(true);
-		test.dump("4");
-
-
-		test.set_ptr((u8*)&deckard_main);
-
-		int q = 0;
+		dbg::println("{}. {}", i, BinaryToGray(i));
 	}
+
 
 	Noisy<int> n1{456};
 

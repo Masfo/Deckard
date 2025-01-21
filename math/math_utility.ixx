@@ -22,8 +22,8 @@ export namespace deckard::math
 	template<std::floating_point T = float>
 	inline constexpr T rad_to_degrees = T{180} / std::numbers::pi_v<T>;
 
-	template<typename T>
-	T round_to_even(f32 num)
+	template<std::integral T, arithmetic U>
+	T round_to_even(U num)
 	{
 		T rounded = static_cast<T>(std::round(num));
 		return rounded + (rounded % 2);
