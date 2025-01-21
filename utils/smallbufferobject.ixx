@@ -5,6 +5,7 @@ import deckard.types;
 import deckard.as;
 import deckard.assert;
 import deckard.debug;
+import deckard.math.utils;
 
 namespace deckard
 {
@@ -522,6 +523,26 @@ namespace deckard
 				}
 			}
 
+			void move(sbo& other)
+			{
+				reset();
+				if (other.is_small())
+				{
+					set_size(other.small_size());
+					std::memcpy(&packed.small.data[0], &other.packed.small.data[0], other.small_size());
+				}
+				else
+				{
+					packed.large.ptr      = other.packed.large.ptr;
+					packed.large.size     = other.packed.large.size;
+					packed.large.capacity = other.packed.large.capacity;
+					packed.large.is_large = 1;
+
+					other.packed.large.is_large = 0;
+				}
+				other.reset();
+			}
+
 		public:
 			sbo() { reset(); }
 
@@ -530,13 +551,26 @@ namespace deckard
 
 			sbo& operator=(sbo const& other)
 			{
+				if (this == &other)
+					return *this;
+
 				clone(other);
 				return *this;
 			}
 
 			// Move
-			sbo(sbo&&)            = delete;
-			sbo& operator=(sbo&&) = delete;
+			sbo(sbo&& other) 
+			{ 
+				move(other); 
+			}
+
+			sbo& operator=(sbo&& other)
+			{
+				if (this == &other)
+					return *this;
+				move(other);
+				return *this;
+			}
 
 			~sbo() noexcept { reset(); }
 
@@ -564,7 +598,13 @@ namespace deckard
 				}
 			}
 
-			void shrink_to_fit() { }
+			void shrink_to_fit() 
+			{
+				if (is_large() and (large_size() < large_capacity()))
+				{
+					resize(large_size());
+				}
+			}
 
 			type front() const { return rawptr()[0]; }
 
@@ -607,6 +647,14 @@ namespace deckard
 
 			void push_back(const type& v)
 			{
+				auto current_size = size();
+				auto current_capacity = capacity();
+				if (current_size + 1 > current_capacity)
+				{
+					resize(math::ceil_pow2(current_capacity) * 2);
+				}
+
+
 				if (is_large())
 				{
 					packed.large.ptr[large_size()] = v;
@@ -636,10 +684,24 @@ namespace deckard
 					set_capacity(newsize);
 					return;
 				}
-				if (is_large() and newsize < small_capacity())
+		
+
+				if (is_large() and newsize < large_capacity())
 				{
-					set_size(large_size());
-					set_large(false);
+					if (newsize <= small_capacity())
+					{
+						pointer ptr = large_rawptr();
+						pointer newptr = small_rawptr();
+						std::copy(ptr, ptr + newsize, newptr);
+
+						size_type old_size = as<size_type>(large_size());
+
+						set_large(false);
+						set_size(old_size);
+
+						return;
+					}
+
 					return;
 				}
 
@@ -670,21 +732,6 @@ namespace deckard
 					return;
 				}
 
-
-				if (is_large() and newsize > size())
-				{
-					size_t  new_capacity = std::max(newsize + 1, large_capacity() * 2);
-					pointer ptr          = new type[new_capacity];
-					if (ptr != nullptr)
-					{
-						std::copy(packed.large.ptr, packed.large.ptr + std::min(large_size(), newsize), ptr);
-					}
-
-					delete[] packed.large.ptr;
-					packed.large.ptr = ptr;
-					set_capacity(new_capacity);
-					return;
-				}
 			}
 
 			void set_test()
