@@ -449,29 +449,29 @@ namespace deckard
 
 			size_t small_size() const { return packed.small.size; }
 
-			void increase_size(size_type size = 1)
-			{
-				if (is_large())
-				{
-					assert::check(packed.large.size <= large_capacity(), "Large SBO: Over capacity");
-					packed.large.size += size;
-				}
-				else
-				{
-					assert::check(packed.small.size <= small_capacity(), "Small SBO: Over capacity");
-					if (packed.small.size + size <= small_capacity())
-						packed.small.size += as<u8>(size);
-				}
-			}
-
 			// capacity
 			size_t small_capacity() const { return packed.small.data.size(); }
 
 			size_t large_capacity() const { return packed.large.capacity; }
 
-			// data
+			// available_space
+			size_t large_available_size() const { return large_capacity() - large_size(); }
 
-			pointer large_rawptr() const { return packed.large.ptr; }
+			size_t small_available_size() const { return small_capacity() - small_size(); }
+
+			size_t available_size() const
+			{
+				if (is_small())
+					return small_available_size();
+				else
+					return large_available_size();
+			}
+
+			pointer large_rawptr() const
+			{
+				assert::check(packed.large.ptr != nullptr, "Something went wrong, large ptr not allocated");
+				return packed.large.ptr;
+			}
 
 			pointer small_rawptr() const { return as<pointer>(packed.small.data.data()); }
 
@@ -559,10 +559,7 @@ namespace deckard
 			}
 
 			// Move
-			sbo(sbo&& other) 
-			{ 
-				move(other); 
-			}
+			sbo(sbo&& other) { move(other); }
 
 			sbo& operator=(sbo&& other)
 			{
@@ -598,12 +595,35 @@ namespace deckard
 				}
 			}
 
-			void shrink_to_fit() 
+			void shrink_to_fit()
 			{
 				if (is_large() and (large_size() < large_capacity()))
 				{
 					resize(large_size());
 				}
+			}
+
+			void reserve(size_t newsize)
+			{
+				if (newsize > capacity())
+				{
+					resize(newsize);
+				}
+			}
+
+			void append(const std::span<type> buffer)
+			{
+				if (buffer.empty())
+					return;
+
+				// TODO: resize + copy
+
+				if (available_size() < buffer.size())
+					resize(size() + buffer.size());
+
+
+				for (const auto& elem : buffer)
+					push_back(elem);
 			}
 
 			type front() const { return rawptr()[0]; }
@@ -618,8 +638,10 @@ namespace deckard
 			{
 				assert::check(index < capacity(), "Indexing out-of-bounds");
 
+
 				if (is_large())
 				{
+					assert::check(index < size(), "Indexing out-of-bounds");
 					assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
 					return packed.large.ptr[index];
 				}
@@ -631,11 +653,12 @@ namespace deckard
 
 			[[nodiscard("")]] const_reference operator[](size_t index) const
 			{
-				assert::check(index > capacity(), "Indexing out-of-bounds");
+				assert::check(index < capacity(), "Indexing out-of-bounds");
 
 
 				if (is_large())
 				{
+					assert::check(index < size(), "Indexing out-of-bounds");
 					assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
 					return packed.large.ptr[index];
 				}
@@ -647,7 +670,7 @@ namespace deckard
 
 			void push_back(const type& v)
 			{
-				auto current_size = size();
+				auto current_size     = size();
 				auto current_capacity = capacity();
 				if (current_size + 1 > current_capacity)
 				{
@@ -655,26 +678,33 @@ namespace deckard
 				}
 
 
-				if (is_large())
+				if (is_large() and current_size <= large_capacity())
 				{
-					packed.large.ptr[large_size()] = v;
-					increase_size();
+					packed.large.ptr[packed.large.size] = v;
+					packed.large.size += 1;
 				}
-				else
+				else if (is_small() and current_size <= small_capacity())
 				{
-					packed.small.data[small_size()] = v;
-					increase_size();
+					packed.small.data[packed.small.size] = v;
+					packed.small.size += 1;
+				}
+			}
+
+			void pop_back()
+			{
+				if (is_large() and large_size() > 0)
+				{
+					packed.large.size -= 1;
+				}
+				else if (is_small() and small_size() > 0)
+				{
+					packed.small.size -= 1;
 				}
 			}
 
 			// resize
 			void resize(size_t newsize)
 			{
-				// small -> large
-				// large -> larger
-				// larger -> large
-				// large -> small
-
 				if ((not is_large() and newsize <= small_capacity()) or (is_large() and newsize == large_capacity()))
 					return;
 
@@ -684,20 +714,20 @@ namespace deckard
 					set_capacity(newsize);
 					return;
 				}
-		
+
 
 				if (is_large() and newsize < large_capacity())
 				{
 					if (newsize <= small_capacity())
 					{
-						pointer ptr = large_rawptr();
-						pointer newptr = small_rawptr();
+						pointer   ptr     = large_rawptr();
+						pointer   newptr  = small_rawptr();
+						size_type oldsize = large_size();
 						std::copy(ptr, ptr + newsize, newptr);
 
-						size_type old_size = as<size_type>(large_size());
 
 						set_large(false);
-						set_size(old_size);
+						set_size(as<type>(oldsize));
 
 						return;
 					}
@@ -709,7 +739,7 @@ namespace deckard
 				if ((not is_large() and newsize > small_capacity()) or (is_large() and newsize > large_size())) // smaller -> larger
 				{
 					size_t  oldsize      = size();
-					size_t  new_capacity = std::max(newsize, capacity() * 2);
+					size_t  new_capacity = std::max(newsize, math::ceil_pow2(capacity()) * 2);
 					pointer newptr       = new type[new_capacity];
 					std::uninitialized_fill(newptr, newptr + new_capacity, 0);
 
@@ -731,17 +761,6 @@ namespace deckard
 
 					return;
 				}
-
-			}
-
-			void set_test()
-			{
-				packed.small.data[0] = 'A';
-				packed.small.data[1] = 'B';
-				packed.small.data[2] = 'C';
-				packed.small.data[3] = 'D';
-
-				packed.small.size = 4;
 			}
 
 			std::span<type> data() const

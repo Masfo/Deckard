@@ -726,10 +726,46 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+
+	std::vector<u32> v10;
 	for (u32 i = 0; i < 100; i++)
-	{
-		dbg::println("{}. {}", i, BinaryToGray(i));
-	}
+		v10.push_back(i);
+	dbg::println("v10. after push: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
+
+	v10.reserve(150);
+
+	dbg::println("v10. after reserve: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
+
+	std::vector<u32> v9;
+	for (u32 i = 0; i < 100; i++)
+		v9.push_back(i);
+
+
+	dbg::println("front: {}, back: {}", v9.front(), v9.back());
+
+	dbg::println("after push: size: {}, capacity: {}, max_size: {}", v9.size(), v9.capacity(), v9.max_size());
+	dbg::println("80. {} / at {}", v9[80], v9.at(80));
+
+
+
+
+	for (u32 i = 0; i < 25; i++)
+		v9.pop_back();
+
+	dbg::println("front: {}, back: {}", v9.front(), v9.back());
+
+	// TODO: Does pop_back erase/clear value?
+
+	dbg::println("after  pop: size: {}, capacity: {}, max_size: {}", v9.size(), v9.capacity(), v9.max_size());
+	dbg::println("80. {} / at", v9[80]);
+
+
+	v9.shrink_to_fit();
+
+	dbg::println("shrink: size: {}, capacity: {}, max_size: {}", v9.size(), v9.capacity(), v9.max_size());
+	dbg::println("80. {} / at {}", v9[80], v9.at(80));
+
+
 
 
 	Noisy<int> n1{456};

@@ -309,16 +309,74 @@ TEST_CASE("sbo", "[sbov2]")
 
 		REQUIRE(ss.size() == 0);
 		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
 
 		repeat<64> = [&] { ss.push_back('A'); };
 
 		REQUIRE(ss[0] == 'A');
 		REQUIRE(ss.size() == 64);
 		REQUIRE(ss.capacity() == 64);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
 
 		ss.push_back('B');
 		REQUIRE(ss.size() == 65);
 		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+	// popback
+	SECTION("pop_back (small)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+
+
+		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss[1] == 'B');
+		REQUIRE(ss.size() == 2);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.pop_back();
+		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss.size() == 1);
+		REQUIRE(ss.capacity() == 31);
+	}
+
+	SECTION("pop_back (large)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		repeat<65> = [&] { ss.push_back('A'); };
+
+
+		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss.size() == 65);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		repeat<55> = [&] { ss.pop_back(); };
+
+		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss.size() == 10);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+
+		ss.shrink_to_fit();
+
+		REQUIRE(ss.size() == 10);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
 	}
 
 	SECTION("resize (small -> large)")
@@ -329,13 +387,18 @@ TEST_CASE("sbo", "[sbov2]")
 
 
 		ss.push_back('A');
+		ss.push_back('B');
+
 		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss[1] == 'B');
+		REQUIRE(ss.size() == 2);
+		REQUIRE(ss.capacity() == 31);
 
-		ss.resize(128);
-
+		ss.pop_back();
+		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss[1] == 'B');
 		REQUIRE(ss.size() == 1);
-		REQUIRE(ss.capacity() == 128);
-		REQUIRE(ss[0] == 'A');
+		REQUIRE(ss.capacity() == 31);
 	}
 
 
@@ -426,6 +489,47 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss[0] == 'A');
 	}
 
+	SECTION("append (small, small -> large, large -> large)")
+	{
+		std::array<u8, 8> arr{1, 2, 3, 4, 5, 6, 7, 8};
+
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.append(arr);
+
+		REQUIRE(ss.size() == 8);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.append(arr);
+
+		REQUIRE(ss.size() == 16);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.append(ss.data());
+
+		REQUIRE(ss.size() == 32);
+		REQUIRE(ss.capacity() == 64);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.append(ss.data());
+
+		REQUIRE(ss.size() == 64);
+		REQUIRE(ss.capacity() == 64);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.append(arr);
+
+		REQUIRE(ss.size() == 64 + 8);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+
 	SECTION("clear (large)")
 	{
 		sbo<32> ss;
@@ -444,6 +548,102 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.size() == 0);
 		REQUIRE(ss.capacity() == 128);
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+	SECTION("push_back (small)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+
+		ss.push_back('Q');
+
+		REQUIRE(ss[0] == 'Q');
+		REQUIRE(ss.size() == 1);
+
+		ss.push_back('B');
+		REQUIRE(ss[1] == 'B');
+		REQUIRE(ss.size() == 2);
+	}
+
+	SECTION("front / back (small)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		for (u32 i = 0; i < ss.capacity(); i++)
+			ss.push_back(as<u8>(i));
+
+		REQUIRE(ss.front() == 0);
+		REQUIRE(ss.back() == 30);
+
+		REQUIRE(ss.size() == 31);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+	}
+
+	SECTION("reserve (small)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.reserve(20);
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+	}
+
+	SECTION("reserve (small -> large)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.reserve(128);
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.reserve(256);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 256);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.reserve(128);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 256);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+	SECTION("front / back (large)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+
+		for (u32 i = 0; i < ss.capacity(); i++)
+			ss.push_back(as<u8>(i));
+
+		REQUIRE(ss.front() == 0);
+		REQUIRE(ss.back() == 30);
+
+		REQUIRE(ss.size() == 31);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
 	}
 }
 
