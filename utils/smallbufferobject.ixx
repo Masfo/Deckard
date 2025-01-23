@@ -491,6 +491,9 @@ namespace deckard
 			{
 				if (is_large())
 				{
+					pointer ptr       = large_rawptr();
+					std::fill(ptr, ptr + large_size(), 0);
+
 					delete[] packed.large.ptr;
 				}
 
@@ -621,9 +624,15 @@ namespace deckard
 				if (available_size() < buffer.size())
 					resize(size() + buffer.size());
 
+				pointer   ptr     = rawptr();
 
-				for (const auto& elem : buffer)
-					push_back(elem);
+				std::copy(buffer.data(), buffer.data() + buffer.size(), ptr + size());
+
+				if (is_small())
+					packed.small.size += as<type>(buffer.size());
+				else
+					packed.large.size += as<size_type>(buffer.size());
+
 			}
 
 			type front() const { return rawptr()[0]; }
@@ -722,7 +731,7 @@ namespace deckard
 					{
 						pointer   ptr     = large_rawptr();
 						pointer   newptr  = small_rawptr();
-						size_type oldsize = large_size();
+						size_type oldsize = as<size_type>(large_size());
 						std::copy(ptr, ptr + newsize, newptr);
 
 
@@ -741,7 +750,7 @@ namespace deckard
 					size_t  oldsize      = size();
 					size_t  new_capacity = std::max(newsize, math::ceil_pow2(capacity()) * 2);
 					pointer newptr       = new type[new_capacity];
-					std::uninitialized_fill(newptr, newptr + new_capacity, 0);
+					std::fill(newptr, newptr + new_capacity, 0);
 
 					pointer oldptr = rawptr();
 					if (newptr != nullptr)

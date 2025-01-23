@@ -726,6 +726,9 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	std::unique_ptr<u8*> uniqptr;
+	dbg::println("{} / {}", sizeof(uniqptr), sizeof(u8*));
+
 
 	std::vector<u32> v10;
 	for (u32 i = 0; i < 100; i++)

@@ -529,6 +529,38 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 
+	SECTION("append (large -> larger)")
+	{
+		sbo<32> ss;
+
+		ss.reserve(128);
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 128);
+
+		std::vector<u8> buffer;
+
+		for (const auto& i : upto(128))
+		{
+			ss.push_back(as<u8>(i + '0'));
+			buffer.push_back('B');
+			buffer.push_back('C');
+			buffer.push_back('D');
+			buffer.push_back('E');
+		}
+
+		REQUIRE(buffer.size() == 128 * 4);
+
+		REQUIRE(ss.size() == 128);
+		REQUIRE(ss.capacity() == 128);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.append(buffer);
+
+
+		REQUIRE(ss.size() == 128 + 512);
+		REQUIRE(ss.capacity() == 128 + 512);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+	}
 
 	SECTION("clear (large)")
 	{
