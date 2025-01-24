@@ -436,8 +436,8 @@ TEST_CASE("sbo", "[sbov2]")
 
 		ss.resize(15);
 		REQUIRE(ss.size() == 0);
-		REQUIRE(ss.capacity() == 31);
-		REQUIRE(ss.max_size() == 31);
+		REQUIRE(ss.capacity() == 15);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 
 	SECTION("clear (small)")
@@ -454,6 +454,32 @@ TEST_CASE("sbo", "[sbov2]")
 
 		ss.clear();
 		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+	}
+
+
+	SECTION("shrink_to_fit (small)")
+	{
+		sbo<32> ss;
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+		REQUIRE(ss.size() == 6);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		ss.shrink_to_fit();
+		REQUIRE(ss.size() == 6);
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
 	}
@@ -666,16 +692,70 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
 
+		ss.reserve(256);
 
-		for (u32 i = 0; i < ss.capacity(); i++)
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 256);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		for (u32 i = 0; i < 256; i++)
 			ss.push_back(as<u8>(i));
 
-		REQUIRE(ss.front() == 0);
-		REQUIRE(ss.back() == 30);
+		REQUIRE(ss.size() == 256);
+		REQUIRE(ss.capacity() == 256);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		for (u32 i = 0; i < 256; i++)
+			REQUIRE(ss[i] == i);
+
+		REQUIRE(ss.front() == 0x00);
+		REQUIRE(ss.back() == 0xFF);
+	}
+	SECTION("do all the things")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 31; i++)
+			ss.push_back(as<u8>(i));
 
 		REQUIRE(ss.size() == 31);
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
+
+		for (u32 i = 0; i < ss.size(); i++)
+			REQUIRE(ss[i] == i);
+
+		ss.push_back(as<u8>(31));
+
+		REQUIRE(ss.size() == 32);
+		REQUIRE(ss.capacity() == 64);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		for (u32 i = 0; i < ss.size(); i++)
+			REQUIRE(ss[i] == i);
+
+		ss.pop_back();
+
+		REQUIRE(ss.size() == 31);
+		REQUIRE(ss.capacity() == 64);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		for (u32 i = 0; i < ss.size(); i++)
+			REQUIRE(ss[i] == i);
+
+		ss.shrink_to_fit();
+
+		REQUIRE(ss.size() == 31);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		for (u32 i = 0; i < ss.size(); i++)
+			REQUIRE(ss[i] == i);
+
 	}
 }
 

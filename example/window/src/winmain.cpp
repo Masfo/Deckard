@@ -712,12 +712,7 @@ struct Noisy
 	T value_{0};
 };
 
-u32 BinaryToGray(u32 num)
-{
-	return num ^ (num >> 1); 
-}
-
-
+u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
 i32 deckard_main(std::string_view commandline)
 {
@@ -733,11 +728,16 @@ i32 deckard_main(std::string_view commandline)
 	std::vector<u32> v10;
 	for (u32 i = 0; i < 100; i++)
 		v10.push_back(i);
+
+
 	dbg::println("v10. after push: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
 
-	v10.reserve(150);
+	v10.resize(50);
 
-	dbg::println("v10. after reserve: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
+	//v10.reserve(150);
+	dbg::println("v10. after resize: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
+
+
 
 	std::vector<u32> v9;
 	for (u32 i = 0; i < 100; i++)
@@ -750,8 +750,6 @@ i32 deckard_main(std::string_view commandline)
 	dbg::println("80. {} / at {}", v9[80], v9.at(80));
 
 
-
-
 	for (u32 i = 0; i < 25; i++)
 		v9.pop_back();
 
@@ -760,15 +758,6 @@ i32 deckard_main(std::string_view commandline)
 	// TODO: Does pop_back erase/clear value?
 
 	dbg::println("after  pop: size: {}, capacity: {}, max_size: {}", v9.size(), v9.capacity(), v9.max_size());
-	dbg::println("80. {} / at", v9[80]);
-
-
-	v9.shrink_to_fit();
-
-	dbg::println("shrink: size: {}, capacity: {}, max_size: {}", v9.size(), v9.capacity(), v9.max_size());
-	dbg::println("80. {} / at {}", v9[80], v9.at(80));
-
-
 
 
 	Noisy<int> n1{456};
@@ -799,7 +788,6 @@ i32 deckard_main(std::string_view commandline)
 	dbg::println("before: size: {}, cap: {}, maxsize: {}", vq1.size(), vq1.capacity(), vq1.max_size());
 	vq1.clear();
 	dbg::println("after : size: {}, cap: {}, maxsize: {}", vq1.size(), vq1.capacity(), vq1.max_size());
-
 
 
 	dbg::println("commandline: {}", commandline);

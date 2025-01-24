@@ -491,7 +491,7 @@ namespace deckard
 			{
 				if (is_large())
 				{
-					pointer ptr       = large_rawptr();
+					pointer ptr = large_rawptr();
 					std::fill(ptr, ptr + large_size(), 0);
 
 					delete[] packed.large.ptr;
@@ -598,21 +598,6 @@ namespace deckard
 				}
 			}
 
-			void shrink_to_fit()
-			{
-				if (is_large() and (large_size() < large_capacity()))
-				{
-					resize(large_size());
-				}
-			}
-
-			void reserve(size_t newsize)
-			{
-				if (newsize > capacity())
-				{
-					resize(newsize);
-				}
-			}
 
 			void append(const std::span<type> buffer)
 			{
@@ -624,7 +609,7 @@ namespace deckard
 				if (available_size() < buffer.size())
 					resize(size() + buffer.size());
 
-				pointer   ptr     = rawptr();
+				pointer ptr = rawptr();
 
 				std::copy(buffer.data(), buffer.data() + buffer.size(), ptr + size());
 
@@ -632,7 +617,6 @@ namespace deckard
 					packed.small.size += as<type>(buffer.size());
 				else
 					packed.large.size += as<size_type>(buffer.size());
-
 			}
 
 			type front() const { return rawptr()[0]; }
@@ -714,38 +698,13 @@ namespace deckard
 			// resize
 			void resize(size_t newsize)
 			{
-				if ((not is_large() and newsize <= small_capacity()) or (is_large() and newsize == large_capacity()))
-					return;
+				size_t cap = capacity();
 
-
-				if (is_large() and newsize < large_capacity() and newsize > small_capacity())
+				if (newsize <= cap)
 				{
 					set_capacity(newsize);
-					return;
 				}
-
-
-				if (is_large() and newsize < large_capacity())
-				{
-					if (newsize <= small_capacity())
-					{
-						pointer   ptr     = large_rawptr();
-						pointer   newptr  = small_rawptr();
-						size_type oldsize = as<size_type>(large_size());
-						std::copy(ptr, ptr + newsize, newptr);
-
-
-						set_large(false);
-						set_size(as<type>(oldsize));
-
-						return;
-					}
-
-					return;
-				}
-
-
-				if ((not is_large() and newsize > small_capacity()) or (is_large() and newsize > large_size())) // smaller -> larger
+				else
 				{
 					size_t  oldsize      = size();
 					size_t  new_capacity = std::max(newsize, math::ceil_pow2(capacity()) * 2);
@@ -756,19 +715,62 @@ namespace deckard
 					if (newptr != nullptr)
 					{
 						std::copy(oldptr, oldptr + std::min(oldsize, newsize), newptr);
+						if (is_large())
+							delete[] packed.large.ptr;
+
+						packed.large.ptr = newptr;
+						set_large(true);
+						set_capacity(new_capacity);
+						set_size(oldsize);
+					}
+				}
+
+			}
+
+			
+			void shrink_to_fit()
+			{
+				if (is_large())
+				{
+					size_t oldsize = large_size();
+					if (oldsize <= small_capacity())
+					{
+
+						pointer ptr    = large_rawptr();
+						pointer newptr = small_rawptr();
+						std::copy(ptr, ptr + oldsize, newptr);
+
+						set_large(false);
+						set_size(as<type>(oldsize));
+						return;
 					}
 
+					if (oldsize < large_capacity())
+					{
+						pointer newptr = new type[oldsize];
+						std::fill(newptr, newptr + oldsize, 0);
 
-					if (is_large())
-						delete[] packed.large.ptr;
+						pointer oldptr = large_rawptr();
+						if (newptr != nullptr)
+						{
+							std::copy(oldptr, oldptr + oldsize, newptr);
+							if (is_large())
+								delete[] packed.large.ptr;
 
-					packed.large.ptr = newptr;
-					set_large(true);
-					set_capacity(new_capacity);
-					set_size(oldsize);
+							packed.large.ptr = newptr;
+							set_large(true);
+							set_capacity(oldsize);
+							set_size(oldsize);
+						}
+					}
+				}
+			}
 
-
-					return;
+			void reserve(size_t newsize)
+			{
+				if (newsize > capacity())
+				{
+					resize(newsize);
 				}
 			}
 
