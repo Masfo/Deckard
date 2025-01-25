@@ -632,6 +632,7 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
 
+
 		for (u32 i = 0; i < ss.capacity(); i++)
 			ss.push_back(as<u8>(i));
 

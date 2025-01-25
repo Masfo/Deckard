@@ -1,11 +1,12 @@
-github.com/AlDanial/cloc v 1.98  T=0.18 s (494.0 files/s, 115210.3 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.13 s (694.0 files/s, 167141.0 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           222             44            839
-.\example\window\src\winmain.cpp                      298             81            745
+.\example\window\src\winmain.cpp                      311             82            768
 .\utils\helpers.ixx                                   194             49            733
+.\utils\smallbufferobject.ixx                         170             14            603
 .\math\generic_vec4.ixx                               112             10            508
 .\math\generic_vec3.ixx                               121             11            500
 .\math\generic_vec2.ixx                               114             11            465
@@ -34,7 +35,7 @@ File                                                blank        comment        
 .\utils\random.ixx                                     57              5            167
 .\app\inputs.ixx                                       36              4            166
 .\app\vulkan\instance.ixx                              46              6            161
-.\types\as.ixx                                         35             14            155
+.\types\as.ixx                                         35             14            159
 .\file\filemonitor.ixx                                 38              7            154
 .\debug\debug.ixx                                      40             10            149
 .\math\ease_functions.ixx                              25              7            141
@@ -44,7 +45,6 @@ File                                                blank        comment        
 .\types\types.ixx                                      64             48            123
 .\win32\DTE.ixx                                        33              6            118
 .\utils\uuid.ixx                                       22              2            116
-.\utils\smallbufferobject.ixx                          31              0            113
 .\app\controller.ixx                                   44              9            110
 .\utils\function_ref.ixx                               30              2            100
 .\Deckard.ixx                                          42             14             94
@@ -53,7 +53,7 @@ File                                                blank        comment        
 .\utils\timers.ixx                                     22              4             91
 .\math\generic_vec.ixx                                 25             18             87
 .\app\vulkan\debug.ixx                                 25              5             84
-.\types\enum_flags.ixx                                 27             39             77
+.\types\enum_flags.ixx                                 27             40             77
 .\app\vulkan\images.ixx                                18              2             74
 .\archive\archive.ixx                                  51             90             72
 .\taskpool\taskpool.ixx                                16              0             71
@@ -93,5 +93,5 @@ File                                                blank        comment        
 .\utils\serializer.ixx                                  6              6              7
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 4451           1071          15467
+SUM:                                                 4603           1087          15984
 ---------------------------------------------------------------------------------------

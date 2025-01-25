@@ -574,7 +574,7 @@ namespace deckard
 
 			~sbo() noexcept { reset(); }
 
-			bool empty() const { return size() == 0; }
+			[[nodiscard("Use the empty check")]] bool empty() const { return size() == 0; }
 
 			size_t max_size() const
 			{
@@ -618,16 +618,16 @@ namespace deckard
 					packed.large.size += as<size_type>(buffer.size());
 			}
 
-			type front() const
+			[[nodiscard("Use the front value")]] type front() const
 			{
-				assert::check(empty(), "Front called on empty SBO");
+				assert::check(not empty(), "Front called on empty SBO");
 
 				return rawptr()[0];
 			}
 
-			type back() const
+			[[nodiscard("Use the back value")]] type back() const
 			{
-				assert::check(empty(), "Back called on empty SBO");
+				assert::check(not empty(), "Back called on empty SBO");
 
 				return rawptr()[size() - 1];
 			}
@@ -636,7 +636,7 @@ namespace deckard
 
 			size_t capacity() const { return is_large() ? large_capacity() : small_capacity(); }
 
-			[[nodiscard("")]] reference operator[](size_t index)
+			[[nodiscard("Use result on index operator")]] reference operator[](size_t index)
 			{
 				assert::check(index < capacity(), "Indexing out-of-bounds");
 
@@ -653,7 +653,7 @@ namespace deckard
 				}
 			}
 
-			[[nodiscard("")]] const_reference operator[](size_t index) const
+			[[nodiscard("Use result on index operator")]] const_reference operator[](size_t index) const
 			{
 				assert::check(index < capacity(), "Indexing out-of-bounds");
 
@@ -793,8 +793,10 @@ namespace deckard
 				}
 			}
 
-			std::span<type> data() const
+			[[nodiscard("Use the data span")]] std::span<type> data() const
 			{
+				assert::check(not empty(), "Data span cannot be empty");
+
 				if (is_large())
 				{
 					return {packed.large.ptr, packed.large.size};
