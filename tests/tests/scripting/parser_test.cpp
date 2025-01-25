@@ -14,6 +14,6 @@ TEST_CASE("parser", "[parser]")
 	SECTION("no tokens")
 	{
 		//
-		REQUIRE(1 == 1);
+		CHECK(1 == 1);
 	}
 }
