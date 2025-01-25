@@ -14,9 +14,9 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 	{
 		ringbuffer<u32> rb;
 
-		REQUIRE(rb.size() == 0);
-		REQUIRE(rb.capacity() == 8);
-		REQUIRE(rb.empty() == true);
+		CHECK(rb.size() == 0);
+		CHECK(rb.capacity() == 8);
+		CHECK(rb.empty() == true);
 	}
 
 	SECTION("ringbuffer clear")
@@ -28,8 +28,8 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 
 		rb.clear();
 
-		REQUIRE(rb.size() == 0);
-		REQUIRE(rb.capacity() == 2);
+		CHECK(rb.size() == 0);
+		CHECK(rb.capacity() == 2);
 	}
 
 	SECTION("ringbuffer push")
@@ -41,11 +41,11 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		rb.push(15);
 
 
-		REQUIRE(rb.size() == 2);
-		REQUIRE(rb.capacity() == 2);
+		CHECK(rb.size() == 2);
+		CHECK(rb.capacity() == 2);
 
-		REQUIRE(rb.front() == 10);
-		REQUIRE(rb.back() == 15);
+		CHECK(rb.front() == 10);
+		CHECK(rb.back() == 15);
 	}
 
 
@@ -60,11 +60,11 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		rb.push(20);
 
 
-		REQUIRE(rb.size() == 2);
-		REQUIRE(rb.capacity() == 2);
+		CHECK(rb.size() == 2);
+		CHECK(rb.capacity() == 2);
 
-		REQUIRE(rb.front() == 15);
-		REQUIRE(rb.back() == 20);
+		CHECK(rb.front() == 15);
+		CHECK(rb.back() == 20);
 	}
 
 
@@ -80,11 +80,11 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		rb.push(20);
 		auto item2 = rb.pop();
 
-		REQUIRE(rb.size() == 1);
-		REQUIRE(rb.capacity() == 2);
+		CHECK(rb.size() == 1);
+		CHECK(rb.capacity() == 2);
 
-		REQUIRE(item == 30);
-		REQUIRE(item2 == 20);
+		CHECK(item == 30);
+		CHECK(item2 == 20);
 	}
 
 
@@ -98,10 +98,10 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		rb.push(20);
 
 		auto item = rb.at(2);
-		REQUIRE(item == 15);
+		CHECK(item == 15);
 
-		REQUIRE(rb.size() == 4);
-		REQUIRE(rb.capacity() == 4);
+		CHECK(rb.size() == 4);
+		CHECK(rb.capacity() == 4);
 	}
 
 
@@ -117,13 +117,13 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 
 
 		auto item = rb.front();
-		REQUIRE(item == 10);
+		CHECK(item == 10);
 
 		auto item2 = rb.back();
-		REQUIRE(item2 == 25);
+		CHECK(item2 == 25);
 
-		REQUIRE(rb.size() == 4);
-		REQUIRE(rb.capacity() == 4);
+		CHECK(rb.size() == 4);
+		CHECK(rb.capacity() == 4);
 	}
 
 	SECTION("ringbuffer full")
@@ -131,17 +131,17 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		ringbuffer<u32> rb(2);
 
 		rb.push(5);
-		REQUIRE(rb.full() == false);
+		CHECK(rb.full() == false);
 		rb.push(10);
-		REQUIRE(rb.full() == true);
+		CHECK(rb.full() == true);
 		(void)rb.pop();
-		REQUIRE(rb.full() == false);
+		CHECK(rb.full() == false);
 		rb.push(20);
-		REQUIRE(rb.full() == true);
+		CHECK(rb.full() == true);
 
 
-		REQUIRE(rb.size() == 2);
-		REQUIRE(rb.capacity() == 2);
+		CHECK(rb.size() == 2);
+		CHECK(rb.capacity() == 2);
 	}
 
 
@@ -154,13 +154,13 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 
 
 		auto last = rb.last();
-		REQUIRE(last == 127);
+		CHECK(last == 127);
 
 		auto last4 = rb.last(4);
-		REQUIRE(last4 == std::vector<u32>{127, 126, 125, 124});
+		CHECK(last4 == std::vector<u32>{127, 126, 125, 124});
 
 
-		REQUIRE(rb.size() == 16);
-		REQUIRE(rb.capacity() == 16);
+		CHECK(rb.size() == 16);
+		CHECK(rb.capacity() == 16);
 	}
 }

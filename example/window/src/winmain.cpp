@@ -108,70 +108,6 @@ public:
 	}
 };
 
-template<size_t SSO_SIZE = 32>
-class alignas(8) u8string_sso
-{
-	static constexpr u32 MAX_CAPACITY = (1 < 31) - 1;
-
-	union CapacitySizeUnion
-	{
-		u64 value{0};
-
-		struct
-		{
-			u32 size : 32;
-			u32 capacity : 31;
-			u32 sso : 1; // tag for heap allocation
-		} bits;
-	};
-
-
-private:
-	CapacitySizeUnion m_cap_size;
-
-	union
-	{
-		u8  stackbuf[SSO_SIZE - sizeof(CapacitySizeUnion)]{0};
-		u8* ptr;
-	};
-
-	void set_sso(bool sso) { m_cap_size.bits.sso = true; }
-
-	bool is_sso() const { return static_cast<bool>(m_cap_size.bits.sso); }
-
-	void set_capacity(u32 newcap)
-	{
-		assert::check(newcap <= MAX_CAPACITY, "String has maximum capacity of 2^31 bits");
-		m_cap_size.bits.capacity = std::min(newcap, MAX_CAPACITY);
-	}
-
-	void set_size(u32 newsize) { m_cap_size.bits.size = newsize; }
-
-public:
-	u32 capacity() const { return static_cast<u32>(m_cap_size.bits.capacity); }
-
-	u32 size() const { return static_cast<u32>(m_cap_size.bits.size); }
-};
-
-static_assert(sizeof(u8string_sso<>) == 32, "u8string_sso should be 32-bytes");
-
-union Data
-{
-	struct alignas(8) NonSSO
-	{
-		u8* ptr;
-		u32 size;
-		u32 capacity;
-	} non_sso;
-
-	struct alignas(8) SSO
-	{
-		u8 string[16 + sizeof(NonSSO) / sizeof(u8) - 1];
-		u8 size; // turns to null byte when 0
-	} sso;
-};
-
-static_assert(sizeof(Data) == 32);
 
 struct codepoint_result
 {
@@ -191,17 +127,6 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 	return {bytes_read, codepoint};
 }
 
-using SmallStringBuffer = basic_smallbuffer<32>;
-
-static_assert(sizeof(SmallStringBuffer) == 32, "SmallStringBuffer should be 32-bytes");
-
-class u8str
-{
-private:
-	SmallStringBuffer sbo{};
-
-public:
-};
 
 #define CTX_PI 3.141592653589793f
 
@@ -454,190 +379,7 @@ auto varsum(Args... args)
 	return std::make_tuple(args...); // Performs a binary right fold with addition
 }
 
-auto eval = [](std::string_view input) -> std::expected<i64, std::string>
-{
-#if 0
-	// precedence, right
-	//std::unordered_map<char, std::pair<std::pair<i8, bool>, std::function<i64(i64, i64)>>> funcs;
 
-	std::unordered_map<char, u8> precedence;
-	precedence['+'] = 2;
-	precedence['-'] = 2;
-	precedence['*'] = 3;
-	precedence['/'] = 3;
-	precedence['^'] = 4;
-
-	std::unordered_map<char, bool> right_assoc;
-	right_assoc['+'] = false;
-	right_assoc['-'] = false;
-	right_assoc['*'] = false;
-	right_assoc['/'] = false;
-	right_assoc['^'] = true;
-
-	//funcs['+'] = {{2, false}, [](i64 a, i64 b) { return a + b; }};
-	//funcs['-'] = {{2, false}, [](i64 a, i64 b) { return a - b; }};
-	//funcs['*'] = {{3, false}, [](i64 a, i64 b) { return a * b; }};
-	//funcs['/'] = {{3, false}, [](i64 a, i64 b) { return a / b; }};
-	//funcs['^'] = {{4, true}, [](i64 a, i64 b) { return (i64)std::pow(a, b); }};
-	enum type
-	{
-		ADD,
-		SUB,
-		MUL,
-		DIV,
-		POW,
-		INT64
-	};
-
-	struct value
-	{
-		type type;
-		i64  v{};
-	};
-
-
-	std::stack<char>  opstack;
-	std::stack<value> output;
-
-	bool negate = false;
-	for (u32 i = 0; i < input.size(); ++i)
-	{
-		if (input[i] == ' ')
-			continue;
-
-		if (input[i] == '-' and i + 1 < input.size() and isdigit(input[i + 1]))
-		{
-			negate = true;
-			continue;
-		}
-		else if (isdigit(input[i]))
-		{
-			i64 acc{0};
-			while (i < input.size() and isdigit(input[i]))
-			{
-				acc = acc * 10 + (int)input[i] - '0';
-				i++;
-			}
-			i--;
-			output.push(negate ? value{INT64, -acc} : value{INT64, acc});
-			negate = false;
-		}
-		else if (input[i] == '(')
-		{
-			opstack.push(input[i]);
-		}
-		else if (input[i] == ')')
-		{
-			while (not opstack.empty())
-			{
-				auto op = opstack.top();
-				opstack.pop();
-				if (op == '(')
-					break;
-
-				switch (op)
-				{
-					case '+': output.push({ADD, 0}); break;
-					case '-': output.push({SUB, 0}); break;
-					case '*': output.push({MUL, 0}); break;
-					case '/': output.push({DIV, 0}); break;
-					case '^': output.push({POW, 0}); break;
-					default: dbg::println("Unknown op '{}'", op); break;
-				}
-			}
-		}
-		else
-		{
-			if (funcs.contains(input[i]))
-			{
-				while (not opstack.empty())
-				{
-					auto op = opstack.top();
-					if (op == '(')
-						break;
-
-					if (funcs[input[i]].first.first > funcs[op].first.first)
-						break;
-					opstack.pop();
-
-					switch (op)
-					{
-						case '+': output.push({ADD, 0}); break;
-						case '-': output.push({SUB, 0}); break;
-						case '*': output.push({MUL, 0}); break;
-						case '/': output.push({DIV, 0}); break;
-						case '^': output.push({POW, 0}); break;
-						default: dbg::println("Unknown op '{}'", op); break;
-					}
-					opstack.push(input[i]);
-				}
-			}
-			else
-			{
-				opstack.push(input[i]);
-			}
-		}
-	}
-
-	std::stack<i64> result;
-	for (const auto& elem : output)
-	{
-	}
-#endif
-	return -1;
-};
-
-class MyClass
-{
-public:
-	MyClass(int v)
-		: value(v)
-	{
-		dbg::println("ctor: {}", value);
-	}
-
-	MyClass(const MyClass& other)
-		: value(other.value)
-	{
-		dbg::println("copy ctor: {}", value);
-	}
-
-	MyClass& operator=(const MyClass& other)
-	{
-		dbg::println("copy assignment: {}", value);
-
-		value = other.value;
-		return *this;
-	}
-
-	MyClass(MyClass&& other) // move ctor
-		: value(std::move(other.value))
-	{
-		dbg::println("move ctor: {}", value);
-
-		other.value = -1; // Indicate the object has been moved from
-	}
-
-	// Move assignment operator
-	MyClass& operator=(MyClass&& other)
-	{
-		if (this != &other)
-		{
-			value       = std::move(other.value);
-			other.value = -1;
-
-			dbg::println("move assignment: {}", value);
-		}
-		return *this;
-	}
-
-	~MyClass() { dbg::println("dtor: {}", value); }
-
-private:
-	int value{};
-};
-
-MyClass create_class(i32 v) { return {v}; }
 
 union float4_2
 {
@@ -840,36 +582,10 @@ i32 deckard_main(std::string_view commandline)
 	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
 
 
-	auto result_eval = eval("2^3^2");
 
 	// ###################
 
 
-	// ###################
-	{
-		MyClass mc1{123};
-
-		auto mc2 = create_class(666);
-
-		MyClass mc3 = std::move(mc1);
-
-		MyClass mc4 = mc2;
-
-		MyClass mc5{create_class(789)};
-
-		mc3 = mc4;
-
-		int kox = 0;
-	}
-
-	// std::vector<i32> cps{-1,0,1};
-	// for (const auto& [x, y, z] : std::views::cartesian_product(cps,cps,cps))
-	//{
-	//	dbg::println("{} {} {}", x,y,z);
-	// }
-
-
-	// ###################
 	u32         q2{};
 	i16         q22{};
 	std::string xjk1("uie");
@@ -1071,35 +787,6 @@ i32 deckard_main(std::string_view commandline)
 	u8ptr[0] = (u8)'X';
 	// ########################################################################
 
-	SmallStringBuffer sbo;
-
-	dbg::println("SmallBuffer {}", sizeof(u8str));
-
-	std::string input = "AAAABBBB";
-	// auto        lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
-	sbo.resize(8);
-	sbo.fill('A');
-	dbg::println("insert small buffer: {}/{}/{}", -1, sbo.size(), sbo.capacity());
-	dbg::println("str: {}", (const char*)sbo.data());
-
-
-	input = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333";
-	// lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
-	sbo.resize(42);
-	sbo.fill('A');
-
-	dbg::println("insert big buffer 1: {}/{}/{}", -1, sbo.size(), sbo.capacity());
-
-
-	input = "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333444455556666777788889999";
-	// lensbo = sbo.insert({as<u8*>(input.data()), input.size()});
-	sbo.resize(64);
-	sbo.fill('A');
-
-	sbo.resize(8);
-	sbo.fill('B');
-
-	dbg::println("insert big buffer 2: {}/{}/{}", -1, sbo.size(), sbo.capacity());
 
 
 	auto v1 = make_vector(1, 2, 3);
@@ -1155,11 +842,7 @@ i32 deckard_main(std::string_view commandline)
 	auto [bytes, codepoint] = decode_codepoint({(u8*)u8str_d.data(), u8str_d.size()}, index);
 
 
-	u8string_sso sso;
-	dbg::println("sso1: {}", sizeof(sso));
 
-	Data dd;
-	dbg::println("sso2: {}", sizeof(dd));
 
 
 	file f("input.ini");
