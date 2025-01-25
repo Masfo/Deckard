@@ -781,6 +781,17 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.capacity() == 31 + 4096);
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 		REQUIRE(ss[2048] == 0);
+
+		ss.resize(4096);
+		REQUIRE(ss.size() == 4096);
+		REQUIRE(ss.capacity() == 4096+31);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.append(ss);
+		REQUIRE(ss.size() == 4096*2);
+		REQUIRE(ss.capacity() == 16384);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+
 	}
 }
 

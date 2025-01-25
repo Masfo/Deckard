@@ -598,6 +598,11 @@ namespace deckard
 				}
 			}
 
+			void append(const sbo<SIZE>& other)
+			{ 
+				append(other.data());
+			}
+
 			void append(const std::span<type> buffer)
 			{
 				if (buffer.empty())
