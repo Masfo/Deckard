@@ -618,18 +618,18 @@ namespace deckard
 					packed.large.size += as<size_type>(buffer.size());
 			}
 
-			std::optional<type> front() const
+			type front() const
 			{
-				if (size() > 0)
-					return rawptr()[0];
-				return {};
+				assert::check(empty(), "Front called on empty SBO");
+
+				return rawptr()[0];
 			}
 
-			std::optional<type> back() const
+			type back() const
 			{
-				if (size() > 0)
-					return rawptr()[size() - 1];
-				return {};
+				assert::check(empty(), "Back called on empty SBO");
+
+				return rawptr()[size() - 1];
 			}
 
 			size_t size() const { return is_large() ? large_size() : small_size(); }

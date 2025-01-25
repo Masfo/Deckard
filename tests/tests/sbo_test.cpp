@@ -635,8 +635,8 @@ TEST_CASE("sbo", "[sbov2]")
 		for (u32 i = 0; i < ss.capacity(); i++)
 			ss.push_back(as<u8>(i));
 
-		REQUIRE(*ss.front() == 0);
-		REQUIRE(*ss.back() == 30);
+		REQUIRE(ss.front() == 0);
+		REQUIRE(ss.back() == 30);
 
 		REQUIRE(ss.size() == 31);
 		REQUIRE(ss.capacity() == 31);
@@ -683,17 +683,6 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 
-	SECTION("empty front / back (small)")
-	{
-		sbo<32> ss;
-
-		REQUIRE(ss.size() == 0);
-		REQUIRE(ss.capacity() == 31);
-		REQUIRE(ss.max_size() == 31);
-
-		REQUIRE(ss.front().has_value() == false);
-		REQUIRE(ss.back().has_value() == false);
-	}
 
 	SECTION("front / back (large)")
 	{
