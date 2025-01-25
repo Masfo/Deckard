@@ -724,24 +724,61 @@ i32 deckard_main(std::string_view commandline)
 	std::unique_ptr<u8*> uniqptr;
 	dbg::println("{} / {}", sizeof(uniqptr), sizeof(u8*));
 
+	{
+		std::vector<u32> v12;
+		v12.reserve(128);
+
+		dbg::println("v12. back {}", v12.back());
+
+		int kj = 0;
+	}
+	{
+		std::vector<u32> v11;
+		v11.reserve(128);
+
+		for (u32 i = 0; i < 128; i++)
+			v11.push_back(i);
+
+
+		dbg::println("v11. resize: size: {}, capacity: {}, max_size: {}", v11.size(), v11.capacity(), v11.max_size());
+		dbg::println("v11. back {}", v11.back());
+
+		v11.resize(40);
+
+		dbg::println("v11. resize: size: {}, capacity: {}, max_size: {}", v11.size(), v11.capacity(), v11.max_size());
+		dbg::println("v11. back {}", v11.back());
+
+		v11.resize(128);
+		dbg::println("v11. resize: size: {}, capacity: {}, max_size: {}", v11.size(), v11.capacity(), v11.max_size());
+		dbg::println("v11. back {}", v11.back());
+		int k = 0;
+
+	}
+
 
 	std::vector<u32> v10;
 	for (u32 i = 0; i < 100; i++)
 		v10.push_back(i);
 
 
+
 	dbg::println("v10. after push: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
+
 
 	v10.resize(50);
 
-	//v10.reserve(150);
 	dbg::println("v10. after resize: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
 
+	dbg::println("v10_1 90: {}", v10[90]);
+	v10.resize(50);
+	v10.resize(100);
+	dbg::println("v10_2 90: {}", v10[90]);
 
 
 	std::vector<u32> v9;
 	for (u32 i = 0; i < 100; i++)
 		v9.push_back(i);
+
 
 
 	dbg::println("front: {}, back: {}", v9.front(), v9.back());

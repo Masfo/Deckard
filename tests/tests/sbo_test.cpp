@@ -413,10 +413,9 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.capacity() == 128);
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 
-
 		ss.resize(40);
-		REQUIRE(ss.size() == 0);
-		REQUIRE(ss.capacity() == 40);
+		REQUIRE(ss.size() == 40);
+		REQUIRE(ss.capacity() == 128);
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 
@@ -435,8 +434,8 @@ TEST_CASE("sbo", "[sbov2]")
 
 
 		ss.resize(15);
-		REQUIRE(ss.size() == 0);
-		REQUIRE(ss.capacity() == 15);
+		REQUIRE(ss.size() == 15);
+		REQUIRE(ss.capacity() == 128);
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 
@@ -636,8 +635,8 @@ TEST_CASE("sbo", "[sbov2]")
 		for (u32 i = 0; i < ss.capacity(); i++)
 			ss.push_back(as<u8>(i));
 
-		REQUIRE(ss.front() == 0);
-		REQUIRE(ss.back() == 30);
+		REQUIRE(*ss.front() == 0);
+		REQUIRE(*ss.back() == 30);
 
 		REQUIRE(ss.size() == 31);
 		REQUIRE(ss.capacity() == 31);
@@ -684,6 +683,18 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
 	}
 
+	SECTION("empty front / back (small)")
+	{
+		sbo<32> ss;
+
+		REQUIRE(ss.size() == 0);
+		REQUIRE(ss.capacity() == 31);
+		REQUIRE(ss.max_size() == 31);
+
+		REQUIRE(ss.front().has_value() == false);
+		REQUIRE(ss.back().has_value() == false);
+	}
+
 	SECTION("front / back (large)")
 	{
 		sbo<32> ss;
@@ -719,6 +730,7 @@ TEST_CASE("sbo", "[sbov2]")
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
 
+		// push_back to small
 		for (u32 i = 0; i < 31; i++)
 			ss.push_back(as<u8>(i));
 
@@ -729,6 +741,8 @@ TEST_CASE("sbo", "[sbov2]")
 		for (u32 i = 0; i < ss.size(); i++)
 			REQUIRE(ss[i] == i);
 
+		// push small -> large
+
 		ss.push_back(as<u8>(31));
 
 		REQUIRE(ss.size() == 32);
@@ -738,6 +752,7 @@ TEST_CASE("sbo", "[sbov2]")
 		for (u32 i = 0; i < ss.size(); i++)
 			REQUIRE(ss[i] == i);
 
+		// pop large -> large
 		ss.pop_back();
 
 		REQUIRE(ss.size() == 31);
@@ -747,15 +762,35 @@ TEST_CASE("sbo", "[sbov2]")
 		for (u32 i = 0; i < ss.size(); i++)
 			REQUIRE(ss[i] == i);
 
+
+		// shrink to small
 		ss.shrink_to_fit();
 
 		REQUIRE(ss.size() == 31);
 		REQUIRE(ss.capacity() == 31);
 		REQUIRE(ss.max_size() == 31);
 
-		for (u32 i = 0; i < ss.size(); i++)
-			REQUIRE(ss[i] == i);
 
+		// append back to large
+		std::vector<u8> v;
+
+		for (u32 i = 0; i < 4096; i++)
+			v.emplace_back(i % 256);
+
+		ss.append(v);
+		REQUIRE(ss.size() == 31 + 4096);
+		REQUIRE(ss.capacity() == 31 + 4096);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+		REQUIRE(ss[2048] == 225);
+
+		//
+		ss.resize(1024);
+		ss.resize(ss.capacity());
+
+		REQUIRE(ss.size() == 31 + 4096);
+		REQUIRE(ss.capacity() == 31 + 4096);
+		REQUIRE(ss.max_size() == 0xFFFF'FFFF);
+		REQUIRE(ss[2048] == 0);
 	}
 }
 

@@ -91,7 +91,7 @@ if(MSVC)
 
         target_compile_options(deckard PRIVATE /RTC1)
         target_compile_options(deckard PRIVATE /GS)
-        #target_link_options(deckard PRIVATE /INCREMENTAL)
+        target_link_options(deckard PRIVATE /INCREMENTAL)
         target_link_options(deckard PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
 
 
