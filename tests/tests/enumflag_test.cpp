@@ -46,27 +46,27 @@ TEST_CASE("enumflags", "[enum]")
 
 	// Add read
 	rwx += Permission::Read;
-	REQUIRE(rwx == (Permission::Read));
+	CHECK(rwx == (Permission::Read));
 
 	// Add write + execute
 	rwx += Permission::Write | Permission::Execute;
-	REQUIRE(rwx == (Permission::Read | Permission::Write | Permission::Execute));
+	CHECK(rwx == (Permission::Read | Permission::Write | Permission::Execute));
 
 	// Remove read and execute
 	rwx -= Permission::Read | Permission::Execute;
-	REQUIRE(rwx == (Permission::Write));
+	CHECK(rwx == (Permission::Write));
 
 	// Remove write with traditional way
 	rwx &= ~Permission::Write;
 
 	// Add all back traditional way
 	rwx |= Permission::Read | Permission::Write | Permission::Execute;
-	REQUIRE(rwx == (Permission::Read | Permission::Write | Permission::Execute));
+	CHECK(rwx == (Permission::Read | Permission::Write | Permission::Execute));
 
 
 	// Toggle read
 	rwx ^= Permission::Read;
-	REQUIRE(rwx == (Permission::Write | Permission::Execute));
+	CHECK(rwx == (Permission::Write | Permission::Execute));
 
 	// Toggle write and execute
 	rwx ^= Permission::Write | Permission::Execute;
@@ -76,48 +76,48 @@ TEST_CASE("enumflags", "[enum]")
 
 	// Check all flags, with boolean test
 	//
-	REQUIRE(true == (rwx && Permission::Read));
-	REQUIRE(true == (rwx && Permission::Write));
-	REQUIRE(true == (rwx && Permission::Execute));
+	CHECK(true == (rwx && Permission::Read));
+	CHECK(true == (rwx && Permission::Write));
+	CHECK(true == (rwx && Permission::Execute));
 
 	// Remove read
 	rwx -= Permission::Read;
-	REQUIRE(false == (rwx && Permission::Read));
-	REQUIRE(true == (rwx && Permission::Write));
-	REQUIRE(true == (rwx && Permission::Execute));
+	CHECK(false == (rwx && Permission::Read));
+	CHECK(true == (rwx && Permission::Write));
+	CHECK(true == (rwx && Permission::Execute));
 
 	// Remove write
 	rwx -= Permission::Write;
-	REQUIRE(false == (rwx && Permission::Read));
-	REQUIRE(false == (rwx && Permission::Write));
-	REQUIRE(true == (rwx && Permission::Execute));
+	CHECK(false == (rwx && Permission::Read));
+	CHECK(false == (rwx && Permission::Write));
+	CHECK(true == (rwx && Permission::Execute));
 
 	// Remove execute
 	rwx -= Permission::Execute;
-	REQUIRE(false == (rwx && Permission::Read));
-	REQUIRE(false == (rwx && Permission::Write));
-	REQUIRE(false == (rwx && Permission::Execute));
+	CHECK(false == (rwx && Permission::Read));
+	CHECK(false == (rwx && Permission::Write));
+	CHECK(false == (rwx && Permission::Execute));
 
 	// OR read
 	rwx |= Permission::Read;
-	REQUIRE(true == (rwx && Permission::Read));
-	REQUIRE(false == (rwx && Permission::Write));
-	REQUIRE(false == (rwx && Permission::Execute));
+	CHECK(true == (rwx && Permission::Read));
+	CHECK(false == (rwx && Permission::Write));
+	CHECK(false == (rwx && Permission::Execute));
 
 	//
 	rwx += Permission::Write | Permission::Execute;
 
 	// AND execute, removes all but execute
 	rwx &= Permission::Execute;
-	REQUIRE(false == (rwx && Permission::Read));
-	REQUIRE(false == (rwx && Permission::Write));
-	REQUIRE(true == (rwx && Permission::Execute));
+	CHECK(false == (rwx && Permission::Read));
+	CHECK(false == (rwx && Permission::Write));
+	CHECK(true == (rwx && Permission::Execute));
 
 
 	// TODO: add format printing when it is supported
 	// TODO: this is just temp
-	REQUIRE(std::format("{}", (Permission::Read)) == "001"s);
-	REQUIRE(std::format("{}", (Permission::Write)) == "010"s);
-	REQUIRE(std::format("{}", (Permission::Execute)) == "100"s);
-	REQUIRE(std::format("{}", (Permission::Execute | Permission::Read)) == "101"s);
+	CHECK(std::format("{}", (Permission::Read)) == "001"s);
+	CHECK(std::format("{}", (Permission::Write)) == "010"s);
+	CHECK(std::format("{}", (Permission::Execute)) == "100"s);
+	CHECK(std::format("{}", (Permission::Execute | Permission::Read)) == "101"s);
 }

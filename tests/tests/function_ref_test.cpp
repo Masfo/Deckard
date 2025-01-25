@@ -35,37 +35,37 @@ TEST_CASE("function_ref", "[function_ref][utils]")
 	// function
 	{
 		function_ref<int(int)> fr = function_call;
-		REQUIRE(3 == fr(1));
-		REQUIRE(1 == details::function_call_count);
+		CHECK(3 == fr(1));
+		CHECK(1 == details::function_call_count);
 
-		REQUIRE(call_function_call(function_call, 5) == 15);
-		REQUIRE(2 == details::function_call_count);
+		CHECK(call_function_call(function_call, 5) == 15);
+		CHECK(2 == details::function_call_count);
 	}
 
 	// lambda
 	{
 		function_ref<int(int)> fr = [](int x) { return x + 42; };
-		REQUIRE(fr(8) == 50);
+		CHECK(fr(8) == 50);
 
 
 		const int value = 10;
 		fr              = [&value](int x) { return x + 42 + value; };
-		REQUIRE(fr(8) == 60);
+		CHECK(fr(8) == 60);
 
 		auto l = [](int x)
 		{
 			details::function_call_count += 1;
 			return x * 2;
 		};
-		REQUIRE(call_function_call(l, 5) == 10);
-		REQUIRE(3 == details::function_call_count);
+		CHECK(call_function_call(l, 5) == 10);
+		CHECK(3 == details::function_call_count);
 	}
 
 	// method
 	{
 		MyClass                          C;
 		function_ref<int(MyClass&, int)> fr = &MyClass::method;
-		REQUIRE(fr(C, 8) == 50);
-		REQUIRE(1 == details::method_call_count);
+		CHECK(fr(C, 8) == 50);
+		CHECK(1 == details::method_call_count);
 	}
 }

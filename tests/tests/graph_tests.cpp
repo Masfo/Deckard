@@ -14,8 +14,8 @@ TEST_CASE("Binary Tree", "[binarytree]")
 	{
 		binary::tree<i32> tree;
 
-		REQUIRE(tree.size() == 0);
-		REQUIRE(tree.empty() == true);
+		CHECK(tree.size() == 0);
+		CHECK(tree.empty() == true);
 	}
 
 	SECTION("insert")
@@ -29,8 +29,8 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(70);
 		tree.insert(60);
 		tree.insert(80);
-		REQUIRE(tree.size() == 7);
-		REQUIRE(tree.empty() == false);
+		CHECK(tree.size() == 7);
+		CHECK(tree.empty() == false);
 	}
 
 	SECTION("clone")
@@ -47,8 +47,8 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		auto tree2 = tree;
 
-		REQUIRE(tree.size() == 7);
-		REQUIRE(tree2.size() == 7);
+		CHECK(tree.size() == 7);
+		CHECK(tree2.size() == 7);
 	}
 
 	SECTION("remove")
@@ -67,8 +67,8 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		tree.remove(40);
 
-		REQUIRE(tree.size() == 6);
-		REQUIRE(tree2.size() == 7);
+		CHECK(tree.size() == 6);
+		CHECK(tree2.size() == 7);
 	}
 
 	SECTION("has")
@@ -83,10 +83,10 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(60);
 		tree.insert(80);
 
-		REQUIRE(tree.size() == 7);
-		REQUIRE(true == tree.contains(10));
-		REQUIRE(true == tree.contains(80));
-		REQUIRE(false == tree.contains(0));
+		CHECK(tree.size() == 7);
+		CHECK(true == tree.contains(10));
+		CHECK(true == tree.contains(80));
+		CHECK(false == tree.contains(0));
 	}
 
 	SECTION("clear")
@@ -100,12 +100,12 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(70);
 		tree.insert(60);
 		tree.insert(80);
-		REQUIRE(tree.size() == 7);
-		REQUIRE(tree.empty() == false);
+		CHECK(tree.size() == 7);
+		CHECK(tree.empty() == false);
 
 		tree.clear();
-		REQUIRE(tree.size() == 0);
-		REQUIRE(tree.empty() == true);
+		CHECK(tree.size() == 0);
+		CHECK(tree.empty() == true);
 	}
 
 	SECTION("get node/height")
@@ -116,30 +116,30 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(30);
 		tree.insert(60);
 		tree.insert(80);
-		REQUIRE(tree.size() == 4);
-		REQUIRE(tree.empty() == false);
+		CHECK(tree.size() == 4);
+		CHECK(tree.empty() == false);
 
-		REQUIRE(tree.get(10)->height == 0);
-		REQUIRE(tree.get(30)->height == 2);
-		REQUIRE(tree.get(60)->height == 1);
-		REQUIRE(tree.get(80)->height == 0);
+		CHECK(tree.get(10)->height == 0);
+		CHECK(tree.get(30)->height == 2);
+		CHECK(tree.get(60)->height == 1);
+		CHECK(tree.get(80)->height == 0);
 
 		tree.insert(100);
-		REQUIRE(tree.size() == 5);
-		REQUIRE(tree.get(10)->height == 0);
-		REQUIRE(tree.get(30)->height == 2);
-		REQUIRE(tree.get(60)->height == 0);
-		REQUIRE(tree.get(80)->height == 1);
-		REQUIRE(tree.get(100)->height == 0);
+		CHECK(tree.size() == 5);
+		CHECK(tree.get(10)->height == 0);
+		CHECK(tree.get(30)->height == 2);
+		CHECK(tree.get(60)->height == 0);
+		CHECK(tree.get(80)->height == 1);
+		CHECK(tree.get(100)->height == 0);
 
 		tree.insert(5);
-		REQUIRE(tree.size() == 6);
-		REQUIRE(tree.get(5)->height == 0);
-		REQUIRE(tree.get(10)->height == 1);
-		REQUIRE(tree.get(30)->height == 2);
-		REQUIRE(tree.get(60)->height == 0);
-		REQUIRE(tree.get(80)->height == 1);
-		REQUIRE(tree.get(100)->height == 0);
+		CHECK(tree.size() == 6);
+		CHECK(tree.get(5)->height == 0);
+		CHECK(tree.get(10)->height == 1);
+		CHECK(tree.get(30)->height == 2);
+		CHECK(tree.get(60)->height == 0);
+		CHECK(tree.get(80)->height == 1);
+		CHECK(tree.get(100)->height == 0);
 	}
 
 	SECTION("at")
@@ -158,10 +158,10 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		//  .    .  .    80		2
 
 		const auto n = tree.at(10);
-		REQUIRE(n.has_value());
-		REQUIRE((*n)->data == 10);
+		CHECK(n.has_value());
+		CHECK((*n)->data == 10);
 
-		REQUIRE(not tree.at(0).has_value());
+		CHECK(not tree.at(0).has_value());
 	}
 
 	SECTION("visit inorder")
@@ -185,11 +185,11 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		//  .    .  .    80		2
 
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 10);
-		REQUIRE(v[1] == 30);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 80);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 30);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 80);
 	}
 
 	SECTION("visit preorder")
@@ -212,11 +212,11 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		//  .    .  .    80		2
 
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 30);
-		REQUIRE(v[1] == 10);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 80);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 30);
+		CHECK(v[1] == 10);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 80);
 	}
 
 	SECTION("visit postorder")
@@ -239,11 +239,11 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		// 	 /  \	 /  \
 		//  .    .  .    80		2
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 10);
-		REQUIRE(v[1] == 80);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 30);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 80);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 30);
 	}
 
 	SECTION("visit levelorder")
@@ -266,11 +266,11 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		// 	 /  \	 /  \
 		//  .    .  .    80		2
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 30);
-		REQUIRE(v[1] == 10);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 80);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 30);
+		CHECK(v[1] == 10);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 80);
 	}
 }
 
@@ -282,8 +282,8 @@ TEST_CASE("AVL", "[avl]")
 	{
 		avl::tree<i32> tree;
 
-		REQUIRE(tree.size() == 0);
-		REQUIRE(tree.empty() == true);
+		CHECK(tree.size() == 0);
+		CHECK(tree.empty() == true);
 	}
 
 	SECTION("insert")
@@ -297,8 +297,8 @@ TEST_CASE("AVL", "[avl]")
 		tree.insert(70);
 		tree.insert(60);
 		tree.insert(80);
-		REQUIRE(tree.size() == 7);
-		REQUIRE(tree.empty() == false);
+		CHECK(tree.size() == 7);
+		CHECK(tree.empty() == false);
 	}
 
 	SECTION("clone")
@@ -315,8 +315,8 @@ TEST_CASE("AVL", "[avl]")
 
 		auto tree2 = tree;
 
-		REQUIRE(tree.size() == 7);
-		REQUIRE(tree2.size() == 7);
+		CHECK(tree.size() == 7);
+		CHECK(tree2.size() == 7);
 	}
 
 	SECTION("remove")
@@ -335,8 +335,8 @@ TEST_CASE("AVL", "[avl]")
 
 		tree.remove(40);
 
-		REQUIRE(tree.size() == 6);
-		REQUIRE(tree2.size() == 7);
+		CHECK(tree.size() == 6);
+		CHECK(tree2.size() == 7);
 	}
 
 	SECTION("has")
@@ -351,10 +351,10 @@ TEST_CASE("AVL", "[avl]")
 		tree.insert(60);
 		tree.insert(80);
 
-		REQUIRE(tree.size() == 7);
-		REQUIRE(true == tree.contains(10));
-		REQUIRE(true == tree.contains(80));
-		REQUIRE(false == tree.contains(0));
+		CHECK(tree.size() == 7);
+		CHECK(true == tree.contains(10));
+		CHECK(true == tree.contains(80));
+		CHECK(false == tree.contains(0));
 	}
 
 	SECTION("clear")
@@ -368,12 +368,12 @@ TEST_CASE("AVL", "[avl]")
 		tree.insert(70);
 		tree.insert(60);
 		tree.insert(80);
-		REQUIRE(tree.size() == 7);
-		REQUIRE(tree.empty() == false);
+		CHECK(tree.size() == 7);
+		CHECK(tree.empty() == false);
 
 		tree.clear();
-		REQUIRE(tree.size() == 0);
-		REQUIRE(tree.empty() == true);
+		CHECK(tree.size() == 0);
+		CHECK(tree.empty() == true);
 	}
 
 
@@ -385,30 +385,30 @@ TEST_CASE("AVL", "[avl]")
 		tree.insert(30);
 		tree.insert(60);
 		tree.insert(80);
-		REQUIRE(tree.size() == 4);
-		REQUIRE(tree.empty() == false);
+		CHECK(tree.size() == 4);
+		CHECK(tree.empty() == false);
 
-		REQUIRE(tree.get(10)->height == 0);
-		REQUIRE(tree.get(30)->height == 2);
-		REQUIRE(tree.get(60)->height == 1);
-		REQUIRE(tree.get(80)->height == 0);
+		CHECK(tree.get(10)->height == 0);
+		CHECK(tree.get(30)->height == 2);
+		CHECK(tree.get(60)->height == 1);
+		CHECK(tree.get(80)->height == 0);
 
 		tree.insert(100);
-		REQUIRE(tree.size() == 5);
-		REQUIRE(tree.get(10)->height == 0);
-		REQUIRE(tree.get(30)->height == 2);
-		REQUIRE(tree.get(60)->height == 0);
-		REQUIRE(tree.get(80)->height == 1);
-		REQUIRE(tree.get(100)->height == 0);
+		CHECK(tree.size() == 5);
+		CHECK(tree.get(10)->height == 0);
+		CHECK(tree.get(30)->height == 2);
+		CHECK(tree.get(60)->height == 0);
+		CHECK(tree.get(80)->height == 1);
+		CHECK(tree.get(100)->height == 0);
 
 		tree.insert(5);
-		REQUIRE(tree.size() == 6);
-		REQUIRE(tree.get(5)->height == 0);
-		REQUIRE(tree.get(10)->height == 1);
-		REQUIRE(tree.get(30)->height == 2);
-		REQUIRE(tree.get(60)->height == 0);
-		REQUIRE(tree.get(80)->height == 1);
-		REQUIRE(tree.get(100)->height == 0);
+		CHECK(tree.size() == 6);
+		CHECK(tree.get(5)->height == 0);
+		CHECK(tree.get(10)->height == 1);
+		CHECK(tree.get(30)->height == 2);
+		CHECK(tree.get(60)->height == 0);
+		CHECK(tree.get(80)->height == 1);
+		CHECK(tree.get(100)->height == 0);
 	}
 
 	SECTION("at")
@@ -427,10 +427,10 @@ TEST_CASE("AVL", "[avl]")
 		//  .    .  .    80		2
 
 		const auto n = tree.at(10);
-		REQUIRE(n.has_value());
-		REQUIRE((*n)->data == 10);
+		CHECK(n.has_value());
+		CHECK((*n)->data == 10);
 
-		REQUIRE(not tree.at(0).has_value());
+		CHECK(not tree.at(0).has_value());
 	}
 
 	SECTION("visit inorder")
@@ -454,11 +454,11 @@ TEST_CASE("AVL", "[avl]")
 		//  .    .  .    80		2
 
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 10);
-		REQUIRE(v[1] == 30);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 80);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 30);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 80);
 	}
 
 	SECTION("visit preorder")
@@ -481,11 +481,11 @@ TEST_CASE("AVL", "[avl]")
 		//  .    .  .    80		2
 
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 30);
-		REQUIRE(v[1] == 10);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 80);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 30);
+		CHECK(v[1] == 10);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 80);
 	}
 
 	SECTION("visit postorder")
@@ -508,11 +508,11 @@ TEST_CASE("AVL", "[avl]")
 		// 	 /  \	 /  \
 		//  .    .  .    80		2
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 10);
-		REQUIRE(v[1] == 80);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 30);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 80);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 30);
 	}
 
 	SECTION("visit levelorder")
@@ -535,10 +535,10 @@ TEST_CASE("AVL", "[avl]")
 		// 	 /  \	 /  \
 		//  .    .  .    80		2
 
-		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == 30);
-		REQUIRE(v[1] == 10);
-		REQUIRE(v[2] == 60);
-		REQUIRE(v[3] == 80);
+		CHECK(v.size() == 4);
+		CHECK(v[0] == 30);
+		CHECK(v[1] == 10);
+		CHECK(v[2] == 60);
+		CHECK(v[3] == 80);
 	}
 }

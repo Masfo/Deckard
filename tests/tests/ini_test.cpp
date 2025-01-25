@@ -15,6 +15,6 @@ TEST_CASE("ini read", "[ini]")
 	SECTION("section")
 	{
 		//
-		REQUIRE(true == true);
+		CHECK(true == true);
 	}
 }
