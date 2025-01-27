@@ -10,6 +10,7 @@ export module deckard.math.utils;
 import std;
 import deckard.types;
 import deckard.as;
+import deckard.assert;
 
 
 export namespace deckard::math
@@ -21,6 +22,22 @@ export namespace deckard::math
 
 	template<std::floating_point T = float>
 	inline constexpr T rad_to_degrees = T{180} / std::numbers::pi_v<T>;
+
+
+	std::integral auto align_integer(std::integral auto value, std::integral auto alignment= 4)
+	{
+		assert::check(alignment > 0, "Alignment must be greater that zero");
+
+		auto remainder = value % alignment;
+
+		if (remainder == 0)
+			return value;
+
+		auto offset = alignment - remainder;
+		return value + offset;
+	}
+
+
 
 	template<std::integral T, arithmetic U>
 	T round_to_even(U num)
