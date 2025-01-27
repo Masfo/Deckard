@@ -12,24 +12,26 @@ namespace deckard
 
 
 	export template<size_t SIZE = 32>
-	requires(SIZE >= 24)
 	class sbo
 	{
 		static_assert(SIZE >= 24, "Minimum size is 24 bytes");
-		static constexpr f32 SCALE_FACTOR = 1.5f;
+		static constexpr f32    SCALE_FACTOR = 1.5f;
+		static constexpr size_t ALIGNMENT    = 8;
+
 	private:
 		using type            = u8;
 		using pointer         = type*;
 		using reference       = type&;
-		using const_reference = const type&;
+		using const_pointer   = const pointer;
+		using const_reference = const reference;
 		using size_type       = u32;
 
 		struct small
 		{
 			std::array<type, SIZE - 1> data;
 
-			type is_large : 1; // LSB
-			type size : 7;     //
+			type is_large : 1;
+			type size : 7;
 		};
 
 		static_assert(sizeof(small) == SIZE);
@@ -41,8 +43,8 @@ namespace deckard
 			size_type capacity;
 			type      padding[sizeof(small) - sizeof(ptr) - sizeof(size) - sizeof(capacity) - 1];
 
-			type is_large : 1; // LSB
-			type unused : 7;   //
+			type is_large : 1;
+			type unused : 7;
 		};
 
 		static_assert(sizeof(large) == sizeof(small));
@@ -52,6 +54,160 @@ namespace deckard
 			small small;
 			large large;
 		} packed;
+
+		class iterator
+		{
+		private:
+			pointer ptr;
+
+		public:
+			using iterator_category = std::random_access_iterator_tag;
+			using value_type        = type;
+			using difference_type   = std::ptrdiff_t;
+
+			iterator(pointer p)
+				: ptr(p)
+			{
+			}
+
+			reference operator*() const { return *ptr; }
+
+			pointer operator->() const { return ptr; }
+
+			iterator& operator++()
+			{
+				ptr++;
+				return *this;
+			}
+
+			iterator operator++(int)
+			{
+				iterator tmp = *this;
+				ptr++;
+				return tmp;
+			}
+
+			iterator& operator--()
+			{
+				ptr--;
+				return *this;
+			}
+
+			iterator operator--(int)
+			{
+				iterator tmp = *this;
+				ptr--;
+				return tmp;
+			}
+
+			iterator operator+=(int v)
+			{
+				ptr += v;
+				return *this;
+			}
+
+			iterator operator-=(int v)
+			{
+				ptr -= v;
+				return *this;
+			}
+
+			iterator operator+(difference_type n) const { return iterator(ptr + n); }
+
+			iterator operator-(difference_type n) const { return iterator(ptr - n); }
+
+			difference_type operator-(const iterator& other) const { return ptr - other.ptr; }
+
+			reference& operator[](difference_type n) const { return ptr[n]; }
+
+			auto operator<=>(const iterator&) const = default;
+
+			bool operator==(const iterator& other) const { return ptr == other.ptr; }
+
+			//
+			// bool operator!=(const const_iterator& other) const { return ptr != other.ptr; }
+			//
+			// bool operator<(const const_iterator& other) const { return ptr < other.ptr; }
+			//
+			// bool operator>(const const_iterator& other) const { return ptr > other.ptr; }
+			//
+			// bool operator<=(const const_iterator& other) const { return ptr <= other.ptr; }
+			//
+			// bool operator>=(const const_iterator& other) const { return ptr >= other.ptr; }
+		};
+
+		class const_iterator
+		{
+		private:
+			pointer ptr;
+
+		public:
+			using iterator_category = std::random_access_iterator_tag;
+			using value_type        = type;
+			using difference_type   = std::ptrdiff_t;
+
+			const_iterator(pointer p)
+				: ptr(p)
+			{
+			}
+
+			const_reference operator*() const { return *ptr; }
+
+			const_pointer operator->() const { return ptr; }
+
+			const_iterator& operator++()
+			{
+				ptr++;
+				return *this;
+			}
+
+			const_iterator operator++(int)
+			{
+				const_iterator tmp = *this;
+				ptr++;
+				return tmp;
+			}
+
+			const_iterator& operator--()
+			{
+				ptr--;
+				return *this;
+			}
+
+			const_iterator operator--(int)
+			{
+				const_iterator tmp = *this;
+				ptr--;
+				return tmp;
+			}
+
+			const_iterator operator+(difference_type n) const { return const_iterator(ptr + n); }
+
+			const_iterator operator-(difference_type n) const { return const_iterator(ptr - n); }
+
+			difference_type operator-(const const_iterator& other) const { return ptr - other.ptr; }
+
+			const_reference operator[](difference_type n) const
+			{
+				assert::check(ptr != nullptr, "Ptr is null");
+				return ptr[n];
+			}
+
+			auto operator<=>(const const_iterator&) const = default;
+
+			bool operator==(const const_iterator& other) const { return ptr == other.ptr; }
+
+			//
+			// bool operator!=(const const_iterator& other) const { return ptr != other.ptr; }
+			//
+			// bool operator<(const const_iterator& other) const { return ptr < other.ptr; }
+			//
+			// bool operator>(const const_iterator& other) const { return ptr > other.ptr; }
+			//
+			// bool operator<=(const const_iterator& other) const { return ptr <= other.ptr; }
+			//
+			// bool operator>=(const const_iterator& other) const { return ptr >= other.ptr; }
+		};
 
 		void set_size(size_t newsize)
 		{
@@ -110,6 +266,14 @@ namespace deckard
 				return large_rawptr();
 			else
 				return small_rawptr();
+		}
+
+		pointer end_rawptr() const
+		{
+			if (is_large())
+				return large_rawptr() + large_size();
+			else
+				return small_rawptr() + small_size();
 		}
 
 		std::span<type> large_data() const { return {packed.large.ptr, packed.large.size}; }
@@ -175,7 +339,7 @@ namespace deckard
 			other.reset();
 		}
 
-		size_t newcapacity_size(size_t size) const { return math::round_to_even<size_t>(SCALE_FACTOR * size); }
+		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT); }
 
 	public:
 		sbo() { reset(); }
@@ -439,6 +603,21 @@ namespace deckard
 				return {(pointer)packed.small.data.data(), packed.small.size};
 			}
 		}
+
+		// iterator
+
+
+		iterator begin() { return iterator(rawptr()); }
+
+		iterator end() { return iterator(end_rawptr()); }
+
+		const_iterator begin() const { return const_iterator(rawptr()); }
+
+		const_iterator end() const { return const_iterator(end_rawptr()); }
+
+		const_iterator cbegin() const { return const_iterator(rawptr()); }
+
+		const_iterator cend() const { return const_iterator(end_rawptr()); }
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);

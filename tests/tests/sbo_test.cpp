@@ -17,6 +17,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(ss.size() == 0);
 		CHECK(ss.capacity() == 31);
+		CHECK(sizeof(ss) == 32);
 	}
 
 	SECTION("move c-tor (small)")
@@ -309,6 +310,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 0);
 		CHECK(ss.capacity() == 31);
 		CHECK(ss.max_size() == 31);
+		CHECK(sizeof ss == 32);
 
 
 		repeat<64> = [&] { ss.push_back('A'); };
@@ -783,13 +785,113 @@ TEST_CASE("sbo", "[sbo]")
 
 		ss.resize(4096);
 		CHECK(ss.size() == 4096);
-		CHECK(ss.capacity() == 4096+31);
+		CHECK(ss.capacity() == 4096 + 31);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 		ss.append(ss);
-		CHECK(ss.size() == 4096*2);
+		CHECK(ss.size() == 4096 * 2);
 		CHECK(ss.capacity() == 8192);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+	SECTION("iterators (small)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 31; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 31);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+
+		u8 i = 0;
+		for (auto it = ss.begin(); it != ss.end(); it++)
+			CHECK(*it == i++);
+
+		i = 0;
+		for (const auto& c : ss)
+			CHECK(c == i++);
+
+
+		auto it = ss.begin();
+		CHECK(*it == 0);
+
+		it++;
+		CHECK(*it == 1);
+
+		it--;
+		CHECK(*it == 0);
+
+		it += 5;
+		CHECK(*it == 5);
+
+		it -= 5;
+		CHECK(*it == 0);
+	}
+	SECTION("iterators (large)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 128; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 128);
+		CHECK(ss.capacity() == 168);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
+
+
+		u8 i = 0;
+		for (auto it = ss.begin(); it != ss.end(); it++)
+			CHECK(*it == i++);
+
+		i = 0;
+		for (const auto& c : ss)
+			CHECK(c == i++);
+
+
+		auto it = ss.begin();
+		CHECK(*it == 0);
+
+		it++;
+		CHECK(*it == 1);
+
+		it--;
+		CHECK(*it == 0);
+
+		it += 100;
+		CHECK(*it == 100);
+		CHECK(it == ss.begin() + 100);
+
+
+		it -= 100;
+		CHECK(*it == 0);
+
+		CHECK(it == ss.begin());
+
+		it += 50;
+		CHECK(it == ss.begin()+50);
+
+		CHECK(*it + 5 == 55);
+		CHECK(*it - 5 == 45);
+
+		CHECK(it == ss.begin() + 50);
+
+		CHECK(ss.begin() < ss.end());
+
+		CHECK(it < ss.end());
+
+		CHECK(ss.end() > ss.begin());
+
 
 	}
 }
