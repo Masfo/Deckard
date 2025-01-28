@@ -55,6 +55,8 @@ namespace deckard
 			large large;
 		} packed;
 
+		class const_iterator;
+
 		class iterator
 		{
 		private:
@@ -64,6 +66,11 @@ namespace deckard
 			using iterator_category = std::random_access_iterator_tag;
 			using value_type        = type;
 			using difference_type   = std::ptrdiff_t;
+
+			iterator(const_iterator cp)
+				: ptr(cp.ptr)
+			{
+			}
 
 			iterator(pointer p)
 				: ptr(p)
@@ -349,27 +356,42 @@ namespace deckard
 
 		sbo& operator=(sbo const& other)
 		{
-			if (this == &other)
-				return *this;
+			if (this != &other)
+			{
+				clear();
+				clone(other);
+			}
 
-			clone(other);
 			return *this;
 		}
 
 		// Move
-		sbo(sbo&& other) { move(other); }
+		sbo(sbo&& other) noexcept { move(other); }
 
-		sbo& operator=(sbo&& other)
+		sbo& operator=(sbo&& other) noexcept
 		{
-			if (this == &other)
-				return *this;
-			move(other);
+			if (this != &other)
+			{
+				clear();
+				move(other);
+			}
+
 			return *this;
 		}
 
 		~sbo() noexcept { reset(); }
 
 		[[nodiscard("Use the empty check")]] bool empty() const { return size() == 0; }
+
+		void swap(sbo& other) noexcept
+		{
+			if (this != &other)
+			{
+				sbo temp = std::move(other);
+				other    = std::move(*this);
+				*this    = std::move(temp);
+			}
+		}
 
 		size_t max_size() const
 		{
@@ -392,6 +414,41 @@ namespace deckard
 				packed.large.size = 0;
 			}
 		}
+
+		iterator insert(const_iterator pos, const std::span<type> buffer)
+		{
+			//
+			todo();
+
+			return pos;
+		}
+
+		iterator insert(const_iterator pos, const type& v) { return insert(pos, {as<pointer>(&v), 1}); }
+
+		iterator insert(iterator pos, const std::span<type> buffer)
+		{
+
+			if (buffer.empty())
+				return pos;
+
+			//
+			const auto pivot   = std::distance(begin(), pos);
+			size_t     newsize = size() + buffer.size();
+			if (newsize > capacity())
+				resize(newsize);
+
+			const pointer ptr = rawptr();
+			pos               = begin() + pivot;
+
+			std::copy_backward(ptr + pivot, ptr + size(), ptr + newsize);
+			std::copy(buffer.data(), buffer.data() + buffer.size(), ptr + pivot);
+
+			set_size(newsize);
+
+			return pos;
+		}
+
+		iterator insert(iterator pos, const type& v) { return insert(pos, {as<pointer>(&v), 1}); }
 
 		void append(const sbo<SIZE>& other) { append(other.data()); }
 

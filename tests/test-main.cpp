@@ -13,7 +13,7 @@ TEST_CASE("", "[tag]")
 	SECTION("")
 	{
 		//
-		REQUIRE(1==1);
+		CHECK(1==1);
 	}
 
 

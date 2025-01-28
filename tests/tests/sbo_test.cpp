@@ -834,6 +834,7 @@ TEST_CASE("sbo", "[sbo]")
 		it -= 5;
 		CHECK(*it == 0);
 	}
+
 	SECTION("iterators (large)")
 	{
 		sbo<32> ss;
@@ -879,7 +880,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(it == ss.begin());
 
 		it += 50;
-		CHECK(it == ss.begin()+50);
+		CHECK(it == ss.begin() + 50);
 
 		CHECK(*it + 5 == 55);
 		CHECK(*it - 5 == 45);
@@ -891,7 +892,193 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(it < ss.end());
 
 		CHECK(ss.end() > ss.begin());
+	}
 
+	SECTION("insert (small)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+
+		CHECK(ss.size() == 4);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+
+
+		ss.insert(ss.begin() + 2, 'X');
+
+		CHECK(ss.size() == 5);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'C');
+		CHECK(ss[4] == 'D');
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+
+		ss.insert(ss.begin(), buffer);
+
+		CHECK(ss.size() == 11);
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+		CHECK(ss[6] == 'A');
+		CHECK(ss[7] == 'B');
+		CHECK(ss[8] == 'X');
+		CHECK(ss[9] == 'C');
+		CHECK(ss[10] == 'D');
+
+		ss.insert(ss.end(), buffer);
+		CHECK(ss.size() == 17);
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+		CHECK(ss[6] == 'A');
+		CHECK(ss[7] == 'B');
+		CHECK(ss[8] == 'X');
+		CHECK(ss[9] == 'C');
+		CHECK(ss[10] == 'D');
+		CHECK(ss[11] == 'Q');
+		CHECK(ss[12] == 'W');
+		CHECK(ss[13] == 'E');
+		CHECK(ss[14] == 'R');
+		CHECK(ss[15] == 'T');
+		CHECK(ss[16] == 'Y');
+
+		std::array<u8, 2> buffer2{'1', '2'};
+		ss.insert(ss.begin() + 6, buffer2);
+
+		CHECK(ss.size() == 19);
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss[6] == '1');
+		CHECK(ss[7] == '2');
+
+		CHECK(ss[8] == 'A');
+		CHECK(ss[9] == 'B');
+		CHECK(ss[10] == 'X');
+		CHECK(ss[11] == 'C');
+		CHECK(ss[12] == 'D');
+		CHECK(ss[13] == 'Q');
+		CHECK(ss[14] == 'W');
+		CHECK(ss[15] == 'E');
+		CHECK(ss[16] == 'R');
+		CHECK(ss[17] == 'T');
+		CHECK(ss[18] == 'Y');
+	}
+
+	SECTION("insert (small -> large)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+
+		ss.insert(ss.begin(), buffer);
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		ss.insert(ss.begin(), buffer);
+		ss.insert(ss.begin(), buffer);
+		ss.insert(ss.begin(), buffer);
+		ss.insert(ss.begin(), buffer);
+
+		CHECK(ss.size() == 30);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		ss.insert(ss.begin(), buffer);
+
+		CHECK(ss.size() == 36);
+		CHECK(ss.capacity() == 48);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
+
+		for (int i = 0; i < ss.size(); i += 6)
+		{
+			CHECK(ss[i+0] == 'Q');
+			CHECK(ss[i+1] == 'W');
+			CHECK(ss[i+2] == 'E');
+			CHECK(ss[i+3] == 'R');
+			CHECK(ss[i+4] == 'T');
+			CHECK(ss[i+5] == 'Y');
+		}
+
+
+	}
+	SECTION("insert (large)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 256; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 256);
+		CHECK(ss.capacity() == 256);
+		CHECK(ss[0] == 0);
+		CHECK(ss[1] == 1);
+		CHECK(ss[2] == 2);
+		CHECK(ss[3] == 3);
+		CHECK(ss[4] == 4);
+		CHECK(ss[5] == 5);
+		CHECK(ss[6] == 6);
+		CHECK(ss.back() == 255);
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+
+		ss.insert(ss.begin(), buffer);
+
+		CHECK(ss.size() == 262);
+		CHECK(ss.capacity() == 384);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+		CHECK(ss.back() == 255);
+
+
+		ss.insert(ss.end(), 'P');
+		CHECK(ss.back() == 'P');
+		CHECK(ss.size() == 263);
+		CHECK(ss.capacity() == 384);
 
 	}
 }
