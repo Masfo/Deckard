@@ -67,8 +67,8 @@ namespace deckard
 			using value_type        = type;
 			using difference_type   = std::ptrdiff_t;
 
-			iterator(const_iterator cp)
-				: ptr(cp.ptr)
+			iterator(const_iterator ci)
+				: ptr(ci.ptr)
 			{
 			}
 
@@ -385,8 +385,7 @@ namespace deckard
 
 		void swap(sbo& other) noexcept
 		{
-			using std::swap;
-			swap(packed, other.packed);
+			std::swap(packed, other.packed);
 		}
 
 		size_t max_size() const
@@ -673,7 +672,7 @@ namespace deckard
 
 		const_iterator cend() const { return const_iterator(end_rawptr()); }
 
-		iterator find(const type& value)  
+		iterator find(const type& value)
 		{
 			auto it = begin();
 			for (; it != end(); ++it)
@@ -695,23 +694,27 @@ namespace deckard
 			return cend();
 		}
 
-        iterator find(const std::span<type>& buffer) {
-            if (buffer.empty() || size() < buffer.size()) {
-                return end();
-            }
+		iterator find(const std::span<type>& buffer)
+		{
+			if (buffer.empty() or size() < buffer.size())
+			{
+				return end();
+			}
 
-            for (auto it = begin(); it != end() - buffer.size() + 1; ++it) {
-                if (std::equal(buffer.begin(), buffer.end(), it)) {
-                    return it;
-                }
-            }
+			for (auto it = begin(); it != end() - buffer.size() + 1; ++it)
+			{
+				if (std::equal(buffer.begin(), buffer.end(), it))
+				{
+					return it;
+				}
+			}
 
-            return end();
-        }
+			return end();
+		}
 
 		const_iterator find(const std::span<type>& buffer) const
 		{
-			if (buffer.empty() || size() < buffer.size())
+			if (buffer.empty() or size() < buffer.size())
 			{
 				return end();
 			}
@@ -726,6 +729,7 @@ namespace deckard
 
 			return cend();
 		}
+
 		friend void swap(sbo& lhs, sbo& rhs) noexcept { lhs.swap(rhs); }
 	};
 

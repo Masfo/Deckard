@@ -1120,15 +1120,11 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(sbo1.size() == 40);
 		for (int i = 0; i < 40; ++i)
-		{
 			CHECK(sbo1[i] == 'a' + i);
-		}
 
 		CHECK(sbo2.size() == 40);
 		for (int i = 0; i < 40; ++i)
-		{
 			CHECK(sbo2[i] == 'A' + i);
-		}
 	}
 
 	SECTION("find (small)")
