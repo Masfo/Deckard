@@ -385,12 +385,8 @@ namespace deckard
 
 		void swap(sbo& other) noexcept
 		{
-			if (this != &other)
-			{
-				sbo temp = std::move(other);
-				other    = std::move(*this);
-				*this    = std::move(temp);
-			}
+			using std::swap;
+			swap(packed, other.packed);
 		}
 
 		size_t max_size() const
@@ -663,6 +659,7 @@ namespace deckard
 
 		// iterator
 
+		bool contains(const type& value) const { return find(value) != cend(); }
 
 		iterator begin() { return iterator(rawptr()); }
 
@@ -675,6 +672,61 @@ namespace deckard
 		const_iterator cbegin() const { return const_iterator(rawptr()); }
 
 		const_iterator cend() const { return const_iterator(end_rawptr()); }
+
+		iterator find(const type& value)  
+		{
+			auto it = begin();
+			for (; it != end(); ++it)
+			{
+				if (*it == value)
+					return it;
+			}
+			return end();
+		}
+
+		const_iterator find(const type& value) const
+		{
+			auto it = cbegin();
+			for (; it != cend(); ++it)
+			{
+				if (*it == value)
+					return it;
+			}
+			return cend();
+		}
+
+        iterator find(const std::span<type>& buffer) {
+            if (buffer.empty() || size() < buffer.size()) {
+                return end();
+            }
+
+            for (auto it = begin(); it != end() - buffer.size() + 1; ++it) {
+                if (std::equal(buffer.begin(), buffer.end(), it)) {
+                    return it;
+                }
+            }
+
+            return end();
+        }
+
+		const_iterator find(const std::span<type>& buffer) const
+		{
+			if (buffer.empty() || size() < buffer.size())
+			{
+				return end();
+			}
+
+			for (auto it = cbegin(); it != cend() - buffer.size() + 1; ++it)
+			{
+				if (std::equal(buffer.begin(), buffer.end(), it))
+				{
+					return it;
+				}
+			}
+
+			return cend();
+		}
+		friend void swap(sbo& lhs, sbo& rhs) noexcept { lhs.swap(rhs); }
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);

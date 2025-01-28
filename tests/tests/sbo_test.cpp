@@ -1027,15 +1027,13 @@ TEST_CASE("sbo", "[sbo]")
 
 		for (int i = 0; i < ss.size(); i += 6)
 		{
-			CHECK(ss[i+0] == 'Q');
-			CHECK(ss[i+1] == 'W');
-			CHECK(ss[i+2] == 'E');
-			CHECK(ss[i+3] == 'R');
-			CHECK(ss[i+4] == 'T');
-			CHECK(ss[i+5] == 'Y');
+			CHECK(ss[i + 0] == 'Q');
+			CHECK(ss[i + 1] == 'W');
+			CHECK(ss[i + 2] == 'E');
+			CHECK(ss[i + 3] == 'R');
+			CHECK(ss[i + 4] == 'T');
+			CHECK(ss[i + 5] == 'Y');
 		}
-
-
 	}
 	SECTION("insert (large)")
 	{
@@ -1079,6 +1077,130 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.back() == 'P');
 		CHECK(ss.size() == 263);
 		CHECK(ss.capacity() == 384);
+	}
 
+	SECTION("swap small buffers")
+	{
+		sbo<32> sbo1;
+		sbo<32> sbo2;
+
+		sbo1.push_back('A');
+		sbo1.push_back('B');
+		sbo1.push_back('C');
+
+		sbo2.push_back('X');
+		sbo2.push_back('Y');
+		sbo2.push_back('Z');
+
+		sbo1.swap(sbo2);
+
+		CHECK(sbo1.size() == 3);
+		CHECK(sbo1[0] == 'X');
+		CHECK(sbo1[1] == 'Y');
+		CHECK(sbo1[2] == 'Z');
+
+		CHECK(sbo2.size() == 3);
+		CHECK(sbo2[0] == 'A');
+		CHECK(sbo2[1] == 'B');
+		CHECK(sbo2[2] == 'C');
+	}
+
+	SECTION("swap large buffers")
+	{
+		sbo<32> sbo1;
+		sbo<32> sbo2;
+
+		for (int i = 0; i < 40; ++i)
+		{
+			sbo2.push_back(as<u8>('a' + i));
+			sbo1.push_back(as<u8>('A' + i));
+		}
+
+		sbo1.swap(sbo2);
+
+		CHECK(sbo1.size() == 40);
+		for (int i = 0; i < 40; ++i)
+		{
+			CHECK(sbo1[i] == 'a' + i);
+		}
+
+		CHECK(sbo2.size() == 40);
+		for (int i = 0; i < 40; ++i)
+		{
+			CHECK(sbo2[i] == 'A' + i);
+		}
+	}
+
+	SECTION("find (small)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		auto it = std::find(ss.begin(), ss.end(), 'C');
+		CHECK(it != ss.end());
+		CHECK(*it == 'C');
+
+		it = std::find(ss.begin(), ss.end(), 'Z');
+		CHECK(it == ss.end());
+	}
+
+	SECTION("find (large)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+
+		for (u32 i = 0; i < 128; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 128);
+		CHECK(ss.capacity() == 168);
+
+		auto it = std::find(ss.begin(), ss.end(), as<u8>(64));
+		CHECK(it != ss.end());
+		CHECK(*it == as<u8>(64));
+
+		it = std::find(ss.begin(), ss.end(), as<u8>(200));
+		CHECK(it == ss.end());
+	}
+
+	SECTION("find range")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 3> range{'C', 'D', 'E'};
+		auto              it = ss.find(range);
+		CHECK(it != ss.end());
+		CHECK(*it == 'C');
+
+		std::array<u8, 3> not_in_range{'X', 'Y', 'Z'};
+		it = ss.find(not_in_range);
+		CHECK(it == ss.end());
 	}
 }
