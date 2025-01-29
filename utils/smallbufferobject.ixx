@@ -131,9 +131,6 @@ namespace deckard
 
 			bool operator==(const iterator& other) const { return ptr == other.ptr; }
 
-			//
-			// bool operator!=(const const_iterator& other) const { return ptr != other.ptr; }
-			//
 			// bool operator<(const const_iterator& other) const { return ptr < other.ptr; }
 			//
 			// bool operator>(const const_iterator& other) const { return ptr > other.ptr; }
@@ -204,9 +201,6 @@ namespace deckard
 
 			bool operator==(const const_iterator& other) const { return ptr == other.ptr; }
 
-			//
-			// bool operator!=(const const_iterator& other) const { return ptr != other.ptr; }
-			//
 			// bool operator<(const const_iterator& other) const { return ptr < other.ptr; }
 			//
 			// bool operator>(const const_iterator& other) const { return ptr > other.ptr; }
@@ -383,10 +377,31 @@ namespace deckard
 
 		[[nodiscard("Use the empty check")]] bool empty() const { return size() == 0; }
 
-		void swap(sbo& other) noexcept
+		bool operator==(const sbo& other) const
 		{
-			std::swap(packed, other.packed);
+			if (size() != other.size())
+				return false;
+
+			if (is_small())
+			{
+				return std::equal(packed.small.data.begin(), packed.small.data.begin() + small_size(), other.packed.small.data.begin());
+			}
+			else
+			{
+				return std::equal(packed.large.ptr, packed.large.ptr + large_size(), other.packed.large.ptr);
+			}
 		}
+
+#if __cpp_deleted_function
+#error "Delete reason (C++26) is supported, use it"
+		bool operator<(const sbo&)  = delete("Less-than compare doesn't make sense");
+		bool operator<=(const sbo&) = delete("Less-than compare doesn't make sense");
+		bool operator>(const sbo&)  = delete("Greater-than compare doesn't make sense");
+		bool operator>=(const sbo&) = delete("Greater-than compare doesn't make sense");
+#endif
+
+
+		void swap(sbo& other) noexcept { std::swap(packed, other.packed); }
 
 		size_t max_size() const
 		{

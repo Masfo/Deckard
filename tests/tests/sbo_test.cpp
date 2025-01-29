@@ -1199,4 +1199,92 @@ TEST_CASE("sbo", "[sbo]")
 		it = ss.find(not_in_range);
 		CHECK(it == ss.end());
 	}
+
+	SECTION("compare (small)")
+	{
+		sbo<32> a;
+
+		CHECK(a.size() == 0);
+		CHECK(a.capacity() == 31);
+
+		a.push_back('A');
+		a.push_back('B');
+		a.push_back('C');
+		a.push_back('D');
+		a.push_back('E');
+		a.push_back('F');
+
+		sbo<32> b;
+
+		CHECK(b.size() == 0);
+		CHECK(b.capacity() == 31);
+
+		b.push_back('A');
+		b.push_back('B');
+		b.push_back('C');
+		b.push_back('D');
+		b.push_back('E');
+		b.push_back('F');
+
+		CHECK(a == b);
+	}
+
+	SECTION("compare (large)")
+	{
+		sbo<32> a;
+		CHECK(a.size() == 0);
+		CHECK(a.capacity() == 31);
+
+		for (u32 i = 0; i < 128; i++)
+			a.push_back(as<u8>(i));
+
+		CHECK(a.size() == 128);
+		CHECK(a.capacity() == 168);
+
+		sbo<32> b;
+
+		CHECK(b.size() == 0);
+		CHECK(b.capacity() == 31);
+
+		for (u32 i = 0; i < 128; i++)
+			b.push_back(as<u8>(i));
+
+		CHECK(a.size() == 128);
+		CHECK(a.capacity() == 168);
+
+
+		CHECK(a == b);
+	}
+
+	SECTION("compare (small -> large") 
+	{
+		sbo<32> a;
+
+		CHECK(a.size() == 0);
+		CHECK(a.capacity() == 31);
+
+		a.push_back('A');
+		a.push_back('B');
+		a.push_back('C');
+		a.push_back('D');
+		a.push_back('E');
+		a.push_back('F');
+
+		CHECK(a.size() == 6);
+		CHECK(a.capacity() == 31);
+
+		sbo<32> b;
+
+		CHECK(b.size() == 0);
+		CHECK(b.capacity() == 31);
+
+		for (u32 i = 0; i < 128; i++)
+			b.push_back(as<u8>(i));
+
+		CHECK(b.size() == 128);
+		CHECK(b.capacity() == 168);
+
+		CHECK(a != b);
+
+	}
 }
