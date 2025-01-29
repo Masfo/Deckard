@@ -1,12 +1,12 @@
-github.com/AlDanial/cloc v 1.98  T=0.13 s (694.0 files/s, 167141.0 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.21 s (420.2 files/s, 99939.7 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           222             44            839
-.\example\window\src\winmain.cpp                      311             82            768
 .\utils\helpers.ixx                                   194             49            733
-.\utils\smallbufferobject.ixx                         170             14            603
+.\utils\smallbufferobject.ixx                         162             24            591
+.\example\window\src\winmain.cpp                      269             64            555
 .\math\generic_vec4.ixx                               112             10            508
 .\math\generic_vec3.ixx                               121             11            500
 .\math\generic_vec2.ixx                               114             11            465
@@ -22,8 +22,8 @@ File                                                blank        comment        
 .\math\quaternion.ixx                                  87             12            329
 .\graphs\binarytree.ixx                                82             12            324
 .\utils\bitbuffer.ixx                                  83              9            323
+.\math\math_utility.ixx                                83             18            292
 .\app\gl\opengl.ixx                                    58              5            291
-.\math\math_utility.ixx                                76             18            282
 .\utils\arrays.ixx                                    112              2            273
 .\math\vec4_sse.ixx                                    98             12            270
 .\utils\hash.ixx                                       62              5            259
@@ -93,5 +93,5 @@ File                                                blank        comment        
 .\utils\serializer.ixx                                  6              6              7
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 4603           1087          15984
+SUM:                                                 4560           1079          15769
 ---------------------------------------------------------------------------------------
