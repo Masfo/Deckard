@@ -20,6 +20,52 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(sizeof(ss) == 32);
 	}
 
+	SECTION("initializer list (small)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(sizeof(ss) == 32);
+
+
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'F');
+	}
+
+	SECTION("initializer list (large)")
+	{
+		sbo<32> ss{
+		  '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'Q', 'W', 'E', 'R',
+		  '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'Q', 'W', 'E', 'R',
+		};
+
+		CHECK(ss.size() == 48);
+		CHECK(ss.capacity() == 72);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
+
+		CHECK(sizeof(ss) == 32);
+
+
+		CHECK(ss[0] == '1');
+		CHECK(ss[1] == '2');
+		CHECK(ss[2] == '3');
+		CHECK(ss[3] == '4');
+		CHECK(ss[4] == '5');
+		CHECK(ss[5] == '6');
+
+		CHECK(ss[42] == 'K');
+		CHECK(ss[43] == 'L');
+		CHECK(ss[44] == 'Q');
+		CHECK(ss[45] == 'W');
+		CHECK(ss[46] == 'E');
+		CHECK(ss[47] == 'R');
+	}
+
 	SECTION("move c-tor (small)")
 	{
 		sbo<32> ss;
@@ -1256,7 +1302,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a == b);
 	}
 
-	SECTION("compare (small -> large") 
+	SECTION("compare (small with large")
 	{
 		sbo<32> a;
 
@@ -1285,6 +1331,5 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(b.capacity() == 168);
 
 		CHECK(a != b);
-
 	}
 }

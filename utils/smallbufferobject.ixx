@@ -345,6 +345,28 @@ namespace deckard
 	public:
 		sbo() { reset(); }
 
+		sbo(const std::initializer_list<type> &il)
+		{
+			reset();
+			if (il.size() <= small_capacity())
+			{
+				std::copy(il.begin(), il.end(), packed.small.data.begin());
+				packed.small.size = as<type>(il.size());
+			}
+			else
+			{
+				set_large(true);
+				set_size(il.size());
+				set_capacity(newcapacity_size(il.size()));
+				pointer newptr = new type[packed.large.capacity];
+				if (newptr != nullptr)
+				{
+					std::copy(il.begin(), il.end(), newptr);
+					packed.large.ptr = newptr;
+				}
+			}
+		}
+
 		// Copy
 		sbo(sbo const& other) { clone(other); }
 
@@ -383,13 +405,9 @@ namespace deckard
 				return false;
 
 			if (is_small())
-			{
 				return std::equal(packed.small.data.begin(), packed.small.data.begin() + small_size(), other.packed.small.data.begin());
-			}
 			else
-			{
 				return std::equal(packed.large.ptr, packed.large.ptr + large_size(), other.packed.large.ptr);
-			}
 		}
 
 #if __cpp_deleted_function
