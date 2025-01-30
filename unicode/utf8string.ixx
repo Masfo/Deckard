@@ -44,7 +44,7 @@ namespace deckard::utf8
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REJECT{12};
 
-	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // 0xEF 0xBF 0xBD (efbfbd)
+	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // U+FFFD 0xEF 0xBF 0xBD(239, 191, 189) REPLACEMENT CHARACTER
 
 	struct utf8_decode_t
 	{

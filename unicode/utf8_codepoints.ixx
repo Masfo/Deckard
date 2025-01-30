@@ -12,23 +12,30 @@ namespace deckard::utf8
 
 	export constexpr bool is_continuation_byte(const u8 byte) { return (byte & 0xC0) == 0x80; }
 
+	export constexpr u32 codepoint_width(u8 codepoint_byte)
+	{
+		if (codepoint_byte < 0x80)
+			return 1;
+		else if ((codepoint_byte & 0xE0) == 0xC0)
+			return 2;
+		else if ((codepoint_byte & 0xF0) == 0xE0)
+			return 3;
+		else if ((codepoint_byte & 0xF8) == 0xF0)
+			return 4;
+
+		return 0;
+	}
+
 	export constexpr u32 codepoint_width(char32_t codepoint)
 	{
-
 		if (codepoint < 0x80)
 			return 1;
-		if (codepoint < 0x800)
+		else if (codepoint < 0x800)
 			return 2;
-		if (codepoint < 0x1'0000)
+		else if (codepoint < 0x1'0000)
 			return 3;
-		if (codepoint < 0x2'0000)
+		else
 			return 4;
-		if (codepoint < 0x400'0000)
-			return 5;
-		if (codepoint < 0x8000'0000)
-			return 6;
-
-		return 7;
 	}
 
 	export constexpr bool is_bom(char32_t codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }

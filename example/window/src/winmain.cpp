@@ -108,7 +108,6 @@ public:
 	}
 };
 
-
 struct codepoint_result
 {
 	u32      bytes_read{0};
@@ -126,7 +125,6 @@ codepoint_result decode_codepoint(const std::span<u8> buffer, u32 index)
 
 	return {bytes_read, codepoint};
 }
-
 
 #define CTX_PI 3.141592653589793f
 
@@ -379,8 +377,6 @@ auto varsum(Args... args)
 	return std::make_tuple(args...); // Performs a binary right fold with addition
 }
 
-
-
 union float4_2
 {
 
@@ -454,6 +450,155 @@ struct Noisy
 	T value_{0};
 };
 
+class utfbuffer
+{
+private:
+	struct iterator
+	{
+		// TODO: pointer to parent class, and size
+		utfbuffer* parent{nullptr};
+		
+		char* begin{nullptr};
+		char* end{nullptr};
+		char* current{nullptr};
+
+		iterator(char* b, char* e)
+			: begin(b)
+			, end(e)
+			, current(begin)
+		{
+		}
+
+		const char& operator*() const { return *current; }
+
+		const char* operator->() const { return current; }
+
+		constexpr bool operator==(const iterator& rhs) const 
+		{
+
+			return current == rhs.current or current >= end or current < begin;
+		}
+
+
+
+		constexpr bool operator<(const iterator& rhs) const { return current < rhs.current; }
+
+		auto operator<=>(const iterator&) const = default;
+
+		iterator& operator++()
+		{
+			current++;
+			current++;
+
+
+			return *this;
+		}
+
+		iterator operator++(int)
+		{
+			iterator temp = *this;
+			current++;
+			current++;
+
+			return temp;
+		}
+
+		iterator& operator--()
+		{
+			current--;
+
+			return *this;
+		}
+
+		iterator operator--(int)
+		{
+			iterator temp = *this;
+			current--;
+
+			return temp;
+		}
+	};
+
+	struct const_iterator
+	{
+		const char* begin{nullptr};
+		const char* end{nullptr};
+		const char* current{nullptr};
+
+		const_iterator(const char* b, const char* e)
+			: begin(b)
+			, end(e)
+			, current(b)
+		{
+		}
+
+		const char& operator*() const { return *current; }
+
+		auto operator<=>(const const_iterator&) const = default;
+
+		constexpr bool operator==(const const_iterator& rhs) const { return current == rhs.current; }
+
+		constexpr bool operator<(const const_iterator& rhs) const { return current < rhs.current; }
+
+		const_iterator& operator++()
+		{
+			current++;
+
+
+			return *this;
+		}
+
+		const_iterator operator++(int)
+		{
+			const_iterator temp = *this;
+			current++;
+
+
+			return temp;
+		}
+
+		const_iterator& operator--()
+		{
+			current--;
+
+			return *this;
+		}
+
+		const_iterator operator--(int)
+		{
+			const_iterator temp = *this;
+			current--;
+
+			return temp;
+		}
+	};
+
+	char*  buffer{nullptr};
+	size_t size{0};
+
+public:
+	utfbuffer()
+	{
+		buffer = new char[1024]{};
+
+		size = 79;
+		for (int i = 0; i < size; i++)
+			buffer[i] = 0x30 + i;
+
+		int i = 0;
+	}
+
+	~utfbuffer() { delete[] buffer; }
+
+	iterator begin() { return iterator{buffer, buffer + size}; }
+
+	iterator end() { return iterator{buffer + size, buffer + size}; }
+
+	const_iterator cbegin() const { return const_iterator{buffer, buffer + size}; }
+
+	const_iterator cend() const { return const_iterator{buffer + size, buffer + size}; }
+};
+
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
 i32 deckard_main(std::string_view commandline)
@@ -462,6 +607,28 @@ i32 deckard_main(std::string_view commandline)
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	utfbuffer ubuf;
+
+	for (auto x : ubuf)
+	{
+		dbg::println("range: {}", x);
+	}
+
+	for (auto it = ubuf.cbegin(); it != ubuf.cend(); it++)
+	{
+		dbg::println("{}", *it);
+	}
+
+
+	auto it = ubuf.begin();
+
+	dbg::println("{}", *it);
+	it++;
+	dbg::println("{}", *it);
+	it--;
+	dbg::println("{}", *it);
+
 
 	std::unique_ptr<u8*> uniqptr;
 	dbg::println("{} / {}", sizeof(uniqptr), sizeof(u8*));
@@ -494,14 +661,12 @@ i32 deckard_main(std::string_view commandline)
 		dbg::println("v11. resize: size: {}, capacity: {}, max_size: {}", v11.size(), v11.capacity(), v11.max_size());
 		dbg::println("v11. back {}", v11.back());
 		int k = 0;
-
 	}
 
 
 	std::vector<u32> v10;
 	for (u32 i = 0; i < 100; i++)
 		v10.push_back(i);
-
 
 
 	dbg::println("v10. after push: size: {}, capacity: {}, max_size: {}", v10.size(), v10.capacity(), v10.max_size());
@@ -520,7 +685,6 @@ i32 deckard_main(std::string_view commandline)
 	std::vector<u32> v9;
 	for (u32 i = 0; i < 100; i++)
 		v9.push_back(i);
-
 
 
 	dbg::println("front: {}, back: {}", v9.front(), v9.back());
@@ -580,7 +744,6 @@ i32 deckard_main(std::string_view commandline)
 	float4_2 t32_1(1.0f, 2.0f, 3.0f, 4.0f);
 	auto     res_t32 = t32_0 + (t32_1 + t32_0);
 	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
-
 
 
 	// ###################
@@ -788,7 +951,6 @@ i32 deckard_main(std::string_view commandline)
 	// ########################################################################
 
 
-
 	auto v1 = make_vector(1, 2, 3);
 	auto v2 = make_vector(4, 5, 6);
 
@@ -840,9 +1002,6 @@ i32 deckard_main(std::string_view commandline)
 
 
 	auto [bytes, codepoint] = decode_codepoint({(u8*)u8str_d.data(), u8str_d.size()}, index);
-
-
-
 
 
 	file f("input.ini");

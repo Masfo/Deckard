@@ -3,7 +3,25 @@
 
 import std;
 import deckard.utf8;
+import deckard.as;
 using namespace deckard;
+
+TEST_CASE("utf8 v2", "[utf8]") 
+{
+
+	SECTION("width from leading byte")
+	{
+
+		CHECK(utf8::codepoint_width(as<u8>(0x41)) == 1);
+		CHECK(utf8::codepoint_width(as<u8>(0xC3)) == 2);
+		CHECK(utf8::codepoint_width(as<u8>(0xE2)) == 3);
+		CHECK(utf8::codepoint_width(as<u8>(0xF0)) == 4);
+
+		CHECK(utf8::codepoint_width(as<u8>(0x84)) == 0);
+		CHECK(utf8::codepoint_width(as<u8>(0x9F)) == 0);
+	}
+
+}
 
 TEST_CASE("utf8 decode to codepoints", "[utf8]")
 {
@@ -25,6 +43,7 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
     'Valid 6 Octet Sequence (but not Unicode!)' => "\xfc\xa1\xa1\xa1\xa1\xa1",
 );
 	*/
+
 
 	SECTION("widths")
 	{
