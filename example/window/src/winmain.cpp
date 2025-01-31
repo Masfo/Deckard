@@ -453,150 +453,235 @@ struct Noisy
 class utfbuffer
 {
 private:
+	char*  buffer{nullptr};
+	size_t size{0};
+
 	struct iterator
 	{
-		// TODO: pointer to parent class, and size
 		utfbuffer* parent{nullptr};
-		
-		char* begin{nullptr};
-		char* end{nullptr};
-		char* current{nullptr};
+		size_t     index{0};
 
-		iterator(char* b, char* e)
-			: begin(b)
-			, end(e)
-			, current(begin)
+		iterator(utfbuffer* p, size_t s)
+			: parent(p)
+			, index(s)
 		{
 		}
 
-		const char& operator*() const { return *current; }
+		const char& operator*() const { return parent->buffer[index]; }
 
-		const char* operator->() const { return current; }
+		const char* operator->() const { return &parent->buffer[index]; }
 
-		constexpr bool operator==(const iterator& rhs) const 
-		{
+		constexpr bool operator==(const iterator& rhs) const { return index == rhs.index; }
 
-			return current == rhs.current or current >= end or current < begin;
-		}
-
-
-
-		constexpr bool operator<(const iterator& rhs) const { return current < rhs.current; }
-
-		auto operator<=>(const iterator&) const = default;
+		// auto operator<=>(const iterator&) const = default;
 
 		iterator& operator++()
 		{
-			current++;
-			current++;
-
-
+			index++;
 			return *this;
 		}
 
 		iterator operator++(int)
 		{
 			iterator temp = *this;
-			current++;
-			current++;
-
+			index++;
 			return temp;
 		}
 
 		iterator& operator--()
 		{
-			current--;
-
+			index--;
 			return *this;
 		}
 
 		iterator operator--(int)
 		{
 			iterator temp = *this;
-			current--;
-
+			index--;
 			return temp;
 		}
 	};
 
 	struct const_iterator
 	{
-		const char* begin{nullptr};
-		const char* end{nullptr};
-		const char* current{nullptr};
+		const utfbuffer* parent{nullptr};
+		size_t           index{0};
 
-		const_iterator(const char* b, const char* e)
-			: begin(b)
-			, end(e)
-			, current(b)
+		const_iterator(const utfbuffer* p, size_t s)
+			: parent(p)
+			, index(s)
 		{
 		}
 
-		const char& operator*() const { return *current; }
+		const char& operator*() const { return parent->buffer[index]; }
 
-		auto operator<=>(const const_iterator&) const = default;
+		const char* operator->() const { return &parent->buffer[index]; }
 
-		constexpr bool operator==(const const_iterator& rhs) const { return current == rhs.current; }
+		constexpr bool operator==(const const_iterator& rhs) const
+		{
+			//
+			return index == rhs.index;
+		}
 
-		constexpr bool operator<(const const_iterator& rhs) const { return current < rhs.current; }
+		constexpr bool operator<(const const_iterator& rhs) const { return index < rhs.index; }
+
+		// auto operator<=>(const const_iterator&) const = default;
 
 		const_iterator& operator++()
 		{
-			current++;
-
-
+			index++;
 			return *this;
 		}
 
 		const_iterator operator++(int)
 		{
 			const_iterator temp = *this;
-			current++;
-
-
+			index++;
 			return temp;
 		}
 
 		const_iterator& operator--()
 		{
-			current--;
-
+			index--;
 			return *this;
 		}
 
 		const_iterator operator--(int)
 		{
 			const_iterator temp = *this;
-			current--;
-
+			index--;
 			return temp;
 		}
 	};
 
-	char*  buffer{nullptr};
-	size_t size{0};
+	struct reverse_iterator
+	{
+		utfbuffer* parent{nullptr};
+		size_t     index{0};
+
+		reverse_iterator(utfbuffer* p, size_t s)
+			: parent(p)
+			, index(s)
+		{
+		}
+
+		const char& operator*() const { return parent->buffer[index]; }
+
+		const char* operator->() const { return &parent->buffer[index]; }
+
+		constexpr bool operator==(const reverse_iterator& rhs) const { return index == rhs.index; }
+
+		// auto operator<=>(const reverse_iterator&) const = default;
+
+		reverse_iterator& operator++()
+		{
+			index--;
+			return *this;
+		}
+
+		reverse_iterator operator++(int)
+		{
+			reverse_iterator temp = *this;
+			index--;
+			return temp;
+		}
+
+		reverse_iterator& operator--()
+		{
+			index++;
+			return *this;
+		}
+
+		reverse_iterator operator--(int)
+		{
+			reverse_iterator temp = *this;
+			index++;
+			return temp;
+		}
+	};
+
+	struct const_reverse_iterator
+	{
+		const utfbuffer* parent{nullptr};
+		size_t           index{0};
+
+		const_reverse_iterator(const utfbuffer* p, size_t s)
+			: parent(p)
+			, index(s)
+		{
+		}
+
+		const char& operator*() const { return parent->buffer[index]; }
+
+		const char* operator->() const { return &parent->buffer[index]; }
+
+		constexpr bool operator==(const const_reverse_iterator& rhs) const
+		{
+			//
+			return index == rhs.index;
+		}
+
+		constexpr bool operator<(const const_reverse_iterator& rhs) const { return index > rhs.index; }
+
+		// auto operator<=>(const const_reverse_iterator&) const = default;
+
+		const_reverse_iterator& operator++()
+		{
+			index--;
+			return *this;
+		}
+
+		const_reverse_iterator operator++(int)
+		{
+			const_reverse_iterator temp = *this;
+			index--;
+			return temp;
+		}
+
+		const_reverse_iterator& operator--()
+		{
+			index++;
+			return *this;
+		}
+
+		const_reverse_iterator operator--(int)
+		{
+			const_reverse_iterator temp = *this;
+			index++;
+			return temp;
+		}
+	};
 
 public:
 	utfbuffer()
 	{
 		buffer = new char[1024]{};
-
-		size = 79;
+		size   = 10;
 		for (int i = 0; i < size; i++)
 			buffer[i] = 0x30 + i;
-
-		int i = 0;
 	}
+
+	char& operator[](size_t index) { return buffer[index]; }
+
+	const char& operator[](size_t index) const { return buffer[index]; }
 
 	~utfbuffer() { delete[] buffer; }
 
-	iterator begin() { return iterator{buffer, buffer + size}; }
+	iterator begin() { return iterator{this, 0}; }
 
-	iterator end() { return iterator{buffer + size, buffer + size}; }
+	iterator end() { return iterator{this, size}; }
 
-	const_iterator cbegin() const { return const_iterator{buffer, buffer + size}; }
+	const_iterator cbegin() const { return const_iterator{this, 0}; }
 
-	const_iterator cend() const { return const_iterator{buffer + size, buffer + size}; }
+	const_iterator cend() const { return const_iterator{this, size}; }
+
+	reverse_iterator rbegin() { return reverse_iterator{this, size - 1}; }
+
+	reverse_iterator rend() { return reverse_iterator{this, static_cast<size_t>(-1)}; }
+
+	const_reverse_iterator crbegin() const { return const_reverse_iterator{this, size - 1}; }
+
+	const_reverse_iterator crend() const { return const_reverse_iterator{this, static_cast<size_t>(-1)}; }
 };
 
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
@@ -618,6 +703,11 @@ i32 deckard_main(std::string_view commandline)
 	for (auto it = ubuf.cbegin(); it != ubuf.cend(); it++)
 	{
 		dbg::println("{}", *it);
+	}
+
+	for (auto it = ubuf.rbegin(); it != ubuf.rend(); ++it)
+	{
+		dbg::println("reverse: {}", *it);
 	}
 
 

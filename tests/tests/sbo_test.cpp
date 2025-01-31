@@ -572,32 +572,34 @@ TEST_CASE("sbo", "[sbo]")
 
 		ss.append(arr);
 
-		CHECK(ss.size() == 8);
+		ss.append('X');
+
+		CHECK(ss.size() == 9);
 		CHECK(ss.capacity() == 31);
 		CHECK(ss.max_size() == 31);
 
 		ss.append(arr);
 
-		CHECK(ss.size() == 16);
+		CHECK(ss.size() == 17);
 		CHECK(ss.capacity() == 31);
 		CHECK(ss.max_size() == 31);
 
 		ss.append(ss.data());
 
-		CHECK(ss.size() == 32);
+		CHECK(ss.size() == 34);
 		CHECK(ss.capacity() == 48);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 		ss.append(ss.data());
 
-		CHECK(ss.size() == 64);
+		CHECK(ss.size() == 68);
 		CHECK(ss.capacity() == 72);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 		ss.append(arr);
 
-		CHECK(ss.size() == 64 + 8);
-		CHECK(ss.capacity() == 72);
+		CHECK(ss.size() == 76);
+		CHECK(ss.capacity() == 112);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
 
@@ -844,12 +846,17 @@ TEST_CASE("sbo", "[sbo]")
 	{
 		sbo<32> ss;
 
+		std::vector<u8> correct;
+
 		CHECK(ss.size() == 0);
 		CHECK(ss.capacity() == 31);
 		CHECK(ss.max_size() == 31);
 
 		for (u32 i = 0; i < 31; i++)
+		{
+			correct.push_back(as<u8>(i));
 			ss.push_back(as<u8>(i));
+		}
 
 		CHECK(ss.size() == 31);
 		CHECK(ss.capacity() == 31);
@@ -860,12 +867,16 @@ TEST_CASE("sbo", "[sbo]")
 		for (auto it = ss.begin(); it != ss.end(); it++)
 			CHECK(*it == i++);
 
+		CHECK(std::distance(ss.begin(), ss.end()) == 31);
+
+
 		i = 0;
 		for (const auto& c : ss)
 			CHECK(c == i++);
 
 
 		auto it = ss.begin();
+		CHECK(sizeof(it) == 8);
 		CHECK(*it == 0);
 
 		it++;
@@ -879,6 +890,14 @@ TEST_CASE("sbo", "[sbo]")
 
 		it -= 5;
 		CHECK(*it == 0);
+
+		i = 0;
+		std::ranges::reverse(correct);
+		for (auto it2 = ss.rbegin(); it2 != ss.rend(); it2++)
+			CHECK(correct[i++] == *it2);
+
+		CHECK(i == ss.size());
+		CHECK(std::distance(ss.rbegin(), ss.rend()) == 31);
 	}
 
 	SECTION("iterators (large)")
@@ -900,6 +919,8 @@ TEST_CASE("sbo", "[sbo]")
 		u8 i = 0;
 		for (auto it = ss.begin(); it != ss.end(); it++)
 			CHECK(*it == i++);
+
+		CHECK(std::distance(ss.begin(), ss.end()) == 128);
 
 		i = 0;
 		for (const auto& c : ss)
@@ -1033,6 +1054,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[18] == 'Y');
 	}
 
+
 	SECTION("insert (small -> large)")
 	{
 		sbo<32> ss;
@@ -1124,6 +1146,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 263);
 		CHECK(ss.capacity() == 384);
 	}
+
 
 	SECTION("swap small buffers")
 	{
@@ -1244,6 +1267,41 @@ TEST_CASE("sbo", "[sbo]")
 		std::array<u8, 3> not_in_range{'X', 'Y', 'Z'};
 		it = ss.find(not_in_range);
 		CHECK(it == ss.end());
+	}
+
+	SECTION("contains")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		ss.push_back('E');
+		ss.push_back('F');
+
+
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss.contains('B') == true);
+		CHECK(ss.contains('O') == false);
+
+		for (u32 i = 0; i < 128; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 134);
+		CHECK(ss.capacity() == 168);
+
+		CHECK(ss.contains(0x7F) == true);
+		CHECK(ss.contains(0xFF) == false);
+
+
+
 	}
 
 	SECTION("compare (small)")
