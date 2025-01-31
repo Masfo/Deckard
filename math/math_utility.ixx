@@ -18,10 +18,10 @@ export namespace deckard::math
 
 
 	template<std::floating_point T = float>
-	inline constexpr T deg_to_radians = std::numbers::pi_v<T> / T{180};
+	constexpr T deg_to_radians = std::numbers::pi_v<T> / T{180};
 
 	template<std::floating_point T = float>
-	inline constexpr T rad_to_degrees = T{180} / std::numbers::pi_v<T>;
+	constexpr T rad_to_degrees = T{180} / std::numbers::pi_v<T>;
 
 
 	std::integral auto align_integer(std::integral auto value, std::integral auto alignment= 4)
@@ -92,6 +92,8 @@ export namespace deckard::math
 	}
 
 	// is_close_enough
+
+
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-5})
 	{
@@ -131,9 +133,9 @@ export namespace deckard::math
 		return static_cast<T>(v * rad_to_degrees<T>);
 	}
 
-	constexpr float operator""_rad(long double deg) { return to_radians<float>((float)deg); }
+	constexpr f32 operator""_rad(long double deg) { return to_radians<f32>(as<f32>(deg)); }
 
-	constexpr float operator""_deg(long double rad) { return to_degrees<float>((float)rad); }
+	constexpr f32 operator""_deg(long double rad) { return to_degrees<f32>(as<f32>(rad)); }
 
 	namespace sse
 	{

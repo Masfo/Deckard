@@ -4,6 +4,7 @@ export module deckard.math;
 export import deckard.vec;
 export import deckard.matrix;
 export import deckard.math.utils;
+
 export import :quaternion;
 export import :easing;
 
