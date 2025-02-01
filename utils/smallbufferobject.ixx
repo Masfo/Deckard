@@ -6,6 +6,7 @@ import deckard.as;
 import deckard.assert;
 import deckard.debug;
 import deckard.math.utils;
+import deckard.utils.hash;
 
 namespace deckard
 {
@@ -142,7 +143,6 @@ namespace deckard
 			using iterator_category = std::bidirectional_iterator_tag;
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
-
 
 			const_iterator(pointer p)
 				: ptr(p)
@@ -745,3 +745,31 @@ namespace deckard
 
 
 } // namespace deckard
+
+export namespace std
+{
+	using namespace deckard;
+
+	template<size_t SIZE>
+	struct hash<sbo<SIZE>>
+	{
+		size_t operator()(const sbo<SIZE>& obj) const { return deckard::utils::hash_values(obj.data()); }
+	};
+
+	//template<size_t SIZE>
+	//struct formatter<sbo<SIZE>>
+	//{
+	//	// TODO: Parse width
+	//	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+	//
+	//	auto format(const sbo<SIZE>& v, std::format_context& ctx) const
+	//	{
+	//		std::format_to(ctx.out(), "sbo: [");
+	//
+	//		for(auto it = v.begin(); it != v.end(); it++)
+	//			std::format_to(ctx.out(), "{:#02X}{}"sv, it, it != v.end() ? ", "sv : ""sv);
+	//
+	//		return std::format_to(ctx.out(), "]");
+	//	}
+	//};
+} // namespace std

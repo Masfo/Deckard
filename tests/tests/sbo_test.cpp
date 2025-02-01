@@ -1390,4 +1390,23 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(a != b);
 	}
+
+	SECTION("hash") 
+	{
+
+		sbo<32> a;
+
+		CHECK(a.size() == 0);
+		CHECK(a.capacity() == 31);
+
+		a.push_back('A');
+		a.push_back('B');
+		a.push_back('C');
+		a.push_back('D');
+		a.push_back('E');
+		a.push_back('F');
+
+		CHECK(a.size() == 6);
+		CHECK(a.capacity() == 31);
+	}
 }
