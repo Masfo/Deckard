@@ -1,9 +1,9 @@
 module;
-//#include <algorithm>
-//#include <functional>
+// #include <algorithm>
+// #include <functional>
 #include <immintrin.h>
-//#include <pmmintrin.h>
-//#include <xmmintrin.h>
+// #include <pmmintrin.h>
+// #include <xmmintrin.h>
 
 
 export module deckard.math.utils;
@@ -11,7 +11,6 @@ import std;
 import deckard.types;
 import deckard.as;
 import deckard.assert;
-
 
 export namespace deckard::math
 {
@@ -23,8 +22,7 @@ export namespace deckard::math
 	template<std::floating_point T = float>
 	constexpr T rad_to_degrees = T{180} / std::numbers::pi_v<T>;
 
-
-	std::integral auto align_integer(std::integral auto value, std::integral auto alignment= 4)
+	std::integral auto align_integer(std::integral auto value, std::integral auto alignment = 4)
 	{
 		assert::check(alignment > 0, "Alignment must be greater that zero");
 
@@ -36,8 +34,6 @@ export namespace deckard::math
 		auto offset = alignment - remainder;
 		return value + offset;
 	}
-
-
 
 	template<std::integral T, arithmetic U>
 	T round_to_even(U num)
@@ -243,23 +239,17 @@ export namespace deckard::math
 		return q;
 	}
 
-
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)
 	{
 		return y * width + x;
 	}
 
-
-
-
-
 	template<std::integral T, std::integral U = T, std::integral I = T>
 	constexpr T index_from_3d(T x, T y, T z, U height, I depth)
 	{
 		return (z * height * depth) + (y * depth) + x;
 	}
-
 
 	template<std::integral T>
 	constexpr bool is_prime(T n)

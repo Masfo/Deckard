@@ -19,6 +19,7 @@ import window;
 std::array<unsigned char, 256> previous{0};
 std::array<unsigned char, 256> current{0};
 
+
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
 	// dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
