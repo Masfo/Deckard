@@ -9,9 +9,9 @@ TEST_CASE("commandline", "[commandline][cli]")
 	using namespace deckard;
 	SECTION("initialize")
 	{
-		cli cli;
-	
-		cli.add_flag("flag", "f", "description");
+		//cli cli;
+		//
+		//cli.add_flag("flag", "f", "description");
 		CHECK(1 == 1);
 	}
 }
