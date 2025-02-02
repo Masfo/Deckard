@@ -1,7 +1,8 @@
 
 cmake_minimum_required (VERSION 3.30.0)
 
-project(deckard LANGUAGES CXX)
+project(deckard LANGUAGES CXX ASM_MASM)
+
 add_library(deckard STATIC)
 
 set_target_properties(deckard PROPERTIES
@@ -21,6 +22,8 @@ set_target_properties(deckard PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
+
+    OBJECT_OUTPUTS ${CMAKE_SOURCE_DIR}/lib
 
     PDB_NAME deckard
     PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/pdb"

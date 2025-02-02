@@ -26,6 +26,14 @@ namespace deckard
 		template<typename T>
 		void add_flag(std::string_view flag, T& value, std::string_view help);
 	};
+	/*
+	*	
+	* 
+	*	cli cli;
+	*	cli
+	* 
+	* 
+	*/
 
 	//
 } // namespace deckard
