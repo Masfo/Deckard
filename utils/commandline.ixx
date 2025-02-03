@@ -1,12 +1,18 @@
 export module deckard.commandline;
 
 import std;
+import deckard.stringhelper;
+import deckard.as;
 
 namespace deckard
 {
-	class cli
+
+	export class cli
 	{
 	private:
+		std::unordered_map<std::string, std::string> options;
+		std::unordered_map<std::string, bool>        flags;
+
 	public:
 		// Parse short/long options from string
 		// add_option("d,debug", "Enable debug");
@@ -15,25 +21,91 @@ namespace deckard
 		//
 		// cli["v"]
 
-		void add_option(std::string_view option, std::string_view help);
+		void option(std::string_view option, std::string_view help) { options[std::string(option)] = std::string(help); }
 
 		template<typename T>
-		void add_option(std::string_view option, std::string_view help, T& value);
+		requires( not std::is_convertible_v<T, std::string_view>)
+		void option(std::string_view option, std::string_view help, T& value)
+		{
+			options[std::string(option)] = std::string(help);
+		}
 
-		void add_option(std::string_view short_option, std::string_view long_option, std::string_view help);
+		void option(std::string_view short_option, std::string_view long_option, std::string_view help)
+		{
+			options[std::string(short_option)] = std::string(help);
+			options[std::string(long_option)]  = std::string(help);
+		}
 
 		// example: -1, -2, -v,
 		template<typename T>
-		void add_flag(std::string_view flag, T& value, std::string_view help);
-	};
-	/*
-	*	
-	* 
-	*	cli cli;
-	*	cli
-	* 
-	* 
-	*/
+		void flag(std::string_view flag, T& value, std::string_view help)
+		{
+			flags[std::string(flag)] = false;
+		}
 
-	//
+		void parse(int argc, char* argv[])
+		{
+			for (int i = 1; i < argc; ++i)
+			{
+				std::string arg = argv[i];
+				if (arg[0] == '-')
+				{
+					if (arg[1] == '-')
+					{
+						// Long option
+						arg = arg.substr(2);
+					}
+					else
+					{
+						// Short option
+						arg = arg.substr(1);
+					}
+					if (options.find(arg) != options.end())
+					{
+						if (i + 1 < argc)
+						{
+							options[arg] = argv[++i];
+						}
+					}
+					else if (flags.find(arg) != flags.end())
+					{
+						flags[arg] = true;
+					}
+				}
+			}
+		}
+
+		void parse(std::string_view commandline)
+		{
+
+			using namespace deckard::string;
+
+			auto args = split(commandline);
+			std::vector<char*> argv;
+			for(const auto &arg: args)
+				argv.push_back(const_cast<char*>(arg.data()));
+
+			parse(as<int>(argv.size()), argv.data());
+		}
+
+		std::string operator[](std::string_view option) const
+		{
+			auto it = options.find(std::string(option));
+			if (it != options.end())
+			{
+				return it->second;
+			}
+			return "";
+		}
+
+		bool is_flag(std::string_view flag) const
+		{
+			auto it = flags.find(std::string(flag));
+			if (it != flags.end())
+			{
+				return it->second;
+			}
+			return false;
+		}
+	};
 } // namespace deckard
