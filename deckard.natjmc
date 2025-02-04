@@ -14,6 +14,8 @@
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
 	<File Name="_helpers.ixx"/>
+	<File Name="stringhelper.ixx"/>
+
 	<File Name="random.ixx"/>
 
 
@@ -31,12 +33,7 @@
 
 	<!-- UTF8 -->
 	<File Name="_utf8*.ixx"/>
-	<!---
-	<File Name="utf8_ascii.ixx"/>
-	<File Name="utf8_codepoints.ixx"/>
-	<File Name="utf8_xid.ixx"/>
-	<File Name="utf8file.ixx"/>
-	-->
+
 
 	<!-- Scripring -->
 	<File Name="_lexer.ixx"/>

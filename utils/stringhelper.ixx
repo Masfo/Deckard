@@ -230,8 +230,8 @@ export namespace deckard::string
 	}
 
 	// split
-	template<typename T>
-	std::vector<T> split(T strv, std::string_view delims = " ")
+	template<typename T=std::string_view>
+	std::vector<T> split(std::string_view strv, std::string_view delims = " ")
 	{
 		std::vector<T> output;
 		size_t         first = 0;

@@ -50,7 +50,7 @@ namespace deckard
 			parse(args);
 		}
 
-		void parse(std::vector<std::string> args)
+		void parse(const std::vector<std::string> &args)
 		{
 			for (int i = 1; i < args.size(); ++i)
 			{
@@ -87,9 +87,9 @@ namespace deckard
 
 			using namespace deckard::string;
 
-			auto args = split(commandline);
+			auto args = split<std::string>(commandline);
 
-			//parse(args);
+			parse(args);
 		}
 
 		std::string operator[](std::string_view option) const
