@@ -43,11 +43,18 @@ namespace deckard
 			flags[std::string(flag)] = false;
 		}
 
-		void parse(int argc, char* argv[])
+		void parse(int argc, const char* argv[]) 
+		{ 
+			std::vector<std::string> args(argv + 1, argv + argc);
+
+			parse(args);
+		}
+
+		void parse(std::vector<std::string> args)
 		{
-			for (int i = 1; i < argc; ++i)
+			for (int i = 1; i < args.size(); ++i)
 			{
-				std::string arg = argv[i];
+				auto arg = args[i];
 				if (arg[0] == '-')
 				{
 					if (arg[1] == '-')
@@ -62,9 +69,9 @@ namespace deckard
 					}
 					if (options.find(arg) != options.end())
 					{
-						if (i + 1 < argc)
+						if (i + 1 < args.size())
 						{
-							options[arg] = argv[++i];
+							options[arg] = args[i];
 						}
 					}
 					else if (flags.find(arg) != flags.end())
@@ -81,11 +88,8 @@ namespace deckard
 			using namespace deckard::string;
 
 			auto args = split(commandline);
-			std::vector<char*> argv;
-			for(const auto &arg: args)
-				argv.push_back(const_cast<char*>(arg.data()));
 
-			parse(as<int>(argv.size()), argv.data());
+			//parse(args);
 		}
 
 		std::string operator[](std::string_view option) const
