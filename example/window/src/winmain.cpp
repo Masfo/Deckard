@@ -19,7 +19,6 @@ import window;
 std::array<unsigned char, 256> previous{0};
 std::array<unsigned char, 256> current{0};
 
-
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
 	// dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
@@ -451,6 +450,191 @@ struct Noisy
 	T value_{0};
 };
 
+class big_int
+{
+private:
+	std::vector<u8> digits;
+
+	u64 bitcount{};
+
+public:
+	big_int() = default;
+
+	big_int(u64 v)
+	{
+
+		while (v > 0)
+		{
+			digits.push_back(v % 10);
+			v /= 10;
+		}
+	}
+
+	big_int(const big_int& bi) { digits = bi.digits; }
+
+	big_int(std::string_view str)
+	{
+		for (size_t i = str.size(); i-- > 0;)
+			digits.push_back(str[i] - '0');
+	}
+
+	auto operator+(const big_int& rhs) const
+	{
+		big_int result;
+		u32     carry = 0;
+		for (size_t i = 0; i < std::max(digits.size(), rhs.digits.size()); i++)
+		{
+			u8 sum = carry;
+			if (i < digits.size())
+				sum += digits[i];
+			if (i < rhs.digits.size())
+				sum += rhs.digits[i];
+			carry = sum / 10;
+			result.digits.push_back(sum % 10);
+		}
+		if (carry)
+			result.digits.push_back(carry);
+		return result;
+	}
+
+	auto operator*(const big_int& rhs) const
+	{
+		big_int result;
+		result.digits.resize(digits.size() + rhs.digits.size(), 0);
+
+		for (size_t i = 0; i < digits.size(); ++i)
+		{
+			u32 carry = 0;
+			for (size_t j = 0; j < rhs.digits.size() || carry; ++j)
+			{
+				u64 current          = result.digits[i + j] + carry + digits[i] * (j < rhs.digits.size() ? rhs.digits[j] : 0);
+				result.digits[i + j] = current % 10;
+				carry                = current / 10;
+			}
+		}
+
+		while (result.digits.size() > 1 && result.digits.back() == 0)
+			result.digits.pop_back();
+
+		return result;
+	}
+
+	bool operator==(const big_int& rhs) const { return digits == rhs.digits; }
+
+	auto operator-(const big_int& rhs) const
+	{
+		big_int result;
+		int     carry = 0;
+		for (size_t i = 0; i < digits.size(); ++i)
+		{
+			int sub = digits[i] - (i < rhs.digits.size() ? rhs.digits[i] : 0) - carry;
+			if (sub < 0)
+			{
+				sub += 10;
+				carry = 1;
+			}
+			else
+			{
+				carry = 0;
+			}
+			result.digits.push_back(sub);
+		}
+		while (result.digits.size() > 1 && result.digits.back() == 0)
+		{
+			result.digits.pop_back();
+		}
+		return result;
+	}
+
+	auto operator/(const big_int& rhs) const
+	{
+		big_int result;
+		big_int current;
+		for (auto it = digits.rbegin(); it != digits.rend(); ++it)
+		{
+			current.digits.insert(current.digits.begin(), *it);
+			u8 count = 0;
+			while (current >= rhs)
+			{
+				current = current - rhs;
+				++count;
+			}
+			result.digits.insert(result.digits.begin(), count);
+		}
+		while (result.digits.size() > 1 && result.digits.back() == 0)
+			result.digits.pop_back();
+		return result;
+	}
+
+	auto operator&(const big_int& rhs) const
+	{
+		big_int result;
+		size_t  max_size = std::max(digits.size(), rhs.digits.size());
+		result.digits.resize(max_size, 0);
+
+		for (size_t i = 0; i < max_size; ++i)
+		{
+			u8 lhs_digit     = (i < digits.size()) ? digits[i] : 0;
+			u8 rhs_digit     = (i < rhs.digits.size()) ? rhs.digits[i] : 0;
+			result.digits[i] = lhs_digit & rhs_digit;
+		}
+
+		while (result.digits.size() > 1 && result.digits.back() == 0)
+		{
+			result.digits.pop_back();
+		}
+
+		return result;
+	}
+
+	bool operator<(const big_int& rhs) const
+	{
+		if (digits.size() != rhs.digits.size())
+			return digits.size() < rhs.digits.size();
+		for (size_t i = digits.size(); i-- > 0;)
+		{
+			if (digits[i] != rhs.digits[i])
+				return digits[i] < rhs.digits[i];
+		}
+		return false;
+	}
+
+	bool operator<=(const big_int& rhs) const
+	{
+		if (digits.size() != rhs.digits.size())
+			return digits.size() <= rhs.digits.size();
+		for (size_t i = digits.size(); i-- > 0;)
+		{
+			if (digits[i] != rhs.digits[i])
+				return digits[i] <= rhs.digits[i];
+		}
+		return false;
+	}
+
+	bool operator>(const big_int& rhs) const
+	{
+		if (digits.size() != rhs.digits.size())
+			return digits.size() > rhs.digits.size();
+		for (size_t i = digits.size(); i-- > 0;)
+		{
+			if (digits[i] != rhs.digits[i])
+				return digits[i] > rhs.digits[i];
+		}
+		return false;
+	}
+
+	bool operator>=(const big_int& rhs) const
+	{
+		if (digits.size() != rhs.digits.size())
+			return digits.size() >= rhs.digits.size();
+		for (size_t i = digits.size(); i-- > 0;)
+		{
+			if (digits[i] != rhs.digits[i])
+				return digits[i] >= rhs.digits[i];
+		}
+		return false;
+	}
+};
 
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
@@ -461,10 +645,24 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	
+	big_int big_a("13254654454");
+	big_int big_b("1638564");
+
+	big_int big_c(big_a - big_b);
+	big_int expected("13253015890");
+
+	dbg::println("{}", big_c == expected);
+
+	big_int expected_div("8089");
+	big_int big_d(big_a / big_b);
+
+	dbg::println("{}", big_d == expected_div);
 
 
+	big_int big_e(big_int{124} & big_int{136});
 
+	auto int_and = 124 & 136;
+	dbg::println("{}", big_e == big_int(8));
 
 	Noisy<int> n1{456};
 
