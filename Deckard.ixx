@@ -113,6 +113,42 @@ using namespace deckard;
 
 extern "C" i32 deckard_main(std::string_view);
 
+#if 0
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int) 
+{ 
+	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
+	SetDllDirectoryW(L"");
+
+	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
+	using CoUninitializePtr = void(void);
+	auto CoInitializeEx     = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
+	auto CoUninitialize     = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
+
+	if (CoInitializeEx)
+		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+
+	redirect_console(true);
+
+	deckard::random::initialize();
+	net::initialize();
+	dbg::println("Initialized");
+
+
+	// main
+	int ret = deckard_main(U"");
+
+	//
+	dbg::println("Deinitializing");
+
+	if (CoUninitialize)
+		CoUninitialize();
+
+	redirect_console(false);
+	net::deinitialize();
+
+	return ret;
+}
+#endif
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
