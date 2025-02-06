@@ -493,17 +493,12 @@ private:
 
 		big_int result;
 
-		const big_int *lh, *rh;
+		const big_int *lh=&lhs, *rh=&rhs;
 
 		if (compare_magnitude(lhs, rhs) == Compare::Less)
 		{
 			lh = &rhs;
 			rh = &lhs;
-		}
-		else
-		{
-			lh = &lhs;
-			rh = &rhs;
 		}
 
 		if (lhs.sign == rhs.sign)
@@ -513,7 +508,7 @@ private:
 
 			type carry = 0, buffer;
 
-			for (int i = 0; i < rh->digits.size(); i++)
+			for (int i = 0; i<rh->digits.size();  ++i)
 			{
 
 				buffer = lh->digits[i] + rh->digits[i] + carry;
@@ -600,6 +595,21 @@ public:
 			digits.push_back(newgroup);
 	}
 
+	big_int& operator=(const big_int& rhs)
+	{
+		if (this == &rhs)
+			return *this;
+
+		sign   = rhs.sign;
+		digits.clear();
+		digits.reserve(rhs.digits.size());
+
+		for (const auto& d : rhs.digits)
+			digits.push_back(d);
+
+		return *this;
+	}
+
 	template<std::integral T>
 	big_int& operator=(T const rhs)
 	{
@@ -673,20 +683,16 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	big_int big_a("5649846351684612874265468465484618726879623567826542897265");
-	big_int big_b("12232134659879716872687368722354574382957432956875462985742239857423295682756259864");
 
-	dbg::println("correct:\n5649846351684612874265468465484618726879623567826542897265");
+
+	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
+	big_int big_b("53919893334301279589334030174039261347274288845081144962207220498432");
+
 	big_a.dump();
-
-	dbg::println("correct:\n12232134659879716872687368722354574382957432956875462985742239857423295682756259864");
-
 	big_b.dump();
 
-
 	big_int big_q(big_a + big_b);
-	big_int expected("1223213465987971687268737437222926265568325222343926472358966737246663529298957129");
-	dbg::println("correct:\n1223213465987971687268737437222926265568325222343926472358966737246663529298957129");
+	big_int expected("115792089291236088757872264598021938027309246012914852884538728970120350138368");
 	big_q.dump();
 
 	dbg::println("{}", big_q == expected);
