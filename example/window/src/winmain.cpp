@@ -450,10 +450,6 @@ struct Noisy
 	T value_{0};
 };
 
-class big_int
-{
-private:
-	static constexpr u32 base = 100'000'000;
 
 	enum Sign
 	{
@@ -468,15 +464,90 @@ private:
 		Equal,
 		Less
 	};
+class big_int
+{
+private:
+	static constexpr u32 base        = 10000;
+	static constexpr u32 base_digits = 4;
 
 	using type = u32;
 
+	public:
 	std::vector<type> digits;
 	Sign              sign;
 
-	void add(const big_int& a, const big_int& b) { }
+private:
+	void add(const big_int& lhs, const big_int& rhs)
+	{
 
-	Compare compare() { return Compare::Equal; }
+		if (lhs.sign == Sign::zero)
+		{
+			operator=(rhs);
+			return;
+		}
+		if (rhs.sign == Sign::zero)
+		{
+			operator=(lhs);
+			return;
+		}
+
+		big_int result;
+
+		const big_int *lh, *rh;
+
+		if (compare_magnitude(lhs, rhs) == Compare::Less)
+		{
+			lh = &rhs;
+			rh = &lhs;
+		}
+		else
+		{
+			lh = &lhs;
+			rh = &rhs;
+		}
+
+		if (lhs.sign == rhs.sign)
+		{
+			if (lh != this)
+				operator=(*lh);
+
+			type carry = 0, buffer;
+
+			for (int i = 0; i < rh->digits.size(); i++)
+			{
+
+				buffer = lh->digits[i] + rh->digits[i] + carry;
+
+				carry  = buffer / big_int::base;
+				buffer %= big_int::base;
+
+				digits[i] = buffer;
+			}
+
+			if (carry > 0)
+				digits.push_back(carry);
+		}
+	}
+
+	Compare compare_magnitude(const big_int& lhs, const big_int& rhs) const
+	{
+		if (lhs.digits.size() > rhs.digits.size())
+			return Compare::Greater;
+		else if (lhs.digits.size() < rhs.digits.size())
+			return Compare::Less;
+		else
+		{
+			for (int i = lhs.digits.size() - 1; i >= 0; i--)
+			{
+				if (lhs.digits[i] > rhs.digits[i])
+					return Compare::Greater;
+				else if (lhs.digits[i] < rhs.digits[i])
+					return Compare::Less;
+			}
+			return Compare::Equal;
+		}
+	}
+
 
 public:
 	big_int() = default;
@@ -489,47 +560,69 @@ public:
 
 	big_int(std::string_view str)
 	{
-		for (size_t i = str.size(); i-- > 0;)
-			digits.push_back(str[i] - '0');
+		auto lastPosition = str.rend();
+
+		switch (str[0])
+		{
+			case '-':
+				sign = Sign::negative;
+				lastPosition -= 1;
+				break;
+			case '0':
+			{
+				if (str.length() == 1)
+					sign = Sign::zero;
+				return;
+			}
+
+			default: sign = Sign::positive;
+		}
+
+		int counter = 0, newgroup = 0, buffer = 0;
+		for (auto it = str.rbegin(); it != lastPosition; ++it)
+		{
+			if (*it == 0)
+				continue;
+			if (counter == big_int::base_digits)
+			{
+				digits.push_back(newgroup);
+				counter = newgroup = 0;
+			}
+
+			buffer = (int)(*it - '0');
+			for (int i = 0; i < counter; i++)
+				buffer *= 10;
+			newgroup += buffer;
+
+			counter++;
+		}
+		if (newgroup != 0)
+			digits.push_back(newgroup);
 	}
 
 	template<std::integral T>
-	big_int& operator=(const T rhs)
+	big_int& operator=(T const rhs)
 	{
-		T temp = rhs;
-		u64 temp2{0};
+		u64 temp{};
 
 		digits.clear();
 		digits.reserve(3);
 
-		if (temp == 0)
+		if (rhs == 0)
 			sign = Sign::zero;
-		else if (temp > 0)
-			sign = Sign::positive;
 		else
-		{
-			sign = Sign::negative;
-			if (temp == limits::min<T>)
-				temp2 = limits::max<T>+1;
-			else
-				temp = -temp;
-		}
+			sign = rhs > 0 ? Sign::positive : Sign::negative;
 
-		if (sign == Sign::negative)
-		{
-			while (temp2 > 0)
-			{
-				digits.push_back(math::mod(temp2, big_int::base));
-				temp2 /= big_int::base;
-			}
-		}
+		if (rhs < 0)
+			temp = -rhs;
 		else
+			temp = rhs;
+
+
+		while (temp > 0)
 		{
-			while (temp > 0)
-			{
-				digits.push_back(math::mod(temp, big_int::base));
-				temp /= big_int::base;
-			}
+			digits.push_back(math::mod<u64>(temp, big_int::base));
+			temp /= big_int::base;
 		}
 
 
@@ -539,24 +632,37 @@ public:
 	auto operator+(const big_int& rhs) const
 	{
 		big_int result;
-		u32     carry = 0;
-		for (size_t i = 0; i < std::max(digits.size(), rhs.digits.size()); i++)
-		{
-			u8 sum = carry;
-			if (i < digits.size())
-				sum += digits[i];
-			if (i < rhs.digits.size())
-				sum += rhs.digits[i];
-			carry = sum / 10;
-			result.digits.push_back(sum % 10);
-		}
-		if (carry)
-			result.digits.push_back(carry);
+		result.add(*this, rhs);
 		return result;
 	}
 
 	bool operator==(const big_int& rhs) const { return sign == rhs.sign and digits == rhs.digits; }
+
+	void dump() const
+	{ 
+		switch (sign)
+		{
+			case Sign::negative:
+				dbg::print("-");
+				break;
+			case Sign::zero: dbg::print("0"); break;
+			case Sign::positive: break;
+			default: throw "BigInteger::operator<<(std::ostream&, const BigInteger&) -> Sign undefine";
+		}
+
+		// print the first group without padding
+		dbg::print("{}", digits.back());
+
+		// reverse iterate the groups and print them out
+		auto it = digits.rbegin();
+		for (it++; it != digits.rend(); ++it)
+			dbg::print("{:04}", *it);
+		dbg::println();
+
+	}
 };
+
+
 
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
@@ -567,13 +673,23 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	big_int big_a(limits::min<i32>);
-	big_int big_b(limits::min<i64>);
+	big_int big_a("5649846351684612874265468465484618726879623567826542897265");
+	big_int big_b("12232134659879716872687368722354574382957432956875462985742239857423295682756259864");
 
-	big_int big_c(big_a + big_b);
-	big_int expected("13253015890");
+	dbg::println("correct:\n5649846351684612874265468465484618726879623567826542897265");
+	big_a.dump();
 
-	dbg::println("{}", big_c == expected);
+	dbg::println("correct:\n12232134659879716872687368722354574382957432956875462985742239857423295682756259864");
+
+	big_b.dump();
+
+
+	big_int big_q(big_a + big_b);
+	big_int expected("1223213465987971687268737437222926265568325222343926472358966737246663529298957129");
+	dbg::println("correct:\n1223213465987971687268737437222926265568325222343926472358966737246663529298957129");
+	big_q.dump();
+
+	dbg::println("{}", big_q == expected);
 
 
 	Noisy<int> n1{456};

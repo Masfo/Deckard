@@ -752,7 +752,7 @@ export namespace deckard
 
 	#ifdef _DEBUG
 	// count_digits, only positives, takes abs
-	size_t count_digits(const u64 v)
+	 size_t count_digits(const u64 v)
 	{
 		if (v == 0)
 			return 1;
