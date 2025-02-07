@@ -450,20 +450,20 @@ struct Noisy
 	T value_{0};
 };
 
+enum Sign
+{
+	positive = 1,
+	zero     = 0,
+	negative = -1,
+};
 
-	enum Sign
-	{
-		positive = 1,
-		zero     = 0,
-		negative = -1,
-	};
+enum Compare
+{
+	Greater,
+	Equal,
+	Less
+};
 
-	enum Compare
-	{
-		Greater,
-		Equal,
-		Less
-	};
 class big_int
 {
 private:
@@ -472,56 +472,23 @@ private:
 
 	using type = u32;
 
-	public:
+public:
 	std::vector<type> digits;
 	Sign              sign;
 
 private:
-	void add(const big_int& lhs, const big_int& rhs)
+	void remove_trailing_zeros()
 	{
-
-		if (lhs.sign == Sign::zero)
-		{
-			operator=(rhs);
+		//
+		if (digits.empty())
 			return;
-		}
-		if (rhs.sign == Sign::zero)
-		{
-			operator=(lhs);
-			return;
-		}
 
-		big_int result;
+		while (not digits.empty() and digits.back() == 0)
+			digits.pop_back();
 
-		const big_int *lh=&lhs, *rh=&rhs;
-
-		if (compare_magnitude(lhs, rhs) == Compare::Less)
-		{
-			lh = &rhs;
-			rh = &lhs;
-		}
-
-		if (lhs.sign == rhs.sign)
-		{
-			if (lh != this)
-				operator=(*lh);
-
-			type carry = 0, buffer;
-
-			for (int i = 0; i<rh->digits.size();  ++i)
-			{
-
-				buffer = lh->digits[i] + rh->digits[i] + carry;
-
-				carry  = buffer / big_int::base;
-				buffer %= big_int::base;
-
-				digits[i] = buffer;
-			}
-
-			if (carry > 0)
-				digits.push_back(carry);
-		}
+		if (digits.empty())
+			sign = Sign::zero;
+		digits.shrink_to_fit();
 	}
 
 	Compare compare_magnitude(const big_int& lhs, const big_int& rhs) const
@@ -543,6 +510,213 @@ private:
 		}
 	}
 
+	void add(const big_int& lhs, const big_int& rhs)
+	{
+
+		if (lhs.sign == Sign::zero)
+		{
+			operator=(rhs);
+			return;
+		}
+		if (rhs.sign == Sign::zero)
+		{
+			operator=(lhs);
+			return;
+		}
+
+
+		const big_int *lh = &lhs, *rh = &rhs;
+
+		if (compare_magnitude(lhs, rhs) == Compare::Less)
+		{
+			lh = &rhs;
+			rh = &lhs;
+		}
+
+		if (lhs.sign == rhs.sign)
+		{
+			if (lh != this)
+				operator=(*lh);
+
+			type carry = 0, buffer;
+
+			for (int i = 0; i < rh->digits.size(); ++i)
+			{
+
+				buffer = lh->digits[i] + rh->digits[i] + carry;
+
+				carry = buffer / big_int::base;
+				buffer %= big_int::base;
+
+				digits[i] = buffer;
+			}
+
+			if (carry > 0)
+				digits.push_back(carry);
+		}
+		else
+		{
+			if (lh->sign == Sign::positive)
+			{
+				subtract(*lh, -(*rh));
+			}
+			else
+			{
+				subtract(-(*lh), *rh);
+				operator-();
+			}
+		}
+	}
+
+	void subtract(const big_int& lhs, const big_int& rhs)
+	{
+
+		if (lhs.sign == Sign::zero)
+		{
+			operator=(rhs);
+			operator-();
+			return;
+		}
+		if (rhs.sign == Sign::zero)
+		{
+			operator=(lhs);
+			return;
+		}
+
+
+		const big_int *lh = &lhs, *rh = &rhs;
+
+		if (compare_magnitude(lhs, rhs) == Compare::Less)
+		{
+			lh = &rhs;
+			rh = &lhs;
+		}
+
+		if (lhs.sign == rhs.sign)
+		{
+			if (lh != this)
+				operator=(*lh);
+
+			type carry      = 0, buffer;
+			bool need_carry = false;
+
+			for (int i = 0; i < rh->digits.size() or carry != 0; ++i)
+			{
+				buffer     = lh->digits[i];
+				need_carry = false;
+
+				if (i < rh->digits.size())
+				{
+					if (lh->digits[i] < rh->digits[i] + carry)
+					{
+						buffer += big_int::base;
+						need_carry = true;
+					}
+
+					buffer -= rh->digits[i] + carry;
+				}
+				else
+				{
+					if (lh->digits[i] == 0)
+					{
+						buffer += big_int::base;
+						need_carry = true;
+					}
+
+					buffer -= carry;
+				}
+				digits[i] = buffer;
+				carry     = need_carry ? 1 : 0;
+			}
+		}
+		else
+		{
+			//
+			if (lh->sign == Sign::positive)
+			{
+				add(*lh, -(*rh));
+			}
+			else
+			{
+				add(-(*lh), *rh);
+				operator-();
+			}
+		}
+
+		if (lh != &lhs)
+			operator-();
+
+		remove_trailing_zeros();
+	}
+
+	void multiply(const big_int& lhs, const big_int& rhs)
+	{
+		digits.clear();
+
+		if (lhs.is_zero() or rhs.is_zero())
+		{
+			sign = Sign::zero;
+			return;
+		}
+		else if ((lhs.sign == Sign::positive and rhs.sign == Sign::negative) or //
+				 (lhs.sign == Sign::negative and rhs.sign == Sign::positive))
+		{
+			sign = Sign::negative;
+		}
+		else
+		{
+			sign = Sign::positive;
+		}
+
+		const big_int *lh = &lhs, *rh = &rhs;
+
+		if (compare_magnitude(lhs, rhs) == Compare::Less)
+		{
+			lh = &rhs;
+			rh = &lhs;
+		}
+
+		digits.reserve(lh->digits.size() + rh->digits.size());
+
+		int index = 0, lh_size = lh->digits.size(), rh_size = rh->digits.size();
+		type carry = 0, buffer = 0;
+
+
+		for (int lower = 0; lower < rh_size; lower++)
+		{
+			index = lower;
+
+			for (int upper = 0; upper < lh_size; upper++)
+			{
+				buffer = lh->digits[upper] * rh->digits[lower] + carry;
+				if (index < digits.size())
+					buffer += digits[index];
+
+				carry = buffer / big_int::base;
+				buffer %= big_int::base;
+
+				if (index < digits.size())
+					digits[index] = buffer;
+				else
+					digits.push_back(buffer);
+
+				index++;
+			}
+			if (carry != 0)
+			{
+				digits.push_back(carry);
+				carry = 0;
+			}
+		}
+
+	}
+
+	
+	void divide(const big_int& lhs, const big_int& rhs) 
+	{
+		//
+	}
+	bool is_zero() const { return sign == Sign::zero; }
 
 public:
 	big_int() = default;
@@ -600,7 +774,7 @@ public:
 		if (this == &rhs)
 			return *this;
 
-		sign   = rhs.sign;
+		sign = rhs.sign;
 		digits.clear();
 		digits.reserve(rhs.digits.size());
 
@@ -639,6 +813,21 @@ public:
 		return *this;
 	}
 
+	void operator-()
+	{
+		if (sign == Sign::positive)
+			sign = Sign::negative;
+		else if (sign == Sign::negative)
+			sign = Sign::positive;
+	}
+
+	big_int operator-() const
+	{
+		big_int result(*this);
+		result.operator-();
+		return result;
+	}
+
 	auto operator+(const big_int& rhs) const
 	{
 		big_int result;
@@ -646,33 +835,57 @@ public:
 		return result;
 	}
 
+	auto operator-(const big_int& rhs) const
+	{
+		big_int result;
+		result.subtract(*this, rhs);
+		return result;
+	}
+
+	auto operator*(const big_int& rhs) const
+	{
+		big_int result;
+		result.multiply(*this, rhs);
+		return result;
+	}
+
+		auto operator/(const big_int& rhs) const
+	{
+		big_int result;
+		result.divide(*this, rhs);
+		return result;
+	}
+
 	bool operator==(const big_int& rhs) const { return sign == rhs.sign and digits == rhs.digits; }
 
-	void dump() const
-	{ 
+	void dump(std::string_view pre) const
+	{
+		if (digits.empty())
+			return;
+
 		switch (sign)
 		{
-			case Sign::negative:
-				dbg::print("-");
-				break;
-			case Sign::zero: dbg::print("0"); break;
+			case Sign::negative: dbg::print("-"); break;
+
+			case Sign::zero:
+			{
+				dbg::print("0");
+				return;
+			}
+
 			case Sign::positive: break;
-			default: throw "BigInteger::operator<<(std::ostream&, const BigInteger&) -> Sign undefine";
 		}
 
 		// print the first group without padding
-		dbg::print("{}", digits.back());
+		dbg::print("{}: {}", pre, digits.back());
 
 		// reverse iterate the groups and print them out
 		auto it = digits.rbegin();
 		for (it++; it != digits.rend(); ++it)
 			dbg::print("{:04}", *it);
 		dbg::println();
-
 	}
 };
-
-
 
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
@@ -682,18 +895,36 @@ i32 deckard_main(std::string_view commandline)
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+	/*
+		A: 49373122930442302047
+		B: 6914577278677366128
 
+		+ 56287700209119668175
+		- 42458545651764935919
+		* 341394273992180797330860803530982864016
+		/ 7
+		% 971081979700739151
+	*/
+
+	big_int big_test_a{"49373122930442302047"};
+	big_int big_test_b{"6914577278677366128"};
+	big_int big_add(big_test_a + big_test_b);
+	big_add.dump("add");
+	big_int big_sub(big_test_a - big_test_b);
+	big_sub.dump("sub");
+	big_int big_mul(big_test_a * big_test_b);
+	big_mul.dump("mul");
 
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
 	big_int big_b("53919893334301279589334030174039261347274288845081144962207220498432");
 
-	big_a.dump();
-	big_b.dump();
+	big_a.dump("");
+	big_b.dump("");
 
 	big_int big_q(big_a + big_b);
 	big_int expected("115792089291236088757872264598021938027309246012914852884538728970120350138368");
-	big_q.dump();
+	big_q.dump("");
 
 	dbg::println("{}", big_q == expected);
 
