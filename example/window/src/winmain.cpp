@@ -467,8 +467,14 @@ enum Compare
 class big_int
 {
 private:
+#if 1
 	static constexpr u32 base        = 10000;
 	static constexpr u32 base_digits = 4;
+#else
+	static constexpr u32 base        = 1'000'000'000;
+	static constexpr u32 base_digits = 9;
+#endif
+
 
 	using type = u32;
 
@@ -489,6 +495,19 @@ private:
 		if (digits.empty())
 			sign = Sign::zero;
 		digits.shrink_to_fit();
+	}
+
+	Compare compare(const big_int& lhs, const big_int& rhs) const
+	{
+		if (lhs.sign > rhs.sign)
+			return Compare::Greater;
+		else if (lhs.sign < rhs.sign)
+			return Compare::Less;
+
+		if (lhs.sign == Sign::positive)
+			return compare_magnitude(lhs, rhs);
+		else
+			return compare_magnitude(rhs, lhs);
 	}
 
 	Compare compare_magnitude(const big_int& lhs, const big_int& rhs) const
@@ -660,13 +679,9 @@ private:
 		}
 		else if ((lhs.sign == Sign::positive and rhs.sign == Sign::negative) or //
 				 (lhs.sign == Sign::negative and rhs.sign == Sign::positive))
-		{
 			sign = Sign::negative;
-		}
 		else
-		{
 			sign = Sign::positive;
-		}
 
 		const big_int *lh = &lhs, *rh = &rhs;
 
@@ -678,7 +693,7 @@ private:
 
 		digits.reserve(lh->digits.size() + rh->digits.size());
 
-		int index = 0, lh_size = lh->digits.size(), rh_size = rh->digits.size();
+		int  index = 0, lh_size = lh->digits.size(), rh_size = rh->digits.size();
 		type carry = 0, buffer = 0;
 
 
@@ -708,24 +723,147 @@ private:
 				carry = 0;
 			}
 		}
-
 	}
 
-	
-	void divide(const big_int& lhs, const big_int& rhs) 
+	void divide(const big_int& lhs, const big_int& rhs)
 	{
-		//
+		if (rhs.is_zero())
+		{
+			dbg::panic("divide zero");
+		}
+
+		// case for (0/B) or (A/B while A<B, 0 since the output is a integer)
+		if (lhs.is_zero() || compare_magnitude(lhs, rhs) == Compare::Less)
+		{
+			operator=(0);
+			return;
+		}
+
+
+		big_int a(lhs), b(rhs);
+
+		if (a < 0)
+			a.sign = Sign::positive;
+		if (b < 0)
+			b.sign = Sign::positive;
+
+		big_int result(0);
+		while (a - b > 0)
+		{
+			a -= b;
+			result++;
+		}
+
+		if (lhs < 0 or rhs < 0)
+		{
+			result.sign = Sign::negative;
+			operator=(result);
+		}
+		else
+		{
+			result.sign = Sign::positive;
+			operator=(result);
+		}
+
+		return;
+
+
+		big_int temp, lh_buf(lhs), rh_buf(rhs);
+		operator=(0);
+		Sign signBackup = rh_buf.sign;
+
+		// set the sign, and have lh_buf and rh_buf as positive
+		if (lh_buf.sign == rh_buf.sign)
+		{
+			if (lh_buf.sign == Sign::negative)
+			{
+				// negate both side
+				-lh_buf;
+				-rh_buf;
+			}
+
+			sign = Sign::positive;
+		}
+		else
+		{
+			if (lh_buf.sign == Sign::negative)
+			{
+				-lh_buf;
+			}
+			else
+			{
+				-rh_buf;
+			}
+
+			sign = Sign::negative;
+		}
+
+		int magnifier_magnitude = static_cast<int>(big_int::base_digits), magnifier;
+
+		while (magnifier_magnitude >= 0)
+		{
+			magnifier = 1;
+			for (int i = magnifier_magnitude; i > 0; i--)
+				magnifier *= 10;
+
+			big_int converted_magnifier(magnifier);
+
+			temp = 1;
+
+			rh_buf      = rhs;
+			rh_buf.sign = signBackup;
+
+			if (magnifier_magnitude == 0)
+				magnifier_magnitude--;
+			else
+			{
+				bool multiplied;
+				for (multiplied = false; rh_buf * converted_magnifier <= lh_buf; rh_buf *= converted_magnifier)
+				{
+					temp *= converted_magnifier;
+					multiplied = true;
+				}
+
+				if (multiplied)
+				{
+					magnifier_magnitude--;
+					continue;
+				}
+			}
+
+			for (; lh_buf >= rh_buf; lh_buf -= rh_buf)
+				operator+=(temp);
+
+			if (lh_buf.is_zero())
+				break;
+		}
 	}
+
+	void modulus(const big_int& lhs, const big_int& rhs)
+	{
+		if (compare_magnitude(lhs, rhs) == Compare::Less)
+		{
+			operator=(lhs);
+			return;
+		}
+		else
+		{
+			operator=(lhs - rhs * (lhs / rhs));
+		}
+	}
+
 	bool is_zero() const { return sign == Sign::zero; }
 
 public:
 	big_int() = default;
 
-	big_int(std::signed_integral auto v) { operator= <i64>(v); }
+	big_int(std::integral auto v) { operator=(v); }
 
-	big_int(std::unsigned_integral auto v) { operator= <u64>(v); }
-
-	big_int(const big_int& bi) { digits = bi.digits; }
+	big_int(const big_int& bi)
+	{
+		digits = bi.digits;
+		sign   = bi.sign;
+	}
 
 	big_int(std::string_view str)
 	{
@@ -771,8 +909,6 @@ public:
 
 	big_int& operator=(const big_int& rhs)
 	{
-		if (this == &rhs)
-			return *this;
 
 		sign = rhs.sign;
 		digits.clear();
@@ -787,25 +923,24 @@ public:
 	template<std::integral T>
 	big_int& operator=(T const rhs)
 	{
-		u64 temp{};
+		T temp(rhs);
 
 		digits.clear();
 		digits.reserve(3);
 
-		if (rhs == 0)
+		if (temp == 0)
 			sign = Sign::zero;
+		else if (temp > 0)
+			sign = Sign::positive;
 		else
-			sign = rhs > 0 ? Sign::positive : Sign::negative;
-
-		if (rhs < 0)
-			temp = -rhs;
-		else
-			temp = rhs;
-
+		{
+			sign = Sign::negative;
+			temp *= -1;
+		}
 
 		while (temp > 0)
 		{
-			digits.push_back(math::mod<u64>(temp, big_int::base));
+			digits.push_back(math::mod<type>(temp, big_int::base));
 			temp /= big_int::base;
 		}
 
@@ -820,6 +955,81 @@ public:
 		else if (sign == Sign::negative)
 			sign = Sign::positive;
 	}
+
+	void operator++()
+	{
+		if (is_zero())
+		{
+			operator=(1);
+			return;
+		}
+		else if (sign == Sign::negative and digits.size() == 1 and digits[0] == 1)
+		{
+			sign = Sign::zero;
+			operator=(0);
+			return;
+		}
+
+		digits[0] += 1;
+		type carry = 0;
+		for (int index = 0; index < digits.size(); index++)
+		{
+			digits[index] += carry;
+			carry = digits[index] / big_int::base;
+			digits[index] %= big_int::base;
+		}
+		if (carry != 0)
+			digits.push_back(carry);
+	}
+
+	void operator++(int) { operator++(); }
+
+	void operator--()
+	{
+		if (is_zero())
+		{
+			operator=(-1);
+			return;
+		}
+		else if (sign == Sign::positive and digits.size() == 1 and digits[0] == 1)
+		{
+			sign = Sign::zero;
+			operator=(0);
+			return;
+		}
+
+		type carry = 0;
+		if (digits[0] == 0)
+		{
+			carry     = 1;
+			digits[0] = big_int::base - 1;
+		}
+		else
+		{
+			digits[0]--;
+		}
+
+
+		for (int index = 1; index < digits.size(); index++)
+		{
+
+			if (digits[index] < carry)
+			{
+				digits[index] += big_int::base;
+				digits[index] -= carry;
+				carry = 1;
+			}
+			else
+			{
+				digits[index] -= carry;
+				carry = 0;
+			}
+		}
+
+		remove_trailing_zeros();
+	}
+
+	void operator--(int) { operator--(); }
 
 	big_int operator-() const
 	{
@@ -849,19 +1059,84 @@ public:
 		return result;
 	}
 
-		auto operator/(const big_int& rhs) const
+	auto operator/(const big_int& rhs) const
 	{
 		big_int result;
 		result.divide(*this, rhs);
 		return result;
 	}
 
-	bool operator==(const big_int& rhs) const { return sign == rhs.sign and digits == rhs.digits; }
+	auto operator%(const big_int& rhs) const
+	{
+		big_int result;
+		result.modulus(*this, rhs);
+		return result;
+	}
+
+	big_int& operator+=(const big_int& rhs)
+	{
+		operator=(operator+(rhs));
+		return *this;
+	}
+
+	big_int& operator-=(const big_int& rhs)
+	{
+		operator=(operator-(rhs));
+		return *this;
+	}
+
+	big_int& operator*=(const big_int& rhs)
+	{
+		operator=(operator*(rhs));
+		return *this;
+	}
+
+	big_int& operator%=(const big_int& rhs)
+	{
+		operator=(operator%(rhs));
+		return *this;
+	}
+
+	template<std::integral T>
+	big_int& operator*=(const T& rhs)
+	{
+		T max_index = digits.size(), carry = 0;
+
+		for (T index = 0; index < max_index; index++)
+		{
+			digits[index] *= rhs + carry;
+			carry = digits[index] / big_int::base;
+			digits[index] %= big_int::base;
+		}
+
+		if (carry != 0)
+			digits.push_back(carry);
+
+		return *this;
+	}
+
+	big_int& operator/=(const big_int& rhs)
+	{
+		operator=(operator/(rhs));
+		return *this;
+	}
+
+	bool operator==(const big_int& rhs) const { return compare(*this, rhs) == Compare::Equal; }
+
+	bool operator<(const big_int& rhs) const { return compare(*this, rhs) == Compare::Less; }
+
+	bool operator<=(const big_int& rhs) const { return operator<(rhs) or operator==(rhs); }
+
+	bool operator>(const big_int& rhs) const { return compare(*this, rhs) == Compare::Greater; }
+
+	bool operator>=(const big_int& rhs) const { return operator>(rhs) or operator==(rhs); }
 
 	void dump(std::string_view pre) const
 	{
 		if (digits.empty())
 			return;
+
+		dbg::print("{}: ", pre);
 
 		switch (sign)
 		{
@@ -877,7 +1152,7 @@ public:
 		}
 
 		// print the first group without padding
-		dbg::print("{}: {}", pre, digits.back());
+		dbg::print("{}", digits.back());
 
 		// reverse iterate the groups and print them out
 		auto it = digits.rbegin();
@@ -895,6 +1170,41 @@ i32 deckard_main(std::string_view commandline)
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	{
+		big_int big_test_a{"49373122930442302047"};
+
+
+		std::string      s("49373122930442302047");
+		std::vector<int> a;
+		int              sign = 1;
+		a.clear();
+		i64 pos = 0;
+		while (pos < (int)s.size() && (s[pos] == '-' || s[pos] == '+'))
+		{
+			if (s[pos] == '-')
+				sign = -sign;
+			++pos;
+		}
+
+		// i64 base_digits = 1'000'000'000;
+		i64 base_digits = 4;
+		for (i64 i = s.size() - 1; i >= pos; i -= base_digits)
+		{
+			i64 x = 0;
+			for (i64 j = std::max(pos, i - base_digits + 1); j <= i; j++)
+				x = x * 10 + s[j] - '0';
+			a.push_back(x);
+		}
+		while (!a.empty() && !a.back())
+			a.pop_back();
+		if (a.empty())
+			sign = 1;
+
+
+		int j = 0;
+	}
+
 	/*
 		A: 49373122930442302047
 		B: 6914577278677366128
@@ -905,15 +1215,31 @@ i32 deckard_main(std::string_view commandline)
 		/ 7
 		% 971081979700739151
 	*/
+	auto test_big_int = [](std::string_view a, std::string_view b)
+	{
+		const big_int big_a{a};
+		const big_int big_b{b};
+		big_a.dump("A");
+		big_b.dump("B");
 
-	big_int big_test_a{"49373122930442302047"};
-	big_int big_test_b{"6914577278677366128"};
-	big_int big_add(big_test_a + big_test_b);
-	big_add.dump("add");
-	big_int big_sub(big_test_a - big_test_b);
-	big_sub.dump("sub");
-	big_int big_mul(big_test_a * big_test_b);
-	big_mul.dump("mul");
+
+		big_int big_add(big_a + big_b);
+		big_add.dump("add");
+		big_int big_sub(big_a - big_b);
+		big_sub.dump("sub");
+		big_int big_mul(big_a * big_b);
+		big_mul.dump("mul");
+
+		big_int big_div(big_a / big_b);
+		big_div.dump("div");
+
+		big_int big_mod(big_a % big_b);
+		big_mod.dump("mod");
+	};
+
+	// test_big_int("49373122930442302047", "6914577278677366128");
+
+	test_big_int("64401213121844897279", "-26938787142122340");
 
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
