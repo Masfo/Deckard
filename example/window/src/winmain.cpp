@@ -741,20 +741,34 @@ private:
 
 
 		big_int a(lhs), b(rhs);
+		if (a.sign == b.sign)
+		{
+			if (a.sign == Sign::negative)
+			{
+				-a;
+				-b;
+			}
 
-		if (a < 0)
-			a.sign = Sign::positive;
-		if (b < 0)
-			b.sign = Sign::positive;
+			sign = Sign::positive;
+		}
+		else
+		{
+			if (a.sign == Sign::negative)
+				-a;
+			else
+				-b;
+
+			sign = Sign::negative;
+		}
 
 		big_int result(0);
-		while (a - b > 0)
+		while (a - b >= 0)
 		{
 			a -= b;
 			result++;
 		}
 
-		if (lhs < 0 or rhs < 0)
+		if (lhs < 0 or rhs < 0 or (lhs < 0 and rhs <0))
 		{
 			result.sign = Sign::negative;
 			operator=(result);
@@ -1240,6 +1254,9 @@ i32 deckard_main(std::string_view commandline)
 	// test_big_int("49373122930442302047", "6914577278677366128");
 
 	test_big_int("64401213121844897279", "-26938787142122340");
+
+	test_big_int("-666", "-222");
+
 
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
