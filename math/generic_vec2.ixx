@@ -558,7 +558,7 @@ namespace deckard::math
 
 } // namespace deckard::math
 
-export namespace std
+export  namespace std
 {
 	using namespace deckard;
 	using namespace deckard::math;
