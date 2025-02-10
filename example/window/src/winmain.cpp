@@ -725,7 +725,105 @@ private:
 		}
 	}
 
-	void divide(const big_int& lhs, const big_int& rhs)
+	void divide3(const big_int& dividend, const big_int& divisor)
+	{
+		if (divisor.is_zero())
+		{
+			dbg::panic("divide zero");
+		}
+
+		if (dividend.is_zero() || compare_magnitude(dividend, divisor) == Compare::Less)
+		{
+			operator=(0);
+			return;
+		}
+
+		big_int dividend_copy(dividend), divisor_copy(divisor);
+		big_int quotient, remainder;
+
+		for (int i = dividend.digits.size() - 1; i >= 0; --i)
+		{
+			remainder.digits.insert(remainder.digits.begin(), dividend_copy.digits[i]);
+
+			if (remainder.digits.size() > 1 && remainder.digits.back() == 0)
+			{
+				remainder.digits.pop_back();
+			}
+
+			unsigned int count = 0;
+			while (compare_magnitude(remainder, divisor_copy) != Compare::Less)
+			{
+				remainder -= divisor_copy;
+				count++;
+			}
+			quotient.digits.insert(quotient.digits.begin(), count);
+		}
+
+		quotient.sign = (dividend.sign == divisor.sign) ? Sign::positive : Sign::negative;
+		quotient.remove_trailing_zeros();
+		operator=(quotient);
+	}
+
+	void divide2(const big_int& dividend, const big_int& divisor)
+	{
+		if (divisor.is_zero())
+		{
+			dbg::panic("divide zero");
+		}
+
+		if (dividend.is_zero() or compare_magnitude(dividend, divisor) == Compare::Less)
+		{
+			operator=(0);
+			return;
+		}
+
+		//
+		big_int dividend_copy(dividend), divisor_copy(divisor);
+
+		big_int quotient; // Quotient is now a BigInt
+		big_int remainder;
+		big_int current_dividend_part;
+
+		for (int i = dividend.digits.size() - 1; i >= 0; --i)
+		{
+			current_dividend_part.digits.insert(current_dividend_part.digits.begin(), dividend_copy.digits[i]); // Prepend the next digit
+
+			if (current_dividend_part.digits.size() > 1 && current_dividend_part.digits.back() == 0)
+			{
+				current_dividend_part.digits.pop_back(); // Remove leading zero in vector representation if it was created during prepend
+			}
+
+			unsigned int count = 0;
+			while (!compare(current_dividend_part, divisor) == Compare::Less &&
+				   !(current_dividend_part.digits.size() == 1 && current_dividend_part.digits[0] == 0 && divisor.digits.size() > 1 &&
+					 divisor.digits[1] != 0))
+			{
+				current_dividend_part = (current_dividend_part - divisor);
+				count++;
+			}
+			quotient.digits.insert(quotient.digits.begin(), count); // Prepend the digit count to quotient BigInt
+		}
+
+
+		quotient.sign = dividend.sign == divisor.sign ? Sign::positive : Sign::negative;
+		remainder     = current_dividend_part;
+
+		int sign_dividend = dividend.sign == Sign::positive ? 1 : -1;
+		int sign_divisor  = divisor.sign == Sign::positive ? 1 : -1;
+
+		if ((sign_dividend ^ sign_divisor) && !(quotient.digits.size() == 1 && quotient.digits[0] == 0))
+		{
+			quotient.digits.insert(quotient.digits.begin(), '-'); // Use '-' as a marker in vector for negative quotient, not a digit
+			if (quotient.digits[1] == 0 && quotient.digits.size() > 2)
+			{
+				quotient.digits.erase(quotient.digits.begin() + 1);
+			}
+		}
+
+		operator=(remainder);
+	}
+
+	void divide1(const big_int& lhs, const big_int& rhs)
 	{
 		if (rhs.is_zero())
 		{
@@ -762,22 +860,18 @@ private:
 		}
 
 		big_int result(0);
-		while (a - b >= 0)
+
+		while (a >= 0)
 		{
 			a -= b;
 			result++;
 		}
 
-		if (lhs < 0 or rhs < 0 or (lhs < 0 and rhs <0))
-		{
-			result.sign = Sign::negative;
-			operator=(result);
-		}
-		else
-		{
-			result.sign = Sign::positive;
-			operator=(result);
-		}
+		result.sign = sign;
+		// if (result.sign == Sign::negative)
+		//	result--;
+
+		operator=(result);
 
 		return;
 
@@ -853,17 +947,21 @@ private:
 		}
 	}
 
+	big_int modulus_helper(const big_int& lhs, const big_int& rhs) { return (lhs - rhs * (lhs / rhs)); }
+
 	void modulus(const big_int& lhs, const big_int& rhs)
 	{
+		if (rhs.is_zero())
+			operator=(0);
+
 		if (compare_magnitude(lhs, rhs) == Compare::Less)
 		{
 			operator=(lhs);
 			return;
 		}
-		else
-		{
-			operator=(lhs - rhs * (lhs / rhs));
-		}
+
+		operator=(modulus_helper((modulus_helper(lhs, rhs) + rhs), rhs));
+		// operator=(lhs - rhs * (lhs / rhs));
 	}
 
 	bool is_zero() const { return sign == Sign::zero; }
@@ -879,11 +977,11 @@ public:
 		sign   = bi.sign;
 	}
 
-	big_int(std::string_view str)
+	big_int(std::string_view input)
 	{
-		auto lastPosition = str.rend();
+		auto lastPosition = input.rend();
 
-		switch (str[0])
+		switch (input[0])
 		{
 			case '-':
 				sign = Sign::negative;
@@ -891,7 +989,7 @@ public:
 				break;
 			case '0':
 			{
-				if (str.length() == 1)
+				if (input.length() == 1)
 					sign = Sign::zero;
 				return;
 			}
@@ -900,7 +998,7 @@ public:
 		}
 
 		int counter = 0, newgroup = 0, buffer = 0;
-		for (auto it = str.rbegin(); it != lastPosition; ++it)
+		for (auto it = input.rbegin(); it != lastPosition; ++it)
 		{
 			if (*it == 0)
 				continue;
@@ -919,6 +1017,7 @@ public:
 		}
 		if (newgroup != 0)
 			digits.push_back(newgroup);
+		remove_trailing_zeros();
 	}
 
 	big_int& operator=(const big_int& rhs)
@@ -972,6 +1071,9 @@ public:
 
 	void operator++()
 	{
+		if (digits.empty())
+			operator=(0);
+
 		if (is_zero())
 		{
 			operator=(1);
@@ -1076,7 +1178,7 @@ public:
 	auto operator/(const big_int& rhs) const
 	{
 		big_int result;
-		result.divide(*this, rhs);
+		result.divide3(*this, rhs);
 		return result;
 	}
 
@@ -1244,6 +1346,7 @@ i32 deckard_main(std::string_view commandline)
 		big_int big_mul(big_a * big_b);
 		big_mul.dump("mul");
 
+
 		big_int big_div(big_a / big_b);
 		big_div.dump("div");
 
@@ -1252,11 +1355,22 @@ i32 deckard_main(std::string_view commandline)
 	};
 
 	// test_big_int("49373122930442302047", "6914577278677366128");
+	// Python: 17 % -5 = -3		Floored division
+	//
+	// C++:    17 % -5 =  2		Remainder division
+	//		* 17 / -5 = -3.4
+	//		* 17 = (-5) * (-3) + r
+	//		* 17 = 15 + r
+	//		* r = 17 - 15 = 2
+	//		* 17 mod -5 = 2
 
-	test_big_int("64401213121844897279", "-26938787142122340");
+	int xopas = 17 % -5;
 
-	test_big_int("-666", "-222");
+	// test_big_int("64401213121844897279", "-26938787142122340");
+	//
+	// test_big_int("-667", "-222");
 
+	test_big_int("17", "-5");
 
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
