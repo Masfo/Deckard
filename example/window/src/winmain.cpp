@@ -725,6 +725,128 @@ private:
 		}
 	}
 
+	void shift_left(const big_int& lhs, type shift)
+	{
+		if (shift <= 0)
+			return;
+
+		digits.clear();
+		digits.reserve(lhs.digits.size() + shift / big_int::base_digits + 1);
+
+		for (int i = 0; i < shift / big_int::base_digits; ++i)
+		{
+			digits.push_back(0);
+		}
+
+		type shift_mod = shift % big_int::base_digits;
+		if (shift_mod == 0)
+		{
+			operator=(lhs);
+		}
+		else
+		{
+			type carry = 0;
+			for (const auto& digit : lhs.digits)
+			{
+				type new_digit = (digit << shift_mod) + carry;
+				carry          = new_digit / big_int::base;
+				digits.push_back(new_digit % big_int::base);
+			}
+			if (carry > 0)
+			{
+				digits.push_back(carry);
+			}
+		}
+
+		sign = lhs.sign;
+		remove_trailing_zeros();
+	}
+
+	void shift_right(const big_int& lhs, type shift)
+	{
+		if (shift <= 0)
+			return;
+
+		digits.clear();
+		digits.reserve(lhs.digits.size());
+
+		type shift_mod = shift % big_int::base_digits;
+		type carry     = 0;
+
+		for (int i = lhs.digits.size() - 1; i >= 0; --i)
+		{
+			type new_digit = lhs.digits[i] + carry * big_int::base;
+			carry          = new_digit % (1 << shift_mod);
+			new_digit /= (1 << shift_mod);
+			digits.push_back(new_digit);
+		}
+
+		std::reverse(digits.begin(), digits.end());
+		sign = lhs.sign;
+		remove_trailing_zeros();
+	}
+
+	big_int largest_divisor(const big_int& a, const big_int& b)
+	{
+		big_int divisor = b;
+		while (a - divisor >= divisor)
+			divisor = divisor + divisor;
+		return divisor;
+	}
+
+	void divide4(const big_int& dividend, const big_int& divisor)
+	{
+		if (divisor.is_zero())
+		{
+			dbg::panic("divide zero");
+		}
+
+
+		if (dividend.is_zero() || compare_magnitude(dividend, divisor) == Compare::Less)
+		{
+			operator=(0);
+			return;
+		}
+
+		big_int a(dividend), b(divisor);
+		if (a.sign == b.sign)
+		{
+			if (a.sign == Sign::negative)
+			{
+				-a;
+				-b;
+			}
+
+			sign = Sign::positive;
+		}
+		else
+		{
+			if (a.sign == Sign::negative)
+				-a;
+			else
+				-b;
+
+			sign = Sign::negative;
+		}
+
+
+		big_int c(0);
+
+		while (a >= b)
+		{
+			big_int temp(b);
+			big_int temp_c(1);
+			while (a >= temp)
+			{
+				a      -=temp;
+				c      += temp_c;
+				temp   += temp;
+				temp_c += temp_c;
+			}
+		}
+		operator=(c);
+	}
+
 	void divide3(const big_int& dividend, const big_int& divisor)
 	{
 		if (divisor.is_zero())
@@ -1020,6 +1142,14 @@ public:
 		remove_trailing_zeros();
 	}
 
+	big_int& operator=(const std::string_view input)
+	{
+		big_int r(input);
+		sign = r.sign;
+		operator=(r);
+		return *this;
+	}
+
 	big_int& operator=(const big_int& rhs)
 	{
 
@@ -1154,6 +1284,20 @@ public:
 		return result;
 	}
 
+	auto operator>>(const type shift) const
+	{
+		big_int result;
+		result.shift_right(*this, shift);
+		return result;
+	}
+
+	auto operator<<(const type shift) const
+	{
+		big_int result;
+		result.shift_left(*this, shift);
+		return result;
+	}
+
 	auto operator+(const big_int& rhs) const
 	{
 		big_int result;
@@ -1178,7 +1322,7 @@ public:
 	auto operator/(const big_int& rhs) const
 	{
 		big_int result;
-		result.divide3(*this, rhs);
+		result.divide4(*this, rhs);
 		return result;
 	}
 
@@ -1187,6 +1331,18 @@ public:
 		big_int result;
 		result.modulus(*this, rhs);
 		return result;
+	}
+
+	big_int& operator<<=(const type shift)
+	{
+		operator=(operator<<(shift));
+		return *this;
+	}
+
+	big_int& operator>>=(const type shift)
+	{
+		operator=(operator>>(shift));
+		return *this;
 	}
 
 	big_int& operator+=(const big_int& rhs)
@@ -1280,43 +1436,173 @@ public:
 
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
+template<typename T>
+int sgn(T val)
+{
+	return (T(0) < val) - (val < T(0));
+}
+
+i32 largest_doubling(i32 a, i32 b)
+{
+	auto q = a - a % b;
+
+	while (a - b >= b)
+		b = b + b;
+	return b;
+}
+
+i32 divi(i32 a, i32 b)
+{
+	bool pos = true;
+
+	if (std::signbit(a) == std::signbit(b))
+	{
+		if (a < 0)
+		{
+			a = -a;
+			b = -b;
+		}
+		pos = true;
+	}
+	else
+	{
+		if (a < 0)
+			a = -a;
+		else
+			b = -b;
+		pos = false;
+	}
+
+	i32 c = 0;
+
+	while (a >= b)
+	{
+		i32 temp   = b;
+		i32 temp_c = 1;
+		while (a >= temp)
+		{
+			a -= temp;
+			c += temp_c;
+			temp   += temp;
+			temp_c += temp_c;
+		}
+	}
+	return pos ? c : -c;
+	
+}
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+	{
+		big_int a = -667;
+		big_int b = 222;
+		big_int big_div_small(a / b);
+		big_div_small.dump("sdiv");
 
+		a = "878377812925471";
+		b = "-73918608392839";
+		big_int big_div(a / b);
+		big_div.dump("div");
+
+		int xx = 0;
+	}
+	{
+		// 4937 3122 9304 4230 2047
+		// 2468 6561 4652 2115 1023
+		i32 a  = 414;
+		i32 b  = 6;
+		u32 qm = a % b;
+		i32 qd = a / b;
+
+		i32 rt = (i32)(a / b);
+		i32 r  = divi(a, b);
+
+
+		int j = 0;
+	}
 	{
 		big_int big_test_a{"49373122930442302047"};
+		big_test_a.dump("Noshift");
+		// >> 1  24686561465221151023
+		// << 1  98746245860884604094
 
 
-		std::string      s("49373122930442302047");
-		std::vector<int> a;
-		int              sign = 1;
-		a.clear();
-		i64 pos = 0;
-		while (pos < (int)s.size() && (s[pos] == '-' || s[pos] == '+'))
+		// 98746245860884604094
+		// 98746245860884604094
+		auto shifted_l = big_test_a << 1;
+		shifted_l.dump("98746245860884604094\n");
+
+		auto shifted_r = big_test_a >> 1;
+		shifted_r.dump("24686561465221151023\n");
+		int qo = 0;
+	}
+	{
+
+
+		auto remove_zeros = [](std::vector<u32>& a)
 		{
-			if (s[pos] == '-')
-				sign = -sign;
-			++pos;
-		}
-
-		// i64 base_digits = 1'000'000'000;
-		i64 base_digits = 4;
-		for (i64 i = s.size() - 1; i >= pos; i -= base_digits)
+			while (!a.empty() && !a.back())
+				a.pop_back();
+		};
+		auto read = [&remove_zeros](std::string_view input)
 		{
-			i64 x = 0;
-			for (i64 j = std::max(pos, i - base_digits + 1); j <= i; j++)
-				x = x * 10 + s[j] - '0';
-			a.push_back(x);
-		}
-		while (!a.empty() && !a.back())
-			a.pop_back();
-		if (a.empty())
-			sign = 1;
+			std::vector<u32> a;
+			int              sign = 1;
+			a.clear();
+			i64 pos = 0;
+			while (pos < (int)input.size() && (input[pos] == '-' || input[pos] == '+'))
+			{
+				if (input[pos] == '-')
+					sign = -sign;
+				++pos;
+			}
 
+			// i64 base_digits = 1'000'000'000;
+			i64 base_digits = 4;
+			for (i64 i = input.size() - 1; i >= pos; i -= base_digits)
+			{
+				i64 x = 0;
+				for (i64 j = std::max(pos, i - base_digits + 1); j <= i; j++)
+					x = x * 10 + input[j] - '0';
+				a.push_back(x);
+			}
+
+			remove_zeros(a);
+
+			if (a.empty())
+				sign = 1;
+			return a;
+		};
+
+
+		std::string s("49373122930442302047");
+		std::string s2("6914577278677366128");
+
+
+		std::vector<u32> a = read(s);
+		std::vector<u32> b = read(s2);
+
+		std::vector<u32> quot;
+		std::vector<u32> current_div;
+		current_div.resize(a.size());
+
+		for (u64 index = 0; index < a.size(); index++)
+		{
+			current_div[index] += a[index];
+			// remove_zeros(current_div);
+
+			u32 current_quot = 0;
+			while (current_div[index] >= b[index])
+			{
+				current_div[index] = current_div[index] - b[index];
+				current_quot++;
+			}
+			quot.push_back(current_quot);
+		}
 
 		int j = 0;
 	}
@@ -1364,20 +1650,23 @@ i32 deckard_main(std::string_view commandline)
 	//		* r = 17 - 15 = 2
 	//		* 17 mod -5 = 2
 
-	int xopas = 17 % -5;
+	int xopas = -10 / 3;
+	test_big_int("-10", "3");
 
 	// test_big_int("64401213121844897279", "-26938787142122340");
-	//
+	////
 	// test_big_int("-667", "-222");
 
-	test_big_int("17", "-5");
 
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
 	big_int big_b("53919893334301279589334030174039261347274288845081144962207220498432");
 
+
 	big_a.dump("");
 	big_b.dump("");
+	auto big_c = big_a / big_b;
+	big_c.dump("2147483648\n");
 
 	big_int big_q(big_a + big_b);
 	big_int expected("115792089291236088757872264598021938027309246012914852884538728970120350138368");
