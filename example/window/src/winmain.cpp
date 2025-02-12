@@ -450,12 +450,7 @@ struct Noisy
 	T value_{0};
 };
 
-enum Sign
-{
-	positive = 1,
-	zero     = 0,
-	negative = -1,
-};
+
 
 enum Compare
 {
@@ -794,7 +789,7 @@ private:
 		return divisor;
 	}
 
-	void divide4(const big_int& dividend, const big_int& divisor)
+	void divide(const big_int& dividend, const big_int& divisor)
 	{
 		if (divisor.is_zero())
 		{
@@ -830,243 +825,23 @@ private:
 		}
 
 
-		big_int c(0);
+		big_int c(largest_divisor(a, b));
+		big_int n(1);
+		a = a - c;
 
-		while (a >= b)
+		while (c != b)
 		{
-			big_int temp(b);
-			big_int temp_c(1);
-			while (a >= temp)
+			c = c >> 1;
+			n = n + n;
+			if (c <= a)
 			{
-				a      -=temp;
-				c      += temp_c;
-				temp   += temp;
-				temp_c += temp_c;
+				a = a - c;
+				n = n + 1;
 			}
 		}
-		operator=(c);
-	}
-
-	void divide3(const big_int& dividend, const big_int& divisor)
-	{
-		if (divisor.is_zero())
-		{
-			dbg::panic("divide zero");
-		}
-
-		if (dividend.is_zero() || compare_magnitude(dividend, divisor) == Compare::Less)
-		{
-			operator=(0);
-			return;
-		}
-
-		big_int dividend_copy(dividend), divisor_copy(divisor);
-		big_int quotient, remainder;
-
-		for (int i = dividend.digits.size() - 1; i >= 0; --i)
-		{
-			remainder.digits.insert(remainder.digits.begin(), dividend_copy.digits[i]);
-
-			if (remainder.digits.size() > 1 && remainder.digits.back() == 0)
-			{
-				remainder.digits.pop_back();
-			}
-
-			unsigned int count = 0;
-			while (compare_magnitude(remainder, divisor_copy) != Compare::Less)
-			{
-				remainder -= divisor_copy;
-				count++;
-			}
-			quotient.digits.insert(quotient.digits.begin(), count);
-		}
-
-		quotient.sign = (dividend.sign == divisor.sign) ? Sign::positive : Sign::negative;
-		quotient.remove_trailing_zeros();
-		operator=(quotient);
-	}
-
-	void divide2(const big_int& dividend, const big_int& divisor)
-	{
-		if (divisor.is_zero())
-		{
-			dbg::panic("divide zero");
-		}
-
-		if (dividend.is_zero() or compare_magnitude(dividend, divisor) == Compare::Less)
-		{
-			operator=(0);
-			return;
-		}
-
-		//
-		big_int dividend_copy(dividend), divisor_copy(divisor);
-
-		big_int quotient; // Quotient is now a BigInt
-		big_int remainder;
-		big_int current_dividend_part;
-
-		for (int i = dividend.digits.size() - 1; i >= 0; --i)
-		{
-			current_dividend_part.digits.insert(current_dividend_part.digits.begin(), dividend_copy.digits[i]); // Prepend the next digit
-
-			if (current_dividend_part.digits.size() > 1 && current_dividend_part.digits.back() == 0)
-			{
-				current_dividend_part.digits.pop_back(); // Remove leading zero in vector representation if it was created during prepend
-			}
-
-			unsigned int count = 0;
-			while (!compare(current_dividend_part, divisor) == Compare::Less &&
-				   !(current_dividend_part.digits.size() == 1 && current_dividend_part.digits[0] == 0 && divisor.digits.size() > 1 &&
-					 divisor.digits[1] != 0))
-			{
-				current_dividend_part = (current_dividend_part - divisor);
-				count++;
-			}
-			quotient.digits.insert(quotient.digits.begin(), count); // Prepend the digit count to quotient BigInt
-		}
-
-
-		quotient.sign = dividend.sign == divisor.sign ? Sign::positive : Sign::negative;
-		remainder     = current_dividend_part;
-
-		int sign_dividend = dividend.sign == Sign::positive ? 1 : -1;
-		int sign_divisor  = divisor.sign == Sign::positive ? 1 : -1;
-
-		if ((sign_dividend ^ sign_divisor) && !(quotient.digits.size() == 1 && quotient.digits[0] == 0))
-		{
-			quotient.digits.insert(quotient.digits.begin(), '-'); // Use '-' as a marker in vector for negative quotient, not a digit
-			if (quotient.digits[1] == 0 && quotient.digits.size() > 2)
-			{
-				quotient.digits.erase(quotient.digits.begin() + 1);
-			}
-		}
-
-		operator=(remainder);
-	}
-
-	void divide1(const big_int& lhs, const big_int& rhs)
-	{
-		if (rhs.is_zero())
-		{
-			dbg::panic("divide zero");
-		}
-
-		// case for (0/B) or (A/B while A<B, 0 since the output is a integer)
-		if (lhs.is_zero() || compare_magnitude(lhs, rhs) == Compare::Less)
-		{
-			operator=(0);
-			return;
-		}
-
-
-		big_int a(lhs), b(rhs);
-		if (a.sign == b.sign)
-		{
-			if (a.sign == Sign::negative)
-			{
-				-a;
-				-b;
-			}
-
-			sign = Sign::positive;
-		}
-		else
-		{
-			if (a.sign == Sign::negative)
-				-a;
-			else
-				-b;
-
-			sign = Sign::negative;
-		}
-
-		big_int result(0);
-
-		while (a >= 0)
-		{
-			a -= b;
-			result++;
-		}
-
-		result.sign = sign;
-		// if (result.sign == Sign::negative)
-		//	result--;
-
-		operator=(result);
-
-		return;
-
-
-		big_int temp, lh_buf(lhs), rh_buf(rhs);
-		operator=(0);
-		Sign signBackup = rh_buf.sign;
-
-		// set the sign, and have lh_buf and rh_buf as positive
-		if (lh_buf.sign == rh_buf.sign)
-		{
-			if (lh_buf.sign == Sign::negative)
-			{
-				// negate both side
-				-lh_buf;
-				-rh_buf;
-			}
-
-			sign = Sign::positive;
-		}
-		else
-		{
-			if (lh_buf.sign == Sign::negative)
-			{
-				-lh_buf;
-			}
-			else
-			{
-				-rh_buf;
-			}
-
-			sign = Sign::negative;
-		}
-
-		int magnifier_magnitude = static_cast<int>(big_int::base_digits), magnifier;
-
-		while (magnifier_magnitude >= 0)
-		{
-			magnifier = 1;
-			for (int i = magnifier_magnitude; i > 0; i--)
-				magnifier *= 10;
-
-			big_int converted_magnifier(magnifier);
-
-			temp = 1;
-
-			rh_buf      = rhs;
-			rh_buf.sign = signBackup;
-
-			if (magnifier_magnitude == 0)
-				magnifier_magnitude--;
-			else
-			{
-				bool multiplied;
-				for (multiplied = false; rh_buf * converted_magnifier <= lh_buf; rh_buf *= converted_magnifier)
-				{
-					temp *= converted_magnifier;
-					multiplied = true;
-				}
-
-				if (multiplied)
-				{
-					magnifier_magnitude--;
-					continue;
-				}
-			}
-
-			for (; lh_buf >= rh_buf; lh_buf -= rh_buf)
-				operator+=(temp);
-
-			if (lh_buf.is_zero())
-				break;
-		}
+		if (sign == Sign::negative)
+			-n;
+		operator=(n);
 	}
 
 	big_int modulus_helper(const big_int& lhs, const big_int& rhs) { return (lhs - rhs * (lhs / rhs)); }
@@ -1095,8 +870,7 @@ public:
 
 	big_int(const big_int& bi)
 	{
-		digits = bi.digits;
-		sign   = bi.sign;
+		operator=(bi);
 	}
 
 	big_int(std::string_view input)
@@ -1153,12 +927,13 @@ public:
 	big_int& operator=(const big_int& rhs)
 	{
 
-		sign = rhs.sign;
-		digits.clear();
-		digits.reserve(rhs.digits.size());
-
-		for (const auto& d : rhs.digits)
-			digits.push_back(d);
+		sign   = rhs.sign;
+		digits = rhs.digits;
+		// digits.clear();
+		// digits.reserve(rhs.digits.size());
+		//
+		// for (const auto& d : rhs.digits)
+		//	digits.push_back(d);
 
 		return *this;
 	}
@@ -1183,10 +958,9 @@ public:
 
 		while (temp > 0)
 		{
-			digits.push_back(math::mod<type>(temp, big_int::base));
+			digits.push_back(math::mod<T>(temp, big_int::base));
 			temp /= big_int::base;
 		}
-
 
 		return *this;
 	}
@@ -1322,7 +1096,7 @@ public:
 	auto operator/(const big_int& rhs) const
 	{
 		big_int result;
-		result.divide4(*this, rhs);
+		result.divide(*this, rhs);
 		return result;
 	}
 
@@ -1405,8 +1179,7 @@ public:
 
 	void dump(std::string_view pre) const
 	{
-		if (digits.empty())
-			return;
+
 
 		dbg::print("{}: ", pre);
 
@@ -1416,11 +1189,17 @@ public:
 
 			case Sign::zero:
 			{
-				dbg::print("0");
+				dbg::println("0");
 				return;
 			}
 
 			case Sign::positive: break;
+		}
+
+		if (digits.empty())
+		{
+			dbg::println("big_int empty");
+			return;
 		}
 
 		// print the first group without padding
@@ -1483,12 +1262,11 @@ i32 divi(i32 a, i32 b)
 		{
 			a -= temp;
 			c += temp_c;
-			temp   += temp;
+			temp += temp;
 			temp_c += temp_c;
 		}
 	}
 	return pos ? c : -c;
-	
 }
 
 i32 deckard_main(std::string_view commandline)
@@ -1652,21 +1430,68 @@ i32 deckard_main(std::string_view commandline)
 
 	int xopas = -10 / 3;
 	test_big_int("-10", "3");
+	test_big_int("-667", "-222");
+	test_big_int("15028999435905310454", "905792");
 
-	// test_big_int("64401213121844897279", "-26938787142122340");
 	////
-	// test_big_int("-667", "-222");
+	/*
+a: 4165993559733355699, b: 9622194, result: 432956720653
+A: 8433241721518679634
+B: -292487
+bigdiv: 28832877090327
+WRONG
+*/
+	i64     ia = -12;
+	i64     ib = 4;
+	big_int ba(ia);
+	big_int bb(ib);
+	big_int bc(ba / bb);
 
+
+	std::random_device                 rd;
+	std::mt19937                       mersenne_twister;
+	std::uniform_int_distribution<i64> big_rnd(limits::min<i64>, limits::max<i64>);
+	std::uniform_int_distribution<i64> small_rnd(-10'000'000, 10'000'000);
+	repeat<10> = [&]()
+	{
+		auto a = big_rnd(mersenne_twister);
+		auto b = small_rnd(mersenne_twister);
+
+		if (a < b)
+			std::swap(a, b);
+
+		// 15028999435905310454
+		big_int big_a(a);
+		big_int big_b(b);
+		big_int result(big_a / big_b);
+
+		big_a.dump("A");
+		big_b.dump("B");
+		result.dump("bigdiv");
+
+		big_int big_result(a / b);
+
+		dbg::println("{}", big_result == result ? "CORRECT" : "WRONG");
+
+
+		big_int res(a / b);
+		big_int result2 = big_a / big_b;
+
+		dbg::println("a: {}, b: {}, result: {}", a, b, a / b);
+		int j = 0;
+	};
 
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
 	big_int big_b("53919893334301279589334030174039261347274288845081144962207220498432");
 
 
-	big_a.dump("");
-	big_b.dump("");
+
+
+	big_a.dump("A");
+	big_b.dump("B");
 	auto big_c = big_a / big_b;
-	big_c.dump("2147483648\n");
+	big_c.dump("  2147483648\n");
 
 	big_int big_q(big_a + big_b);
 	big_int expected("115792089291236088757872264598021938027309246012914852884538728970120350138368");

@@ -73,6 +73,9 @@ target_sources(tests PUBLIC
     
     # array2d
     tests/array_tests.cpp
+
+    # bigint
+    tests/bigint_tests.cpp
 )
 
 
