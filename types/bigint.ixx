@@ -27,7 +27,7 @@ namespace deckard
 
 
 #if 1
-		static constexpr u32 base        = 1000000;
+		static constexpr u32 base        = 1'000'000;
 		static constexpr u32 base_digits = 6;
 #else
 		static constexpr u32 base        = 1'000'000'000;
@@ -50,6 +50,8 @@ namespace deckard
 			digits.shrink_to_fit();
 		}
 
+		bool is_zero() const { return sign == Sign::zero; }
+
 		Compare compare(const bigint& lhs, const bigint& rhs) const
 		{
 			if (lhs.sign > rhs.sign)
@@ -65,26 +67,164 @@ namespace deckard
 
 		Compare compare_magnitude(const bigint& lhs, const bigint& rhs) const
 		{
-			if (lhs.digits.size() > rhs.digits.size())
+			if (lhs.size() > rhs.size())
 				return Compare::Greater;
-			else if (lhs.digits.size() < rhs.digits.size())
+			else if (lhs.size() < rhs.size())
 				return Compare::Less;
 			else
 			{
-				for (size_t i = lhs.digits.size() - 1; i >= 0; i--)
+				for (i64 i = lhs.size() - 1; i >= 0 or i == 0; i--)
 				{
-					if (lhs.digits[i] > rhs.digits[i])
+					if (lhs[i] > rhs[i])
 						return Compare::Greater;
-					else if (lhs.digits[i] < rhs.digits[i])
+					else if (lhs[i] < rhs[i])
 						return Compare::Less;
 				}
 				return Compare::Equal;
 			}
 		}
 
+		void add(const bigint& lhs, const bigint& rhs)
+		{
+
+			if (lhs.sign == Sign::zero)
+			{
+				operator=(rhs);
+				return;
+			}
+			if (rhs.sign == Sign::zero)
+			{
+				operator=(lhs);
+				return;
+			}
+
+
+			const bigint *lh = &lhs, *rh = &rhs;
+
+			if (compare_magnitude(lhs, rhs) == Compare::Less)
+			{
+				lh = &rhs;
+				rh = &lhs;
+			}
+
+			if (lhs.sign == rhs.sign)
+			{
+				if (lh != this)
+					operator=(*lh);
+
+				type carry = 0, buffer;
+
+				for (int i = 0; i < rh->digits.size(); ++i)
+				{
+
+					buffer = lh->digits[i] + rh->digits[i] + carry;
+
+					carry = buffer / bigint::base;
+					buffer %= bigint::base;
+
+					digits[i] = buffer;
+				}
+
+				if (carry > 0)
+					digits.push_back(carry);
+			}
+			else
+			{
+				if (lh->sign == Sign::positive)
+				{
+					subtract(*lh, -(*rh));
+				}
+				else
+				{
+					subtract(-(*lh), *rh);
+					operator-();
+				}
+			}
+		}
+
+		void subtract(const bigint& lhs, const bigint& rhs)
+		{
+
+			if (lhs.sign == Sign::zero)
+			{
+				operator=(rhs);
+				operator-();
+				return;
+			}
+			if (rhs.sign == Sign::zero)
+			{
+				operator=(lhs);
+				return;
+			}
+
+
+			const bigint *lh = &lhs, *rh = &rhs;
+
+			if (compare_magnitude(lhs, rhs) == Compare::Less)
+			{
+				lh = &rhs;
+				rh = &lhs;
+			}
+
+			if (lhs.sign == rhs.sign)
+			{
+				if (lh != this)
+					operator=(*lh);
+
+				type carry      = 0, buffer;
+				bool need_carry = false;
+
+				for (int i = 0; i < rh->digits.size() or carry != 0; ++i)
+				{
+					buffer     = lh->digits[i];
+					need_carry = false;
+
+					if (i < rh->digits.size())
+					{
+						if (lh->digits[i] < rh->digits[i] + carry)
+						{
+							buffer += bigint::base;
+							need_carry = true;
+						}
+
+						buffer -= rh->digits[i] + carry;
+					}
+					else
+					{
+						if (lh->digits[i] == 0)
+						{
+							buffer += bigint::base;
+							need_carry = true;
+						}
+
+						buffer -= carry;
+					}
+					digits[i] = buffer;
+					carry     = need_carry ? 1 : 0;
+				}
+			}
+			else
+			{
+				//
+				if (lh->sign == Sign::positive)
+				{
+					add(*lh, -(*rh));
+				}
+				else
+				{
+					add(-(*lh), *rh);
+					operator-();
+				}
+			}
+
+			if (lh != &lhs)
+				operator-();
+
+			remove_trailing_zeros();
+		}
 
 	public:
-		bigint() = default;
+		bigint() { operator=(0); }
 
 		bigint(std::integral auto v) { operator=(v); }
 
@@ -177,15 +317,52 @@ namespace deckard
 			return *this;
 		}
 
-		void operator-()
+		type& operator[](size_t index)
+		{
+			assert::check(index < digits.size(), "Out-of-bound indexing on bigint");
+			return digits[index];
+		}
+
+		const type& operator[](size_t index) const
+		{
+			assert::check(index < digits.size(), "Out-of-bound indexing on bigint");
+			return digits[index];
+		}
+
+		bigint operator+() { return *this; }
+
+		bigint operator+() const { return *this; }
+
+		bigint operator-()
 		{
 			if (sign == Sign::positive)
 				sign = Sign::negative;
 			else if (sign == Sign::negative)
 				sign = Sign::positive;
+
+			return *this;
 		}
 
+		bigint operator-() const
+		{
+			bigint result(*this);
+			result.operator-();
+			return result;
+		}
+
+		bool operator==(const bigint& rhs) const { return compare(*this, rhs) == Compare::Equal; }
+
+		bool operator<(const bigint& rhs) const { return compare(*this, rhs) == Compare::Less; }
+
+		bool operator<=(const bigint& rhs) const { return operator<(rhs) or operator==(rhs); }
+
+		bool operator>(const bigint& rhs) const { return compare(*this, rhs) == Compare::Greater; }
+
+		bool operator>=(const bigint& rhs) const { return operator>(rhs) or operator==(rhs); }
+
 		Sign signum() const { return sign; }
+
+		size_t size() const { return digits.size(); }
 
 		size_t count() const
 		{
@@ -227,7 +404,128 @@ namespace deckard
 
 			return buffer;
 		}
+
+		void operator++()
+		{
+			if (digits.empty())
+				operator=(0);
+
+			if (is_zero())
+			{
+				operator=(1);
+				return;
+			}
+			else if (sign == Sign::negative and digits.size() == 1 and digits[0] == 1)
+			{
+				sign = Sign::zero;
+				operator=(0);
+				return;
+			}
+
+			if(sign == Sign::negative)
+				digits[0] -= 1;
+			else
+				digits[0] += 1;
+
+			type carry = 0;
+			for (int index = 0; index < digits.size(); index++)
+			{
+				digits[index] += carry;
+				carry = digits[index] / bigint::base;
+				digits[index] %= bigint::base;
+			}
+			if (carry != 0)
+				digits.push_back(carry);
+		}
+
+		void operator++(int) { operator++(); }
+
+		void operator--()
+		{
+			if (is_zero())
+			{
+				operator=(-1);
+				return;
+			}
+			else if (sign == Sign::positive and digits.size() == 1 and digits[0] == 1)
+			{
+				sign = Sign::zero;
+				operator=(0);
+				return;
+			}
+
+			type carry = 0;
+			if (digits[0] == 0)
+			{
+				carry     = 1;
+				digits[0] = bigint::base - 1;
+			}
+			else
+			{
+				if(sign == Sign::positive)
+					digits[0]--;
+				else
+					digits[0]++;
+
+			}
+
+
+			for (int index = 1; index < digits.size(); index++)
+			{
+
+				if (digits[index] < carry)
+				{
+					digits[index] += bigint::base;
+					digits[index] -= carry;
+					carry = 1;
+				}
+				else
+				{
+					digits[index] -= carry;
+					carry = 0;
+				}
+			}
+
+			remove_trailing_zeros();
+		}
+
+		void operator--(int) { operator--(); }
+
+		// add
+		bigint& operator+=(const bigint& rhs)
+		{
+			operator=(operator+(rhs));
+			return *this;
+		}
+
+		bigint operator+(const bigint& rhs)
+		{
+			bigint result;
+			result.add(*this, rhs);
+			return result;
+		}
+
+		// sub
+		bigint& operator-=(const bigint& rhs)
+		{
+			operator=(operator-(rhs));
+			return *this;
+		}
+
+		bigint operator-(const bigint& rhs)
+		{
+			bigint result;
+			result.subtract(*this, rhs);
+			return result;
+		}
+
+		// mul
+
+
+		// div
 	};
+
+
 } // namespace deckard
 
 export namespace std
@@ -256,7 +554,7 @@ export namespace std
 				default: break;
 			}
 
-			assert::check(v.empty() == false, "big_int empty");
+			assert::check(v.empty() == false, "bigint empty");
 
 			std::format_to(ctx.out(), "{}", v.back());
 

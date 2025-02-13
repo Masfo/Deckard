@@ -450,8 +450,6 @@ struct Noisy
 	T value_{0};
 };
 
-
-
 enum Compare
 {
 	Greater,
@@ -868,10 +866,7 @@ public:
 
 	big_int(std::integral auto v) { operator=(v); }
 
-	big_int(const big_int& bi)
-	{
-		operator=(bi);
-	}
+	big_int(const big_int& bi) { operator=(bi); }
 
 	big_int(std::string_view input)
 	{
@@ -1072,11 +1067,25 @@ public:
 		return result;
 	}
 
-	auto operator+(const big_int& rhs) const
+	big_int operator+(const big_int& rhs) const
 	{
 		big_int result;
 		result.add(*this, rhs);
 		return result;
+	}
+
+	big_int& operator+=(const big_int& rhs)
+	{
+		operator=(operator+(rhs));
+		return *this;
+	}
+
+	//
+
+	big_int& operator-=(const big_int& rhs)
+	{
+		operator=(operator-(rhs));
+		return *this;
 	}
 
 	auto operator-(const big_int& rhs) const
@@ -1086,6 +1095,7 @@ public:
 		return result;
 	}
 
+	// 
 	auto operator*(const big_int& rhs) const
 	{
 		big_int result;
@@ -1116,18 +1126,6 @@ public:
 	big_int& operator>>=(const type shift)
 	{
 		operator=(operator>>(shift));
-		return *this;
-	}
-
-	big_int& operator+=(const big_int& rhs)
-	{
-		operator=(operator+(rhs));
-		return *this;
-	}
-
-	big_int& operator-=(const big_int& rhs)
-	{
-		operator=(operator-(rhs));
 		return *this;
 	}
 
@@ -1269,13 +1267,66 @@ i32 divi(i32 a, i32 b)
 	return pos ? c : -c;
 }
 
+std::generator<u32> gen()
+{
+	u32 num = 0;
+	while (true)
+	{
+		co_yield ++num;
+		if (num == 10)
+			break;
+	}
+}
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+
+	for (auto x : gen())
+		dbg::print("{}.", x);
+
+	dbg::println();
+
+	int kosaa = 0;
+
 	{
+
+		big_int q1 = 0;
+
+		q1++;
+
+		q1.dump("q1++");
+
+		q1 = 0;
+		q1--;
+		q1.dump("q1--");
+
+		q1--;
+		q1.dump("q1--");
+
+		q1 = 0;
+		q1++;
+		q1.dump("q1++");
+
+		q1++;
+		q1.dump("q1++");
+
+		int i = 0;
+		i++;
+		i = 0;
+		i--;
+
+		i--;
+		i++;
+		i++;
+
+
+
+
 		big_int a = -667;
 		big_int b = 222;
 		big_int big_div_small(a / b);
@@ -1484,8 +1535,6 @@ WRONG
 
 	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
 	big_int big_b("53919893334301279589334030174039261347274288845081144962207220498432");
-
-
 
 
 	big_a.dump("A");
