@@ -64,6 +64,39 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(c.count() == 1);
 	}
 
+	SECTION("to_integer") 
+	{ 
+		bigint a(0);
+		CHECK(a.to_integer<i32>().value() == 0);
+		CHECK(a.to_integer<u32>().value() == 0);
+
+
+		a= "1234567890123456789012345678901234567890";
+		CHECK(a.to_integer<i32>().has_value() == false);
+		CHECK(a.to_integer<u32>().has_value() == false);
+
+		auto check = [](const auto& a)
+		{
+			bigint b(a);
+
+			auto res = b.to_integer<std::remove_cvref_t<decltype(a)>>();
+			CHECK(res.has_value() == true);
+			CHECK(res.value() == a);
+		};
+		check(limits::min<i64>);
+		check(limits::min<i32>);
+		check(limits::min<i16>);
+		check(limits::min<i8>);
+		
+		check(0);
+		check(limits::max<u64>);
+		check(limits::max<i32>);
+		check(limits::max<i16>);
+		check(limits::max<i8>);
+
+
+	}
+
 	SECTION("invert")
 	{
 		bigint a("1234567890123456789012345678901234567890");
@@ -141,11 +174,22 @@ TEST_CASE("bigint", "[bigint]")
 
 		a = a - 1;
 		CHECK(a.to_string() == "1234567890123456789012345678901234567889");
+
 		
 		bigint b("1234567890123456789012345678901234567890");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 40);
 
 		a = a - b;
 		CHECK(a.to_string() == "-1");
+		CHECK(a.signum() == Sign::negative);
+		CHECK(a.count() == 1);
+
+		a = a - b;
+		CHECK(a.to_string() == "-1234567890123456789012345678901234567891");
+		CHECK(a.signum() == Sign::negative);
+		CHECK(a.count() == 40);
+		
 		
 	}
 

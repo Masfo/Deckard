@@ -950,11 +950,12 @@ public:
 			sign = Sign::negative;
 			temp *= -1;
 		}
+		u64 temp2 = temp;
 
-		while (temp > 0)
+		while (temp2 > 0)
 		{
-			digits.push_back(math::mod<T>(temp, big_int::base));
-			temp /= big_int::base;
+			digits.push_back(temp2 % big_int::base);
+			temp2 /= big_int::base;
 		}
 
 		return *this;

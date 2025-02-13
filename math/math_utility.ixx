@@ -77,7 +77,7 @@ export namespace deckard::math
 	{
 		if (N == U{0})
 			return 0;
-		return (x % N + N) % N;
+		return as<T>((x % N + N) % N);
 	}
 
 	// absolute difference

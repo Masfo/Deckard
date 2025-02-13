@@ -3,6 +3,7 @@ export module deckard.bigint;
 import deckard.types;
 import deckard.assert;
 import deckard.math;
+import deckard.as;
 import deckard.helpers;
 import std;
 
@@ -290,27 +291,47 @@ namespace deckard
 			return *this;
 		}
 
-		template<std::integral T>
+		
+		template<std::unsigned_integral T>
 		bigint& operator=(T const rhs)
 		{
-			T temp(rhs);
+			u64 temp(rhs);
 
 			digits.clear();
 			digits.reserve(3);
 
-			if (temp == 0)
+			if (rhs == 0)
 				sign = Sign::zero;
-			else if (temp > 0)
-				sign = Sign::positive;
 			else
-			{
-				sign = Sign::negative;
-				temp *= -1;
-			}
+				sign = Sign::positive;
 
 			while (temp > 0)
 			{
-				digits.push_back(math::mod<T>(temp, bigint::base));
+				digits.push_back(temp % bigint::base);
+				temp /= bigint::base;
+			}
+
+			return *this;
+		}
+
+		template<std::signed_integral T>
+		bigint& operator=(T const rhs)
+		{
+			u64 temp(std::abs(as<i64>(rhs)));
+
+			digits.clear();
+			digits.reserve(3);
+
+			if (rhs == 0)
+				sign = Sign::zero;
+			else if (rhs > 0)
+				sign = Sign::positive;
+			else
+				sign = Sign::negative;
+
+			while (temp > 0)
+			{
+				digits.push_back(temp %  bigint::base);
 				temp /= bigint::base;
 			}
 
@@ -405,6 +426,27 @@ namespace deckard
 			return buffer;
 		}
 
+		template<std::integral T = i32>
+		std::expected<T, std::string> to_integer() const
+		{
+			if (signum() == Sign::zero or empty())
+				return T{0};
+
+			if (count() > count_digits(std::numeric_limits<T>::max()))
+				return std::unexpected("bigint too large for integer conversion");
+
+			T result     = 0;
+			T multiplier = 1;
+			for (const auto& digit : digits)
+			{
+				result += digit * multiplier;
+				multiplier *= bigint::base;
+			}
+			if (signum() == Sign::negative)
+				result *= -1;
+			return result;
+		}
+
 		void operator++()
 		{
 			if (digits.empty())
@@ -422,7 +464,7 @@ namespace deckard
 				return;
 			}
 
-			if(sign == Sign::negative)
+			if (sign == Sign::negative)
 				digits[0] -= 1;
 			else
 				digits[0] += 1;
@@ -462,11 +504,10 @@ namespace deckard
 			}
 			else
 			{
-				if(sign == Sign::positive)
+				if (sign == Sign::positive)
 					digits[0]--;
 				else
 					digits[0]++;
-
 			}
 
 
