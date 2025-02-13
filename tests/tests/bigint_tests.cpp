@@ -75,24 +75,32 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(a.to_integer<i32>().has_value() == false);
 		CHECK(a.to_integer<u32>().has_value() == false);
 
-		auto check = [](const auto& a)
+		auto check = [](const auto& a, bool correct)
 		{
 			bigint b(a);
 
 			auto res = b.to_integer<std::remove_cvref_t<decltype(a)>>();
-			CHECK(res.has_value() == true);
-			CHECK(res.value() == a);
+			CHECK(res.has_value() == correct);
+			
+			if (res)
+			{
+				CHECK(res.value() == a);
+			}
+
 		};
-		check(limits::min<i64>);
-		check(limits::min<i32>);
-		check(limits::min<i16>);
-		check(limits::min<i8>);
+		check(limits::min<i64>,true);
+		check(limits::min<i32>,true);
+		check(limits::min<i16>,true);
+		check(limits::min<i8>,true);
 		
-		check(0);
-		check(limits::max<u64>);
-		check(limits::max<i32>);
-		check(limits::max<i16>);
-		check(limits::max<i8>);
+		check(0,true);
+		check(limits::max<u64>,true);
+		check(limits::max<i32>,true);
+		check(limits::max<i16>,true);
+		check(limits::max<i8>,true);
+
+		bigint c("12345678901234567890");
+		CHECK(c.to_integer<i32>().has_value() == false);
 
 
 	}

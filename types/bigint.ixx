@@ -435,15 +435,15 @@ namespace deckard
 			if (count() > count_digits(std::numeric_limits<T>::max()))
 				return std::unexpected("bigint too large for integer conversion");
 
-			T result     = 0;
-			T multiplier = 1;
+			u64 result     = 0;
+			u64 multiplier = 1;
 			for (const auto& digit : digits)
 			{
 				result += digit * multiplier;
 				multiplier *= bigint::base;
 			}
 			if (signum() == Sign::negative)
-				result *= -1;
+				return as<T>(-result);
 			return result;
 		}
 
