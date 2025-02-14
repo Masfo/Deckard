@@ -1118,6 +1118,12 @@ public:
 		return result;
 	}
 
+		big_int& operator%=(const big_int& rhs)
+	{
+		operator=(operator%(rhs));
+		return *this;
+	}
+
 	big_int& operator<<=(const type shift)
 	{
 		operator=(operator<<(shift));
@@ -1136,11 +1142,7 @@ public:
 		return *this;
 	}
 
-	big_int& operator%=(const big_int& rhs)
-	{
-		operator=(operator%(rhs));
-		return *this;
-	}
+
 
 	template<std::integral T>
 	big_int& operator*=(const T& rhs)

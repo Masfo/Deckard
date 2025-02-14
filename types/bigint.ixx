@@ -6,6 +6,8 @@ import deckard.math;
 import deckard.as;
 import deckard.utils.hash;
 import deckard.helpers;
+import deckard.debug;
+
 import std;
 
 namespace deckard
@@ -79,6 +81,66 @@ namespace deckard
 				}
 				return Compare::Equal;
 			}
+		}
+
+		bigint largest_divisor(const bigint& a, const bigint& b)
+		{
+			bigint divisor(b);
+			while ((a - divisor) >= divisor)
+				divisor = divisor + divisor;
+			return divisor;
+		}
+
+		void shift_left(const bigint& lhs, type shift)
+		{
+
+			digits.clear();
+			digits.reserve(lhs.digits.size() + shift / bigint::base_digits + 1);
+
+
+			if (shift == 0)
+			{
+				operator=(lhs);
+			}
+			else
+			{
+				u64 carry = 0;
+				for (const u64 digit : lhs.digits)
+				{
+					type new_digit = (digit << shift) + carry;
+					carry          = new_digit / bigint::base;
+					digits.push_back(new_digit % bigint::base);
+				}
+
+				while (carry > 0)
+				{
+					digits.push_back(carry % bigint::base);
+					carry /= bigint::base;
+				}
+			}
+
+			sign = lhs.sign;
+			remove_trailing_zeros();
+		}
+
+		void shift_right(const bigint& lhs, type shift)
+		{
+			digits.clear();
+			digits.reserve(lhs.digits.size());
+
+			u64 carry = 0;
+
+			for (int i = lhs.digits.size() - 1; i >= 0; --i)
+			{
+				type new_digit = lhs.digits[i] + carry * bigint::base;
+				carry          = new_digit % (1 << shift);
+				new_digit /= (1 << shift);
+				digits.push_back(new_digit);
+			}
+
+			std::reverse(digits.begin(), digits.end());
+			sign = lhs.sign;
+			remove_trailing_zeros();
 		}
 
 		void add(const bigint& lhs, const bigint& rhs)
@@ -276,6 +338,77 @@ namespace deckard
 					carry = 0;
 				}
 			}
+		}
+
+		// divide
+		void divide(const bigint& dividend, const bigint& divisor)
+		{
+			if (divisor.is_zero())
+			{
+				dbg::panic("divide zero");
+			}
+
+
+			if (dividend.is_zero() || compare_magnitude(dividend, divisor) == Compare::Less)
+			{
+				operator=(0);
+				return;
+			}
+
+			bigint a(dividend), b(divisor);
+			if (a.sign == b.sign)
+			{
+				if (a.sign == Sign::negative)
+				{
+					-a;
+					-b;
+				}
+
+				sign = Sign::positive;
+			}
+			else
+			{
+				if (a.sign == Sign::negative)
+					-a;
+				else
+					-b;
+
+				sign = Sign::negative;
+			}
+
+
+			bigint c(largest_divisor(a, b));
+			bigint n(1);
+			a = a - c;
+
+			while (c != b)
+			{
+				c = c >> 1;
+				n = n + n;
+				if (c <= a)
+				{
+					a = a - c;
+					n = n + 1;
+				}
+			}
+			if (sign == Sign::negative)
+				-n;
+			operator=(n);
+		}
+
+		// modulus
+		void modulus(const bigint& lhs, const bigint& rhs)
+		{
+			if (rhs.is_zero())
+				operator=(0);
+
+			if (compare_magnitude(lhs, rhs) == Compare::Less)
+			{
+				operator=(lhs);
+				return;
+			}
+
+			operator=(lhs - rhs * (lhs / rhs));
 		}
 
 	public:
@@ -587,6 +720,34 @@ namespace deckard
 
 		void operator--(int) { operator--(); }
 
+		// shift left
+		auto operator<<(const type shift) const
+		{
+			bigint result;
+			result.shift_left(*this, shift);
+			return result;
+		}
+
+		bigint& operator<<=(const type shift)
+		{
+			operator=(operator<<(shift));
+			return *this;
+		}
+
+		// shift right
+		auto operator>>(const type shift) const
+		{
+			bigint result;
+			result.shift_right(*this, shift);
+			return result;
+		}
+
+		bigint& operator>>=(const type shift)
+		{
+			operator=(operator>>(shift));
+			return *this;
+		}
+
 		// add
 		bigint& operator+=(const bigint& rhs)
 		{
@@ -594,7 +755,7 @@ namespace deckard
 			return *this;
 		}
 
-		bigint operator+(const bigint& rhs)
+		bigint operator+(const bigint& rhs) const
 		{
 			bigint result;
 			result.add(*this, rhs);
@@ -608,7 +769,7 @@ namespace deckard
 			return *this;
 		}
 
-		bigint operator-(const bigint& rhs)
+		bigint operator-(const bigint& rhs) const
 		{
 			bigint result;
 			result.subtract(*this, rhs);
@@ -631,6 +792,32 @@ namespace deckard
 		}
 
 		// div
+		auto operator/(const bigint& rhs) const
+		{
+			bigint result;
+			result.divide(*this, rhs);
+			return result;
+		}
+
+		bigint& operator/=(const bigint& rhs)
+		{
+			operator=(operator/(rhs));
+			return *this;
+		}
+
+		// modulus
+		auto operator%(const bigint& rhs) const
+		{
+			bigint result;
+			result.modulus(*this, rhs);
+			return result;
+		}
+
+		bigint& operator%=(const bigint& rhs)
+		{
+			operator=(operator%(rhs));
+			return *this;
+		}
 	};
 
 

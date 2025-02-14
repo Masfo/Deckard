@@ -129,6 +129,118 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(b.count() == 40);
 	}
 
+	SECTION("shift left")
+	{
+		bigint a(128);
+
+		CHECK(a.to_string() == "128");
+		CHECK(a.to_integer() == 128);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 3);
+
+		a <<= 1;
+
+		CHECK(a.to_string() == "256");
+		CHECK(a.to_integer() == 256);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 3);
+
+		a <<= 4;
+		CHECK(a.to_string() == "4096");
+		CHECK(a.to_integer() == 4096);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 4);
+
+		a <<= 12;
+		CHECK(a.to_string() == "16777216");
+		CHECK(a.to_integer() == 16'777'216);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 8);
+
+		a <<= 1;
+		CHECK(a.to_string() == "33554432");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 8);
+
+		a <<= 1;
+		CHECK(a.to_string() == "67108864");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 8);
+
+		a <<= 7;
+		CHECK(a.to_string() == "8589934592");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 10);
+
+
+		a <<= 7;
+		CHECK(a.to_string() == "1099511627776");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 13);
+
+		a <<= 7;
+		CHECK(a.to_string() == "140737488355328");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 15);
+
+		a <<= 14;
+		CHECK(a.to_string() == "2305843009213693952");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 19);
+#if 0
+		a <<= 28;
+		CHECK(a.to_string() == "618970019642690137449562112");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 27);
+
+		a <<= 32;
+		CHECK(a.to_string() == "2658455991569831745807614120560689152");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 37);
+
+		a <<= 33;
+		CHECK(a.to_string() == "22835963083295358096932575511191922182123945984");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 47);
+
+		a <<= 50;
+		CHECK(a.to_string() == "25711008708143844408671393477458601640355247900524685364822016");
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 62);
+#endif
+	}
+
+	SECTION("shift right")
+	{
+		bigint a(128);
+
+		CHECK(a.to_string() == "128");
+		CHECK(a.to_integer() == 128);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 3);
+
+		a >>= 1;
+
+		CHECK(a.to_string() == "64");
+		CHECK(a.to_integer() == 64);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 2);
+
+		a >>= 1;
+
+		CHECK(a.to_string() == "32");
+		CHECK(a.to_integer() == 32);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 2);
+
+		a = "2305843009213693952";
+		a >>= 16;
+		CHECK(a.to_string() == "35184372088832");
+		CHECK(a.to_integer<u64>() == 35'184'372'088'832ull);
+		CHECK(a.signum() == Sign::positive);
+		CHECK(a.count() == 14);
+	}
+
 	SECTION("subtract (small)")
 	{
 		bigint a(768);
@@ -298,6 +410,55 @@ TEST_CASE("bigint", "[bigint]")
 		  "64135289477071580278790190170577389084825014742943447208116859632024532344630238623598752668347708737661925585694639798853367");
 	}
 
+	SECTION("divide")
+	{
+		bigint a(42), b(7);
+
+		bigint c = a / b;
+		CHECK(c.to_string() == "6");
+		CHECK(c.to_integer() == 6);
+		CHECK(c.signum() == Sign::positive);
+
+
+		bigint aa("5499082447685365340");
+		bigint bb("-4059411");
+		bigint cc(aa / bb);
+
+		CHECK(cc.to_string() == "-1354650329243");
+		CHECK(cc.signum() == Sign::negative);
+		CHECK(cc.count() == 13);
+
+		cc /= bigint{"-456879"};
+		CHECK(cc.to_string() == "2965008");
+		CHECK(cc.to_integer() == 2'965'008);
+		CHECK(cc.signum() == Sign::positive);
+		CHECK(cc.count() == 7);
+	}
+
+	SECTION("modulus")
+	{
+		const bigint a(44), b(42);
+
+		bigint c = a % b;
+		CHECK(c.to_string() == "2");
+		CHECK(c.to_integer() == 2);
+		CHECK(c.signum() == Sign::positive);
+
+		CHECK(-44 % 42 == -2);
+		CHECK((-44 % 42 + 42) % 42 ==40);
+		c = -a % b;
+		CHECK(c.to_string() == "-2");
+		CHECK(c.to_integer() == -44 % 42);
+		CHECK(c.signum() == Sign::negative);
+
+		bigint d = (-a % b+b) % b;
+		CHECK(d.to_string() == "40");
+		CHECK(d.to_integer() == (-44 % 42+42) % 42);
+		CHECK(d.signum() == Sign::positive);
+
+
+	}
+
 
 	SECTION("umap")
 	{
@@ -307,12 +468,4 @@ TEST_CASE("bigint", "[bigint]")
 
 		CHECK(map[0].to_integer() == 123'456'789);
 	}
-
-	// RSA-250 =
-	// 2140324650240744961264423072839333563008614715144755017797754920881418023447140136643345519095804679610992851872470914587687396261921557363047454770520805119056493106687691590019759405693457452230589325976697471681738069364894699871578494975937497937
-	//
-	// RSA-250 =
-	// 64135289477071580278790190170577389084825014742943447208116859632024532344630238623598752668347708737661925585694639798853367
-	// *
-	// 33372027594978156556226010605355114227940760344767554666784520987023841729210037080257448673296881877565718986258036932062711
 }
