@@ -623,15 +623,16 @@ namespace deckard
 			if (count() > count_digits(std::numeric_limits<T>::max()))
 				return std::unexpected("bigint too large for integer conversion");
 
-			u64 result     = 0;
-			u64 multiplier = 1;
+			i64 result     = 0;
+			i64 multiplier = 1;
 			for (const auto& digit : digits)
 			{
 				result += digit * multiplier;
 				multiplier *= bigint::base;
 			}
 			if (signum() == Sign::negative)
-				return as<T>(-result);
+				return result = -result;
+
 			return result;
 		}
 
