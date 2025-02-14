@@ -1096,7 +1096,7 @@ public:
 		return result;
 	}
 
-	// 
+	//
 	auto operator*(const big_int& rhs) const
 	{
 		big_int result;
@@ -1118,7 +1118,7 @@ public:
 		return result;
 	}
 
-		big_int& operator%=(const big_int& rhs)
+	big_int& operator%=(const big_int& rhs)
 	{
 		operator=(operator%(rhs));
 		return *this;
@@ -1141,8 +1141,6 @@ public:
 		operator=(operator*(rhs));
 		return *this;
 	}
-
-
 
 	template<std::integral T>
 	big_int& operator*=(const T& rhs)
@@ -1294,262 +1292,7 @@ i32 deckard_main(std::string_view commandline)
 
 	dbg::println();
 
-	int kosaa = 0;
 
-	{
-
-		big_int q1 = 0;
-
-		q1++;
-
-		q1.dump("q1++");
-
-		q1 = 0;
-		q1--;
-		q1.dump("q1--");
-
-		q1--;
-		q1.dump("q1--");
-
-		q1 = 0;
-		q1++;
-		q1.dump("q1++");
-
-		q1++;
-		q1.dump("q1++");
-
-		int i = 0;
-		i++;
-		i = 0;
-		i--;
-
-		i--;
-		i++;
-		i++;
-
-
-
-
-		big_int a = -667;
-		big_int b = 222;
-		big_int big_div_small(a / b);
-		big_div_small.dump("sdiv");
-
-		a = "878377812925471";
-		b = "-73918608392839";
-		big_int big_div(a / b);
-		big_div.dump("div");
-
-		int xx = 0;
-	}
-	{
-		// 4937 3122 9304 4230 2047
-		// 2468 6561 4652 2115 1023
-		i32 a  = 414;
-		i32 b  = 6;
-		u32 qm = a % b;
-		i32 qd = a / b;
-
-		i32 rt = (i32)(a / b);
-		i32 r  = divi(a, b);
-
-
-		int j = 0;
-	}
-	{
-		big_int big_test_a{"49373122930442302047"};
-		big_test_a.dump("Noshift");
-		// >> 1  24686561465221151023
-		// << 1  98746245860884604094
-
-
-		// 98746245860884604094
-		// 98746245860884604094
-		auto shifted_l = big_test_a << 1;
-		shifted_l.dump("98746245860884604094\n");
-
-		auto shifted_r = big_test_a >> 1;
-		shifted_r.dump("24686561465221151023\n");
-		int qo = 0;
-	}
-	{
-
-
-		auto remove_zeros = [](std::vector<u32>& a)
-		{
-			while (!a.empty() && !a.back())
-				a.pop_back();
-		};
-		auto read = [&remove_zeros](std::string_view input)
-		{
-			std::vector<u32> a;
-			int              sign = 1;
-			a.clear();
-			i64 pos = 0;
-			while (pos < (int)input.size() && (input[pos] == '-' || input[pos] == '+'))
-			{
-				if (input[pos] == '-')
-					sign = -sign;
-				++pos;
-			}
-
-			// i64 base_digits = 1'000'000'000;
-			i64 base_digits = 4;
-			for (i64 i = input.size() - 1; i >= pos; i -= base_digits)
-			{
-				i64 x = 0;
-				for (i64 j = std::max(pos, i - base_digits + 1); j <= i; j++)
-					x = x * 10 + input[j] - '0';
-				a.push_back(x);
-			}
-
-			remove_zeros(a);
-
-			if (a.empty())
-				sign = 1;
-			return a;
-		};
-
-
-		std::string s("49373122930442302047");
-		std::string s2("6914577278677366128");
-
-
-		std::vector<u32> a = read(s);
-		std::vector<u32> b = read(s2);
-
-		std::vector<u32> quot;
-		std::vector<u32> current_div;
-		current_div.resize(a.size());
-
-		for (u64 index = 0; index < a.size(); index++)
-		{
-			current_div[index] += a[index];
-			// remove_zeros(current_div);
-
-			u32 current_quot = 0;
-			while (current_div[index] >= b[index])
-			{
-				current_div[index] = current_div[index] - b[index];
-				current_quot++;
-			}
-			quot.push_back(current_quot);
-		}
-
-		int j = 0;
-	}
-
-	/*
-		A: 49373122930442302047
-		B: 6914577278677366128
-
-		+ 56287700209119668175
-		- 42458545651764935919
-		* 341394273992180797330860803530982864016
-		/ 7
-		% 971081979700739151
-	*/
-	auto test_big_int = [](std::string_view a, std::string_view b)
-	{
-		const big_int big_a{a};
-		const big_int big_b{b};
-		big_a.dump("A");
-		big_b.dump("B");
-
-
-		big_int big_add(big_a + big_b);
-		big_add.dump("add");
-		big_int big_sub(big_a - big_b);
-		big_sub.dump("sub");
-		big_int big_mul(big_a * big_b);
-		big_mul.dump("mul");
-
-
-		big_int big_div(big_a / big_b);
-		big_div.dump("div");
-
-		big_int big_mod(big_a % big_b);
-		big_mod.dump("mod");
-	};
-
-	// test_big_int("49373122930442302047", "6914577278677366128");
-	// Python: 17 % -5 = -3		Floored division
-	//
-	// C++:    17 % -5 =  2		Remainder division
-	//		* 17 / -5 = -3.4
-	//		* 17 = (-5) * (-3) + r
-	//		* 17 = 15 + r
-	//		* r = 17 - 15 = 2
-	//		* 17 mod -5 = 2
-
-	int xopas = -10 / 3;
-	test_big_int("-10", "3");
-	test_big_int("-667", "-222");
-	test_big_int("15028999435905310454", "905792");
-
-	////
-	/*
-a: 4165993559733355699, b: 9622194, result: 432956720653
-A: 8433241721518679634
-B: -292487
-bigdiv: 28832877090327
-WRONG
-*/
-	i64     ia = -12;
-	i64     ib = 4;
-	big_int ba(ia);
-	big_int bb(ib);
-	big_int bc(ba / bb);
-
-
-	std::random_device                 rd;
-	std::mt19937                       mersenne_twister;
-	std::uniform_int_distribution<i64> big_rnd(limits::min<i64>, limits::max<i64>);
-	std::uniform_int_distribution<i64> small_rnd(-10'000'000, 10'000'000);
-	repeat<10> = [&]()
-	{
-		auto a = big_rnd(mersenne_twister);
-		auto b = small_rnd(mersenne_twister);
-
-		if (a < b)
-			std::swap(a, b);
-
-		// 15028999435905310454
-		big_int big_a(a);
-		big_int big_b(b);
-		big_int result(big_a / big_b);
-
-		big_a.dump("A");
-		big_b.dump("B");
-		result.dump("bigdiv");
-
-		big_int big_result(a / b);
-
-		dbg::println("{}", big_result == result ? "CORRECT" : "WRONG");
-
-
-		big_int res(a / b);
-		big_int result2 = big_a / big_b;
-
-		dbg::println("a: {}, b: {}, result: {}", a, b, a / b);
-		int j = 0;
-	};
-
-
-	big_int big_a("115792089237316195423570985008687907853269984665640564039457584007913129639936");
-	big_int big_b("53919893334301279589334030174039261347274288845081144962207220498432");
-
-
-	big_a.dump("A");
-	big_b.dump("B");
-	auto big_c = big_a / big_b;
-	big_c.dump("  2147483648\n");
-
-	big_int big_q(big_a + big_b);
-	big_int expected("115792089291236088757872264598021938027309246012914852884538728970120350138368");
-	big_q.dump("");
-
-	dbg::println("{}", big_q == expected);
 
 
 	Noisy<int> n1{456};

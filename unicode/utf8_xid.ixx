@@ -9,6 +9,37 @@ import std;
 
 namespace deckard::utf8
 {
+	#if 0
+	// https://github.com/skarupke/branchless_binary_search/blob/main/binary_search.hpp
+	template<typename It, typename T, typename Cmp>
+	It branchless_lower_bound(It begin, It end, const T& value, Cmp&& compare)
+	{
+		std::size_t length = end - begin;
+		if (length == 0)
+			return end;
+		std::size_t step = std::bit_floor(length);
+		if (step != length && compare(begin[step], value))
+		{
+			length -= step + 1;
+			if (length == 0)
+				return end;
+			step  = std::bit_ceil(length);
+			begin = end - step;
+		}
+		for (step /= 2; step != 0; step /= 2)
+		{
+			if (compare(begin[step], value))
+				begin += step;
+		}
+		return begin + compare(*begin, value);
+	}
+
+	template<typename It, typename T>
+	It branchless_lower_bound(It begin, It end, const T& value)
+	{
+		return branchless_lower_bound(begin, end, value, std::less<>{});
+	}
+	#endif
 
 	template<size_t N>
 	bool is_in_range(char32_t codepoint, const std::array<char32_range, N>& range)
@@ -35,7 +66,8 @@ namespace deckard::utf8
 		return false;
 
 #else
-		auto it = std::lower_bound(
+		#if 1
+		auto it = branchless_lower_bound(
 		  range.begin(),
 		  range.end(),
 		  codepoint,
@@ -43,7 +75,19 @@ namespace deckard::utf8
 		  {                                                //
 			  return value > r.end;
 		  });
+
 		return (codepoint >= (*it).start) and (codepoint <= (*it).end);
+		#else
+			auto it = std::lower_bound(
+			  range.begin(),
+			  range.end(),
+			  codepoint,
+			  [](const char32_range& r, const char32_t& value) //
+			  {                                                //
+				  return value > r.end;
+			  });
+			return (codepoint >= (*it).start) and (codepoint <= (*it).end);
+			#endif
 #endif
 	}
 
