@@ -4,6 +4,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.math;
 import deckard.as;
+import deckard.utils.hash;
 import deckard.helpers;
 import std;
 
@@ -26,14 +27,9 @@ namespace deckard
 		};
 		using type = u32;
 
+		static constexpr u32 base        = 10000;
+		static constexpr u32 base_digits = 4;
 
-#if 1
-		static constexpr u32 base        = 1'000'000;
-		static constexpr u32 base_digits = 6;
-#else
-		static constexpr u32 base        = 1'000'000'000;
-		static constexpr u32 base_digits = 9;
-#endif
 		std::vector<type> digits;
 		Sign              sign;
 
@@ -224,6 +220,64 @@ namespace deckard
 			remove_trailing_zeros();
 		}
 
+		// mul
+		void multiply(const bigint& lhs, const bigint& rhs)
+		{
+			digits.clear();
+
+			if (lhs.is_zero() or rhs.is_zero())
+			{
+				sign = Sign::zero;
+				return;
+			}
+			else if ((lhs.sign == Sign::positive and rhs.sign == Sign::negative) or //
+					 (lhs.sign == Sign::negative and rhs.sign == Sign::positive))
+				sign = Sign::negative;
+			else
+				sign = Sign::positive;
+
+			const bigint *lh = &lhs, *rh = &rhs;
+
+			if (compare_magnitude(lhs, rhs) == Compare::Less)
+			{
+				lh = &rhs;
+				rh = &lhs;
+			}
+
+			digits.reserve(lh->digits.size() + rh->digits.size());
+
+			size_t index = 0, lh_size = lh->digits.size(), rh_size = rh->digits.size();
+			type   carry = 0, buffer = 0;
+
+
+			for (size_t lower = 0; lower < rh_size; lower++)
+			{
+				index = lower;
+
+				for (int upper = 0; upper < lh_size; upper++)
+				{
+					buffer = lh->digits[upper] * rh->digits[lower] + carry;
+					if (index < digits.size())
+						buffer += digits[index];
+
+					carry = buffer / bigint::base;
+					buffer %= bigint::base;
+
+					if (index < digits.size())
+						digits[index] = buffer;
+					else
+						digits.push_back(buffer);
+
+					index++;
+				}
+				if (carry != 0)
+				{
+					digits.push_back(carry);
+					carry = 0;
+				}
+			}
+		}
+
 	public:
 		bigint() { operator=(0); }
 
@@ -291,7 +345,6 @@ namespace deckard
 			return *this;
 		}
 
-		
 		template<std::unsigned_integral T>
 		bigint& operator=(T const rhs)
 		{
@@ -331,7 +384,7 @@ namespace deckard
 
 			while (temp > 0)
 			{
-				digits.push_back(temp %  bigint::base);
+				digits.push_back(temp % bigint::base);
 				temp /= bigint::base;
 			}
 
@@ -371,6 +424,7 @@ namespace deckard
 			return result;
 		}
 
+		// compares
 		bool operator==(const bigint& rhs) const { return compare(*this, rhs) == Compare::Equal; }
 
 		bool operator<(const bigint& rhs) const { return compare(*this, rhs) == Compare::Less; }
@@ -381,6 +435,7 @@ namespace deckard
 
 		bool operator>=(const bigint& rhs) const { return operator>(rhs) or operator==(rhs); }
 
+		//
 		Sign signum() const { return sign; }
 
 		size_t size() const { return digits.size(); }
@@ -562,6 +617,18 @@ namespace deckard
 
 		// mul
 
+		bigint& operator*=(const bigint& rhs)
+		{
+			operator=(operator*(rhs));
+			return *this;
+		}
+
+		auto operator*(const bigint& rhs) const
+		{
+			bigint result;
+			result.multiply(*this, rhs);
+			return result;
+		}
 
 		// div
 	};
@@ -573,12 +640,12 @@ export namespace std
 {
 	using namespace deckard;
 
-	//	template<>
-	//	struct hash<bigint>
-	//	{
-	//		size_t operator()(const generic_vec2<T>& value) const { return deckard::utils::hash_values(value.x, value.y); }
-	//	};
-	//
+	template<>
+	struct hash<bigint>
+	{
+		size_t operator()(const bigint& value) const { return deckard::utils::hash_values(value.to_string()); }
+	};
+
 	template<>
 	struct formatter<bigint>
 	{
