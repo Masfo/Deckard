@@ -444,17 +444,7 @@ fullscreen=true
 	resolve_ip("localhost");
 
 
-	bignum a("13221321321321321321321321321321321321");
-	bignum b("4654654654654654654654654654654654654654");
 
-	bignum result = a.add(a, b);
-
-
-	// TODO:formatter does not work yet
-	dbg::println("{}, {}", a.print(), 0);
-	dbg::println("{}, {}", b.print(), 0);
-	dbg::println("{}, {}", result.print(), 0);
-	dbg::println("{}", "4667875975975975975975975975975975975975");
 
 	int k = 0;
 	{
