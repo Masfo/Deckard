@@ -11,7 +11,10 @@ TEST_CASE("bigint", "[bigint]")
 	SECTION("c-tor (integer)")
 	{
 		bigint a(1'234'567'890);
+
 		CHECK(a.to_string() == "1234567890");
+
+
 		CHECK(std::format("{}", a) == "1234567890");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 10);
@@ -187,7 +190,7 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(a.to_string() == "2305843009213693952");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 19);
-#if 0
+	
 		a <<= 28;
 		CHECK(a.to_string() == "618970019642690137449562112");
 		CHECK(a.signum() == Sign::positive);
@@ -408,6 +411,11 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(
 		  rsa_a_neg.to_string() ==
 		  "64135289477071580278790190170577389084825014742943447208116859632024532344630238623598752668347708737661925585694639798853367");
+
+		// Mersenne Prime factor, 131
+		bigint p131("10350794431055162386718619237468234569");
+		bigint factor = p131 * 263;
+		CHECK(factor.to_string() == "2722258935367507707706996859454145691647");
 	}
 
 	SECTION("divide")
@@ -466,7 +474,7 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(c.to_integer() == 100);
 		CHECK(c.signum() == Sign::positive);
 
-		 c = pow(a,b);
+		c = pow(a, b);
 		CHECK(c.to_string() == "100");
 		CHECK(c.to_integer() == 100);
 		CHECK(c.signum() == Sign::positive);
@@ -482,6 +490,7 @@ TEST_CASE("bigint", "[bigint]")
 		  "12517775804153942538904727692315246151345450218113699311007713069004619330588346132723321347383672687243628246035531829091587859"
 		  "6939195157955905767130134752581191460596795355261275651729819196521697845745019711260824560639905752076567808095289");
 		CHECK(c.signum() == Sign::positive);
+		CHECK(c.count() == 371);
 	}
 
 
@@ -520,8 +529,79 @@ TEST_CASE("bigint", "[bigint]")
 		result = sqrt(g^2);
 		CHECK(g == result);
 		CHECK(result.to_string() == "68553216584651356156");
+	}
+
+
+	SECTION("gcd")
+	{
+		bigint a("1234567890123456789012345678901234567890");
+		bigint b("9876543210987654321098765432109876543210");
+
+		bigint result = gcd(a, b);
+		CHECK(result.to_string() == "90000000009000000000900000000090");
+
+		a = bigint(2) ^ 1000;
+		b = bigint(2) ^ 500;
+
+		CHECK(a.to_string() ==
+			  "10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946"
+			  "72917553146825187145285692314043598457757469857480393456777482423098542107460506237114187795418215304647498"
+			  "3581941267398767559165543946077062914571196477686542167660429831652624386837205668069376");
+
+		CHECK(b.to_string() == "32733906078961418700131896968275991522166420460430647894832913680961337964046745548832700923259041571508866"
+							   "84127560071009217256545885393053328527589376");
+
+		result = gcd(a, b);
+		CHECK(result.to_string() == "327339060789614187001318969682759915221664204604306478948329136809613379640467455488327009232590415715"
+									"0886684127560071009217256545885393053328527589376");
+	}
+
+	SECTION("lcm")
+	{
+		bigint a(12);
+		bigint b(18);
+		bigint result = lcm(a, b);
+
+		CHECK(result.to_integer() == 36);
+
+
+		a      = 123'456;
+		b      = 789'012;
+		result = lcm(a, b);
+		CHECK(result.to_integer<u64>() == 8'117'355'456);
+
+		a      = "123456123456789";
+		b      = "7890123456789012";
+		result = lcm(a, b);
+		CHECK(result.to_string() == "324694685190217018074557334156");
+
+		a      = "123456123456789324694685190217018074557334156";
+		b      = "324694685190217018074557334156";
+		result = lcm(a, b);
+		CHECK(result.to_string() == "81173671297554468008735326376926582645357408844016206091156");
+	}
+
+	SECTION("formatter")
+	{
+		bigint a(1'234'567'890);
+		CHECK(a.to_string(10) == "1234567890");
+		CHECK(a.to_string(16) == "499602d2");
+		CHECK(std::format("{}", a) == "1234567890");
+		CHECK(std::format("{:x}", a) == "499602d2");
+		CHECK(std::format("{:H}", a) == "499602D2");
+
+		a = "81173671297554468008735326376926582645357408844016206091156";
+		CHECK(a.to_string(10) == "81173671297554468008735326376926582645357408844016206091156");
+		CHECK(a.to_string(16) == "cee84ac0860d1d3f5a8ab7f9ad365fbf1a4c7afcf00161394");
+
+		CHECK(a.to_string(16, true) ==  "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
+		CHECK(std::format("{:H}", a) == "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
+
+
+
 
 	}
+
 	SECTION("umap")
 	{
 		std::unordered_map<int, bigint> map;

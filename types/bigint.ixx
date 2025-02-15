@@ -49,8 +49,6 @@ namespace deckard
 			digits.shrink_to_fit();
 		}
 
-		bool is_zero() const { return sign == Sign::zero; }
-
 		Compare compare(const bigint& lhs, const bigint& rhs) const
 		{
 			if (lhs.sign > rhs.sign)
@@ -107,8 +105,8 @@ namespace deckard
 				u64 carry = 0;
 				for (const u64 digit : lhs.digits)
 				{
-					type new_digit = (digit << shift) + carry;
-					carry          = new_digit / bigint::base;
+					u64 new_digit = (digit << shift) + carry;
+					carry         = new_digit / bigint::base;
 					digits.push_back(new_digit % bigint::base);
 				}
 
@@ -341,6 +339,8 @@ namespace deckard
 		}
 
 		// divide
+
+
 		void divide(const bigint& dividend, const bigint& divisor)
 		{
 			if (divisor.is_zero())
@@ -646,10 +646,16 @@ namespace deckard
 
 		bool empty() const { return digits.empty(); }
 
-		std::string to_string() const
+		std::string to_string(int base = 10, bool uppercase = false) const
 		{
+			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
+				return "0";
+
+			if (base == 10)
+			{
 			std::string buffer;
 			buffer.reserve(digits.size() * bigint::base_digits);
+
 
 			switch (signum())
 			{
@@ -667,6 +673,37 @@ namespace deckard
 				buffer.append(std::format("{:04}", *it));
 
 			return buffer;
+		}
+
+			std::string chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+			if (uppercase)
+				chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+			assert::check(base >= 2 or base <= 36, "Base must be in the range [2, 36]");
+
+
+			bigint      value(*this);
+			std::string result;
+
+			bigint carry = 0;
+			while (!value.is_zero())
+			{
+				bigint remainder = value % base;
+				value /= base;
+				u32 index = remainder.to_integer<u32>().value_or(99);
+				assert::check(index < 99, "Base index is wrong");
+				result.push_back(chars[index]);
+			}
+
+			if (sign == Sign::negative)
+				result.push_back('-');
+
+			while (not result.empty() and result.back() == '0')
+				result.pop_back();
+
+			std::reverse(result.begin(), result.end());
+
+			return result;
 		}
 
 		template<std::integral T = i32>
@@ -921,28 +958,43 @@ export namespace std
 	template<>
 	struct formatter<bigint>
 	{
-		// TODO: Parse width
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto pos = ctx.begin();
+			while (pos != ctx.end() && *pos != '}')
+			{
+				if (*pos == 'h' or *pos == 'x')
+					parsed_base = 16;
+
+				if (*pos == 'H' or *pos == 'X')
+		{
+					parsed_base = 16;
+					uppercase   = true;
+				}
+
+				if (*pos == 'd')
+			{
+					parsed_base = 10;
+			}
+
+				if (*pos == 'D')
+				{
+					parsed_base = 10;
+					uppercase   = true;
+				}
+
+				++pos;
+			}
+			return pos;
+		}
 
 		auto format(const bigint& v, std::format_context& ctx) const
 		{
-
-			switch (v.signum())
-			{
-				case Sign::negative: std::format_to(ctx.out(), "-"); break;
-				case Sign::zero: return std::format_to(ctx.out(), "0");
-				default: break;
-			}
-
-			assert::check(v.empty() == false, "bigint empty");
-
-			std::format_to(ctx.out(), "{}", v.back());
-
-			auto it = v.rbegin();
-			for (it++; it != v.rend(); ++it)
-				std::format_to(ctx.out(), "{:04}", *it);
-
-			return std::format_to(ctx.out(), "");
+			//
+			return std::format_to(ctx.out(), "{}", v.to_string(parsed_base,uppercase));
 		}
+
+		int  parsed_base = 10;
+		bool uppercase   = false;
 	};
 } // namespace std
