@@ -210,7 +210,6 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(a.to_string() == "25711008708143844408671393477458601640355247900524685364822016");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 62);
-#endif
 	}
 
 	SECTION("shift right")
@@ -526,12 +525,24 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(g == sqrt(result));
 
 
-		result = sqrt(g^2);
+		result = sqrt(g ^ 2);
 		CHECK(g == result);
 		CHECK(result.to_string() == "68553216584651356156");
 	}
 
+	SECTION("abs")
+	{
+		bigint a("1234567890123456789012345678901234567890");
+		bigint b("-9876543210987654321098765432109876543210");
 
+		CHECK(abs(a).to_string() == "1234567890123456789012345678901234567890");
+		a = a.abs();
+		CHECK(a.signum() == Sign::positive);
+
+		b = abs(b);
+		CHECK(b.to_string() == "9876543210987654321098765432109876543210");
+
+	}
 	SECTION("gcd")
 	{
 		bigint a("1234567890123456789012345678901234567890");
@@ -568,7 +579,7 @@ TEST_CASE("bigint", "[bigint]")
 		a      = 123'456;
 		b      = 789'012;
 		result = lcm(a, b);
-		CHECK(result.to_integer<u64>() == 8'117'355'456);
+		CHECK(result.to_integer<u64>() == 8'117'355'456ull);
 
 		a      = "123456123456789";
 		b      = "7890123456789012";

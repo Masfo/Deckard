@@ -128,12 +128,12 @@ namespace deckard
 
 			u64 carry = 0;
 
-			for (int i = lhs.digits.size() - 1; i >= 0; --i)
+			for (i64 i = as<i64>(lhs.digits.size() - 1); i >= 0; --i)
 			{
-				type new_digit = lhs.digits[i] + carry * bigint::base;
-				carry          = new_digit % (1 << shift);
-				new_digit /= (1 << shift);
-				digits.push_back(new_digit);
+				u64 new_digit = as<u64>(lhs.digits[i] + carry * bigint::base);
+				carry          = new_digit % (1ull << shift);
+				new_digit /= (1ull << shift);
+				digits.push_back(as<type>(new_digit));
 			}
 
 			std::reverse(digits.begin(), digits.end());
@@ -348,7 +348,6 @@ namespace deckard
 				dbg::panic("divide zero");
 			}
 
-
 			if (dividend.is_zero() || compare_magnitude(dividend, divisor) == Compare::Less)
 			{
 				operator=(0);
@@ -375,7 +374,6 @@ namespace deckard
 
 				sign = Sign::negative;
 			}
-
 
 			bigint c(largest_divisor(a, b));
 			bigint n(1);
@@ -411,7 +409,7 @@ namespace deckard
 			operator=(lhs - rhs * (lhs / rhs));
 		}
 
-		void pow_op(const bigint& base, const bigint& exponent)
+		void pow_op(const bigint& newbase, const bigint& exponent)
 		{
 			if (exponent.is_zero())
 			{
@@ -420,7 +418,7 @@ namespace deckard
 			}
 
 			bigint result(1);
-			bigint base_copy(base);
+			bigint base_copy(newbase);
 			bigint exp_copy(exponent);
 
 			while (exp_copy > 0)
@@ -646,40 +644,37 @@ namespace deckard
 
 		bool empty() const { return digits.empty(); }
 
-		std::string to_string(int base = 10, bool uppercase = false) const
+		std::string to_string(int newbase = 10, bool uppercase = false) const
 		{
 			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
 				return "0";
 
-			if (base == 10)
+			if (newbase == 10)
 			{
-			std::string buffer;
-			buffer.reserve(digits.size() * bigint::base_digits);
+				std::string buffer;
+				buffer.reserve(digits.size() * bigint::base_digits);
 
 
-			switch (signum())
-			{
-				case Sign::negative: buffer.append("-"); break;
-				case Sign::zero: return "0";
-				default: break;
+				switch (signum())
+				{
+					case Sign::negative: buffer.append("-"); break;
+					case Sign::zero: return "0";
+					default: break;
+				}
+
+				buffer.append(std::format("{}", digits.back()));
+				auto it = digits.rbegin();
+				for (it++; it != digits.rend(); ++it)
+					buffer.append(std::format("{:04}", *it));
+
+				return buffer;
 			}
-
-			assert::check(not empty(), "bigint empty");
-
-			buffer.append(std::format("{}", digits.back()));
-
-			auto it = digits.rbegin();
-			for (it++; it != digits.rend(); ++it)
-				buffer.append(std::format("{:04}", *it));
-
-			return buffer;
-		}
 
 			std::string chars = "0123456789abcdefghijklmnopqrstuvwxyz";
 			if (uppercase)
 				chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-			assert::check(base >= 2 or base <= 36, "Base must be in the range [2, 36]");
+			assert::check(newbase >= 2 or newbase <= 36, "Base must be in the range [2, 36]");
 
 
 			bigint      value(*this);
@@ -688,8 +683,8 @@ namespace deckard
 			bigint carry = 0;
 			while (!value.is_zero())
 			{
-				bigint remainder = value % base;
-				value /= base;
+				bigint remainder = value % newbase;
+				value /= newbase;
 				u32 index = remainder.to_integer<u32>().value_or(99);
 				assert::check(index < 99, "Base index is wrong");
 				result.push_back(chars[index]);
@@ -723,9 +718,9 @@ namespace deckard
 				multiplier *= bigint::base;
 			}
 			if (signum() == Sign::negative)
-				return result = -result;
+				result =  -result;
 
-			return result;
+			return as<T>(result);
 		}
 
 		void operator++()
@@ -943,6 +938,14 @@ namespace deckard
 			return *this;
 		}
 
+		bigint abs() const 
+		{
+			bigint result(*this);
+			if (result < 0)
+				return -result;
+			return result;
+		}
+
 		bigint abs(const bigint& rhs) const
 		{
 			if (rhs.signum() == Sign::negative)
@@ -953,6 +956,8 @@ namespace deckard
 
 		bool is_zero() const { return sign == Sign::zero; }
 	};
+
+	export bigint abs(const bigint& a) { return a.abs(); }
 
 	export bigint sqrt(const bigint& a) { return a.sqrt(); }
 
@@ -1004,18 +1009,18 @@ export namespace std
 			{
 				if (*pos == 'h' or *pos == 'x')
 					parsed_base = 16;
-
+				
 				if (*pos == 'H' or *pos == 'X')
-		{
+				{
 					parsed_base = 16;
 					uppercase   = true;
 				}
 
 				if (*pos == 'd')
-			{
+				{
 					parsed_base = 10;
-			}
-
+				}
+				
 				if (*pos == 'D')
 				{
 					parsed_base = 10;

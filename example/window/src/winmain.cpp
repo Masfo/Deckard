@@ -471,12 +471,18 @@ std::generator<u32> gen()
 	}
 }
 
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+
+	bigint v("64135289477071580278790190170577389084825014742943447208116859632024532344630238623598752668347708737661925585694639798853367");
+	dbg::println("{}\n{:X}", v, v);
+
 
 
 	for (auto x : gen())
@@ -505,29 +511,6 @@ i32 deckard_main(std::string_view commandline)
 
 	dbg::println("d {}", count_digits(-51));
 
-
-	ini::ini cfg("input.ini");
-
-	int koq = 0755;
-
-
-	auto vq1 = make_vector(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-	dbg::println("before: size: {}, cap: {}, maxsize: {}", vq1.size(), vq1.capacity(), vq1.max_size());
-	vq1.clear();
-	dbg::println("after : size: {}, cap: {}, maxsize: {}", vq1.size(), vq1.capacity(), vq1.max_size());
-
-
-	dbg::println("commandline: {}", commandline);
-
-	deckard::random::xoroshiro256 xshift(0);
-
-	repeat<10> = [&] { dbg::println("xshift: {:X}", xshift.next()); };
-
-
-	float4_2 t32_0(1.0f, 2.0f, 3.0f, 4.0f);
-	float4_2 t32_1(1.0f, 2.0f, 3.0f, 4.0f);
-	auto     res_t32 = t32_0 + (t32_1 + t32_0);
-	dbg::println("{},{},{},{}", res_t32.x, res_t32.y, res_t32.z, res_t32.w);
 
 
 	// ###################
@@ -635,9 +618,6 @@ i32 deckard_main(std::string_view commandline)
 
 	int j = 0;
 
-	std::vector v{1};
-
-	vpush(v, 1, 2, 3, 4);
 
 
 	// ###########################################################################
@@ -714,38 +694,6 @@ i32 deckard_main(std::string_view commandline)
 	dbg::println("{}", std::in_range<i16>(ab1));
 
 	// ########################################################################
-
-	std::allocator<u8> allocator;
-	dbg::println("sizeof allocator: {}", sizeof(allocator));
-
-	u8* u8ptr = nullptr;
-	{
-
-		u8ptr = allocator.allocate(128);
-
-		std::uninitialized_fill(u8ptr, u8ptr + 128, (u8)'Q');
-	}
-	{
-
-		std::destroy_n(u8ptr, 128);
-		allocator.deallocate(u8ptr, 128);
-	}
-
-	u8ptr[0] = (u8)'X';
-	// ########################################################################
-
-
-	auto v1 = make_vector(1, 2, 3);
-	auto v2 = make_vector(4, 5, 6);
-
-	auto v3 = concat(v1, v2);
-
-	auto v4 = make_array(1, 2, 3);
-	auto v5 = make_array(4, 5, 6);
-	auto v6 = concat(v4, v5);
-
-
-	int kxko = 0;
 
 	// ########################################################################
 
