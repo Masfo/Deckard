@@ -935,11 +935,44 @@ namespace deckard
 			result.sqrt_op(*this);
 			return result;
 		}
+
+		// abs
+		bigint& abs()
+		{
+			sign = Sign::positive;
+			return *this;
+		}
+
+		bigint abs(const bigint& rhs) const
+		{
+			if (rhs.signum() == Sign::negative)
+				return -rhs;
+
+			return rhs;
+		}
+
+		bool is_zero() const { return sign == Sign::zero; }
 	};
 
 	export bigint sqrt(const bigint& a) { return a.sqrt(); }
 
-	export bigint pow(const bigint& a, const bigint &b) { return a.pow(b); }
+	export bigint pow(const bigint& a, const bigint& b) { return a.pow(b); }
+
+	export bigint gcd(bigint a, bigint b)
+	{
+		a = a.abs();
+		b = b.abs();
+
+		while (true)
+		{
+			if (b.is_zero())
+				return a;
+			a %= b;
+			if (a.is_zero())
+				return b;
+			b %= a;
+		}
+	}
 
 	export bigint lcm(const bigint& a, const bigint& b)
 	{
