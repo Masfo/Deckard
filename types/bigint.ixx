@@ -941,6 +941,12 @@ namespace deckard
 
 	export bigint pow(const bigint& a, const bigint &b) { return a.pow(b); }
 
+	export bigint lcm(const bigint& a, const bigint& b)
+	{
+		if (a.is_zero() or b.is_zero())
+			return bigint(0);
+		return (a / gcd(a, b)) * b;
+	}
 
 
 } // namespace deckard
