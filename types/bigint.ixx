@@ -411,6 +411,61 @@ namespace deckard
 			operator=(lhs - rhs * (lhs / rhs));
 		}
 
+		void pow_op(const bigint& base, const bigint& exponent)
+		{
+			if (exponent.is_zero())
+			{
+				operator=(1);
+				return;
+			}
+
+			bigint result(1);
+			bigint base_copy(base);
+			bigint exp_copy(exponent);
+
+			while (exp_copy > 0)
+			{
+				if (exp_copy[0] % 2 == 1)
+					result *= base_copy;
+				base_copy *= base_copy;
+				exp_copy >>= 1;
+			}
+
+			operator=(result);
+		}
+
+		void sqrt_op(const bigint& rhs)
+		{
+			if (rhs.is_zero() || rhs.signum() == Sign::negative)
+			{
+				operator=(0);
+				return;
+			}
+
+			bigint left(1), right(rhs), mid, result;
+			while (left <= right)
+			{
+				mid                = (left + right) / 2;
+				bigint mid_squared = mid * mid;
+				if (mid_squared == rhs)
+				{
+					operator=(mid);
+					return;
+				}
+				else if (mid_squared < rhs)
+				{
+					left   = mid + 1;
+					result = mid;
+				}
+				else
+				{
+					right = mid - 1;
+				}
+			}
+			operator=(result);
+		}
+
+
 	public:
 		bigint() { operator=(0); }
 
@@ -819,7 +874,36 @@ namespace deckard
 			operator=(operator%(rhs));
 			return *this;
 		}
+
+		// pow
+		bigint operator^(const bigint& rhs) const
+		{
+			bigint result(*this);
+			result.pow_op(*this, rhs);
+			return result;
+		}
+
+		bigint& operator^=(const bigint& rhs)
+		{
+			operator=(operator^(rhs));
+			return *this;
+		}
+
+		bigint pow(const bigint& rhs) const { return *this ^ rhs; }
+
+		// sqrt
+		bigint sqrt() const
+		{
+			bigint result;
+			result.sqrt_op(*this);
+			return result;
+		}
 	};
+
+	export bigint sqrt(const bigint& a) { return a.sqrt(); }
+
+	export bigint pow(const bigint& a, const bigint &b) { return a.pow(b); }
+
 
 
 } // namespace deckard

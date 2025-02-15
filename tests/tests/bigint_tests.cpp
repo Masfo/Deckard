@@ -445,21 +445,83 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(c.signum() == Sign::positive);
 
 		CHECK(-44 % 42 == -2);
-		CHECK((-44 % 42 + 42) % 42 ==40);
+		CHECK((-44 % 42 + 42) % 42 == 40);
 		c = -a % b;
 		CHECK(c.to_string() == "-2");
 		CHECK(c.to_integer() == -44 % 42);
 		CHECK(c.signum() == Sign::negative);
 
-		bigint d = (-a % b+b) % b;
+		bigint d = (-a % b + b) % b;
 		CHECK(d.to_string() == "40");
-		CHECK(d.to_integer() == (-44 % 42+42) % 42);
+		CHECK(d.to_integer() == (-44 % 42 + 42) % 42);
 		CHECK(d.signum() == Sign::positive);
+	}
 
+	SECTION("pow")
+	{
+		const bigint a(10), b(2);
 
+		bigint c = a ^ b;
+		CHECK(c.to_string() == "100");
+		CHECK(c.to_integer() == 100);
+		CHECK(c.signum() == Sign::positive);
+
+		 c = pow(a,b);
+		CHECK(c.to_string() == "100");
+		CHECK(c.to_integer() == 100);
+		CHECK(c.signum() == Sign::positive);
+
+		c = a ^ 52;
+		CHECK(c.to_string() == "10000000000000000000000000000000000000000000000000000");
+		CHECK(c.signum() == Sign::positive);
+
+		c = bigint{78'945'165'163} ^ 34;
+		CHECK(
+		  c.to_string() ==
+		  "32290017532639513388688936255873485353146117632851832154852216685914632839589735559565983569901467745559944875449797671314352532"
+		  "12517775804153942538904727692315246151345450218113699311007713069004619330588346132723321347383672687243628246035531829091587859"
+		  "6939195157955905767130134752581191460596795355261275651729819196521697845745019711260824560639905752076567808095289");
+		CHECK(c.signum() == Sign::positive);
 	}
 
 
+	SECTION("sqrt")
+	{
+		bigint a("49");
+		bigint result = a.sqrt();
+		CHECK(result.to_string() == "7");
+
+		bigint b("0");
+		result = b.sqrt();
+		CHECK(result.to_string() == "0");
+
+		bigint c("1");
+		result = c.sqrt();
+		CHECK(result.to_string() == "1");
+
+		bigint d("4");
+		result = d.sqrt();
+		CHECK(result.to_string() == "2");
+
+		bigint e("9");
+		result = e.sqrt();
+		CHECK(result.to_string() == "3");
+
+		bigint f("16");
+		result = f.sqrt();
+		CHECK(result.to_string() == "4");
+
+		const bigint g("68553216584651356156");
+		result = g * g;
+		CHECK(result.to_string() == "4699543504102117748327603647049959096336");
+		CHECK(g == sqrt(result));
+
+
+		result = sqrt(g^2);
+		CHECK(g == result);
+		CHECK(result.to_string() == "68553216584651356156");
+
+	}
 	SECTION("umap")
 	{
 		std::unordered_map<int, bigint> map;
