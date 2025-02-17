@@ -78,28 +78,28 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(a.to_integer<i32>().has_value() == false);
 		CHECK(a.to_integer<u32>().has_value() == false);
 
-		auto check = [](const auto& a, bool correct)
+		auto check = [](const auto& a)
 		{
 			bigint b(a);
 
 			auto res = b.to_integer<std::remove_cvref_t<decltype(a)>>();
-			CHECK(res.has_value() == correct);
+			CHECK(res.has_value() == true);
 
 			if (res)
 			{
 				CHECK(res.value() == a);
 			}
 		};
-		check(limits::min<i64>, true);
-		check(limits::min<i32>, true);
-		check(limits::min<i16>, true);
-		check(limits::min<i8>, true);
+		check(limits::min<i64>);
+		check(limits::min<i32>);
+		check(limits::min<i16>);
+		check(limits::min<i8>);
 
-		check(0, true);
-		check(limits::max<u64>, true);
-		check(limits::max<i32>, true);
-		check(limits::max<i16>, true);
-		check(limits::max<i8>, true);
+		check(0);
+		check(limits::max<u64>);
+		check(limits::max<i32>);
+		check(limits::max<i16>);
+		check(limits::max<i8>);
 	}
 
 	SECTION("invert")
@@ -141,60 +141,75 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 3);
 
+
 		a <<= 1;
 
 		CHECK(a.to_string() == "256");
 		CHECK(a.to_integer() == 256);
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 3);
+		CHECK(a == bigint(128) * (1 << 1));
 
 		a <<= 4;
 		CHECK(a.to_string() == "4096");
 		CHECK(a.to_integer() == 4096);
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 4);
+		CHECK(a == bigint(128) * (1 << 5));
 
 		a <<= 12;
 		CHECK(a.to_string() == "16777216");
 		CHECK(a.to_integer() == 16'777'216);
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 8);
+		CHECK(a == bigint(128) * (1 << 17));
 
 		a <<= 1;
 		CHECK(a.to_string() == "33554432");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 8);
+		CHECK(a == bigint(128) * (1 << 18));
+
 
 		a <<= 1;
 		CHECK(a.to_string() == "67108864");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 8);
+		CHECK(a == bigint(128) * (1 << 19));
 
 		a <<= 7;
 		CHECK(a.to_string() == "8589934592");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 10);
+		CHECK(a == bigint(128) * (1 << 26));
 
 
 		a <<= 7;
 		CHECK(a.to_string() == "1099511627776");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 13);
+		CHECK(a == bigint(128) * (1ull << 33ull));
+
 
 		a <<= 7;
 		CHECK(a.to_string() == "140737488355328");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 15);
+		CHECK(a == bigint(128) * (1ull << 40ull));
+
 
 		a <<= 14;
 		CHECK(a.to_string() == "2305843009213693952");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 19);
-	
+		CHECK(a == bigint(128) * (1ull << 54ull));
+
+
 		a <<= 28;
 		CHECK(a.to_string() == "618970019642690137449562112");
 		CHECK(a.signum() == Sign::positive);
 		CHECK(a.count() == 27);
+
 
 		a <<= 32;
 		CHECK(a.to_string() == "2658455991569831745807614120560689152");
@@ -399,6 +414,12 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(rsa250 == correct);
 
 
+		bigint rsa250_double = p * 2;
+		CHECK(
+		  rsa250_double.to_string() ==
+		  "128270578954143160557580380341154778169650029485886894416233719264049064689260477247197505336695417475323851171389279597706734");
+
+
 		bigint rsa_a_neg = p * -1;
 		CHECK(rsa_a_neg.signum() == Sign::negative);
 		CHECK(
@@ -415,6 +436,12 @@ TEST_CASE("bigint", "[bigint]")
 		bigint p131("10350794431055162386718619237468234569");
 		bigint factor = p131 * 263;
 		CHECK(factor.to_string() == "2722258935367507707706996859454145691647");
+
+
+		auto pb = 10 * p131;
+		CHECK(pb.to_string() == "103507944310551623867186192374682345690");
+
+
 	}
 
 	SECTION("divide")
@@ -440,6 +467,14 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(cc.to_integer() == 2'965'008);
 		CHECK(cc.signum() == Sign::positive);
 		CHECK(cc.count() == 7);
+
+		bigint p(
+		  "64135289477071580278790190170577389084825014742943447208116859632024532344630238623598752668347708737661925585694639798853367");
+		p /= 2;
+
+		CHECK(
+		  p.to_string() ==
+		  "32067644738535790139395095085288694542412507371471723604058429816012266172315119311799376334173854368830962792847319899426683");
 	}
 
 	SECTION("modulus")
@@ -541,7 +576,6 @@ TEST_CASE("bigint", "[bigint]")
 
 		b = abs(b);
 		CHECK(b.to_string() == "9876543210987654321098765432109876543210");
-
 	}
 	SECTION("gcd")
 	{
@@ -579,7 +613,8 @@ TEST_CASE("bigint", "[bigint]")
 		a      = 123'456;
 		b      = 789'012;
 		result = lcm(a, b);
-		CHECK(result.to_integer<u64>() == 8'117'355'456ull);
+		CHECK(result.to_string() == "8117355456");
+
 
 		a      = "123456123456789";
 		b      = "7890123456789012";
@@ -605,12 +640,15 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(a.to_string(10) == "81173671297554468008735326376926582645357408844016206091156");
 		CHECK(a.to_string(16) == "cee84ac0860d1d3f5a8ab7f9ad365fbf1a4c7afcf00161394");
 
-		CHECK(a.to_string(16, true) ==  "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
+		CHECK(a.to_string(16, true) == "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
 		CHECK(std::format("{:H}", a) == "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
+		CHECK(std::format("{:x}", a) == "cee84ac0860d1d3f5a8ab7f9ad365fbf1a4c7afcf00161394");
 
 
-
-
+		CHECK(std::format("{:b2}", a) ==
+			  "1100111011101000010010101100000010000110000011010001110100111111010110101000101010110111111110011010110100110110010111111011"
+			  "111100011010010011000111101011111100111100000000000101100001001110010100");
+		CHECK(std::format("{:b36}", a) == "l701f2az4zj11momniss8jl4co03sao1cpvr10");
 	}
 
 	SECTION("umap")

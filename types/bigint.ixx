@@ -91,10 +91,8 @@ namespace deckard
 
 		void shift_left(const bigint& lhs, type shift)
 		{
-
 			digits.clear();
 			digits.reserve(lhs.digits.size() + shift / bigint::base_digits + 1);
-
 
 			if (shift == 0)
 			{
@@ -119,6 +117,7 @@ namespace deckard
 
 			sign = lhs.sign;
 			remove_trailing_zeros();
+
 		}
 
 		void shift_right(const bigint& lhs, type shift)
@@ -131,7 +130,7 @@ namespace deckard
 			for (i64 i = as<i64>(lhs.digits.size() - 1); i >= 0; --i)
 			{
 				u64 new_digit = as<u64>(lhs.digits[i] + carry * bigint::base);
-				carry          = new_digit % (1ull << shift);
+				carry         = new_digit % (1ull << shift);
 				new_digit /= (1ull << shift);
 				digits.push_back(as<type>(new_digit));
 			}
@@ -296,6 +295,12 @@ namespace deckard
 			else
 				sign = Sign::positive;
 
+			if (rhs == 2)
+			{
+				operator=(lhs << 1);
+				return;
+			}
+
 			const bigint *lh = &lhs, *rh = &rhs;
 
 			if (compare_magnitude(lhs, rhs) == Compare::Less)
@@ -373,6 +378,12 @@ namespace deckard
 					-b;
 
 				sign = Sign::negative;
+			}
+
+			if (divisor == 2)
+			{
+				operator=(dividend >> 1);
+				return;
 			}
 
 			bigint c(largest_divisor(a, b));
@@ -710,15 +721,22 @@ namespace deckard
 			if (count() > count_digits(std::numeric_limits<T>::max()))
 				return std::unexpected("bigint too large for integer conversion");
 
-			i64 result     = 0;
-			i64 multiplier = 1;
+			u64 result     = 0;
+			u64 multiplier = 1;
 			for (const auto& digit : digits)
 			{
-				result += digit * multiplier;
+				result += (T)(digit)*multiplier;
 				multiplier *= bigint::base;
 			}
-			if (signum() == Sign::negative)
-				result =  -result;
+
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (signum() == Sign::negative)
+				{
+					i64 iresult = result;
+					return as<T>(-iresult);
+				}
+			}
 
 			return as<T>(result);
 		}
@@ -938,7 +956,7 @@ namespace deckard
 			return *this;
 		}
 
-		bigint abs() const 
+		bigint abs() const
 		{
 			bigint result(*this);
 			if (result < 0)
@@ -986,6 +1004,11 @@ namespace deckard
 		return (a / gcd(a, b)) * b;
 	}
 
+	export template<std::integral T>
+	 bigint operator*(const T lhs, const bigint& rhs)
+	{
+		return bigint{lhs}  * rhs;
+	}
 
 } // namespace deckard
 
@@ -1009,7 +1032,7 @@ export namespace std
 			{
 				if (*pos == 'h' or *pos == 'x')
 					parsed_base = 16;
-				
+
 				if (*pos == 'H' or *pos == 'X')
 				{
 					parsed_base = 16;
@@ -1020,22 +1043,50 @@ export namespace std
 				{
 					parsed_base = 10;
 				}
-				
+
 				if (*pos == 'D')
 				{
 					parsed_base = 10;
 					uppercase   = true;
 				}
 
+				if (*pos == 'b' or *pos == 'B')
+				{
+					++pos;
+					parsed_base = 0;
+
+					if (*pos >= '0' and *pos <= '9')
+					{
+						parsed_base += *pos - '0';
+						++pos;
+						if (*pos >= '0' and *pos <= '9')
+						{
+							parsed_base *= 10;
+							parsed_base += *pos - '0';
+							++pos;
+
+							if (parsed_base < 2 or parsed_base > 36)
+								throw std::format_error("Base invalid");
+
+							continue;
+						}
+					}
+					continue;
+				}
+
 				++pos;
 			}
+
+			if (pos != ctx.end() and *pos != '}')
+				throw std::format_error("Invalid format");
+
 			return pos;
 		}
 
 		auto format(const bigint& v, std::format_context& ctx) const
 		{
 			//
-			return std::format_to(ctx.out(), "{}", v.to_string(parsed_base,uppercase));
+			return std::format_to(ctx.out(), "{}", v.to_string(parsed_base, uppercase));
 		}
 
 		int  parsed_base = 10;
