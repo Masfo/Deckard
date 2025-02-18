@@ -117,7 +117,6 @@ namespace deckard
 
 			sign = lhs.sign;
 			remove_trailing_zeros();
-
 		}
 
 		void shift_right(const bigint& lhs, type shift)
@@ -868,6 +867,7 @@ namespace deckard
 			return result;
 		}
 
+
 		// sub
 		bigint& operator-=(const bigint& rhs)
 		{
@@ -876,6 +876,7 @@ namespace deckard
 		}
 
 		bigint operator-(const bigint& rhs) const
+
 		{
 			bigint result;
 			result.subtract(*this, rhs);
@@ -890,12 +891,14 @@ namespace deckard
 			return *this;
 		}
 
-		auto operator*(const bigint& rhs) const
+		bigint operator*(const bigint& rhs) const
 		{
 			bigint result;
 			result.multiply(*this, rhs);
 			return result;
 		}
+
+
 
 		// div
 		auto operator/(const bigint& rhs) const
@@ -1004,11 +1007,23 @@ namespace deckard
 		return (a / gcd(a, b)) * b;
 	}
 
-	export template<std::integral T>
+	 export template<std::integral T>
 	 bigint operator*(const T lhs, const bigint& rhs)
 	{
-		return bigint{lhs}  * rhs;
-	}
+		return bigint{lhs} * rhs;
+	 }
+
+	 export template<std::integral T>
+	 bigint operator+(const T lhs, const bigint& rhs)
+	 {
+		 return bigint{lhs} + rhs;
+	 }
+
+	 export template<std::integral T>
+	 bigint operator-(const T lhs, const bigint& rhs)
+	 {
+		 return bigint{lhs} - rhs;
+	 }
 
 } // namespace deckard
 

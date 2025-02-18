@@ -295,6 +295,11 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(e.to_string() == "-1");
 		CHECK(e.signum() == Sign::negative);
 		CHECK(e.count() == 1);
+
+		e = 10 - e;
+		CHECK(e.to_string() == "11");
+		CHECK(e.signum() == Sign::positive);
+		CHECK(e.count() == 2);
 	}
 
 	SECTION("sub (large)")
@@ -368,6 +373,11 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(c.to_string() == "1");
 		CHECK(c.signum() == Sign::positive);
 		CHECK(c.count() == 1);
+
+		c = 10 + c;
+		CHECK(c.to_string() == "11");
+		CHECK(c.signum() == Sign::positive);
+		CHECK(c.count() == 2);
 	}
 
 	SECTION("add (large)")
@@ -440,8 +450,6 @@ TEST_CASE("bigint", "[bigint]")
 
 		auto pb = 10 * p131;
 		CHECK(pb.to_string() == "103507944310551623867186192374682345690");
-
-
 	}
 
 	SECTION("divide")
