@@ -246,7 +246,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	assert::check(sqrt(bigint(9)) == bigint(3), "sqrt");
 	assert::check(abs(bigint(-9)) == bigint(9), "abs");
 	assert::check(mod(bigint(42), bigint(13)) == bigint(3), "mod");
-	assert::check(pow(bigint(6), bigint(7)) == bigint(279'936), "mod");
+	assert::check(pow(bigint(6), bigint(7)) == bigint(279'936), "pow");
 	assert::check(gcd(bigint(68), bigint(42)) == bigint(2), "gcd");
 	assert::check(lcm(bigint(68), bigint(42)) == bigint(1428), "lcm");
 
