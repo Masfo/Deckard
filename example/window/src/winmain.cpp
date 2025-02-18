@@ -450,8 +450,6 @@ struct Noisy
 	T value_{0};
 };
 
-
-
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
 template<typename T>
@@ -471,8 +469,6 @@ std::generator<u32> gen()
 	}
 }
 
-
-
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
@@ -480,23 +476,11 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	// 3.141592653589793238462643383279
-	// 6.283185307179586476925286766559
-
-	bigint pi_fract1("14159265358979323846264338327");
-	bigint tau_fract("28318530717958647692528676655");
-
-	bigint pi_doub = pi_fract1 * 2;
-
-	auto pi_str  = pi_fract1.to_string();
-	auto   pita_st = pi_doub.to_string();
 
 	for (auto x : gen())
 		dbg::print("{}.", x);
 
 	dbg::println();
-
-
 
 
 	Noisy<int> n1{456};
@@ -516,7 +500,6 @@ i32 deckard_main(std::string_view commandline)
 #endif
 
 	dbg::println("d {}", count_digits(-51));
-
 
 
 	// ###################
@@ -623,7 +606,6 @@ i32 deckard_main(std::string_view commandline)
 
 
 	int j = 0;
-
 
 
 	// ###########################################################################

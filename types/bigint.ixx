@@ -987,6 +987,9 @@ namespace deckard
 
 		bigint pow(const bigint& rhs) const { return *this ^ rhs; }
 
+		bigint mod(const bigint& rhs) const { return *this % rhs; }
+
+
 		// sqrt
 		bigint sqrt() const
 		{
@@ -1026,6 +1029,9 @@ namespace deckard
 	export bigint sqrt(const bigint& a) { return a.sqrt(); }
 
 	export bigint pow(const bigint& a, const bigint& b) { return a.pow(b); }
+
+	export bigint mod(const bigint& a, const bigint& b) { return a.mod(b); }
+
 
 	export bigint gcd(bigint a, bigint b)
 	{

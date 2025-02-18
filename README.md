@@ -31,18 +31,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 
 	dbg::panic("reason");	
 
-	assert::if_true_(true, "Message");
-	assert::if_false(true);
-
-	assert::if_equal(0==0);_
-	assert::if_not_equal(0==1);
-
-	assert::if_close_enough(3.14f, 3.0);
-
-	assert::if_null(...);
-	assert::if_not_null(...);
+	assert::check(1==2, "Wrong");
+	
 	```
-  - **Types**
+  - **Basic types**
 	  ```cpp
 	  import deckard;
 
@@ -217,3 +209,57 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	u8 u          = reader.read<u32>(8);		// 0b1111'0000
 	std::string s = reader.read_string(4 * 8);	// "abcd"
 	````
+    - **Big integer**
+    ```cpp
+	// operators: + - * / % ^
+	// functions: pow sqrt abs gcd lcm random_bigint
+	import deckard.bigint;
+	using namespace deckard;
+
+	bigint p(6);
+	bigint q(7);
+
+	assert::check(p + q == bigint{13}, "add");
+	assert::check(p - q == bigint{-1}, "subtract");
+	assert::check(p * q == bigint{42}, "multiply");
+	assert::check((p * q) / q == p, "divide");
+	assert::check(((p * q) % (p + q)) == bigint{3}, "mod");
+	assert::check((p ^ q) == bigint{279'936}, "power");
+
+
+	p = "641352894770715802787901901705773890848250147429434472081168596"
+		"32024532344630238623598752668347708737661925585694639798853367";
+
+	q = "333720275949781565562260106053551142279407603447675546667845209"
+		"87023841729210037080257448673296881877565718986258036932062711";
+
+	bigint n = p * q;
+
+	bigint rsa250(
+	  "214032465024074496126442307283933356300861471514475501779775492088141
+	  "802344714013664334551909580467961099285187247091458768739626192155736
+	  "304745477052080511905649310668769159001975940569345745223058932597669
+	  "7471681738069364894699871578494975937497937");
+
+	assert::check(n == rsa250, "RSA250 calculation is wrong");
+
+	assert::check(sqrt(bigint(9)) == bigint(3), "sqrt");
+	assert::check(abs(bigint(-9)) == bigint(9), "abs");
+	assert::check(mod(bigint(42), bigint(13)) == bigint(3), "mod");
+	assert::check(pow(bigint(6), bigint(7)) == bigint(279'936), "mod");
+	assert::check(gcd(bigint(68), bigint(42)) == bigint(2), "gcd");
+	assert::check(lcm(bigint(68), bigint(42)) == bigint(1428), "lcm");
+
+	assert::check(bigint(42).to_string() == "42");
+	assert::check(bigint("42").to_integer<u32>() == 42);
+
+	auto rnd = random_bigint(42); // 42 digit (base 10) random number
+
+	rnd.to_string(16, true);      // base 16, uppercase
+	rnd.to_string(24, false);     // base 24, lowercase
+
+	std::format("{}", rnd);       // base 10
+	std::format("{:x}", rnd);     // base 16 (:x, :X, :h, :H)
+	std::format("{:b2}", rnd);    // base 2
+	std::format("{:B36}", rnd);   // base 36
+	```
