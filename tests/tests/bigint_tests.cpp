@@ -10,6 +10,17 @@ TEST_CASE("bigint", "[bigint]")
 
 	SECTION("c-tor (integer)")
 	{
+		bigint def;
+		CHECK(def.to_string() == "0");
+		CHECK(def.to_integer() == 0);
+		CHECK(def.signum() == Sign::positive);
+		CHECK(def.count() == 1);
+
+		bigint def_str = "1234567890";
+		CHECK(def_str.to_string() == "1234567890");
+		CHECK(def_str.to_integer() == 1'234'567'890);
+
+
 		bigint a(1'234'567'890);
 
 		CHECK(a.to_string() == "1234567890");
@@ -450,6 +461,13 @@ TEST_CASE("bigint", "[bigint]")
 
 		auto pb = 10 * p131;
 		CHECK(pb.to_string() == "103507944310551623867186192374682345690");
+
+
+		//
+		bigint big1 = 1'234'567'890;
+		bigint big2("9876543210123456789098765432101234567890");
+		bigint big3 = big1 * big2 * 123'456;
+		CHECK(big3.to_string() == "1505331490682966620443288524512589666204282352096057600");
 	}
 
 	SECTION("divide")
@@ -657,6 +675,22 @@ TEST_CASE("bigint", "[bigint]")
 			  "1100111011101000010010101100000010000110000011010001110100111111010110101000101010110111111110011010110100110110010111111011"
 			  "111100011010010011000111101011111100111100000000000101100001001110010100");
 		CHECK(std::format("{:b36}", a) == "l701f2az4zj11momniss8jl4co03sao1cpvr10");
+	}
+
+	SECTION("random bigint")
+	{
+		bigint rndq = random_bigint();
+
+		bigint rnd = random_bigint(16);
+		CHECK(rnd.count() == 16);
+
+
+		rnd = random_bigint(512);
+		CHECK(rnd.count() == 512);
+		auto   x    = rnd.to_string();
+		bigint bign = rnd ^ 5;
+		CHECK(bign.to_string().size() == bign.count());
+
 	}
 
 	SECTION("umap")

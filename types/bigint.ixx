@@ -278,9 +278,39 @@ namespace deckard
 			remove_trailing_zeros();
 		}
 
+		void karatsuba_multiply(const bigint& lhs, const bigint& rhs)
+		{
+
+			size_t n = std::max(lhs.size(), rhs.size());
+			size_t m = n / 2;
+
+			bigint high1(lhs.digits.begin() + m, lhs.digits.end());
+			bigint low1(lhs.digits.begin(), lhs.digits.begin() + m);
+			bigint high2(rhs.digits.begin() + m, rhs.digits.end());
+			bigint low2(rhs.digits.begin(), rhs.digits.begin() + m);
+
+			bigint z0 = low1 * low2;
+			bigint z1 = (low1 + high1) * (low2 + high2);
+			bigint z2 = high1 * high2;
+
+			digits = z2.digits;
+			digits.insert(digits.begin(), m * 2, 0);
+			bigint temp = z1 - z2 - z0;
+			temp.digits.insert(temp.digits.begin(), m, 0);
+			*this += temp;
+			*this += z0;
+		}
+
 		// mul
 		void multiply(const bigint& lhs, const bigint& rhs)
 		{
+			// if (lhs.size() >= 32 and rhs.size() >= 32)
+			//{
+			//	karatsuba_multiply(lhs, rhs);
+			//	return;
+			// }
+
+
 			digits.clear();
 
 			if (lhs.is_zero() or rhs.is_zero())
@@ -475,11 +505,28 @@ namespace deckard
 
 
 	public:
-		bigint() { operator=(0); }
+		bigint()
+		{
+			digits.clear();
+			digits.push_back(0);
+			sign = Sign::positive;
+		}
+
+		template<typename Iterator>
+		bigint(const Iterator begin, const Iterator end)
+		{
+			digits.assign(begin, end);
+			remove_trailing_zeros();
+			sign = digits.empty() ? Sign::zero : Sign::positive;
+		}
 
 		bigint(std::integral auto v) { operator=(v); }
 
 		bigint(const bigint& bi) { operator=(bi); }
+
+		bigint(const char* str) { operator=(std::string_view(str)); }
+
+		bigint& operator=(const char* str) { return operator=(std::string_view(str)); }
 
 		bigint(std::string_view input)
 		{
@@ -642,8 +689,7 @@ namespace deckard
 				return 1;
 			assert::check(not empty(), "bigint empty");
 
-
-			return (digits.size() - 1) * bigint::base_digits + count_digits(digits.back());
+			return ((digits.size() - 1) * bigint::base_digits) + count_digits(digits.back());
 		}
 
 		auto back() const { return digits.back(); }
@@ -867,7 +913,6 @@ namespace deckard
 			return result;
 		}
 
-
 		// sub
 		bigint& operator-=(const bigint& rhs)
 		{
@@ -897,8 +942,6 @@ namespace deckard
 			result.multiply(*this, rhs);
 			return result;
 		}
-
-
 
 		// div
 		auto operator/(const bigint& rhs) const
@@ -1007,23 +1050,47 @@ namespace deckard
 		return (a / gcd(a, b)) * b;
 	}
 
-	 export template<std::integral T>
-	 bigint operator*(const T lhs, const bigint& rhs)
+	export template<std::integral T>
+	bigint operator*(const T lhs, const bigint& rhs)
 	{
 		return bigint{lhs} * rhs;
-	 }
+	}
 
-	 export template<std::integral T>
-	 bigint operator+(const T lhs, const bigint& rhs)
-	 {
-		 return bigint{lhs} + rhs;
-	 }
+	export template<std::integral T>
+	bigint operator+(const T lhs, const bigint& rhs)
+	{
+		return bigint{lhs} + rhs;
+	}
 
-	 export template<std::integral T>
-	 bigint operator-(const T lhs, const bigint& rhs)
-	 {
-		 return bigint{lhs} - rhs;
-	 }
+	export template<std::integral T>
+	bigint operator-(const T lhs, const bigint& rhs)
+	{
+		return bigint{lhs} - rhs;
+	}
+
+	export bigint random_bigint(size_t digits = 0)
+	{
+		std::random_device            rd;
+		std::uniform_int_distribution ints(48, 57); // '0'...'9'
+
+		std::string str;
+
+		if (digits == 0)
+		{
+			std::uniform_int_distribution digits_dist(1, 32);
+			digits = digits_dist(rd);
+		}
+
+		str.resize(digits);
+
+		for (auto& i : str)
+			i = ints(rd);
+
+		while (str[0] == '0')
+			str[0] = ints(rd);
+
+		return bigint(str);
+	}
 
 } // namespace deckard
 
