@@ -477,6 +477,19 @@ i32 deckard_main(std::string_view commandline)
 #endif
 
 
+	graph::graph<i32> g(5);
+
+	 g.add(0, 1, 4);
+	g.add(0, 2, 8);
+	g.add(1, 2, 2);
+	g.add(1, 3, 6);
+	g.add(2, 3, 3);
+	g.add(3, 4, 5);
+	g.add(4, 0, 7);
+
+	print(g);
+
+
 	for (auto x : gen())
 		dbg::print("{}.", x);
 

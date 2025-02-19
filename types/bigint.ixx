@@ -990,6 +990,8 @@ namespace deckard
 		bigint mod(const bigint& rhs) const { return *this % rhs; }
 
 
+
+
 		// sqrt
 		bigint sqrt() const
 		{
@@ -1021,6 +1023,35 @@ namespace deckard
 			return rhs;
 		}
 
+
+ 
+
+		  // bitwise and
+		bigint operator&(const bigint& rhs) const
+		{
+			bigint result;
+			result.digits.clear();
+			result.sign = Sign::positive;
+
+			size_t size = std::max(digits.size(), rhs.digits.size());
+			result.digits.reserve(size);
+
+			for (size_t i = 0; i < size; ++i)
+			{
+				type digit1 = (i < digits.size()) ? digits[i] : 0;
+				type digit2 = (i < rhs.digits.size()) ? rhs.digits[i] : 0;
+				result.digits.push_back(digit1 & digit2);
+			}
+			//std::ranges::reverse(result.digits);
+			result.remove_trailing_zeros();
+			return result;
+		}
+
+		bigint& operator&=(const bigint& rhs)
+		{
+			operator=(operator&(rhs));
+			return *this;
+		}
 		bool is_zero() const { return sign == Sign::zero; }
 	};
 
