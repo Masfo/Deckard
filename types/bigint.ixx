@@ -503,6 +503,76 @@ namespace deckard
 			operator=(result);
 		}
 
+		bigint to_base(std::string_view input, int base = 0)
+		{
+
+			if (input.empty())
+				return {};
+
+			if (input.size() == 1 and (input[0] == '-' or input[0] == '0'))
+				return {};
+
+			i32 sign = 1;
+			if (input.size() >= 1 and input[0] == '-')
+			{
+				input.remove_prefix(1);
+				sign = -1;
+			}
+
+
+			if (base == 0 and input.size() >= 2)
+			{
+				if (input[0] == '0' && (input[1] == 'x' || input[1] == 'X'))
+				{
+					base = 16;
+					input.remove_prefix(2);
+				}
+				else if (input[0] == '0' && (input[1] == 'b' || input[1] == 'B'))
+				{
+					base = 2;
+					input.remove_prefix(2);
+				}
+				else if (input[0] == '#')
+				{
+					base = 16;
+					input.remove_prefix(1);
+				}
+				else if (input[0] == '0')
+				{
+					base = 8;
+					input.remove_prefix(1);
+				}
+				else
+					base = 10;
+			}
+
+			//
+			bigint result;
+
+			for (const auto& c : input)
+			{
+				i32 value = 0;
+				if (c >= '0' and c <= '9')
+					value = c - '0';
+				else if (c >= 'a' and c <= 'z')
+					value = c - 'a' + 10;
+				else if (c >= 'A' and c <= 'Z')
+					value = c - 'A' + 10;
+				else
+					value = static_cast<i32>(c);
+
+				if (value >= base)
+					dbg::panic("invalid character '{:c}' in string", c);
+
+				result = result * base + value;
+			}
+
+			if (sign < 0)
+				-result;
+
+
+			return result;
+		}
 
 	public:
 		bigint()
@@ -530,44 +600,16 @@ namespace deckard
 
 		bigint(std::string_view input)
 		{
-			auto lastPosition = input.rend();
-
-			switch (input[0])
+			if (input.empty())
 			{
-				case '-':
-					sign = Sign::negative;
-					lastPosition -= 1;
-					break;
-				case '0':
-				{
-					if (input.length() == 1)
-						sign = Sign::zero;
-					return;
-				}
-
-				default: sign = Sign::positive;
+				digits.clear();
+				digits.push_back(0);
+				sign = Sign::positive;
+				return;
 			}
 
-			int counter = 0, newgroup = 0, buffer = 0;
-			for (auto it = input.rbegin(); it != lastPosition; ++it)
-			{
-				if (*it == 0)
-					continue;
-				if (counter == bigint::base_digits)
-				{
-					digits.push_back(newgroup);
-					counter = newgroup = 0;
-				}
+			operator=(to_base(input));
 
-				buffer = (int)(*it - '0');
-				for (int i = 0; i < counter; i++)
-					buffer *= 10;
-				newgroup += buffer;
-
-				counter++;
-			}
-			if (newgroup != 0)
-				digits.push_back(newgroup);
 			remove_trailing_zeros();
 		}
 
@@ -989,9 +1031,6 @@ namespace deckard
 
 		bigint mod(const bigint& rhs) const { return *this % rhs; }
 
-
-
-
 		// sqrt
 		bigint sqrt() const
 		{
@@ -1023,10 +1062,7 @@ namespace deckard
 			return rhs;
 		}
 
-
- 
-
-		  // bitwise and
+		// bitwise and
 		bigint operator&(const bigint& rhs) const
 		{
 			bigint result;
@@ -1042,7 +1078,7 @@ namespace deckard
 				type digit2 = (i < rhs.digits.size()) ? rhs.digits[i] : 0;
 				result.digits.push_back(digit1 & digit2);
 			}
-			//std::ranges::reverse(result.digits);
+			// std::ranges::reverse(result.digits);
 			result.remove_trailing_zeros();
 			return result;
 		}
@@ -1052,6 +1088,7 @@ namespace deckard
 			operator=(operator&(rhs));
 			return *this;
 		}
+
 		bool is_zero() const { return sign == Sign::zero; }
 	};
 
@@ -1062,7 +1099,6 @@ namespace deckard
 	export bigint pow(const bigint& a, const bigint& b) { return a.pow(b); }
 
 	export bigint mod(const bigint& a, const bigint& b) { return a.mod(b); }
-
 
 	export bigint gcd(bigint a, bigint b)
 	{

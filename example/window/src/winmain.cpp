@@ -469,6 +469,8 @@ std::generator<u32> gen()
 	}
 }
 
+
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
@@ -477,9 +479,12 @@ i32 deckard_main(std::string_view commandline)
 #endif
 
 
+
+
+
 	graph::graph<i32> g(5);
 
-	 g.add(0, 1, 4);
+	g.add(0, 1, 4);
 	g.add(0, 2, 8);
 	g.add(1, 2, 2);
 	g.add(1, 3, 6);

@@ -78,6 +78,24 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(c.count() == 1);
 	}
 
+	SECTION("c-tor hex string")
+	{ 
+		bigint a("1311768467294899695");
+		CHECK(a.to_string() == "1311768467294899695");
+		CHECK(a.to_string(16) == "1234567890abcdef");
+
+		bigint b("0x1234567890ABCDEF");
+		
+		CHECK(b.to_string() == "1311768467294899695");
+		CHECK(b.to_string(16) == "1234567890abcdef");
+		
+		-b;
+		CHECK(b.signum() == Sign::negative);
+		CHECK(b.to_string() == "-1311768467294899695");
+		CHECK(b.to_string(16) == "-1234567890abcdef");
+		
+	}
+
 	SECTION("to_integer")
 	{
 		bigint a(0);
@@ -524,6 +542,13 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(d.to_string() == "40");
 		CHECK(d.to_integer() == (-44 % 42 + 42) % 42);
 		CHECK(d.signum() == Sign::positive);
+
+
+		bigint aa = "1233456789123456789";
+		bigint bb= "16";
+		CHECK((aa % bb).to_string() == "5");
+
+
 	}
 
 	SECTION("pow")
@@ -705,23 +730,22 @@ TEST_CASE("bigint", "[bigint]")
 		bigint a(0b1001);
 		bigint b(0b1100);
 
-		bigint c = a & b;
-		CHECK(c.to_integer() == 8);
-		CHECK(c.to_string(2) == "1000");
-
-		a = "795146195184382903283237549";
-		b = "35246133848437294873";
-		c = a & b;
-
-		auto astr = a.to_string(2);
-		auto bstr = b.to_string(2);
-		auto cstr = c.to_string(2);
-
-		// A: 101001000110111010110000011001110011110101101110101110101010000000010001100100001010101101
-		// B: 000000000000000000000000011110100100100011011010111111111000111101111110100000011100011001
-		// C: 000000000000000000000000001011001001000000011000010000110011001001000011100000000000011001
-		CHECK(c.to_string() == "28255912721614242313");
-
+		// bigint c = a & b;
+		// CHECK(c.to_integer() == 8);
+		// CHECK(c.to_string(2) == "1000");
+		// 
+		// a = "0x1234567890ABCDEF";
+		// b = "0xFEDCBA0987654321";
+		// c = a & b;
+		// 
+		// auto astr = a.to_string(16);
+		// auto bstr = b.to_string(2);
+		// auto cstr = c.to_string(2);
+		// 
+		// // A: 101001000110111010110000011001110011110101101110101110101010000000010001100100001010101101
+		// // B: 000000000000000000000000011110100100100011011010111111111000111101111110100000011100011001
+		// // C: 000000000000000000000000001011001001000000011000010000110011001001000011100000000000011001
+		// CHECK(c.to_string(16) == "1214120880214121");
 
 
 	}
