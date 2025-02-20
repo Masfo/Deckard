@@ -503,7 +503,7 @@ namespace deckard
 			operator=(result);
 		}
 
-		bigint to_base(std::string_view input, int newbase = 0)
+		bigint to_base(std::string_view input, i32 newbase = 0)
 		{
 
 			if (input.empty())
