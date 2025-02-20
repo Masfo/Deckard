@@ -503,7 +503,7 @@ namespace deckard
 			operator=(result);
 		}
 
-		bigint to_base(std::string_view input, int base = 0)
+		bigint to_base(std::string_view input, int newbase = 0)
 		{
 
 			if (input.empty())
@@ -520,30 +520,30 @@ namespace deckard
 			}
 
 
-			if (base == 0 and input.size() >= 2)
+			if (newbase == 0 and input.size() >= 2)
 			{
 				if (input[0] == '0' && (input[1] == 'x' || input[1] == 'X'))
 				{
-					base = 16;
+					newbase = 16;
 					input.remove_prefix(2);
 				}
 				else if (input[0] == '0' && (input[1] == 'b' || input[1] == 'B'))
 				{
-					base = 2;
+					newbase = 2;
 					input.remove_prefix(2);
 				}
 				else if (input[0] == '#')
 				{
-					base = 16;
+					newbase = 16;
 					input.remove_prefix(1);
 				}
 				else if (input[0] == '0')
 				{
-					base = 8;
+					newbase = 8;
 					input.remove_prefix(1);
 				}
 				else
-					base = 10;
+					newbase = 10;
 			}
 
 			//
@@ -561,10 +561,10 @@ namespace deckard
 				else
 					value = static_cast<i32>(c);
 
-				if (value >= base)
+				if (value >= newbase)
 					dbg::panic("invalid character '{:c}' in string", c);
 
-				result = result * base + value;
+				result = result * newbase + value;
 			}
 
 			if (sign < 0)
@@ -579,7 +579,7 @@ namespace deckard
 		{
 			digits.clear();
 			digits.push_back(0);
-			sign = Sign::positive;
+			sign = Sign::zero;
 		}
 
 		template<typename Iterator>
@@ -594,9 +594,11 @@ namespace deckard
 
 		bigint(const bigint& bi) { operator=(bi); }
 
-		bigint(const char* str) { operator=(std::string_view(str)); }
+		bigint(const char* str) 
+		{ 
+			operator=(to_base(str)); }
 
-		bigint& operator=(const char* str) { return operator=(std::string_view(str)); }
+		bigint& operator=(const char* str) { return operator=(to_base(str)); }
 
 		bigint(std::string_view input)
 		{

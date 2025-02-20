@@ -13,7 +13,7 @@ TEST_CASE("bigint", "[bigint]")
 		bigint def;
 		CHECK(def.to_string() == "0");
 		CHECK(def.to_integer() == 0);
-		CHECK(def.signum() == Sign::positive);
+		CHECK(def.signum() == Sign::zero);
 		CHECK(def.count() == 1);
 
 		bigint def_str = "1234567890";
@@ -93,6 +93,12 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(b.signum() == Sign::negative);
 		CHECK(b.to_string() == "-1311768467294899695");
 		CHECK(b.to_string(16) == "-1234567890abcdef");
+
+		bigint c("1234567890123456789012345678901234567890");
+		CHECK(c.to_string() == "1234567890123456789012345678901234567890");
+
+		c = "0x3a0c92075c0dbf3b8acbc5f96ce3f0ad2";
+		CHECK(c.to_string() == "1234567890123456789012345678901234567890");
 		
 	}
 
