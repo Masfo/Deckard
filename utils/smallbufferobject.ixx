@@ -469,7 +469,18 @@ namespace deckard
 
 		iterator insert(iterator pos, const value_type& v) { return insert(pos, std::span<value_type>{(pointer)&v, 1}); }
 
+		void assign(const std::span<value_type> buffer) 
+		{ 
+			clear();
+			insert(begin(), buffer);
+		}
+
+		void assign(const sbo<SIZE>& other) { assign(other.data()); }
+
+		void assign(const value_type& v) { assign(std::span<value_type>{(pointer)&v, 1}); }
+
 		void append(const sbo<SIZE>& other) { append(other.data()); }
+
 
 		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
 

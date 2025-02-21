@@ -601,6 +601,12 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 76);
 		CHECK(ss.capacity() == 112);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
+
+		ss.append({'1', '2', '3'});
+		CHECK(ss.size() == 79);
+		CHECK(ss.back() == '3');
+		CHECK(ss.capacity() == 112);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
 
 	SECTION("append (large -> larger)")
@@ -1147,6 +1153,56 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.capacity() == 384);
 	}
 
+	SECTION("assign (small)") 
+	{ 
+		sbo<32> ss;
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		CHECK(ss.size() == 3);
+		CHECK(ss.capacity() == 31);
+
+		sbo<32> a;
+
+		a.assign(ss);
+		CHECK(a.size() == 3);
+		CHECK(a.capacity() == 31);
+
+
+		a.assign('X');
+		CHECK(a.size() == 1);
+		CHECK(a.capacity() == 31);
+
+		a.assign({'X', 'Y', 'Z'}); 
+		CHECK(a.size() == 3);
+		CHECK(a.capacity() == 31);
+	}
+
+	
+	SECTION("assign (large)")
+	{
+		sbo<32> ss;
+
+		for (u32 i = 0; i < 256; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 256);
+		CHECK(ss.capacity() == 256);
+
+		sbo<32> a;
+
+		a.assign(ss);
+		CHECK(a.size() == 256);
+		CHECK(a.capacity() == 256);
+
+		a.assign('X');
+		CHECK(a.size() == 1);
+		CHECK(a.capacity() == 256);
+
+		a.shrink_to_fit();
+		CHECK(a.size() == 1);
+		CHECK(a.capacity() == 31);
+	}
 
 	SECTION("swap small buffers")
 	{
