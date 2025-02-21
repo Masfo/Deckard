@@ -479,12 +479,28 @@ namespace deckard
 
 		void assign(const value_type& v) { assign(std::span<value_type>{(pointer)&v, 1}); }
 
+		void assign(const std::initializer_list<value_type>& il) 
+		{
+			clear();
+			for (const auto& i : il)
+				push_back(i);
+		}
+
 		void append(const sbo<SIZE>& other) { append(other.data()); }
+
 
 
 		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
 
 		void append(const value_type& v) { append(std::span<value_type>{(pointer)&v, 1}); }
+
+		void append(const std::initializer_list<value_type>& il) 
+		{
+			//
+			for (const auto& i : il)
+				append(i);
+
+		}
 
 		[[nodiscard("Use the front value")]] value_type front() const
 		{
