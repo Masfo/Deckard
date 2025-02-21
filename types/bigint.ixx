@@ -503,7 +503,7 @@ namespace deckard
 			operator=(result);
 		}
 
-		bigint to_base(std::string_view input, i32 newbase = 0)
+		bigint from_string(std::string_view input, i32 newbase = 0)
 		{
 
 			if (input.empty())
@@ -596,9 +596,9 @@ namespace deckard
 
 		bigint(const char* str) 
 		{ 
-			operator=(to_base(str)); }
+			operator=(from_string(str)); }
 
-		bigint& operator=(const char* str) { return operator=(to_base(str)); }
+		bigint& operator=(const char* str) { return operator=(from_string(str)); }
 
 		bigint(std::string_view input)
 		{
@@ -610,7 +610,7 @@ namespace deckard
 				return;
 			}
 
-			operator=(to_base(input));
+			operator=(from_string(input));
 
 			remove_trailing_zeros();
 		}
