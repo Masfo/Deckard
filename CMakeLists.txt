@@ -1,7 +1,7 @@
 
 cmake_minimum_required (VERSION 3.30.0)
 
-project(deckard LANGUAGES CXX ASM_MASM)
+project(deckard LANGUAGES CXX)
 
 add_library(deckard STATIC)
 
@@ -285,11 +285,6 @@ set(DECKARD_SRCS
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
 # $<$<NOT:$<PLATFORM_ID:Windows>>:file.cpp>
-
-    enable_language(ASM_MASM)
-    if(NOT CMAKE_ASM_MASM_COMPILER_WORKS)
-        message(FATAL ERROR "MSVC x86_64 target requires a working assembler")
-    endif()
 
 
 target_sources(deckard PUBLIC
