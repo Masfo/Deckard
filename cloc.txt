@@ -1,14 +1,14 @@
-github.com/AlDanial/cloc v 1.98  T=0.18 s (506.5 files/s, 125324.2 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.15 s (593.1 files/s, 151190.3 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
+.\types\bigint.ixx                                    276             30           1135
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           222             44            839
 .\utils\helpers.ixx                                   194             49            733
-.\types\bigint.ixx                                    165             15            684
-.\utils\smallbufferobject.ixx                         174             23            578
-.\example\window\src\winmain.cpp                      238             63            530
+.\utils\smallbufferobject.ixx                         182             24            596
 .\math\generic_vec4.ixx                               112             10            508
+.\example\window\src\winmain.cpp                      218             62            505
 .\math\generic_vec3.ixx                               121             11            500
 .\math\generic_vec2.ixx                               114             11            465
 .\utils\stringhelper.ixx                              105             18            425
@@ -30,8 +30,8 @@ File                                                blank        comment        
 .\app\vulkan\device.ixx                                88             15            242
 .\app\vulkan.ixx                                       95             45            230
 .\net\socket.ixx                                       73              9            228
+.\unicode\utf8string.ixx                               63             16            222
 .\math\math_utility.ixx                                56             14            215
-.\unicode\utf8string.ixx                               59             16            210
 .\win32\win32.ixx                                      50              2            178
 .\utils\random.ixx                                     57              5            167
 .\app\inputs.ixx                                       36              4            166
@@ -52,6 +52,7 @@ File                                                blank        comment        
 .\utils\function_ref.ixx                               30              2            100
 .\debug\debug_null.ixx                                 33              4             94
 .\app\vulkan\command_buffer.ixx                        33              3             93
+.\graphs\graph.ixx                                     17              5             92
 .\utils\timers.ixx                                     22              4             91
 .\utils\commandline.ixx                                17              9             89
 .\math\generic_vec.ixx                                 25             18             87
@@ -88,10 +89,9 @@ File                                                blank        comment        
 .\debug\assert_null.ixx                                 6              0              9
 .\net\client.ixx                                        4              0              8
 .\example\empty\src\main.cpp                            2              1              7
-.\graphs\graph.ixx                                      5              0              7
 .\unicode\utf8.ixx                                      0              0              7
 .\utils\serializer.ixx                                  6              6              7
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 4702           1092          16474
+SUM:                                                 4817           1112          17015
 ---------------------------------------------------------------------------------------
