@@ -29,8 +29,9 @@ namespace deckard
 		};
 		using type = u32;
 
-		static constexpr u32 base        = 10000;
-		static constexpr u32 base_digits = 4;
+		static constexpr type base        = 10000;
+		static constexpr type base_digits = 4;
+		static constexpr type mask        = limits::max<type>;
 
 		std::vector<type> digits;
 		Sign              sign;
@@ -44,9 +45,24 @@ namespace deckard
 			while (not digits.empty() and digits.back() == 0)
 				digits.pop_back();
 
-			if (digits.empty())
-				sign = Sign::zero;
+
+			fix_sign();
+
 			digits.shrink_to_fit();
+		}
+
+		void fix_sign()
+		{
+			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
+			{
+				sign = Sign::zero;
+				return;
+			}
+
+			if (*this < 0)
+				sign = Sign::negative;
+			else
+				sign = Sign::positive;
 		}
 
 		Compare compare(const bigint& lhs, const bigint& rhs) const
@@ -139,9 +155,128 @@ namespace deckard
 			remove_trailing_zeros();
 		}
 
+		template<typename Op>
+		void bitwise(const bigint& lhs, const bigint& rhs, Op op)
+		{
+			digits.clear();
+
+			if (lhs.is_zero() or rhs.is_zero())
+			{
+				sign = Sign::zero;
+				return;
+			}
+			else if ((lhs.sign == Sign::positive and rhs.sign == Sign::negative) or //
+					 (lhs.sign == Sign::negative and rhs.sign == Sign::positive))
+				sign = Sign::negative;
+			else
+				sign = Sign::positive;
+
+			auto smaller = lhs;
+			auto larger  = rhs;
+			if (smaller.size() > larger.size())
+				std::swap(smaller, larger);
+
+			std::string result;
+			result.reserve(2 + smaller.size() * 8);
+
+			while (smaller > 0)
+			{
+				const auto digit1 = smaller % 2;
+				const auto digit2 = larger % 2;
+				smaller /= 2;
+				larger /= 2;
+
+
+				type binary1 = digit1.to_integer<type>().value();
+				type binary2 = digit2.to_integer<type>().value();
+
+				result.push_back('0' + ((char)(op(binary1, binary2))));
+			}
+			result += "b0";
+			std::ranges::reverse(result);
+
+			operator=(result);
+
+			remove_trailing_zeros();
+		}
+
+		// bit ops
+		void bit_and(const bigint& lhs, const bigint& rhs)
+		{
+			if (lhs.is_zero())
+				operator=(lhs);
+			else if (rhs.is_zero())
+				operator=(rhs);
+			else
+			{
+				bitwise(lhs, rhs, std::bit_and<type>());
+			}
+		}
+
+		void bit_or(const bigint& lhs, const bigint& rhs)
+		{
+			if (lhs.is_zero())
+				operator=(rhs);
+			else if (rhs.is_zero())
+				operator=(lhs);
+			else
+			{
+				bitwise(lhs, rhs, std::bit_or<type>());
+			}
+		}
+
+		void bit_xor(const bigint& lhs, const bigint& rhs)
+		{
+			
+			if (lhs.is_zero())
+				operator=(rhs);
+			else if (rhs.is_zero())
+				operator=(lhs);
+			else if (lhs == rhs)
+			{
+				operator=(0);
+			}
+			else
+			{
+				bitwise(lhs, rhs, std::bit_xor<type>());
+			}
+		}
+
+		void bit_not(const bigint& lhs)
+		{
+			digits.clear();
+
+			if (lhs.is_zero())
+			{
+				digits.push_back(1);
+				sign = Sign::positive;
+				return;
+			}
+
+			bigint      count(lhs);
+			std::string result;
+			result.reserve(2 + lhs.size() * 8);
+
+			while (count > 0)
+			{
+				const auto digit = count % 2;
+				count >>= 1;
+
+				bool binary = (bool)digit.to_integer<u8>().value();
+
+				result.push_back('0' + (!binary));
+			}
+			result += "b0";
+			std::ranges::reverse(result);
+
+			operator=(result);
+
+			remove_trailing_zeros();
+		}
+
+		// bin op
 		void add(const bigint& lhs, const bigint& rhs)
 		{
-
 			if (lhs.sign == Sign::zero)
 			{
 				operator=(rhs);
@@ -199,7 +334,6 @@ namespace deckard
 
 		void subtract(const bigint& lhs, const bigint& rhs)
 		{
-
 			if (lhs.sign == Sign::zero)
 			{
 				operator=(rhs);
@@ -280,7 +414,6 @@ namespace deckard
 
 		void karatsuba_multiply(const bigint& lhs, const bigint& rhs)
 		{
-
 			size_t n = std::max(lhs.size(), rhs.size());
 			size_t m = n / 2;
 
@@ -449,29 +582,6 @@ namespace deckard
 			operator=(lhs - rhs * (lhs / rhs));
 		}
 
-		void pow_op(const bigint& newbase, const bigint& exponent)
-		{
-			if (exponent.is_zero())
-			{
-				operator=(1);
-				return;
-			}
-
-			bigint result(1);
-			bigint base_copy(newbase);
-			bigint exp_copy(exponent);
-
-			while (exp_copy > 0)
-			{
-				if (exp_copy[0] % 2 == 1)
-					result *= base_copy;
-				base_copy *= base_copy;
-				exp_copy >>= 1;
-			}
-
-			operator=(result);
-		}
-
 		void sqrt_op(const bigint& rhs)
 		{
 			if (rhs.is_zero() || rhs.signum() == Sign::negative)
@@ -505,18 +615,17 @@ namespace deckard
 
 		bigint from_string(std::string_view input, i32 newbase = 0)
 		{
-
 			if (input.empty())
 				return {};
 
 			if (input.size() == 1 and (input[0] == '-' or input[0] == '0'))
 				return {};
 
-			i32 sign = 1;
+			i32 newsign = 1;
 			if (input.size() >= 1 and input[0] == '-')
 			{
 				input.remove_prefix(1);
-				sign = -1;
+				newsign = -1;
 			}
 
 
@@ -543,7 +652,13 @@ namespace deckard
 					input.remove_prefix(1);
 				}
 				else
+				{
 					newbase = 10;
+				}
+			}
+			else if (newbase == 0 and input.size() < 2)
+			{
+				newbase = 10;
 			}
 
 			//
@@ -567,7 +682,7 @@ namespace deckard
 				result = result * newbase + value;
 			}
 
-			if (sign < 0)
+			if (newsign < 0)
 				-result;
 
 
@@ -594,9 +709,7 @@ namespace deckard
 
 		bigint(const bigint& bi) { operator=(bi); }
 
-		bigint(const char* str) 
-		{ 
-			operator=(from_string(str)); }
+		bigint(const char* str) { operator=(from_string(str)); }
 
 		bigint& operator=(const char* str) { return operator=(from_string(str)); }
 
@@ -625,7 +738,6 @@ namespace deckard
 
 		bigint& operator=(const bigint& rhs)
 		{
-
 			sign   = rhs.sign;
 			digits = rhs.digits;
 
@@ -1015,21 +1127,26 @@ namespace deckard
 			return *this;
 		}
 
-		// pow
-		bigint operator^(const bigint& rhs) const
+		bigint pow(const bigint& exponent) const
 		{
-			bigint result(*this);
-			result.pow_op(*this, rhs);
+			bigint result(1);
+
+			if (exponent.is_zero())
+				return result;
+
+			bigint base_copy(*this);
+			bigint exp_copy(exponent);
+
+			while (exp_copy > 0)
+			{
+				if (exp_copy[0] % 2 == 1)
+					result *= base_copy;
+				base_copy *= base_copy;
+				exp_copy >>= 1;
+			}
+
 			return result;
 		}
-
-		bigint& operator^=(const bigint& rhs)
-		{
-			operator=(operator^(rhs));
-			return *this;
-		}
-
-		bigint pow(const bigint& rhs) const { return *this ^ rhs; }
 
 		bigint mod(const bigint& rhs) const { return *this % rhs; }
 
@@ -1068,20 +1185,7 @@ namespace deckard
 		bigint operator&(const bigint& rhs) const
 		{
 			bigint result;
-			result.digits.clear();
-			result.sign = Sign::positive;
-
-			size_t size = std::max(digits.size(), rhs.digits.size());
-			result.digits.reserve(size);
-
-			for (size_t i = 0; i < size; ++i)
-			{
-				type digit1 = (i < digits.size()) ? digits[i] : 0;
-				type digit2 = (i < rhs.digits.size()) ? rhs.digits[i] : 0;
-				result.digits.push_back(digit1 & digit2);
-			}
-			// std::ranges::reverse(result.digits);
-			result.remove_trailing_zeros();
+			result.bit_and(*this, rhs);
 			return result;
 		}
 
@@ -1090,6 +1194,44 @@ namespace deckard
 			operator=(operator&(rhs));
 			return *this;
 		}
+
+		// bitwise or
+		bigint operator|(const bigint& rhs) const
+		{
+			bigint result;
+			result.bit_or(*this, rhs);
+			return result;
+		}
+
+		bigint& operator|=(const bigint& rhs)
+		{
+			operator=(operator&(rhs));
+			return *this;
+		}
+
+		// bitwise xor
+		bigint operator^(const bigint& rhs) const
+		{
+			bigint result;
+			result.bit_xor(*this, rhs);
+			return result;
+		}
+
+		bigint& operator^=(const bigint& rhs)
+		{
+			operator=(operator&(rhs));
+			return *this;
+		}
+
+		// bitwise not
+		bigint operator~() const
+		{
+			bigint result;
+			result.bit_not(*this);
+			return result;
+		}
+
+
 
 		bool is_zero() const { return sign == Sign::zero; }
 	};
@@ -1159,7 +1301,7 @@ namespace deckard
 		str.resize(digits);
 
 		for (auto& i : str)
-			i = ints(rd);
+			i = (char)(ints(rd));
 
 		while (str[0] == '0')
 			str[0] = ints(rd);
@@ -1170,6 +1312,7 @@ namespace deckard
 } // namespace deckard
 
 export namespace std
+
 {
 	using namespace deckard;
 
@@ -1184,6 +1327,7 @@ export namespace std
 	{
 		constexpr auto parse(std::format_parse_context& ctx)
 		{
+			// TODO: Width + leading zeros, 0x,0b,0o
 			auto pos = ctx.begin();
 			while (pos != ctx.end() && *pos != '}')
 			{

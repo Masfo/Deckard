@@ -3,6 +3,7 @@
 
 import std;
 import deckard.bigint;
+import deckard.debug;
 
 TEST_CASE("bigint", "[bigint]")
 {
@@ -79,16 +80,16 @@ TEST_CASE("bigint", "[bigint]")
 	}
 
 	SECTION("c-tor hex string")
-	{ 
+	{
 		bigint a("1311768467294899695");
 		CHECK(a.to_string() == "1311768467294899695");
 		CHECK(a.to_string(16) == "1234567890abcdef");
 
 		bigint b("0x1234567890ABCDEF");
-		
+
 		CHECK(b.to_string() == "1311768467294899695");
 		CHECK(b.to_string(16) == "1234567890abcdef");
-		
+
 		-b;
 		CHECK(b.signum() == Sign::negative);
 		CHECK(b.to_string() == "-1311768467294899695");
@@ -102,7 +103,6 @@ TEST_CASE("bigint", "[bigint]")
 
 		c = "016406222016560155763561262742771331617605322";
 		CHECK(c.to_string() == "1234567890123456789012345678901234567890");
-
 	}
 
 	SECTION("to_integer")
@@ -138,6 +138,39 @@ TEST_CASE("bigint", "[bigint]")
 		check(limits::max<i32>);
 		check(limits::max<i16>);
 		check(limits::max<i8>);
+	}
+
+	SECTION("compares")
+	{
+		bigint a(1'234'567'890);
+		bigint b(1234);
+
+		CHECK((a < b) == false);
+		CHECK((a <= b) == false);
+
+		CHECK((a > b) == true);
+		CHECK((a >= b) == true);
+
+		CHECK((a >= a) == true);
+		CHECK((a <= a) == true);
+
+		CHECK((a == a) == true);
+		CHECK((a != b) == true);
+
+		a = "548136543546186135844635161";
+		b = "78123165165132168546";
+
+		CHECK((a < b) == false);
+		CHECK((a <= b) == false);
+
+		CHECK((a > b) == true);
+		CHECK((a >= b) == true);
+
+		CHECK((a >= a) == true);
+		CHECK((a <= a) == true);
+
+		CHECK((a == a) == true);
+		CHECK((a != b) == true);
 	}
 
 	SECTION("invert")
@@ -462,7 +495,6 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(rsa250 == correct);
 
 
-
 		bigint rsa250_double = p * 2;
 		CHECK(
 		  rsa250_double.to_string() ==
@@ -554,17 +586,15 @@ TEST_CASE("bigint", "[bigint]")
 
 
 		bigint aa = "1233456789123456789";
-		bigint bb= "16";
+		bigint bb = "16";
 		CHECK((aa % bb).to_string() == "5");
-
-
 	}
 
 	SECTION("pow")
 	{
 		const bigint a(10), b(2);
 
-		bigint c = a ^ b;
+		bigint c = pow(a, b);
 		CHECK(c.to_string() == "100");
 		CHECK(c.to_integer() == 100);
 		CHECK(c.signum() == Sign::positive);
@@ -574,11 +604,11 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(c.to_integer() == 100);
 		CHECK(c.signum() == Sign::positive);
 
-		c = a ^ 52;
+		c = pow(a, 52);
 		CHECK(c.to_string() == "10000000000000000000000000000000000000000000000000000");
 		CHECK(c.signum() == Sign::positive);
 
-		c = bigint{78'945'165'163} ^ 34;
+		c = pow(bigint{78'945'165'163}, 34);
 		CHECK(
 		  c.to_string() ==
 		  "32290017532639513388688936255873485353146117632851832154852216685914632839589735559565983569901467745559944875449797671314352532"
@@ -621,7 +651,7 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(g == sqrt(result));
 
 
-		result = sqrt(g ^ 2);
+		result = sqrt(pow(g, 2));
 		CHECK(g == result);
 		CHECK(result.to_string() == "68553216584651356156");
 	}
@@ -646,8 +676,8 @@ TEST_CASE("bigint", "[bigint]")
 		bigint result = gcd(a, b);
 		CHECK(result.to_string() == "90000000009000000000900000000090");
 
-		a = bigint(2) ^ 1000;
-		b = bigint(2) ^ 500;
+		a = pow(bigint(2), 1000);
+		b = pow(bigint(2), 500);
 
 		CHECK(a.to_string() ==
 			  "10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946"
@@ -688,6 +718,189 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(result.to_string() == "81173671297554468008735326376926582645357408844016206091156");
 	}
 
+
+	SECTION("random bigint")
+	{
+		bigint rndq = random_bigint();
+
+		bigint rnd = random_bigint(16);
+		CHECK(rnd.count() == 16);
+
+
+		rnd = random_bigint(512);
+		CHECK(rnd.count() == 512);
+		auto   x    = rnd.to_string();
+		bigint bign = rnd ^ 5;
+		CHECK(bign.to_string().size() == bign.count());
+	}
+
+	SECTION("bitwise and")
+	{
+		int b1 = 0b1001;
+		int b2 = 0b1100;
+		int b3 = b1 & b2;
+
+		CHECK(b3 == (b1 & b2));
+
+		bigint a(0b1001);
+		bigint b(0b1100);
+
+		bigint c = a & b;
+		CHECK(c.to_integer() == 8);
+		CHECK(c.to_string(2) == "1000");
+
+
+		b1 = 0xFFFF'FFFF;
+		b2 = 0x0'0000'000F;
+		b3 = b1 & b2;
+
+		a = "0xFFFF";
+		b = "0x003F";
+		c = a & b;
+
+		auto astr = a.to_string(2);
+		auto bstr = b.to_string(2);
+		auto cstr = c.to_string(2);
+
+		dbg::println("A: {}", a.to_string(2));
+		dbg::println("B: {}", b.to_string(2));
+		dbg::println("C: {}", c.to_string(2));
+		CHECK(c.to_string(16) == "3f");
+		CHECK(1 == 1);
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = "0x00000000000000000000000000000000";
+		c = a & b;
+		CHECK(c.to_string(16) == "0");
+
+
+		a = "0x00000000000000000000000000000000";
+		b = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		c = a & b;
+		CHECK(c.to_string(16) == "0");
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		c = a & b;
+		CHECK(c.to_string(16) == "ffffffffffffffffffffffffffffffff");
+
+
+		a = "84309483902093439083849034732890487320498374";
+		b = "47895478932092390843789438902390832487394390";
+		c = a & b;
+		CHECK(c.to_string() == "45107841234594946144076549931291317083586630");
+	}
+
+	SECTION("bitwise or")
+	{
+		bigint a(0b1001);
+		bigint b(0b1001);
+		bigint c = a ^ b;
+		CHECK(c.to_integer() == 0);
+
+		a = "0b111100001111";
+		b = "0b101010101010";
+		c = a | b;
+		CHECK(c.to_string(2) == "111110101111");
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = "0x00000000000000000000000000000000";
+		c = a | b;
+		CHECK(c.to_string(16) == "ffffffffffffffffffffffffffffffff");
+
+		a = "0x00000000000000000000000000000000";
+		b = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		c = a | b;
+		CHECK(c.to_string(16) == "ffffffffffffffffffffffffffffffff");
+
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+		c = a | b;
+		CHECK(c.to_string(16) == "ffffffffffffffffffffffffffffffff");
+
+
+		a = "84309483902093439083849034732890487320498374";
+		b = "47895478932092390843789438902390832487394390";
+		c = a | b;
+		CHECK(c.to_string() == "87097121599590883783561923703990002724306134");
+	}
+
+	SECTION("bitwise not")
+	{
+		int b1 = 0b1001;
+		int b2 = (~b1) & 0b1111;
+
+
+		bigint a(0b1001);
+
+		bigint b = ~a;
+		CHECK(b.to_integer() == 6);
+		CHECK(b.to_string(2) == "110");
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = ~a;
+		CHECK(b.to_string(16) == "0");
+		CHECK(b.to_integer() == 0);
+		CHECK(b.signum() == Sign::zero);
+
+		a = "0b10001110000110001011010010010110010100100110100110111001110011100111011100101101110000001001001011011110101011";
+		b = ~a;
+		CHECK(b.to_string(2) ==
+			  "1110001111001110100101101101001101011011001011001000110001100011000100011010010001111110110110100100001010100");
+	}
+
+
+	SECTION("bitwise xor")
+	{
+		bigint a(0b1001);
+		bigint b(0b1001);
+		bigint c = a ^ b;
+		CHECK(c.to_integer() == 0);
+
+		a = "0b111100001111";
+		b = "0b101010101010";
+		c = a ^ b;
+		CHECK(c.to_integer() == 1445);
+		CHECK(c.to_string(2) == "10110100101");
+
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = "0x0";
+		c = a ^ b;
+		CHECK(c.to_string(16) == "ffffffffffffffffffffffffffffffff");
+
+		a = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		b = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+		c = a ^ b;
+		CHECK(c.to_string(16) == "0");
+		CHECK(c.to_integer() == 0);
+		CHECK(c.signum() == Sign::zero);
+
+
+		a = "84309483902093439083849034732890487320498374";
+		b = "47895478932092390843789438902390832487394390";
+		c = a ^ b;
+
+		CHECK(a.to_string(2) == "1111000111110100110100111000011100010010011001110000001100010010101000101111010001000110001011010000110001"
+								"1001100110111010111010000101000011000110");
+		CHECK(b.to_string(2) == "1000100101110100000010100110001011100110111100010011011010001000010110000001100100111011001010010101111111"
+								"0010011101111110001100101110110001010110");
+		CHECK(c.to_string(2) == "1111000100000001101100111100101111101001001011000110101100110101111101011101101011111010000010001010011101"
+								"011111011000100110110101011110010010000");
+
+		CHECK(c.to_string() == "41989280364995937639485373772698685640719504");
+	}
+
+	SECTION("umap")
+	{
+		std::unordered_map<int, bigint> map;
+
+		map[0] = "123456789";
+
+		CHECK(map[0].to_integer() == 123'456'789);
+	}
+
 	SECTION("formatter")
 	{
 		bigint a(1'234'567'890);
@@ -710,61 +923,5 @@ TEST_CASE("bigint", "[bigint]")
 			  "1100111011101000010010101100000010000110000011010001110100111111010110101000101010110111111110011010110100110110010111111011"
 			  "111100011010010011000111101011111100111100000000000101100001001110010100");
 		CHECK(std::format("{:b36}", a) == "l701f2az4zj11momniss8jl4co03sao1cpvr10");
-	}
-
-	SECTION("random bigint")
-	{
-		bigint rndq = random_bigint();
-
-		bigint rnd = random_bigint(16);
-		CHECK(rnd.count() == 16);
-
-
-		rnd = random_bigint(512);
-		CHECK(rnd.count() == 512);
-		auto   x    = rnd.to_string();
-		bigint bign = rnd ^ 5;
-		CHECK(bign.to_string().size() == bign.count());
-
-	}
-
-	SECTION("bitwise and")
-	{ 
-		int b1 = 0b1001;
-		int b2 = 0b1100;
-		int b3 = b1 & b2;
-
-		CHECK(1 == 1);
-
-		bigint a(0b1001);
-		bigint b(0b1100);
-
-		// bigint c = a & b;
-		// CHECK(c.to_integer() == 8);
-		// CHECK(c.to_string(2) == "1000");
-		// 
-		// a = "0x1234567890ABCDEF";
-		// b = "0xFEDCBA0987654321";
-		// c = a & b;
-		// 
-		// auto astr = a.to_string(16);
-		// auto bstr = b.to_string(2);
-		// auto cstr = c.to_string(2);
-		// 
-		// // A: 101001000110111010110000011001110011110101101110101110101010000000010001100100001010101101
-		// // B: 000000000000000000000000011110100100100011011010111111111000111101111110100000011100011001
-		// // C: 000000000000000000000000001011001001000000011000010000110011001001000011100000000000011001
-		// CHECK(c.to_string(16) == "1214120880214121");
-
-
-	}
-
-	SECTION("umap")
-	{
-		std::unordered_map<int, bigint> map;
-
-		map[0] = "123456789";
-
-		CHECK(map[0].to_integer() == 123'456'789);
 	}
 }

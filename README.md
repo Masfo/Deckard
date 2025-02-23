@@ -211,8 +211,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	````
     - **Big integer**
     ```cpp
-	// operators: + - * / % ^
+	// operators: + - * / %
 	// functions: pow sqrt abs gcd lcm random_bigint
+	// bitwise ops: & | ^ ~ (and or xor not)
+	// comparison: == != < > <= >=
+	// conversion: to_string to_integer
+
 	import deckard.bigint;
 	using namespace deckard;
 
