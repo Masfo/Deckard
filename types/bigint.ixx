@@ -227,7 +227,7 @@ namespace deckard
 
 		void bit_xor(const bigint& lhs, const bigint& rhs)
 		{
-			
+
 			if (lhs.is_zero())
 				operator=(rhs);
 			else if (rhs.is_zero())
@@ -302,21 +302,23 @@ namespace deckard
 				if (lh != this)
 					operator=(*lh);
 
-				type carry = 0, buffer;
+				std::vector<type> result;
+				type              carry = 0;
+				size_t            i = 0, j = 0;
 
-				for (int i = 0; i < rh->digits.size(); ++i)
+				while (i < lh->digits.size() or j < rh->digits.size() or carry != 0)
 				{
+					unsigned sum = carry;
+					if (i < lh->digits.size())
+						sum += lh->digits[i++];
 
-					buffer = lh->digits[i] + rh->digits[i] + carry;
+					if (j < rh->digits.size())
+						sum += rh->digits[j++];
 
-					carry = buffer / bigint::base;
-					buffer %= bigint::base;
-
-					digits[i] = buffer;
+					result.push_back(sum % bigint::base);
+					carry = sum / bigint::base;
 				}
-
-				if (carry > 0)
-					digits.push_back(carry);
+				digits = result;
 			}
 			else
 			{
@@ -360,41 +362,37 @@ namespace deckard
 				if (lh != this)
 					operator=(*lh);
 
-				type carry      = 0, buffer;
-				bool need_carry = false;
+				std::vector<type> result;
 
-				for (int i = 0; i < rh->digits.size() or carry != 0; ++i)
+				i32    borrow = 0;
+				size_t i = 0, j = 0;
+
+				while (i < lh->digits.size() or j < rh->digits.size())
 				{
-					buffer     = lh->digits[i];
-					need_carry = false;
-
-					if (i < rh->digits.size())
+					int diff = (i < lh->digits.size() ? lh->digits[i] : 0) - (j < rh->digits.size() ? rh->digits[j] : 0) - borrow;
+					if (diff < 0)
 					{
-						if (lh->digits[i] < rh->digits[i] + carry)
-						{
-							buffer += bigint::base;
-							need_carry = true;
-						}
-
-						buffer -= rh->digits[i] + carry;
+						diff += bigint::base;
+						borrow = 1;
 					}
 					else
 					{
-						if (lh->digits[i] == 0)
-						{
-							buffer += bigint::base;
-							need_carry = true;
-						}
-
-						buffer -= carry;
+						borrow = 0;
 					}
-					digits[i] = buffer;
-					carry     = need_carry ? 1 : 0;
+
+					result.push_back(diff);
+					i++;
+					j++;
 				}
+
+				while (result.size() > 1 && result.back() == 0)
+					result.pop_back();
+
+				digits = result;
 			}
 			else
 			{
-				//
+
 				if (lh->sign == Sign::positive)
 				{
 					add(*lh, -(*rh));
@@ -843,7 +841,8 @@ namespace deckard
 		{
 			if (sign == Sign::zero)
 				return 1;
-			assert::check(not empty(), "bigint empty");
+			if (digits.empty())
+				return 0;
 
 			return ((digits.size() - 1) * bigint::base_digits) + count_digits(digits.back());
 		}
@@ -882,9 +881,9 @@ namespace deckard
 				return buffer;
 			}
 
-			std::string chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-			if (uppercase)
-				chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+			static constexpr char chars[]      = "0123456789abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+			u32                   upper_offset = uppercase ? 36 : 0;
 
 			assert::check(newbase >= 2 or newbase <= 36, "Base must be in the range [2, 36]");
 
@@ -897,7 +896,7 @@ namespace deckard
 			{
 				bigint remainder = value % newbase;
 				value /= newbase;
-				u32 index = remainder.to_integer<u32>().value_or(99);
+				u32 index = upper_offset + remainder.to_integer<u32>().value_or(99);
 				assert::check(index < 99, "Base index is wrong");
 				result.push_back(chars[index]);
 			}
@@ -913,7 +912,7 @@ namespace deckard
 			return result;
 		}
 
-		template<std::integral T = i32>
+		template<std::integral T = i64>
 		std::expected<T, std::string> to_integer() const
 		{
 			if (signum() == Sign::zero or empty())
@@ -1133,8 +1132,11 @@ namespace deckard
 
 			if (exponent.is_zero())
 				return result;
+			if (exponent.is_negative())
+				return 0;
 
 			bigint base_copy(*this);
+
 			bigint exp_copy(exponent);
 
 			while (exp_copy > 0)
@@ -1144,6 +1146,8 @@ namespace deckard
 				base_copy *= base_copy;
 				exp_copy >>= 1;
 			}
+
+			result.sign = sign;
 
 			return result;
 		}
@@ -1231,9 +1235,11 @@ namespace deckard
 			return result;
 		}
 
-
-
 		bool is_zero() const { return sign == Sign::zero; }
+
+		bool is_negative() const { return sign == Sign::negative; }
+
+		bool is_positive() const { return sign == Sign::positive; }
 	};
 
 	export bigint abs(const bigint& a) { return a.abs(); }
@@ -1285,28 +1291,38 @@ namespace deckard
 		return bigint{lhs} - rhs;
 	}
 
-	export bigint random_bigint(size_t digits = 0)
+	export bigint random_range(const bigint& start, const bigint& end)
 	{
-		std::random_device            rd;
-		std::uniform_int_distribution ints(48, 57); // '0'...'9'
+		if (start >= end)
+			throw std::invalid_argument("start must be less than end");
 
-		std::string str;
+		std::random_device                 rd;
+		std::mt19937                       gen(rd());
+		std::uniform_int_distribution<u32> dist(0, 10);
 
-		if (digits == 0)
+		bigint range = (abs(end - start)) + 1;
+		bigint result;
+		size_t range_count = range.count();
+		do
 		{
-			std::uniform_int_distribution digits_dist(1, 32);
-			digits = digits_dist(rd);
-		}
 
-		str.resize(digits);
+			result = 0;
 
-		for (auto& i : str)
-			i = (char)(ints(rd));
+			for (size_t i = 0; i < range_count; ++i)
+				result = (result * 10) + dist(gen);
 
-		while (str[0] == '0')
-			str[0] = ints(rd);
 
-		return bigint(str);
+		} while (result >= range);
+
+		return start + result;
+	}
+
+	export bigint random_prime(size_t keysize = 0)
+	{
+		//
+
+
+		return {};
 	}
 
 } // namespace deckard
@@ -1331,14 +1347,24 @@ export namespace std
 			auto pos = ctx.begin();
 			while (pos != ctx.end() && *pos != '}')
 			{
-				if (*pos == 'h' or *pos == 'x')
+				if (*pos == 'x')
 					parsed_base = 16;
 
-				if (*pos == 'H' or *pos == 'X')
+				if (*pos == 'X')
 				{
 					parsed_base = 16;
 					uppercase   = true;
 				}
+
+				if (*pos == 'o')
+					parsed_base = 8;
+
+				if (*pos == 'O')
+				{
+					parsed_base = 8;
+					uppercase   = true;
+				}
+
 
 				if (*pos == 'd')
 				{
@@ -1367,7 +1393,7 @@ export namespace std
 							++pos;
 
 							if (parsed_base < 2 or parsed_base > 36)
-								throw std::format_error("Base invalid");
+								dbg::panic("Base invalid");
 
 							continue;
 						}

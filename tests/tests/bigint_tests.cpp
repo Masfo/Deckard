@@ -171,6 +171,35 @@ TEST_CASE("bigint", "[bigint]")
 
 		CHECK((a == a) == true);
 		CHECK((a != b) == true);
+
+
+		a = "-548136543546186135844635161";
+		b = "78123165165132168546";
+		CHECK((a < b) == true);
+		CHECK((a <= b) == true);
+
+		CHECK((a > b) == false);
+		CHECK((a >= b) == false);
+
+		CHECK((a >= a) == true);
+		CHECK((a <= a) == true);
+
+		CHECK((a == a) == true);
+		CHECK((a != b) == true);
+
+		a = "-548136543546186135844635161";
+		b = "-78123165165132168546";
+		CHECK((a < b) == true);
+		CHECK((a <= b) == true);
+
+		CHECK((a > b) == false);
+		CHECK((a >= b) == false);
+
+		CHECK((a >= a) == true);
+		CHECK((a <= a) == true);
+
+		CHECK((a == a) == true);
+		CHECK((a != b) == true);
 	}
 
 	SECTION("invert")
@@ -371,6 +400,24 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(e.to_string() == "11");
 		CHECK(e.signum() == Sign::positive);
 		CHECK(e.count() == 2);
+
+
+		e = 1000;
+		e = e - (-10);
+		CHECK(e.to_string() == "1010");
+		CHECK(e.signum() == Sign::positive);
+		CHECK(e.count() == 4);
+
+		constexpr int aa = 88000;
+		constexpr int bb = -3000;
+		constexpr int cc = aa - bb;
+		bigint        f  = bigint(aa);
+		f                = f - bigint(bb);
+
+		CHECK(f.to_string() == "91000");
+		CHECK(f.to_integer() == cc);
+		CHECK(f.signum() == Sign::positive);
+		CHECK(f.count() == 5);
 	}
 
 	SECTION("sub (large)")
@@ -616,6 +663,30 @@ TEST_CASE("bigint", "[bigint]")
 		  "6939195157955905767130134752581191460596795355261275651729819196521697845745019711260824560639905752076567808095289");
 		CHECK(c.signum() == Sign::positive);
 		CHECK(c.count() == 371);
+
+
+		auto aaa = pow(bigint(2), 1024);
+		CHECK(aaa.to_string() ==
+			  "17976931348623159077293051907890247336179769789423065727343008115773267580550096313270847732240753602112011"
+			  "38798713933576587897688144166224928474306394741243777678934248654852763022196012460941194530829520850057688"
+			  "38150682342462881473913110540827237163350510684586298239947245938479716304835356329624224137216");
+		CHECK(aaa.count() == 309);
+
+
+		aaa = pow(bigint(-15), 2);
+		CHECK(aaa.to_string() == "-225");
+		CHECK(aaa.to_integer() == -225);
+		CHECK(aaa.signum() == Sign::negative);
+
+		aaa = pow(bigint(-455), 9);
+		CHECK(aaa.to_string() == "-835800390878492990234375");
+		CHECK(aaa.signum() == Sign::negative);
+
+		aaa = pow(bigint(-455), 89);
+		CHECK(aaa.to_string() ==
+			  "-365606831829184082087636830292783886697273542574811330940045764208963408401899618528182596556243961192043721542111882547153"
+			  "579244270460323674958722095560806595915245100899962245232488846537273106084009466343331951065920293331146240234375");
+		CHECK(aaa.signum() == Sign::negative);
 	}
 
 
@@ -718,20 +789,57 @@ TEST_CASE("bigint", "[bigint]")
 		CHECK(result.to_string() == "81173671297554468008735326376926582645357408844016206091156");
 	}
 
-
-	SECTION("random bigint")
+	SECTION("random")
 	{
-		bigint rndq = random_bigint();
+		constexpr u32 TESTS = 50;
 
-		bigint rnd = random_bigint(16);
-		CHECK(rnd.count() == 16);
+		std::random_device                 rd;
+		std::mt19937                       gen(rd());
+		std::uniform_int_distribution<i32> negatives(-100'000, -1);
+		std::uniform_int_distribution<i32> positives(0, 100'000);
 
 
-		rnd = random_bigint(512);
-		CHECK(rnd.count() == 512);
-		auto   x    = rnd.to_string();
-		bigint bign = rnd ^ 5;
-		CHECK(bign.to_string().size() == bign.count());
+		u32 N = TESTS;
+
+		while (--N)
+		{
+			i64 a = negatives(gen);
+			i64 b = positives(gen);
+
+			bigint aa(a);
+			bigint bb(b);
+
+			CHECK(bigint(aa + bb).to_integer() == (a + b));
+			CHECK(bigint(aa - bb).to_integer() == (a - b));
+			CHECK(bigint(aa * bb).to_integer() == (a * b));
+			CHECK(bigint(aa / bb).to_integer() == (a / b));
+		}
+
+
+		N = TESTS;
+		while (--N)
+		{
+			const bigint start = negatives(gen);
+			const bigint end   = positives(gen);
+
+			auto rnd = random_range(start, end);
+
+			CHECK(rnd >= start);
+			CHECK(rnd < end);
+		}
+
+
+		N = TESTS;
+		while (--N)
+		{
+			const bigint start = random_range("-1000000000000", "-1");
+			const bigint end   = random_range("0", "1000000000000");
+
+			auto rnd = random_range(start, end);
+
+			CHECK(rnd >= start);
+			CHECK(rnd < end);
+		}
 	}
 
 	SECTION("bitwise and")
@@ -762,9 +870,6 @@ TEST_CASE("bigint", "[bigint]")
 		auto bstr = b.to_string(2);
 		auto cstr = c.to_string(2);
 
-		dbg::println("A: {}", a.to_string(2));
-		dbg::println("B: {}", b.to_string(2));
-		dbg::println("C: {}", c.to_string(2));
 		CHECK(c.to_string(16) == "3f");
 		CHECK(1 == 1);
 
@@ -828,9 +933,6 @@ TEST_CASE("bigint", "[bigint]")
 
 	SECTION("bitwise not")
 	{
-		int b1 = 0b1001;
-		int b2 = (~b1) & 0b1111;
-
 
 		bigint a(0b1001);
 
@@ -903,25 +1005,22 @@ TEST_CASE("bigint", "[bigint]")
 
 	SECTION("formatter")
 	{
+
 		bigint a(1'234'567'890);
 		CHECK(a.to_string(10) == "1234567890");
 		CHECK(a.to_string(16) == "499602d2");
 		CHECK(std::format("{}", a) == "1234567890");
 		CHECK(std::format("{:x}", a) == "499602d2");
-		CHECK(std::format("{:H}", a) == "499602D2");
-
 		a = "81173671297554468008735326376926582645357408844016206091156";
 		CHECK(a.to_string(10) == "81173671297554468008735326376926582645357408844016206091156");
 		CHECK(a.to_string(16) == "cee84ac0860d1d3f5a8ab7f9ad365fbf1a4c7afcf00161394");
-
-		CHECK(a.to_string(16, true) == "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
-		CHECK(std::format("{:H}", a) == "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
-		CHECK(std::format("{:x}", a) == "cee84ac0860d1d3f5a8ab7f9ad365fbf1a4c7afcf00161394");
 
 
 		CHECK(std::format("{:b2}", a) ==
 			  "1100111011101000010010101100000010000110000011010001110100111111010110101000101010110111111110011010110100110110010111111011"
 			  "111100011010010011000111101011111100111100000000000101100001001110010100");
 		CHECK(std::format("{:b36}", a) == "l701f2az4zj11momniss8jl4co03sao1cpvr10");
+		CHECK(a.to_string(16, true) == "CEE84AC0860D1D3F5A8AB7F9AD365FBF1A4C7AFCF00161394");
+		CHECK(std::format("{:x}", a) == "cee84ac0860d1d3f5a8ab7f9ad365fbf1a4c7afcf00161394");
 	}
 }
