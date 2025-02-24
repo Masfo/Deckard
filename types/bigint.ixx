@@ -847,6 +847,21 @@ namespace deckard
 			return ((digits.size() - 1) * bigint::base_digits) + count_digits(digits.back());
 		}
 
+		size_t popcount() const
+		{
+			size_t result = 0;
+			bigint      count(*this);
+			bigint digit;
+			while (count > 0)
+			{
+				digit = count % 2;
+				count >>= 1;
+
+				result += digit.to_integer<size_t>().value();
+			}
+			return result;
+		}
+
 		auto back() const { return digits.back(); }
 
 		auto rbegin() const { return digits.rbegin(); }
@@ -1291,10 +1306,14 @@ namespace deckard
 		return bigint{lhs} - rhs;
 	}
 
+	export size_t popcount(const bigint& a) { return a.popcount(); }
+
 	export bigint random_range(const bigint& start, const bigint& end)
 	{
-		if (start >= end)
-			throw std::invalid_argument("start must be less than end");
+
+		if (end < start)
+			dbg::panic("End must be greater than start");
+
 
 		std::random_device                 rd;
 		std::mt19937                       gen(rd());
@@ -1315,6 +1334,12 @@ namespace deckard
 		} while (result >= range);
 
 		return start + result;
+	}
+
+	export bigint random_bigint(const bigint& range) 
+	{
+		//
+		return range;
 	}
 
 	export bigint random_prime(size_t keysize = 0)

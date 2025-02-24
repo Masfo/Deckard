@@ -212,7 +212,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
     - **Big integer**
     ```cpp
 	// operators: + - * / %
-	// functions: pow sqrt abs gcd lcm random_bigint
+	// functions: pow sqrt abs gcd lcm random_range popcount
 	// bitwise ops: & | ^ ~ (and or xor not)
 	// comparison: == != < > <= >=
 	// conversion: to_string to_integer

@@ -795,50 +795,55 @@ TEST_CASE("bigint", "[bigint]")
 
 		std::random_device                 rd;
 		std::mt19937                       gen(rd());
-		std::uniform_int_distribution<i32> negatives(-100'000, -1);
-		std::uniform_int_distribution<i32> positives(0, 100'000);
+		std::uniform_int_distribution<i64> r(limits::min<i32> /2, limits::max<i32> / 2);
 
-
-		u32 N = TESTS;
+		u32 N = 100 * TESTS;
 
 		while (--N)
 		{
-			i64 a = negatives(gen);
-			i64 b = positives(gen);
-
+			i64    a = r(gen);
+			i64    b = r(gen);
 			bigint aa(a);
 			bigint bb(b);
 
-			CHECK(bigint(aa + bb).to_integer() == (a + b));
-			CHECK(bigint(aa - bb).to_integer() == (a - b));
-			CHECK(bigint(aa * bb).to_integer() == (a * b));
-			CHECK(bigint(aa / bb).to_integer() == (a / b));
+			CHECK(bigint(aa + bb).to_integer() == a + b);
+			CHECK(bigint(aa - bb).to_integer() == a - b);
+			CHECK(bigint(aa * bb).to_integer() == a * b);
+			CHECK(bigint(aa / bb).to_integer() == a / b);
+		}
+
+		std::uniform_int_distribution<i32> negatives(limits::min<i32>/2, limits::max<i32>/2);
+		std::uniform_int_distribution<i32> positives(limits::min<i32> /2, limits::max<i32> / 2);
+
+		N = TESTS;
+		while (--N)
+		{
+			bigint start = negatives(gen);
+			bigint end   = positives(gen);
+
+			if (end < start)
+				std::swap(start, end);
+
+			auto rnd1 = random_range(start, end);
+
+			CHECK(rnd1 >= start);
+			CHECK(rnd1 < end);
 		}
 
 
 		N = TESTS;
 		while (--N)
 		{
-			const bigint start = negatives(gen);
-			const bigint end   = positives(gen);
+			bigint start = random_range("-1000000000000", "1000000000000");
+			bigint end   = random_range("-1000000000000", "1000000000000");
 
-			auto rnd = random_range(start, end);
+			if (end < start)
+				std::swap(start, end);
 
-			CHECK(rnd >= start);
-			CHECK(rnd < end);
-		}
+			auto rnd2 = random_range(start, end);
 
-
-		N = TESTS;
-		while (--N)
-		{
-			const bigint start = random_range("-1000000000000", "-1");
-			const bigint end   = random_range("0", "1000000000000");
-
-			auto rnd = random_range(start, end);
-
-			CHECK(rnd >= start);
-			CHECK(rnd < end);
+			CHECK(rnd2 >= start);
+			CHECK(rnd2 < end);
 		}
 	}
 
@@ -894,6 +899,11 @@ TEST_CASE("bigint", "[bigint]")
 		b = "47895478932092390843789438902390832487394390";
 		c = a & b;
 		CHECK(c.to_string() == "45107841234594946144076549931291317083586630");
+
+		a = "0b110011";
+		b = "0b001100";
+		CHECK((a & b).to_string(2) == "0");
+
 	}
 
 	SECTION("bitwise or")
@@ -929,6 +939,10 @@ TEST_CASE("bigint", "[bigint]")
 		b = "47895478932092390843789438902390832487394390";
 		c = a | b;
 		CHECK(c.to_string() == "87097121599590883783561923703990002724306134");
+
+		a = "0b110011";
+		b = "0b001100";
+		CHECK((a | b).to_string(2) == "111111");
 	}
 
 	SECTION("bitwise not")
@@ -992,6 +1006,32 @@ TEST_CASE("bigint", "[bigint]")
 								"011111011000100110110101011110010010000");
 
 		CHECK(c.to_string() == "41989280364995937639485373772698685640719504");
+	}
+
+	SECTION("popcount")
+	{ 
+		u64 a = 0xFFFF'FFFF'FFFF'FFFF;
+		CHECK(std::popcount(a) == 64);
+
+		a = 0xFFFF'0000'0000'FFFF;
+		CHECK(std::popcount(a) == 32);
+
+		a = 0xF00F'0000'0000'F00F;
+		CHECK(std::popcount(a) == 16);
+
+		bigint b(0xFFFF'FFFF'FFFF'FFFF);
+		CHECK(b.popcount() == 64);
+
+		b = "739847398473429847349083840394830948309483094748940398730978429347320498732049872";
+		CHECK(b == "739847398473429847349083840394830948309483094748940398730978429347320498732049872");
+		CHECK(b.popcount() == 139);
+
+		auto c = ~b;
+		CHECK(b == "739847398473429847349083840394830948309483094748940398730978429347320498732049872");
+		CHECK(c == "208721396558664425560809668796340392824504619631987101880258098845503859278305839");
+		CHECK(c.popcount() == 130);
+
+
 	}
 
 	SECTION("umap")
