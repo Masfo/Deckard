@@ -850,7 +850,7 @@ namespace deckard
 		size_t popcount() const
 		{
 			size_t result = 0;
-			bigint      count(*this);
+			bigint count(*this);
 			bigint digit;
 			while (count > 0)
 			{
@@ -875,25 +875,26 @@ namespace deckard
 			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
 				return "0";
 
+			std::string result;
+			u32         len  = digits.size() * bigint::base_digits + 1;
+			result.reserve(len);
+
 			if (newbase == 10)
 			{
-				std::string buffer;
-				buffer.reserve(digits.size() * bigint::base_digits);
-
 
 				switch (signum())
 				{
-					case Sign::negative: buffer.append("-"); break;
+					case Sign::negative: result.append("-"); break;
 					case Sign::zero: return "0";
 					default: break;
 				}
 
-				buffer.append(std::format("{}", digits.back()));
+				result.append(std::format("{}", digits.back()));
 				auto it = digits.rbegin();
 				for (it++; it != digits.rend(); ++it)
-					buffer.append(std::format("{:04}", *it));
+					result.append(std::format("{:04}", *it));
 
-				return buffer;
+				return result;
 			}
 
 
@@ -903,8 +904,8 @@ namespace deckard
 			assert::check(newbase >= 2 or newbase <= 36, "Base must be in the range [2, 36]");
 
 
-			bigint      value(*this);
-			std::string result;
+			bigint value(*this);
+
 
 			bigint carry = 0;
 			while (!value.is_zero())
@@ -1312,7 +1313,7 @@ namespace deckard
 	{
 
 		if (end < start)
-			dbg::panic("End must be greater than start");
+			dbg::panic("End must be greater than start. Swap order");
 
 
 		std::random_device                 rd;
@@ -1336,7 +1337,7 @@ namespace deckard
 		return start + result;
 	}
 
-	export bigint random_bigint(const bigint& range) 
+	export bigint random_bigint(const bigint& range)
 	{
 		//
 		return range;
