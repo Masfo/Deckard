@@ -5,6 +5,7 @@ import std;
 import deckard.types;
 import deckard.assert;
 import deckard.as;
+import deckard.sbo;
 
 namespace deckard::utf8
 {
@@ -281,5 +282,147 @@ namespace deckard::utf8
 		}
 	};
 
+	export class string2
+	{
+	private:
+		sbo<32> buffer;
+
+		using value_type      = char;
+		using pointer         = value_type*;
+		using reference       = value_type&;
+		using const_pointer   = const pointer;
+		using const_reference = const reference;
+		using difference_type = std::ptrdiff_t;
+
+		class iterator
+		{
+		private:
+			pointer ptr;
+
+		public:
+			using iterator_category = std::bidirectional_iterator_tag;
+			using difference_type   = std::ptrdiff_t;
+			using value_type        = value_type;
+
+			//iterator(const_iterator ci)
+			//	: ptr(ci.ptr)
+			//{
+			//}
+
+			iterator(pointer p)
+				: ptr(p)
+			{
+			}
+
+			reference operator*() const { return *ptr; }
+
+			pointer operator->() const { return ptr; }
+
+			iterator& operator++()
+			{
+				ptr++;
+				return *this;
+			}
+
+			iterator operator++(int)
+			{
+				iterator tmp = *this;
+				ptr++;
+				return tmp;
+			}
+
+			iterator& operator--()
+			{
+				ptr--;
+				return *this;
+			}
+
+			iterator operator--(int)
+			{
+				iterator tmp = *this;
+				ptr--;
+				return tmp;
+			}
+
+			iterator operator+=(int v)
+			{
+				ptr += v;
+				return *this;
+			}
+
+			iterator operator-=(int v)
+			{
+				ptr -= v;
+				return *this;
+			}
+
+			iterator operator+(difference_type n) const { return iterator(ptr + n); }
+
+			iterator operator-(difference_type n) const { return iterator(ptr - n); }
+
+			difference_type operator-(const iterator& other) const { return ptr - other.ptr; }
+
+			reference& operator[](difference_type n) const { return ptr[n]; }
+
+			auto operator<=>(const iterator&) const = default;
+
+			bool operator==(const iterator& other) const { return ptr == other.ptr; }
+		};
+
+	public:
+		string2() = default;
+
+		string2(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
+
+		string2 operator=(std::string_view input)
+		{
+			buffer.assign({as<u8*>(input.data()), input.size()});
+			return *this;
+		}
+
+		auto begin() { return buffer.begin(); }
+
+		auto cbegin() { return buffer.cbegin(); }
+
+		auto end() { return buffer.end(); }
+
+		auto cend() { return buffer.cend(); }
+
+		auto data() const { return buffer.data(); }
+
+		auto size() const { return buffer.size(); }
+	};
+
 
 } // namespace deckard::utf8
+
+export namespace std
+
+{
+	using namespace deckard;
+
+	// template<>
+	// struct hash<utf8::string2>
+	//{
+	//	size_t operator()(const utf8::string2& value) const { return deckard::utils::hash_values(value.to_string()); }
+	// };
+
+	template<>
+	struct formatter<utf8::string2>
+	{
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			// TODO: width
+			return ctx.begin();
+		}
+
+		auto format(const utf8::string2& v, std::format_context& ctx) const
+		{
+			std::string_view view{as<char*>(v.data().data()), v.size()};
+			return std::format_to(ctx.out(), "{}", view);
+		}
+
+		int  parsed_base = 10;
+		bool uppercase   = false;
+	};
+} // namespace std

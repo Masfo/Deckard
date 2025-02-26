@@ -478,8 +478,23 @@ i32 deckard_main(std::string_view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
+	{
+
+		auto smallstr = utf8::string2("small buffer 🌍1🍋Ä");
+		auto longstr = utf8::string2("extra super hyper mega long buffer 🌍1🍋Ä");
+
+		dbg::println("small: {}", smallstr);
+		dbg::println("long : {}", longstr);
+
+		for (auto it = smallstr.begin(); it != smallstr.end(); ++it)
+			dbg::print("[{}]", (char)*it);
+		dbg::println();
 
 
+		int k = 0;
+
+
+	}
 
 
 	graph::graph<i32> g(5);
