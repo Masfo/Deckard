@@ -287,7 +287,7 @@ namespace deckard::utf8
 	private:
 		sbo<32> buffer;
 
-		using value_type      = char;
+		using value_type      = sbo<32>;
 		using pointer         = value_type*;
 		using reference       = value_type&;
 		using const_pointer   = const pointer;
@@ -297,62 +297,123 @@ namespace deckard::utf8
 		class iterator
 		{
 		private:
-			pointer ptr;
+			pointer         ptr;
+			difference_type index;
 
+			char32 state{UTF8_ACCEPT};
+			/*
+			char32 decode_current_index() const
+			{
+
+				const u8 byte = utf8_table[ptr->at(index)];
+
+				char32 decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
+				state         = utf8_table[256 + state + type];
+
+				return decoded_point;
+			}
+
+			type read(u8 byte) { assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table"); }
+
+			type next()
+			{
+				for (state = 0; idx < buffer.size(); idx++)
+				{
+					u8 byte = buffer[idx];
+
+					if (!read(byte))
+					{
+						idx += 1;
+						return decoded_point;
+					}
+					else if (state == UTF8_REJECT)
+					{
+						idx += 1;
+						return REPLACEMENT_CHARACTER;
+					}
+				}
+
+				if (state != UTF8_ACCEPT)
+				{
+					state = UTF8_ACCEPT;
+					return REPLACEMENT_CHARACTER;
+				}
+
+				return decoded_point;
+			}
+			*/
 		public:
 			using iterator_category = std::bidirectional_iterator_tag;
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
 
-			//iterator(const_iterator ci)
+			// iterator(const_iterator ci)
 			//	: ptr(ci.ptr)
 			//{
-			//}
+			// }
 
 			iterator(pointer p)
 				: ptr(p)
+				, index(0)
 			{
 			}
 
-			reference operator*() const { return *ptr; }
+			iterator(pointer p, difference_type v)
+				: ptr(p)
+				, index(v)
+			{
+			}
 
-			pointer operator->() const { return ptr; }
+			auto operator*() const
+			{
+				//
+				return ptr->at(index);
+				//return decoded_point;
+			}
+
+			// pointer operator->() const { return ptr; }
 
 			iterator& operator++()
 			{
-				ptr++;
+				// ptr++;
+				index++;
 				return *this;
 			}
 
 			iterator operator++(int)
 			{
 				iterator tmp = *this;
-				ptr++;
+				// ptr++;
+				index++;
 				return tmp;
 			}
 
 			iterator& operator--()
 			{
-				ptr--;
+				// ptr--;
+				index--;
 				return *this;
 			}
 
 			iterator operator--(int)
 			{
 				iterator tmp = *this;
-				ptr--;
+				// ptr--;
+				index--;
 				return tmp;
 			}
 
 			iterator operator+=(int v)
 			{
-				ptr += v;
+				// ptr += v;
+				index += v;
 				return *this;
 			}
 
 			iterator operator-=(int v)
 			{
-				ptr -= v;
+				// ptr -= v;
+				index -= v;
 				return *this;
 			}
 
@@ -366,7 +427,7 @@ namespace deckard::utf8
 
 			auto operator<=>(const iterator&) const = default;
 
-			bool operator==(const iterator& other) const { return ptr == other.ptr; }
+			bool operator==(const iterator& other) const { return index == other.index; }
 		};
 
 	public:
@@ -380,15 +441,15 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		auto begin() { return buffer.begin(); }
+		auto begin() { return iterator(&buffer); }
 
-		auto cbegin() { return buffer.cbegin(); }
+		auto end() { return iterator(&buffer, buffer.size()); }
 
-		auto end() { return buffer.end(); }
+		// auto cbegin() { return buffer.cbegin(); }
 
-		auto cend() { return buffer.cend(); }
+		// auto cend() { return buffer.cend(); }
 
-		auto data() const { return buffer.data(); }
+		auto data() const { return buffer.data().data(); }
 
 		auto size() const { return buffer.size(); }
 	};
@@ -418,7 +479,7 @@ export namespace std
 
 		auto format(const utf8::string2& v, std::format_context& ctx) const
 		{
-			std::string_view view{as<char*>(v.data().data()), v.size()};
+			std::string_view view{as<char*>(v.data()), v.size()};
 			return std::format_to(ctx.out(), "{}", view);
 		}
 

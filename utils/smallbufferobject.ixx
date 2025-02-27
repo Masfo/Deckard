@@ -469,8 +469,8 @@ namespace deckard
 
 		iterator insert(iterator pos, const value_type& v) { return insert(pos, std::span<value_type>{(pointer)&v, 1}); }
 
-		void assign(const std::span<value_type> buffer) 
-		{ 
+		void assign(const std::span<value_type> buffer)
+		{
 			clear();
 			insert(begin(), buffer);
 		}
@@ -479,7 +479,7 @@ namespace deckard
 
 		void assign(const value_type& v) { assign(std::span<value_type>{(pointer)&v, 1}); }
 
-		void assign(const std::initializer_list<value_type>& il) 
+		void assign(const std::initializer_list<value_type>& il)
 		{
 			clear();
 			for (const auto& i : il)
@@ -488,18 +488,15 @@ namespace deckard
 
 		void append(const sbo<SIZE>& other) { append(other.data()); }
 
-
-
 		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
 
 		void append(const value_type& v) { append(std::span<value_type>{(pointer)&v, 1}); }
 
-		void append(const std::initializer_list<value_type>& il) 
+		void append(const std::initializer_list<value_type>& il)
 		{
 			//
 			for (const auto& i : il)
 				append(i);
-
 		}
 
 		[[nodiscard("Use the front value")]] value_type front() const
@@ -519,6 +516,10 @@ namespace deckard
 		size_t size() const { return is_large() ? large_size() : small_size(); }
 
 		size_t capacity() const { return is_large() ? large_capacity() : small_capacity(); }
+
+		[[nodiscard("Use result on index operator")]] reference at(size_t index) { return operator[](index); }
+
+		[[nodiscard("Use result on index operator")]] const_reference at(size_t index) const { return operator[](index); }
 
 		[[nodiscard("Use result on index operator")]] reference operator[](size_t index)
 		{
@@ -783,8 +784,8 @@ export namespace std
 		size_t operator()(const sbo<SIZE>& obj) const { return deckard::utils::hash_values(obj.data()); }
 	};
 
-	//template<size_t SIZE>
-	//struct formatter<sbo<SIZE>>
+	// template<size_t SIZE>
+	// struct formatter<sbo<SIZE>>
 	//{
 	//	// TODO: Parse width
 	//	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
@@ -798,5 +799,5 @@ export namespace std
 	//
 	//		return std::format_to(ctx.out(), "]");
 	//	}
-	//};
+	// };
 } // namespace std

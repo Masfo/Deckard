@@ -469,7 +469,56 @@ std::generator<u32> gen()
 	}
 }
 
+ std::vector<u8> encode_codepoint(char32 codepoint)
+{
+	std::vector<u8> bytes;
+	if (codepoint <= 0x7F)
+	{
+		bytes.push_back(static_cast<u8>(codepoint));
+	}
+	else if (codepoint <= 0x7FF)
+	{
+		bytes.push_back(static_cast<u8>((codepoint >> 6) | 0xC0));
+		bytes.push_back(static_cast<u8>((codepoint & 0x3F) | 0x80));
+	}
+	else if (codepoint <= 0xFFFF)
+	{
+		bytes.push_back(static_cast<u8>((codepoint >> 12) | 0xE0));
+		bytes.push_back(static_cast<u8>(((codepoint >> 6) & 0x3F) | 0x80));
+		bytes.push_back(static_cast<u8>((codepoint & 0x3F) | 0x80));
+	}
+	else if (codepoint <= 0x10'FFFF)
+	{
+		bytes.push_back(static_cast<u8>((codepoint >> 18) | 0xF0));
+		bytes.push_back(static_cast<u8>(((codepoint >> 12) & 0x3F) | 0x80));
+		bytes.push_back(static_cast<u8>(((codepoint >> 6) & 0x3F) | 0x80));
+		bytes.push_back(static_cast<u8>((codepoint & 0x3F) | 0x80));
+	}
+	else
+	{
+		bytes.push_back(0xEF);
+		bytes.push_back(0xBF);
+		bytes.push_back(0xBD); // U+FFFD replacement character
+	}
+	return bytes;
+}
 
+
+constexpr std::array<u8, 364> utf8_table{
+  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,
+  1,  1,  1,  1,  1,  1,  1,  1,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
+  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  8,  8,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
+  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  10, 3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  4,
+  3,  3,  11, 6,  6,  6,  5,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  0,  12, 24, 36, 60, 96, 84, 12, 12, 12, 48, 72, 12, 12, 12, 12,
+  12, 12, 12, 12, 12, 12, 12, 12, 12, 0,  12, 12, 12, 12, 12, 0,  12, 0,  12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 24, 12, 12, 12, 12,
+  12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12,
+  12, 36, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12, 36, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+};
+constexpr u32 UTF8_ACCEPT{0};
+constexpr u32 UTF8_REJECT{12};
 
 i32 deckard_main(std::string_view commandline)
 {
@@ -479,21 +528,73 @@ i32 deckard_main(std::string_view commandline)
 #endif
 
 	{
+		u32             index  = 0;
+		std::vector<u8> buffer = {0xE0, 0x80, 0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA5, 0xF0, 0x9F, 0x8C, 0x8D};
+		//std::vector<u8> buffer = {0x80};
 
-		auto smallstr = utf8::string2("small buffer 🌍1🍋Ä");
-		auto longstr = utf8::string2("extra super hyper mega long buffer 🌍1🍋Ä");
+
+
+		auto decode = [&index](const std::span<u8> buffer)
+		{
+
+			constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // U+FFFD 0xEF 0xBF 0xBD(239, 191, 189) REPLACEMENT CHARACTER
+
+			u32 state     = 0;
+			char32 codepoint = 0;
+			for (state = 0; index < buffer.size(); index++)
+			{
+				u8        byte = buffer[index];
+				const u32 type = utf8_table[byte];
+				codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
+				state          = utf8_table[256 + state + type];
+				if (not state)
+				{
+					index += 1;
+					return codepoint;
+				}
+				else if (state == UTF8_REJECT)
+				{
+					index += 1;
+					return REPLACEMENT_CHARACTER;
+				}
+			}
+
+			if (state != UTF8_ACCEPT)
+				return REPLACEMENT_CHARACTER;
+
+			return codepoint;
+		};
+
+
+       
+		auto cobuffer0 = decode(buffer);        // 0xFFFD
+		auto cobuffer1 = decode(buffer);		// 0x41
+		auto cobuffer2 = decode(buffer);		// 0xC4
+		auto cobuffer3 = decode(buffer);		// 0x215A
+		auto cobuffer4 = decode(buffer);		// 0x1F30D
+
+		auto deco4 = encode_codepoint(cobuffer4); // 0xF0 0x9F 0x8C 0x8D
+
+
+		auto smallstr = utf8::string2("small buffer AÄ↥🌍");
+		auto longstr  = utf8::string2("extra super hyper mega long buffer AÄ↥🌍");
+
+		// char xq[5] = "🌍"; // f0 9f 8c 8d 00
+		// char xq[4] = "↥"; // e2 86 a8 00
+		char xq[3] = "Ä"; // C3 84 00
+		// char xq[2] = "A"; // 41 00
+
+		dbg::println("{}", xq);
 
 		dbg::println("small: {}", smallstr);
 		dbg::println("long : {}", longstr);
 
 		for (auto it = smallstr.begin(); it != smallstr.end(); ++it)
-			dbg::print("[{}]", (char)*it);
+			dbg::print("[{}]", *it);
 		dbg::println();
 
 
 		int k = 0;
-
-
 	}
 
 
