@@ -131,14 +131,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 
 	deckard::random::initialize();
 	net::initialize();
-	dbg::println("Initialized");
 
 
 	// main
 	int ret = deckard_main(U"");
 
 	//
-	dbg::println("Deinitializing");
 
 	if (CoUninitialize)
 		CoUninitialize();

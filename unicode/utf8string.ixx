@@ -105,182 +105,193 @@ namespace deckard::utf8
 		return ret ? true : false;
 	}
 
-	export class string
-	{
-	public:
-		using type = char32;
+    export class string
+    {
+    public:
+					using type = char32;
 
-	private:
-		struct iterator
-		{
-			using iterator_category = std::bidirectional_iterator_tag;
-			using value_type        = type;
+    private:
+					struct iterator
+					{
+						using iterator_category = std::bidirectional_iterator_tag;
+						using value_type        = type;
 
-			iterator(string* ptr, i32 i)
-				: p(ptr)
-				, index(i)
-			{
-				if (i == 0 and p and not p->empty())
-					current = p->next();
-			}
+						iterator(string* ptr, i32 i)
+							: p(ptr)
+							, index(i)
+						{
+							if (i == 0 and p and not p->empty())
+								current = p->next();
+						}
 
-			const value_type operator*() const { return current; }
+						const value_type operator*() const { return current; }
 
-			const iterator& operator++()
-			{
-				if (index >= 0 and p and not p->empty())
-				{
-					current = p->next();
-					index += 1;
-					return *this;
-				}
-				index = -1;
-				return *this;
-			}
+						const iterator& operator++()
+						{
+							if (index >= 0 and p and not p->empty())
+							{
+								current = p->next();
+								index += 1;
+								return *this;
+							}
+							index = -1;
+							return *this;
+						}
 
-			friend bool operator==(const iterator& a, const iterator& b) { return a.index == b.index; };
+						friend bool operator==(const iterator& a, const iterator& b) { return a.index == b.index; };
 
-			string* p{nullptr};
+						string* p{nullptr};
 
-			value_type current{REPLACEMENT_CHARACTER};
-			i32        index{0};
-		};
+						value_type current{REPLACEMENT_CHARACTER};
+						i32        index{0};
+					};
 
-		type read(u8 byte)
-		{
-			assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
+					type read(u8 byte)
+					{
+						assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
 
-			const u32 type = utf8_table[byte];
+						const u32 type = utf8_table[byte];
 
-			decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
-			state         = utf8_table[256 + state + type];
-			return state;
-		}
+						decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
+						state         = utf8_table[256 + state + type];
+						return state;
+					}
 
-		void reset()
-		{
-			idx             = 0;
-			state           = UTF8_ACCEPT;
-			codepoint_count = 0;
-		}
+					void reset()
+					{
+						idx             = 0;
+						state           = UTF8_ACCEPT;
+						codepoint_count = 0;
+					}
 
-		std::vector<u8> buffer;
-		type            decoded_point{0};
-		type            state{UTF8_ACCEPT};
-		u32             idx{0};
-		u32             codepoint_count{};
+					std::vector<u8> buffer;
+					type            decoded_point{0};
+					type            state{UTF8_ACCEPT};
+					u32             idx{0};
+					u32             codepoint_count{};
 
-		void update_cache()
-		{
-			reset();
-			(void)size();
-		}
+					void update_cache()
+					{
+						reset();
+						(void)size();
+					}
 
-	public:
-		string() = default;
+    public:
+					string() = default;
 
-		string(std::string_view input)
-		{
-			std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
-			update_cache();
-		}
+					string(std::string_view input)
+					{
+						std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
+						update_cache();
+					}
 
-		string(std::span<u8> input)
-		{
-			std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
-			update_cache();
-		}
+					string(std::span<u8> input)
+					{
+						std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
+						update_cache();
+					}
 
-		string(std::optional<std::vector<u8>> input)
-		{
-			if (input.has_value())
-			{
-				auto i = *input;
-				std::ranges::copy_n(i.data(), i.size(), std::back_inserter(buffer));
-				update_cache();
-			}
-		}
+					string(std::optional<std::vector<u8>> input)
+					{
+						if (input.has_value())
+						{
+							auto i = *input;
+							std::ranges::copy_n(i.data(), i.size(), std::back_inserter(buffer));
+							update_cache();
+						}
+					}
 
-		string(std::vector<u8> input)
-			: string(std::optional<std::vector<u8>>(input))
-		{
-		}
+					string(std::vector<u8> input)
+						: string(std::optional<std::vector<u8>>(input))
+					{
+					}
 
-		string(const char* input)
-			: string(std::string_view{input})
-		{
-		}
+					string(const char* input)
+						: string(std::string_view{input})
+					{
+					}
 
-		bool empty() const { return idx >= buffer.size(); }
+					bool empty() const { return idx >= buffer.size(); }
 
-		u64 size_in_bytes() const { return buffer.size(); }
+					u64 size_in_bytes() const { return buffer.size(); }
 
-		u64 size()
-		{
-			if (codepoint_count != 0)
-				return codepoint_count;
+					u64 size()
+					{
+						if (codepoint_count != 0)
+							return codepoint_count;
 
-			u32 old_index = idx;
-			u32 old_state = state;
+						u32 old_index = idx;
+						u32 old_state = state;
 
-			while (not empty())
-			{
-				if (next())
-					codepoint_count += 1;
-			}
+						while (not empty())
+						{
+							if (next())
+								codepoint_count += 1;
+						}
 
-			idx   = old_index;
-			state = old_state;
+						idx   = old_index;
+						state = old_state;
 
-			return codepoint_count;
-		}
+						return codepoint_count;
+					}
 
-		u64 count() { return size(); }
+					u64 count() { return size(); }
 
-		iterator begin() { return iterator(this, idx); }
+					iterator begin() { return iterator(this, idx); }
 
-		iterator end() { return iterator(this, -1); }
+					iterator end() { return iterator(this, -1); }
 
-		type next()
-		{
-			for (state = 0; idx < buffer.size(); idx++)
-			{
-				u8 byte = buffer[idx];
+					type next()
+					{
+						for (state = 0; idx < buffer.size(); idx++)
+						{
+							u8 byte = buffer[idx];
 
-				if (!read(byte))
-				{
-					idx += 1;
-					return decoded_point;
-				}
-				else if (state == UTF8_REJECT)
-				{
-					idx += 1;
-					return REPLACEMENT_CHARACTER;
-				}
-			}
+							if (!read(byte))
+							{
+								idx += 1;
+								return decoded_point;
+							}
+							else if (state == UTF8_REJECT)
+							{
+								idx += 1;
+								return REPLACEMENT_CHARACTER;
+							}
+						}
 
-			if (state != UTF8_ACCEPT)
-			{
-				state = UTF8_ACCEPT;
-				return REPLACEMENT_CHARACTER;
-			}
+						if (state != UTF8_ACCEPT)
+						{
+							state = UTF8_ACCEPT;
+							return REPLACEMENT_CHARACTER;
+						}
 
-			return decoded_point;
-		}
+						return decoded_point;
+					}
 
-		auto data() const { return buffer.data(); }
+					auto data() const { return buffer.data(); }
 
-		auto codepoints() -> std::vector<type>
-		{
-			std::vector<type> ret;
-			ret.reserve(count());
+					auto codepoints() -> std::vector<type>
+					{
+						std::vector<type> ret;
+						ret.reserve(count());
 
-			for (const auto& cp : *this)
-				ret.emplace_back(cp);
+						for (const auto& cp : *this)
+							ret.emplace_back(cp);
 
-			return ret;
-		}
-	};
+						return ret;
+					}
+
+					bool is_valid() const
+					{
+						utf8_decode_t state{};
+						for (const auto& byte : buffer)
+						{
+							if (decode(state, byte) == UTF8_REJECT)
+								return false;
+						}
+						return state.state == UTF8_ACCEPT;
+					}
+    };
 
 	export class string2
 	{

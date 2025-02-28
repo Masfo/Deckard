@@ -22,7 +22,11 @@ namespace deckard::utf8
 			return 3;
 		else if ((codepoint_byte & 0xF8) == 0xF0)
 			return 4;
-
+		else if ((codepoint_byte & 0xFC) == 0xF8)
+			return 5;
+		else if ((codepoint_byte & 0xFE) == 0xFC)
+			return 6;
+	
 		return 0;
 	}
 
@@ -34,8 +38,11 @@ namespace deckard::utf8
 			return 2;
 		else if (codepoint < 0x1'0000)
 			return 3;
-		else
+		else if (codepoint < 0x20'0000)
 			return 4;
+		else if (codepoint < 0x400'0000)
+
+			return 5;
 	}
 
 	export constexpr bool is_bom(char32_t codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
@@ -44,18 +51,18 @@ namespace deckard::utf8
 	{
 		// PropList-15.1.0.txt
 		return (
-		  (codepoint == 0x0020) or                             // space
-		  ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control
-		  (codepoint == 0x0085) or                             // control
-		  (codepoint == 0x00A0) or                             // no-break space
-		  (codepoint == 0x1680) or                             // Ogham space mark
-		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE
-		  (codepoint == 0x2028) or                             // LINE SEPARATOR
-		  (codepoint == 0x2029) or                             // PARAGRAPH SEPARATOR
-		  (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE
-		  (codepoint == 0x205F) or                             // MEDIUM MATHEMATICAL SPACE
-		  (codepoint == 0x2060) or                             // WORD JOINER (like U+00A0)
-		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
+    (codepoint == 0x0020) or                             // space
+    ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control
+    (codepoint == 0x0085) or                             // control
+    (codepoint == 0x00A0) or                             // no-break space
+    (codepoint == 0x1680) or                             // Ogham space mark
+    ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE
+    (codepoint == 0x2028) or                             // LINE SEPARATOR
+    (codepoint == 0x2029) or                             // PARAGRAPH SEPARATOR
+    (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE
+    (codepoint == 0x205F) or                             // MEDIUM MATHEMATICAL SPACE
+    (codepoint == 0x2060) or                             // WORD JOINER (like U+00A0)
+    (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
 	}
 
 	export constexpr bool is_identifier_start(char32_t codepoint)

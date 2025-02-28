@@ -528,11 +528,30 @@ i32 deckard_main(std::string_view commandline)
 #endif
 
 	{
-		u32             index  = 0;
+		i64             index  = 0;
 		std::vector<u8> buffer = {0xE0, 0x80, 0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA5, 0xF0, 0x9F, 0x8C, 0x8D};
-		//std::vector<u8> buffer = {0x80};
+		buffer = {0xE7, 0x95, 0x8C};
 
+		auto last_codepoint = [&index](const std::span<u8> buffer)
+		{
+			if (index >= 0 and index < buffer.size())
+			{
+				index -= 1;
+				while (utf8::is_continuation_byte(buffer[index]))
+					index -= 1;
 
+				if (index < 0)
+					index = 0;
+
+			}
+
+		};
+
+		auto next_codepoint = [&index](const std::span<u8> buffer, i64 current_index) -> i64
+ 		{
+			//
+			// return new index
+		};
 
 		auto decode = [&index](const std::span<u8> buffer)
 		{
@@ -544,12 +563,16 @@ i32 deckard_main(std::string_view commandline)
 			for (state = 0; index < buffer.size(); index++)
 			{
 				u8        byte = buffer[index];
+				u32       width = utf8::codepoint_width(byte);
+
 				const u32 type = utf8_table[byte];
 				codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
 				state          = utf8_table[256 + state + type];
 				if (not state)
 				{
 					index += 1;
+					// skip to next valid codepoint, continuation_byte?
+					// index = next_codepoint(buffer, index)
 					return codepoint;
 				}
 				else if (state == UTF8_REJECT)
@@ -565,7 +588,7 @@ i32 deckard_main(std::string_view commandline)
 			return codepoint;
 		};
 
-
+		// 1. 
        
 		auto cobuffer0 = decode(buffer);        // 0xFFFD
 		auto cobuffer1 = decode(buffer);		// 0x41
