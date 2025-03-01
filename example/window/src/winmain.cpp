@@ -604,7 +604,8 @@ i32 deckard_main(std::string_view commandline)
 
 		// char xq[5] = "🌍"; // f0 9f 8c 8d 00
 		// char xq[4] = "↥"; // e2 86 a8 00
-		char xq[3] = "Ä"; // C3 84 00
+		//char xq[3] = "Ä"; // C3 84 00
+		char xq[4] = "⌘"; // e2 8c 98    \u2318
 		// char xq[2] = "A"; // 41 00
 
 		dbg::println("{}", xq);
