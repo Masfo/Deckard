@@ -65,11 +65,12 @@ namespace deckard
 			pointer ptr;
 
 		public:
+			friend class const_iterator;
 			using iterator_category = std::bidirectional_iterator_tag;
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
 
-			iterator(const_iterator ci)
+			iterator(const_iterator& ci)
 				: ptr(ci.ptr)
 			{
 			}
@@ -140,6 +141,7 @@ namespace deckard
 			pointer ptr;
 
 		public:
+			friend class iterator;
 			using iterator_category = std::bidirectional_iterator_tag;
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
@@ -766,6 +768,73 @@ namespace deckard
 		}
 
 		friend void swap(sbo& lhs, sbo& rhs) noexcept { lhs.swap(rhs); }
+
+		iterator erase(iterator first, iterator last)
+		{
+			if (first == last)
+				return iterator(rawptr());
+
+			const auto pivot   = std::distance(begin(), first);
+			const auto count   = std::distance(first, last);
+			const auto newsize = size() - count;
+
+			pointer ptr = rawptr();
+			std::copy(ptr + pivot + count, ptr + size(), ptr + pivot);
+			std::fill(ptr + newsize, ptr + size(), 0);
+
+			set_size(newsize);
+
+			return iterator(ptr + pivot);
+		}
+
+		iterator erase(const_iterator first, const_iterator last) { return erase(iterator(first), iterator(last)); }
+
+		iterator erase(iterator pos) { return erase(pos, pos + 1); }
+
+		iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
+
+		// replace
+
+		iterator replace(iterator first, iterator end, const std::span<value_type>& buffer)
+		{ 
+			if (first == end)
+			{
+
+				return insert(erase(first), buffer);
+			}
+
+			const size_t len = std::distance(first, end);
+			if (len == buffer.size())
+			{
+
+				std::copy(buffer.begin(), buffer.end(), first);
+				return end;
+			}
+
+			if ( buffer.size() < len)
+			{
+				const auto pivot   = std::distance(begin(), first);
+				const auto count   = std::distance(first, end);
+				const auto newsize = size() + buffer.size() - count;
+
+				pointer ptr = rawptr();
+				first       = begin() + pivot;
+				std::copy(ptr + pivot + count, ptr + size(), ptr + pivot + buffer.size());
+				std::copy(buffer.begin(), buffer.end(), ptr + pivot);
+				std::fill(ptr + newsize, ptr + size(), 0);
+				set_size(newsize);
+				return iterator(ptr + pivot + buffer.size());  
+
+			}
+			else
+			{
+				auto pos = erase(first, end);
+				insert(pos, buffer);
+				return pos;
+			
+			}
+
+		}
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);

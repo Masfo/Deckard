@@ -608,6 +608,8 @@ i32 deckard_main(std::string_view commandline)
 		char xq[4] = "⌘"; // e2 8c 98    \u2318
 		// char xq[2] = "A"; // 41 00
 
+		std::string qw = "AÄ⌘🌍";
+
 		dbg::println("{}", xq);
 
 		dbg::println("small: {}", smallstr);

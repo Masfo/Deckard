@@ -1153,8 +1153,302 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.capacity() == 384);
 	}
 
-	SECTION("assign (small)") 
-	{ 
+	SECTION("erase (small)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+
+		ss.insert(ss.begin(), buffer);
+
+		CHECK(ss.size() == 6);
+
+		ss.erase(ss.cbegin() + 2, ss.cend() - 2);
+
+		CHECK(ss.size() == 4);
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'T');
+		CHECK(ss[3] == 'Y');
+
+
+		ss.erase(ss.cbegin() + 2, ss.cend());
+		CHECK(ss.size() == 2);
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		ss.erase(ss.begin() + 1);
+		CHECK(ss.size() == 1);
+		CHECK(ss[0] == 'Q');
+	}
+
+
+	SECTION("erase (large)")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 256; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 256);
+		CHECK(ss.capacity() == 256);
+
+		ss.erase(ss.cbegin() + 2, ss.cend() - 2);
+
+		CHECK(ss.size() == 4);
+		CHECK(ss.capacity() == 256);
+		CHECK(ss[0] == 0);
+		CHECK(ss[1] == 1);
+		CHECK(ss[2] == 254);
+		CHECK(ss[3] == 255);
+
+
+		ss.erase(ss.cbegin() + 2, ss.cend());
+		CHECK(ss.size() == 2);
+		CHECK(ss[0] == 0);
+		CHECK(ss[1] == 1);
+
+
+		ss.erase(ss.begin());
+		CHECK(ss.size() == 1);
+		CHECK(ss[0] == 1);
+	}
+
+	SECTION("replace equal size (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 3> newbuffer{'X', 'Y', 'Z'};
+
+		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Z');
+
+		CHECK(ss[5] == 'Y');
+	}
+
+	SECTION("replace single range (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 3> newbuffer{'X', 'Y', 'Z'};
+
+		ss.replace(ss.begin() + 2, ss.begin() + 2, newbuffer);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Z');
+
+		CHECK(ss[5] == 'R');
+		CHECK(ss[6] == 'T');
+		CHECK(ss[7] == 'Y');
+
+
+	}
+
+	SECTION("replace smaller size (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 2> newbuffer{'X', 'Y'};
+
+		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
+
+		CHECK(ss.size() == 5);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Y');
+	}
+
+
+	SECTION("replace larger size (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
+
+		CHECK(ss.size() == 7);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Z');
+		CHECK(ss[5] == 'Q');
+
+		CHECK(ss[6] == 'Y');
+	}
+
+	SECTION("replace smaller to larger")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 31; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 31);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss[0] == 0);
+		CHECK(ss[1] == 1);
+		CHECK(ss[2] == 2);
+		CHECK(ss[3] == 3);
+		CHECK(ss[4] == 4);
+		CHECK(ss[5] == 5);
+		CHECK(ss.back() == 30);
+
+		std::array<u8, 7> newbuffer{'A','B','C','D','E','F','G'};
+
+		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
+
+
+		CHECK(ss.size() == 35);
+		CHECK(ss.capacity() == 48);
+
+		CHECK(ss[0] == 0);
+		CHECK(ss[1] == 1);
+		CHECK(ss[2] == 'A');
+		CHECK(ss[3] == 'B');
+		CHECK(ss[4] == 'C');
+		CHECK(ss[5] == 'D');
+		CHECK(ss[6] == 'E');
+		CHECK(ss[7] == 'F');
+		CHECK(ss[8] == 'G');
+		CHECK(ss[9] == 5);
+		CHECK(ss[10] == 6);
+		CHECK(ss.back() == 30);
+
+
+	}
+
+
+	SECTION("replace larger size (large)")
+	{
+		
+		sbo < 32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (u32 i = 0; i < 256; i++)
+			ss.push_back(as<u8>(i));
+
+		CHECK(ss.size() == 256);
+		CHECK(ss.capacity() == 256);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
+
+		CHECK(ss.size() == 257);
+		CHECK(ss.capacity() == 384);
+
+		CHECK(ss[0] == 0);
+		CHECK(ss[1] == 1);
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Z');
+		CHECK(ss[5] == 'Q');
+
+		CHECK(ss[6] == 5);
+		CHECK(ss[7] == 6);
+		CHECK(ss[8] == 7);
+		CHECK(ss[9] == 8);
+		CHECK(ss.back() == 255);
+
+
+	}
+
+	SECTION("assign (small)")
+	{
 		sbo<32> ss;
 		ss.push_back('A');
 		ss.push_back('B');
@@ -1173,12 +1467,12 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a.size() == 1);
 		CHECK(a.capacity() == 31);
 
-		a.assign({'X', 'Y', 'Z'}); 
+		a.assign({'X', 'Y', 'Z'});
 		CHECK(a.size() == 3);
 		CHECK(a.capacity() == 31);
 	}
 
-	
+
 	SECTION("assign (large)")
 	{
 		sbo<32> ss;
@@ -1340,7 +1634,6 @@ TEST_CASE("sbo", "[sbo]")
 		ss.push_back('F');
 
 
-
 		CHECK(ss.size() == 6);
 		CHECK(ss.capacity() == 31);
 
@@ -1355,9 +1648,6 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(ss.contains(0x7F) == true);
 		CHECK(ss.contains(0xFF) == false);
-
-
-
 	}
 
 	SECTION("compare (small)")
@@ -1447,7 +1737,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a != b);
 	}
 
-	SECTION("hash") 
+	SECTION("hash")
 	{
 
 		sbo<32> a;
