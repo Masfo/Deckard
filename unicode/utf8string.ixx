@@ -438,7 +438,11 @@ namespace deckard::utf8
 
 			auto operator<=>(const iterator&) const = default;
 
-			bool operator==(const iterator& other) const { return index == other.index; }
+			bool operator==(const iterator& other) const 
+			{
+				// TODO: assert on pointer diff
+				return ptr == other.ptr and index == other.index; 
+			}
 		};
 
 	public:

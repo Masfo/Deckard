@@ -23,10 +23,7 @@ namespace deckard::utf8
 			return 3;
 		else if ((codepoint_byte & 0xF8) == 0xF0)
 			return 4;
-		else if ((codepoint_byte & 0xFC) == 0xF8)
-			return 5;
-		else if ((codepoint_byte & 0xFE) == 0xFC)
-			return 6;
+
 
 		return 0;
 	}
@@ -39,11 +36,10 @@ namespace deckard::utf8
 			return 2;
 		else if (codepoint < 0x1'0000)
 			return 3;
-		else if (codepoint < 0x20'0000)
+		else if (codepoint < 0x11'0000)
 			return 4;
-		else if (codepoint < 0x400'0000)
 
-			return 5;
+		return 0;
 	}
 
 	export constexpr bool is_bom(char32_t codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }

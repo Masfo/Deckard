@@ -29,6 +29,7 @@ namespace deckard
 		};
 		using type = u32;
 
+		// TODO: try base 10 and bas_digits 1, type to u8
 		static constexpr type base        = 10000;
 		static constexpr type base_digits = 4;
 		static constexpr type mask        = limits::max<type>;
