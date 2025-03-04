@@ -9,9 +9,18 @@ import deckard.debug;
 
 namespace deckard::utf8
 {
-	export constexpr bool is_start_byte(const u8 rune) { return ((rune & 0xc0) == 0xc0 or (rune & 0x80) == 0); }
+	export constexpr bool is_single_byte(const u8 byte) { return (byte & 0x80) == 0; }
+
+	export constexpr bool is_start_byte(const u8 rune) { return ((rune & 0xc0) == 0xc0 or is_single_byte(rune)); }
 
 	export constexpr bool is_continuation_byte(const u8 byte) { return (byte & 0xC0) == 0x80; }
+
+	export constexpr bool is_start_of_codepoint(const u8 byte)
+	{
+		return ((byte and 0xE0) == 0xC0 or 
+			    (byte and 0xF0) == 0xE0 or 
+			    (byte and 0xF8) == 0xF0);
+	}
 
 	export constexpr u32 codepoint_width(u8 codepoint_byte)
 	{

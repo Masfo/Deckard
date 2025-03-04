@@ -27,11 +27,17 @@ namespace deckard
 			Equal,
 			Less
 		};
-		using type = u32;
 
 		// TODO: try base 10 and bas_digits 1, type to u8
+		#if 0
+		using type = u32;
 		static constexpr type base        = 10000;
 		static constexpr type base_digits = 4;
+		#else
+		using type = u8;
+		static constexpr type base        = 10;
+		static constexpr type base_digits = 1;
+		#endif
 		static constexpr type mask        = limits::max<type>;
 
 		std::vector<type> digits;
@@ -893,7 +899,7 @@ namespace deckard
 				result.append(std::format("{}", digits.back()));
 				auto it = digits.rbegin();
 				for (it++; it != digits.rend(); ++it)
-					result.append(std::format("{:04}", *it));
+					result.append(std::format("{}", *it));
 
 				return result;
 			}

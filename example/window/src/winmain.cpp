@@ -469,7 +469,7 @@ std::generator<u32> gen()
 	}
 }
 
- std::vector<u8> encode_codepoint(char32 codepoint)
+std::vector<u8> encode_codepoint(char32 codepoint)
 {
 	std::vector<u8> bytes;
 	if (codepoint <= 0x7F)
@@ -503,7 +503,6 @@ std::generator<u32> gen()
 	return bytes;
 }
 
-
 constexpr std::array<u8, 364> utf8_table{
   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -528,85 +527,122 @@ i32 deckard_main(std::string_view commandline)
 #endif
 
 	{
-		i64             index  = 0;
-		std::vector<u8> buffer = {0xE0, 0x80, 0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA5, 0xF0, 0x9F, 0x8C, 0x8D};
-		buffer = {0xE7, 0x95, 0x8C};
+		i64 index = 0;
 
-		auto last_codepoint = [&index](const std::span<u8> buffer)
+		// buffer                 = {0xE7, 0x95, 0x8C};
+
+		auto last_codepoint = [](const std::span<u8> buffer, i64 current_index)
 		{
-			if (index >= 0 and index < buffer.size())
+			if (current_index >= 0)
 			{
-				index -= 1;
-				while (utf8::is_continuation_byte(buffer[index]))
-					index -= 1;
+				current_index -= 1;
 
-				if (index < 0)
-					index = 0;
+				while (current_index > 0 and utf8::is_continuation_byte(buffer[current_index]))
+					current_index -= 1;
 
+				if (current_index < 0)
+					current_index = 0;
+			}
+			return current_index;
+		};
+
+		auto next_codepoint = [](const std::span<u8> buffer, i64 current_index) -> i64
+		{
+			if (current_index >= buffer.size())
+				return buffer.size();
+
+			i64 next = current_index;
+			next++;
+
+			while (next < buffer.size() and utf8::is_continuation_byte(buffer[next]))
+				next++;
+
+			while (next < buffer.size())
+			{
+				u8 byte = buffer[next];
+				if (not utf8::is_single_byte(byte))
+					break;
+
+				if (not utf8::is_start_of_codepoint(byte))
+					break;
+
+				next++;
 			}
 
+			return next;
 		};
 
-		auto next_codepoint = [&index](const std::span<u8> buffer, i64 current_index) -> i64
- 		{
-			//
-			// return new index
-		};
-
-		auto decode = [&index](const std::span<u8> buffer)
+		auto decode = [](const std::span<u8> buffer, i64 index) -> char32
 		{
-
 			constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // U+FFFD 0xEF 0xBF 0xBD(239, 191, 189) REPLACEMENT CHARACTER
 
-			u32 state     = 0;
+			if (index >= buffer.size())
+				return REPLACEMENT_CHARACTER;
+
+			u32    state     = 0;
 			char32 codepoint = 0;
-			for (state = 0; index < buffer.size(); index++)
+			for (; index < buffer.size(); index++)
 			{
-				u8        byte = buffer[index];
-				u32       width = utf8::codepoint_width(byte);
+				u8 byte = buffer[index];
 
 				const u32 type = utf8_table[byte];
 				codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
 				state          = utf8_table[256 + state + type];
-				if (not state)
-				{
-					index += 1;
-					// skip to next valid codepoint, continuation_byte?
-					// index = next_codepoint(buffer, index)
+				if (state == 0)
 					return codepoint;
-				}
 				else if (state == UTF8_REJECT)
-				{
-					index += 1;
 					return REPLACEMENT_CHARACTER;
-				}
 			}
 
-			if (state != UTF8_ACCEPT)
-				return REPLACEMENT_CHARACTER;
-
-			return codepoint;
+			return REPLACEMENT_CHARACTER;
 		};
+		//                         0     1           3                 6                        10
+		std::vector<u8> buffer = {0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA8, 0xF0, 0x9F, 0x8C, 0x8D, 0x42};
 
-		// 1. 
-       
-		auto cobuffer0 = decode(buffer);        // 0xFFFD
-		auto cobuffer1 = decode(buffer);		// 0x41
-		auto cobuffer2 = decode(buffer);		// 0xC4
-		auto cobuffer3 = decode(buffer);		// 0x215A
-		auto cobuffer4 = decode(buffer);		// 0x1F30D
+		// 1.
 
-		auto deco4 = encode_codepoint(cobuffer4); // 0xF0 0x9F 0x8C 0x8D
+
+		i64 current_codepoint = 0;
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, 0);                 // 1
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, current_codepoint); // 3
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, current_codepoint); // 6
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+		
+		current_codepoint = next_codepoint(buffer, current_codepoint); // 10
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+				
+
+
+		current_codepoint = last_codepoint(buffer, current_codepoint); // 6
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = last_codepoint(buffer, current_codepoint); // 3
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = last_codepoint(buffer, current_codepoint); // 1
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = last_codepoint(buffer, current_codepoint); // 0
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+		
+
 
 
 		auto smallstr = utf8::string2("small buffer AÄ↥🌍");
 		auto longstr  = utf8::string2("extra super hyper mega long buffer AÄ↥🌍");
 
-		// char xq[5] = "🌍"; // f0 9f 8c 8d 00
-		// char xq[4] = "↥"; // e2 86 a8 00
-		//char xq[3] = "Ä"; // C3 84 00
+		// char xq[5] = "🌍"; // f0 9f 8c 8d
+		// char xq[4] = "↥"; // e2 86 a8
+		// char xq[3] = "Ä"; // C3 84
 		char xq[4] = "⌘"; // e2 8c 98    \u2318
-		// char xq[2] = "A"; // 41 00
+		// char xq[2] = "A"; // 41
 
 		std::string qw = "AÄ⌘🌍";
 
