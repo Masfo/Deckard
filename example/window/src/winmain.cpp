@@ -597,7 +597,7 @@ i32 deckard_main(std::string_view commandline)
 			return REPLACEMENT_CHARACTER;
 		};
 		//                         0     1           3                 6                        10
-		std::vector<u8> buffer = {0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA8, 0xF0, 0x9F, 0x8C, 0x8D, 0x42};
+		std::vector<u8> buffer = {0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA5, 0xF0, 0x9F, 0x8C, 0x8D, 0x42};
 
 		// 1.
 
@@ -613,11 +613,9 @@ i32 deckard_main(std::string_view commandline)
 
 		current_codepoint = next_codepoint(buffer, current_codepoint); // 6
 		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
-		
+
 		current_codepoint = next_codepoint(buffer, current_codepoint); // 10
 		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
-
-				
 
 
 		current_codepoint = last_codepoint(buffer, current_codepoint); // 6
@@ -631,30 +629,33 @@ i32 deckard_main(std::string_view commandline)
 
 		current_codepoint = last_codepoint(buffer, current_codepoint); // 0
 		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
-		
-
-
-
-		auto smallstr = utf8::string2("small buffer AÄ↥🌍");
-		auto longstr  = utf8::string2("extra super hyper mega long buffer AÄ↥🌍");
-
-		// char xq[5] = "🌍"; // f0 9f 8c 8d
-		// char xq[4] = "↥"; // e2 86 a8
-		// char xq[3] = "Ä"; // C3 84
-		char xq[4] = "⌘"; // e2 8c 98    \u2318
-		// char xq[2] = "A"; // 41
-
-		std::string qw = "AÄ⌘🌍";
-
-		dbg::println("{}", xq);
-
-		dbg::println("small: {}", smallstr);
-		dbg::println("long : {}", longstr);
-
-		for (auto it = smallstr.begin(); it != smallstr.end(); ++it)
-			dbg::print("[{}]", *it);
 		dbg::println();
 
+		auto smallstr = utf8::string2("AÄ↥🌍B");
+		auto longstr  = utf8::string2("extra super hyper mega long buffer AÄ↥🌍B>");
+
+//
+//		dbg::println("small: {}", smallstr);
+//		dbg::println("long : {}", longstr);
+//
+//		for (auto it = smallstr.begin(); it != smallstr.end(); ++it)
+//			dbg::println("1) [{:X}] {}", *it, it.width());
+//
+//		for (auto it = smallstr.rbegin(); it != smallstr.rend(); ++it)
+//			dbg::println("2) [{:X}]", *it);
+//
+
+
+		smallstr = utf8::string2("AÄ↥🌍B");
+		dbg::println("{} codepoints:", smallstr);
+		for (const auto it : smallstr)
+			dbg::print("{:X} ", it);
+		dbg::println();
+
+
+		// std::ranges::reverse_view rv{smallstr};
+		//	for (auto it : rv)
+		//		dbg::println("4) [{:X}]", it);
 
 		int k = 0;
 	}

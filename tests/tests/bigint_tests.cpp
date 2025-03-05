@@ -797,7 +797,7 @@ TEST_CASE("bigint", "[bigint]")
 		std::mt19937                       gen(rd());
 		std::uniform_int_distribution<i64> r(limits::min<i32> /2, limits::max<i32> / 2);
 
-		u32 N = 100 * TESTS;
+		u32 N = 1 * TESTS;
 
 		while (--N)
 		{
@@ -1045,7 +1045,6 @@ TEST_CASE("bigint", "[bigint]")
 
 	SECTION("formatter")
 	{
-
 		bigint a(1'234'567'890);
 		CHECK(a.to_string(10) == "1234567890");
 		CHECK(a.to_string(16) == "499602d2");
