@@ -553,7 +553,8 @@ namespace deckard
 			}
 			else
 			{
-				return packed.small.data[index];
+				return as<const_reference>(packed.small.data[index]);
+
 			}
 		}
 

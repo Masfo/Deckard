@@ -469,6 +469,46 @@ std::generator<u32> gen()
 	}
 }
 
+std::pair<std::array<u8, 4>, u32> static_encode_codepoint(char32 cp)
+{
+	std::array<u8, 4> bytes{0};
+	u32               count = 0;
+	if (cp <= 0x7F)
+	{
+		bytes[0] = (static_cast<u8>(cp));
+		count    = 1;
+	}
+	else if (cp <= 0x7FF)
+	{
+		bytes[0] = (static_cast<u8>((cp >> 6) | 0xC0));
+		bytes[1] = (static_cast<u8>((cp & 0x3F) | 0x80));
+		count    = 2;
+	}
+	else if (cp <= 0xFFFF)
+	{
+		bytes[0] = (static_cast<u8>((cp >> 12) | 0xE0));
+		bytes[1] = (static_cast<u8>(((cp >> 6) & 0x3F) | 0x80));
+		bytes[2] = (static_cast<u8>((cp & 0x3F) | 0x80));
+		count    = 3;
+	}
+	else if (cp <= 0x10'FFFF)
+	{
+		bytes[0] = (static_cast<u8>((cp >> 18) | 0xF0));
+		bytes[1] = (static_cast<u8>(((cp >> 12) & 0x3F) | 0x80));
+		bytes[2] = (static_cast<u8>(((cp >> 6) & 0x3F) | 0x80));
+		bytes[3] = (static_cast<u8>((cp & 0x3F) | 0x80));
+		count    = 4;
+	}
+	else
+	{
+		bytes[0] = (0xEF);
+		bytes[1] = (0xBF);
+		bytes[2] = (0xBD); // U+FFFD replacement character
+		count    = 3;
+	}
+	return {bytes, count};
+}
+
 std::vector<u8> encode_codepoint(char32 codepoint)
 {
 	std::vector<u8> bytes;
@@ -596,6 +636,26 @@ i32 deckard_main(std::string_view commandline)
 
 			return REPLACEMENT_CHARACTER;
 		};
+
+		auto replace_codepoint = [](std::vector<u8>& buffer, i64 pos, char32 new_codepoint) -> bool
+		{
+			if (pos >= buffer.size())
+				return false;
+
+			i64 next = pos;
+			next++;
+
+			while (next < buffer.size() and utf8::is_continuation_byte(buffer[next]))
+				next++;
+
+			size_t bytes_to_remove  = next - pos;
+			auto [new_bytes, count] = static_encode_codepoint(new_codepoint);
+			buffer.erase(buffer.begin() + pos, buffer.begin() + next);
+			buffer.insert(buffer.begin() + pos, new_bytes.begin(), new_bytes.begin() + count);
+			return true;
+		};
+
+
 		//                         0     1           3                 6                        10
 		std::vector<u8> buffer = {0x41, 0xC3, 0x84, 0xE2, 0x86, 0xA5, 0xF0, 0x9F, 0x8C, 0x8D, 0x42};
 
@@ -617,7 +677,7 @@ i32 deckard_main(std::string_view commandline)
 		current_codepoint = next_codepoint(buffer, current_codepoint); // 10
 		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
 
-
+		goto skip;
 		current_codepoint = last_codepoint(buffer, current_codepoint); // 6
 		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
 
@@ -630,27 +690,61 @@ i32 deckard_main(std::string_view commandline)
 		current_codepoint = last_codepoint(buffer, current_codepoint); // 0
 		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
 		dbg::println();
+	skip:
+
+		dbg::println("replaced: {}", replace_codepoint(buffer, 1, 0x41));
+		current_codepoint = 0;
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, 0);                 // 1
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, current_codepoint); // 3
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, current_codepoint); // 6
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+		current_codepoint = next_codepoint(buffer, current_codepoint); // 10
+		dbg::println("{} - {:X}", current_codepoint, (u32)decode(buffer, current_codepoint));
+
+
+		dbg::println("----");
 
 		auto smallstr = utf8::string2("AÄ↥🌍B");
 		auto longstr  = utf8::string2("extra super hyper mega long buffer AÄ↥🌍B>");
 
-//
-//		dbg::println("small: {}", smallstr);
-//		dbg::println("long : {}", longstr);
-//
-//		for (auto it = smallstr.begin(); it != smallstr.end(); ++it)
-//			dbg::println("1) [{:X}] {}", *it, it.width());
-//
-//		for (auto it = smallstr.rbegin(); it != smallstr.rend(); ++it)
-//			dbg::println("2) [{:X}]", *it);
-//
+		//
+		//		dbg::println("small: {}", smallstr);
+		//		dbg::println("long : {}", longstr);
+		//
+		//		for (auto it = smallstr.begin(); it != smallstr.end(); ++it)
+		//			dbg::println("1) [{:X}] {}", *it, it.width());
+		//
+		//		for (auto it = smallstr.rbegin(); it != smallstr.rend(); ++it)
+		//			dbg::println("2) [{:X}]", *it);
+		//
 
 
 		smallstr = utf8::string2("AÄ↥🌍B");
 		dbg::println("{} codepoints:", smallstr);
-		for (const auto it : smallstr)
+		for (auto it : smallstr)
 			dbg::print("{:X} ", it);
 		dbg::println();
+
+
+		utf8::string2 abc1("AÄ↥🌍B");
+		utf8::string2 abc2("AÄ↥🌍B");
+		utf8::string2 abc3("ABCDE");
+
+		char32 abcd1 = abc1[0]; // A
+		char32 abcd2 = abc1[1]; // Ä
+		char32 abcd3 = abc1[3]; // 🌍
+		char32 abcd4 = abc1[4]; // B
+
+
+		dbg::println("true  = {}", abc1 == abc2);
+		dbg::println("false = {}", abc1 == abc3);
 
 
 		// std::ranges::reverse_view rv{smallstr};

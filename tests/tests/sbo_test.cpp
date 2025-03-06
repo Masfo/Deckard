@@ -1290,8 +1290,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[5] == 'R');
 		CHECK(ss[6] == 'T');
 		CHECK(ss[7] == 'Y');
-
-
 	}
 
 	SECTION("replace smaller size (small)")
@@ -1383,7 +1381,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[5] == 5);
 		CHECK(ss.back() == 30);
 
-		std::array<u8, 7> newbuffer{'A','B','C','D','E','F','G'};
+		std::array<u8, 7> newbuffer{'A', 'B', 'C', 'D', 'E', 'F', 'G'};
 
 		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
 
@@ -1403,15 +1401,13 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[9] == 5);
 		CHECK(ss[10] == 6);
 		CHECK(ss.back() == 30);
-
-
 	}
 
 
 	SECTION("replace larger size (large)")
 	{
-		
-		sbo < 32> ss;
+
+		sbo<32> ss;
 
 		CHECK(ss.size() == 0);
 		CHECK(ss.capacity() == 31);
@@ -1443,8 +1439,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[8] == 7);
 		CHECK(ss[9] == 8);
 		CHECK(ss.back() == 255);
-
-
 	}
 
 	SECTION("assign (small)")
@@ -1754,5 +1748,35 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(a.size() == 6);
 		CHECK(a.capacity() == 31);
+	}
+
+	SECTION("const reference")
+	{
+		const sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'F');
+	}
+
+	SECTION("index operator non-const")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		ss[0] = 'Z';
+		CHECK(ss[0] == 'Z');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'F');
 	}
 }

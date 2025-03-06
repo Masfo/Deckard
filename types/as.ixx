@@ -193,7 +193,7 @@ namespace deckard
 		}
 		else
 		{
-			return static_cast<Ret>(u);
+			return static_cast<Ret>(value);
 		}
 	}
 

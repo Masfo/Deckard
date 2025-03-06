@@ -2,7 +2,21 @@
     "version": "0.2.1",
     "defaults": {},
     "configurations": [
+        {
+            "type": "default",
+            "project": "CMakeLists.txt",
+            "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
+            "name": "window debug",
+            "args": [ "testing new" ]
 
-   
+        },
+        {
+            "type": "debug",
+            "project": "CMakeLists.txt",
+            "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
+            "name": "window debug commandline utf8",
+            "args": [ "hello 🐱" ]
+
+        }
     ]
 }
