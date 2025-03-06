@@ -5,13 +5,14 @@ bin
 *.pdb
 *.idb
 *.lib
+*.exp
 /.vs
 /out/
 /std.ixx
 /scratch.txt
 /*.cmd
 /Testing/Temporary
-/lib
+/lib/
 /tools/utftables/.vs
 /tools/utftables/out/build/x64-debug
 /external/zstd/*.zip
