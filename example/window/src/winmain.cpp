@@ -711,6 +711,12 @@ i32 deckard_main(std::string_view commandline)
 
 		dbg::println("----");
 
+		auto [bstr, count_bstr] = static_encode_codepoint(0x0001'F30D);
+		char cstr_ref[5]{};
+		std::memcpy(cstr_ref, bstr.data(), count_bstr);
+
+		dbg::println("i: {}", cstr_ref);
+
 		auto smallstr = utf8::string2("AÄ↥🌍B");
 		auto longstr  = utf8::string2("extra super hyper mega long buffer AÄ↥🌍B>");
 
@@ -724,7 +730,10 @@ i32 deckard_main(std::string_view commandline)
 		//		for (auto it = smallstr.rbegin(); it != smallstr.rend(); ++it)
 		//			dbg::println("2) [{:X}]", *it);
 		//
+        std::string abc("abc");
 
+        auto abc_it = abc.begin() + 1;
+        *abc_it = 'x'; // Replace character at position 1 with 'x'
 
 		smallstr = utf8::string2("AÄ↥🌍B");
 		dbg::println("{} codepoints:", smallstr);
@@ -732,6 +741,13 @@ i32 deckard_main(std::string_view commandline)
 			dbg::print("{:X} ", it);
 		dbg::println();
 
+		auto it = smallstr.begin() + 3;
+		
+		//it.set_codepoint(0x44);
+
+		dbg::println("after modify: {} codepoints:", smallstr);
+		for (auto it : smallstr)
+			dbg::print("{:X} ", it);
 
 		utf8::string2 abc1("AÄ↥🌍B");
 		utf8::string2 abc2("AÄ↥🌍B");
@@ -741,6 +757,8 @@ i32 deckard_main(std::string_view commandline)
 		char32 abcd2 = abc1[1]; // Ä
 		char32 abcd3 = abc1[3]; // 🌍
 		char32 abcd4 = abc1[4]; // B
+
+		//abc1[3] = 0x44;         
 
 
 		dbg::println("true  = {}", abc1 == abc2);

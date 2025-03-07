@@ -385,6 +385,46 @@ namespace deckard::utf8
 				return REPLACEMENT_CHARACTER;
 			}
 
+			void set_codepoint(char_type new_codepoint)
+			{
+				if (current_index >= as<u32>(ptr->size()))
+					return;
+
+				std::vector<u8> encoded_bytes;
+				if (new_codepoint <= 0x7F)
+				{
+					encoded_bytes.push_back(static_cast<u8>(new_codepoint));
+				}
+				else if (new_codepoint <= 0x7FF)
+				{
+					encoded_bytes.push_back(static_cast<u8>((new_codepoint >> 6) | 0xC0));
+					encoded_bytes.push_back(static_cast<u8>((new_codepoint & 0x3F) | 0x80));
+				}
+				else if (new_codepoint <= 0xFFFF)
+				{
+					encoded_bytes.push_back(static_cast<u8>((new_codepoint >> 12) | 0xE0));
+					encoded_bytes.push_back(static_cast<u8>(((new_codepoint >> 6) & 0x3F) | 0x80));
+					encoded_bytes.push_back(static_cast<u8>((new_codepoint & 0x3F) | 0x80));
+				}
+				else if (new_codepoint <= 0x10'FFFF)
+				{
+					encoded_bytes.push_back(static_cast<u8>((new_codepoint >> 18) | 0xF0));
+					encoded_bytes.push_back(static_cast<u8>(((new_codepoint >> 12) & 0x3F) | 0x80));
+					encoded_bytes.push_back(static_cast<u8>(((new_codepoint >> 6) & 0x3F) | 0x80));
+					encoded_bytes.push_back(static_cast<u8>((new_codepoint & 0x3F) | 0x80));
+				}
+				else
+				{
+					encoded_bytes.push_back(0xEF);
+					encoded_bytes.push_back(0xBF);
+					encoded_bytes.push_back(0xBD);
+				}
+
+				auto it = ptr->begin() + current_index;
+				ptr->erase(it, it + width());
+				ptr->insert(it, encoded_bytes);
+			}
+
 		public:
 			// iterator(const_iterator& ci)
 			//	: ptr(ci.ptr)
@@ -457,9 +497,22 @@ namespace deckard::utf8
 				return *this;
 			}
 
-			iterator operator+(difference_type n) const { return iterator(ptr + n); }
 
-			iterator operator-(difference_type n) const { return iterator(ptr - n); }
+            iterator operator+(difference_type n) const 
+            {
+                iterator tmp = *this;
+                while (n-- > 0)
+                    tmp.advance_to_next_codepoint();
+                return tmp;
+            }
+
+			iterator operator-(difference_type n) const 
+			{ 
+				  iterator tmp = *this;
+				while (n-- > 0)
+					tmp.reverse_to_last_codepoint();
+				return tmp;
+			}
 
 			difference_type operator-(const iterator& other) const { return ptr - other.ptr; }
 
@@ -472,6 +525,8 @@ namespace deckard::utf8
 				// TODO: assert on pointer diff
 				return ptr == other.ptr and current_index == other.current_index;
 			}
+
+			
 		};
 #if 1
 		class const_iterator

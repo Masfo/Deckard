@@ -554,7 +554,6 @@ namespace deckard
 			else
 			{
 				return as<const_reference>(packed.small.data[index]);
-
 			}
 		}
 
@@ -797,12 +796,10 @@ namespace deckard
 		// replace
 
 		iterator replace(iterator first, iterator end, const std::span<value_type>& buffer)
-		{ 
+		{
 			if (first == end)
-			{
-
 				return insert(erase(first), buffer);
-			}
+
 
 			const size_t len = std::distance(first, end);
 			if (len == buffer.size())
@@ -812,7 +809,7 @@ namespace deckard
 				return end;
 			}
 
-			if ( buffer.size() < len)
+			if (buffer.size() < len)
 			{
 				const auto pivot   = std::distance(begin(), first);
 				const auto count   = std::distance(first, end);
@@ -824,17 +821,14 @@ namespace deckard
 				std::copy(buffer.begin(), buffer.end(), ptr + pivot);
 				std::fill(ptr + newsize, ptr + size(), 0);
 				set_size(newsize);
-				return iterator(ptr + pivot + buffer.size());  
-
+				return iterator(ptr + pivot + buffer.size());
 			}
 			else
 			{
 				auto pos = erase(first, end);
 				insert(pos, buffer);
 				return pos;
-			
 			}
-
 		}
 	};
 

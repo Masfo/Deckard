@@ -1779,4 +1779,29 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[4] == 'E');
 		CHECK(ss[5] == 'F');
 	}
+
+	SECTION("iterator +-") 
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		auto it = ss.begin();
+		CHECK(*it == 'A');
+
+		it += 2;
+		CHECK(*it == 'C');
+
+		it++;
+		CHECK(*it == 'D');
+
+		it -= 2;
+		CHECK(*it == 'B');
+
+		--it;
+		CHECK(*it == 'A');
+
+
+	}
 }
