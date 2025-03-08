@@ -94,8 +94,7 @@ export namespace deckard::math
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-5})
 	{
 		const T diff    = A - B;
-		const T absdiff = std::abs(diff);
-		return absdiff <= error;
+		return diff < error and diff > -error;
 	}
 
 	template<std::floating_point T>
@@ -152,18 +151,18 @@ export namespace deckard::math
 #endif
 		};
 
-		float dotf(const m128& lhs) { return _mm_cvtss_f32(dot(lhs)); };
+		f32 dotf(const m128& lhs) { return _mm_cvtss_f32(dot(lhs)); };
 
-		export float sqrt(float f) { return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f))); }
+		export f32 sqrt(f32 f) { return _mm_cvtss_f32(_mm_sqrt_ps(_mm_set_ps1(f))); }
 
 		// ~2x faster than std::sin
-		export float sin(float f)
+		export f32 sin(f32 f)
 		{
 			// return _mm_cvtss_f32(_mm_sin_ps(_mm_set_ps1(f)));
 			return _mm_cvtss_f32(_mm_set_ps1(std::sin(f)));
 		}
 
-		export float cos(float f)
+		export f32 cos(f32 f)
 		{
 			// return _mm_cvtss_f32(_mm_cos_ps(_mm_set_ps1(f)));
 			return _mm_cvtss_f32(_mm_set_ps1(std::cos(f)));

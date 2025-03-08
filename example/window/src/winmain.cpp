@@ -730,6 +730,24 @@ i32 deckard_main(std::string_view commandline)
 		//		for (auto it = smallstr.rbegin(); it != smallstr.rend(); ++it)
 		//			dbg::println("2) [{:X}]", *it);
 		//
+		constexpr f32 FEPS = 0.001f;
+
+		f32 x = 3.14f;
+
+		auto float_equal = [](f32 left, f32 right) -> bool
+		{
+			f32 diff = left - right;
+			return diff < FEPS and diff > -FEPS;
+		};
+
+		dbg::println("{}", float_equal(3.14f, 3.14f));
+		dbg::println("{}", float_equal(3.14f, 3.16f));
+		dbg::println("{}", float_equal(3.14f, 4.10f));
+
+
+
+
+
         std::string abc("abc");
 
         auto abc_it = abc.begin() + 1;
@@ -748,6 +766,9 @@ i32 deckard_main(std::string_view commandline)
 		dbg::println("after modify: {} codepoints:", smallstr);
 		for (auto it : smallstr)
 			dbg::print("{:X} ", it);
+
+		// 🔴🟡🟢🔵🟣🟠🟤⚫⚪🟦🟧🟨🟩🟪🟫
+		// ⚠️ 👀
 
 		utf8::string2 abc1("AÄ↥🌍B");
 		utf8::string2 abc2("AÄ↥🌍B");
