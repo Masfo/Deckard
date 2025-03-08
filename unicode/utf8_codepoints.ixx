@@ -32,6 +32,12 @@ namespace deckard::utf8
 			return 3;
 		else if ((codepoint_byte & 0xF8) == 0xF0)
 			return 4;
+		#if 0
+		else if ((codepoint_byte & 0xFC) == 0xF8)
+			return 5;
+		else if ((codepoint_byte & 0xFE) == 0xFC)
+			return 6;
+		#endif
 
 
 		return 0;
