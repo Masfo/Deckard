@@ -768,6 +768,15 @@ namespace deckard::utf8
 			return true;
 		}
 
+		// TODO:
+		// append
+		// insert
+		// substr
+		// erase
+		// find
+		// contains
+
+
 		iterator begin() { return iterator(&buffer); }
 
 		iterator end() { return iterator(&buffer, buffer.size()); }

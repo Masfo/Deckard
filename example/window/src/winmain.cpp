@@ -559,12 +559,14 @@ constexpr std::array<u8, 364> utf8_table{
 constexpr u32 UTF8_ACCEPT{0};
 constexpr u32 UTF8_REJECT{12};
 
+
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
 
 	{
 		i64 index = 0;

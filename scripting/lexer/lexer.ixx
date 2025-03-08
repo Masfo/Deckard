@@ -46,19 +46,23 @@ namespace deckard::lexer
 		STRING,         // "abc"
 
 		// keywords
-		KEYWORD_TRUE,   // true
-		KEYWORD_FALSE,  // false
-		KEYWORD_IF,     //
-		KEYWORD_ELSE,   //
-		KEYWORD_FN,     //
-		KEYWORD_LET,    //
-		KEYWORD_STRUCT, //
-		KEYWORD_ENUM,   //
-		KEYWORD_RETURN, //
+		// TODO: just token KEYWORD,
+		KEYWORD_BOOLEAN, //
+		KEYWORD,         //
+
+		KEYWORD_TRUE,    // true
+		KEYWORD_FALSE,   // false
+		KEYWORD_IF,      //
+		KEYWORD_ELSE,    //
+		KEYWORD_FN,      //
+		KEYWORD_LET,     //
+		KEYWORD_STRUCT,  //
+		KEYWORD_ENUM,    //
+		KEYWORD_RETURN,  //
 
 
-		TYPE,           // builtin type: i32, f32
-		USER_TYPE,      // struct <type>
+		TYPE,            // builtin type: i32, f32
+		USER_TYPE,       // struct <type>
 
 		// Op
 		PLUS,        // +
@@ -132,6 +136,9 @@ namespace deckard::lexer
 		INVALID_BINARY,
 		EOL,
 		EOF,
+
+
+		TOKEN_COUNT
 	};
 
 
