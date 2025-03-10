@@ -777,6 +777,9 @@ namespace deckard::utf8
 		// find
 		// contains
 		// valid
+		// starts_with
+		// ends_with
+
 
 
 		iterator begin() { return iterator(&buffer); }
@@ -805,10 +808,12 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
+		bool is_valid() const { return length() != 0; }
+
 		size_t length() const
 		{
 			if (empty())
-				return {};
+				return 0;
 
 			const u8* ptr    = buffer.data().data();
 			const u8* endptr = ptr + buffer.size();

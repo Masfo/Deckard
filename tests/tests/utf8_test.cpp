@@ -9,7 +9,7 @@ using namespace std::string_view_literals;
 
 TEST_CASE("utf8::string", "[utf8]")
 {
-	SECTION("ascii c-tor") 
+	SECTION("ascii c-tor")
 	{
 		utf8::string2 str("hello world");
 		CHECK(str.size() == 11);
@@ -27,12 +27,18 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 7);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 10);
-
+		CHECK(str.is_valid() == true);
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
+	}
+
+	SECTION("")
+	{
+
+		//
 	}
 }
 
-TEST_CASE("utf8 v2", "[utf8]") 
+TEST_CASE("utf8 v2", "[utf8]")
 {
 
 	SECTION("width from leading byte")
@@ -46,27 +52,26 @@ TEST_CASE("utf8 v2", "[utf8]")
 		CHECK(utf8::codepoint_width(as<u8>(0x84)) == 0);
 		CHECK(utf8::codepoint_width(as<u8>(0x9F)) == 0);
 	}
-
 }
 
 TEST_CASE("utf8 decode to codepoints", "[utf8]")
 {
 	/*
 	$examples = array(
-    'Valid ASCII' => "a",
-    'Valid 2 Octet Sequence' => "\xc3\xb1",
-    'Invalid 2 Octet Sequence' => "\xc3\x28",
-    'Invalid Sequence Identifier' => "\xa0\xa1",
-    'Valid 3 Octet Sequence' => "\xe2\x82\xa1",
-    'Invalid 3 Octet Sequence (in 2nd Octet)' => "\xe2\x28\xa1",
-    'Invalid 3 Octet Sequence (in 3rd Octet)' => "\xe2\x82\x28",
+	'Valid ASCII' => "a",
+	'Valid 2 Octet Sequence' => "\xc3\xb1",
+	'Invalid 2 Octet Sequence' => "\xc3\x28",
+	'Invalid Sequence Identifier' => "\xa0\xa1",
+	'Valid 3 Octet Sequence' => "\xe2\x82\xa1",
+	'Invalid 3 Octet Sequence (in 2nd Octet)' => "\xe2\x28\xa1",
+	'Invalid 3 Octet Sequence (in 3rd Octet)' => "\xe2\x82\x28",
 
-    'Valid 4 Octet Sequence' => "\xf0\x90\x8c\xbc",
-    'Invalid 4 Octet Sequence (in 2nd Octet)' => "\xf0\x28\x8c\xbc",
-    'Invalid 4 Octet Sequence (in 3rd Octet)' => "\xf0\x90\x28\xbc",
-    'Invalid 4 Octet Sequence (in 4th Octet)' => "\xf0\x28\x8c\x28",
-    'Valid 5 Octet Sequence (but not Unicode!)' => "\xf8\xa1\xa1\xa1\xa1",
-    'Valid 6 Octet Sequence (but not Unicode!)' => "\xfc\xa1\xa1\xa1\xa1\xa1",
+	'Valid 4 Octet Sequence' => "\xf0\x90\x8c\xbc",
+	'Invalid 4 Octet Sequence (in 2nd Octet)' => "\xf0\x28\x8c\xbc",
+	'Invalid 4 Octet Sequence (in 3rd Octet)' => "\xf0\x90\x28\xbc",
+	'Invalid 4 Octet Sequence (in 4th Octet)' => "\xf0\x28\x8c\x28",
+	'Valid 5 Octet Sequence (but not Unicode!)' => "\xf8\xa1\xa1\xa1\xa1",
+	'Valid 6 Octet Sequence (but not Unicode!)' => "\xfc\xa1\xa1\xa1\xa1\xa1",
 );
 	*/
 
@@ -102,9 +107,9 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		str  = "🌍1🍋Ä";
 		test = str.codepoints();
 		CHECK(test.size() == 4);
-		CHECK(test[0] == 0x1f30d);
+		CHECK(test[0] == 0x1'f30d);
 		CHECK(test[1] == 0x31);
-		CHECK(test[2] == 0x1f34b);
+		CHECK(test[2] == 0x1'f34b);
 		CHECK(test[3] == 0xC4);
 
 		//             UTF32		UTF8
@@ -118,7 +123,7 @@ TEST_CASE("utf8 decode to codepoints", "[utf8]")
 		CHECK(test[0] == 0x41);
 		CHECK(test[1] == 0xC4);
 		CHECK(test[2] == 0x21A5);
-		CHECK(test[3] == 0x1F30D);
+		CHECK(test[3] == 0x1'F30D);
 	}
 
 	SECTION("valid codepoints")

@@ -1789,15 +1789,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss2.back() == 'E');
 
 
-		auto s = ss2.find('C');
-		auto e = ss2.find('D');
-
-		auto ss3 = ss2.sub_sbo(s, e);
-		CHECK(ss3.size() == 2);
-		CHECK(ss2.capacity() == 31);
-		CHECK(ss2.front() == 'C');
-		CHECK(ss2.back() == 'D');
-
 	}
 
 	SECTION("hash")

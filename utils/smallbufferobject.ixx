@@ -513,15 +513,7 @@ namespace deckard
 
 		}
 
-		sbo<SIZE> sub_sbo(const iterator start, const iterator end) const
-		{ 
-			sbo<SIZE> result;
 
-			for (auto it = start; it != end; ++it)
-				result.push_back(*it);
-
-			return result;
-		}
 
 
 		void append(const sbo<SIZE>& other) { append(other.data()); }
