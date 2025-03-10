@@ -150,13 +150,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 #endif
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
-	// clang-format off
+	
 
+	// clang-format off
+	#if 0
+		
+	{+[](){};}
+
+	{[&][[]](){};}
+	
 	{[][[]](){[][[]](){[][[]](){[][[]](){[][[]](){[][[]](){[][[]](){};};};};};};};}
 
 	[]{};
 	+[]{};
-	+![]{};
+
 	!+[]{};
 	!+[](){};
 	!+[][[]](){};
@@ -170,8 +177,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	{[=][[]](){};}
 	{[&][[]](){};}
 	
+	#endif
 	// clang-format on
-
 
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");

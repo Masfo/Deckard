@@ -48,7 +48,6 @@ namespace deckard::lexer
 		// keywords
 		// TODO: just token KEYWORD,
 		KEYWORD_BOOLEAN, //
-		KEYWORD,         //
 
 		KEYWORD_TRUE,    // true
 		KEYWORD_FALSE,   // false

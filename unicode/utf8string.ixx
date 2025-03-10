@@ -769,12 +769,14 @@ namespace deckard::utf8
 		}
 
 		// TODO:
-		// append
 		// insert
+		// append (insert end())
+		// operator + (append)
 		// substr
 		// erase
 		// find
 		// contains
+		// valid
 
 
 		iterator begin() { return iterator(&buffer); }
@@ -794,6 +796,8 @@ namespace deckard::utf8
 		//		 auto cend() { return buffer.cend(); }
 
 		auto data() const { return buffer.data().data(); }
+
+		auto c_str() const { return as<const char*>(buffer.data().data()); }
 
 		bool empty() const { return buffer.empty(); }
 
