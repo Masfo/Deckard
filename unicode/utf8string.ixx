@@ -691,6 +691,7 @@ namespace deckard::utf8
 
 			bool operator==(const const_iterator& other) const
 			{
+				assert::check(ptr != other.ptr, "Pointers invalidated");
 				// TODO: assert on pointer diff
 				return ptr == other.ptr and current_index == other.current_index;
 			}

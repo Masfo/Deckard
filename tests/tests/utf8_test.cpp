@@ -31,10 +31,27 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
 	}
 
-	SECTION("")
+	SECTION("copy")
 	{
 
-		//
+		utf8::string2 a("hello 🌍");
+		auto          b = a;
+
+		CHECK(a.size() == 7);
+		CHECK(a.length() == 7);
+		CHECK(a.empty() == false);
+		CHECK(a.size_in_bytes() == 10);
+		CHECK(a.is_valid() == true);
+		CHECK(std::string(a.c_str()) == "hello 🌍"sv);
+
+		CHECK(b.size() == 7);
+		CHECK(b.length() == 7);
+		CHECK(b.empty() == false);
+		CHECK(b.size_in_bytes() == 10);
+		CHECK(b.is_valid() == true);
+		CHECK(std::string(b.c_str()) == "hello 🌍"sv);
+
+		CHECK(a.data() != b.data());
 	}
 }
 
