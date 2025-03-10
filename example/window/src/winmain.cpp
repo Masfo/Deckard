@@ -731,26 +731,12 @@ i32 deckard_main(std::string_view commandline)
 		//
 		//		for (auto it = smallstr.rbegin(); it != smallstr.rend(); ++it)
 		//			dbg::println("2) [{:X}]", *it);
-		//
-		constexpr f32 FEPS = 0.001f;
-
-		f32 x = 3.14f;
-
-		auto float_equal = [](f32 left, f32 right) -> bool
-		{
-			f32 diff = left - right;
-			return diff < FEPS and diff > -FEPS;
-		};
-
-		dbg::println("{}", float_equal(3.14f, 3.14f));
-		dbg::println("{}", float_equal(3.14f, 3.16f));
-		dbg::println("{}", float_equal(3.14f, 4.10f));
-
-
 
 
 
         std::string abc("abc");
+		abc += abc;
+
 
         auto abc_it = abc.begin() + 1;
         *abc_it = 'x'; // Replace character at position 1 with 'x'

@@ -5,6 +5,32 @@ import std;
 import deckard.utf8;
 import deckard.as;
 using namespace deckard;
+using namespace std::string_view_literals;
+
+TEST_CASE("utf8::string", "[utf8]")
+{
+	SECTION("ascii c-tor") 
+	{
+		utf8::string2 str("hello world");
+		CHECK(str.size() == 11);
+		CHECK(str.length() == 11);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 11);
+
+		CHECK(std::string(str.c_str()) == "hello world"sv);
+	}
+
+	SECTION("unicode c-tor")
+	{
+		utf8::string2 str("hello 🌍");
+		CHECK(str.size() == 7);
+		CHECK(str.length() == 7);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 10);
+
+		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
+	}
+}
 
 TEST_CASE("utf8 v2", "[utf8]") 
 {

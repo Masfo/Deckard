@@ -488,6 +488,42 @@ namespace deckard
 				push_back(i);
 		}
 
+		auto operator+(const sbo<SIZE>& other) 
+		{
+			auto ret(*this);
+			ret.append(other);
+			return ret;
+		}
+
+		auto operator+=(const sbo<SIZE>& other)
+		{
+			append(other);
+			return *this;
+		}
+
+		sbo<SIZE> sub_sbo(size_t start, size_t end) const
+		{
+			assert::check(start < size(), "Index out-of-bounds");
+			assert::check(end < size(), "Index out-of-bounds");
+			
+			sbo<SIZE> result;
+			for (size_t i = start; i < end; ++i)
+				result.push_back(at(i));
+			return result;
+
+		}
+
+		sbo<SIZE> sub_sbo(const iterator start, const iterator end) const
+		{ 
+			sbo<SIZE> result;
+
+			for (auto it = start; it != end; ++it)
+				result.push_back(*it);
+
+			return result;
+		}
+
+
 		void append(const sbo<SIZE>& other) { append(other.data()); }
 
 		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
@@ -540,6 +576,7 @@ namespace deckard
 			}
 		}
 
+
 		[[nodiscard("Use result on index operator")]] const_reference operator[](size_t index) const
 		{
 			assert::check(index < capacity(), "Indexing out-of-bounds");
@@ -564,6 +601,8 @@ namespace deckard
 
 			for (size_type i = 0; i < max; ++i)
 				ptr[i] = v;
+
+			set_size(max);
 		}
 
 		void push_back(const value_type& v)

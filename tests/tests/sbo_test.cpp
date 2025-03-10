@@ -642,6 +642,48 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
 
+	SECTION("operator + (small)")
+	{ 
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		ss += ss;
+
+		CHECK(ss.size() == 12);
+		CHECK(ss.capacity() == 31);
+
+		auto ss2 = ss + ss;
+
+		CHECK(ss2.size() == 24);
+		CHECK(ss2.capacity() == 31);
+
+		CHECK(ss.size() == 12);
+		CHECK(ss.capacity() == 31);
+
+	}
+
+
+	SECTION("operator + (large)")
+	{
+		sbo<32> ss;
+
+		ss.resize(128);
+		ss.fill('A');
+
+		CHECK(ss.size() == 128);
+		CHECK(ss.capacity() == 128);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
+
+		ss += ss;
+
+
+		CHECK(ss.size() == 128 +128);
+		CHECK(ss.capacity() == 128 + 128);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
+	}
+
 	SECTION("clear (large)")
 	{
 		sbo<32> ss;
@@ -1729,6 +1771,33 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(b.capacity() == 168);
 
 		CHECK(a != b);
+	}
+
+	SECTION("sub_sbo") 
+	{ 
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.front() == 'A');
+		CHECK(ss.back() == 'F');
+
+		sbo<32> ss2 = ss.sub_sbo(1, 5);
+
+		CHECK(ss2.size() == 4);
+		CHECK(ss2.capacity() == 31);
+		CHECK(ss2.front() == 'B');
+		CHECK(ss2.back() == 'E');
+
+
+		auto s = ss2.find('C');
+		auto e = ss2.find('D');
+
+		auto ss3 = ss2.sub_sbo(s, e);
+		CHECK(ss3.size() == 2);
+		CHECK(ss2.capacity() == 31);
+		CHECK(ss2.front() == 'C');
+		CHECK(ss2.back() == 'D');
+
 	}
 
 	SECTION("hash")
