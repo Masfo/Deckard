@@ -515,10 +515,10 @@ namespace deckard
 
 
 
+		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
 
 		void append(const sbo<SIZE>& other) { append(other.data()); }
 
-		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
 
 		void append(const value_type& v) { append(std::span<value_type>{(pointer)&v, 1}); }
 

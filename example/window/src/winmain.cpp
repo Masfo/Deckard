@@ -733,9 +733,12 @@ i32 deckard_main(std::string_view commandline)
 		//			dbg::println("2) [{:X}]", *it);
 
 
+        std::string abc("hello ");
 
-        std::string abc("abc");
-		abc += abc;
+		auto le = abc.length();
+		auto  sle = abc.size();
+		auto abc_ba = abc.back();
+
 
 
         auto abc_it = abc.begin() + 1;

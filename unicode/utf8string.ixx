@@ -434,12 +434,12 @@ namespace deckard::utf8
 			// iterator() = default;
 
 
-			iterator(pointer p)
+			iterator(const pointer p)
 				: iterator(p, 0)
 			{
 			}
 
-			iterator(pointer p, difference_type v)
+			iterator(const pointer p, const difference_type v)
 				: ptr(p)
 				, current_index(v)
 			{
@@ -497,18 +497,17 @@ namespace deckard::utf8
 				return *this;
 			}
 
+			iterator operator+(difference_type n) const
+			{
+				iterator tmp = *this;
+				while (n-- > 0)
+					tmp.advance_to_next_codepoint();
+				return tmp;
+			}
 
-            iterator operator+(difference_type n) const 
-            {
-                iterator tmp = *this;
-                while (n-- > 0)
-                    tmp.advance_to_next_codepoint();
-                return tmp;
-            }
-
-			iterator operator-(difference_type n) const 
-			{ 
-				  iterator tmp = *this;
+			iterator operator-(difference_type n) const
+			{
+				iterator tmp = *this;
 				while (n-- > 0)
 					tmp.reverse_to_last_codepoint();
 				return tmp;
@@ -525,8 +524,6 @@ namespace deckard::utf8
 				// TODO: assert on pointer diff
 				return ptr == other.ptr and current_index == other.current_index;
 			}
-
-			
 		};
 #if 1
 		class const_iterator
@@ -769,10 +766,31 @@ namespace deckard::utf8
 			return true;
 		}
 
+		iterator insert(iterator pos, const string2& str)
+		{
+			if (str.empty())
+				return pos;
+
+			auto insert_pos = pos.byteindex() + 1;
+			buffer.insert(buffer.begin() + insert_pos, {str.data(), str.size_in_bytes()});
+
+			return iterator(&buffer, insert_pos);
+		}
+
+		void append(const string2& other) { insert(end(), other); }
+
+		void append(const char b) { buffer.append(b); }
+
+		void append(const char32 c) 
+		{
+			// decode and append
+		}
+
 		// TODO:
 		// insert
 		// append (insert end())
 		// operator + (append)
+		// front/back
 		// substr
 		// erase
 		// find
@@ -781,23 +799,43 @@ namespace deckard::utf8
 		// starts_with
 		// ends_with
 
+		index_type front() 
+		{
+			if (empty())
+				return REPLACEMENT_CHARACTER;
 
+			return *begin();
+		}
+
+		index_type back()
+		{
+			if (empty())
+				return REPLACEMENT_CHARACTER;
+
+			return *end();
+		}
 
 		iterator begin() { return iterator(&buffer); }
 
-		iterator end() { return iterator(&buffer, buffer.size()); }
+		iterator end()
+		{
+			iterator it(&buffer, buffer.size());
+			it--;
+			return it;
+		}
 
 		const_iterator cbegin() { return const_iterator(&buffer); }
 
-		const_iterator cend() { return const_iterator(&buffer, buffer.size()); }
+		const_iterator cend() 
+		{
+			const_iterator it(&buffer, buffer.size()); 
+			it--;
+			return it;
+		}
 
 		auto rbegin() { return std::reverse_iterator(end()); }
 
 		auto rend() { return std::reverse_iterator(begin()); }
-
-		//		 auto cbegin() { return buffer.cbegin(); }
-		//
-		//		 auto cend() { return buffer.cend(); }
 
 		auto data() const { return buffer.data().data(); }
 

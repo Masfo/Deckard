@@ -31,7 +31,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
 	}
 
-	SECTION("copy")
+	SECTION("copy assignment")
 	{
 
 		utf8::string2 a("hello 🌍");
@@ -52,6 +52,31 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(std::string(b.c_str()) == "hello 🌍"sv);
 
 		CHECK(a.data() != b.data());
+	}
+
+	SECTION("insert/append") 
+	{
+		utf8::string2 a("hello ");
+
+
+		CHECK(a.size() == 6);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == ' ');
+
+
+		utf8::string2 b("🌍");
+		a.insert(a.end(), b);
+
+
+		CHECK(a.size() == 7);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == 0x1f30d);
+
+		a.append('b');
+		CHECK(a.size() == 8);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == 'b');
+
 	}
 }
 
