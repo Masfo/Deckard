@@ -17,9 +17,7 @@ namespace deckard::utf8
 
 	export constexpr bool is_start_of_codepoint(const u8 byte)
 	{
-		return ((byte and 0xE0) == 0xC0 or 
-			    (byte and 0xF0) == 0xE0 or 
-			    (byte and 0xF8) == 0xF0);
+		return ((byte and 0xE0) == 0xC0 or (byte and 0xF0) == 0xE0 or (byte and 0xF8) == 0xF0);
 	}
 
 	export constexpr u32 codepoint_width(u8 codepoint_byte)
@@ -32,12 +30,12 @@ namespace deckard::utf8
 			return 3;
 		else if ((codepoint_byte & 0xF8) == 0xF0)
 			return 4;
-		#if 0
+#if 0
 		else if ((codepoint_byte & 0xFC) == 0xF8)
 			return 5;
 		else if ((codepoint_byte & 0xFE) == 0xFC)
 			return 6;
-		#endif
+#endif
 
 
 		return 0;
@@ -85,6 +83,53 @@ namespace deckard::utf8
 	export constexpr bool is_identifier_continue(char32_t codepoint)
 	{
 		return is_ascii_identifier_continue(codepoint) or is_xid_continue(codepoint);
+	}
+
+	export struct EncodedCodepoint
+	{
+		std::array<u8, 4> bytes{0};
+		u8                count{0};
+	};
+
+	export EncodedCodepoint encode_codepoint(char32 cp)
+	{
+		EncodedCodepoint ecp;
+
+		if (cp <= 0x7F)
+		{
+
+			ecp.bytes[0] = (static_cast<u8>(cp));
+			ecp.count    = 1;
+		}
+		else if (cp <= 0x7FF)
+		{
+			ecp.bytes[0] = (static_cast<u8>((cp >> 6) | 0xC0));
+			ecp.bytes[1] = (static_cast<u8>((cp & 0x3F) | 0x80));
+			ecp.count    = 2;
+		}
+		else if (cp <= 0xFFFF)
+		{
+			ecp.bytes[0] = (static_cast<u8>((cp >> 12) | 0xE0));
+			ecp.bytes[1] = (static_cast<u8>(((cp >> 6) & 0x3F) | 0x80));
+			ecp.bytes[2] = (static_cast<u8>((cp & 0x3F) | 0x80));
+			ecp.count    = 3;
+		}
+		else if (cp <= 0x10'FFFF)
+		{
+			ecp.bytes[0] = (static_cast<u8>((cp >> 18) | 0xF0));
+			ecp.bytes[1] = (static_cast<u8>(((cp >> 12) & 0x3F) | 0x80));
+			ecp.bytes[2] = (static_cast<u8>(((cp >> 6) & 0x3F) | 0x80));
+			ecp.bytes[3] = (static_cast<u8>((cp & 0x3F) | 0x80));
+			ecp.count    = 4;
+		}
+		else
+		{
+			ecp.bytes[0] = (0xEF);
+			ecp.bytes[1] = (0xBF);
+			ecp.bytes[2] = (0xBD); // U+FFFD replacement character
+			ecp.count    = 3;
+		}
+		return ecp;
 	}
 
 } // namespace deckard::utf8

@@ -77,6 +77,11 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.front() == 'h');
 		CHECK(a.back() == 'b');
 
+		char32 w = 0x1'f30d;
+		a.append(w);
+		CHECK(a.size() == 9);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == 0x1'f30d);
 	}
 }
 

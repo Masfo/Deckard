@@ -777,20 +777,24 @@ namespace deckard::utf8
 			return iterator(&buffer, insert_pos);
 		}
 
+		void append(const std::string_view str) { insert(end(), str); }
+
 		void append(const string2& other) { insert(end(), other); }
+
+		void append(const u8 b) { buffer.append(b); }
 
 		void append(const char b) { buffer.append(b); }
 
 		void append(const char32 c) 
-		{
-			// decode and append
+		{ 
+			auto encoded = encode_codepoint(c);
+
+			for (int i = 0; i < encoded.count; ++i)
+				buffer.append(encoded.bytes[i]);
 		}
 
 		// TODO:
-		// insert
-		// append (insert end())
 		// operator + (append)
-		// front/back
 		// substr
 		// erase
 		// find
