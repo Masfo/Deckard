@@ -54,7 +54,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.data() != b.data());
 	}
 
-	SECTION("insert/append") 
+	SECTION("insert/append")
 	{
 		utf8::string2 a("hello ");
 
@@ -70,7 +70,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a.size() == 7);
 		CHECK(a.front() == 'h');
-		CHECK(a.back() == 0x1f30d);
+		CHECK(a.back() == 0x1'f30d);
 
 		a.append('b');
 		CHECK(a.size() == 8);
@@ -82,6 +82,28 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.size() == 9);
 		CHECK(a.front() == 'h');
 		CHECK(a.back() == 0x1'f30d);
+	}
+
+	SECTION("substr")
+	{
+		utf8::string2 a("hello world");
+
+		CHECK(a.size() == 11);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == 'd');
+
+		auto sub = a.substr(6, 10);
+
+		CHECK(sub.size() == 5);
+		CHECK(sub.front() == 'w');
+		CHECK(sub.back() == 'd');
+
+
+		utf8::string2 b("hello 🌍");
+		auto          c = b.substr(6, 7);
+		CHECK(c.size() == 1);
+		CHECK(c.front() == 0x1'f30d);
+		CHECK(c.back() == 0x1'f30d);
 	}
 }
 

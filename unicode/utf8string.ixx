@@ -46,6 +46,7 @@ namespace deckard::utf8
 	constexpr u32 UTF8_REJECT{12};
 
 	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // U+FFFD 0xEF 0xBF 0xBD(239, 191, 189) REPLACEMENT CHARACTER
+	static constexpr char32 invalid_codepoint = REPLACEMENT_CHARACTER;
 
 	struct utf8_decode_t
 	{
@@ -367,9 +368,11 @@ namespace deckard::utf8
 
 				if (current_index >= as<difference_type>(ptr->size()))
 					return REPLACEMENT_CHARACTER;
+
 				auto       index     = current_index;
 				u32        state     = 0;
 				index_type codepoint = 0;
+
 				for (; index < as<difference_type>(ptr->size()); index++)
 				{
 					u8 byte = ptr->at(index);
@@ -584,6 +587,7 @@ namespace deckard::utf8
 
 				if (current_index >= as<difference_type>(ptr->size()))
 					return REPLACEMENT_CHARACTER;
+
 				auto       index     = current_index;
 				u32        state     = 0;
 				index_type codepoint = 0;
@@ -688,7 +692,7 @@ namespace deckard::utf8
 
 			bool operator==(const const_iterator& other) const
 			{
-				assert::check(ptr != other.ptr, "Pointers invalidated");
+				assert::check(ptr == other.ptr, "Pointers invalidated");
 				// TODO: assert on pointer diff
 				return ptr == other.ptr and current_index == other.current_index;
 			}
@@ -707,14 +711,17 @@ namespace deckard::utf8
 		}
 
 		[[nodiscard("use result of at method")]]
-		char_type at(u32 index) const
+		char_type at(u32 index)
 		{
-			static char_type invalid_codepoint = REPLACEMENT_CHARACTER;
 			if (index >= size())
 				return invalid_codepoint;
 
 			i64 current_index = 0;
-			i64 next          = 0;
+			for (auto it = cbegin(); it != cend(); ++it, ++current_index)
+			{
+				if (current_index == index)
+					return *it;
+			}
 
 
 			return invalid_codepoint;
@@ -722,7 +729,6 @@ namespace deckard::utf8
 
 		[[nodiscard("use result of index operator")]] char_type operator[](u32 index)
 		{
-			static char_type invalid_codepoint = REPLACEMENT_CHARACTER;
 			if (index >= buffer.size())
 				return invalid_codepoint;
 
@@ -738,7 +744,6 @@ namespace deckard::utf8
 #if 1
 		[[nodiscard("use result of index operator")]] const char_type& operator[](u32 index) const
 		{
-			static char_type invalid_codepoint = REPLACEMENT_CHARACTER;
 			if (index >= buffer.size())
 				return invalid_codepoint;
 
@@ -785,8 +790,8 @@ namespace deckard::utf8
 
 		void append(const char b) { buffer.append(b); }
 
-		void append(const char32 c) 
-		{ 
+		void append(const char32 c)
+		{
 			auto encoded = encode_codepoint(c);
 
 			for (int i = 0; i < encoded.count; ++i)
@@ -795,15 +800,30 @@ namespace deckard::utf8
 
 		// TODO:
 		// operator + (append)
-		// substr
 		// erase
 		// find
 		// contains
-		// valid
 		// starts_with
 		// ends_with
 
-		index_type front() 
+		string2 substr(size_t start, size_t end)
+		{
+			if (empty() or start >= size() or start >= end)
+				return string2{};
+
+			
+			size_t  size = end - start + 1;
+			auto it   = begin()+start;
+			const auto itend = it + size;
+
+			string2 result;
+			for (; it != itend; ++it)
+				result.append((char32)*it);
+
+			return result;
+		}
+
+		index_type front()
 		{
 			if (empty())
 				return REPLACEMENT_CHARACTER;
@@ -830,9 +850,9 @@ namespace deckard::utf8
 
 		const_iterator cbegin() { return const_iterator(&buffer); }
 
-		const_iterator cend() 
+		const_iterator cend()
 		{
-			const_iterator it(&buffer, buffer.size()); 
+			const_iterator it(&buffer, buffer.size());
 			it--;
 			return it;
 		}
