@@ -580,7 +580,6 @@ namespace deckard::utf8
 			return true;
 		}
 
-
 		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
 		iterator insert(iterator pos, std::string_view input)
@@ -657,6 +656,42 @@ namespace deckard::utf8
 		// starts_with
 		// ends_with
 
+		bool starts_with(std::span<u8> input) const
+		{
+			if (input.empty())
+				return true;
+
+			if (input.size() > buffer.size())
+				return false;
+
+			for (size_t i = 0; i < input.size(); i++)
+			{
+				if (buffer[i] != buffer[i])
+					return false;
+			}
+
+			return true;
+		}
+
+		bool starts_with(std::string_view str) const { return starts_with({as<u8*>(str.data()), str.size()}); }
+
+		bool starts_with(string str) const
+		{
+			if (str.empty())
+				return true;
+
+			if (str.size_in_bytes() > buffer.size())
+				return false;
+
+			for (size_t i = 0; i < str.size_in_bytes(); i++)
+			{
+				if (buffer[i] != str.buffer[i])
+					return false;
+			}
+
+			return true;
+		}
+
 		string substr(size_t start, size_t end)
 		{
 			if (empty() or start >= size() or start >= end)
@@ -725,6 +760,86 @@ namespace deckard::utf8
 		size_t size() const { return length(); }
 
 		bool is_valid() const { return length() != 0; }
+
+		size_t count()
+		{
+			if (empty())
+				return 0;
+
+			size_t count = 0;
+			auto   it    = cbegin();
+			auto   end   = cend();
+
+			while (it != end)
+			{
+				count++;
+
+				char32 current = *it;
+				it++;
+
+				if (it == end)
+					break;
+
+				while (it != end)
+				{
+					char32 next = *it;
+
+					bool is_combining =
+					  (next >= 0x0300 && next <= 0x036F)    // Combining Diacritical Marks
+					  || (next >= 0x1AB0 && next <= 0x1AFF) // Combining Diacritical Marks Extended
+					  || (next >= 0x1DC0 && next <= 0x1DFF) // Combining Diacritical Marks Supplement
+					  || (next >= 0x20D0 && next <= 0x20FF) // Combining Diacritical Marks for Symbols
+					  || (next >= 0xFE20 && next <= 0xFE2F) // Combining Half Marks
+					  // Add these new ranges:
+					  || (next >= 0x0483 && next <= 0x0489)  // Cyrillic Combining Marks
+					  || (next >= 0x0591 && next <= 0x05BD)  // Hebrew Points
+					  || (next >= 0x064B && next <= 0x065F)  // Arabic Combining Marks
+					  || (next >= 0x0900 && next <= 0x0903)  // Devanagari Signs
+					  || (next >= 0x093A && next <= 0x094F)  // Additional Devanagari
+					  || (next >= 0x0981 && next <= 0x0983)  // Bengali Signs
+					  || (next >= 0x0E31 && next <= 0x0E3A)  // Thai Combining Marks
+					  || (next >= 0x0F18 && next <= 0x0F19)  // Tibetan Subjoined Letters
+					  || (next >= 0x0F35 && next <= 0x0F37)  // Tibetan Signs
+					  || (next >= 0x0F71 && next <= 0x0F84); // Tibetan Vowel Signs
+
+					// Enhance emoji handling:
+					bool is_emoji =
+					  (next >= 0x1'F3FB && next <= 0x1'F3FF)    // Emoji skin tone modifiers
+					  || (next >= 0x1'F1E6 && next <= 0x1'F1FF) // Regional indicator symbols
+					  || (next >= 0xFE00 && next <= 0xFE0F)     // Variation Selectors
+					  || (next >= 0xE'0020 && next <= 0xE'007F) // Tags
+					  // Add these new ranges:
+					  || (next >= 0x1'F300 && next <= 0x1'F9FF)  // Miscellaneous Symbols and Pictographs
+					  || (next >= 0x1'F600 && next <= 0x1'F64F)  // Emoticons
+					  || (next >= 0x1'F680 && next <= 0x1'F6FF)  // Transport and Map Symbols
+					  || (next >= 0x1'F900 && next <= 0x1'F9FF); // Supplemental Symbols and Pictographs
+
+
+					// Add special character handling:
+					bool is_special =
+					  (next == 0xFE0F)                        // Variation Selector-16 (0xFE0F)
+					  || (next == 0x20E3)                     // Combining Enclosing Keycap (0x20E3)
+															  // Add these new special characters:
+					  || (next == 0x200D) || (next == 0x200C) // Zero Width Non-Joiner
+					  || (next == 0x200E)                     // Left-to-Right Mark
+					  || (next == 0x200F)                     // Right-to-Left Mark
+					  || (next == 0x2060)                     // Word Joiner
+					  || (next == 0x2061)                     // Function Application
+					  || (next >= 0x2062 && next <= 0x2064);  // Invisible Operators
+
+
+					// Handle Indic scripts
+					bool is_indic_vowel = (next >= 0x0900 && next <= 0x0903) // Devanagari vowel marks
+										  || (next >= 0x093A && next <= 0x094F) || (next >= 0x0955 && next <= 0x0957);
+
+					if (is_combining || is_emoji || is_special || is_indic_vowel)
+						++it;
+					else
+						break;
+				}
+			}
+			return count;
+		}
 
 		size_t length() const
 		{

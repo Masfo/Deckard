@@ -18,6 +18,20 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size_in_bytes() == 11);
 
 		CHECK(std::string(str.c_str()) == "hello world"sv);
+
+		
+		str      = "\xF0\x9F\xA4\xA6\xF0\x9F\x8F\xBC\xE2\x80\x8D\xE2\x99\x82\xEF\xB8\x8F";
+		CHECK(str.length() == 5);
+		CHECK(str.size_in_bytes() == 17);
+		CHECK(str.count() == 2); // TODO: should be 1
+
+		str = "नमस्ते";
+		CHECK(str.length() == 6);
+		CHECK(str.size_in_bytes() == 18);
+		CHECK(str.count() == 4);
+
+	
+
 	}
 
 
@@ -173,6 +187,22 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(*it++ == correct[1]);
 		CHECK(*it++ == correct[2]);
 		CHECK(*it++ == correct[3]);
+	}
+
+	SECTION("starts_with")
+	{
+		//
+		utf8::string a("AÄ↥🌍");
+
+		CHECK(a.starts_with("AÄ") == true);
+		CHECK(a.starts_with("AÄ"sv) == true);
+
+
+		utf8::string b("AÄ");
+		CHECK(a.starts_with(b) == true);
+
+		b = "QW";
+		CHECK(a.starts_with(b) == false);
 	}
 }
 
