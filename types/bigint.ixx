@@ -29,7 +29,7 @@ namespace deckard
 		};
 
 		// TODO: try base 10 and bas_digits 1, type to u8
-		#if 0
+		#if 1
 		using type = u32;
 		static constexpr type base        = 10000;
 		static constexpr type base_digits = 4;
@@ -897,9 +897,12 @@ namespace deckard
 				}
 
 				result.append(std::format("{}", digits.back()));
+
+
+
 				auto it = digits.rbegin();
 				for (it++; it != digits.rend(); ++it)
-					result.append(std::format("{}", *it));
+					result.append(std::format("{:0{}}", *it, bigint::base_digits));
 
 				return result;
 			}

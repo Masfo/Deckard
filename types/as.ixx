@@ -35,6 +35,9 @@ namespace deckard
 	{
 	}
 
+	#pragma warning(push)
+	#pragma warning(disable: 4172) // returning address of local
+
 	export template<typename Ret = void*, typename U>
 	constexpr Ret as(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
@@ -115,6 +118,7 @@ namespace deckard
 			return static_cast<Ret>(u);
 		}
 	}
+	#pragma warning(pop)
 
 	// TODO: variadic to and as
 	///		to<i64,i64>(input1, input2)
