@@ -477,6 +477,7 @@ namespace deckard
 			insert(begin(), buffer);
 		}
 
+
 		void assign(const sbo<SIZE>& other) { assign(other.data()); }
 
 		void assign(const value_type& v) { assign(std::span<value_type>{(pointer)&v, 1}); }

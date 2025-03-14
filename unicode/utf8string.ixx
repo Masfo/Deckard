@@ -46,7 +46,6 @@ namespace deckard::utf8
 	constexpr u32 UTF8_REJECT{12};
 
 	export constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // U+FFFD 0xEF 0xBF 0xBD(239, 191, 189) REPLACEMENT CHARACTER
-	static constexpr char32 invalid_codepoint = REPLACEMENT_CHARACTER;
 
 	struct utf8_decode_t
 	{
@@ -107,194 +106,6 @@ namespace deckard::utf8
 	}
 
 	export class string
-	{
-	public:
-		using type = char32;
-
-	private:
-		struct iterator
-		{
-			using iterator_category = std::bidirectional_iterator_tag;
-			using value_type        = type;
-
-			iterator(string* ptr, i32 i)
-				: p(ptr)
-				, index(i)
-			{
-				if (i == 0 and p and not p->empty())
-					current = p->next();
-			}
-
-			const value_type operator*() const { return current; }
-
-			const iterator& operator++()
-			{
-				if (index >= 0 and p and not p->empty())
-				{
-					current = p->next();
-					index += 1;
-					return *this;
-				}
-				index = -1;
-				return *this;
-			}
-
-			friend bool operator==(const iterator& a, const iterator& b) { return a.index == b.index; };
-
-			string* p{nullptr};
-
-			value_type current{REPLACEMENT_CHARACTER};
-			i32        index{0};
-		};
-
-		type read(u8 byte)
-		{
-			assert::check(byte < utf8_table.size(), "Out-of-bound indexing on utf8 table");
-
-			const u32 type = utf8_table[byte];
-
-			decoded_point = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (decoded_point << 6) : (0xff >> type) & (byte);
-			state         = utf8_table[256 + state + type];
-			return state;
-		}
-
-		void reset()
-		{
-			idx             = 0;
-			state           = UTF8_ACCEPT;
-			codepoint_count = 0;
-		}
-
-		std::vector<u8> buffer;
-		type            decoded_point{0};
-		type            state{UTF8_ACCEPT};
-		u32             idx{0};
-		u32             codepoint_count{};
-
-		void update_cache()
-		{
-			reset();
-			(void)size();
-		}
-
-	public:
-		string() = default;
-
-		string(std::string_view input)
-		{
-			std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
-			update_cache();
-		}
-
-		string(std::span<u8> input)
-		{
-			std::ranges::copy_n(input.data(), input.size(), std::back_inserter(buffer));
-			update_cache();
-		}
-
-		string(std::optional<std::vector<u8>> input)
-		{
-			if (input.has_value())
-			{
-				auto i = *input;
-				std::ranges::copy_n(i.data(), i.size(), std::back_inserter(buffer));
-				update_cache();
-			}
-		}
-
-		string(std::vector<u8> input)
-			: string(std::optional<std::vector<u8>>(input))
-		{
-		}
-
-		string(const char* input)
-			: string(std::string_view{input})
-		{
-		}
-
-		bool empty() const { return idx >= buffer.size(); }
-
-		u64 size_in_bytes() const { return buffer.size(); }
-
-		u64 size()
-		{
-			if (codepoint_count != 0)
-				return codepoint_count;
-
-			u32 old_index = idx;
-			u32 old_state = state;
-
-			while (not empty())
-			{
-				if (next())
-					codepoint_count += 1;
-			}
-
-			idx   = old_index;
-			state = old_state;
-
-			return codepoint_count;
-		}
-
-		u64 count() { return size(); }
-
-		iterator begin() { return iterator(this, idx); }
-
-		iterator end() { return iterator(this, -1); }
-
-		type next()
-		{
-			for (state = 0; idx < buffer.size(); idx++)
-			{
-				u8 byte = buffer[idx];
-
-				if (!read(byte))
-				{
-					idx += 1;
-					return decoded_point;
-				}
-				else if (state == UTF8_REJECT)
-				{
-					idx += 1;
-					return REPLACEMENT_CHARACTER;
-				}
-			}
-
-			if (state != UTF8_ACCEPT)
-			{
-				state = UTF8_ACCEPT;
-				return REPLACEMENT_CHARACTER;
-			}
-
-			return decoded_point;
-		}
-
-		auto data() const { return buffer.data(); }
-
-		auto codepoints() -> std::vector<type>
-		{
-			std::vector<type> ret;
-			ret.reserve(count());
-
-			for (const auto& cp : *this)
-				ret.emplace_back(cp);
-
-			return ret;
-		}
-
-		bool is_valid() const
-		{
-			utf8_decode_t state{};
-			for (const auto& byte : buffer)
-			{
-				if (decode(state, byte) == UTF8_REJECT)
-					return false;
-			}
-			return state.state == UTF8_ACCEPT;
-		}
-	};
-
-	export class string2
 	{
 	private:
 		sbo<32> buffer;
@@ -700,11 +511,11 @@ namespace deckard::utf8
 #endif
 
 	public:
-		string2() = default;
+		string() = default;
 
-		string2(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
+		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
-		string2 operator=(std::string_view input)
+		string& operator=(std::string_view input)
 		{
 			buffer.assign({as<u8*>(input.data()), input.size()});
 			return *this;
@@ -714,7 +525,7 @@ namespace deckard::utf8
 		char_type at(u32 index)
 		{
 			if (index >= size())
-				return invalid_codepoint;
+				return REPLACEMENT_CHARACTER;
 
 			i64 current_index = 0;
 			for (auto it = cbegin(); it != cend(); ++it, ++current_index)
@@ -724,13 +535,13 @@ namespace deckard::utf8
 			}
 
 
-			return invalid_codepoint;
+			return REPLACEMENT_CHARACTER;
 		}
 
 		[[nodiscard("use result of index operator")]] char_type operator[](u32 index)
 		{
 			if (index >= buffer.size())
-				return invalid_codepoint;
+				return REPLACEMENT_CHARACTER;
 
 			u32 current_index = 0;
 			for (auto it = cbegin(); it != cend(); ++it, ++current_index)
@@ -738,26 +549,10 @@ namespace deckard::utf8
 				if (current_index == index)
 					return *it;
 			}
-			return invalid_codepoint;
+			return REPLACEMENT_CHARACTER;
 		}
 
-#if 1
-		[[nodiscard("use result of index operator")]] const char_type& operator[](u32 index) const
-		{
-			if (index >= buffer.size())
-				return invalid_codepoint;
-
-			u32 current_index = 0;
-			// for (auto  it = cbegin(); it != cend(); ++it, ++current_index)
-			//{
-			//	if (current_index == index)
-			//		return *it;
-			// }
-			return invalid_codepoint;
-		}
-#endif
-
-		bool operator==(const string2& other) const
+		bool operator==(const string& other) const
 		{
 			if (buffer.size() != other.buffer.size())
 				return false;
@@ -771,20 +566,53 @@ namespace deckard::utf8
 			return true;
 		}
 
-		iterator insert(iterator pos, const string2& str)
+		bool operator==(std::span<u8> other) const
+		{
+			if (buffer.size() != other.size())
+				return false;
+
+
+			for (u32 i = 0; i < other.size(); i++)
+			{
+				if (buffer[i] != other[i])
+					return false;
+			}
+			return true;
+		}
+
+
+		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
+
+		iterator insert(iterator pos, std::string_view input)
+		{
+			if (input.empty())
+				return pos;
+
+			auto insert_pos = pos.byteindex() + pos.width();
+
+			buffer.insert(buffer.begin() + insert_pos, {as<u8*>(input.data()), input.size()});
+
+			return iterator(&buffer, insert_pos);
+		}
+
+		iterator insert(iterator pos, const string& str)
 		{
 			if (str.empty())
 				return pos;
 
-			auto insert_pos = pos.byteindex() + 1;
+
+			auto insert_pos = pos.byteindex() + pos.width();
+
 			buffer.insert(buffer.begin() + insert_pos, {str.data(), str.size_in_bytes()});
 
 			return iterator(&buffer, insert_pos);
 		}
 
+		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
+
 		void append(const std::string_view str) { insert(end(), str); }
 
-		void append(const string2& other) { insert(end(), other); }
+		void append(const string& other) { insert(end(), other); }
 
 		void append(const u8 b) { buffer.append(b); }
 
@@ -793,30 +621,53 @@ namespace deckard::utf8
 		void append(const char32 c)
 		{
 			auto encoded = encode_codepoint(c);
+			buffer.append({encoded.bytes.data(), encoded.count});
+		}
 
-			for (int i = 0; i < encoded.count; ++i)
-				buffer.append(encoded.bytes[i]);
+		auto operator+(const std::string_view other) const
+		{
+			auto ret(*this);
+			ret.append(other);
+			return ret;
+		}
+
+		auto operator+(const string& other)
+		{
+			auto ret(*this);
+			ret.append(other);
+			return ret;
+		}
+
+		auto operator+=(const std::string_view other)
+		{
+			append(other);
+			return *this;
+		}
+
+		auto operator+=(const string& other)
+		{
+			append(other);
+			return *this;
 		}
 
 		// TODO:
-		// operator + (append)
 		// erase
 		// find
 		// contains
 		// starts_with
 		// ends_with
 
-		string2 substr(size_t start, size_t end)
+		string substr(size_t start, size_t end)
 		{
 			if (empty() or start >= size() or start >= end)
-				return string2{};
+				return string{};
 
-			
-			size_t  size = end - start + 1;
-			auto it   = begin()+start;
+
+			size_t     size  = end - start + 1;
+			auto       it    = begin() + start;
 			const auto itend = it + size;
 
-			string2 result;
+			string result;
 			for (; it != itend; ++it)
 				result.append((char32)*it);
 
@@ -867,6 +718,8 @@ namespace deckard::utf8
 
 		bool empty() const { return buffer.empty(); }
 
+		void clear() { buffer.clear(); }
+
 		size_t size_in_bytes() const { return buffer.size(); }
 
 		size_t size() const { return length(); }
@@ -899,8 +752,6 @@ namespace deckard::utf8
 
 			return valid ? len : 0ull;
 		}
-
-		// substr
 	};
 
 
@@ -918,7 +769,7 @@ export namespace std
 	// };
 
 	template<>
-	struct formatter<utf8::string2>
+	struct formatter<utf8::string>
 	{
 		constexpr auto parse(std::format_parse_context& ctx)
 		{
@@ -926,7 +777,7 @@ export namespace std
 			return ctx.begin();
 		}
 
-		auto format(const utf8::string2& v, std::format_context& ctx) const
+		auto format(const utf8::string& v, std::format_context& ctx) const
 		{
 			std::string_view view{as<char*>(v.data()), v.size_in_bytes()};
 			return std::format_to(ctx.out(), "{}", view);
