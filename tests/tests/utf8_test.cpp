@@ -204,6 +204,40 @@ TEST_CASE("utf8::string", "[utf8]")
 		b = "QW";
 		CHECK(a.starts_with(b) == false);
 	}
+
+	SECTION("ends_with") 
+	{
+		utf8::string a("AÄ↥🌍");
+
+		CHECK(a.ends_with("↥🌍") == true);
+		CHECK(a.ends_with("↥🌍"sv) == true);
+
+
+		utf8::string b("↥🌍");
+		CHECK(a.ends_with(b) == true);
+
+		b = "QW";
+		CHECK(a.ends_with(b) == false);
+
+		a = "ab🌍cd";
+
+		CHECK(a.ends_with("cd") == true);
+		CHECK(a.ends_with("ab") == false);
+		CHECK(a.ends_with("b🌍c") == false);
+
+	}
+
+
+	SECTION("contains") 
+	{
+		utf8::string a("hello 🌍AÄ world ↥🌍");
+
+		CHECK(a.contains("🌍") == true);
+		CHECK(a.contains("🌍"sv) == true);
+		CHECK(a.contains("world"sv) == true);
+		CHECK(a.contains("xyz"sv) == false);
+
+	}
 }
 
 /*

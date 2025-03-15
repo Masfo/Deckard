@@ -652,10 +652,27 @@ namespace deckard::utf8
 		// TODO:
 		// erase
 		// find
-		// contains
-		// starts_with
-		// ends_with
 
+
+		bool contains(std::span<u8> input) const
+		{
+			if (input.empty() || input.size() > buffer.size())
+				return false;
+
+			for (size_t i = 0; i <= buffer.size() - input.size(); ++i)
+			{
+				if (std::equal(input.begin(), input.end(), buffer.begin() + i))
+					return true;
+			}
+
+			return false;
+		}
+
+		bool contains(std::string_view str) const { return contains({as<u8*>(str.data()), str.size()}); }
+
+		bool contains(string str) const { return contains(std::span<u8>{str.data(), str.size_in_bytes()}); }
+
+		// starts with
 		bool starts_with(std::span<u8> input) const
 		{
 			if (input.empty())
@@ -691,6 +708,30 @@ namespace deckard::utf8
 
 			return true;
 		}
+
+
+		// ends with
+		bool ends_with(std::span<u8> input) const
+		{
+			if (input.empty())
+				return true;
+
+			if (input.size() > buffer.size())
+				return false;
+
+			auto buffer_end = buffer.size() - input.size();
+			for (size_t i = 0; i < input.size(); i++)
+			{
+				if (buffer[buffer_end + i] != input[i])
+					return false;
+			}
+
+			return true;
+		}
+
+		bool ends_with(std::string_view str) const { return ends_with({as<u8*>(str.data()), str.size()}); }
+
+		bool ends_with(string str) const { return ends_with(std::span<u8>{str.data(), str.size_in_bytes()}); }
 
 		string substr(size_t start, size_t end)
 		{
