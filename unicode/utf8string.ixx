@@ -651,8 +651,81 @@ namespace deckard::utf8
 
 		// TODO:
 		// erase
-		// find
 
+		index_type find(std::span<u8> input, size_t offset = 0) const
+		{
+			if (input.empty() || input.size() > buffer.size() - offset)
+				return -1;
+
+			for (size_t i = offset; i <= buffer.size() - input.size(); ++i)
+			{
+				if (i > 0 and utf8::is_continuation_byte(buffer[i]))
+					continue;
+
+				bool found = true;
+				for (size_t j = 0; j < input.size(); ++j)
+				{
+					if (buffer[i + j] != input[j])
+					{
+						found = false;
+						break;
+					}
+				}
+
+				if (found)
+				{
+					index_type codepoint_index = 0;
+					for (size_t pos = 0; pos < i; ++pos)
+					{
+						if (not utf8::is_continuation_byte(buffer[pos]))
+							++codepoint_index;
+					}
+					return codepoint_index;
+				}
+			}
+
+			return -1;
+		}
+
+		index_type find(std::string_view input, size_t offset = 0) const
+		{
+			return find(std::span<u8>{as<u8*>(input.data()), input.size()}, offset);
+		}
+
+		index_type find(string input, size_t offset = 0) const
+		{
+			if (input.empty() || input.size_in_bytes() > buffer.size() - offset)
+				return -1;
+
+			for (size_t i = offset; i <= buffer.size() - input.size_in_bytes(); ++i)
+			{
+				if (i > 0 and utf8::is_continuation_byte(buffer[i]))
+					continue;
+
+				bool found = true;
+				for (size_t j = 0; j < input.size_in_bytes(); ++j)
+				{
+					if (buffer[i + j] != input.buffer[j])
+					{
+						found = false;
+						break;
+					}
+				}
+
+				if (found)
+				{
+					index_type codepoint_index = 0;
+					for (size_t pos = 0; pos < i; ++pos)
+					{
+						if (not utf8::is_continuation_byte(buffer[pos]))
+							++codepoint_index;
+					}
+					return codepoint_index;
+				}
+			}
+
+			return -1;
+		}
 
 		bool contains(std::span<u8> input) const
 		{
@@ -708,7 +781,6 @@ namespace deckard::utf8
 
 			return true;
 		}
-
 
 		// ends with
 		bool ends_with(std::span<u8> input) const

@@ -19,8 +19,8 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(std::string(str.c_str()) == "hello world"sv);
 
-		
-		str      = "\xF0\x9F\xA4\xA6\xF0\x9F\x8F\xBC\xE2\x80\x8D\xE2\x99\x82\xEF\xB8\x8F";
+
+		str = "\xF0\x9F\xA4\xA6\xF0\x9F\x8F\xBC\xE2\x80\x8D\xE2\x99\x82\xEF\xB8\x8F";
 		CHECK(str.length() == 5);
 		CHECK(str.size_in_bytes() == 17);
 		CHECK(str.count() == 2); // TODO: should be 1
@@ -29,9 +29,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 6);
 		CHECK(str.size_in_bytes() == 18);
 		CHECK(str.count() == 4);
-
-	
-
 	}
 
 
@@ -205,7 +202,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.starts_with(b) == false);
 	}
 
-	SECTION("ends_with") 
+	SECTION("ends_with")
 	{
 		utf8::string a("AÄ↥🌍");
 
@@ -224,11 +221,10 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.ends_with("cd") == true);
 		CHECK(a.ends_with("ab") == false);
 		CHECK(a.ends_with("b🌍c") == false);
-
 	}
 
 
-	SECTION("contains") 
+	SECTION("contains")
 	{
 		utf8::string a("hello 🌍AÄ world ↥🌍");
 
@@ -236,7 +232,20 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.contains("🌍"sv) == true);
 		CHECK(a.contains("world"sv) == true);
 		CHECK(a.contains("xyz"sv) == false);
+	}
 
+	SECTION("find")
+	{
+		utf8::string a("hello 🌍AÄ world ↥🌍");
+
+		CHECK(a.find("🌍") == 6);
+
+		utf8::string b("world");
+		CHECK(a.find(b) == 10);
+
+		CHECK(a.find("xyz"sv) == -1);
+
+		CHECK(a.find("🌍", 10) == 17);
 	}
 }
 

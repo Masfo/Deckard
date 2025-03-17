@@ -505,6 +505,18 @@ i32 deckard_main(std::string_view commandline)
 
 	dbg::println();
 
+	{
+		constexpr std::string_view unicode[]{"▀▄─", "▄▀─", "▀─▄", "▄─▀"};
+
+		for (int y{}, p{}; y != 6; ++y, p = ((p + 1) % 4))
+		{
+			for (int x{}; x != 16; ++x)
+				dbg::print("{}", unicode[p]);
+			dbg::println();
+
+		}
+	}
+
 
 	// ########################################################################
 
