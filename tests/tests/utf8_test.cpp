@@ -247,6 +247,72 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a.find("🌍", 10) == 17);
 	}
+
+SECTION("erase")
+	{
+
+		// Basic ASCII erase
+		utf8::string str("hello world");
+		//str.erase(5, 1); // erase space
+		//CHECK(str == "helloworld");
+		//CHECK(str.size() == 10);
+
+		// Erase from start
+		str = "hello world";
+		str.erase(0, 5);
+		CHECK(str == " world");
+		CHECK(str.size() == 6);
+
+		// Erase from end
+		str = "hello world";
+		str.erase(6, 5);
+		CHECK(str == "hello "sv);
+		CHECK(str.size() ==6);
+
+		#if 0
+		// Erase UTF-8 characters
+		str = "hello 🌍 world";
+		str.erase(6, 1); // erase emoji
+		CHECK(str == "hello  world");
+		CHECK(str.size() == 12);
+
+		// Multiple UTF-8 characters
+		str = "AÄ↥🌍";
+		str.erase(1, 2); // erase Ä↥
+		CHECK(str == "A🌍");
+		CHECK(str.size() == 2);
+
+		// Iterator range erase
+		str      = "hello world";
+		auto it1 = str.begin() + 5;
+		auto it2 = str.begin() + 6;
+		str.erase(it1, it2);
+		CHECK(str == "helloworld");
+		CHECK(str.size() == 10);
+
+		// Erase single position
+		str = "hello🌍world";
+		str.erase(str.begin() + 5); // erase emoji
+		CHECK(str == "helloworld");
+		CHECK(str.size() == 10);
+
+		// Boundary tests
+		str = "🌍test🌍";
+		str.erase(0, 1); // erase first emoji
+		CHECK(str == "test🌍");
+		CHECK(str.size() == 5);
+
+		str.erase(4, 1); // erase last emoji
+		CHECK(str == "test");
+		CHECK(str.size() == 4);
+
+		// Empty after full erase
+		str = "test";
+		str.erase(0, str.size());
+		CHECK(str.empty());
+		CHECK(str.size() == 0);
+		#endif
+	}
 }
 
 /*

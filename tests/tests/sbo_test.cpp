@@ -1226,6 +1226,25 @@ TEST_CASE("sbo", "[sbo]")
 		ss.erase(ss.begin() + 1);
 		CHECK(ss.size() == 1);
 		CHECK(ss[0] == 'Q');
+
+		ss.assign(buffer);
+		CHECK(ss.size() == 6);
+
+		ss.erase(0, 2);
+		CHECK(ss.size() == 4);
+		CHECK(ss[0] == 'E');
+		CHECK(ss[1] == 'R');
+		CHECK(ss[2] == 'T');
+		CHECK(ss[3] == 'Y');
+
+		ss.erase(2, 2);
+		CHECK(ss.size() == 2);
+		CHECK(ss[0] == 'E');
+		CHECK(ss[1] == 'R');
+
+		ss.erase(0, 2);
+		CHECK(ss.size() == 0);
+
 	}
 
 
