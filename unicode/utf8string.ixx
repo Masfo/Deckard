@@ -652,6 +652,62 @@ namespace deckard::utf8
 		// TODO:
 		// erase
 
+		iterator erase(iterator pos)
+		{
+			if (pos == end())
+				return end();
+
+			auto erase_start = pos.byteindex();
+			auto erase_width = pos.width();
+
+			buffer.erase(buffer.begin() + erase_start, buffer.begin() + erase_width);
+
+			return iterator(&buffer, erase_start);
+		}
+
+		iterator erase(iterator first, iterator last)
+		{
+			if (first == last)
+				return first;
+
+			size_t erase_start = first.byteindex();
+			size_t erase_end   = last.byteindex();
+
+			if (erase_start >= erase_end)
+				return first;
+
+			buffer.erase(erase_start, erase_end-erase_start);
+
+			return iterator(&buffer, erase_start);
+		}
+
+		string& erase(size_t pos, size_t count = std::string::npos)
+		{
+			if (empty() || pos >= size())
+				return *this;
+
+			auto it = begin();
+			for (size_t i = 0; i < pos && it != end(); ++i)
+				++it;
+
+			auto first = it;
+			if (count == std::string::npos)
+			{
+				erase(first, end());
+			}
+			else
+			{
+				auto last = first;
+				for (size_t i = 0; i < count && last != end(); ++i)
+					++last;
+				erase(first, last);
+			}
+
+			return *this;
+		}
+
+
+
 		index_type find(std::span<u8> input, size_t offset = 0) const
 		{
 			if (input.empty() || input.size() > buffer.size() - offset)

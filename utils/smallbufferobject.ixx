@@ -477,7 +477,6 @@ namespace deckard
 			insert(begin(), buffer);
 		}
 
-
 		void assign(const sbo<SIZE>& other) { assign(other.data()); }
 
 		void assign(const value_type& v) { assign(std::span<value_type>{(pointer)&v, 1}); }
@@ -489,7 +488,7 @@ namespace deckard
 				push_back(i);
 		}
 
-		auto operator+(const sbo<SIZE>& other) 
+		auto operator+(const sbo<SIZE>& other)
 		{
 			auto ret(*this);
 			ret.append(other);
@@ -506,20 +505,16 @@ namespace deckard
 		{
 			assert::check(start < size(), "Index out-of-bounds");
 			assert::check(end < size(), "Index out-of-bounds");
-			
+
 			sbo<SIZE> result;
 			for (size_t i = start; i < end; ++i)
 				result.push_back(at(i));
 			return result;
-
 		}
-
-
 
 		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
 
 		void append(const sbo<SIZE>& other) { append(other.data()); }
-
 
 		void append(const value_type& v) { append(std::span<value_type>{(pointer)&v, 1}); }
 
@@ -568,7 +563,6 @@ namespace deckard
 				return packed.small.data[index];
 			}
 		}
-
 
 		[[nodiscard("Use result on index operator")]] const_reference operator[](size_t index) const
 		{
@@ -800,6 +794,23 @@ namespace deckard
 		}
 
 		friend void swap(sbo& lhs, sbo& rhs) noexcept { lhs.swap(rhs); }
+
+        iterator erase(size_t pos, size_t count = 0xFFFF'FFFF)
+        {
+            if (pos >= size())
+                return end();
+
+            const size_t erase_count = std::min(count, size() - pos);
+            const auto   newsize     = size() - erase_count;
+
+            pointer ptr = rawptr();
+            std::copy(ptr + pos + erase_count, ptr + size(), ptr + pos);
+            std::fill(ptr + newsize, ptr + size(), 0);
+
+            set_size(newsize);
+
+            return iterator(ptr + pos);
+        }
 
 		iterator erase(iterator first, iterator last)
 		{

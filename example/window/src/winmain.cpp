@@ -469,10 +469,6 @@ std::generator<u32> gen()
 	}
 }
 
-
-
-
-
 i32 deckard_main(std::string_view commandline)
 {
 #ifndef _DEBUG
@@ -491,7 +487,6 @@ i32 deckard_main(std::string_view commandline)
 
 
 	// ###################
-
 
 
 	// ###################
@@ -513,12 +508,12 @@ i32 deckard_main(std::string_view commandline)
 			for (int x{}; x != 16; ++x)
 				dbg::print("{}", unicode[p]);
 			dbg::println();
-
 		}
 	}
 
 
 	// ########################################################################
+	// ✅ ❌
 
 	auto rle = compress_rle<std::string>("WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW");
 
@@ -530,17 +525,17 @@ i32 deckard_main(std::string_view commandline)
 
 	// Bailey–Borwein–Plouffe
 	f64 pi{0};
-	for (auto k : range(0,15))
+	for (auto k : range(0, 15))
 	{
-		f64 term = (1.0 / std::pow(16, k)) * 
-					((4.0 / (8.0 * k + 1.0)) - (2.0 / (8.0 * k + 4.0)) -
-					   (1.0 / (8.0 * k + 5.0)) - (1.0 / (8.0 * k + 6.0)));
+		f64 term =
+		  (1.0 / std::pow(16, k)) *  //
+		  ((4.0 / (8.0 * k + 1.0)) - //
+		   (2.0 / (8.0 * k + 4.0)) - //
+		   (1.0 / (8.0 * k + 5.0)) - //
+		   (1.0 / (8.0 * k + 6.0)));
+
 		pi += term;
-
 	}
-
-	// 3.1415926535897932384626433832795028841971
-	// 3.1415926535897931
 
 
 	// ########################################################################
