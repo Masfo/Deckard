@@ -795,22 +795,18 @@ namespace deckard
 
 		friend void swap(sbo& lhs, sbo& rhs) noexcept { lhs.swap(rhs); }
 
-        iterator erase(size_t pos, size_t count = 0xFFFF'FFFF)
-        {
-            if (pos >= size())
-                return end();
 
-            const size_t erase_count = std::min(count, size() - pos);
-            const auto   newsize     = size() - erase_count;
+		
+        iterator erase(size_t pos, size_t count) 
+		{
+			if (pos >= size())
+				return end();
 
-            pointer ptr = rawptr();
-            std::copy(ptr + pos + erase_count, ptr + size(), ptr + pos);
-            std::fill(ptr + newsize, ptr + size(), 0);
-
-            set_size(newsize);
-
-            return iterator(ptr + pos);
-        }
+			const auto first = begin() + pos;
+			const auto last  = first + std::min(count, size() - pos);
+			return erase(first, last);
+		}
+       
 
 		iterator erase(iterator first, iterator last)
 		{

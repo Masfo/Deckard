@@ -267,8 +267,8 @@ SECTION("erase")
 		str = "hello world";
 		str.erase(6, 5);
 		
-		CHECK(str == "hello "sv);
-		CHECK(str.size() ==6);
+		CHECK(str == "hello"sv);
+		CHECK(str.size() ==5);
 
 		// Erase UTF-8 characters
 		str = "hello 🌍 world";

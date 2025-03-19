@@ -649,9 +649,6 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		// TODO:
-		// erase
-
 		iterator erase(iterator pos)
 		{
 			if (pos == end())
@@ -676,7 +673,7 @@ namespace deckard::utf8
 			if (erase_start >= erase_end)
 				return first;
 
-			buffer.erase(erase_start, erase_end-erase_start);
+			buffer.erase(erase_start, erase_end - erase_start);
 
 			return iterator(&buffer, erase_start);
 		}
@@ -686,11 +683,10 @@ namespace deckard::utf8
 			if (empty() || pos >= size())
 				return *this;
 
-			auto it = begin();
-			for (size_t i = 0; i < pos && it != end(); ++i)
-				++it;
+			auto first = begin();
+			for (size_t i = 0; i < pos && first != end(); ++i)
+				++first;
 
-			auto first = it;
 			if (count == std::string::npos)
 			{
 				erase(first, end());
@@ -700,13 +696,13 @@ namespace deckard::utf8
 				auto last = first;
 				for (size_t i = 0; i < count && last != end(); ++i)
 					++last;
+
+
 				erase(first, last);
 			}
 
 			return *this;
 		}
-
-
 
 		index_type find(std::span<u8> input, size_t offset = 0) const
 		{
@@ -1038,6 +1034,10 @@ namespace deckard::utf8
 		}
 	};
 
+	// TODO:
+	// erase
+	// c_str() -> string_view
+	// data() -> span
 
 } // namespace deckard::utf8
 
