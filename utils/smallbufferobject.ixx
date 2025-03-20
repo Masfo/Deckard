@@ -808,23 +808,23 @@ namespace deckard
 		}
        
 
-		iterator erase(iterator first, iterator last)
-		{
-			if (first == last)
-				return iterator(rawptr());
+        iterator erase(iterator first, iterator last)  
+        {  
+           if (first == last)  
+               return iterator(rawptr());  
 
-			const auto pivot   = std::distance(begin(), first);
-			const auto count   = std::distance(first, last);
-			const auto newsize = size() - count;
+           const auto pivot   = std::distance(begin(), first);  
+           const auto count   = std::distance(first, last);  
+           const auto newsize = size() - count;  
 
-			pointer ptr = rawptr();
-			std::copy(ptr + pivot + count, ptr + size(), ptr + pivot);
-			std::fill(ptr + newsize, ptr + size(), 0);
+           pointer ptr = rawptr();  
+           std::copy(ptr + pivot + count, ptr + size(), ptr + pivot);  
+           std::fill(ptr + newsize, ptr + size(), 0);  
 
-			set_size(newsize);
+           set_size(newsize);  
 
-			return iterator(ptr + pivot);
-		}
+           return iterator(ptr + pivot);  
+        }
 
 		iterator erase(const_iterator first, const_iterator last) { return erase(iterator(first), iterator(last)); }
 

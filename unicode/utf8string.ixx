@@ -668,12 +668,11 @@ namespace deckard::utf8
 				return first;
 
 			size_t erase_start = first.byteindex();
-			size_t erase_end   = last.byteindex();
+			size_t erase_count = last.byteindex()-erase_start + last.width() -1;
 
-			if (erase_start >= erase_end)
-				return first;
 
-			buffer.erase(erase_start, erase_end - erase_start);
+			buffer.erase(erase_start, erase_count);
+
 
 			return iterator(&buffer, erase_start);
 		}

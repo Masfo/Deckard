@@ -265,7 +265,7 @@ SECTION("erase")
 		
 		// Erase from end
 		str = "hello world";
-		str.erase(6, 5);
+		str.erase(5, 6);
 		
 		CHECK(str == "hello"sv);
 		CHECK(str.size() ==5);
