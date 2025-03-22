@@ -93,7 +93,7 @@ export namespace deckard::math
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-5})
 	{
-		const T diff    = A - B;
+		const T diff = A - B;
 		return diff < error and diff > -error;
 	}
 
@@ -117,20 +117,20 @@ export namespace deckard::math
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T to_radians(const T& v)
+	[[nodiscard]] constexpr T to_radians(const T& v) noexcept
 	{
 		return static_cast<T>(v * deg_to_radians<T>);
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr T to_degrees(const T& v)
+	[[nodiscard]] constexpr T to_degrees(const T& v) noexcept
 	{
 		return static_cast<T>(v * rad_to_degrees<T>);
 	}
 
-	constexpr f32 operator""_rad(long double deg) { return to_radians<f32>(as<f32>(deg)); }
+	constexpr f32 operator""_rad(long double deg) { return to_radians<f32>(deg); }
 
-	constexpr f32 operator""_deg(long double rad) { return to_degrees<f32>(as<f32>(rad)); }
+	constexpr f32 operator""_deg(long double rad) { return to_degrees<f32>(rad); }
 
 	namespace sse
 	{
@@ -280,5 +280,5 @@ export namespace deckard::math
 namespace deckard::math
 {
 
-	
+
 } // namespace deckard::math

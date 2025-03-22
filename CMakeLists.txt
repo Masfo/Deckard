@@ -126,7 +126,7 @@ if(MSVC)
 
 
         
-        target_link_options(deckard PRIVATE /RELEASE)
+        target_link_options(deckard PRIVATE /RELEASE )
         target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
 
 

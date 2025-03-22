@@ -25,7 +25,7 @@ namespace deckard::system
 	{
 		std::wstring wret;
 		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
-		wret.resize(as<size_t>(size));
+		wret.resize(static_cast<size_t>(size));
 		if (size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, wret.data(), size); size == 0)
 			return {};
 		return wret;
@@ -37,7 +37,7 @@ namespace deckard::system
 		std::string strTo;
 		if (num_chars > 0)
 		{
-			strTo.resize(as<u64>(num_chars));
+			strTo.resize(static_cast<u64>(num_chars));
 			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), &strTo[0], num_chars, nullptr, nullptr);
 		}
 		return strTo;
@@ -173,7 +173,7 @@ namespace deckard::system
 		status.dwLength = sizeof(status);
 		GlobalMemoryStatusEx(&status);
 
-		return as<u64>(status.ullTotalPhys);
+		return static_cast<u64>(status.ullTotalPhys);
 	}
 
 	export std::string GetRAMString() { return human_readable_bytes(GetRAM()); }

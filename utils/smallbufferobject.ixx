@@ -564,7 +564,7 @@ namespace deckard
 			}
 		}
 
-		[[nodiscard("Use result on index operator")]] const_reference operator[](size_t index) const
+		[[nodiscard("Use result on index operator")]] auto &operator[](size_t index) const
 		{
 			assert::check(index < capacity(), "Indexing out-of-bounds");
 
@@ -795,9 +795,7 @@ namespace deckard
 
 		friend void swap(sbo& lhs, sbo& rhs) noexcept { lhs.swap(rhs); }
 
-
-		
-        iterator erase(size_t pos, size_t count) 
+		iterator erase(size_t pos, size_t count)
 		{
 			if (pos >= size())
 				return end();
@@ -806,25 +804,24 @@ namespace deckard
 			const auto last  = first + std::min(count, size() - pos);
 			return erase(first, last);
 		}
-       
 
-        iterator erase(iterator first, iterator last)  
-        {  
-           if (first == last)  
-               return iterator(rawptr());  
+		iterator erase(iterator first, iterator last)
+		{
+			if (first == last)
+				return iterator(rawptr());
 
-           const auto pivot   = std::distance(begin(), first);  
-           const auto count   = std::distance(first, last);  
-           const auto newsize = size() - count;  
+			const auto pivot   = std::distance(begin(), first);
+			const auto count   = std::distance(first, last);
+			const auto newsize = size() - count;
 
-           pointer ptr = rawptr();  
-           std::copy(ptr + pivot + count, ptr + size(), ptr + pivot);  
-           std::fill(ptr + newsize, ptr + size(), 0);  
+			pointer ptr = rawptr();
+			std::copy(ptr + pivot, ptr + size(), ptr + pivot);
+			std::fill(ptr + newsize, ptr + size(), 0);
 
-           set_size(newsize);  
+			set_size(newsize);
 
-           return iterator(ptr + pivot);  
-        }
+			return iterator(ptr + pivot);
+		}
 
 		iterator erase(const_iterator first, const_iterator last) { return erase(iterator(first), iterator(last)); }
 

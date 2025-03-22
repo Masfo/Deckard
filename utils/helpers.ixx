@@ -167,7 +167,7 @@ export namespace deckard
 			}
 
 
-			for (size_t j = 0; (as<u64>(i) < input.size() - 1) and (j < options.delimiter.size()); j++)
+			for (size_t j = 0; (static_cast<u64>(i) < input.size() - 1) and (j < options.delimiter.size()); j++)
 			{
 				if (not output_byte(i, offset++, options.delimiter[j]))
 					break;
