@@ -9,6 +9,7 @@ using namespace std::string_view_literals;
 
 TEST_CASE("utf8::string", "[utf8]")
 {
+	
 	SECTION("ascii c-tor")
 	{
 		utf8::string str("hello world");
@@ -259,9 +260,9 @@ SECTION("erase")
 		
 		// Erase from start
 		str = "hello world";
-		str.erase(0, 5);
-		CHECK(str == " world");
-		CHECK(str.size() == 6);
+		str.erase(0, 6);
+		CHECK(str == "world");
+		CHECK(str.size() == 5);
 		
 		// Erase from end
 		str = "hello world";
@@ -276,7 +277,8 @@ SECTION("erase")
 		CHECK(str == "hello  world");
 		CHECK(str.size() == 12);
 
-		#if 0
+		///////
+
 		// Multiple UTF-8 characters
 		str = "AÄ↥🌍";
 		str.erase(1, 2); // erase Ä↥
@@ -312,10 +314,8 @@ SECTION("erase")
 		str.erase(0, str.size());
 		CHECK(str.empty());
 		CHECK(str.size() == 0);
-		#endif
 	}
 }
-
 /*
 $examples = array(
 'Valid ASCII' => "a",

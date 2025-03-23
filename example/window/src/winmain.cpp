@@ -478,15 +478,53 @@ i32 deckard_main(std::string_view commandline)
 
 
 #if 0
-	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
+Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 
-	for (char x : tree->traverse_inorder())
-		dbg::print("{} ", x);
-	dbg::println();
+for (char x : tree->traverse_inorder())
+	dbg::print("{} ", x);
+dbg::println();
 #endif
 
 
 	// ###################
+
+	{
+		//					     0  1  2  3  4  5  6  7
+		std::array<u8, 8> buffer{1, 2, 3, 4, 5, 6, 7, 8};
+
+
+		auto erase_buffer = [](auto& buffer, size_t pos, size_t count)
+		{
+			assert::check(count <= buffer.size(), "trying to erase too much");
+			assert::check(pos <= buffer.size() - 1, "indexing outside buffer");
+			assert::check(pos + count <= buffer.size(), "indexing outside buffer");
+
+			size_t pivot    = pos + count;
+			size_t new_size = buffer.size() - count;
+
+			if (pivot < buffer.size()) // fill if erased to end of buffer
+			{
+				std::copy(buffer.begin() + pivot, buffer.end(), buffer.begin() + pos);
+			}
+
+			std::fill(buffer.begin() + new_size, buffer.end(), 0);
+			dbg::println("[{}] {}", new_size, buffer);
+		};
+		dbg::println("[{}] {}", buffer.size(), buffer);
+
+		// erase_buffer(buffer, 0, 8); // -
+
+		// erase_buffer(buffer, 7, 1); // 1-7
+
+		// erase_buffer(buffer, 2, 5); // 1,2,8
+			erase_buffer(buffer, 2, 6); // 1,2
+
+		//erase_buffer(buffer, 0, 5); // 6,7,8
+		// erase_buffer(buffer, 4, 4); // 1,2,3,4
+
+
+		int j = 0;
+	}
 
 
 	// ###################

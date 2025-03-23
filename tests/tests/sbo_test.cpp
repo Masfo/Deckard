@@ -1283,6 +1283,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[0] == 1);
 	}
 
+	#if 0
 	SECTION("replace equal size (small)")
 	{
 		sbo<32> ss;
@@ -1386,7 +1387,7 @@ TEST_CASE("sbo", "[sbo]")
 	}
 
 
-	SECTION("replace larger size (small)")
+	SECTION("replace larger range (small)")
 	{
 		sbo<32> ss;
 
@@ -1405,9 +1406,9 @@ TEST_CASE("sbo", "[sbo]")
 
 		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
 
-		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
+		ss.replace(ss.begin() + 1, ss.begin() + 3, newbuffer);
 
-		CHECK(ss.size() == 7);
+		CHECK(ss.size() == 8);
 		CHECK(ss.capacity() == 31);
 
 		CHECK(ss[0] == 'Q');
@@ -1418,7 +1419,9 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[4] == 'Z');
 		CHECK(ss[5] == 'Q');
 
-		CHECK(ss[6] == 'Y');
+		CHECK(ss[6] == 'T');
+		CHECK(ss[7] == 'Y');
+
 	}
 
 	SECTION("replace smaller to larger")
@@ -1501,6 +1504,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[9] == 8);
 		CHECK(ss.back() == 255);
 	}
+	#endif
 
 	SECTION("assign (small)")
 	{

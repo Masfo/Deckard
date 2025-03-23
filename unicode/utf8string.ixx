@@ -655,9 +655,9 @@ namespace deckard::utf8
 				return end();
 
 			auto erase_start = pos.byteindex();
-			auto erase_width = pos.width();
+			size_t erase_width = pos.width();
 
-			buffer.erase(buffer.begin() + erase_start, buffer.begin() + erase_width);
+			buffer.erase(erase_start, erase_width);
 
 			return iterator(&buffer, erase_start);
 		}
@@ -668,7 +668,7 @@ namespace deckard::utf8
 				return first;
 
 			size_t erase_start = first.byteindex();
-			size_t erase_count = last.byteindex()-erase_start + last.width() -1;
+			size_t erase_count = last.byteindex() - erase_start;
 
 
 			buffer.erase(erase_start, erase_count);
@@ -679,16 +679,16 @@ namespace deckard::utf8
 
 		string& erase(size_t pos, size_t count = std::string::npos)
 		{
-			if (empty() || pos >= size())
+			if (empty() || pos+count-1 >= size())
 				return *this;
 
 			auto first = begin();
 			for (size_t i = 0; i < pos && first != end(); ++i)
 				++first;
 
-			if (count == std::string::npos)
+			if (pos+count >= size())
 			{
-				erase(first, end());
+				erase(first, end()+1);
 			}
 			else
 			{
