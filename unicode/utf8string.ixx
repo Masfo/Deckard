@@ -129,6 +129,7 @@ namespace deckard::utf8
 			using iterator_category = std::bidirectional_iterator_tag;
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
+			// TODO: random access iterator
 
 		private:
 			pointer         ptr;
@@ -327,16 +328,34 @@ namespace deckard::utf8
 				return tmp;
 			}
 
-			difference_type operator-(const iterator& other) const { return ptr - other.ptr; }
+			difference_type operator-(const iterator& other) const
+			{
+				assert::check(ptr == other.ptr, "Not pointing to same data");
+
+
+				difference_type count{0};
+				auto            copy = other;
+				while (copy != *this)
+				{
+					copy++;
+					count++;
+				}
+
+				return count;
+			}
 
 			reference& operator[](difference_type n) const { return ptr[n]; }
 
 			// auto operator<=>(const iterator&) const = default;
+			bool operator<(const iterator& other) const { return current_index < other.current_index; }
+
+			bool operator>(const iterator& other) const { return current_index > other.current_index; }
 
 			bool operator==(const iterator& other) const
 			{
-				// TODO: assert on pointer diff
-				return ptr == other.ptr and current_index == other.current_index;
+				assert::check(ptr == other.ptr, "Not pointing to same data");
+
+				return current_index == other.current_index;
 			}
 		};
 #if 1
@@ -495,11 +514,29 @@ namespace deckard::utf8
 
 			const_iterator operator-(difference_type n) const { return const_iterator(ptr - n); }
 
-			difference_type operator-(const const_iterator& other) const { return ptr - other.ptr; }
+			difference_type operator-(const const_iterator& other) const
+			{
+				assert::check(ptr == other.ptr, "Not pointing to same data");
+
+
+				difference_type count{0};
+				auto            copy = other;
+				while (copy != *this)
+				{
+					copy++;
+					count++;
+				}
+
+				return ptr->empty() ? 0 : count + 1;
+			}
 
 			// reference& operator[](difference_type n) const { return ptr[n]; }
 
 			// auto operator<=>(const const_iterator&) const = default;
+
+			bool operator<(const const_iterator& other) const { return current_index < other.current_index; }
+
+			bool operator>(const const_iterator& other) const { return current_index > other.current_index; }
 
 			bool operator==(const const_iterator& other) const
 			{
@@ -524,33 +561,16 @@ namespace deckard::utf8
 		[[nodiscard("use result of at method")]]
 		char_type at(u32 index)
 		{
-			if (index >= size())
-				return REPLACEMENT_CHARACTER;
+			assert::check(index < size(), "Index out of bounds");
 
-			i64 current_index = 0;
-			for (auto it = cbegin(); it != cend(); ++it, ++current_index)
-			{
-				if (current_index == index)
-					return *it;
-			}
+			const_iterator it = cbegin();
+			while (index--)
+				it++;
 
-
-			return REPLACEMENT_CHARACTER;
+			return *it;
 		}
 
-		[[nodiscard("use result of index operator")]] char_type operator[](u32 index)
-		{
-			if (index >= buffer.size())
-				return REPLACEMENT_CHARACTER;
-
-			u32 current_index = 0;
-			for (auto it = cbegin(); it != cend(); ++it, ++current_index)
-			{
-				if (current_index == index)
-					return *it;
-			}
-			return REPLACEMENT_CHARACTER;
-		}
+		[[nodiscard("use result of index operator")]] char_type operator[](u32 index) { return at(index); }
 
 		bool operator==(const string& other) const
 		{
@@ -587,6 +607,9 @@ namespace deckard::utf8
 			if (input.empty())
 				return pos;
 
+			if (pos == end())
+				pos--;
+
 			auto insert_pos = pos.byteindex() + pos.width();
 
 			buffer.insert(buffer.begin() + insert_pos, {as<u8*>(input.data()), input.size()});
@@ -599,6 +622,8 @@ namespace deckard::utf8
 			if (str.empty())
 				return pos;
 
+			if (pos == end())
+				pos--;
 
 			auto insert_pos = pos.byteindex() + pos.width();
 
@@ -654,7 +679,7 @@ namespace deckard::utf8
 			if (pos == end())
 				return end();
 
-			auto erase_start = pos.byteindex();
+			auto   erase_start = pos.byteindex();
 			size_t erase_width = pos.width();
 
 			buffer.erase(erase_start, erase_width);
@@ -679,16 +704,16 @@ namespace deckard::utf8
 
 		string& erase(size_t pos, size_t count = std::string::npos)
 		{
-			if (empty() || pos+count-1 >= size())
+			if (empty() || pos + count - 1 >= size())
 				return *this;
 
 			auto first = begin();
 			for (size_t i = 0; i < pos && first != end(); ++i)
 				++first;
 
-			if (pos+count >= size())
+			if (pos + count >= size())
 			{
-				erase(first, end()+1);
+				erase(first, end() + 1);
 			}
 			else
 			{
@@ -886,24 +911,24 @@ namespace deckard::utf8
 			if (empty())
 				return REPLACEMENT_CHARACTER;
 
-			return *end();
+			auto it = end();
+			it--;
+			return *it;
 		}
 
-		iterator begin() { return iterator(&buffer); }
+		iterator begin() { return iterator(&buffer, 0); }
 
 		iterator end()
 		{
 			iterator it(&buffer, buffer.size());
-			it--;
 			return it;
 		}
 
-		const_iterator cbegin() { return const_iterator(&buffer); }
+		const_iterator cbegin() { return const_iterator(&buffer, 0); }
 
 		const_iterator cend()
 		{
 			const_iterator it(&buffer, buffer.size());
-			it--;
 			return it;
 		}
 

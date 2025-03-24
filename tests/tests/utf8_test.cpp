@@ -9,7 +9,7 @@ using namespace std::string_view_literals;
 
 TEST_CASE("utf8::string", "[utf8]")
 {
-	
+
 	SECTION("ascii c-tor")
 	{
 		utf8::string str("hello world");
@@ -249,43 +249,35 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.find("🌍", 10) == 17);
 	}
 
-SECTION("erase")
+	SECTION("erase")
 	{
 
-		// Basic ASCII erase
 		utf8::string str("hello world");
-		str.erase(5, 1); // erase space
+		str.erase(5, 1);
 		CHECK(str == "helloworld");
 		CHECK(str.size() == 10);
-		
-		// Erase from start
+
 		str = "hello world";
 		str.erase(0, 6);
 		CHECK(str == "world");
 		CHECK(str.size() == 5);
-		
-		// Erase from end
+
 		str = "hello world";
 		str.erase(5, 6);
-		
-		CHECK(str == "hello"sv);
-		CHECK(str.size() ==5);
 
-		// Erase UTF-8 characters
+		CHECK(str == "hello"sv);
+		CHECK(str.size() == 5);
+
 		str = "hello 🌍 world";
-		str.erase(6, 1); // erase emoji
+		str.erase(6, 1);
 		CHECK(str == "hello  world");
 		CHECK(str.size() == 12);
 
-		///////
-
-		// Multiple UTF-8 characters
 		str = "AÄ↥🌍";
-		str.erase(1, 2); // erase Ä↥
+		str.erase(1, 2);
 		CHECK(str == "A🌍");
 		CHECK(str.size() == 2);
 
-		// Iterator range erase
 		str      = "hello world";
 		auto it1 = str.begin() + 5;
 		auto it2 = str.begin() + 6;
@@ -293,29 +285,151 @@ SECTION("erase")
 		CHECK(str == "helloworld");
 		CHECK(str.size() == 10);
 
-		// Erase single position
 		str = "hello🌍world";
-		str.erase(str.begin() + 5); // erase emoji
+		str.erase(str.begin() + 5);
 		CHECK(str == "helloworld");
 		CHECK(str.size() == 10);
 
-		// Boundary tests
 		str = "🌍test🌍";
-		str.erase(0, 1); // erase first emoji
+		str.erase(0, 1);
 		CHECK(str == "test🌍");
 		CHECK(str.size() == 5);
 
-		str.erase(4, 1); // erase last emoji
+		str.erase(4, 1);
 		CHECK(str == "test");
 		CHECK(str.size() == 4);
 
-		// Empty after full erase
 		str = "test";
 		str.erase(0, str.size());
 		CHECK(str.empty());
 		CHECK(str.size() == 0);
 	}
+
+	SECTION("iterator distance")
+	{
+		utf8::string str;
+		CHECK(str.end() - str.begin() == 0);
+		CHECK(std::distance(str.begin(), str.end()) == 0);
+
+		str = "hello world";
+		CHECK(str.end() - str.begin() == 11);
+		CHECK(std::distance(str.begin(), str.end()) == 11);
+
+		str = "hello 🌍 world";
+		CHECK(str.end() - str.begin() == 13);
+		CHECK(std::distance(str.begin(), str.end()) == 13);
+
+		str = "hello 🌍 world";
+		CHECK(str.end() - str.begin() == 13);
+
+		str = "AÄ↥🌍";
+		CHECK(str.end() - str.begin() == 4);
+		CHECK(std::distance(str.rbegin(), str.rend()) == 4);
+
+		// TODO: std::distance(end,begin) - needs random access iterator
+
+
+	}
+
+	SECTION("index operator")
+	{
+
+		utf8::string str("hello world");
+		CHECK(str.size() == 11);
+
+		CHECK(str[0] == (u32)'h');
+		CHECK(str[1] == (u32)'e');
+		CHECK(str[2] == (u32)'l');
+		CHECK(str[3] == (u32)'l');
+		CHECK(str[4] == (u32)'o');
+
+		CHECK(str[5] == (u32)' ');
+
+		CHECK(str[6] == (u32)'w');
+		CHECK(str[7] == (u32)'o');
+		CHECK(str[8] == (u32)'r');
+		CHECK(str[9] == (u32)'l');
+		CHECK(str[10] == (u32)'d');
+	}
+
+	SECTION("pre/post iterator ascii")
+	{
+		utf8::string str("hello world");
+		CHECK(str.size() == 11);
+
+		CHECK(std::distance(str.begin(), str.end()) == 11);
+
+
+		auto it = str.begin();
+		CHECK(*it == (u32)'h');
+
+		auto pre = ++it;
+		CHECK(*pre == (u32)'e');
+		CHECK(*it == (u32)'e');
+
+		it = str.begin();
+		auto post = it++;
+		CHECK(*post == (u32)'h');
+		CHECK(*it == (u32)'e');
+
+		post = --it;
+		CHECK(*post == (u32)'h');
+		CHECK(*it == (u32)'h');
+
+		it++;
+
+		post = it--;
+		CHECK(*post == (u32)'e');
+		CHECK(*it == (u32)'h');
+
+
+		it = str.end();
+		it--;
+		CHECK(*it == (u32)'d');
+		auto pre2 = --it;
+		CHECK(*pre2 == (u32)'l');
+		CHECK(*it == (u32)'l');
+	}
+
+	SECTION("pre/post iterator ascii/utf8")
+	{
+		utf8::string str("🌍hello🌍 world🌍");
+		CHECK(str.size() == 14);
+
+		CHECK(std::distance(str.begin(), str.end()) == 14);
+
+		auto it = str.begin();
+		CHECK(*it == 0x1'f30d);
+
+		auto pre = ++it;
+		CHECK(*pre == (u32)'h');
+		CHECK(*it == (u32)'h');
+
+		it        = str.begin();
+		auto post = it++;
+		CHECK(*post == 0x1'f30d);
+		CHECK(*it == (u32)'h');
+
+		post = --it;
+		CHECK(*post == 0x1'f30d);
+		CHECK(*it == 0x1'f30d);
+
+		it++;
+
+		post = it--;
+		CHECK(*post == (u32)'h');
+		CHECK(*it == 0x1'f30d);
+
+
+		it = str.end();
+		it--;
+		CHECK(*it == 0x1'f30d);
+		auto pre2 = --it;
+		CHECK(*pre2 == (u32)'d');
+		CHECK(*it == (u32)'d');
+	}
 }
+
 /*
 $examples = array(
 'Valid ASCII' => "a",

@@ -48,7 +48,7 @@
 
 
 	<!-- Functions 
-	-->
 	<Function Name="std\:\:.*" />
+	-->s
 
 </NonUserCode>
