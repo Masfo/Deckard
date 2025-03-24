@@ -492,6 +492,10 @@ dbg::println();
 		auto        start = a.begin();
 		auto        end   = a.end();
 
+		dbg::println("{}", start[0]);
+		dbg::println("{}", start[1]);
+
+
 		dbg::println("{}", std::distance(end, start));
 		int j = 0;
 	}

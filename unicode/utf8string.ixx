@@ -126,7 +126,9 @@ namespace deckard::utf8
 		public:
 			friend class const_iterator;
 
-			using iterator_category = std::bidirectional_iterator_tag;
+			//using iterator_category = std::bidirectional_iterator_tag;
+			using iterator_category = std::random_access_iterator_tag;
+
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
 			// TODO: random access iterator
@@ -241,10 +243,10 @@ namespace deckard::utf8
 			}
 
 		public:
-			// iterator(const_iterator& ci)
-			//	: ptr(ci.ptr)
-			//{
-			// }
+			 iterator(const_iterator& ci)
+				: ptr(ci.ptr)
+			{
+			 }
 
 			// iterator() = default;
 
@@ -344,7 +346,7 @@ namespace deckard::utf8
 				return count;
 			}
 
-			reference& operator[](difference_type n) const { return ptr[n]; }
+			reference operator[](difference_type n) const { return ptr[n]; }
 
 			// auto operator<=>(const iterator&) const = default;
 			bool operator<(const iterator& other) const { return current_index < other.current_index; }
@@ -364,7 +366,9 @@ namespace deckard::utf8
 		public:
 			friend class iterator;
 
-			using iterator_category = std::bidirectional_iterator_tag;
+			//using iterator_category = std::bidirectional_iterator_tag;
+			using iterator_category = std::random_access_iterator_tag;
+
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
 
@@ -441,10 +445,10 @@ namespace deckard::utf8
 
 			const_iterator() = default;
 
-			// const_iterator(iterator ci)
-			//	: ptr(ci.ptr)
-			//{
-			// }
+			 const_iterator(iterator ci)
+				: ptr(ci.ptr)
+			{
+			 }
 
 			const_iterator(const_pointer p)
 				: ptr(p)
@@ -530,7 +534,7 @@ namespace deckard::utf8
 				return ptr->empty() ? 0 : count + 1;
 			}
 
-			// reference& operator[](difference_type n) const { return ptr[n]; }
+			 reference operator[](difference_type n) const { return ptr[n]; }
 
 			// auto operator<=>(const const_iterator&) const = default;
 
