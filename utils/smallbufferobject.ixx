@@ -454,13 +454,13 @@ namespace deckard
 				return pos;
 
 			const size_t pivot   = std::distance(begin(), pos);
-			size_t     newsize = size() + buffer.size();
+			size_t       newsize = size() + buffer.size();
 			if (newsize > capacity())
 				resize(newsize);
 
-			const pointer ptr = rawptr();
+			const pointer ptr   = rawptr();
 			size_t        width = size();
-			if(pos != end())
+			if (pos != end())
 				std::copy_backward(ptr + pivot, ptr + width, ptr + newsize);
 
 			std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
@@ -812,7 +812,7 @@ namespace deckard
 
 			std::fill(begin() + new_size, end(), 0);
 			set_size(new_size);
-			return begin()+pos;
+			return begin() + pos;
 		}
 
 		iterator erase(iterator first, iterator last)
@@ -820,9 +820,9 @@ namespace deckard
 			if (first == last)
 				return iterator(rawptr());
 
-	
-			const auto pivot   = std::distance(begin(), first);
-			const auto count   = std::distance(first, last);
+
+			const auto pivot = std::distance(begin(), first);
+			const auto count = std::distance(first, last);
 			return erase(pivot, count);
 		}
 
@@ -833,8 +833,16 @@ namespace deckard
 		iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 
 		// replace
+		iterator replace(iterator pos, const std::span<value_type>& buffer) 
+		{
+			if(pos == end())
+			{
+				auto pivot = erase(pos-1);
+				return insert(pivot, buffer);
+			}
+			return replace(pos, pos + 1, buffer); 
+		}
 
-		#if 0
 		iterator replace(iterator first, iterator end, const std::span<value_type>& buffer)
 		{
 			if (first == end)
@@ -843,47 +851,17 @@ namespace deckard
 				return insert(pos, buffer);
 			}
 
-
-			const size_t len = std::distance(first, end);
-			if (len == buffer.size())
-			{
-
-				std::copy(buffer.begin(), buffer.end(), first);
-				return end;
-			}
-
-			if (buffer.size() < len)
-			{
-				const auto pivot   = std::distance(begin(), first);
-				const auto count   = std::distance(first, end);
-				const auto newsize = size() + buffer.size() - count;
-
-				pointer ptr = rawptr();
-				first       = begin() + pivot;
-				std::copy(ptr + pivot + count, ptr + size(), ptr + pivot + buffer.size());
-				std::copy(buffer.begin(), buffer.end(), ptr + pivot);
-				std::fill(ptr + newsize, ptr + size(), 0);
-				set_size(newsize);
-				return iterator(ptr + pivot + buffer.size());
-			}
-			else
-			{
-				const auto pivot   = std::distance(begin(), first)-1;
-				const auto count   = std::distance(first, end);
-
-				const auto newsize = size() + buffer.size() - count;
-				if (newsize > capacity())
-					resize(newsize);
-
-				pointer ptr = rawptr();
-				first       = begin() + pivot;
-				std::copy(ptr + pivot, ptr + size(), ptr + pivot + buffer.size());
-				std::copy(buffer.begin(), buffer.end(), ptr + pivot);
-				set_size(newsize);
-				return iterator(ptr + pivot + buffer.size());
-			}
+			auto pos = erase(first, end);
+			return insert(pos, buffer);
 		}
-		#endif
+
+		iterator replace(size_t pos, size_t count, const std::span<value_type>& buffer)
+		{
+			auto first = begin() + pos;
+			auto end   = first + count;
+			return replace(first, end, buffer);
+		}
+
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);

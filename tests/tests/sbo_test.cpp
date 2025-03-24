@@ -643,7 +643,7 @@ TEST_CASE("sbo", "[sbo]")
 	}
 
 	SECTION("operator + (small)")
-	{ 
+	{
 		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
 
 		CHECK(ss.size() == 6);
@@ -661,7 +661,6 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(ss.size() == 12);
 		CHECK(ss.capacity() == 31);
-
 	}
 
 
@@ -679,7 +678,7 @@ TEST_CASE("sbo", "[sbo]")
 		ss += ss;
 
 
-		CHECK(ss.size() == 128 +128);
+		CHECK(ss.size() == 128 + 128);
 		CHECK(ss.capacity() == 128 + 128);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
@@ -1244,7 +1243,6 @@ TEST_CASE("sbo", "[sbo]")
 
 		ss.erase(0, 2);
 		CHECK(ss.size() == 0);
-
 	}
 
 
@@ -1283,7 +1281,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[0] == 1);
 	}
 
-	#if 0
 	SECTION("replace equal size (small)")
 	{
 		sbo<32> ss;
@@ -1406,7 +1403,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
 
-		ss.replace(ss.begin() + 1, ss.begin() + 3, newbuffer);
+		ss.replace(ss.begin() + 2, ss.begin() + 4, newbuffer);
 
 		CHECK(ss.size() == 8);
 		CHECK(ss.capacity() == 31);
@@ -1421,7 +1418,6 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(ss[6] == 'T');
 		CHECK(ss[7] == 'Y');
-
 	}
 
 	SECTION("replace smaller to larger")
@@ -1504,7 +1500,222 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[9] == 8);
 		CHECK(ss.back() == 255);
 	}
-	#endif
+
+	SECTION("replace start, pos and count (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(0, 2, newbuffer);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'X');
+		CHECK(ss[1] == 'Y');
+		CHECK(ss[2] == 'Z');
+		CHECK(ss[3] == 'Q');
+
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'R');
+		CHECK(ss[6] == 'T');
+		CHECK(ss[7] == 'Y');
+	}
+
+	SECTION("replace middle, pos and count (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(2, 2, newbuffer);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Z');
+		CHECK(ss[5] == 'Q');
+
+		CHECK(ss[6] == 'T');
+		CHECK(ss[7] == 'Y');
+	}
+
+	SECTION("replace end, pos and count (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(4, 2, newbuffer);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+
+		CHECK(ss[4] == 'X');
+		CHECK(ss[5] == 'Y');
+		CHECK(ss[6] == 'Z');
+		CHECK(ss[7] == 'Q');
+	}
+
+	SECTION("replace begin single iterator, (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(ss.begin(), newbuffer);
+
+		CHECK(ss.size() == 9);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'X');
+		CHECK(ss[1] == 'Y');
+		CHECK(ss[2] == 'Z');
+		CHECK(ss[3] == 'Q');
+
+		CHECK(ss[4] == 'W');
+		CHECK(ss[5] == 'E');
+		CHECK(ss[6] == 'R');
+		CHECK(ss[7] == 'T');
+		CHECK(ss[8] == 'Y');
+	}
+
+		SECTION("replace middle single iterator, (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(ss.begin()+2, newbuffer);
+
+		CHECK(ss.size() == 9);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+
+		CHECK(ss[2] == 'X');
+		CHECK(ss[3] == 'Y');
+		CHECK(ss[4] == 'Z');
+		CHECK(ss[5] == 'Q');
+
+		CHECK(ss[6] == 'R');
+		CHECK(ss[7] == 'T');
+		CHECK(ss[8] == 'Y');
+	}
+
+		
+		SECTION("replace end single iterator, (small)")
+	{
+		sbo<32> ss;
+
+		std::array<u8, 6> buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		ss.append(buffer);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+		CHECK(ss[5] == 'Y');
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
+
+		ss.replace(ss.end(), newbuffer);
+
+		CHECK(ss.size() == 9);
+		CHECK(ss.capacity() == 31);
+
+		CHECK(ss[0] == 'Q');
+		CHECK(ss[1] == 'W');
+		CHECK(ss[2] == 'E');
+		CHECK(ss[3] == 'R');
+		CHECK(ss[4] == 'T');
+
+		CHECK(ss[5] == 'X');
+		CHECK(ss[6] == 'Y');
+		CHECK(ss[7] == 'Z');
+		CHECK(ss[8] == 'Q');
+	}
 
 	SECTION("assign (small)")
 	{
@@ -1796,8 +2007,8 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a != b);
 	}
 
-	SECTION("sub_sbo") 
-	{ 
+	SECTION("sub_sbo")
+	{
 		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
 		CHECK(ss.size() == 6);
 		CHECK(ss.capacity() == 31);
@@ -1810,8 +2021,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss2.capacity() == 31);
 		CHECK(ss2.front() == 'B');
 		CHECK(ss2.back() == 'E');
-
-
 	}
 
 	SECTION("hash")
@@ -1863,7 +2072,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[5] == 'F');
 	}
 
-	SECTION("iterator +-") 
+	SECTION("iterator +-")
 	{
 		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
 
@@ -1884,6 +2093,20 @@ TEST_CASE("sbo", "[sbo]")
 
 		--it;
 		CHECK(*it == 'A');
+	}
+
+	SECTION("iterator distance") 
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		auto start = ss.begin();
+		auto end   = ss.end();
+
+		CHECK(std::distance(start, end) == 6);
+
 
 
 	}
