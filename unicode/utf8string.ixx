@@ -126,11 +126,11 @@ namespace deckard::utf8
 		public:
 			friend class const_iterator;
 
-			//using iterator_category = std::bidirectional_iterator_tag;
+			// using iterator_category = std::bidirectional_iterator_tag;
 			using iterator_category = std::random_access_iterator_tag;
 
-			using difference_type   = std::ptrdiff_t;
-			using value_type        = value_type;
+			using difference_type = std::ptrdiff_t;
+			using value_type      = value_type;
 			// TODO: random access iterator
 
 		private:
@@ -243,10 +243,10 @@ namespace deckard::utf8
 			}
 
 		public:
-			 iterator(const_iterator& ci)
+			iterator(const_iterator& ci)
 				: ptr(ci.ptr)
 			{
-			 }
+			}
 
 			// iterator() = default;
 
@@ -346,7 +346,14 @@ namespace deckard::utf8
 				return count;
 			}
 
-			reference operator[](difference_type n) const { return ptr[n]; }
+			bool empty() const { return ptr->empty(); }
+
+			reference operator[](difference_type n) const
+			{
+				assert::check(n >= 0, "Index is negative");
+				assert::check(n < as<difference_type>(ptr->size()), "Index out-of-bounds");
+				return ptr[n];
+			}
 
 			// auto operator<=>(const iterator&) const = default;
 			bool operator<(const iterator& other) const { return current_index < other.current_index; }
@@ -366,11 +373,11 @@ namespace deckard::utf8
 		public:
 			friend class iterator;
 
-			//using iterator_category = std::bidirectional_iterator_tag;
+			// using iterator_category = std::bidirectional_iterator_tag;
 			using iterator_category = std::random_access_iterator_tag;
 
-			using difference_type   = std::ptrdiff_t;
-			using value_type        = value_type;
+			using difference_type = std::ptrdiff_t;
+			using value_type      = value_type;
 
 		private:
 			pointer         ptr;
@@ -445,10 +452,10 @@ namespace deckard::utf8
 
 			const_iterator() = default;
 
-			 const_iterator(iterator ci)
+			const_iterator(iterator ci)
 				: ptr(ci.ptr)
 			{
-			 }
+			}
 
 			const_iterator(const_pointer p)
 				: ptr(p)
@@ -534,7 +541,7 @@ namespace deckard::utf8
 				return ptr->empty() ? 0 : count + 1;
 			}
 
-			 reference operator[](difference_type n) const { return ptr[n]; }
+			reference operator[](difference_type n) const { return ptr[n]; }
 
 			// auto operator<=>(const const_iterator&) const = default;
 
@@ -611,7 +618,7 @@ namespace deckard::utf8
 			if (input.empty())
 				return pos;
 
-			if (pos == end())
+			if (not pos.empty() and pos == end())
 				pos--;
 
 			auto insert_pos = pos.byteindex() + pos.width();
@@ -626,7 +633,7 @@ namespace deckard::utf8
 			if (str.empty())
 				return pos;
 
-			if (pos == end())
+			if (not pos.empty() and pos == end())
 				pos--;
 
 			auto insert_pos = pos.byteindex() + pos.width();
@@ -730,6 +737,53 @@ namespace deckard::utf8
 			}
 
 			return *this;
+		}
+
+		iterator replace(iterator first, std::string_view str) { return replace(first, first + 1, str); }
+
+		iterator replace(iterator first, string str) { return replace(first, first + 1, str); }
+
+		iterator replace(iterator first, iterator end, std::string_view str)
+		{
+			if (first == end)
+			{
+				auto pos = erase(first);
+				return insert(pos, str);
+			}
+
+			auto pos = erase(first, end);
+			return insert(first, str);
+		}
+
+		iterator replace(iterator first, iterator end, string str)
+		{
+			if (first == end)
+			{
+				auto pos = erase(first);
+				return insert(pos, str);
+			}
+			auto pos = erase(first, end);
+			return insert(first, str);
+		}
+
+		iterator replace(size_t pos, size_t count, std::string_view str)
+		{
+			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos + count <= size(), "Index out of bounds");
+
+			auto first = begin() + pos;
+			auto end   = first + count;
+			return replace(first, end, str);
+		}
+
+		iterator replace(size_t pos, size_t count, string str)
+		{
+			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos + count <= size(), "Index out of bounds");
+
+			auto first = begin() + pos;
+			auto end   = first + count;
+			return replace(first, end, str);
 		}
 
 		index_type find(std::span<u8> input, size_t offset = 0) const

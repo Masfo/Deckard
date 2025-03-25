@@ -852,7 +852,7 @@ namespace deckard
 			}
 
 			auto pos = erase(first, end);
-			return insert(pos, buffer);
+			return insert(first, buffer);
 		}
 
 		iterator replace(size_t pos, size_t count, const std::span<value_type>& buffer)

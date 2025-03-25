@@ -167,6 +167,41 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c.back() == 0x1'f30d);
 	}
 
+	SECTION("replace")
+	{
+		utf8::string str("hello world");
+		str.replace(6, 5, "🌍");
+		CHECK(str == "hello 🌍");
+		CHECK(str.size() == 7);
+
+		str = "hello 🌍";
+		str.replace(6, 1, "world");
+		CHECK(str == "hello world");
+		CHECK(str.size() == 11);
+
+		str = "hello 🌍";
+		str.replace(0, 5, "hi");
+		CHECK(str == "hi 🌍");
+		CHECK(str.size() == 4);
+
+		str = "hello 🌍";
+		str.replace(0, 6, "hi");
+		CHECK(str == "hi");
+		CHECK(str.size() == 2);
+
+		str = "hello 🌍";
+		str.replace(6, 1, "🌍🌍");
+		CHECK(str == "hello 🌍🌍");
+		CHECK(str.size() == 8);
+
+		str = "🌍 hello 🌍";
+		utf8::string repl("🌍");
+		str.replace(str.begin()+1, str.end() - 1, repl);
+		CHECK(str == "🌍 🌍 🌍");
+		CHECK(str.size() == 3+2);
+
+	}
+
 	SECTION("widths")
 	{
 		//             UTF32		UTF8
@@ -325,8 +360,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		str = "AÄ↥🌍";
 		CHECK(str.end() - str.begin() == 4);
 		CHECK(std::distance(str.rbegin(), str.rend()) == 4);
-
-
 	}
 
 	SECTION("index operator")
@@ -365,7 +398,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(*pre == (u32)'e');
 		CHECK(*it == (u32)'e');
 
-		it = str.begin();
+		it        = str.begin();
 		auto post = it++;
 		CHECK(*post == (u32)'h');
 		CHECK(*it == (u32)'e');

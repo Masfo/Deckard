@@ -1313,6 +1313,33 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[4] == 'Z');
 
 		CHECK(ss[5] == 'Y');
+
+		std::array<u8, 10> nb2{'h', 'e', 'l', 'l', 'o', ' ', 0xF0, 0x9F, 0x8C, 0x8D};
+		std::array<u8, 2>  hi{'h', 'i'};
+		ss.assign(nb2);
+		CHECK(ss.size() == 10);
+		CHECK(ss[0] == 'h');
+		CHECK(ss[1] == 'e');
+		CHECK(ss[2] == 'l');
+		CHECK(ss[3] == 'l');
+		CHECK(ss[4] == 'o');
+		CHECK(ss[5] == ' ');
+		CHECK(ss[6] == 0xF0);
+		CHECK(ss[7] == 0x9F);
+		CHECK(ss[8] == 0x8C);
+		CHECK(ss[9] == 0x8D);
+
+		ss.replace(0, 5, hi);
+		CHECK(ss.size() == 7);
+		CHECK(ss[0] == 'h');
+		CHECK(ss[1] == 'i');
+		CHECK(ss[2] == ' ');
+
+		CHECK(ss[3] ==0xF0);
+		CHECK(ss[4] == 0x9F);
+		CHECK(ss[5] == 0x8C);
+		CHECK(ss[6] == 0x8D);
+
 	}
 
 	SECTION("replace single range (small)")
