@@ -621,7 +621,8 @@ namespace deckard::utf8
 			if (not pos.empty() and pos == end())
 				pos--;
 
-			auto insert_pos = pos.byteindex() + pos.width();
+			auto  insert_pos          = pos.byteindex();
+			insert_pos += pos.width() > 1 ? pos.width() : 0;
 
 			buffer.insert(buffer.begin() + insert_pos, {as<u8*>(input.data()), input.size()});
 
@@ -633,10 +634,10 @@ namespace deckard::utf8
 			if (str.empty())
 				return pos;
 
-			if (not pos.empty() and pos == end())
-				pos--;
+			//if (not pos.empty() and pos == end())
+			//	pos--;
 
-			auto insert_pos = pos.byteindex() + pos.width();
+			auto insert_pos = pos.byteindex() +pos.width();
 
 			buffer.insert(buffer.begin() + insert_pos, {str.data(), str.size_in_bytes()});
 
@@ -739,9 +740,9 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		iterator replace(iterator first, std::string_view str) { return replace(first, first + 1, str); }
+		iterator replace(iterator first, std::string_view str) { return replace(first, first, str); }
 
-		iterator replace(iterator first, string str) { return replace(first, first + 1, str); }
+		iterator replace(iterator first, string str) { return replace(first, first, str); }
 
 		iterator replace(iterator first, iterator end, std::string_view str)
 		{
@@ -752,7 +753,7 @@ namespace deckard::utf8
 			}
 
 			auto pos = erase(first, end);
-			return insert(first, str);
+			return insert(pos, str);
 		}
 
 		iterator replace(iterator first, iterator end, string str)
@@ -763,7 +764,7 @@ namespace deckard::utf8
 				return insert(pos, str);
 			}
 			auto pos = erase(first, end);
-			return insert(first, str);
+			return insert(pos, str);
 		}
 
 		iterator replace(size_t pos, size_t count, std::string_view str)
@@ -1120,6 +1121,9 @@ namespace deckard::utf8
 	// erase
 	// c_str() -> string_view
 	// data() -> span
+
+	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }
+
 
 } // namespace deckard::utf8
 

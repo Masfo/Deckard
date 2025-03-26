@@ -5,6 +5,7 @@ import std;
 import deckard.utf8;
 import deckard.as;
 using namespace deckard;
+using namespace deckard::utf8;
 using namespace std::string_view_literals;
 
 TEST_CASE("utf8::string", "[utf8]")
@@ -124,7 +125,9 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c.back() == 0x1'f30d);
 		CHECK(c == "hello 🌍b🌍🌍");
 
-		c += "♥";
+		utf8::string heart("♥");
+
+		c += heart;
 		CHECK(c.size() == 11);
 		CHECK(c.front() == 'h');
 		CHECK(c.back() == 0x2665);
@@ -138,7 +141,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c.back() == 0x2666);
 		CHECK(c == "♥♦");
 
-		c += "♧";
+		c += "♧"_utf8;
 		CHECK(c.size() == 3);
 		CHECK(c.front() == 0x2665);
 		CHECK(c.back() == 0x2667);
@@ -170,7 +173,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("replace")
 	{
 		utf8::string str("hello world");
-		str.replace(6, 5, "🌍");
+		str.replace(6, 5, "🌍"_utf8);
 		CHECK(str == "hello 🌍");
 		CHECK(str.size() == 7);
 
