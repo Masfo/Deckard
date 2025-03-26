@@ -488,15 +488,9 @@ dbg::println();
 	// ###################
 	{
 
-		std::string a("hello world");
-		auto        start = a.begin();
-		auto        end   = a.end();
+		std::string a("bdac");
 
-		dbg::println("{}", start[0]);
-		dbg::println("{}", start[1]);
-
-
-		dbg::println("{}", std::distance(end, start));
+		a.insert(a.begin()+3, 'Q');
 		int j = 0;
 	}
 

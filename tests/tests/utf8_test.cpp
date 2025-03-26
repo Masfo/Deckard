@@ -134,8 +134,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c == "hello 🌍b🌍🌍♥");
 
 
-		b = "♥";
-		c = b + "♦";
+		b = "♥"_utf8;
+		c = b + "♦"_utf8;
 		CHECK(c.size() == 2);
 		CHECK(c.front() == 0x2665);
 		CHECK(c.back() == 0x2666);
@@ -146,6 +146,76 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c.front() == 0x2665);
 		CHECK(c.back() == 0x2667);
 		CHECK(c == "♥♦♧");
+
+		// 
+		utf8::string d("a");
+		CHECK(d.size() == 1);
+		CHECK(d[0] == 'a');
+
+		d.insert(d.begin(), "b");
+
+		CHECK(d.size() == 2);
+		CHECK(d[0] == 'b');
+		CHECK(d[1] == 'a');
+
+		d.insert(d.end(), "c");
+
+		CHECK(d.size() == 3);
+		CHECK(d[0] == 'b');
+		CHECK(d[1] == 'a');
+		CHECK(d[2] == 'c');
+
+
+		d.insert(d.begin() + 1, "d");
+
+		CHECK(d.size() == 4);
+		CHECK(d[0] == 'b');
+		CHECK(d[1] == 'd');
+		CHECK(d[2] == 'a');
+		CHECK(d[3] == 'c');
+
+		d.insert(d.begin()+4, heart);
+
+		CHECK(d.size() == 5);
+		CHECK(d[0] == 'b');
+		CHECK(d[1] == 'd');
+		CHECK(d[2] == 'a');
+		CHECK(d[3] == 'c');
+		CHECK(d[4] == heart[0]);
+
+		utf8::string world("🌍");
+
+		d.insert(d.begin() + 1, world);
+		CHECK(d.size() == 6);
+		CHECK(d[0] == 'b');
+		CHECK(d[1] == world[0]);
+		CHECK(d[2] == 'd');
+		CHECK(d[3] == 'a');
+		CHECK(d[4] == 'c');
+		CHECK(d[5] == heart[0]);
+
+		d.insert(d.end(), 'X');
+		CHECK(d.size() == 7);
+		CHECK(d[0] == 'b');
+		CHECK(d[1] == world[0]);
+		CHECK(d[2] == 'd');
+		CHECK(d[3] == 'a');
+		CHECK(d[4] == 'c');
+		CHECK(d[5] == heart[0]);
+		CHECK(d[6] == 'X');
+
+		char32       q = 0x274c; // ❌
+		d.insert(d.begin(), q);
+		CHECK(d.size() == 8);
+		CHECK(d[0] ==	q);
+		CHECK(d[1] == 'b');
+		CHECK(d[2] == world[0]);
+		CHECK(d[3] == 'd');
+		CHECK(d[4] == 'a');
+		CHECK(d[5] == 'c');
+		CHECK(d[6] == heart[0]);
+		CHECK(d[7] == 'X');
+
 	}
 
 	SECTION("substr")
@@ -188,7 +258,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size() == 4);
 
 		str = "hello 🌍";
-		str.replace(0, 6, "hi");
+		str.replace(0, 7, "hi");
 		CHECK(str == "hi");
 		CHECK(str.size() == 2);
 
@@ -199,9 +269,15 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		str = "🌍 hello 🌍";
 		utf8::string repl("🌍");
-		str.replace(str.begin()+1, str.end() - 1, repl);
+		str.replace(str.begin()+2, str.end() - 2, repl);
 		CHECK(str == "🌍 🌍 🌍");
-		CHECK(str.size() == 3+2);
+		CHECK(str.size() == 5);
+		CHECK(str[0] == repl[0]);
+		CHECK(str[1] == ' ');
+		CHECK(str[2] == repl[0]);
+		CHECK(str[3] == ' ');
+		CHECK(str[4] == repl[0]);
+
 
 	}
 

@@ -613,16 +613,33 @@ namespace deckard::utf8
 
 		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
+		iterator insert(iterator pos, char c) 
+		{
+			if (c == 0)
+				return pos;
+
+			buffer.insert(buffer.begin() + pos.byteindex(), c);
+			return iterator(&buffer, pos.byteindex());
+		}
+
+		iterator insert(iterator pos, char32 c)
+		{
+			if (c == 0)
+				return pos;
+
+			auto decoded = encode_codepoint(c);
+
+			buffer.insert(buffer.begin() + pos.byteindex(), std::span{decoded.bytes.data(), decoded.count});
+			return iterator(&buffer, pos.byteindex());
+		}
+
 		iterator insert(iterator pos, std::string_view input)
 		{
 			if (input.empty())
 				return pos;
 
-			if (not pos.empty() and pos == end())
-				pos--;
 
-			auto  insert_pos          = pos.byteindex();
-			insert_pos += pos.width() > 1 ? pos.width() : 0;
+			auto insert_pos = pos.byteindex();
 
 			buffer.insert(buffer.begin() + insert_pos, {as<u8*>(input.data()), input.size()});
 
@@ -634,10 +651,8 @@ namespace deckard::utf8
 			if (str.empty())
 				return pos;
 
-			//if (not pos.empty() and pos == end())
-			//	pos--;
 
-			auto insert_pos = pos.byteindex() +pos.width();
+			auto insert_pos = pos.byteindex(); //
 
 			buffer.insert(buffer.begin() + insert_pos, {str.data(), str.size_in_bytes()});
 

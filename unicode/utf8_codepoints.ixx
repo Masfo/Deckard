@@ -57,6 +57,11 @@ namespace deckard::utf8
 
 	export constexpr bool is_bom(char32_t codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
+	export constexpr bool start_with_bom(const std::span<u8> buffer)
+	{
+		return buffer.size() >= 3 and (buffer[0] == 0xEF and buffer[1] == 0xBB and buffer[2] == 0xBF);
+	}
+
 	export constexpr bool is_whitespace(char32_t codepoint)
 	{
 		// PropList-15.1.0.txt
