@@ -613,7 +613,8 @@ namespace deckard::utf8
 
 		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
-		iterator insert(iterator pos, char c) 
+		// insert
+		iterator insert(iterator pos, std::span<u8> input)
 		{
 			if (c == 0)
 				return pos;
@@ -641,24 +642,24 @@ namespace deckard::utf8
 
 			auto insert_pos = pos.byteindex();
 
-			buffer.insert(buffer.begin() + insert_pos, {as<u8*>(input.data()), input.size()});
+			buffer.insert(buffer.begin() + insert_pos, input);
 
 			return iterator(&buffer, insert_pos);
 		}
 
-		iterator insert(iterator pos, const string& str)
+		iterator insert(iterator pos, char c) { return insert(pos, {as<u8*>(&c), 1}); }
+
+		iterator insert(iterator pos, char32 c)
 		{
-			if (str.empty())
-				return pos;
-
-
-			auto insert_pos = pos.byteindex(); //
-
-			buffer.insert(buffer.begin() + insert_pos, {str.data(), str.size_in_bytes()});
-
-			return iterator(&buffer, insert_pos);
+			auto decoded = encode_codepoint(c);
+			return insert(pos, {decoded.bytes.data(), decoded.count});
 		}
 
+		iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
+
+		iterator insert(iterator pos, const string& str) { return insert(pos, {str.data(), str.size_in_bytes()}); }
+
+		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
 
 		void append(const std::string_view str) { insert(end(), str); }
