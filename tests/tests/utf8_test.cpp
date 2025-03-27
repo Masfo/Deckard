@@ -538,4 +538,18 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(*pre2 == (u32)'d');
 		CHECK(*it == (u32)'d');
 	}
+
+	SECTION("find_first_of") 
+	{ 
+		#if 0
+		utf8::string str("🌍hello🌍 world🌍");
+		utf8::string w("🌍"_utf8);
+		auto         it = str.find_first_of(w);
+		CHECK(std::distance(str.begin(), it) == 0);
+		
+		//it = str.find_first_of("w"_utf8);
+		CHECK(std::distance(str.begin(), it) == 8);
+#endif
+
+	}
 }

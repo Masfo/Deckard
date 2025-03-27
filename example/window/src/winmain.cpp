@@ -490,14 +490,19 @@ dbg::println();
 
 		std::string a("bdac");
 
-		a.insert(a.begin()+3, 'Q');
+		a.insert(a.begin()+2, 'Q');
+
+		auto pos = std::ranges::find_first_of(a, "ac");
+		
 		int j = 0;
 	}
+	{
+		utf8::string aa("abc 👑 hello 👑");
+		utf8::string b("👑");
+		auto         pos = std::find_first_of(aa.begin(), aa.end(), b.begin(), b.end());
 
-	utf8::string aa("👑 ");
-
-
-
+		int j =0 ;
+	}
 	// ###################
 
 	{

@@ -1133,8 +1133,55 @@ namespace deckard::utf8
 
 			return valid ? len : 0ull;
 		}
-	};
+#if 0
+		iterator find_first_of(std::span<u8> input, size_t pos = 0)
+		{
+			assert::check(pos < size(), "Index out of bounds");
 
+			auto it     = buffer.begin();
+			auto end_it = buffer.end();
+			for (; it != end_it; ++it)
+			{
+				for (auto input_it = input.begin(); input_it != input.end(); ++input_it)
+				{
+					if (*it == *input_it)
+					{
+						return it;
+					}
+				}
+			}
+			return end_it;
+		}
+
+		iterator find_first_of(string &str, size_t pos = 0) { return find_first_of({str.data(), str.size_in_bytes()}, pos); }
+
+		iterator find_first_not_of(string &str, size_t pos = 0)
+		{
+			assert::check(pos < size(), "Index out of bounds");
+
+			auto it     = begin() + pos;
+			auto end_it = end();
+
+			for (; it != end_it; ++it)
+			{
+				bool found = false;
+				for (auto str_it = str.begin(); str_it != str.end(); ++str_it)
+				{
+					if (*it == *str_it)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					return it;
+				}
+			}
+			return end_it;
+		}
+	#endif
+	};
 	// TODO:
 	// find_first_of / first_not_of
 	// find_last_of  / last_no_of
