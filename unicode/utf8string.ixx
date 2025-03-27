@@ -105,6 +105,29 @@ namespace deckard::utf8
 		return ret ? true : false;
 	}
 
+	export char32 decode_codepoint(const std::span<u8> buffer, u32 index = 0)
+	{
+		assert::check(index < buffer.size(), "Index out-of-bounds");
+
+		if (index >= buffer.size())
+			return REPLACEMENT_CHARACTER;
+
+		u32 state     = 0;
+		u32 codepoint = 0;
+		for (; index < buffer.size(); index++)
+		{
+			u8        byte = buffer[index];
+			const u32 type = utf8_table[byte];
+			codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
+			state          = utf8_table[256 + state + type];
+			if (state == 0)
+				return codepoint;
+			else if (state == UTF8_REJECT)
+				return REPLACEMENT_CHARACTER;
+		}
+		return REPLACEMENT_CHARACTER;
+	}
+
 	export class string
 	{
 	private:
@@ -616,29 +639,8 @@ namespace deckard::utf8
 		// insert
 		iterator insert(iterator pos, std::span<u8> input)
 		{
-			if (c == 0)
-				return pos;
-
-			buffer.insert(buffer.begin() + pos.byteindex(), c);
-			return iterator(&buffer, pos.byteindex());
-		}
-
-		iterator insert(iterator pos, char32 c)
-		{
-			if (c == 0)
-				return pos;
-
-			auto decoded = encode_codepoint(c);
-
-			buffer.insert(buffer.begin() + pos.byteindex(), std::span{decoded.bytes.data(), decoded.count});
-			return iterator(&buffer, pos.byteindex());
-		}
-
-		iterator insert(iterator pos, std::string_view input)
-		{
 			if (input.empty())
 				return pos;
-
 
 			auto insert_pos = pos.byteindex();
 
@@ -1134,9 +1136,9 @@ namespace deckard::utf8
 	};
 
 	// TODO:
-	// erase
-	// c_str() -> string_view
-	// data() -> span
+	// find_first_of / first_not_of
+	// find_last_of  / last_no_of
+
 
 	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }
 

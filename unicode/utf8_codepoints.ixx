@@ -137,4 +137,5 @@ namespace deckard::utf8
 		return ecp;
 	}
 
+
 } // namespace deckard::utf8
