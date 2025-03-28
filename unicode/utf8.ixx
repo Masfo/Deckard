@@ -5,3 +5,7 @@ export import :xid;
 export import :xid_tables;
 export import :file;
 export import :string;
+export import :view;
+export import :decode;
+
+import deckard.types;
