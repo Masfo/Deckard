@@ -808,7 +808,7 @@ namespace deckard::utf8
 		index_type find(std::span<u8> input, size_t offset = 0) const
 		{
 			if (input.empty() || input.size() > buffer.size() - offset)
-				return -1;
+				return 0;
 
 			for (size_t i = offset; i <= buffer.size() - input.size(); ++i)
 			{
@@ -1138,8 +1138,8 @@ namespace deckard::utf8
 		{
 			assert::check(pos < size(), "Index out of bounds");
 
-			auto it     = buffer.begin();
-			auto end_it = buffer.end();
+			auto it     = begin();
+			auto end_it = end();
 			for (; it != end_it; ++it)
 			{
 				for (auto input_it = input.begin(); input_it != input.end(); ++input_it)
@@ -1154,6 +1154,9 @@ namespace deckard::utf8
 		}
 
 		iterator find_first_of(string &str, size_t pos = 0) { return find_first_of({str.data(), str.size_in_bytes()}, pos); }
+
+		iterator find_first_of(std::string_view str, size_t pos = 0) { return find_first_of({str.data(), str.size()}, pos); }
+
 
 		iterator find_first_not_of(string &str, size_t pos = 0)
 		{

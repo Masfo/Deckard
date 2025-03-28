@@ -1335,11 +1335,10 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[1] == 'i');
 		CHECK(ss[2] == ' ');
 
-		CHECK(ss[3] ==0xF0);
+		CHECK(ss[3] == 0xF0);
 		CHECK(ss[4] == 0x9F);
 		CHECK(ss[5] == 0x8C);
 		CHECK(ss[6] == 0x8D);
-
 	}
 
 	SECTION("replace single range (small)")
@@ -1670,7 +1669,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[8] == 'Y');
 	}
 
-		SECTION("replace middle single iterator, (small)")
+	SECTION("replace middle single iterator, (small)")
 	{
 		sbo<32> ss;
 
@@ -1689,7 +1688,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
 
-		ss.replace(ss.begin()+2, newbuffer);
+		ss.replace(ss.begin() + 2, newbuffer);
 
 		CHECK(ss.size() == 9);
 		CHECK(ss.capacity() == 31);
@@ -1707,8 +1706,8 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[8] == 'Y');
 	}
 
-		
-		SECTION("replace end single iterator, (small)")
+
+	SECTION("replace end single iterator, (small)")
 	{
 		sbo<32> ss;
 
@@ -2122,7 +2121,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(*it == 'A');
 	}
 
-	SECTION("iterator distance") 
+	SECTION("iterator distance")
 	{
 		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
 
@@ -2133,8 +2132,21 @@ TEST_CASE("sbo", "[sbo]")
 		auto end   = ss.end();
 
 		CHECK(std::distance(start, end) == 6);
+	}
 
+	SECTION("find_first_of")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G'};
 
+		CHECK(ss.size() == 7);
+		CHECK(ss.capacity() == 31);
+
+		std::array<u8, 2> search{'C', 'D'};
+
+		auto it = ss.find_first_of(search);
+		auto index = std::distance(ss.begin(), it);
+		
+		CHECK(index == 2);
 
 	}
 }

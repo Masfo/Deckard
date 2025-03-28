@@ -862,6 +862,25 @@ namespace deckard
 			return replace(first, end, buffer);
 		}
 
+		iterator find_first_of(const std::span<value_type>& buffer)
+		{
+			if (buffer.empty() || empty())
+			{
+				return end();
+			}
+
+			for (auto it = begin(); it != end(); ++it)
+			{
+				if (std::find(buffer.begin(), buffer.end(), *it) != buffer.end())
+				{
+					return it;
+				}
+			}
+
+			return end();
+		}
+
+
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);
