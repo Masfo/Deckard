@@ -245,7 +245,6 @@ set(DECKARD_SRCS
 
 
 
-        $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
         
 
         # Scripting
@@ -279,13 +278,16 @@ set(DECKARD_SRCS
         types/helpertypes.ixx
         types/bigint.ixx
 
-        $<$<PLATFORM_ID:Windows>:win32/win32.ixx>
-		# win32/DTE.ixx
 
         archive/archive.ixx
         archive/db.ixx
 
         compress/zstd.ixx
+
+        # win32
+        $<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
+        $<$<PLATFORM_ID:Windows>:win32/win32.ixx>
+		# win32/DTE.ixx
 
         std.ixx
 )

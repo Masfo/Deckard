@@ -2,10 +2,12 @@
 
 
 import std;
+import deckard.types;
 import deckard.sbo;
 import deckard.as;
 import deckard.helpers;
 import deckard.debug;
+using namespace std::string_view_literals;
 
 using namespace deckard;
 
@@ -2144,9 +2146,13 @@ TEST_CASE("sbo", "[sbo]")
 		std::array<u8, 2> search{'C', 'D'};
 
 		auto it = ss.find_first_of(search);
-		auto index = std::distance(ss.begin(), it);
+		CHECK(std::distance(ss.begin(), it) == 2);
+
+
+		//it = ss.find_first_of("Q"sv);
+
 		
-		CHECK(index == 2);
+		//it = ss.find_first_of({'D', 'E', 'F'});
 
 	}
 }

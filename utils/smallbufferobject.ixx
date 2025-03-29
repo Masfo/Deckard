@@ -862,9 +862,9 @@ namespace deckard
 			return replace(first, end, buffer);
 		}
 
-		iterator find_first_of(const std::span<value_type>& buffer)
+		iterator find_first_of(const std::span<value_type>& buffer)  
 		{
-			if (buffer.empty() || empty())
+			if (buffer.empty() or empty())
 			{
 				return end();
 			}
@@ -880,6 +880,17 @@ namespace deckard
 			return end();
 		}
 
+		iterator find_first_of(std::string_view view) const
+		{
+			return find_first_of({as<value_type*>(view.data()), view.size()});
+		}
+
+		//iterator find_first_of(const std::initializer_list<value_type>& il)
+		//{
+		//	return find_first_of(std::span<value_type>{il.begin() , il.size()});
+		//}
+
+		//iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
 
 	};
 

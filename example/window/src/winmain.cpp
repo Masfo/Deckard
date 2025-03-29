@@ -484,11 +484,12 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
-
+	
 	// ###################
 	{
 
-		std::string a("bdac");
+		std::string a("bd❌ac");
+
 
 		a.insert(a.begin()+2, 'Q');
 

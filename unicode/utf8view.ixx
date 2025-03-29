@@ -11,6 +11,6 @@ import deckard.as;
 
 namespace deckard::utf8
 {
-	// TODO: non-owning view / iterator to utf8 data in memory (span)
+	// TODO: non-owning view to utf8 data in memory (span)
 
 }
