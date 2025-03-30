@@ -1,15 +1,15 @@
-github.com/AlDanial/cloc v 1.98  T=0.18 s (506.5 files/s, 134897.9 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.18 s (521.4 files/s, 137235.8 lines/s)
 ---------------------------------------------------------------------------------------
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 .\types\bigint.ixx                                    281             32           1145
 .\app\app.ixx                                         334            140           1022
 .\scripting\lexer\lexer.ixx                           225             45            841
-.\unicode\utf8string.ixx                              246             49            796
+.\unicode\utf8string.ixx                              250             28            833
 .\utils\helpers.ixx                                   194             49            733
-.\utils\smallbufferobject.ixx                         201             25            673
+.\utils\smallbufferobject.ixx                         207             30            692
+.\example\window\src\winmain.cpp                      194             62            515
 .\math\generic_vec4.ixx                               112             10            508
-.\example\window\src\winmain.cpp                      191             62            506
 .\math\generic_vec3.ixx                               121             11            500
 .\math\generic_vec2.ixx                               114             11            465
 .\utils\stringhelper.ixx                              105             18            425
@@ -45,9 +45,9 @@ File                                                blank        comment        
 .\Deckard.ixx                                          62             20            133
 .\app\vulkan\swapchain.ixx                             46              6            132
 .\types\types.ixx                                      64             48            123
+.\unicode\utf8_codepoints.ixx                          21              1            119
 .\win32\DTE.ixx                                        33              6            118
 .\utils\uuid.ixx                                       22              2            116
-.\unicode\utf8_codepoints.ixx                          19              1            115
 .\app\controller.ixx                                   44              9            110
 .\unicode\utf8_xid.ixx                                 14              2            103
 .\utils\function_ref.ixx                               30              2            100
@@ -55,6 +55,7 @@ File                                                blank        comment        
 .\app\vulkan\command_buffer.ixx                        33              3             93
 .\graphs\graph.ixx                                     17              5             92
 .\utils\timers.ixx                                     22              4             91
+.\unicode\utf8_decode.ixx                              26             16             90
 .\utils\commandline.ixx                                17              9             89
 .\math\generic_vec.ixx                                 25             18             87
 .\app\vulkan\debug.ixx                                 25              5             84
@@ -73,6 +74,7 @@ File                                                blank        comment        
 .\net\server.ixx                                       12              3             33
 .\unicode\utf8_ascii.ixx                               14              0             32
 .\net\address.ixx                                       9              1             29
+.\unicode\utf8view.ixx                                 10              1             28
 .\utils\system_win32.ixx                                8              0             22
 .\debug\assert.ixx                                      9              0             19
 .\net\net.ixx                                          11              1             19
@@ -86,12 +88,12 @@ File                                                blank        comment        
 .\unicode\utf8file.ixx                                  5              1             14
 .\debug\console.ixx                                     2              0             11
 .\app\vulkan\helpers.ixx                                4              1             10
+.\unicode\utf8.ixx                                      1              0             10
 .\debug\assert_null.ixx                                 6              0              9
 .\net\client.ixx                                        4              0              8
 .\example\empty\src\main.cpp                            2              1              7
-.\unicode\utf8.ixx                                      0              0              7
 .\utils\serializer.ixx                                  6              6              7
 .\scripting\parser\parser.ixx                          11             16              4
 ---------------------------------------------------------------------------------------
-SUM:                                                 5025           1185          17762
+SUM:                                                 5077           1186          17952
 ---------------------------------------------------------------------------------------

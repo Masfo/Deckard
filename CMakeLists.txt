@@ -396,6 +396,8 @@ if(PROJECT_IS_TOP_LEVEL)
     
     #add_subdirectory(example/empty)
     add_subdirectory(example/window)
+    add_subdirectory(example/threader)
+
 
 endif()
 
