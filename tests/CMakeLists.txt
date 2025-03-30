@@ -79,7 +79,7 @@ target_sources(tests PUBLIC
 )
 
 
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain deckard)
+target_link_libraries(tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain deckard)
 
 include(CTest)
 include(Catch)
