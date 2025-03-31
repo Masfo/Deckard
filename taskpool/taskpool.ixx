@@ -5,6 +5,30 @@ import deckard.types;
 
 namespace deckard::taskpool
 {
+
+
+	/* 
+	 *
+	 * 
+	 * 
+	 *		_0__1__2__3__4__5__6__7_
+	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 0
+	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 1
+	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 2
+	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 3
+	 * 
+	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread n-1
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 */
+
+
 	export class taskpool
 	{
 	public:
