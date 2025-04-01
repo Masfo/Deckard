@@ -147,7 +147,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c.back() == 0x2667);
 		CHECK(c == "♥♦♧");
 
-		// 
+		//
 		utf8::string d("a");
 		CHECK(d.size() == 1);
 		CHECK(d[0] == 'a');
@@ -174,7 +174,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[2] == 'a');
 		CHECK(d[3] == 'c');
 
-		d.insert(d.begin()+4, heart);
+		d.insert(d.begin() + 4, heart);
 
 		CHECK(d.size() == 5);
 		CHECK(d[0] == 'b');
@@ -204,10 +204,10 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[5] == heart[0]);
 		CHECK(d[6] == 'X');
 
-		char32       q = 0x274c; // ❌
+		char32 q = 0x274c; // ❌
 		d.insert(d.begin(), q);
 		CHECK(d.size() == 8);
-		CHECK(d[0] ==	q);
+		CHECK(d[0] == q);
 		CHECK(d[1] == 'b');
 		CHECK(d[2] == world[0]);
 		CHECK(d[3] == 'd');
@@ -215,7 +215,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[5] == 'c');
 		CHECK(d[6] == heart[0]);
 		CHECK(d[7] == 'X');
-
 	}
 
 	SECTION("substr")
@@ -269,7 +268,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		str = "🌍 hello 🌍";
 		utf8::string repl("🌍");
-		str.replace(str.begin()+2, str.end() - 2, repl);
+		str.replace(str.begin() + 2, str.end() - 2, repl);
 		CHECK(str == "🌍 🌍 🌍");
 		CHECK(str.size() == 5);
 		CHECK(str[0] == repl[0]);
@@ -277,8 +276,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str[2] == repl[0]);
 		CHECK(str[3] == ' ');
 		CHECK(str[4] == repl[0]);
-
-
 	}
 
 	SECTION("widths")
@@ -539,9 +536,9 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(*it == (u32)'d');
 	}
 
-	SECTION("find_first_of") 
-	{ 
-		#if 0
+	SECTION("find_first_of")
+	{
+#if 0
 		utf8::string str("🌍hello🌍 world🌍");
 		utf8::string w("🌍"_utf8);
 		auto         it = str.find_first_of(w);
@@ -550,6 +547,14 @@ TEST_CASE("utf8::string", "[utf8]")
 		//it = str.find_first_of("w"_utf8);
 		CHECK(std::distance(str.begin(), it) == 8);
 #endif
+	}
+}
 
+TEST_CASE("utf8::view", "[utf8][utf8view]")
+{
+	SECTION("")
+	{
+		//
+		//
 	}
 }

@@ -60,6 +60,8 @@ export namespace deckard::utf8
 		return state.state = utf8_table[256 + state.state + type];
 	}
 
+
+
 	std::optional<i32> length(const std::span<u8> buffer)
 	{
 		if (buffer.empty())
