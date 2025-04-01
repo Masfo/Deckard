@@ -8,6 +8,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.as;
 
+
 namespace deckard::utf8
 {
 
@@ -17,6 +18,11 @@ namespace deckard::utf8
 		std::span<u8> m_data;
 		size_t        index{0};
 
+		void advance_to_next_codepoint() { }
+
+		void reverse_to_last_codepoint() { }
+
+		char32 decode_current_index_to_codepoint() { return REPLACEMENT_CHARACTER; }
 	public:
 		view(std::span<u8> data)
 			: m_data(data), index(0)
@@ -56,7 +62,9 @@ namespace deckard::utf8
 			auto ret = utf8::length(m_data);
 			return ret ? true : false;
 		}
-
+		
+		// operators ++,--, []
+		// 
 	};
 
 } // namespace deckard::utf8
