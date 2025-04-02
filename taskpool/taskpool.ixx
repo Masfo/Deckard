@@ -21,7 +21,19 @@ namespace deckard::taskpool
 	 * 
 	 * 
 	 * 
-	 * 
+	 *   pool.add([]( )
+			{
+				
+
+	 		});
+
+			class hash_task: taskpool::work
+			{
+				void operator(size_t id)
+				{
+					// do work
+				}
+			};
 	 * 
 	 * 
 	 * 
