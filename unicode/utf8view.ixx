@@ -62,12 +62,12 @@ namespace deckard::utf8
 			}
 		}
 
-		char32 decode_current_codepoint() const
+		char32 decode_codepoint_at(size_t at) const
 		{
-			assert::check(index < as<i64>(m_data.size_bytes()), "Index out-of-bounds");
+			assert::check(at < as<i64>(m_data.size_bytes()), "Index out-of-bounds");
 
-			auto   current   = index;
-			u8    state     = 0;
+			auto   current   = at;
+			u8     state     = 0;
 			char32 codepoint = 0;
 
 			for (; current < as<i64>(m_data.size_bytes()); current++)
@@ -85,6 +85,8 @@ namespace deckard::utf8
 			}
 			return REPLACEMENT_CHARACTER;
 		}
+
+		char32 decode_current_codepoint() const { return decode_codepoint_at(index); }
 
 	public:
 		view(std::span<u8> data)
@@ -123,11 +125,64 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
+		bool empty() const { return size() == 0; }
+
 		bool is_valid() const
 		{
 			auto ret = utf8::length(m_data);
 			return ret ? true : false;
 		}
+
+		bool operator==(const view& other) const
+		{
+			if (m_data.size() != other.m_data.size())
+				return false;
+
+			for (size_t i = 0; i < m_data.size(); ++i)
+			{
+				if (m_data[i] != other.m_data[i])
+					return false;
+			}
+			return true;
+		}
+
+		auto operator*() const { return decode_current_codepoint(); }
+
+		auto operator++()
+		{
+			advance_to_next_codepoint();
+			return *this;
+		}
+
+		auto operator++(int)
+		{
+			auto tmp = *this;
+			advance_to_next_codepoint();
+			return *this;
+		}
+
+		const char32 &operator[](size_t index) const 
+		{
+			assert::check(index < size(), "Index out-of-bounds");
+
+			auto tmp = *this;
+			tmp.index = 0;
+
+			for (size_t i = 0; i < index; ++i)
+				tmp++;
+			return *tmp;
+		}
+
+		#if 0
+		char32& operator[](size_t index)
+		{
+			assert::check(index < size(), "Index out-of-bounds");
+			auto tmp = *this;
+			for (size_t i = 0; i < index; ++i)
+				tmp++;
+			return *tmp;
+		}
+		#endif
 
 		// operators ++,--, []
 		//
