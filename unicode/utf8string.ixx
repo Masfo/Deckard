@@ -899,6 +899,8 @@ namespace deckard::utf8
 
 		auto data() const { return buffer.data().data(); }
 
+		auto span() const { return buffer.data(); }
+
 		auto c_str() const { return as<const char*>(buffer.data().data()); }
 
 		bool empty() const { return buffer.empty(); }

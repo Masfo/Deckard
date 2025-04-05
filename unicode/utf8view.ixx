@@ -2,6 +2,7 @@ export module deckard.utf8:view;
 
 import :codepoints;
 import :decode;
+import :string;
 
 import std;
 import deckard.types;
@@ -89,6 +90,17 @@ namespace deckard::utf8
 		char32 decode_current_codepoint() const { return decode_codepoint_at(index); }
 
 	public:
+#ifdef __cpp_deleted_function
+#error("use delete error");
+		view() = delete("Default constructor not allowed");
+#endif
+
+		view(const string& str)
+			: m_data(str.span())
+			, index(0)
+		{
+		}
+
 		view(std::span<u8> data)
 			: m_data(data)
 			, index(0)
@@ -161,11 +173,11 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		const char32 &operator[](size_t index) const 
+		const char32& operator[](size_t index) const
 		{
 			assert::check(index < size(), "Index out-of-bounds");
 
-			auto tmp = *this;
+			auto tmp  = *this;
 			tmp.index = 0;
 
 			for (size_t i = 0; i < index; ++i)
@@ -173,7 +185,7 @@ namespace deckard::utf8
 			return *tmp;
 		}
 
-		#if 0
+#if 0
 		char32& operator[](size_t index)
 		{
 			assert::check(index < size(), "Index out-of-bounds");
@@ -182,7 +194,7 @@ namespace deckard::utf8
 				tmp++;
 			return *tmp;
 		}
-		#endif
+#endif
 
 		// operators ++,--, []
 		//

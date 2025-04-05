@@ -552,9 +552,17 @@ TEST_CASE("utf8::string", "[utf8]")
 
 TEST_CASE("utf8::view", "[utf8][utf8view]")
 {
-	SECTION("")
+	SECTION("c-tors")
 	{
-		//
+		std::array<u8, 4> buffer{'A', 'B', 'C', 'D'};
+
+		utf8::view        v(buffer);
+		CHECK(v.size() == 4);
+
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str);
+		CHECK(w.size() == 7);
+
 		//
 	}
 }
