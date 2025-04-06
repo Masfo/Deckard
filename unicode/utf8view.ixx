@@ -92,7 +92,7 @@ namespace deckard::utf8
 	public:
 #ifdef __cpp_deleted_function
 #error("use delete error");
-		view() = delete("Default constructor not allowed");
+		view() = delete("utf8view needs a view to a buffer");
 #endif
 
 		view(const string& str)
@@ -125,14 +125,6 @@ namespace deckard::utf8
 		{
 			auto ret = utf8::length(m_data);
 			return ret ? *ret : 0;
-
-			size_t len = 0;
-			for (size_t i = 0; i < m_data.size(); ++i)
-			{
-				if (not utf8::is_continuation_byte(m_data[i]))
-					++len;
-			}
-			return len;
 		}
 
 		size_t size() const { return length(); }

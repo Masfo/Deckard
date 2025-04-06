@@ -565,4 +565,18 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		//
 	}
+
+	SECTION("compare") 
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str);
+		CHECK(w.size() == 7);
+
+
+		utf8::view w2(str);
+		CHECK(w2.size() == 7);
+
+		CHECK(w == w2);
+
+	}
 }

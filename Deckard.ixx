@@ -45,6 +45,10 @@ export import deckard.stringhelper;
 export import deckard.timers;
 export import deckard.sbo;
 
+#ifdef __cpp_pp_embed
+#error("Use embed on something");
+#endif
+
 // UTF8
 export import deckard.utf8;
 
