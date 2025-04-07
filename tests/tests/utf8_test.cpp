@@ -556,7 +556,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	{
 		std::array<u8, 4> buffer{'A', 'B', 'C', 'D'};
 
-		utf8::view        v(buffer);
+		utf8::view v(buffer);
 		CHECK(v.size() == 4);
 
 		utf8::string str("🌍hello🌍");
@@ -566,7 +566,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		//
 	}
 
-	SECTION("compare") 
+	SECTION("compare")
 	{
 		utf8::string str("🌍hello🌍");
 		utf8::view   w(str);
@@ -577,6 +577,45 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(w2.size() == 7);
 
 		CHECK(w == w2);
+	}
+
+	SECTION("decode")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str);
+		CHECK(w.size() == 7);
+
+		CHECK(*w == 0x1'f30d);
+
+		w++;
+		CHECK(*w == 'h');
+		w++;
+		CHECK(*w == 'e');
+		w++;
+		CHECK(*w == 'l');
+		w++;
+		CHECK(*w == 'l');
+		w++;
+		CHECK(*w == 'o');
+
+		w++;
+		CHECK(*w == 0x1'f30d);
+
+		w--;
+		CHECK(*w == 'o');
+
+		w--;
+		w--;
+		w--;
+		w--;
+		CHECK(*w == 'h');
+
+
+		w += 5;
+		CHECK(*w == 0x1f30d);
+
+		w -= 6;
+		CHECK(*w == 0x1'f30d);
 
 	}
 }

@@ -162,6 +162,36 @@ namespace deckard::utf8
 		{
 			auto tmp = *this;
 			advance_to_next_codepoint();
+			return tmp;
+		}
+
+		auto operator--()
+		{
+			reverse_to_last_codepoint();
+			return *this;
+		}
+
+		auto operator--(int)
+		{
+			auto tmp = *this;
+			reverse_to_last_codepoint();
+			return tmp;
+		}
+
+		auto operator+=(int v)
+		{
+			while (v--)
+				advance_to_next_codepoint();
+
+			return *this;
+		}
+
+		auto operator-=(int v)
+		{
+			reverse_to_last_codepoint();
+			while (v--)
+				reverse_to_last_codepoint();
+
 			return *this;
 		}
 
