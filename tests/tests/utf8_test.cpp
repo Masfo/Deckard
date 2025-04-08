@@ -41,7 +41,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 7);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 10);
-		CHECK(str.is_valid() == true);
+		CHECK(str.valid() == true);
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
 	}
 
@@ -55,14 +55,14 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.length() == 7);
 		CHECK(a.empty() == false);
 		CHECK(a.size_in_bytes() == 10);
-		CHECK(a.is_valid() == true);
+		CHECK(a.valid() == true);
 		CHECK(std::string(a.c_str()) == "hello 🌍"sv);
 
 		CHECK(b.size() == 7);
 		CHECK(b.length() == 7);
 		CHECK(b.empty() == false);
 		CHECK(b.size_in_bytes() == 10);
-		CHECK(b.is_valid() == true);
+		CHECK(b.valid() == true);
 		CHECK(std::string(b.c_str()) == "hello 🌍"sv);
 
 		CHECK(a.data() != b.data());
@@ -75,7 +75,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 7);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 10);
-		CHECK(str.is_valid() == true);
+		CHECK(str.valid() == true);
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
 		//
 
@@ -85,7 +85,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 5);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 5);
-		CHECK(str.is_valid() == true);
+		CHECK(str.valid() == true);
 		CHECK(std::string(str.c_str()) == "hello"sv);
 		//
 	}
@@ -612,10 +612,28 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 
 		w += 5;
-		CHECK(*w == 0x1f30d);
+		CHECK(*w == 0x1'f30d);
 
 		w -= 6;
 		CHECK(*w == 0x1'f30d);
 
+		w += 3;
+		CHECK(*w == 'l');
+		w -= 1;
+		CHECK(*w == 'e');
+	}
+
+	SECTION("indexing")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str);
+		CHECK(w.size() == 7);
+		CHECK(w[0] == 0x1'f30d);
+		CHECK(w[1] == 'h');
+		CHECK(w[2] == 'e');
+		CHECK(w[3] == 'l');
+		CHECK(w[4] == 'l');
+		CHECK(w[5] == 'o');
+		CHECK(w[6] == 0x1'f30d);
 	}
 }

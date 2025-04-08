@@ -543,7 +543,15 @@ namespace deckard::utf8
 
 		iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
 
-		iterator insert(iterator pos, const string& str) { return insert(pos, {str.data(), str.size_in_bytes()}); }
+		iterator insert(iterator pos, const string& str) 
+		{ 
+			if (not str.valid())
+			{
+				dbg::println("Trying to insert invalid string");
+				return pos;
+			}
+
+			return insert(pos, {str.data(), str.size_in_bytes()}); }
 
 		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
@@ -660,6 +668,13 @@ namespace deckard::utf8
 
 		iterator replace(iterator first, iterator end, string str)
 		{
+			
+			if (not str.valid())
+			{
+				dbg::println("Trying to replace with invalid string");
+				return first;
+			}
+
 			if (first == end)
 			{
 				auto pos = erase(first);
@@ -731,7 +746,7 @@ namespace deckard::utf8
 
 		index_type find(string input, size_t offset = 0) const
 		{
-			if (input.empty() || input.size_in_bytes() > buffer.size() - offset)
+			if (input.empty() or input.size_in_bytes() > buffer.size() - offset or not input.valid())
 				return -1;
 
 			for (size_t i = offset; i <= buffer.size() - input.size_in_bytes(); ++i)
@@ -911,7 +926,7 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
-		bool is_valid() const { return length() != 0; }
+		bool valid() const { return length() != 0; }
 
 		size_t count()
 		{

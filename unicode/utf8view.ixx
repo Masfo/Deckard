@@ -188,7 +188,6 @@ namespace deckard::utf8
 
 		auto operator-=(int v)
 		{
-			reverse_to_last_codepoint();
 			while (v--)
 				reverse_to_last_codepoint();
 
@@ -207,19 +206,6 @@ namespace deckard::utf8
 			return *tmp;
 		}
 
-#if 0
-		char32& operator[](size_t index)
-		{
-			assert::check(index < size(), "Index out-of-bounds");
-			auto tmp = *this;
-			for (size_t i = 0; i < index; ++i)
-				tmp++;
-			return *tmp;
-		}
-#endif
-
-		// operators ++,--, []
-		//
 	};
 
 } // namespace deckard::utf8
