@@ -484,17 +484,37 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
-	
+
+	{
+		// ####
+
+		std::string a("--number 10 -n 'hello world'"); // --name 'hello'
+		std::string_view sv(a);
+
+
+		if (sv.starts_with("--"))
+			sv.substr(2);
+		else if(sv.starts_with("-"))
+			sv.substr(1);
+
+
+
+
+
+
+		// ####
+	}
+
 	// ###################
 	{
 
 		std::string a("bd❌ac");
 
 
-		a.insert(a.begin()+2, 'Q');
+		a.insert(a.begin() + 2, 'Q');
 
 		auto pos = std::ranges::find_first_of(a, "ac");
-		
+
 		int j = 0;
 	}
 	{
@@ -502,7 +522,7 @@ dbg::println();
 		utf8::string b("👑");
 		auto         pos = std::find_first_of(aa.begin(), aa.end(), b.begin(), b.end());
 
-		int j =0 ;
+		int j = 0;
 	}
 	// ###################
 
