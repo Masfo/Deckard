@@ -17,7 +17,7 @@ namespace deckard::utils
 {
 	constexpr u32 constant_seed_1 =
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
-	  (__TIME__[1] - '0') * 3'600 + (__TIME__[0] - '0') * 36'000;
+	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
 
 	template<typename T>
 	constexpr T simple_xorshift(const T& n, int i)
@@ -47,7 +47,7 @@ namespace deckard::utils
 		(hash_combine(seed, rest), ...);
 	}
 
-	constexpr u32 constant_seed = distribute(constant_seed_1);
+	export constexpr u32 constant_seed = distribute(constant_seed_1);
 
 	export template<typename... Types>
 	constexpr std::size_t hash_values(const Types&... args)
@@ -57,6 +57,16 @@ namespace deckard::utils
 		return seed;
 	}
 
+	export template<typename T>
+	constexpr size_t hash_values(const std::span<T> &args)
+	{
+		std::size_t seed = constant_seed;
+		for (const auto& arg : args)
+		{
+			hash_combine(seed, arg);
+		}
+		return seed;
+	}
 
 	static u64 U8TO64_LE(const unsigned char* p) { return *(const u64*)p; }
 
@@ -255,7 +265,7 @@ namespace deckard::utils
 	export u64 chibihash64(const void* keyIn, size_t len, u64 seed)
 	{
 		const u8* k = as<const u8*>(keyIn);
-		size_t l = len;
+		size_t    l = len;
 
 		const u64 P1 = 0x2B7E'1516'28AE'D2A5Ull;
 		const u64 P2 = 0x9E37'9349'2EED'C3F7Ull;
@@ -315,13 +325,11 @@ namespace deckard::utils
 
 	export u64 chibihash64(const void* keyIn, size_t len) { return chibihash64(keyIn, len, CHIBI_SEED); }
 
-
 	export u64 chibihash64(std::span<u8> buffer) { return chibihash64(buffer.data(), buffer.size_bytes(), CHIBI_SEED); }
 
 	export u64 chibihash64(std::string_view buffer) { return chibihash64({as<u8*>(buffer.data()), buffer.size()}); }
 
 	export u64 operator"" _chibihash64(char const* s, size_t count) { return chibihash64((void*)s, count); }
-
 
 
 } // namespace deckard::utils

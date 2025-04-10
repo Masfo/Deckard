@@ -2068,6 +2068,20 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(a.size() == 6);
 		CHECK(a.capacity() == 31);
+
+		CHECK(a.hash() == 0xdc45'7fe2'cbcd'f06d);
+
+
+		sbo<32> b = a;
+		sbo<32> c = a;
+
+		c.push_back('G');
+
+		std::hash<sbo<32>> hasher;
+
+		
+		CHECK(hasher(a) == hasher(b));
+		CHECK(hasher(a) != hasher(c));
 	}
 
 	SECTION("const reference")
@@ -2149,10 +2163,9 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(std::distance(ss.begin(), it) == 2);
 
 
-		//it = ss.find_first_of("Q"sv);
+		// it = ss.find_first_of("Q"sv);
 
-		
-		//it = ss.find_first_of({'D', 'E', 'F'});
 
+		// it = ss.find_first_of({'D', 'E', 'F'});
 	}
 }

@@ -548,6 +548,17 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(std::distance(str.begin(), it) == 8);
 #endif
 	}
+
+	SECTION("hash")
+	{
+		utf8::string str("🌍hello🌍 world🌍");
+		CHECK(str.size() == 14);
+		CHECK(str.length() == 14);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 23);
+		CHECK(str.valid() == true);
+		//	CHECK(std::hash<utf8::string>{}(str) == 0x25);
+	}
 }
 
 TEST_CASE("utf8::view", "[utf8][utf8view]")
@@ -635,5 +646,18 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(w[4] == 'l');
 		CHECK(w[5] == 'o');
 		CHECK(w[6] == 0x1'f30d);
+	}
+
+
+	SECTION("hash")
+	{
+		utf8::string str1("hello 🌍");
+		utf8::string str2("hello 🌍");
+		utf8::string str3("different string");
+
+		std::hash<utf8::string> hasher;
+
+		CHECK(hasher(str1) == hasher(str2));
+		CHECK(hasher(str1) != hasher(str3));
 	}
 }

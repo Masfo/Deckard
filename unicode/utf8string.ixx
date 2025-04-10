@@ -543,15 +543,16 @@ namespace deckard::utf8
 
 		iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
 
-		iterator insert(iterator pos, const string& str) 
-		{ 
+		iterator insert(iterator pos, const string& str)
+		{
 			if (not str.valid())
 			{
 				dbg::println("Trying to insert invalid string");
 				return pos;
 			}
 
-			return insert(pos, {str.data(), str.size_in_bytes()}); }
+			return insert(pos, {str.data(), str.size_in_bytes()});
+		}
 
 		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
@@ -668,7 +669,7 @@ namespace deckard::utf8
 
 		iterator replace(iterator first, iterator end, string str)
 		{
-			
+
 			if (not str.valid())
 			{
 				dbg::println("Trying to replace with invalid string");
@@ -1034,6 +1035,8 @@ namespace deckard::utf8
 
 			return valid ? len : 0ull;
 		}
+
+		size_t hash() const { return buffer.hash(); }
 #if 0
 		iterator find_first_of(std::span<u8> input, size_t pos = 0)
 		{
@@ -1084,8 +1087,9 @@ namespace deckard::utf8
 			}
 			return end_it;
 		}
-	#endif
+#endif
 	};
+
 	// TODO:
 	// find_first_of / first_not_of
 	// find_last_of  / last_no_of
@@ -1101,11 +1105,11 @@ export namespace std
 {
 	using namespace deckard;
 
-	// template<>
-	// struct hash<utf8::string2>
-	//{
-	//	size_t operator()(const utf8::string2& value) const { return deckard::utils::hash_values(value.to_string()); }
-	// };
+	template<>
+	struct hash<utf8::string>
+	{
+		size_t operator()(const utf8::string& value) const { return value.hash(); }
+	};
 
 	template<>
 	struct formatter<utf8::string>

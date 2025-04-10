@@ -833,14 +833,14 @@ namespace deckard
 		iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 
 		// replace
-		iterator replace(iterator pos, const std::span<value_type>& buffer) 
+		iterator replace(iterator pos, const std::span<value_type>& buffer)
 		{
-			if(pos == end())
+			if (pos == end())
 			{
-				auto pivot = erase(pos-1);
+				auto pivot = erase(pos - 1);
 				return insert(pivot, buffer);
 			}
-			return replace(pos, pos + 1, buffer); 
+			return replace(pos, pos + 1, buffer);
 		}
 
 		iterator replace(iterator first, iterator end, const std::span<value_type>& buffer)
@@ -862,7 +862,7 @@ namespace deckard
 			return replace(first, end, buffer);
 		}
 
-		iterator find_first_of(const std::span<value_type>& buffer)  
+		iterator find_first_of(const std::span<value_type>& buffer)
 		{
 			if (buffer.empty() or empty())
 			{
@@ -880,18 +880,26 @@ namespace deckard
 			return end();
 		}
 
-		iterator find_first_of(std::string_view view) const
-		{
-			return find_first_of({as<value_type*>(view.data()), view.size()});
-		}
+		iterator find_first_of(std::string_view view) const { return find_first_of({as<value_type*>(view.data()), view.size()}); }
 
-		//iterator find_first_of(const std::initializer_list<value_type>& il)
+		// iterator find_first_of(const std::initializer_list<value_type>& il)
 		//{
 		//	return find_first_of(std::span<value_type>{il.begin() , il.size()});
-		//}
+		// }
 
-		//iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
+		// iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
 
+		size_t hash() const
+		{
+			if (is_small())
+			{
+				return utils::hash_values<u8>({small_data().data(), small_size()});
+			}
+			else
+			{
+				return utils::hash_values<u8>({large_data().data(), large_size()});
+			}
+		}
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);
@@ -907,7 +915,7 @@ export namespace std
 	template<size_t SIZE>
 	struct hash<sbo<SIZE>>
 	{
-		size_t operator()(const sbo<SIZE>& obj) const { return deckard::utils::hash_values(obj.data()); }
+		size_t operator()(const sbo<SIZE>& obj) const { return obj.hash(); }
 	};
 
 	// template<size_t SIZE>
