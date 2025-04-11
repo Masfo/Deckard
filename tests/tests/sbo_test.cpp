@@ -2069,7 +2069,8 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a.size() == 6);
 		CHECK(a.capacity() == 31);
 
-		CHECK(a.hash() == 0xdc45'7fe2'cbcd'f06d);
+		std::hash<sbo<32>> hasher;
+		CHECK(hasher(a) == 0xdc45'7fe2'cbcd'f06d);
 
 
 		sbo<32> b = a;
@@ -2077,9 +2078,8 @@ TEST_CASE("sbo", "[sbo]")
 
 		c.push_back('G');
 
-		std::hash<sbo<32>> hasher;
+		CHECK(c.size() == 7);
 
-		
 		CHECK(hasher(a) == hasher(b));
 		CHECK(hasher(a) != hasher(c));
 	}

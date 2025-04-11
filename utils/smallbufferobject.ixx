@@ -889,17 +889,6 @@ namespace deckard
 
 		// iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
 
-		size_t hash() const
-		{
-			if (is_small())
-			{
-				return utils::hash_values<u8>({small_data().data(), small_size()});
-			}
-			else
-			{
-				return utils::hash_values<u8>({large_data().data(), large_size()});
-			}
-		}
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);
@@ -915,7 +904,7 @@ export namespace std
 	template<size_t SIZE>
 	struct hash<sbo<SIZE>>
 	{
-		size_t operator()(const sbo<SIZE>& obj) const { return obj.hash(); }
+		size_t operator()(const sbo<SIZE>& obj) const { return utils::hash_values<u8>({obj.data().data(), obj.size()}); }
 	};
 
 	// template<size_t SIZE>

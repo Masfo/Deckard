@@ -7,6 +7,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.as;
 import deckard.sbo;
+import deckard.utils.hash;
 
 namespace deckard::utf8
 {
@@ -1036,7 +1037,7 @@ namespace deckard::utf8
 			return valid ? len : 0ull;
 		}
 
-		size_t hash() const { return buffer.hash(); }
+		size_t hash() const { }
 #if 0
 		iterator find_first_of(std::span<u8> input, size_t pos = 0)
 		{
@@ -1108,7 +1109,10 @@ export namespace std
 	template<>
 	struct hash<utf8::string>
 	{
-		size_t operator()(const utf8::string& value) const { return value.hash(); }
+		size_t operator()(const utf8::string& value) const
+		{
+			return utils::hash_values(std::span<u8>{value.data(), value.size_in_bytes()});
+		}
 	};
 
 	template<>

@@ -65,13 +65,13 @@ namespace deckard::utf8
 
 		char32 decode_codepoint_at(size_t at) const
 		{
-			assert::check(at < as<i64>(m_data.size_bytes()), "Index out-of-bounds");
+			assert::check(at < as<size_t>(m_data.size_bytes()), "Index out-of-bounds");
 
 			auto   current   = at;
 			u8     state     = 0;
 			char32 codepoint = 0;
 
-			for (; current < as<i64>(m_data.size_bytes()); current++)
+			for (; current < as<size_t>(m_data.size_bytes()); current++)
 			{
 				u8 byte = m_data[current];
 
