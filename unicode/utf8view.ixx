@@ -20,13 +20,13 @@ namespace deckard::utf8
 		std::span<type> m_data;
 		i64             index{0};
 
-		void advance_to_next_codepoint()
+		void advance_to_next_codepoint(i64& idx) const
 		{
 
-			if (index >= as<i64>(m_data.size_bytes()))
+			if (idx >= as<i64>(m_data.size_bytes()))
 				return;
 
-			auto next = index;
+			auto next = idx;
 			next++;
 
 			while (next < as<i64>(m_data.size_bytes()) and utf8::is_continuation_byte(m_data[next]))
@@ -45,21 +45,21 @@ namespace deckard::utf8
 				next++;
 			}
 
-			index = next;
+			idx = next;
 		}
 
-		void reverse_to_last_codepoint()
+		void reverse_to_last_codepoint(i64& idx) const
 		{
 
-			if (index > 0)
+			if (idx > 0)
 			{
-				index -= 1;
+				idx -= 1;
 
-				while (index > 0 and utf8::is_continuation_byte(m_data[index]))
-					index -= 1;
+				while (idx > 0 and utf8::is_continuation_byte(m_data[idx]))
+					idx -= 1;
 
-				if (index < 0)
-					index = 0;
+				if (idx < 0)
+					idx = 0;
 			}
 		}
 
@@ -154,34 +154,34 @@ namespace deckard::utf8
 
 		auto operator++()
 		{
-			advance_to_next_codepoint();
+			advance_to_next_codepoint(index);
 			return *this;
 		}
 
 		auto operator++(int)
 		{
 			auto tmp = *this;
-			advance_to_next_codepoint();
+			advance_to_next_codepoint(index);
 			return tmp;
 		}
 
 		auto operator--()
 		{
-			reverse_to_last_codepoint();
+			reverse_to_last_codepoint(index);
 			return *this;
 		}
 
 		auto operator--(int)
 		{
 			auto tmp = *this;
-			reverse_to_last_codepoint();
+			reverse_to_last_codepoint(index);
 			return tmp;
 		}
 
 		auto operator+=(int v)
 		{
 			while (v--)
-				advance_to_next_codepoint();
+				advance_to_next_codepoint(index);
 
 			return *this;
 		}
@@ -189,23 +189,24 @@ namespace deckard::utf8
 		auto operator-=(int v)
 		{
 			while (v--)
-				reverse_to_last_codepoint();
+				reverse_to_last_codepoint(index);
 
 			return *this;
 		}
 
-		const char32& operator[](size_t index) const
+		const char32& at(size_t newindex) const
 		{
-			assert::check(index < size(), "Index out-of-bounds");
+			assert::check(newindex < size(), "Index out-of-bounds");
 
-			auto tmp  = *this;
-			tmp.index = 0;
+			i64 tmp = 0;
 
-			for (size_t i = 0; i < index; ++i)
-				tmp++;
-			return *tmp;
+			for (size_t i = 0; i < newindex; ++i)
+				advance_to_next_codepoint(tmp);
+
+			return decode_codepoint_at(tmp);
 		}
 
+		const char32& operator[](size_t newindex) const { return at(newindex); }
 	};
 
 } // namespace deckard::utf8

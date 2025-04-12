@@ -217,6 +217,13 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[7] == 'X');
 	}
 
+	SECTION("length")
+	{
+		utf8::string a("jμΛIα");
+		CHECK(a.size() == 5);
+		CHECK(a.length() == 5);
+	}
+
 	SECTION("substr")
 	{
 		utf8::string a("hello world");
