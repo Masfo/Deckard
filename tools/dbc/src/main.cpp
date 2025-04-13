@@ -61,7 +61,7 @@ std::string from_epoch(u64 epoch, ConvertEpoch mul = ConvertEpoch::Seconds)
 {
 	u64 t{epoch};
 	t *= as<u64>(mul);
-	t += 116444'736000'000000LL;
+	t += 116'444'736'000'000'000LL;
 
 	FILETIME ft{};
 	ft.dwLowDateTime  = t & 0xFFFF'FFFF;
@@ -347,7 +347,8 @@ private:
 public:
 };
 
-int deckard_main(std::string_view commandline)
+i32 deckard_main(utf8::view commandline) 
+
 {
 
 
@@ -442,8 +443,6 @@ fullscreen=true
 
 	resolve_ip("www.taboobuilder.com");
 	resolve_ip("localhost");
-
-
 
 
 	int k = 0;

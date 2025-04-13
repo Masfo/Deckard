@@ -6,15 +6,15 @@
             "type": "default",
             "project": "CMakeLists.txt",
             "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
-            "name": "window debug",
-            "args": [ "testing new" ]
+            "name": "window debug utf8",
+            "args": [ "arg1 🐱 argv2" ]
 
         },
         {
             "type": "debug",
             "project": "CMakeLists.txt",
             "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
-            "name": "window debug commandline utf8",
+            "name": "hello utf8",
             "args": [ "hello 🐱" ]
 
         }

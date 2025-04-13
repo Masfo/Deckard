@@ -206,6 +206,7 @@ set(DECKARD_SRCS
 
 
         # Utils
+        utils/base32.ixx
         utils/base64.ixx
         utils/scope_exit.ixx
         utils/hash.ixx

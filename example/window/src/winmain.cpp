@@ -469,7 +469,7 @@ std::generator<u32> gen()
 	}
 }
 
-i32 deckard_main(std::string_view commandline)
+i32 deckard_main(utf8::view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);

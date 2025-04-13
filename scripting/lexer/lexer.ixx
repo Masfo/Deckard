@@ -141,9 +141,10 @@ namespace deckard::lexer
 	};
 
 
-	using TokenValue = std::variant<std::monostate, double, i64, u64, utf8::string>;
+	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
 
 	constexpr auto STokenValue = sizeof(TokenValue);
+	static_assert(sizeof TokenValue == 32);
 
 	struct Token
 	{

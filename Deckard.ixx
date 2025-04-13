@@ -25,6 +25,7 @@ export import deckard.math;
 
 
 // Utils
+export import deckard.base32;
 export import deckard.base64;
 export import deckard.helpers;
 export import deckard.utils.hash;
@@ -116,7 +117,7 @@ void redirect_console(bool show)
 
 using namespace deckard;
 
-extern "C" i32 deckard_main(std::string_view);
+extern "C" i32 deckard_main(utf8::view);
 
 #if 0
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int) 
@@ -155,7 +156,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 	
+	auto cmd = GetCommandLineW();
+	auto cmdline = utf8::view{commandline};
 
+	int j = 0;
 	// clang-format off
 	#if 0
 		
@@ -204,7 +208,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 
 	// main
-	int ret = deckard_main(commandline);
+	int ret = deckard_main(cmdline);
 
 	//
 	//dbg::println("Deinitializing");
