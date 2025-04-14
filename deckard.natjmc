@@ -19,7 +19,9 @@
 	<File Name="random.ixx"/>
 
 
-	<File Name="base64.ixx"/>
+	<File Name="_base64.ixx"/>
+	<File Name="_base32.ixx"/>
+
 	<File Name="sha2.ixx"/>
 
 	<File Name="_file.ixx"/>

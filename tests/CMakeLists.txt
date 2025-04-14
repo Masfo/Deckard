@@ -36,7 +36,7 @@ target_sources(tests PUBLIC
     # Convert to
     tests/to_hex_test.cpp
     tests/hash_tests.cpp
-    tests/base64_test.cpp
+    tests/base_n_test.cpp
 
     # Graphs
     tests/graph_tests.cpp

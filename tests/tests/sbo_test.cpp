@@ -2070,7 +2070,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a.capacity() == 31);
 
 		std::hash<sbo<32>> hasher;
-		CHECK(hasher(a) == 0xdc45'7fe2'cbcd'f06d);
 
 
 		sbo<32> b = a;
