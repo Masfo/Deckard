@@ -14,6 +14,9 @@ TEST_CASE("base64", "[base64]")
 	{ 
 		CHECK(base64::encode_str("") == ""sv);
 
+		CHECK(base64::encode_str("hello world") == "aGVsbG8gd29ybGQ="sv);
+
+
 		// w/ padding
 		CHECK(base64::encode_str("foob") == "Zm9vYg=="sv);
 
@@ -44,6 +47,8 @@ TEST_CASE("base32", "[base32]")
 	SECTION("encode")
 	{
 		CHECK(base32::encode_str("") == ""sv);
+
+		CHECK(base32::encode_str("hello world") == "NBSWY3DPEB3W64TMMQ======"sv);
 
 		// w/ padding
 		CHECK(base32::encode_str("foob") == "MZXW6YQ="sv);

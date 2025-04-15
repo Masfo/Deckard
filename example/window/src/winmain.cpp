@@ -477,21 +477,7 @@ i32 deckard_main(utf8::view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-	std::array<u8, 4> bs{};
-	bs[0] = 1;
-	bs[1] =2;
-	bs[2] = 3;
-	bs[3] = 4;
 
-	std::span<u8> spanbs{bs.data(), bs.size()};
-
-	auto koskos = spanbs.subspan(2, 2);
-
-
-	for (const auto& i : koskos)
-		dbg::print("{} ", i);
-
-	int j1 = 0;
 
 
 
@@ -502,6 +488,9 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
+
+
+
 
 	{
 		// ####

@@ -7,6 +7,8 @@ import std;
 
 namespace deckard::utils::base32
 {
+	constexpr u8 INVALID_SYMBOL = 0x64;
+
 	static constexpr std::array<byte, 32> encode_table{
 	  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '2', '3', '4', '5', '6', '7'};
@@ -14,7 +16,7 @@ namespace deckard::utils::base32
 	static constexpr std::array<u8, 256> decode_table = []() constexpr
 	{
 		std::array<u8, 256> table{};
-		table.fill(0x64);
+		table.fill(INVALID_SYMBOL);
 
 		for (size_t i = 0; i < encode_table.size(); ++i)
 			table[encode_table[i]] = as<u8>(i);
@@ -22,18 +24,6 @@ namespace deckard::utils::base32
 		return table;
 	}();
 
-	constexpr auto decode_five(const std::span<const u8> input) -> std::array<u8, 5>
-	{
-		u64 combined = 0;
-		for (size_t i = 0; i < 8; ++i)
-			combined = (combined << 5) | decode_table[input[i]];
-
-		return {as<u8>((combined >> 32) & 0xFF),
-				as<u8>((combined >> 24) & 0xFF),
-				as<u8>((combined >> 16) & 0xFF),
-				as<u8>((combined >> 8) & 0xFF),
-				as<u8>(combined & 0xFF)};
-	}
 
 	constexpr std::array<byte, 8> encode_five(const std::span<const u8> input)
 	{
@@ -52,7 +42,20 @@ namespace deckard::utils::base32
 		return {b1, b2, b3, b4, b5, b6, b7, b8};
 	}
 
-	bool is_valid_base32_char(byte c) { return decode_table[c] != 0x64; }
+	constexpr auto decode_five(const std::span<const u8> input) -> std::array<u8, 5>
+	{
+		u64 combined = 0;
+		for (size_t i = 0; i < 8; ++i)
+			combined = (combined << 5) | decode_table[input[i]];
+
+		return {as<u8>((combined >> 32) & 0xFF),
+				as<u8>((combined >> 24) & 0xFF),
+				as<u8>((combined >> 16) & 0xFF),
+				as<u8>((combined >> 8) & 0xFF),
+				as<u8>(combined & 0xFF)};
+	}
+
+	bool is_valid_base32_char(byte c) { return decode_table[c] != INVALID_SYMBOL; }
 
 	bool is_valid_base32_str(std::string_view encoded_string)
 	{
@@ -93,6 +96,7 @@ namespace deckard::utils::base32
 		if (remainder > 0)
 		{
 			std::array<u8, 5> buffer{0};
+
 			for (size_t i = 0; i < remainder; ++i)
 				buffer[i] = input[blocks * 5 + i];
 
