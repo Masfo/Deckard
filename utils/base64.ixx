@@ -40,12 +40,12 @@ namespace deckard::utils::base64
 
 	constexpr std::array<byte, 4> encode_three(u8 a, u8 b, u8 c)
 	{
-		const u32 concat_bits = (a << 16) | (b << 8) | c;
-
-		const byte c1 = encode_table[(concat_bits >> 18) & 0x3F];
-		const byte c2 = encode_table[(concat_bits >> 12) & 0x3F];
-		const byte c3 = encode_table[(concat_bits >> 6) & 0x3F];
-		const byte c4 = encode_table[concat_bits & 0x3F];
+		const u32 combined = (a << 16) | (b << 8) | c;
+		
+		const byte c1 = encode_table[(combined >> 18) & 0x3F];
+		const byte c2 = encode_table[(combined >> 12) & 0x3F];
+		const byte c3 = encode_table[(combined >> 6) & 0x3F];
+		const byte c4 = encode_table[combined & 0x3F];
 		return {c1, c2, c3, c4};
 	}
 
@@ -87,7 +87,7 @@ namespace deckard::utils::base64
 
 		std::string output;
 
-		size_t reserve_size = 4ULL * std::ceil(input.size_bytes() / 3.0f);
+		size_t reserve_size = 4ULL * as<size_t>(std::ceil(input.size_bytes() / 3.0f));
 		output.reserve(reserve_size);
 
 		for (u64 i = 0; i < blocks; ++i)
@@ -143,7 +143,7 @@ namespace deckard::utils::base64
 		const auto remainder      = unpadded_input.size() % 4;
 
 		std::vector<u8> output;
-		size_t          reserve_size = std::floor(unpadded_input.size() * 3ULL) / 4;
+		size_t          reserve_size =  as<size_t>(std::floor(unpadded_input.size() * 3ULL) / 4ULL);
 		output.reserve(reserve_size);
 
 		for (u64 i = 0; i < blocks; ++i)
@@ -155,7 +155,7 @@ namespace deckard::utils::base64
 
 		if (remainder > 0)
 		{
-			std::array<byte, 4> buffer{'A', 'A', 'A', 'A'};
+			std::array<byte, 4> buffer{};
 			buffer.fill('A');
 
 			for (size_t i = 0; i < remainder; ++i)

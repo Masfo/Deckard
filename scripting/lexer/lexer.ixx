@@ -64,23 +64,25 @@ namespace deckard::lexer
 		USER_TYPE,       // struct <type>
 
 		// Op
-		PLUS,        // +
-		MINUS,       // -
-		STAR,        // *
-		SLASH,       // /
-		PERCENT,     // %
-		QUESTION,    // ?
-		BANG,        // !
-		AT,          // @
-		UNDERSCORE,  // _
+		PLUS,         // +
+		MINUS,        // -
+		STAR,         // *
+		SLASH,        // /
+		PERCENT,      // %
+		QUESTION,     // ?
+		BANG,         // !
+		AT,           // @
+		UNDERSCORE,   // _
 
 
-		BACK_SLASH,  // '\'
-		SLASH_SLASH, // //
-		SLASH_STAR,  // /*
-		STAR_SLASH,  // */
+		BACK_SLASH,   // '\'
+		SLASH_SLASH,  // //
+		SLASH_STAR,   // /*
+		STAR_SLASH,   // */
 
-		EQUAL,       // =
+		// TRIPLE_QUOTE, // """
+
+		EQUAL,        // =
 
 		// Compare
 		LESSER,                // <

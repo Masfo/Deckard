@@ -24,7 +24,6 @@ namespace deckard::utils::base32
 		return table;
 	}();
 
-
 	constexpr std::array<byte, 8> encode_five(const std::span<const u8> input)
 	{
 
@@ -84,7 +83,7 @@ namespace deckard::utils::base32
 		const auto remainder = size % 5;
 
 		std::string output;
-		size_t      reserve_size = 8ULL * std::ceil(input.size_bytes() / 5.0f);
+		size_t      reserve_size = 8ULL * as<size_t>(std::ceil(input.size_bytes() / 5.0f));
 		output.reserve(reserve_size);
 
 		for (size_t i = 0; i < blocks; ++i)
@@ -136,7 +135,7 @@ namespace deckard::utils::base32
 		const auto remainder      = size % 8;
 
 		std::vector<u8> output;
-		size_t          reserve_size = std::floor(unpadded_input.size() * 5ULL) / 8;
+		size_t          reserve_size = as<size_t>(std::floor(unpadded_input.size() * 5ULL) / 8);
 		output.reserve(reserve_size);
 
 
@@ -150,7 +149,9 @@ namespace deckard::utils::base32
 
 		if (remainder > 0)
 		{
-			std::array<byte, 8> buffer{'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'};
+			std::array<byte, 8> buffer{};
+			buffer.fill('A');
+
 			for (size_t i = 0; i < remainder; ++i)
 				buffer[i] = unpadded_input[blocks * 8 + i];
 

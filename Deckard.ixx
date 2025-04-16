@@ -159,7 +159,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	auto cmd = GetCommandLineW();
 	auto cmdline = utf8::view{commandline};
 
-	int j = 0;
 	// clang-format off
 	#if 0
 		

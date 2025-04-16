@@ -347,7 +347,7 @@ private:
 public:
 };
 
-i32 deckard_main(utf8::view commandline) 
+i32 deckard_main(utf8::view /*commandline*/) 
 
 {
 
@@ -357,14 +357,6 @@ i32 deckard_main(utf8::view commandline)
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
-
-	// at, []
-	// at<u32>, at<u8> template
-	// size, count, size_in_bytes
-	// iterator
-	// contains, find
-	// ==, !=
-	// sizeof == 32
 
 #if 0
 	lexer::tokenizer l2(R"(
@@ -380,56 +372,6 @@ fullscreen=true
 	auto             tokens = l2.tokenize({.dot_identifier = true, .output_eol = true});
 #endif
 
-	std::array<std::array<u32, 3>, 3> grid{1, 2, 3, 4, 5, 6, 7, 8, 9};
-
-	int rows = 3;
-	int cols = 4;
-
-	std::vector<std::vector<int>> grid2(rows, std::vector<int>(cols, 0));
-
-	grid2[0][0] = 10;
-
-#if 0
-	{
-		constexpr int r = 3;
-		constexpr int c = 4;
-
-		// Create a contiguous memory block
-		std::vector<int> data(r * c);
-
-		// Create an mdspan view over the data
-		// std::mdspan<int, 2> grid(data.data(), r, c);
-		auto ms2 = std::mdspan(data.data(), r, c);
-
-		// Write data using 2D view
-		for (std::size_t i = 0; i != ms2.extent(0); i++)
-			for (std::size_t j = 0; j != ms2.extent(1); j++)
-				ms2[std::array{i, j}] = i * 1000 + j;
-
-		// Read back using 3D view
-		for (std::size_t i = 0; i != ms2.extent(0); i++)
-		{
-			for (std::size_t j = 0; j != ms2.extent(1); j++)
-			{
-				dbg::print("{:4} ", ms2[std::array{i, j}]);
-			}
-			dbg::println("");
-		}
-
-		// Access and modify elements
-		// grid[1][2] = 5; // Set element at row 1, column 2 to 5
-		//
-		//// Print the grid (for demonstration)
-		// for (int i = 0; i < rows; ++i)
-		//{
-		//	for (int j = 0; j < cols; ++j)
-		//	{
-		//		std::cout << grid[i][j] << " ";
-		//	}
-		//	std::cout << std::endl;
-		// }
-	}
-#endif
 
 
 	auto resolve_ip = [](std::string_view url)
@@ -508,11 +450,6 @@ fullscreen=true
 	//  - status: created, deleted, modified,
 
 
-	dbg::println("{:08b}", bitmask(4));
-	dbg::println("{:08b}", bitmask(4, 1));
-	dbg::println("{:08b}", bitmask(2));
-	dbg::println("{:032b}", bitmask<u32>(5));
-
 
 	// auto d = Chain().set(123).execute().close();
 	// int  k = 0;
@@ -584,55 +521,12 @@ fullscreen=true
 	dbg::println("2 == {}", count_colons("0:0:0::1"));
 
 
-	auto longest_zero_run = [](std::string_view input) -> i32
-	{
-		i32 max_zeros           = 0;
-		i32 max_zeros_index     = -1;
-		i32 current_zeros       = 0;
-		i32 current_zeros_index = -1;
-
-		for (auto [i, digit] : std::views::enumerate(input))
-		{
-			if (digit == '0')
-			{
-				if (current_zeros == 0)
-					current_zeros_index = as<i32>(i);
-				current_zeros += 1;
-			}
-			else
-			{
-				if (current_zeros > max_zeros)
-				{
-					max_zeros       = current_zeros;
-					max_zeros_index = current_zeros_index;
-				}
-				current_zeros = 0;
-			}
-		}
-
-		if (current_zeros > max_zeros)
-		{
-			max_zeros       = current_zeros;
-			max_zeros_index = current_zeros_index;
-		}
-
-		return max_zeros_index;
-	};
-
 	cpuid::CPUID id;
 	dbg::println("{}", id.as_string());
 
 	dbg::println("RAM: {}", system::GetRAMString());
 
 	dbg::println("OS: {}", system::GetOSVersionString());
-
-	dbg::println("4 == {}", longest_zero_run("12340000"));
-	dbg::println("6 == {}", longest_zero_run("120034000012"));
-	dbg::println("0 == {}", longest_zero_run("0000100020010"));
-	dbg::println("9 == {}", longest_zero_run("01002000300004"));
-	//                                        0123456789
-	dbg::println("6 == {}", longest_zero_run("1200340000560007"));
-	dbg::println("2 == {}", longest_zero_run("12000055000021"));
 
 
 	IpAddress ipv6;
