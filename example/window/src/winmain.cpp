@@ -285,13 +285,13 @@ dbg::println();
 			}
 		}
 
-		for (u8 i = 0; i <= MAX_IPV6_ADDRESS_STR_LEN && pos < 16; i++)
+		for (u8 i = 0; i < input.size() && pos < 16; i++)
 		{
 
 
 			if (input[i] == ':' or i == input.size())
 			{
-				ret[pos]     = accumulator >> 8;
+				ret[pos + 0] = accumulator >> 8;
 				ret[pos + 1] = accumulator;
 				accumulator  = 0;
 
@@ -308,10 +308,15 @@ dbg::println();
 			if (i >= input.size())
 				break;
 		}
+
+		ret[pos + 0] = accumulator >> 8;
+		ret[pos + 1] = accumulator;
 		return ret;
 	};
 
-	utf8::string ipv6("2001:0db8::1:0:0:1");
+	 utf8::string ipv6("2001:0db8::1:0:0:1");
+	//utf8::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
+
 	//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
 	// 20 01 0d b8 00 00 00 00 00 01 00 00 00 00 00 01
 

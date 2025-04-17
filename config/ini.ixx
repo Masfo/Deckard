@@ -49,7 +49,7 @@ namespace deckard::ini
 	 */
 
 	// What happens if value written is large, should comment be moved or string split to multirow
-
+	#if 0
 	export class ini
 	{
 	public:
@@ -75,7 +75,7 @@ namespace deckard::ini
 		std::vector<value> kv_map;
 		//	lexer::tokenizer   m_tokens;
 	};
-
+	#endif
 	// TODO: read to vector so writeback doesnt change order.
 
 } // namespace deckard::ini

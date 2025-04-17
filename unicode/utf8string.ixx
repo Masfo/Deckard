@@ -1037,8 +1037,8 @@ namespace deckard::utf8
 			return valid ? len : 0ull;
 		}
 
-		size_t hash() const { }
 #if 0
+		size_t hash() const { }
 		iterator find_first_of(std::span<u8> input, size_t pos = 0)
 		{
 			assert::check(pos < size(), "Index out of bounds");

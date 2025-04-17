@@ -5,6 +5,7 @@ import std;
 import deckard.grid;
 import deckard.arrays;
 import deckard.helpers;
+import deckard.as;
 
 using namespace deckard;
 
