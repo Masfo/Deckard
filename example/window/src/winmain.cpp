@@ -86,12 +86,6 @@ void render(vulkanapp&)
 	//
 }
 
-
-
-
-
-
-
 constexpr std::array<u32, 64> k_md5 = []
 {
 	std::array<u32, 64> table = {};
@@ -103,8 +97,6 @@ constexpr std::array<u32, 64> k_md5 = []
 #endif
 	return table;
 }();
-
-
 
 
 template<typename T>
@@ -199,7 +191,6 @@ struct Tree
 #endif
 
 
-
 template<typename T>
 struct Noisy
 {
@@ -245,7 +236,6 @@ struct Noisy
 
 u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
 
-
 std::generator<u32> gen()
 {
 	u32 num = 0;
@@ -257,16 +247,12 @@ std::generator<u32> gen()
 	}
 }
 
-
 i32 deckard_main(utf8::view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
-
-
-
 
 
 #if 0
@@ -278,32 +264,98 @@ dbg::println();
 #endif
 
 
+	auto ipv6_from_string = [](const utf8::view& input) -> std::array<u8, 16>
+	{
+		constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
+
+		std::array<u8, 16> ret{};
+
+		u16 accumulator = 0;
+		u8  colon_count = 0;
+		u8  pos         = 0;
+
+		for (u8 i = 1; i < input.size(); i++)
+		{
+			if (input[i] == ':')
+			{
+				if (input[i - 1] == ':')
+					colon_count = 14;
+				else if (colon_count)
+					colon_count -= 2;
+			}
+		}
+
+		for (u8 i = 0; i <= MAX_IPV6_ADDRESS_STR_LEN && pos < 16; i++)
+		{
+
+
+			if (input[i] == ':' or i == input.size())
+			{
+				ret[pos]     = accumulator >> 8;
+				ret[pos + 1] = accumulator;
+				accumulator  = 0;
+
+				if (colon_count && i && input[i - 1] == ':')
+					pos = colon_count;
+				else
+					pos += 2;
+			}
+			else
+			{
+				accumulator <<= 4;
+				accumulator |= utf8::ascii_to_hex(input[i]);
+			}
+			if (i >= input.size())
+				break;
+		}
+		return ret;
+	};
+
+	utf8::string ipv6("2001:0db8::1:0:0:1");
+	//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+	// 20 01 0d b8 00 00 00 00 00 01 00 00 00 00 00 01
+
+	dbg::println("ipv6: {}", ipv6);
+
+	auto ipv_addr = ipv6_from_string(ipv6);
+
+
 	dbg::println("log2(32) = {}", std::log2(32));
 	dbg::println("log2(64) = {}", std::log2(64));
 	dbg::println("log2(85) = {}", std::log2(85));
 	dbg::println("log2(92) = {}", std::log2(92));
+
 	int j1 = 0;
+
+
+	std::vector<u8> kos = make_vector<u8>(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07);
+	std::span<u8>   vkos{kos};
+
+	dbg::println("{}", vkos.size());
+	dbg::println("{}", vkos);
+
+
+	kos.clear();
+
+	dbg::println("{}", vkos.size());
+	dbg::println("{}", vkos);
+
 
 	{
 		// ####
 
-		std::string a("--number 10 -n 'hello world'"); // --name 'hello'
+		std::string      a("--number 10 -n 'hello world'"); // --name 'hello'
 		std::string_view sv(a);
 
 
 		if (sv.starts_with("--"))
 			sv.substr(2);
-		else if(sv.starts_with("-"))
+		else if (sv.starts_with("-"))
 			sv.substr(1);
-
-
-
-
 
 
 		// ####
 	}
-
 
 
 	// ###################
@@ -483,4 +535,3 @@ dbg::println();
 
 	return app01.run();
 }
-

@@ -42,5 +42,15 @@ export namespace deckard::utf8
 		return is_ascii_alphanumeric(codepoint) or codepoint == '_' or codepoint == '$';
 	}
 
+	constexpr u8 ascii_to_hex(char32 codepoint)
+	{
+		if (is_ascii_digit(codepoint))
+			return codepoint - '0';
+		else if (codepoint >= 'A' and codepoint <= 'F')
+			return codepoint - 'A' + 10;
+		else if (codepoint >= 'a' and codepoint <= 'f')
+			return codepoint - 'a' + 10;
+		return 0;
+	}
 
 } // namespace deckard::utf8

@@ -194,7 +194,7 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		const char32& at(size_t newindex) const
+		const char32 at(size_t newindex) const
 		{
 			assert::check(newindex < size(), "Index out-of-bounds");
 
@@ -206,7 +206,7 @@ namespace deckard::utf8
 			return decode_codepoint_at(tmp);
 		}
 
-		const char32& operator[](size_t newindex) const { return at(newindex); }
+		const char32 operator[](size_t newindex) const { return at(newindex); }
 	};
 
 } // namespace deckard::utf8

@@ -189,7 +189,7 @@ namespace deckard
 
 		~filemap() { close(); }
 
-		explicit filemap(const std::filesystem::path file, access flag = access::read) { open(file, flag); }
+		explicit filemap(const fs::path file, access flag = access::read) { open(file, flag); }
 
 		std::optional<std::span<u8>> open(fs::path const file, access flag = access::read)
 		{

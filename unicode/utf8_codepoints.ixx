@@ -17,7 +17,7 @@ namespace deckard::utf8
 
 	export constexpr bool is_start_of_codepoint(const u8 byte)
 	{
-		return ((byte and 0xE0) == 0xC0 or (byte and 0xF0) == 0xE0 or (byte and 0xF8) == 0xF0);
+		return (((byte & 0xE0) == 0xC0) or ((byte & 0xF0) == 0xE0) or ((byte & 0xF8) == 0xF0));
 	}
 
 	export constexpr u32 codepoint_width(u8 codepoint_byte)
