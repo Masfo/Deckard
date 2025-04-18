@@ -264,7 +264,7 @@ dbg::println();
 #endif
 
 
-	auto ipv6_from_string = [](const utf8::view& input) -> std::array<u8, 16>
+	auto ipv6_from_string = [](const std::string_view input) -> std::array<u8, 16>
 	{
 		constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
@@ -288,8 +288,7 @@ dbg::println();
 		for (u8 i = 0; i < input.size() && pos < 16; i++)
 		{
 
-
-			if (input[i] == ':' or i == input.size())
+			if (input[i] == ':')
 			{
 				ret[pos + 0] = accumulator >> 8;
 				ret[pos + 1] = accumulator;
@@ -303,10 +302,8 @@ dbg::println();
 			else
 			{
 				accumulator <<= 4;
-				accumulator |= utf8::ascii_to_hex(input[i]);
+				accumulator |= utf8::ascii_hex_to_int(input[i]);
 			}
-			if (i >= input.size())
-				break;
 		}
 
 		ret[pos + 0] = accumulator >> 8;
@@ -314,15 +311,83 @@ dbg::println();
 		return ret;
 	};
 
-	 utf8::string ipv6("2001:0db8::1:0:0:1");
-	//utf8::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
+	auto ipv6_to_string = [](const std::array<u8, 16>& buffer) -> std::string
+	{
+		// Convert 16 bytes to 8 groups of 16-bit integers
+		std::array<uint16_t, 8> groups;
+		for (int i = 0; i < 8; ++i)
+		{
+			groups[i] = static_cast<uint16_t>((buffer[2 * i] << 8) | buffer[2 * i + 1]);
+		}
+
+		// Find the longest run of zeros for compression
+		int best_start = -1, best_len = 0;
+		for (int i = 0; i < 8;)
+		{
+			if (groups[i] == 0)
+			{
+				int j = i;
+				while (j < 8 && groups[j] == 0)
+					++j;
+				int len = j - i;
+				if (len > best_len)
+				{
+					best_start = i;
+					best_len   = len;
+				}
+				i = j;
+			}
+			else
+			{
+				++i;
+			}
+		}
+
+		if (best_len < 2)
+			best_start = -1;
+
+		std::string        ret;
+		for (int i = 0; i < 8;)
+		{
+			if (i == best_start)
+			{
+				ret += (i == 0) ? ":" : ":";
+				i += best_len;
+
+				if (i >= 8)
+					break;
+			}
+			else
+			{
+				if (i > 0)
+					ret += ":";
+				ret += std::format("{:x}", groups[i]);
+
+				++i;
+			}
+		}
+		return ret;
+	};
+
+	//std::string ipv6("2001:db8::1:0:0:1");
+	std::string ipv6("2001:0db8:0000:0000:0000:0000:1428:57ab");
+	// 
+	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
 
 	//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
 	// 20 01 0d b8 00 00 00 00 00 01 00 00 00 00 00 01
+	// 192.168.1.1 - c0.ab.01.01
+	//  ::ffff:c0ab:0101
+	// 
+	//  127.0.0.1 - ::ffff:7f00:1
 
 	dbg::println("ipv6: {}", ipv6);
 
 	auto ipv_addr = ipv6_from_string(ipv6);
+	dbg::println("bytes: {}", ipv_addr);
+
+	auto ipv_recon = ipv6_to_string(ipv_addr);
+	dbg::println("recon: {}", ipv_recon);
 
 
 	dbg::println("log2(32) = {}", std::log2(32));

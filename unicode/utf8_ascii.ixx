@@ -42,7 +42,7 @@ export namespace deckard::utf8
 		return is_ascii_alphanumeric(codepoint) or codepoint == '_' or codepoint == '$';
 	}
 
-	constexpr u8 ascii_to_hex(char32 codepoint)
+	constexpr size_t ascii_hex_to_int(char codepoint)
 	{
 		if (is_ascii_digit(codepoint))
 			return codepoint - '0';
