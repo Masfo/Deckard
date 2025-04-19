@@ -14,7 +14,7 @@ namespace deckard::utils::base64
 	  's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'};
 
 
-	static constexpr std::array<u8, 256> decode_table = []() constexpr
+	static constexpr std::array<u8, 256> decode_table = []() static constexpr
 	{
 		std::array<u8, 256> table{};
 		table.fill(INVALID_SYMBOL);
@@ -87,7 +87,7 @@ namespace deckard::utils::base64
 
 		std::string output;
 
-		size_t reserve_size = 4ULL * as<size_t>(std::ceil(input.size_bytes() / 3.0f));
+		size_t reserve_size = 4uz * as<size_t>(std::ceil(input.size_bytes() / 3.0f));
 		output.reserve(reserve_size);
 
 		for (u64 i = 0; i < blocks; ++i)
@@ -143,7 +143,7 @@ namespace deckard::utils::base64
 		const auto remainder      = unpadded_input.size() % 4;
 
 		std::vector<u8> output;
-		size_t          reserve_size =  as<size_t>(std::floor(unpadded_input.size() * 3ULL) / 4ULL);
+		size_t          reserve_size =  as<size_t>(std::floor(unpadded_input.size() * 3uz) / 4uz);
 		output.reserve(reserve_size);
 
 		for (u64 i = 0; i < blocks; ++i)

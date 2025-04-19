@@ -13,7 +13,7 @@ namespace deckard::utils::base32
 	  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '2', '3', '4', '5', '6', '7'};
 
-	static constexpr std::array<u8, 256> decode_table = []() constexpr
+	static constexpr std::array<u8, 256> decode_table = []() static constexpr
 	{
 		std::array<u8, 256> table{};
 		table.fill(INVALID_SYMBOL);
