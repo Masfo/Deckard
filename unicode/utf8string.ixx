@@ -1034,7 +1034,7 @@ namespace deckard::utf8
 				ptr += 1 + ((v1 << v2) | (v1 & v3));
 			}
 
-			return valid ? len : 0ull;
+			return valid ? len : 0uz;
 		}
 
 #if 0

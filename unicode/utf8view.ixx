@@ -206,7 +206,18 @@ namespace deckard::utf8
 			return decode_codepoint_at(tmp);
 		}
 
-		const char32 operator[](size_t newindex) const { return at(newindex); }
+		constexpr auto operator[](this auto&& self, size_t idx)
+		{
+
+			assert::check(idx < self.size(), "Index out-of-bounds");
+
+			i64 tmp = 0;
+
+			for (size_t i = 0; i < idx; ++i)
+				self.advance_to_next_codepoint(tmp);
+
+			return self.decode_codepoint_at(tmp);
+		}
 	};
 
 } // namespace deckard::utf8
