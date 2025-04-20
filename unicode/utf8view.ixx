@@ -18,9 +18,9 @@ namespace deckard::utf8
 		using type = u8;
 
 		std::span<type> m_data;
-		i64             index{0};
+		size_t             byte_index{0};
 
-		void advance_to_next_codepoint(i64& idx) const
+		void advance_to_next_codepoint(size_t& idx) const
 		{
 
 			if (idx >= as<i64>(m_data.size_bytes()))
@@ -48,7 +48,7 @@ namespace deckard::utf8
 			idx = next;
 		}
 
-		void reverse_to_last_codepoint(i64& idx) const
+		void reverse_to_last_codepoint(size_t& idx) const
 		{
 
 			if (idx > 0)
@@ -87,35 +87,38 @@ namespace deckard::utf8
 			return REPLACEMENT_CHARACTER;
 		}
 
-		char32 decode_current_codepoint() const { return decode_codepoint_at(index); }
+		char32 decode_current_codepoint() const { return decode_codepoint_at(byte_index); }
 
 	public:
 #ifdef __cpp_deleted_function
 #error("use delete error");
 		view() = delete("utf8view needs a view to a buffer");
+		#else
+		view() = delete;
+
 #endif
 
 		view(const string& str)
 			: m_data(str.span())
-			, index(0)
+			, byte_index(0uz)
 		{
 		}
 
 		view(std::span<u8> data)
 			: m_data(data)
-			, index(0)
+			, byte_index(0uz)
 		{
 		}
 
 		view(std::string_view data)
-			: m_data(as<u8*>(data.data()), as<u32>(data.size()))
-			, index(0)
+			: m_data(as<u8*>(data.data()), data.size())
+			, byte_index(0uz)
 		{
 		}
 
 		view(const char* data, u32 len)
 			: m_data(as<u8*>(data), len)
-			, index(0)
+			, byte_index(0uz)
 		{
 		}
 
@@ -129,7 +132,7 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
-		bool empty() const { return size() == 0; }
+		bool empty() const { return size() == 0uz; }
 
 		bool is_valid() const
 		{
@@ -154,34 +157,34 @@ namespace deckard::utf8
 
 		auto operator++()
 		{
-			advance_to_next_codepoint(index);
+			advance_to_next_codepoint(byte_index);
 			return *this;
 		}
 
 		auto operator++(int)
 		{
 			auto tmp = *this;
-			advance_to_next_codepoint(index);
+			advance_to_next_codepoint(byte_index);
 			return tmp;
 		}
 
 		auto operator--()
 		{
-			reverse_to_last_codepoint(index);
+			reverse_to_last_codepoint(byte_index);
 			return *this;
 		}
 
 		auto operator--(int)
 		{
 			auto tmp = *this;
-			reverse_to_last_codepoint(index);
+			reverse_to_last_codepoint(byte_index);
 			return tmp;
 		}
 
 		auto operator+=(int v)
 		{
 			while (v--)
-				advance_to_next_codepoint(index);
+				advance_to_next_codepoint(byte_index);
 
 			return *this;
 		}
@@ -189,7 +192,7 @@ namespace deckard::utf8
 		auto operator-=(int v)
 		{
 			while (v--)
-				reverse_to_last_codepoint(index);
+				reverse_to_last_codepoint(byte_index);
 
 			return *this;
 		}
@@ -198,7 +201,7 @@ namespace deckard::utf8
 		{
 			assert::check(newindex < size(), "Index out-of-bounds");
 
-			i64 tmp = 0;
+			size_t tmp = 0;
 
 			for (size_t i = 0; i < newindex; ++i)
 				advance_to_next_codepoint(tmp);
@@ -211,7 +214,7 @@ namespace deckard::utf8
 
 			assert::check(idx < self.size(), "Index out-of-bounds");
 
-			i64 tmp = 0;
+			size_t tmp = 0;
 
 			for (size_t i = 0; i < idx; ++i)
 				self.advance_to_next_codepoint(tmp);

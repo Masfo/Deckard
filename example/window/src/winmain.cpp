@@ -4,6 +4,7 @@
 
 import std;
 import deckard;
+import deckard.types;
 import deckard.timers;
 using namespace deckard;
 using namespace deckard::app;
@@ -263,10 +264,65 @@ dbg::print("{} ", x);
 dbg::println();
 #endif
 
+	auto is_valid_ipv6 = [](const std::string_view input) -> bool
+	{
+		bool ret = false;
 
-	auto ipv6_from_string = [](const std::string_view input) -> std::array<u8, 16>
+		if (input.empty() or input.size() > 39)
+			return false;
+
+		u8   groups           = 0;
+		u8   zeros            = 0;
+		bool has_double_colon = false;
+
+		auto validate_group = [](std::string_view group) -> bool
+		{
+			if (group.empty() or group.size() > 4)
+				return false;
+
+			return std::ranges::all_of(group, utf8::is_ascii_hex_digit);
+		};
+
+		std::string_view remaining = input;
+		while (not remaining.empty())
+		{
+			auto colon = remaining.find(':');
+			if (colon == 0)
+			{
+				if (has_double_colon)
+					return false;
+				if (remaining.size() < 2 or remaining[1] != ':')
+					return false;
+				has_double_colon = true;
+				zeros            = 8 - groups;
+				remaining.remove_prefix(2);
+				continue;
+			}
+
+			auto group = remaining.substr(0, colon);
+			if (not validate_group(group))
+				return false;
+
+			groups++;
+			if (groups > 8)
+				return false;
+
+			if (colon == std::string_view::npos)
+				break;
+
+			remaining.remove_prefix(colon + 1);
+		}
+
+		auto g = groups + (has_double_colon ? zeros : 0);
+		 return 8 == (groups + (has_double_colon ? zeros : 0));
+	};
+
+
+	auto ipv6_from_string = [&](const std::string_view input) -> std::array<u8, 16>
 	{
 		constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
+
+		bool k = is_valid_ipv6(input);
 
 		std::array<u8, 16> ret{};
 
@@ -313,21 +369,18 @@ dbg::println();
 
 	auto ipv6_to_string = [](const std::array<u8, 16>& buffer) -> std::string
 	{
-		// Convert 16 bytes to 8 groups of 16-bit integers
-		std::array<uint16_t, 8> groups;
+		std::array<u16, 8> groups;
 		for (int i = 0; i < 8; ++i)
-		{
-			groups[i] = static_cast<uint16_t>((buffer[2 * i] << 8) | buffer[2 * i + 1]);
-		}
+			groups[i] = as<u16>((buffer[2 * i] << 8) | buffer[2 * i + 1]);
 
-		// Find the longest run of zeros for compression
+
 		int best_start = -1, best_len = 0;
-		for (int i = 0; i < 8;)
+		for (int i = 0; i < groups.size();)
 		{
 			if (groups[i] == 0)
 			{
 				int j = i;
-				while (j < 8 && groups[j] == 0)
+				while (j < groups.size() && groups[j] == 0)
 					++j;
 				int len = j - i;
 				if (len > best_len)
@@ -346,7 +399,7 @@ dbg::println();
 		if (best_len < 2)
 			best_start = -1;
 
-		std::string        ret;
+		std::string ret;
 		for (int i = 0; i < 8;)
 		{
 			if (i == best_start)
@@ -369,16 +422,16 @@ dbg::println();
 		return ret;
 	};
 
-	//std::string ipv6("2001:db8::1:0:0:1");
-	std::string ipv6("2001:0db8:0000:0000:0000:0000:1428:57ab");
-	// 
+	// std::string ipv6("2001:db8::1:0:0:1");
+	std::string ipv6("::ffff:7f00:1");
+	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
 
 	//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
 	// 20 01 0d b8 00 00 00 00 00 01 00 00 00 00 00 01
 	// 192.168.1.1 - c0.ab.01.01
 	//  ::ffff:c0ab:0101
-	// 
+	//
 	//  127.0.0.1 - ::ffff:7f00:1
 
 	dbg::println("ipv6: {}", ipv6);
