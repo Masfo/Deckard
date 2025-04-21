@@ -558,6 +558,8 @@ namespace deckard::utf8
 		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
 
+		void assign(const std::span<u8> &input) { buffer.assign(input); }
+
 		void append(const std::string_view str) { insert(end(), str); }
 
 		void append(const string& other) { insert(end(), other); }
@@ -706,10 +708,10 @@ namespace deckard::utf8
 			return replace(first, end, str);
 		}
 
-		index_type find(std::span<u8> input, size_t offset = 0) const
+		std::optional<index_type> find(std::span<u8> input, size_t offset = 0) const
 		{
 			if (input.empty() || input.size() > buffer.size() - offset)
-				return 0;
+				return {};
 
 			for (size_t i = offset; i <= buffer.size() - input.size(); ++i)
 			{
@@ -738,18 +740,18 @@ namespace deckard::utf8
 				}
 			}
 
-			return -1;
+			return {};
 		}
 
-		index_type find(std::string_view input, size_t offset = 0) const
+		auto find(std::string_view input, size_t offset = 0) const
 		{
 			return find(std::span<u8>{as<u8*>(input.data()), input.size()}, offset);
 		}
 
-		index_type find(string input, size_t offset = 0) const
+		std::optional<index_type> find(string input, size_t offset = 0) const
 		{
 			if (input.empty() or input.size_in_bytes() > buffer.size() - offset or not input.valid())
-				return -1;
+				return {};
 
 			for (size_t i = offset; i <= buffer.size() - input.size_in_bytes(); ++i)
 			{
@@ -778,7 +780,7 @@ namespace deckard::utf8
 				}
 			}
 
-			return -1;
+			return {};
 		}
 
 		bool contains(std::span<u8> input) const

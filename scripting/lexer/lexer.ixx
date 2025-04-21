@@ -64,25 +64,25 @@ namespace deckard::lexer
 		USER_TYPE,       // struct <type>
 
 		// Op
-		PLUS,         // +
-		MINUS,        // -
-		STAR,         // *
-		SLASH,        // /
-		PERCENT,      // %
-		QUESTION,     // ?
-		BANG,         // !
-		AT,           // @
-		UNDERSCORE,   // _
+		PLUS,        // +
+		MINUS,       // -
+		STAR,        // *
+		SLASH,       // /
+		PERCENT,     // %
+		QUESTION,    // ?
+		BANG,        // !
+		AT,          // @
+		UNDERSCORE,  // _
 
 
-		BACK_SLASH,   // '\'
-		SLASH_SLASH,  // //
-		SLASH_STAR,   // /*
-		STAR_SLASH,   // */
+		BACK_SLASH,  // '\'
+		SLASH_SLASH, // //
+		SLASH_STAR,  // /*
+		STAR_SLASH,  // */
 
 		// TRIPLE_QUOTE, // """
 
-		EQUAL,        // =
+		EQUAL, // =
 
 		// Compare
 		LESSER,                // <
@@ -156,30 +156,52 @@ namespace deckard::lexer
 		TokenValue value;
 	};
 
-	class lexer
+	export class tokenizer
 	{
 	private:
-		file         m_file;
 		utf8::string m_data;
 
 		u32 m_line{0};
 		u32 m_column{0};
 
-	public:
-		lexer() = delete;
-
-		lexer(std::string_view input)
-			: m_data(input)
-		{
-		}
-
-		lexer(utf8::string input)
-			: m_data(input)
-		{
-		}
-
 	private:
+		bool load_from_file(const fs::path path) 
+		{ 
+			auto buffer = read_file(path); 
+			if (buffer.empty())
+				return false;
+
+			m_data.assign(buffer);
+
+			return true;
+		}
+
+		bool load_from_memory(const std::span<u8>& buffer)
+		{
+			//
+			if (buffer.empty())
+				return false;
+
+			m_data.assign(buffer);
+			return true;
+		}
+
 	public:
+		tokenizer() = delete;
+
+		explicit tokenizer(const fs::path path) 
+		{ load_from_file(path);
+		}
+
+		tokenizer(std::string_view input)
+			: m_data(input)
+		{
+		}
+
+		tokenizer(utf8::string input)
+			: m_data(input)
+		{
+		}
 	};
 
 #pragma region !Old lexer

@@ -362,7 +362,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string b("world");
 		CHECK(a.find(b) == 10);
 
-		CHECK(a.find("xyz"sv) == -1);
+		CHECK(a.find("xyz"sv) == std::nullopt);
 
 		CHECK(a.find("🌍", 10) == 17);
 	}

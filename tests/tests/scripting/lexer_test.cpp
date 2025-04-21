@@ -11,10 +11,34 @@ import std;
 using namespace Catch::Matchers;
 namespace fs = std::filesystem;
 using namespace std::string_view_literals;
-using namespace deckard::lexer;
 using namespace deckard::math;
 using namespace deckard::utf8;
 using namespace deckard;
+
+TEST_CASE("tokens", "[lexer]")
+{
+	using namespace lexer;
+	SECTION("stringview initialize")
+	{
+		tokenizer tok("abc 🌍 123 3.14"sv);
+		//
+		auto cwd = fs::current_path();
+
+		int j = 0;
+	}
+
+	SECTION("file initialize")
+	{
+		//
+		auto      path = fs::current_path() / "tests";
+		auto dji  = fs::exists(path);
+		REQUIRE(fs::exists(path) == true);
+
+		tokenizer tok(path / "simple01.txt");
+
+		int j = 0;
+	}
+}
 
 #if 0
 bool check_token(token t, enum Token type, const std::wstring& str)
