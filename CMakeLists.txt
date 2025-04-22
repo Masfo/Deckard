@@ -2,7 +2,7 @@
 cmake_minimum_required (VERSION 3.30.0)
 
 
-project(deckard LANGUAGES CXX)
+project(deckard LANGUAGES CXX ASM_NASM)
 
 add_library(deckard STATIC)
 
@@ -154,6 +154,7 @@ find_package(Vulkan REQUIRED)
 target_include_directories(deckard PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(deckard INTERFACE Vulkan::Vulkan)
 
+set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> <DEFINES>  -wall -w-reloc-abs-dword -w-reloc-rel-dword -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -o <OBJECT> <SOURCE>")
 
 
 set(DECKARD_SRCS
@@ -300,6 +301,8 @@ set(DECKARD_SRCS
 
 
 target_sources(deckard PUBLIC
+        utils/cpuid.asm
+
 )
 
 

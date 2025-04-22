@@ -422,6 +422,12 @@ dbg::println();
 		return ret;
 	};
 
+	double d = 1.4e3; // 1.4 * (10^3 aka 1000)
+					  // 0x4.1p6, 4 * 2^6, 64, 256
+	double d1 = 0x1.5p0;
+
+	dbg::println("has_cpuid: {}", cpuid::has_cpuid());
+
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");
 	//

@@ -66,17 +66,21 @@ namespace deckard::cpuid
 	enum class Feature : u32
 	{
 		MMX = 0,
+
 		SSE,
 		SSE2,
 		SSE3,
 		SSE41,
 		SSE42,
 		SSE4a,
+
 		AVX,
 		AVX2,
 		AVX512,
+
 		SHA,
 		AES,
+
 		RDRAND,
 		RDSEED,
 
@@ -107,6 +111,10 @@ namespace deckard::cpuid
 	}};
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
+
+	export extern "C" bool has_cpuid();
+
+	//export bool has_cpuid_support() { return has_cpuid(); }
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{

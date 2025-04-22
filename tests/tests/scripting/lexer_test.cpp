@@ -31,8 +31,7 @@ TEST_CASE("tokens", "[lexer]")
 	{
 		//
 		auto      path = fs::current_path() / "tests";
-		auto dji  = fs::exists(path);
-		REQUIRE(fs::exists(path) == true);
+		REQUIRE(fs::exists(path));
 
 		tokenizer tok(path / "simple01.txt");
 
