@@ -18,7 +18,7 @@ namespace deckard::utf8
 		using type = u8;
 
 		std::span<type> m_data;
-		size_t             byte_index{0};
+		size_t          byte_index{0};
 
 		void advance_to_next_codepoint(size_t& idx) const
 		{
@@ -90,13 +90,7 @@ namespace deckard::utf8
 		char32 decode_current_codepoint() const { return decode_codepoint_at(byte_index); }
 
 	public:
-#ifdef __cpp_deleted_function
-#error("use delete error");
-		view() = delete("utf8view needs a view to a buffer");
-		#else
-		view() = delete;
-
-#endif
+		view() = default;
 
 		view(const string& str)
 			: m_data(str.span())
@@ -221,6 +215,13 @@ namespace deckard::utf8
 
 			return self.decode_codepoint_at(tmp);
 		}
+
+		auto begin() const { return m_data.begin(); }
+
+		auto end() const { return m_data.end(); }
+
+		// TODO: iterator
+
 	};
 
 } // namespace deckard::utf8

@@ -24,6 +24,8 @@ TEST_CASE("tokens", "[lexer]")
 		//
 		auto cwd = fs::current_path();
 
+		tok.tokenize();
+
 		int j = 0;
 	}
 

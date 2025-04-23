@@ -424,9 +424,12 @@ dbg::println();
 
 	double d = 1.4e3; // 1.4 * (10^3 aka 1000)
 					  // 0x4.1p6, 4 * 2^6, 64, 256
-	double d1 = 0x1.5p0;
+	double d1 = 0x1.01p1;
 
-	dbg::println("has_cpuid: {}", cpuid::has_cpuid());
+	std::string_view x("0x1.4p3");
+	f64              result{};
+	auto fcres = std::from_chars(x.data(), x.data() + x.size(), result, std::chars_format::hex);
+
 
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");

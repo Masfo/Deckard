@@ -42,8 +42,8 @@ namespace deckard::lexer
 		FLOATING_POINT, // 3.14
 		KEYWORD,        // if, else
 		IDENTIFIER,     // a123, _123
-		CHARACTER,      // 'a'
-		STRING,         // "abc"
+		CHARACTER,      // 'a', '🌍'
+		STRING,         // "abc", "🌍🌍"
 
 		// keywords
 		// TODO: just token KEYWORD,
@@ -150,8 +150,7 @@ namespace deckard::lexer
 
 	struct Token
 	{
-		u32 index{0};  // Tokens position in original source
-		u32 length{0}; //
+		std::span<u8> token_in_source; // tokens text in source
 
 		TokenValue value;
 	};
@@ -159,15 +158,14 @@ namespace deckard::lexer
 	export class tokenizer
 	{
 	private:
+		using tokens = std::vector<Token>;
+
 		utf8::string m_data;
 
-		u32 m_line{0};
-		u32 m_column{0};
-
 	private:
-		bool load_from_file(const fs::path path) 
-		{ 
-			auto buffer = read_file(path); 
+		bool load_from_file(const fs::path path)
+		{
+			auto buffer = read_file(path);
 			if (buffer.empty())
 				return false;
 
@@ -187,20 +185,35 @@ namespace deckard::lexer
 		}
 
 	public:
-		tokenizer() = delete;
+		tokenizer() = default;
 
-		explicit tokenizer(const fs::path path) 
-		{ load_from_file(path);
-		}
+		explicit tokenizer(const fs::path path) { load_from_file(path); }
 
 		tokenizer(std::string_view input)
 			: m_data(input)
 		{
+			tokenize();
 		}
 
 		tokenizer(utf8::string input)
 			: m_data(input)
+
 		{
+			tokenize();
+		}
+
+		//auto begin()  { return m_data.begin(); }
+		//
+		//auto end()  { return m_data.end(); }
+
+
+
+		auto tokenize()
+		{
+			for (const auto& cp : m_data)
+			{
+				dbg::println("{:X} {:d} ", cp, cp);
+			}
 		}
 	};
 

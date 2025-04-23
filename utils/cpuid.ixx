@@ -112,9 +112,7 @@ namespace deckard::cpuid
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	export extern "C" bool has_cpuid();
-
-	//export bool has_cpuid_support() { return has_cpuid(); }
+	export extern "C" bool has_cpuid(); // cpuid.asm
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
