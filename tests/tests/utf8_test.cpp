@@ -70,7 +70,24 @@ TEST_CASE("utf8::string", "[utf8]")
 
 	SECTION("move")
 	{
-		//
+
+		utf8::string str("hello 🌍");
+		CHECK(str.size() == 7);
+
+		
+		auto moved    = std::move(str);
+
+		CHECK(moved.size() == 7);
+		CHECK(moved == "hello 🌍"_utf8);
+
+		CHECK(str.size() == 0);
+		CHECK(str.empty());
+		CHECK(str != "hello 🌍"_utf8);
+
+		// Test self-move
+		moved = std::move(moved);
+		CHECK(moved.size() == 7);
+		CHECK(moved == "hello 🌍"_utf8);
 	}
 
 	SECTION("assign c-string")
