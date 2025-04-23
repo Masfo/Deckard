@@ -232,7 +232,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.front() == 'h');
 		CHECK(a.back() == 'd');
 
-		auto sub = a.substr(6, 10);
+		auto sub = a.substr(6, 5);
 
 		CHECK(sub.size() == 5);
 		CHECK(sub.front() == 'w');
@@ -240,7 +240,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 
 		utf8::string b("hello 🌍");
-		auto         c = b.substr(6, 7);
+		auto         c = b.substr(6, 1);
 		CHECK(c.size() == 1);
 		CHECK(c.front() == 0x1'f30d);
 		CHECK(c.back() == 0x1'f30d);
@@ -481,6 +481,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a[5] == ' ');
 		CHECK(a[6] == 0x1'f30d);
 	}
+
+
 
 	SECTION("erase")
 	{

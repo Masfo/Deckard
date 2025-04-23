@@ -164,7 +164,7 @@ namespace deckard::utf8
 			{
 			}
 
-			iterator(const pointer p, const difference_type v)
+			iterator(pointer p, const difference_type v)
 				: ptr(p)
 				, current_index(v)
 			{
@@ -861,15 +861,15 @@ namespace deckard::utf8
 
 		bool ends_with(string str) const { return ends_with(std::span<u8>{str.data(), str.size_in_bytes()}); }
 
-		string substr(size_t start, size_t end)
+		string substr(size_t start, size_t count)
 		{
-			if (empty() or start >= size() or start >= end)
+
+			if (empty() or start > size())
 				return string{};
 
-
-			size_t     size  = end - start + 1;
-			auto       it    = begin() + start;
-			const auto itend = it + size;
+			size_t actual_count = std::min(count, size() - start);
+			auto   it           = begin() + start;
+			auto   itend        = it + actual_count;
 
 			string result;
 			for (; it != itend; ++it)
@@ -896,7 +896,7 @@ namespace deckard::utf8
 			return *it;
 		}
 
-		iterator begin() { return iterator(&buffer, 0); }
+		iterator begin() { return iterator{&buffer, 0}; }
 
 		iterator end()
 		{
@@ -1041,7 +1041,7 @@ namespace deckard::utf8
 
 		void resize(size_t count, char32 c)
 		{
-			if(count == 0)
+			if (count == 0)
 			{
 				clear();
 				return;
@@ -1050,7 +1050,7 @@ namespace deckard::utf8
 
 			size_t current_length = length();
 
-			if(count == current_length)
+			if (count == current_length)
 				return;
 
 			if (count < current_length)
@@ -1074,12 +1074,6 @@ namespace deckard::utf8
 
 		void resize(size_t count) { resize(count, (char32)0); }
 
-		auto substr(size_t index, size_t count) const
-		{
-			string new_str;
-
-			return new_str;
-		}
 
 #if 0
 		size_t hash() const { }
@@ -1144,6 +1138,7 @@ namespace deckard::utf8
 	// find_last_of  / last_no_of
 	// shrink_to_fit
 	// reserve
+	// capacity
 	// substr
 
 
