@@ -434,10 +434,7 @@ dbg::println();
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");
 
-	std::string nipv6 = ipv6.substr(2, 4);
-	nipv6.resize(0);
-	auto        nipvsi = nipv6.size();
-	//nipv6.capacity(64);
+	std::string nipv6 = ipv6.substr(2, 24);
 
 	for(int i=0; i<nipv6.size(); i++)
 	{

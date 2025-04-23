@@ -244,6 +244,12 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c.size() == 1);
 		CHECK(c.front() == 0x1'f30d);
 		CHECK(c.back() == 0x1'f30d);
+
+		utf8::string d("hello 🌍");
+		auto         e = b.substr(6, 25);
+		CHECK(e.size() == 1);
+		CHECK(e.front() == 0x1'f30d);
+		CHECK(e.back() == 0x1'f30d);
 	}
 
 	SECTION("replace")
@@ -440,7 +446,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a[6] == 0);
 	}
 
-	SECTION("resize to empty") 
+	SECTION("resize to empty")
 	{
 		utf8::string a("hello 🌍");
 		CHECK(a.size() == 7);
@@ -460,7 +466,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("resize same size")
 	{
 		utf8::string a("hello 🌍");
-		
+
 		CHECK(a.size() == 7);
 		CHECK(a[0] == 'h');
 		CHECK(a[1] == 'e');
@@ -481,7 +487,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a[5] == ' ');
 		CHECK(a[6] == 0x1'f30d);
 	}
-
 
 
 	SECTION("erase")
