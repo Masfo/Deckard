@@ -68,6 +68,11 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.data() != b.data());
 	}
 
+	SECTION("move")
+	{
+		//
+	}
+
 	SECTION("assign c-string")
 	{
 		utf8::string str("hello 🌍");
@@ -250,6 +255,11 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(e.size() == 1);
 		CHECK(e.front() == 0x1'f30d);
 		CHECK(e.back() == 0x1'f30d);
+
+
+		utf8::string f("hello 🌍");
+		auto         g = f.substr(100, 1);
+		CHECK(g.size() == 0);
 	}
 
 	SECTION("replace")

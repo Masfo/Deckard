@@ -867,9 +867,9 @@ namespace deckard::utf8
 			if (empty() or start > size())
 				return string{};
 
-			size_t actual_count = std::min(count, size() - start);
-			auto   it           = begin() + start;
-			auto   itend        = it + actual_count;
+			size_t N     = std::min(count, size() - start);
+			auto   it    = begin() + start;
+			auto   itend = it + N;
 
 			string result;
 			for (; it != itend; ++it)
