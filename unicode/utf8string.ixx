@@ -558,7 +558,7 @@ namespace deckard::utf8
 		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
 
-		void assign(const std::span<u8> &input) { buffer.assign(input); }
+		void assign(const std::span<u8>& input) { buffer.assign(input); }
 
 		void append(const std::string_view str) { insert(end(), str); }
 
@@ -1039,6 +1039,48 @@ namespace deckard::utf8
 			return valid ? len : 0uz;
 		}
 
+		void resize(size_t count, char32 c)
+		{
+			if(count == 0)
+			{
+				clear();
+				return;
+			}
+
+
+			size_t current_length = length();
+
+			if(count == current_length)
+				return;
+
+			if (count < current_length)
+			{
+				auto it = begin();
+				for (size_t i = 0; i < count; ++i)
+					++it;
+				erase(it, end());
+			}
+			else if (count > current_length)
+			{
+				size_t to_add = count - current_length;
+				for (size_t i = 0; i < to_add; ++i)
+				{
+					append(c);
+				}
+			}
+		}
+
+		void resize(size_t count, char c) { resize(count, (char32)c); }
+
+		void resize(size_t count) { resize(count, (char32)0); }
+
+		auto substr(size_t index, size_t count) const
+		{
+			string new_str;
+
+			return new_str;
+		}
+
 #if 0
 		size_t hash() const { }
 		iterator find_first_of(std::span<u8> input, size_t pos = 0)
@@ -1091,11 +1133,18 @@ namespace deckard::utf8
 			return end_it;
 		}
 #endif
+
+		// TODO: substr(n) 0-n
+		//		 substr(start, len) - start = codepoint index, len in codepoints
+		// subview -> utf8::view
 	};
 
 	// TODO:
 	// find_first_of / first_not_of
 	// find_last_of  / last_no_of
+	// shrink_to_fit
+	// reserve
+	// substr
 
 
 	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }

@@ -367,6 +367,121 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.find("🌍", 10) == 17);
 	}
 
+	SECTION("resize (smaller->larger)")
+	{
+		utf8::string a("hello 🌍");
+		CHECK(a.size() == 7);
+
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+
+		a.resize(10);
+		CHECK(a.size() == 10);
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+		CHECK(a[7] == 0);
+		CHECK(a[8] == 0);
+		CHECK(a[9] == 0);
+	}
+
+	SECTION("resize (smaller->larger)")
+	{
+		utf8::string a("hello 🌍 hello");
+
+		CHECK(a.size() == 13);
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+		CHECK(a[7] == ' ');
+		CHECK(a[8] == 'h');
+		CHECK(a[9] == 'e');
+		CHECK(a[10] == 'l');
+		CHECK(a[11] == 'l');
+		CHECK(a[12] == 'o');
+
+		a.resize(7);
+
+		CHECK(a.size() == 7);
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+	}
+
+	SECTION("resize empty")
+	{
+		utf8::string a;
+		a.resize(7);
+
+		CHECK(a.size() == 7);
+		CHECK(a[0] == 0);
+		CHECK(a[1] == 0);
+		CHECK(a[2] == 0);
+		CHECK(a[3] == 0);
+		CHECK(a[4] == 0);
+		CHECK(a[5] == 0);
+		CHECK(a[6] == 0);
+	}
+
+	SECTION("resize to empty") 
+	{
+		utf8::string a("hello 🌍");
+		CHECK(a.size() == 7);
+
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+
+		a.resize(0);
+		CHECK(a.size() == 0);
+	}
+
+	SECTION("resize same size")
+	{
+		utf8::string a("hello 🌍");
+		
+		CHECK(a.size() == 7);
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+
+		a.resize(a.size());
+
+		CHECK(a.size() == 7);
+		CHECK(a[0] == 'h');
+		CHECK(a[1] == 'e');
+		CHECK(a[2] == 'l');
+		CHECK(a[3] == 'l');
+		CHECK(a[4] == 'o');
+		CHECK(a[5] == ' ');
+		CHECK(a[6] == 0x1'f30d);
+	}
+
 	SECTION("erase")
 	{
 
