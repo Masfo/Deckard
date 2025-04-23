@@ -74,8 +74,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string str("hello 🌍");
 		CHECK(str.size() == 7);
 
-		
-		auto moved    = std::move(str);
+
+		auto moved = std::move(str);
 
 		CHECK(moved.size() == 7);
 		CHECK(moved == "hello 🌍"_utf8);
@@ -89,6 +89,58 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(moved.size() == 7);
 		CHECK(moved == "hello 🌍"_utf8);
 	}
+
+	SECTION("move operations")
+	{
+		utf8::string original("hello 🌍");
+		CHECK(original.size() == 7);
+		CHECK(original.length() == 7);
+		CHECK(original.size_in_bytes() == 10);
+
+		// Move constructor
+		utf8::string moved(std::move(original));
+		CHECK(moved.size() == 7);
+		CHECK(moved.length() == 7);
+		CHECK(moved.size_in_bytes() == 10);
+		CHECK(moved == "hello 🌍"_utf8);
+
+		// Original should be empty after move
+		CHECK(original.empty());
+		CHECK(original.size() == 0);
+		CHECK(original.length() == 0);
+		CHECK(original.size_in_bytes() == 0);
+
+		// Move assignment
+		utf8::string target;
+		target = std::move(moved);
+		CHECK(target.size() == 7);
+		CHECK(target.length() == 7);
+		CHECK(target.size_in_bytes() == 10);
+		CHECK(target == "hello 🌍"_utf8);
+
+		// Source should be empty after move
+		CHECK(moved.empty());
+		CHECK(moved.size() == 0);
+		CHECK(moved.length() == 0);
+		CHECK(moved.size_in_bytes() == 0);
+
+		// Self move assignment should be safe
+		target = std::move(target);
+		CHECK(target.size() == 7);
+		CHECK(target.length() == 7);
+		CHECK(target.size_in_bytes() == 10);
+		CHECK(target == "hello 🌍"_utf8);
+
+		// Chain of moves
+		utf8::string a("test 🌍");
+		utf8::string b = std::move(a);
+		utf8::string c = std::move(b);
+		CHECK(a.empty());
+		CHECK(b.empty());
+		CHECK(c == "test 🌍"_utf8);
+		CHECK(c.size() == 6);
+	}
+
 
 	SECTION("assign c-string")
 	{
