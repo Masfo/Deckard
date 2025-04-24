@@ -18,14 +18,16 @@ namespace deckard::utf8
 	private:
 		sbo<32> buffer;
 
-		using value_type      = sbo<32>;
-		using pointer         = value_type*;
-		using reference       = value_type&;
-		using const_pointer   = const pointer;
-		using const_reference = const reference;
-		using difference_type = std::ptrdiff_t;
-		using index_type      = u32;
-		using char_type       = char32;
+		using value_type                            = sbo<32>;
+		using pointer                               = value_type*;
+		using reference                             = value_type&;
+		using const_pointer                         = const pointer;
+		using const_reference                       = const reference;
+		using difference_type                       = std::ptrdiff_t;
+		using index_type                            = u32;
+		using char_type                             = char32;
+		static constexpr size_t BYTES_PER_CODEPOINT = sizeof(char_type);
+		static_assert(BYTES_PER_CODEPOINT == 4, "sizeof(char32) is assumed to be 4 bytes");
 
 		class const_iterator;
 
@@ -928,115 +930,17 @@ namespace deckard::utf8
 
 		size_t size_in_bytes() const { return buffer.size(); }
 
-		size_t size() const { return length(); }
+		size_t size()  { return length(); }
 
-		bool valid() const { return length() != 0; }
+		bool valid() const  { return length() != 0; }
 
-		size_t count()
+		size_t length() const 
 		{
 			if (empty())
 				return 0;
 
-			size_t count = 0;
-			auto   it    = cbegin();
-			auto   end   = cend();
-
-			while (it != end)
-			{
-				count++;
-
-				char32 current = *it;
-				it++;
-
-				if (it == end)
-					break;
-
-				while (it != end)
-				{
-					char32 next = *it;
-
-					bool is_combining =
-					  (next >= 0x0300 && next <= 0x036F)    // Combining Diacritical Marks
-					  || (next >= 0x1AB0 && next <= 0x1AFF) // Combining Diacritical Marks Extended
-					  || (next >= 0x1DC0 && next <= 0x1DFF) // Combining Diacritical Marks Supplement
-					  || (next >= 0x20D0 && next <= 0x20FF) // Combining Diacritical Marks for Symbols
-					  || (next >= 0xFE20 && next <= 0xFE2F) // Combining Half Marks
-					  // Add these new ranges:
-					  || (next >= 0x0483 && next <= 0x0489)  // Cyrillic Combining Marks
-					  || (next >= 0x0591 && next <= 0x05BD)  // Hebrew Points
-					  || (next >= 0x064B && next <= 0x065F)  // Arabic Combining Marks
-					  || (next >= 0x0900 && next <= 0x0903)  // Devanagari Signs
-					  || (next >= 0x093A && next <= 0x094F)  // Additional Devanagari
-					  || (next >= 0x0981 && next <= 0x0983)  // Bengali Signs
-					  || (next >= 0x0E31 && next <= 0x0E3A)  // Thai Combining Marks
-					  || (next >= 0x0F18 && next <= 0x0F19)  // Tibetan Subjoined Letters
-					  || (next >= 0x0F35 && next <= 0x0F37)  // Tibetan Signs
-					  || (next >= 0x0F71 && next <= 0x0F84); // Tibetan Vowel Signs
-
-					// Enhance emoji handling:
-					bool is_emoji =
-					  (next >= 0x1'F3FB && next <= 0x1'F3FF)    // Emoji skin tone modifiers
-					  || (next >= 0x1'F1E6 && next <= 0x1'F1FF) // Regional indicator symbols
-					  || (next >= 0xFE00 && next <= 0xFE0F)     // Variation Selectors
-					  || (next >= 0xE'0020 && next <= 0xE'007F) // Tags
-					  // Add these new ranges:
-					  || (next >= 0x1'F300 && next <= 0x1'F9FF)  // Miscellaneous Symbols and Pictographs
-					  || (next >= 0x1'F600 && next <= 0x1'F64F)  // Emoticons
-					  || (next >= 0x1'F680 && next <= 0x1'F6FF)  // Transport and Map Symbols
-					  || (next >= 0x1'F900 && next <= 0x1'F9FF); // Supplemental Symbols and Pictographs
-
-
-					// Add special character handling:
-					bool is_special =
-					  (next == 0xFE0F)                        // Variation Selector-16 (0xFE0F)
-					  || (next == 0x20E3)                     // Combining Enclosing Keycap (0x20E3)
-															  // Add these new special characters:
-					  || (next == 0x200D) || (next == 0x200C) // Zero Width Non-Joiner
-					  || (next == 0x200E)                     // Left-to-Right Mark
-					  || (next == 0x200F)                     // Right-to-Left Mark
-					  || (next == 0x2060)                     // Word Joiner
-					  || (next == 0x2061)                     // Function Application
-					  || (next >= 0x2062 && next <= 0x2064);  // Invisible Operators
-
-
-					// Handle Indic scripts
-					bool is_indic_vowel = (next >= 0x0900 && next <= 0x0903) // Devanagari vowel marks
-										  || (next >= 0x093A && next <= 0x094F) || (next >= 0x0955 && next <= 0x0957);
-
-					if (is_combining || is_emoji || is_special || is_indic_vowel)
-						++it;
-					else
-						break;
-				}
-			}
-			return count;
-		}
-
-		size_t length() const
-		{
-			if (empty())
-				return 0;
-
-			const u8* ptr    = buffer.data().data();
-			const u8* endptr = ptr + buffer.size();
-
-			size_t len{};
-			bool   valid = true;
-
-			for (; (ptr < endptr) && valid; len++)
-			{
-				valid =
-				  (*ptr & 0x80) == 0 or ((*ptr & 0xE0) == 0xC0 && (*(ptr + 1) & 0xC0) == 0x80) or
-				  ((*ptr & 0xF0) == 0xE0 && (*(ptr + 1) & 0xC0) == 0x80 && (*(ptr + 2) & 0xC0) == 0x80) or
-				  ((*ptr & 0xF8) == 0xF0 && (*(ptr + 1) & 0xC0) == 0x80 && (*(ptr + 2) & 0xC0) == 0x80 && (*(ptr + 3) & 0xC0) == 0x80);
-
-				i32 v1 = ((*ptr & 0x80) >> 7) & ((*ptr & 0x40) >> 6);
-				i32 v2 = (*ptr & 0x20) >> 5;
-				i32 v3 = (*ptr & 0x10) >> 4;
-				ptr += 1 + ((v1 << v2) | (v1 & v3));
-			}
-
-			return valid ? len : 0uz;
+			auto len = utf8::length(buffer.data());
+			return len ? *len : 0;
 		}
 
 		void resize(size_t count, char32 c)
@@ -1074,9 +978,11 @@ namespace deckard::utf8
 
 		void resize(size_t count) { resize(count, (char32)0); }
 
+		void reserve(size_t bytes) { buffer.reserve(bytes); }
+
+		auto capacity() const { return buffer.capacity(); }
 
 #if 0
-		size_t hash() const { }
 		iterator find_first_of(std::span<u8> input, size_t pos = 0)
 		{
 			assert::check(pos < size(), "Index out of bounds");
@@ -1127,19 +1033,14 @@ namespace deckard::utf8
 			return end_it;
 		}
 #endif
-
-		// TODO: substr(n) 0-n
-		//		 substr(start, len) - start = codepoint index, len in codepoints
-		// subview -> utf8::view
 	};
 
 	// TODO:
 	// find_first_of / first_not_of
 	// find_last_of  / last_no_of
-	// shrink_to_fit
-	// reserve
-	// capacity
-	// substr
+	// subview -> utf8::view
+	// self insert, deletes prev buffer
+
 
 
 	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }

@@ -314,7 +314,7 @@ dbg::println();
 		}
 
 		auto g = groups + (has_double_colon ? zeros : 0);
-		 return 8 == (groups + (has_double_colon ? zeros : 0));
+		return 8 == (groups + (has_double_colon ? zeros : 0));
 	};
 
 
@@ -428,22 +428,32 @@ dbg::println();
 
 	std::string_view x("0x1.4p3");
 	f64              result{};
-	auto fcres = std::from_chars(x.data(), x.data() + x.size(), result, std::chars_format::hex);
+	auto             fcres = std::from_chars(x.data(), x.data() + x.size(), result, std::chars_format::hex);
 
 
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");
 
 	std::string nipv6 = ipv6.substr(2, 24);
+	nipv6.reserve(64);
+	nipv6.shrink_to_fit();
 
-	for(int i=0; i<nipv6.size(); i++)
+	for (int i = 0; i < nipv6.size(); i++)
 	{
 		dbg::println("{:#x}", nipv6[i]);
 	}
 
+	auto ds = ipv6.size();
+	ipv6.append(ipv6);
+	ipv6.append(ipv6);
+	ipv6.append(ipv6);
+	ipv6.append(ipv6);
+	ipv6.append(ipv6);
+	ipv6.append(ipv6);
+	ds = ipv6.size();
 
 
-	int  jqq     = 0;
+	int jqq = 0;
 
 	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");

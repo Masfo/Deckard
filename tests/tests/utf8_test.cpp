@@ -25,12 +25,11 @@ TEST_CASE("utf8::string", "[utf8]")
 		str = "\xF0\x9F\xA4\xA6\xF0\x9F\x8F\xBC\xE2\x80\x8D\xE2\x99\x82\xEF\xB8\x8F";
 		CHECK(str.length() == 5);
 		CHECK(str.size_in_bytes() == 17);
-		CHECK(str.count() == 2); // TODO: should be 1
+		// CHECK(str.count() == 2); // TODO: should be 1
 
 		str = "नमस्ते";
 		CHECK(str.length() == 6);
 		CHECK(str.size_in_bytes() == 18);
-		CHECK(str.count() == 4);
 	}
 
 
@@ -766,6 +765,60 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size_in_bytes() == 23);
 		CHECK(str.valid() == true);
 		//	CHECK(std::hash<utf8::string>{}(str) == 0x25);
+	}
+
+	SECTION("reserve")
+	{
+		utf8::string str("hello 🌍");
+		CHECK(str.size() == 7);
+		CHECK(str.capacity() == 31);
+
+
+		auto str2 = str;
+		for (int i = 0; i < 5; i++)
+			str2 += "hello 🌍";
+
+		CHECK(str2.size() == 42);
+		CHECK(str2.capacity() == 72);
+
+		str.reserve(256);
+
+		CHECK(str.size() == 7);
+		CHECK(str.capacity() == 256);
+
+		str.append(str2);
+		CHECK(str.size() == 49);
+		CHECK(str.capacity() == 256);
+
+		str.append(str2);
+		CHECK(str.size() == 91);
+		CHECK(str.capacity() == 256);
+	}
+
+	SECTION("capacity")
+	{
+
+		utf8::string str("hello 🌍");
+		utf8::string str2 = str;
+
+
+		CHECK(str.size() == 7);
+		CHECK(str.capacity() == 31);
+
+		str.append(str2);
+		CHECK(str.size() == 14);
+
+		str.append(str2);
+		CHECK(str.size() == 21);
+		CHECK(str.capacity() == 31);
+
+		str.append(str2);
+		CHECK(str.size() == 28);
+		CHECK(str.capacity() == 48);
+
+		str.append(str2);
+		CHECK(str.size() == 35);
+		CHECK(str.capacity() == 72);
 	}
 }
 
