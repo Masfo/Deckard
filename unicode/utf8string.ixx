@@ -27,6 +27,8 @@ namespace deckard::utf8
 		using index_type                            = u32;
 		using char_type                             = char32;
 		static constexpr size_t BYTES_PER_CODEPOINT = sizeof(char_type);
+		static constexpr size_t npos                = limits::max<size_t>;
+
 		static_assert(BYTES_PER_CODEPOINT == 4, "sizeof(char32) is assumed to be 4 bytes");
 
 		class const_iterator;
@@ -36,12 +38,10 @@ namespace deckard::utf8
 		public:
 			friend class const_iterator;
 
-			// using iterator_category = std::bidirectional_iterator_tag;
 			using iterator_category = std::random_access_iterator_tag;
 
 			using difference_type = std::ptrdiff_t;
 			using value_type      = value_type;
-			// TODO: random access iterator
 
 		private:
 			pointer         ptr;
@@ -462,7 +462,6 @@ namespace deckard::utf8
 			bool operator==(const const_iterator& other) const
 			{
 				assert::check(ptr == other.ptr, "Pointers invalidated");
-				// TODO: assert on pointer diff
 				return ptr == other.ptr and current_index == other.current_index;
 			}
 		};
@@ -470,6 +469,8 @@ namespace deckard::utf8
 
 	public:
 		string() = default;
+
+		string(std::span<u8> input) { buffer.assign(input); }
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
@@ -529,6 +530,7 @@ namespace deckard::utf8
 			if (input.empty())
 				return pos;
 
+
 			auto insert_pos = pos.byteindex();
 
 			buffer.insert(buffer.begin() + insert_pos, input);
@@ -546,16 +548,7 @@ namespace deckard::utf8
 
 		iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
 
-		iterator insert(iterator pos, const string& str)
-		{
-			if (not str.valid())
-			{
-				dbg::println("Trying to insert invalid string");
-				return pos;
-			}
-
-			return insert(pos, {str.data(), str.size_in_bytes()});
-		}
+		iterator insert(iterator pos, const string& str) { return insert(pos, {str.data(), str.size_in_bytes()}); }
 
 		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
@@ -863,23 +856,6 @@ namespace deckard::utf8
 
 		bool ends_with(string str) const { return ends_with(std::span<u8>{str.data(), str.size_in_bytes()}); }
 
-		string substr(size_t start, size_t count)
-		{
-
-			if (empty() or start > size())
-				return string{};
-
-			size_t N     = std::min(count, size() - start);
-			auto   it    = begin() + start;
-			auto   itend = it + N;
-
-			string result;
-			for (; it != itend; ++it)
-				result.append((char32)*it);
-
-			return result;
-		}
-
 		index_type front()
 		{
 			if (empty())
@@ -930,11 +906,11 @@ namespace deckard::utf8
 
 		size_t size_in_bytes() const { return buffer.size(); }
 
-		size_t size()  { return length(); }
+		size_t size() { return length(); }
 
-		bool valid() const  { return length() != 0; }
+		bool valid() const { return length() != 0; }
 
-		size_t length() const 
+		size_t length() const
 		{
 			if (empty())
 				return 0;
@@ -981,6 +957,40 @@ namespace deckard::utf8
 		void reserve(size_t bytes) { buffer.reserve(bytes); }
 
 		auto capacity() const { return buffer.capacity(); }
+
+		// start index of character, count of characters
+		// returns raw bytes of the string
+		auto subspan(size_t start, size_t count = npos) -> std::span<u8>
+		{
+			assert::check(start < size(), "Index out of bounds");
+
+			if (empty())
+				return std::span<u8>{};
+
+			// Find byte index of start position
+			auto it = begin();
+			for (size_t i = 0; i < start && it != end(); ++i)
+				++it;
+
+			// TODO: no iterators
+
+			if (it == end())
+				return std::span<u8>{};
+
+			auto start_byte = it.byteindex();
+
+			// Count N codepoints forward
+			size_t remaining = std::min(count, size() - start);
+			for (size_t i = 0; i < remaining && it != end(); ++i)
+				++it;
+
+			auto end_byte = it.byteindex();
+
+			return buffer.subspan(start_byte, end_byte - start_byte);
+		}
+
+		string substr(size_t start, size_t count = npos) { return string(subspan(start, count)); }
+
 
 #if 0
 		iterator find_first_of(std::span<u8> input, size_t pos = 0)
@@ -1040,7 +1050,6 @@ namespace deckard::utf8
 	// find_last_of  / last_no_of
 	// subview -> utf8::view
 	// self insert, deletes prev buffer
-
 
 
 	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }

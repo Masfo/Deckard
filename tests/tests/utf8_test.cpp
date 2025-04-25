@@ -820,6 +820,24 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size() == 35);
 		CHECK(str.capacity() == 72);
 	}
+
+	SECTION("subspan") 
+	{ 
+		utf8::string str("hello 🌍 world");
+		CHECK(str.size() == 13);
+		CHECK(str.capacity() == 31);
+
+		auto hello = str.subspan(0, 7);
+		CHECK(hello.size() == 10);
+
+		auto world = str.subspan(8, 64);
+		CHECK(world.size() == 5);
+
+		auto glyph = str.subspan(6, 1);
+		CHECK(glyph.size() == 4);
+
+
+	}
 }
 
 TEST_CASE("utf8::view", "[utf8][utf8view]")

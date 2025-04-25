@@ -2204,14 +2204,14 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[4] == 'E');
 		CHECK(ss[5] == 'F');
 
-		auto subspan = ss.sub_span(1, 4);
+		auto subspan = ss.subspan(1, 4);
 		CHECK(subspan.size() == 4);
 		CHECK(subspan[0] == 'B');
 		CHECK(subspan[1] == 'C');
 		CHECK(subspan[2] == 'D');
 		CHECK(subspan[3] == 'E');
 
-		auto subspan2 = ss.sub_span(1, 24);
+		auto subspan2 = ss.subspan(1, 24);
 		CHECK(subspan2.size() == 5);
 		CHECK(subspan2[0] == 'B');
 		CHECK(subspan2[1] == 'C');
@@ -2219,7 +2219,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(subspan2[3] == 'E');
 		CHECK(subspan2[4] == 'F');
 
-		auto subspan3 = ss.sub_span(1, 0);
+		auto subspan3 = ss.subspan(1, 0);
 		CHECK(subspan3.size() == 0);
 
 
@@ -2239,7 +2239,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[5] == 'F');
 
 
-		sbo<32> ss2 = ss.sub_sbo(1, 4);
+		sbo<32> ss2 = ss.subsbo(1, 4);
 
 		CHECK(ss2.size() == 4);
 		CHECK(ss2.capacity() == 31);
@@ -2249,7 +2249,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss2[3] == 'E');
 
 
-		sbo<32> ss3 = ss.sub_sbo(1, 24);
+		sbo<32> ss3 = ss.subsbo(1, 24);
 		CHECK(ss3.size() == 5);
 		CHECK(ss3.capacity() == 31);
 		CHECK(ss3[0] == 'B');
@@ -2258,7 +2258,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss3[3] == 'E');
 		CHECK(ss3[4] == 'F');
 
-		sbo<32> ss4 = ss.sub_sbo(1, 0);
+		sbo<32> ss4 = ss.subsbo(1, 0);
 		CHECK(ss4.size() == 0);
 	}
 }
