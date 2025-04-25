@@ -1196,6 +1196,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.capacity() == 384);
 	}
 
+
 	SECTION("erase (small)")
 	{
 		sbo<32> ss;
@@ -2035,21 +2036,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(a != b);
 	}
 
-	SECTION("sub_sbo")
-	{
-		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
-		CHECK(ss.size() == 6);
-		CHECK(ss.capacity() == 31);
-		CHECK(ss.front() == 'A');
-		CHECK(ss.back() == 'F');
-
-		sbo<32> ss2 = ss.sub_sbo(1, 5);
-
-		CHECK(ss2.size() == 4);
-		CHECK(ss2.capacity() == 31);
-		CHECK(ss2.front() == 'B');
-		CHECK(ss2.back() == 'E');
-	}
 
 	SECTION("hash")
 	{
@@ -2166,5 +2152,113 @@ TEST_CASE("sbo", "[sbo]")
 
 
 		// it = ss.find_first_of({'D', 'E', 'F'});
+	}
+
+	SECTION("self insert")
+	{
+		sbo<32> ss;
+
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		std::array<u8, 6>       buffer{'Q', 'W', 'E', 'R', 'T', 'Y'};
+		const std::array<u8, 6> check{'Q', 'W', 'E', 'R', 'T', 'Y'};
+
+		ss.insert(ss.begin(), buffer);
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+
+		for (size_t i = 0; i < ss.size(); i++)
+			CHECK(ss[i] == check[i % check.size()]);
+
+		ss.insert(ss.end(), ss.data());
+		ss.insert(ss.end(), ss.data());
+		ss.insert(ss.end(), ss.data());
+
+		// for (size_t i = 0; i < ss.size(); i++)
+		//	CHECK(ss[i] == check[i % check.size()]);
+	}
+
+
+	SECTION("sub_span")
+	{
+		//
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G'};
+
+		CHECK(ss.size() == 7);
+		CHECK(ss.capacity() == 31);
+	}
+
+	SECTION("sub_span")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'F');
+
+		auto subspan = ss.sub_span(1, 4);
+		CHECK(subspan.size() == 4);
+		CHECK(subspan[0] == 'B');
+		CHECK(subspan[1] == 'C');
+		CHECK(subspan[2] == 'D');
+		CHECK(subspan[3] == 'E');
+
+		auto subspan2 = ss.sub_span(1, 24);
+		CHECK(subspan2.size() == 5);
+		CHECK(subspan2[0] == 'B');
+		CHECK(subspan2[1] == 'C');
+		CHECK(subspan2[2] == 'D');
+		CHECK(subspan2[3] == 'E');
+		CHECK(subspan2[4] == 'F');
+
+		auto subspan3 = ss.sub_span(1, 0);
+		CHECK(subspan3.size() == 0);
+
+
+	}
+
+	SECTION("sub_sbo")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'F');
+
+
+		sbo<32> ss2 = ss.sub_sbo(1, 4);
+
+		CHECK(ss2.size() == 4);
+		CHECK(ss2.capacity() == 31);
+		CHECK(ss2[0] == 'B');
+		CHECK(ss2[1] == 'C');
+		CHECK(ss2[2] == 'D');
+		CHECK(ss2[3] == 'E');
+
+
+		sbo<32> ss3 = ss.sub_sbo(1, 24);
+		CHECK(ss3.size() == 5);
+		CHECK(ss3.capacity() == 31);
+		CHECK(ss3[0] == 'B');
+		CHECK(ss3[1] == 'C');
+		CHECK(ss3[2] == 'D');
+		CHECK(ss3[3] == 'E');
+		CHECK(ss3[4] == 'F');
+
+		sbo<32> ss4 = ss.sub_sbo(1, 0);
+		CHECK(ss4.size() == 0);
 	}
 }

@@ -329,6 +329,24 @@ namespace deckard
 	public:
 		sbo() { reset(); }
 
+		sbo(std::span<value_type> buffer)
+		{
+			reset();
+			if (buffer.size() <= small_capacity())
+			{
+				std::copy(buffer.begin(), buffer.end(), packed.small.data.begin());
+				packed.small.size = as<value_type>(buffer.size());
+			}
+			else
+			{
+				set_large(true);
+				set_size(buffer.size());
+				set_capacity(newcapacity_size(buffer.size()));
+				packed.large.ptr = new value_type[packed.large.capacity];
+				std::copy(buffer.begin(), buffer.end(), packed.large.ptr);
+			}
+		}
+
 		sbo(const std::initializer_list<value_type>& il)
 		{
 			reset();
@@ -453,6 +471,16 @@ namespace deckard
 			if (buffer.empty())
 				return pos;
 
+			// TODO: self copy, input == buffer, resize deletes it
+			const pointer ptr2        = rawptr();
+			const auto    bufptr      = buffer.data();
+			bool          self_insert = rawptr() == buffer.data();
+
+			if (self_insert)
+			{
+				dbg::println("self insert");
+			}
+
 			const size_t pivot   = std::distance(begin(), pos);
 			size_t       newsize = size() + buffer.size();
 			if (newsize > capacity())
@@ -500,17 +528,6 @@ namespace deckard
 		{
 			append(other);
 			return *this;
-		}
-
-		sbo<SIZE> sub_sbo(size_t start, size_t end) const
-		{
-			assert::check(start < size(), "Index out-of-bounds");
-			assert::check(end < size(), "Index out-of-bounds");
-
-			sbo<SIZE> result;
-			for (size_t i = start; i < end; ++i)
-				result.push_back(at(i));
-			return result;
 		}
 
 		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
@@ -889,6 +906,18 @@ namespace deckard
 
 		// iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
 
+		auto sub_span(size_t start, size_t count) const -> std::span<value_type>
+		{
+			assert::check(start < size(), "Index out-of-bounds");
+
+			if (count == 0)
+				return {};
+
+			size_t N = std::min(count, size() - start);
+			return std::span<value_type>(rawptr() + start, N);
+		}
+
+		auto sub_sbo(size_t start, size_t count) const -> sbo<SIZE> { return {sbo<SIZE>(sub_span(start, count))}; }
 	};
 
 	static_assert(sizeof(sbo<24>) == 24);
