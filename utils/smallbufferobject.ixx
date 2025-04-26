@@ -906,7 +906,7 @@ namespace deckard
 
 		// iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
 
-		auto sub_span(size_t start, size_t count) const -> std::span<value_type>
+		auto subspan(size_t start, size_t count) const -> std::span<value_type>
 		{
 			assert::check(start < size(), "Index out-of-bounds");
 
@@ -917,8 +917,11 @@ namespace deckard
 			return std::span<value_type>(rawptr() + start, N);
 		}
 
-		auto sub_sbo(size_t start, size_t count) const -> sbo<SIZE> { return {sbo<SIZE>(sub_span(start, count))}; }
+		auto subsbo(size_t start, size_t count) const -> sbo<SIZE> { return {sbo<SIZE>(subspan(start, count))}; }
 	};
+
+	// TODO: self insert check
+
 
 	static_assert(sizeof(sbo<24>) == 24);
 	static_assert(sizeof(sbo<32>) == 32);

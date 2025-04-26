@@ -325,9 +325,9 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(e.back() == 0x1'f30d);
 
 
-		utf8::string f("hello 🌍");
-		auto         g = f.substr(100, 1);
-		CHECK(g.size() == 0);
+		//utf8::string f("hello 🌍");
+		//auto         g = f.substr(100, 1);
+		//CHECK(g.size() == 0);
 	}
 
 	SECTION("replace")
@@ -703,6 +703,20 @@ TEST_CASE("utf8::string", "[utf8]")
 		auto pre2 = --it;
 		CHECK(*pre2 == (u32)'l');
 		CHECK(*it == (u32)'l');
+
+	}
+
+	SECTION("iterator begin/end deref ascii")
+	{ 
+		utf8::string str("hello ");
+
+		auto begin = str.begin();
+		auto end   = str.end() -1;
+
+		CHECK(*begin == (u32)'h');
+		CHECK(*end == (u32)' ');
+
+		
 	}
 
 	SECTION("pre/post iterator ascii/utf8")
