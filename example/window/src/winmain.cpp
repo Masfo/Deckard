@@ -60,15 +60,21 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 	if (key == Key::Numpad1 and up)
 	{
 		app.set(Attribute::gameticks, 60u);
+		dbg::println("ticks 60");
+
 	}
 	if (key == Key::Numpad2 and up)
 	{
 		app.set(Attribute::gameticks, 30u);
+		dbg::println("ticks 30");
+
 	}
 
 	if (key == Key::Numpad3 and up)
 	{
-		app.set(Attribute::gameticks, 1u);
+		app.set(Attribute::gameticks, 5u);
+		dbg::println("ticks 5");
+
 	}
 }
 
@@ -443,17 +449,6 @@ dbg::println();
 		dbg::println("{:#x}", nipv6[i]);
 	}
 
-	auto ds = ipv6.size();
-	ipv6.append(ipv6);
-	ipv6.append(ipv6);
-	ipv6.append(ipv6);
-	ipv6.append(ipv6);
-	ipv6.append(ipv6);
-	ipv6.append(ipv6);
-	ds = ipv6.size();
-
-
-	int jqq = 0;
 
 	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
@@ -464,6 +459,17 @@ dbg::println();
 	//  ::ffff:c0ab:0101
 	//
 	//  127.0.0.1 - ::ffff:7f00:1
+
+	std::string ittest;
+	dbg::println("{} - {}", ittest, ittest.size());
+	dbg::println("'{}' - '{}'", ittest.front(), ittest.back());
+
+	auto itb = ittest.begin();
+	auto ite = ittest.end()-1;
+	dbg::println("'{}' - '{}'", *itb, *ite);
+
+
+
 
 	dbg::println("ipv6: {}", ipv6);
 

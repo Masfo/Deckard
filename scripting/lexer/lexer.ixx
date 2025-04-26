@@ -206,13 +206,12 @@ namespace deckard::lexer
 		//
 		//auto end()  { return m_data.end(); }
 
-		// sub str
 
 		auto tokenize()
 		{
 			for (const auto& cp : m_data)
 			{
-				dbg::println("{:X} {:d} ", cp, cp);
+				dbg::println("{:X} {:d} ", (u32)cp, (u32)cp);
 			}
 		}
 	};
