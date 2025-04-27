@@ -81,6 +81,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	  readAndWrite -= Permission::Execute; // Read | Write
 	  readAndWrite += Permission::Execute; // Read | Write | Execute
 	  ```
+  - **[UTF-8 string](doc/utf8.md)**
+	
   - **Result**
 	```cpp
 	// Default error is std::string
