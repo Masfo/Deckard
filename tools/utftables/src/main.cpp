@@ -358,6 +358,37 @@ struct char32_range
 using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
 using IntTable = std::map<int, int>;
 
+auto  compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
+{
+	std::vector<char32_range> ret;
+	ret.reserve(input.size() * 2);
+
+	char32_range current_run{input[0].start, input[0].end};
+
+	for (size_t i = 1; i < input.size(); i++)
+	{
+		// Check if current pair is consecutive with previous run
+		if (input[i].start == current_run.end + 1)
+		{
+			// Extend current run
+			current_run.end = input[i].end;
+		}
+		else
+		{
+			// Store completed run and start new one
+			ret.push_back(current_run);
+			current_run = input[i];
+		}
+	}
+
+	ret.push_back(current_run);
+
+	ret.shrink_to_fit();
+	return ret;
+};
+
+
+
 void collapse_runs(std::vector<char32_range> &ranges)
 {
 	std::ranges::sort(ranges, {}, &char32_range::start);
@@ -375,6 +406,7 @@ void collapse_runs(std::vector<char32_range> &ranges)
 		std::ranges::sort(ranges, {}, &char32_range::start);
 	}
 	std::ranges::sort(ranges, {}, &char32_range::start);
+	ranges = compress_runs(ranges);
 }
 
 std::vector<std::string> read_lines(fs::path file)
@@ -407,6 +439,7 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	std::ofstream f(filename);
 
 	auto table = tables.at(table_name);
+	//table            = compress_runs(table);
 
 	auto ctable_name = table_name;
 
