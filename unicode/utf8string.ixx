@@ -935,4 +935,5 @@ export namespace std
 		int  parsed_base = 10;
 		bool uppercase   = false;
 	};
-} // namespace std
+
+	} // namespace std

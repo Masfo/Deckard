@@ -543,8 +543,14 @@ void process_unicode_data()
 	// 1680;OGHAM SPACE MARK	;Zs;0;WS;;;;;N;;;;;
 	// 2028;LINE SEPARATOR		;Zl;0;WS;;;;;N;;;;;
 	// 2029;PARAGRAPH SEPARATOR	;Zp;0;B;;;;;N;;;;;
+	// 202F;NARROW NO-BREAK SPACE;Zs;0;CS;<noBreak> 0020;;;;N;;;;;
+	// 205F;MEDIUM MATHEMATICAL SPACE;Zs;0;WS;<compat> 0020;;;;N;;;;;
 	// 2060;WORD JOINER			;Cf;0;BN;;;;;N;;;;;
 	auto lines = read_lines("UnicodeData.txt");
+	
+	// https://mothereff.in/utf-8
+	
+	// proplist: Pattern_White_Space 
 
 	fields.reserve(lines.size());
 
@@ -609,7 +615,7 @@ void process_unicode_data()
 
 		//
 	}
-	// Force inlcude some controls
+	// Force include some controls
 	whitespaces["whitespace"].push_back({0x09, 0x0D});     // controls
 	whitespaces["whitespace"].push_back({0x85, 0x85});     // NEXT LINE
 	whitespaces["whitespace"].push_back({0x2060, 0x2060}); // WORD JOINER (like U+00A0)

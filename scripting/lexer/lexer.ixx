@@ -209,9 +209,18 @@ namespace deckard::lexer
 
 		auto tokenize()
 		{
-			for (const auto& cp : m_data)
+			for(u64 i=0; i<m_data.size_in_bytes(); i++)
 			{
-				//dbg::println("{:X} {:d} ", (u32)cp, (u32)cp);
+				auto cp = m_data[i];
+
+				if (utf8::is_whitespace(cp))
+					continue;
+				if (utf8::is_ascii_digit(cp))
+					continue;
+				if (utf8::is_identifier_start(cp))
+					continue;
+				if (utf8::is_ascii(cp))
+					continue;
 			}
 		}
 	};

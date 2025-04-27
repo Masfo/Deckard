@@ -223,4 +223,10 @@ file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
 message(STATUS Downloaded latest CaseFolding.txt)
 endif()
 
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/PropList.txt)
+file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
+        ${CMAKE_CURRENT_LIST_DIR}/bin/PropList.txt)
+message(STATUS Downloaded latest PropList.txt)
+endif()
+
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
