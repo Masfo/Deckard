@@ -367,15 +367,12 @@ auto  compress_runs(std::vector<char32_range> &input) -> std::vector<char32_rang
 
 	for (size_t i = 1; i < input.size(); i++)
 	{
-		// Check if current pair is consecutive with previous run
 		if (input[i].start == current_run.end + 1)
 		{
-			// Extend current run
 			current_run.end = input[i].end;
 		}
 		else
 		{
-			// Store completed run and start new one
 			ret.push_back(current_run);
 			current_run = input[i];
 		}
@@ -439,7 +436,6 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	std::ofstream f(filename);
 
 	auto table = tables.at(table_name);
-	//table            = compress_runs(table);
 
 	auto ctable_name = table_name;
 
