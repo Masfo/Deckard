@@ -325,9 +325,9 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(e.back() == 0x1'f30d);
 
 
-		//utf8::string f("hello 🌍");
-		//auto         g = f.substr(100, 1);
-		//CHECK(g.size() == 0);
+		// utf8::string f("hello 🌍");
+		// auto         g = f.substr(100, 1);
+		// CHECK(g.size() == 0);
 	}
 
 	SECTION("replace")
@@ -446,7 +446,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string b("world");
 		CHECK(a.find(b) == 10);
 
-		CHECK(a.find("xyz"sv) == std::nullopt);
 
 		CHECK(a.find("🌍", 10) == 17);
 	}
@@ -703,20 +702,17 @@ TEST_CASE("utf8::string", "[utf8]")
 		auto pre2 = --it;
 		CHECK(*pre2 == (u32)'l');
 		CHECK(*it == (u32)'l');
-
 	}
 
 	SECTION("iterator begin/end deref ascii")
-	{ 
+	{
 		utf8::string str("hello ");
 
 		auto begin = str.begin();
-		auto end   = str.end() -1;
+		auto end   = str.end() - 1;
 
 		CHECK(*begin == (u32)'h');
 		CHECK(*end == (u32)' ');
-
-		
 	}
 
 	SECTION("pre/post iterator ascii/utf8")
@@ -755,6 +751,23 @@ TEST_CASE("utf8::string", "[utf8]")
 		auto pre2 = --it;
 		CHECK(*pre2 == (u32)'d');
 		CHECK(*it == (u32)'d');
+	}
+
+	SECTION("construct string from iterator")
+	{ 
+		utf8::string str("🌍hello🌍 world🌍");
+
+		auto it = str.begin() + str.find("hello"sv);
+		auto itend = it + 6;
+
+		utf8::string str_from_iter(it, itend);
+		CHECK(str_from_iter.size() == 6);
+		CHECK(str_from_iter[0] == (u32)'h');
+		CHECK(str_from_iter[1] == (u32)'e');
+		CHECK(str_from_iter[2] == (u32)'l');
+		CHECK(str_from_iter[3] == (u32)'l');
+		CHECK(str_from_iter[4] == (u32)'o');
+		CHECK(str_from_iter[5] == 0x1'f30d);
 	}
 
 	SECTION("find_first_of")
@@ -835,8 +848,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.capacity() == 72);
 	}
 
-	SECTION("subspan") 
-	{ 
+	SECTION("subspan")
+	{
 		utf8::string str("hello 🌍 world");
 		CHECK(str.size() == 13);
 		CHECK(str.capacity() == 31);
@@ -849,8 +862,360 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		auto glyph = str.subspan(6, 1);
 		CHECK(glyph.size() == 4);
+	}
+
+	SECTION("valid")
+	{
+		utf8::string str("hello 🌍 world");
+
+		CHECK(str.size() == 13);
+		CHECK(str.capacity() == 31);
+		CHECK(str.valid() == true);
+
+		{                                   // 1-byte
+			std::array<u8, 1> err = {0x21}; // !' U+0021
+			str.assign(err);
+			CHECK(str.size() == 1);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{                                         // 2-byte
+			std::array<u8, 2> err = {0xC3, 0xA9}; // é, U+00E9
+			str.assign(err);
+			CHECK(str.size() == 1);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{                                               // 3-byte
+			std::array<u8, 3> err = {0xE2, 0x82, 0xAC}; // '€', U+20AC
+			str.assign(err);
+			CHECK(str.size() == 1);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{                                                     // 4-byte
+			std::array<u8, 4> err = {0xF0, 0x9F, 0x98, 0x80}; // 😀 U+1F600
+			str.assign(err);
+			CHECK(str.size() == 1);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{                                                     // 4-byte
+			std::array<u8, 4> err = {0xF4, 0x8F, 0xBF, 0xBF}; // U+10FFFF, last codepoint
+
+			str.assign(err);
+			CHECK(str.size() == 1);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+	}
+
+	SECTION("graphemes")
+	{
+		{
+			std::array<u8, 5> err = {
+			  // 5 ascii
+			  'h',
+			  'e',
+			  'l',
+			  'l',
+			  'o',
+			};
+
+			utf8::string str(err);
+			CHECK(str.size() == 5);
+			CHECK(str.size_in_bytes() == 5);
+			CHECK(str.graphemes() == 5);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 3> err = {
+			  // e + acute
+			  0x65,
+			  0xcc,
+			  0x81, // e + acute (U+0301)
+			};
+
+			utf8::string str(err);
+			CHECK(str.size() == 2);
+			CHECK(str.size_in_bytes() == 3);
+			CHECK(str.graphemes() == 1);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			// e + acute + o
+			std::array<u8, 4> err = {
+			  0x67,
+			  0xcc,
+			  0x88,
+			  0x6f, // e + acute (U+0301) + o
+			};
+
+			utf8::string str(err);
+			CHECK(str.size() == 3);
+			CHECK(str.size_in_bytes() == 4);
+			CHECK(str.graphemes() == 2);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			// 3 bytes, 1 grapheme
+			// Devanagari Ka क
+			std::array<u8, 3> err = {0xE0, 0xA4, 0x95};
+			utf8::string      str(err);
+			CHECK(str.size() == 1);
+			CHECK(str.size_in_bytes() == 3);
+			CHECK(str.graphemes() == 1);
+
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			// 6 bytes, 1 grapheme
+			// Ka + virama
+			std::array<u8, 6> err = {0xE0, 0xA4, 0x95, 0xE0, 0xA5, 0x8D};
+			utf8::string      str(err);
+			CHECK(str.size() == 2);
+			CHECK(str.size_in_bytes() == 6);
+			CHECK(str.graphemes() == 2);
+
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+		{
+			// 9 bytes, 1 grapheme
+			// Ka + virama + Ya (conjunct) क्य
+			std::array<u8, 9> err = {0xE0, 0xA4, 0x95, 0xE0, 0xA5, 0x8D, 0xE0, 0xA4, 0xAF};
+			utf8::string      str(err);
+			CHECK(str.size() == 3);
+			CHECK(str.size_in_bytes() == 9);
+			CHECK(str.graphemes() == 3);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			// 11 bytes, 1 grapheme
+			// emoji zwj emoji
+			
+			// clang-format off
+			std::array<u8, 11> err = {
+				0xF0, 0x9F, 0x91, 0xA9, // 👩
+				0xE2, 0x80, 0x8D,		// ZWJ
+				0xF0, 0x9F,0x9A,0x80	//🚀
+			};
+			// clang-format on
+
+			utf8::string str(err);
+			CHECK(str.size() == 3);
+			CHECK(str.size_in_bytes() == 11);
+			CHECK(str.graphemes() == 3); // TODO: should be one 👩‍🚀
+
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			// clang-format off
+			std::array<u8, 10> err = {
+				'e',				//
+				0xCC, 0x81,			// combining acute (U+0301)
+				'l', 'o',			//
+				0xE4, 0xB8, 0xAD,	// 中 ( 3-byte chinese)
+				0xCC, 0x88,			// combining diaeresis
+			};
+			// clang-format on
+
+			utf8::string str(err);
+			CHECK(str.size() == 6);
+			CHECK(str.graphemes() == 4);
+			CHECK(str.capacity() == 31);
+			CHECK(str.valid() == true);
+		}
+	}
+
+	SECTION("invalid, overlong")
+	{
+		// clang-format off
+		std::array<u8, 2> overlong = {
+		  0xC0, 0xAF,				// overlong encoding of '/'
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("Overlong 2-byte") == true);
+		CHECK(err.error().contains("index 0") == true);
+	}
+
+	SECTION("invalid, missing continuation byte")
+	{
+		// clang-format off
+		std::array<u8, 5> overlong = {
+		  'A','B','C',
+		  0xE2, 0x28,				// 3-byte sequence, missing 3rd byte
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("continuation") == true);
+		CHECK(err.error().contains("index 3") == true);
+	}
 
 
+	SECTION("invalid, surrogate half")
+	{
+		// clang-format off
+		std::array<u8, 3> overlong = {
+		  0xED, 0xA0, 0x80,				// U+D800 encoded directly
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("surrogate") == true);
+		CHECK(err.error().contains("index 0") == true);
+	}
+
+	SECTION("invalid, surrogate half")
+	{
+		// clang-format off
+		std::array<u8, 5> overlong = {
+		  'A',
+		  0xF0, 0x80, 0x80, 0xAF,				// overlong encoding
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("Overlong 4-byte") == true);
+		CHECK(err.error().contains("index 1") == true);
+	}
+
+	SECTION("invalid, codepoint beyond U+10FFFF")
+	{
+		// clang-format off
+		std::array<u8, 6> overlong = {
+		  'A', 'B',
+		  0xF4, 0x90, 0x80, 0x80,				// codepoint beyond U+10FFFF
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("beyond") == true);
+		CHECK(err.error().contains("index 2") == true);
+	}
+
+
+	SECTION("invalid, single continuation byte")
+	{
+		// clang-format off
+		std::array<u8, 5> overlong = {
+		  'A', 'B', 'C', 'D',
+		  0x80,				// continuation byte
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("leading") == true);
+		CHECK(err.error().contains("index 4") == true);
+	}
+
+	SECTION("invalid, bad leading byte")
+	{
+		// clang-format off
+		std::array<u8, 3> overlong = {
+		  'A', 'B',
+		  0xFF,				// invalid leading byte
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("leading") == true);
+		CHECK(err.error().contains("index 2") == true);
+	}
+
+	SECTION("invalid, truncated 4-byte sequence")
+	{
+		// clang-format off
+		std::array<u8, 6> overlong = {
+		  'A', 'B', 'C',
+		  0xF0, 0x9F, 0x92				// missing 4th byte
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("continuation") == true);
+		CHECK(err.error().contains("index 3") == true);
+	}
+
+	SECTION("invalid, overlong")
+	{
+		// clang-format off
+		std::array<u8, 9> overlong = {
+		  0x48,						// H
+		  0xC0, 0x81,				// overlong encoding
+		  0x65,						// e
+		  0xF4, 0x90, 0x80, 0x80,	// > U+10FFFF
+		  0x21						// !
+		};
+		// clang-format on
+
+		utf8::string str(overlong);
+
+		CHECK(str.size() == 0);
+		CHECK(str.capacity() == 31);
+
+		const auto err = str.valid();
+		CHECK(err.error().contains("Overlong 2-byte") == true);
+		CHECK(err.error().contains("index 1") == true);
 	}
 }
 

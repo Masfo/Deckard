@@ -211,7 +211,7 @@ namespace deckard::lexer
 		{
 			for (const auto& cp : m_data)
 			{
-				dbg::println("{:X} {:d} ", (u32)cp, (u32)cp);
+				//dbg::println("{:X} {:d} ", (u32)cp, (u32)cp);
 			}
 		}
 	};

@@ -20,6 +20,25 @@ namespace deckard::utf8
 		return (((byte & 0xE0) == 0xC0) or ((byte & 0xF0) == 0xE0) or ((byte & 0xF8) == 0xF0));
 	}
 
+	export constexpr bool is_two_byte_codepoint(const u8 byte) { return ((byte >> 5) == 0x6); }
+
+	export constexpr bool is_three_byte_codepoint(const u8 byte) { return ((byte >> 4) == 0xE); }
+
+	export constexpr bool is_four_byte_codepoint(const u8 byte) { return ((byte >> 3) == 0x1E); }
+
+	export constexpr bool is_combining_codepoint(const char32 cp)
+	{
+		return (
+		  (cp >= 0x0300 and cp <= 0x036F) or     // Combining diacritical marks
+		  (cp >= 0x1AB0 and cp <= 0x1AFF) or     // Extended
+		  (cp >= 0x1DC0 and cp <= 0x1DFF) or     // Supplement
+		  (cp >= 0x20D0 and cp <= 0x20FF) or     // Symbols
+		  (cp >= 0xFE20 and cp <= 0xFE2F) or     // Half marks
+		  (cp >= 0x1'E000 and cp <= 0x1'E02F) or // Glagolitic
+		  (cp >= 0x1'D167 and cp <= 0x1'D169)    // Musical marks
+		);
+	}
+
 	export constexpr u32 codepoint_width(u8 codepoint_byte)
 	{
 		if (codepoint_byte < 0x80)

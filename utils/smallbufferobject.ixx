@@ -478,7 +478,8 @@ namespace deckard
 
 			if (self_insert)
 			{
-				dbg::println("self insert");
+				// TODO: self insert check
+				dbg::breakpoint();
 			}
 
 			const size_t pivot   = std::distance(begin(), pos);

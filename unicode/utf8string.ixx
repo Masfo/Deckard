@@ -12,21 +12,33 @@ import deckard.utils.hash;
 namespace deckard::utf8
 {
 
+	using value_type      = sbo<32>;
+	using pointer         = value_type*;
+	using reference       = value_type&;
+	using const_pointer   = const value_type*;
+	using const_reference = const value_type&;
 
-	class iterator2 final
+	using difference_type = std::ptrdiff_t;
+	using codepoint_type  = u32;
+	using unit            = char32;
+
+	static constexpr size_t BYTES_PER_CODEPOINT = sizeof(codepoint_type);
+	static_assert(BYTES_PER_CODEPOINT == 4, "sizeof(char32) is assumed to be 4 bytes");
+
+	class iterator final
 	{
 	public:
+		friend class string;
+
+		using value_type      = value_type;
+		using pointer         = pointer;
+		using reference       = reference;
+		using const_pointer   = const_pointer;
+		using const_reference = const_reference;
+
+		using difference_type = difference_type;
+
 		using iterator_category = std::random_access_iterator_tag;
-
-		using value_type      = sbo<32>;
-		using pointer         = value_type*;
-		using reference       = value_type&;
-		using const_pointer   = const value_type*;
-		using const_reference = const value_type&;
-
-		using difference_type = std::ptrdiff_t;
-		using codepoint_type  = u32;
-		using unit            = char32;
 
 	private:
 		pointer ptr{nullptr};
@@ -77,7 +89,7 @@ namespace deckard::utf8
 			}
 		}
 
-		codepoint_type decode_current_codepoint() const
+		unit decode_current_codepoint() const
 		{
 
 			if (current_index >= as<difference_type>(ptr->size()))
@@ -85,7 +97,7 @@ namespace deckard::utf8
 
 			auto           index     = current_index;
 			u32            state     = 0;
-			codepoint_type codepoint = 0;
+			unit codepoint = 0;
 
 			for (; index < as<difference_type>(ptr->size()); index++)
 			{
@@ -103,49 +115,64 @@ namespace deckard::utf8
 		}
 
 	public:
-		iterator2()                            = default;
-		iterator2(const iterator2&)            = default;
-		iterator2(iterator2&&)                 = default;
-		iterator2& operator=(const iterator2&) = default;
-		iterator2& operator=(iterator2&&)      = default;
-		~iterator2()                           = default;
+		iterator()                           = default;
+		iterator(const iterator&)            = default;
+		iterator(iterator&&)                 = default;
+		iterator& operator=(const iterator&) = default;
+		iterator& operator=(iterator&&)      = default;
+		~iterator()                          = default;
 
-		iterator2(pointer p)
-			: iterator2(p, 0)
+		iterator(void*) { }
+
+		iterator(void*, difference_type) { }
+
+		iterator(value_type& p)
+			: ptr(&p)
+			, current_index(0)
+		{
+			assert::check(ptr != nullptr, "Null pointer dereference");
+			assert::check(current_index <= ptr->size(), "Dereferencing out-of-bounds iterator");
+		}
+
+		iterator(pointer p)
+			: iterator(p, 0)
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
 		}
 
-		iterator2(pointer p, const difference_type v)
+		iterator(pointer p, const difference_type v)
 			: ptr(p)
 			, current_index(v)
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index < ptr->size(), "Dereferencing out-of-bounds iterator");
+			assert::check(current_index <= ptr->size(), "Dereferencing out-of-bounds iterator");
 		}
 
-		bool operator==(const iterator2& other) const
+		bool operator==(const iterator& other) const
 		{
 			assert::check(ptr == other.ptr, "Not pointing to same data");
 			return current_index == other.current_index;
 		}
 
-		bool operator<(const iterator2& other) const
+		bool operator<(const iterator& other) const
 		{
 			assert::check(ptr == other.ptr, "Not pointing to same data");
 			return current_index < other.current_index;
 		}
-		bool operator>(const iterator2& other) const
+
+		bool operator>(const iterator& other) const
 		{
 			assert::check(ptr == other.ptr, "Not pointing to same data");
 			return current_index > other.current_index;
 		}
-		bool operator<=(const iterator2& other) const
+
+		bool operator<=(const iterator& other) const
 		{
 			assert::check(ptr == other.ptr, "Not pointing to same data");
 			return current_index <= other.current_index;
 		}
-		bool operator>=(const iterator2& other) const
+
+		bool operator>=(const iterator& other) const
 		{
 			assert::check(ptr == other.ptr, "Not pointing to same data");
 			return current_index >= other.current_index;
@@ -158,63 +185,78 @@ namespace deckard::utf8
 			return static_cast<unit>(decode_current_codepoint());
 		}
 
-		iterator2 operator++()
+		iterator operator++()
 		{
 			next_codepoint();
 			return *this;
 		}
 
-		iterator2 operator++(int)
+		iterator operator++(int)
 		{
-			iterator2 tmp = *this;
+			iterator tmp = *this;
 			next_codepoint();
 			return tmp;
 		}
 
-		iterator2 operator--()
+		iterator operator--()
 		{
 			previous_codepoint();
 			return *this;
 		}
 
-		iterator2 operator--(int)
+		iterator operator--(int)
 		{
-			iterator2 tmp = *this;
+			iterator tmp = *this;
 			previous_codepoint();
 			return tmp;
 		}
 
-		iterator2 operator+=(int v)
+		iterator operator+=(int v)
 		{
 			while (--v)
 				next_codepoint();
 			return *this;
 		}
 
-		iterator2 operator-=(int v)
+		iterator operator-=(int v)
 		{
 			while (--v)
 				previous_codepoint();
 			return *this;
 		}
 
-		iterator2 operator+(difference_type n) const
+		iterator operator+(difference_type n) const
 		{
-			iterator2 tmp = *this;
+			iterator tmp = *this;
 			while (n-- > 0)
 				tmp.next_codepoint();
 			return tmp;
 		}
 
-		iterator2 operator-(difference_type n) const
+		iterator operator+(const std::optional<codepoint_type> n) const
 		{
-			iterator2 tmp = *this;
+			if (n.has_value())
+				return operator+(n.value());
+			else
+				return *this;
+		}
+
+		iterator operator-(difference_type n) const
+		{
+			iterator tmp = *this;
 			while (n-- > 0)
 				tmp.previous_codepoint();
 			return tmp;
 		}
 
-		difference_type operator-(const iterator2& other) const
+		iterator operator-(const std::optional<codepoint_type> n) const 		{
+			if (n.has_value())
+				return operator-(n.value());
+			else
+				return *this;
+		}
+
+		difference_type operator-(const iterator& other) const
 		{
 			assert::check(ptr == other.ptr, "Not pointing to same data");
 			difference_type count{0};
@@ -248,272 +290,11 @@ namespace deckard::utf8
 
 		auto byte() const { return byte_at(current_index); }
 
-
-
 		// pointer operator->() const { return ptr; }
 		// pointer operator->() const = delete;
 
 		codepoint_type codepoint() const { return decode_current_codepoint(); }
 	};
-
-	using value_type      = sbo<32>;
-	using pointer         = value_type*;
-	using reference       = value_type&;
-	using const_pointer   = const pointer;
-	using const_reference = const reference;
-	using difference_type = std::ptrdiff_t;
-	using index_type      = u32;
-	using char_type       = char32;
-
-	static constexpr size_t BYTES_PER_CODEPOINT = sizeof(char_type);
-	static_assert(BYTES_PER_CODEPOINT == 4, "sizeof(char32) is assumed to be 4 bytes");
-
-	static constexpr size_t npos = limits::max<size_t>;
-
-	class iterator final
-	{
-	public:
-		using iterator_category = std::random_access_iterator_tag;
-
-		using difference_type = std::ptrdiff_t;
-		using value_type      = value_type;
-
-	private:
-		pointer         ptr;
-		difference_type current_index;
-
-		void advance_to_next_codepoint()
-		{
-			if (current_index >= as<difference_type>(ptr->size()))
-				return;
-
-			i64 next = current_index;
-			next++;
-
-			while (next < as<i64>(ptr->size()) and utf8::is_continuation_byte(ptr->at(next)))
-				next++;
-
-			while (next < as<i64>(ptr->size()))
-			{
-				u8 byte = ptr->at(next);
-
-				if (not utf8::is_single_byte(byte))
-					break;
-
-				if (not utf8::is_start_of_codepoint(byte))
-					break;
-
-				next++;
-			}
-			current_index = next;
-		}
-
-		void reverse_to_last_codepoint()
-		{
-			if (current_index > 0)
-			{
-				current_index -= 1;
-
-				while (current_index > 0 and utf8::is_continuation_byte(ptr->at(current_index)))
-					current_index -= 1;
-
-				if (current_index < 0)
-					current_index = 0;
-			}
-		}
-
-		index_type decode_current_codepoint() const
-		{
-
-			if (current_index >= as<difference_type>(ptr->size()))
-				return REPLACEMENT_CHARACTER;
-
-			auto       index     = current_index;
-			u32        state     = 0;
-			index_type codepoint = 0;
-
-			for (; index < as<difference_type>(ptr->size()); index++)
-			{
-				u8 byte = ptr->at(index);
-
-				const index_type type = utf8_table[byte];
-				codepoint             = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
-				state                 = utf8_table[256 + state + type];
-				if (state == 0)
-					return codepoint;
-				else if (state == UTF8_REJECT)
-					return REPLACEMENT_CHARACTER;
-			}
-			return REPLACEMENT_CHARACTER;
-		}
-
-		void set_codepoint(char_type new_codepoint)
-		{
-			if (current_index >= as<u32>(ptr->size()))
-				return;
-
-			std::vector<u8> encoded_bytes;
-			if (new_codepoint <= 0x7F)
-			{
-				encoded_bytes.push_back(static_cast<u8>(new_codepoint));
-			}
-			else if (new_codepoint <= 0x7FF)
-			{
-				encoded_bytes.push_back(static_cast<u8>((new_codepoint >> 6) | 0xC0));
-				encoded_bytes.push_back(static_cast<u8>((new_codepoint & 0x3F) | 0x80));
-			}
-			else if (new_codepoint <= 0xFFFF)
-			{
-				encoded_bytes.push_back(static_cast<u8>((new_codepoint >> 12) | 0xE0));
-				encoded_bytes.push_back(static_cast<u8>(((new_codepoint >> 6) & 0x3F) | 0x80));
-				encoded_bytes.push_back(static_cast<u8>((new_codepoint & 0x3F) | 0x80));
-			}
-			else if (new_codepoint <= 0x10'FFFF)
-			{
-				encoded_bytes.push_back(static_cast<u8>((new_codepoint >> 18) | 0xF0));
-				encoded_bytes.push_back(static_cast<u8>(((new_codepoint >> 12) & 0x3F) | 0x80));
-				encoded_bytes.push_back(static_cast<u8>(((new_codepoint >> 6) & 0x3F) | 0x80));
-				encoded_bytes.push_back(static_cast<u8>((new_codepoint & 0x3F) | 0x80));
-			}
-			else
-			{
-				encoded_bytes.push_back(0xEF);
-				encoded_bytes.push_back(0xBF);
-				encoded_bytes.push_back(0xBD);
-			}
-
-			auto it = ptr->begin() + current_index;
-			ptr->erase(it, it + width());
-			ptr->insert(it, encoded_bytes);
-		}
-
-	public:
-		// iterator() = default;
-
-
-		iterator(const_pointer p)
-			: iterator(p, 0)
-		{
-		}
-
-		iterator(const_pointer p, const difference_type v)
-			: ptr(p)
-			, current_index(v)
-		{
-		}
-
-		char_type operator*() const
-		{
-			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index < ptr->size(), "Dereferencing out-of-bounds iterator");
-			return codepoint();
-		}
-
-		// pointer operator->() const { return ptr; }
-
-		char_type codepoint() const { return decode_current_codepoint(); }
-
-		u32 width() const { return utf8::codepoint_width(ptr->at(current_index)); }
-
-		auto byteindex() const { return current_index; }
-
-		iterator& operator++()
-		{
-			advance_to_next_codepoint();
-			return *this;
-		}
-
-		iterator operator++(int)
-		{
-			iterator tmp = *this;
-			advance_to_next_codepoint();
-			return tmp;
-		}
-
-		iterator& operator--()
-		{
-			reverse_to_last_codepoint();
-			return *this;
-		}
-
-		iterator operator--(int)
-		{
-			iterator tmp = *this;
-			reverse_to_last_codepoint();
-			return tmp;
-		}
-
-		iterator operator+=(int v)
-		{
-			while (--v)
-				advance_to_next_codepoint();
-
-			return *this;
-		}
-
-		iterator operator-=(int v)
-		{
-			while (--v)
-				reverse_to_last_codepoint();
-
-			return *this;
-		}
-
-		iterator operator+(difference_type n) const
-		{
-			iterator tmp = *this;
-			while (n-- > 0)
-				tmp.advance_to_next_codepoint();
-			return tmp;
-		}
-
-		iterator operator-(difference_type n) const
-		{
-			iterator tmp = *this;
-			while (n-- > 0)
-				tmp.reverse_to_last_codepoint();
-			return tmp;
-		}
-
-		difference_type operator-(const iterator& other) const
-		{
-			assert::check(ptr == other.ptr, "Not pointing to same data");
-
-
-			difference_type count{0};
-			auto            copy = other;
-			while (copy != *this)
-			{
-				copy++;
-				count++;
-			}
-
-			return count;
-		}
-
-		bool empty() const { return ptr->empty(); }
-
-		reference operator[](difference_type n) const
-		{
-			assert::check(n >= 0, "Index is negative");
-			assert::check(n < as<difference_type>(ptr->size()), "Index out-of-bounds");
-			return ptr[n];
-		}
-
-		// auto operator<=>(const iterator&) const = default;
-		bool operator<(const iterator& other) const { return current_index < other.current_index; }
-
-		bool operator>(const iterator& other) const { return current_index > other.current_index; }
-
-		bool operator==(const iterator& other) const
-		{
-			assert::check(ptr == other.ptr, "Not pointing to same data");
-
-			return current_index == other.current_index;
-		}
-	};
-
-	constexpr auto itsi = sizeof(iterator);
 
 	// #########################
 
@@ -521,11 +302,23 @@ namespace deckard::utf8
 	export class string
 	{
 	private:
-		sbo<32> buffer;
+		static constexpr size_t npos = limits::max<size_t>;
 
+		value_type buffer;
+		friend class iterator;
 
 	public:
 		string() = default;
+
+		string(iterator start, iterator end)
+		{
+			assert::check(start.ptr == end.ptr, "Not pointing to same data");
+
+			auto start_index = start.byteindex();
+			auto end_index   = end.byteindex();
+			assert::check(start_index <= end_index, "Invalid range");
+			buffer.assign(start.ptr->data().subspan(start_index, end_index - start_index));
+		}
 
 		string(std::span<u8> input) { buffer.assign(input); }
 
@@ -538,7 +331,7 @@ namespace deckard::utf8
 		}
 
 		[[nodiscard("use result of at method")]]
-		char_type at(u32 index)
+		unit at(u32 index) const
 		{
 			assert::check(index < size(), "Index out of bounds");
 
@@ -549,7 +342,7 @@ namespace deckard::utf8
 			return *it;
 		}
 
-		[[nodiscard("use result of index operator")]] char_type operator[](u32 index) { return at(index); }
+		[[nodiscard("use result of index operator")]] unit operator[](u32 index) { return at(index); }
 
 		bool operator==(const string& other) const
 		{
@@ -724,12 +517,8 @@ namespace deckard::utf8
 
 		iterator replace(iterator first, iterator end, string str)
 		{
-
 			if (not str.valid())
-			{
-				dbg::println("Trying to replace with invalid string");
 				return first;
-			}
 
 			if (first == end)
 			{
@@ -760,7 +549,7 @@ namespace deckard::utf8
 			return replace(first, end, str);
 		}
 
-		std::optional<index_type> find(std::span<u8> input, size_t offset = 0) const
+		std::optional<codepoint_type> find(std::span<u8> input, size_t offset = 0) const
 		{
 			if (input.empty() || input.size() > buffer.size() - offset)
 				return {};
@@ -782,7 +571,7 @@ namespace deckard::utf8
 
 				if (found)
 				{
-					index_type codepoint_index = 0;
+					codepoint_type codepoint_index = 0;
 					for (size_t pos = 0; pos < i; ++pos)
 					{
 						if (not utf8::is_continuation_byte(buffer[pos]))
@@ -800,7 +589,7 @@ namespace deckard::utf8
 			return find(std::span<u8>{as<u8*>(input.data()), input.size()}, offset);
 		}
 
-		std::optional<index_type> find(string input, size_t offset = 0) const
+		std::optional<codepoint_type> find(string input, size_t offset = 0) const
 		{
 			if (input.empty() or input.size_in_bytes() > buffer.size() - offset or not input.valid())
 				return {};
@@ -822,7 +611,7 @@ namespace deckard::utf8
 
 				if (found)
 				{
-					index_type codepoint_index = 0;
+					codepoint_type codepoint_index = 0;
 					for (size_t pos = 0; pos < i; ++pos)
 					{
 						if (not utf8::is_continuation_byte(buffer[pos]))
@@ -834,6 +623,7 @@ namespace deckard::utf8
 
 			return {};
 		}
+
 
 		bool contains(std::span<u8> input) const
 		{
@@ -913,15 +703,14 @@ namespace deckard::utf8
 
 		bool ends_with(string str) const { return ends_with(std::span<u8>{str.data(), str.size_in_bytes()}); }
 
-		char_type front()
+		codepoint_type front() const
 		{
 			assert::check(not empty(), "String is empty");
-
 
 			return *begin();
 		}
 
-		char_type back()
+		codepoint_type back() const
 		{
 			assert::check(not empty(), "String is empty");
 
@@ -929,17 +718,17 @@ namespace deckard::utf8
 			return *it;
 		}
 
-		iterator begin() { return iterator(&buffer); }
+		iterator begin() const { return iterator(as<pointer>(&buffer)); }
 
-		iterator end()
+		iterator end() const
 		{
-			iterator it(&buffer, buffer.size());
+			iterator it(as<pointer>(&buffer), buffer.size());
 			return it;
 		}
 
-		auto rbegin() { return std::reverse_iterator(end()); }
+		auto rbegin() const { return std::reverse_iterator(end()); }
 
-		auto rend() { return std::reverse_iterator(begin()); }
+		auto rend() const { return std::reverse_iterator(begin()); }
 
 		auto data() const { return buffer.data().data(); }
 
@@ -955,15 +744,25 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
-		bool valid() const { return length() != 0; }
+		std::expected<bool, std::string> valid() const { return utf8::valid(buffer.data()); }
 
 		size_t length() const
 		{
-			if (empty())
+			if (empty() or valid().has_value() == false)
 				return 0;
 
 			auto len = utf8::length(buffer.data());
 			return len ? *len : 0;
+		}
+
+		size_t graphemes() const
+		{
+	
+
+			if (empty() or valid().has_value() == false)
+				return 0;
+
+			return utf8::graphemes(buffer.data());
 		}
 
 		void resize(size_t count, char32 c)
@@ -1007,10 +806,9 @@ namespace deckard::utf8
 
 		// start index of character, count of characters
 		// returns raw bytes of the string
-		auto subspan(size_t start, size_t count = npos) -> std::span<u8>
+		auto subspan(size_t start, size_t count = npos) const -> std::span<u8>
 		{
 			assert::check(start < size(), "Indexing out-of-bounds");
-
 
 			if (empty())
 				return std::span<u8>{};
@@ -1019,8 +817,6 @@ namespace deckard::utf8
 			auto it = begin();
 			for (size_t i = 0; i < start && it != end(); ++i)
 				++it;
-
-			// TODO: no iterators
 
 			if (it == end())
 				return std::span<u8>{};
@@ -1037,7 +833,7 @@ namespace deckard::utf8
 			return buffer.subspan(start_byte, end_byte - start_byte);
 		}
 
-		string substr(size_t start, size_t count = npos) { return string(subspan(start, count)); }
+		string substr(size_t start, size_t count = npos) const { return string(subspan(start, count)); }
 
 
 #if 0
@@ -1098,6 +894,8 @@ namespace deckard::utf8
 	// find_last_of  / last_no_of
 	// subview -> utf8::view
 	// self insert, deletes prev buffer
+	// standalone valid check
+
 	constexpr auto si = sizeof(utf8::string);
 
 	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }
