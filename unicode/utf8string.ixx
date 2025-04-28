@@ -899,6 +899,7 @@ namespace deckard::utf8
 
 
 
+
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
 	// TODO:

@@ -15,6 +15,7 @@ namespace deckard::utf8
 		{ v.subspan() } -> std::same_as<std::span<u8>>;
 	};
 
+
 	export class view
 	{
 	private:
