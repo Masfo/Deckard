@@ -2,7 +2,6 @@ export module deckard.utf8:view;
 
 import :codepoints;
 import :decode;
-import :string;
 
 import std;
 import deckard.types;
@@ -92,13 +91,13 @@ namespace deckard::utf8
 	public:
 		view() = default;
 
-		view(const string& str)
-			: m_data(str.span())
-			, byte_index(0uz)
-		{
-		}
+		//view(const string& str)
+		//	: m_data(str.span())
+		//	, byte_index(0uz)
+		//{
+		//}
 
-		view(std::span<u8> data)
+		explicit view(const std::span<u8> data)
 			: m_data(data)
 			, byte_index(0uz)
 		{

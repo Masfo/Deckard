@@ -64,7 +64,9 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(b.valid() == true);
 		CHECK(std::string(b.c_str()) == "hello 🌍"sv);
 
-		CHECK(a.data() != b.data());
+		CHECK(a == b);
+		CHECK(a.c_str() != b.c_str());
+
 	}
 
 	SECTION("move")
@@ -1229,7 +1231,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(v.size() == 4);
 
 		utf8::string str("🌍hello🌍");
-		utf8::view   w(str);
+		utf8::view   w(str.data());
 		CHECK(w.size() == 7);
 
 		//
@@ -1238,11 +1240,11 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("compare")
 	{
 		utf8::string str("🌍hello🌍");
-		utf8::view   w(str);
+		utf8::view   w(str.data());
 		CHECK(w.size() == 7);
 
 
-		utf8::view w2(str);
+		utf8::view w2(str.data());
 		CHECK(w2.size() == 7);
 
 		CHECK(w == w2);
@@ -1251,7 +1253,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("decode")
 	{
 		utf8::string str("🌍hello🌍");
-		utf8::view   w(str);
+		utf8::view   w(str.data());
 		CHECK(w.size() == 7);
 
 		CHECK(*w == 0x1'f30d);
@@ -1295,7 +1297,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("indexing")
 	{
 		utf8::string str("🌍hello🌍");
-		utf8::view   w(str);
+		utf8::view   w(str.subspan());
 		CHECK(w.size() == 7);
 		CHECK(w[0] == 0x1'f30d);
 		CHECK(w[1] == 'h');

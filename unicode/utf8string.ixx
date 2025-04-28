@@ -1,6 +1,7 @@
 export module deckard.utf8:string;
 import :codepoints;
 import :decode;
+import :view;
 
 import std;
 import deckard.types;
@@ -346,19 +347,6 @@ namespace deckard::utf8
 
 		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const{ return at(index); }
 
-		bool operator==(const string& other) const
-		{
-			if (buffer.size() != other.buffer.size())
-				return false;
-
-
-			for (u32 i = 0; i < buffer.size(); i++)
-			{
-				if (buffer.at(i) != other.buffer.at(i))
-					return false;
-			}
-			return true;
-		}
 
 		bool operator==(std::span<u8> other) const
 		{
@@ -373,6 +361,21 @@ namespace deckard::utf8
 			}
 			return true;
 		}
+
+		bool operator==(const string& other) const
+		{
+			if (buffer.size() != other.buffer.size())
+				return false;
+
+
+			for (u32 i = 0; i < buffer.size(); i++)
+			{
+				if (buffer.at(i) != other.buffer.at(i))
+					return false;
+			}
+			return true;
+		}
+
 
 		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
@@ -400,7 +403,7 @@ namespace deckard::utf8
 
 		iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
 
-		iterator insert(iterator pos, const string& str) { return insert(pos, {str.data(), str.size_in_bytes()}); }
+		iterator insert(iterator pos, const string& str) { return insert(pos, str.data()); }
 
 		//
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
@@ -642,7 +645,7 @@ namespace deckard::utf8
 
 		bool contains(std::string_view str) const { return contains({as<u8*>(str.data()), str.size()}); }
 
-		bool contains(string str) const { return contains(std::span<u8>{str.data(), str.size_in_bytes()}); }
+		bool contains(string str) const { return contains(str.data()); }
 
 		// starts with
 		bool starts_with(std::span<u8> input) const
@@ -702,7 +705,7 @@ namespace deckard::utf8
 
 		bool ends_with(std::string_view str) const { return ends_with({as<u8*>(str.data()), str.size()}); }
 
-		bool ends_with(string str) const { return ends_with(std::span<u8>{str.data(), str.size_in_bytes()}); }
+		bool ends_with(string str) const { return ends_with(str.data()); }
 
 		codepoint_type front() const
 		{
@@ -731,11 +734,9 @@ namespace deckard::utf8
 
 		auto rend() const { return std::reverse_iterator(begin()); }
 
-		auto data() const { return buffer.data().data(); }
 
 		auto span() const { return buffer.data(); }
 
-		auto c_str() const { return as<const char*>(buffer.data().data()); }
 
 		bool empty() const { return buffer.empty(); }
 
@@ -807,7 +808,7 @@ namespace deckard::utf8
 
 		// start index of character, count of characters
 		// returns raw bytes of the string
-		auto subspan(size_t start, size_t count = npos) const -> std::span<u8>
+		auto subspan(size_t start=0, size_t count = npos) const -> std::span<u8>
 		{
 			assert::check(start < size(), "Indexing out-of-bounds");
 
@@ -834,7 +835,13 @@ namespace deckard::utf8
 			return buffer.subspan(start_byte, end_byte - start_byte);
 		}
 
-		string substr(size_t start, size_t count = npos) const { return string(subspan(start, count)); }
+		string substr(size_t start=0, size_t count = npos) const { return string(subspan(start, count)); }
+
+		auto subview(size_t start=0, size_t count = npos) const { return view(subspan(start, count)); }
+
+		auto data() const { return subspan(); }
+
+		auto c_str() const { return as<const char*>(buffer.data().data()); }
 
 
 #if 0
@@ -890,6 +897,8 @@ namespace deckard::utf8
 #endif
 	};
 
+
+
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
 	// TODO:
@@ -916,7 +925,7 @@ export namespace std
 	{
 		size_t operator()(const utf8::string& value) const
 		{
-			return utils::hash_values(std::span<u8>{value.data(), value.size_in_bytes()});
+			return utils::hash_values(value.data());
 		}
 	};
 
@@ -931,7 +940,7 @@ export namespace std
 
 		auto format(const utf8::string& v, std::format_context& ctx) const
 		{
-			std::string_view view{as<char*>(v.data()), v.size_in_bytes()};
+			std::string_view view{v.c_str()};
 			return std::format_to(ctx.out(), "{}", view);
 		}
 
