@@ -436,6 +436,8 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	std::ofstream f(filename);
 
 	auto table = tables.at(table_name);
+	table            = compress_runs(table);
+	collapse_runs(table);
 
 	auto ctable_name = table_name;
 
@@ -658,8 +660,8 @@ void process_unicode_data()
 
 
 	collapse_runs(whitespaces["whitespace"]);
-
 	collapse_runs(dashes["dashes"]);
+
 
 
 	write_lines(whitespaces, "whitespace", "whitespaces.ixx");
