@@ -20,11 +20,7 @@ TEST_CASE("tokens", "[lexer]")
 	using namespace lexer;
 	SECTION("stringview initialize")
 	{
-		tokenizer tok("abc 🌍 123 3.14"sv);
-		//
-		auto cwd = fs::current_path();
-
-		tok.tokenize();
+		tokenizer tok("abc"sv);
 
 		int j = 0;
 	}

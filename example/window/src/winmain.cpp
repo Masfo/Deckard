@@ -251,7 +251,7 @@ std::generator<u32> gen()
 	}
 }
 
-i32 deckard_main(utf8::view commandline)
+i32 deckard_main(utf8::view /*commandline*/)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
@@ -323,9 +323,8 @@ dbg::println();
 
 	auto ipv6_from_string = [&](const std::string_view input) -> std::array<u8, 16>
 	{
-		constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
+		static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
-		bool k = is_valid_ipv6(input);
 
 		std::array<u8, 16> ret{};
 
@@ -425,14 +424,6 @@ dbg::println();
 		return ret;
 	};
 
-	double d = 1.4e3; // 1.4 * (10^3 aka 1000)
-					  // 0x4.1p6, 4 * 2^6, 64, 256
-	double d1 = 0x1.01p1;
-
-	std::string_view x("0x1.4p3");
-	f64              result{};
-	auto             fcres = std::from_chars(x.data(), x.data() + x.size(), result, std::chars_format::hex);
-
 
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");
@@ -482,7 +473,6 @@ dbg::println();
 	dbg::println("log2(85) = {}", std::log2(85));
 	dbg::println("log2(92) = {}", std::log2(92));
 
-	int j1 = 0;
 
 
 	std::vector<u8> kos = make_vector<u8>(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07);
@@ -498,21 +488,6 @@ dbg::println();
 	dbg::println("{}", vkos);
 
 
-	{
-		// ####
-
-		std::string      a("--number 10 -n 'hello world'"); // --name 'hello'
-		std::string_view sv(a);
-
-
-		if (sv.starts_with("--"))
-			sv.substr(2);
-		else if (sv.starts_with("-"))
-			sv.substr(1);
-
-
-		// ####
-	}
 
 
 	// ###################

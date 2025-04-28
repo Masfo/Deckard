@@ -145,15 +145,17 @@ namespace deckard::lexer
 
 	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
 
-	constexpr auto STokenValue = sizeof(TokenValue);
-	static_assert(sizeof TokenValue == 32);
+	static_assert(sizeof(TokenValue) == 32);
 
 	struct Token
 	{
-		std::span<u8> token_in_source; // tokens text in source
-
-		TokenValue value;
+		std::span<u8> token_in_source; // tokens source
+		TokenValue    value;
+		TokenType     type;
 	};
+
+	constexpr auto TokenSize = sizeof(Token);
+	static_assert(sizeof(Token) == 56);
 
 	export class tokenizer
 	{
@@ -161,6 +163,7 @@ namespace deckard::lexer
 		using tokens = std::vector<Token>;
 
 		utf8::string m_data;
+		tokens       m_tokens;
 
 	private:
 		bool load_from_file(const fs::path path)
@@ -202,25 +205,57 @@ namespace deckard::lexer
 			tokenize();
 		}
 
-		//auto begin()  { return m_data.begin(); }
-		//
-		//auto end()  { return m_data.end(); }
+		auto peek(size_t offset = 0) const -> std::optional<char32>
+		{
+			if (offset < m_data.size_in_bytes())
+				return m_data[offset];
+
+			return std::nullopt;
+		}
+
+	
+
+		u64 scan_identifier(u64 offset)
+		{
+			u64 i = offset;
+
+			while (i < m_data.size_in_bytes())
+			{
+				auto cp = m_data[i];
+				if (utf8::is_identifier_continue(cp))
+					i += 1;
+				else
+					break;
+			}
+			return i - offset;
+		}
 
 
 		auto tokenize()
 		{
-			for(u64 i=0; i<m_data.size_in_bytes(); i++)
+			for (u64 i = 0; i < m_data.size_in_bytes(); i++)
 			{
 				auto cp = m_data[i];
+				if(utf8::is_ascii_newline(cp))
+					continue;
 
 				if (utf8::is_whitespace(cp))
 					continue;
-				if (utf8::is_ascii_digit(cp))
-					continue;
+
 				if (utf8::is_identifier_start(cp))
+				{
+					i += 1;
+
+					i += scan_identifier(i);
 					continue;
-				if (utf8::is_ascii(cp))
+				}
+				
+				// TODO: is_codepoint_digit(cp) ?
+				if (utf8::is_ascii_digit(cp))
+				{
 					continue;
+				}
+
 			}
 		}
 	};
