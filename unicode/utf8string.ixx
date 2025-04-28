@@ -38,11 +38,12 @@ namespace deckard::utf8
 
 		using difference_type = difference_type;
 
-		using iterator_category = std::random_access_iterator_tag;
+		using iterator_category   = std::random_access_iterator_tag;
+		constexpr static u64 npos = limits::max<u64>;
 
 	private:
 		pointer ptr{nullptr};
-		size_t  current_index{0};
+		i64     current_index{0};
 
 		void next_codepoint()
 		{
@@ -95,8 +96,8 @@ namespace deckard::utf8
 			if (current_index >= as<difference_type>(ptr->size()))
 				return REPLACEMENT_CHARACTER;
 
-			auto           index     = current_index;
-			u32            state     = 0;
+			auto index     = current_index;
+			u32  state     = 0;
 			unit codepoint = 0;
 
 			for (; index < as<difference_type>(ptr->size()); index++)
@@ -131,7 +132,7 @@ namespace deckard::utf8
 			, current_index(0)
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index <= ptr->size(), "Dereferencing out-of-bounds iterator");
+			assert::check(current_index <= as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
 		}
 
 		iterator(pointer p)
@@ -145,7 +146,7 @@ namespace deckard::utf8
 			, current_index(v)
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index <= ptr->size(), "Dereferencing out-of-bounds iterator");
+			assert::check(current_index <= as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
 		}
 
 		bool operator==(const iterator& other) const
@@ -181,7 +182,7 @@ namespace deckard::utf8
 		unit operator*() const
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index < ptr->size(), "Dereferencing out-of-bounds iterator");
+			assert::check(current_index < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
 			return static_cast<unit>(decode_current_codepoint());
 		}
 
@@ -238,7 +239,7 @@ namespace deckard::utf8
 			if (n.has_value())
 				return operator+(n.value());
 			else
-				return *this;
+				return *this + npos;
 		}
 
 		iterator operator-(difference_type n) const
@@ -249,11 +250,12 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-		iterator operator-(const std::optional<codepoint_type> n) const 		{
+		iterator operator-(const std::optional<codepoint_type> n) const
+		{
 			if (n.has_value())
 				return operator-(n.value());
 			else
-				return *this;
+				return *this + npos;
 		}
 
 		difference_type operator-(const iterator& other) const
@@ -331,7 +333,7 @@ namespace deckard::utf8
 		}
 
 		[[nodiscard("use result of at method")]]
-		unit at(u32 index) const
+		unit at(u64 index) const
 		{
 			assert::check(index < size(), "Index out of bounds");
 
@@ -342,7 +344,7 @@ namespace deckard::utf8
 			return *it;
 		}
 
-		[[nodiscard("use result of index operator")]] unit operator[](u32 index) { return at(index); }
+		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const{ return at(index); }
 
 		bool operator==(const string& other) const
 		{
@@ -624,7 +626,6 @@ namespace deckard::utf8
 			return {};
 		}
 
-
 		bool contains(std::span<u8> input) const
 		{
 			if (input.empty() || input.size() > buffer.size())
@@ -757,7 +758,7 @@ namespace deckard::utf8
 
 		size_t graphemes() const
 		{
-	
+
 
 			if (empty() or valid().has_value() == false)
 				return 0;
@@ -889,6 +890,8 @@ namespace deckard::utf8
 #endif
 	};
 
+	static_assert(sizeof(string) == 32, "string size mismatch");
+
 	// TODO:
 	// find_first_of / first_not_of
 	// find_last_of  / last_no_of
@@ -936,4 +939,4 @@ export namespace std
 		bool uppercase   = false;
 	};
 
-	} // namespace std
+} // namespace std
