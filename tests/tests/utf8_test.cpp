@@ -66,7 +66,6 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a == b);
 		CHECK(a.c_str() != b.c_str());
-
 	}
 
 	SECTION("move")
@@ -756,10 +755,10 @@ TEST_CASE("utf8::string", "[utf8]")
 	}
 
 	SECTION("construct string from iterator")
-	{ 
+	{
 		utf8::string str("🌍hello🌍 world🌍");
 
-		auto it = str.begin() + str.find("hello"sv);
+		auto it    = str.begin() + str.find("hello"sv);
 		auto itend = it + 6;
 
 		utf8::string str_from_iter(it, itend);
@@ -1009,7 +1008,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		{
 			// 11 bytes, 1 grapheme
 			// emoji zwj emoji
-			
+
 			// clang-format off
 			std::array<u8, 11> err = {
 				0xF0, 0x9F, 0x91, 0xA9, // 👩
@@ -1221,6 +1220,12 @@ TEST_CASE("utf8::string", "[utf8]")
 	}
 }
 
+// #####################################
+// #####################################
+// #####################################
+// #####################################
+
+
 TEST_CASE("utf8::view", "[utf8][utf8view]")
 {
 	SECTION("c-tors")
@@ -1308,6 +1313,24 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(w[6] == 0x1'f30d);
 	}
 
+
+	SECTION("subview")
+	{
+		utf8::string str("🌍hello🌍");
+
+		utf8::view v(str.subview(1, 5));
+		CHECK(v.size() == 5);
+		CHECK(v[0] == 'h');
+		CHECK(v[1] == 'e');
+		CHECK(v[2] == 'l');
+		CHECK(v[3] == 'l');
+		CHECK(v[4] == 'o');
+
+		v = str.subview(6, 1);
+		CHECK(v.size() == 1);
+		CHECK(v[0] == 0x1'f30d);
+
+	}
 
 	SECTION("hash")
 	{
