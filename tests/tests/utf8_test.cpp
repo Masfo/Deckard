@@ -1330,6 +1330,18 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(v.size() == 1);
 		CHECK(v[0] == 0x1'f30d);
 
+
+		v = utf8::view(str);
+		CHECK(v.size() == 7);
+		CHECK(v[0] == 0x1'f30d);
+		CHECK(v[1] == 'h');
+		CHECK(v[2] == 'e');
+		CHECK(v[3] == 'l');
+		CHECK(v[4] == 'l');
+		CHECK(v[5] == 'o');
+		CHECK(v[6] == 0x1'f30d);
+
+
 	}
 
 	SECTION("hash")

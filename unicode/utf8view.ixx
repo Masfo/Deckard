@@ -10,6 +10,10 @@ import deckard.as;
 
 namespace deckard::utf8
 {
+	template<typename T>
+	concept subspannable = requires(T&& v) {
+		{ v.subspan() } -> std::same_as<std::span<u8>>;
+	};
 
 	export class view
 	{
@@ -91,13 +95,15 @@ namespace deckard::utf8
 	public:
 		view() = default;
 
-		//view(const string& str)
-		//	: m_data(str.span())
-		//	, byte_index(0uz)
-		//{
-		//}
+		class string;
 
-		explicit view(const std::span<u8> data)
+		view(subspannable auto&& const str)
+			: m_data(str.subspan())
+			, byte_index(0uz)
+		{
+		}
+
+		view(const std::span<u8> data)
 			: m_data(data)
 			, byte_index(0uz)
 		{
@@ -220,7 +226,6 @@ namespace deckard::utf8
 		auto end() const { return m_data.end(); }
 
 		// TODO: iterator
-
 	};
 
 } // namespace deckard::utf8
