@@ -102,6 +102,14 @@ namespace deckard::utf8
 		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
 	}
 
+	export constexpr bool is_digit(char32 codepoint) 
+	{ 
+		// TODO: digit codepoints
+		// Proplist: ASCII_Hex_Digit + Hex_Digit
+		// UnicodeData: Nd
+		return is_ascii_digit(codepoint);
+	}
+
 	export constexpr bool is_identifier_start(char32_t codepoint)
 	{
 		return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint);
