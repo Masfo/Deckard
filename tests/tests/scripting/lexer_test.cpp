@@ -20,7 +20,7 @@ TEST_CASE("tokens", "[lexer]")
 	using namespace lexer;
 	SECTION("stringview initialize")
 	{
-		tokenizer tok("abc"sv);
+	//	tokenizer tok("\"abc\""sv);
 
 		int j = 0;
 	}
@@ -28,11 +28,18 @@ TEST_CASE("tokens", "[lexer]")
 	SECTION("file initialize")
 	{
 		//
-		auto      path = fs::current_path() / "tests";
+		auto path = fs::current_path() / "tests";
 		REQUIRE(fs::exists(path));
 
 		tokenizer tok(path / "simple01.txt");
 
+		int j = 0;
+	}
+
+	SECTION("tokenize ascii-string") 
+	{ 
+		tokenizer tok("\"abc 🌍 \""); 
+		//
 		int j = 0;
 	}
 }

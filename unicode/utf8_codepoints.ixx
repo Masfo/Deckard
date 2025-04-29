@@ -94,10 +94,11 @@ namespace deckard::utf8
 		  (codepoint == 0x00A0) or                             // no-break space
 		  (codepoint == 0x1680) or                             // Ogham space mark
 		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE
+		  ((codepoint >= 0x200E) and (codepoint <= 0x200F)) or // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK
 		  (codepoint == 0x2028) or                             // LINE SEPARATOR
 		  (codepoint == 0x2029) or                             // PARAGRAPH SEPARATOR
 		  (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE
-		  (codepoint >= 0x205F) or                             // Medium Mathematical Space.
+		  (codepoint == 0x205F) or                             // Medium Mathematical Space.
 		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
 	}
 

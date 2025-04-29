@@ -142,6 +142,11 @@ namespace deckard::lexer
 		TOKEN_COUNT
 	};
 
+	constexpr char32 DOUBLE_QUOTE_CODEPOINT = U'\U00000022'; // "
+	constexpr char32 BACKSLASH_CODEPOINT    = U'\U0000005C'; // \
+
+
+
 
 	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
 
@@ -162,6 +167,7 @@ namespace deckard::lexer
 	private:
 		using tokens = std::vector<Token>;
 
+		size_t       index{0};
 		utf8::string m_data;
 		tokens       m_tokens;
 
@@ -192,6 +198,11 @@ namespace deckard::lexer
 
 		explicit tokenizer(const fs::path path) { load_from_file(path); }
 
+		tokenizer(const char *input): m_data(input)
+		{
+			tokenize();
+		}
+
 		tokenizer(std::string_view input)
 			: m_data(input)
 		{
@@ -205,6 +216,12 @@ namespace deckard::lexer
 			tokenize();
 		}
 
+		auto eof() const 
+		{ 
+			//
+			return false; 
+		}
+
 		auto peek(size_t offset = 0) const -> std::optional<char32>
 		{
 			if (offset < m_data.size_in_bytes())
@@ -213,6 +230,20 @@ namespace deckard::lexer
 			return std::nullopt;
 		}
 
+		auto peek_next(size_t offset = 0) const -> std::optional<char32> 
+		{ return std::nullopt;
+		}
+
+		auto advance(size_t offset = 1)
+		{ 
+			if (index + offset < m_data.size_in_bytes())
+			{
+				auto cp = m_data[index];
+				index += offset;
+				return cp;
+			}
+
+		}
 	
 
 		u64 scan_identifier(u64 offset)
@@ -233,18 +264,36 @@ namespace deckard::lexer
 
 		auto tokenize()
 		{
-			for (u64 i = 0; i < m_data.size_in_bytes(); i++)
+			for (u64 i = 0; i < m_data.size(); i++)
 			{
 				auto cp = m_data[i];
 				if(utf8::is_ascii_newline(cp))
 					continue;
 
-				if (utf8::is_whitespace(cp))
+				if (cp == BACKSLASH_CODEPOINT)
+				{
+					dbg::println("backslash: {}", (u32)cp);
+					
 					continue;
+				}
+
+				if (cp == DOUBLE_QUOTE_CODEPOINT)
+				{
+					dbg::println("quote: {:x}", (u32)cp);
+					continue;
+				}
+
+
+				if (utf8::is_whitespace(cp))
+				{
+					dbg::println("whitespace: {:x}", (u32)cp);
+					continue;
+				}
 
 				if (utf8::is_identifier_start(cp))
 				{
-					i += 1;
+					dbg::println("ident: {:x}", (u32)cp);
+					continue;
 
 					i += scan_identifier(i);
 					continue;
@@ -255,6 +304,8 @@ namespace deckard::lexer
 				{
 					continue;
 				}
+
+				dbg::println("unknown: {}", (u32)cp);
 
 			}
 		}
