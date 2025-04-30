@@ -205,27 +205,27 @@ include(ExternalProject)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/DerivedCodeProperties.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCodeProperties.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/DerivedCoreProperties.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCoreProperties.txt)
 message(STATUS Downloaded latest DerivedCoreProperties.txt)
 endif()
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/UnicodeData.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/UnicodeData.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData.txt)
 message(STATUS Downloaded latest UnicodeData.txt)
 endif()
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/CaseFolding.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/CaseFolding.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding.txt)
 message(STATUS Downloaded latest CaseFolding.txt)
 endif()
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/PropList.txt)
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/PropList.txt)
+        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
 message(STATUS Downloaded latest PropList.txt)
 endif()
 
