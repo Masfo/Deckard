@@ -332,6 +332,9 @@ UnicodeDataField parse_field(std::string_view line)
 	// 4
 	field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
 
+	// 8
+	field.numeric_value = to_number<int>(split_line[8], 10).value_or(-1);
+
 
 	// 12
 	auto uc                 = to_number<int>(split_line[12], 16);
@@ -358,7 +361,7 @@ struct char32_range
 using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
 using IntTable = std::map<int, int>;
 
-auto  compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
+auto compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
 {
 	std::vector<char32_range> ret;
 	ret.reserve(input.size() * 2);
@@ -383,6 +386,7 @@ auto  compress_runs(std::vector<char32_range> &input) -> std::vector<char32_rang
 	ret.shrink_to_fit();
 	return ret;
 };
+
 
 
 
@@ -436,7 +440,7 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	std::ofstream f(filename);
 
 	auto table = tables.at(table_name);
-	table            = compress_runs(table);
+	table      = compress_runs(table);
 	collapse_runs(table);
 
 	auto ctable_name = table_name;
@@ -458,7 +462,7 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 	f.close();
 }
 
-void write_lines(const IntTable &table, const std::string &table_name, fs::path filename)
+void write_lines(const IntTable &table, const std::string &table_name, fs::path filename, bool in_hex = true)
 {
 	std::ofstream f(filename);
 
@@ -468,7 +472,11 @@ void write_lines(const IntTable &table, const std::string &table_name, fs::path 
 	for (const auto [from, to] : table)
 	{
 		f << "{";
-		f << std::format("{:#0x}, {:#0x}", from, to);
+		if (in_hex)
+			f << std::format("{:#0x}, {:#0x}", from, to);
+		else
+			f << std::format("{:#0x}, {}", from, to);
+
 		f << "},\n";
 	}
 	f << "}};\n";
@@ -480,7 +488,7 @@ void write_lines(const IntTable &table, const std::string &table_name, fs::path 
 
 void process_core_properties()
 {
-	auto lines = read_lines("DerivedCoreProperties.txt");
+	auto lines = read_lines("utf/DerivedCoreProperties.txt");
 
 	if (lines.empty())
 		return;
@@ -577,11 +585,11 @@ void process_unicode_data()
 	// 202F;NARROW NO-BREAK SPACE;Zs;0;CS;<noBreak> 0020;;;;N;;;;;
 	// 205F;MEDIUM MATHEMATICAL SPACE;Zs;0;WS;<compat> 0020;;;;N;;;;;
 	// 2060;WORD JOINER			;Cf;0;BN;;;;;N;;;;;
-	auto lines = read_lines("UnicodeData.txt");
-	
+	auto lines = read_lines("utf/UnicodeData.txt");
+
 	// https://mothereff.in/utf-8
-	
-	// proplist: Pattern_White_Space 
+
+	// proplist: Pattern_White_Space
 
 	fields.reserve(lines.size());
 
@@ -594,6 +602,7 @@ void process_unicode_data()
 
 	IntTable to_lowercase;
 	IntTable to_uppercase;
+	IntTable digits;
 
 
 	// TODO: to_uppercase, to_lowercase mappings
@@ -617,6 +626,9 @@ void process_unicode_data()
 
 		if (field.lowercase_mapping != -1)
 			to_lowercase[field.code_value] = field.lowercase_mapping;
+
+		if (field.numeric_value != -1)
+			digits[field.code_value] = field.numeric_value;
 
 
 		fields.emplace_back(field);
@@ -657,11 +669,11 @@ void process_unicode_data()
 
 	write_lines(to_lowercase, "upper_to_lower", "to_lowercase.ixx");
 	write_lines(to_uppercase, "lower_to_upper", "to_uppercase.ixx");
+	write_lines(digits, "digits", "digits.ixx", false);
 
 
 	collapse_runs(whitespaces["whitespace"]);
 	collapse_runs(dashes["dashes"]);
-
 
 
 	write_lines(whitespaces, "whitespace", "whitespaces.ixx");
@@ -670,7 +682,7 @@ void process_unicode_data()
 
 void process_casefolding()
 {
-	auto lines = read_lines("CaseFolding.txt");
+	auto lines = read_lines("utf/CaseFolding.txt");
 
 	if (lines.empty())
 		return;
