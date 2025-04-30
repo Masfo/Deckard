@@ -26,7 +26,7 @@ namespace deckard::utf8
 	static constexpr size_t BYTES_PER_CODEPOINT = sizeof(codepoint_type);
 	static_assert(BYTES_PER_CODEPOINT == 4, "sizeof(char32) is assumed to be 4 bytes");
 
-	class iterator final
+	export class iterator final
 	{
 	public:
 		friend class string;
@@ -124,9 +124,6 @@ namespace deckard::utf8
 		iterator& operator=(iterator&&)      = default;
 		~iterator()                          = default;
 
-		iterator(void*) { }
-
-		iterator(void*, difference_type) { }
 
 		iterator(value_type& p)
 			: ptr(&p)
@@ -272,6 +269,7 @@ namespace deckard::utf8
 			return count;
 		}
 
+
 		bool empty() const { return ptr->empty(); }
 
 		unit operator[](difference_type n) const
@@ -297,6 +295,14 @@ namespace deckard::utf8
 		// pointer operator->() const = delete;
 
 		codepoint_type codepoint() const { return decode_current_codepoint(); }
+
+		explicit operator bool() const 
+		{
+			if (ptr == nullptr or current_index >= as<difference_type>(ptr->size()))
+				return false;
+			return true;
+		}
+
 	};
 
 	// #########################
@@ -345,8 +351,7 @@ namespace deckard::utf8
 			return *it;
 		}
 
-		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const{ return at(index); }
-
+		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const { return at(index); }
 
 		bool operator==(std::span<u8> other) const
 		{
@@ -375,7 +380,6 @@ namespace deckard::utf8
 			}
 			return true;
 		}
-
 
 		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
@@ -449,6 +453,8 @@ namespace deckard::utf8
 			append(other);
 			return *this;
 		}
+
+	
 
 		iterator erase(iterator pos)
 		{
@@ -734,9 +740,7 @@ namespace deckard::utf8
 
 		auto rend() const { return std::reverse_iterator(begin()); }
 
-
 		auto span() const { return buffer.data(); }
-
 
 		bool empty() const { return buffer.empty(); }
 
@@ -808,7 +812,7 @@ namespace deckard::utf8
 
 		// start index of character, count of characters
 		// returns raw bytes of the string
-		auto subspan(size_t start=0, size_t count = npos) const -> std::span<u8>
+		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<u8>
 		{
 			assert::check(start < size(), "Indexing out-of-bounds");
 
@@ -835,9 +839,9 @@ namespace deckard::utf8
 			return buffer.subspan(start_byte, end_byte - start_byte);
 		}
 
-		string substr(size_t start=0, size_t count = npos) const { return string(subspan(start, count)); }
+		string substr(size_t start = 0, size_t count = npos) const { return string(subspan(start, count)); }
 
-		auto subview(size_t start=0, size_t count = npos) const { return view(subspan(start, count)); }
+		auto subview(size_t start = 0, size_t count = npos) const { return view(subspan(start, count)); }
 
 		auto data() const { return subspan(); }
 
@@ -897,9 +901,6 @@ namespace deckard::utf8
 #endif
 	};
 
-
-
-
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
 	// TODO:
@@ -924,10 +925,7 @@ export namespace std
 	template<>
 	struct hash<utf8::string>
 	{
-		size_t operator()(const utf8::string& value) const
-		{
-			return utils::hash_values(value.data());
-		}
+		size_t operator()(const utf8::string& value) const { return utils::hash_values(value.data()); }
 	};
 
 	template<>
