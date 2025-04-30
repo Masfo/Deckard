@@ -37,6 +37,11 @@ namespace deckard::lexer
 
 	 */
 
+	template<typename T>
+	concept codepoint_predicate = requires(T&& v, char32 cp) {
+		{ v(cp) } -> std::same_as<bool>;
+	};
+
 	export enum class TokenType : u8 {
 		INTEGER,        // 1, -1
 		FLOATING_POINT, // 3.14
@@ -142,10 +147,10 @@ namespace deckard::lexer
 		TOKEN_COUNT
 	};
 
-	constexpr char32 DOUBLE_QUOTE_CODEPOINT = U'\U00000022'; // "
-	constexpr char32 BACKSLASH_CODEPOINT    = U'\U0000005C'; // \
-
-
+	constexpr char32 DOUBLE_QUOTE_CODEPOINT    = U'\U00000022'; // "
+	constexpr char32 BACKSLASH_CODEPOINT       = U'\U0000005C'; // -> \ <- escape char
+	constexpr char32 CARRIAGE_RETURN_CODEPOINT = U'\U0000000D'; // Carriage return, \r
+	constexpr char32 LINE_FEED_CODEPOINT       = U'\U0000000A'; // Line feed, \n
 
 
 	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
@@ -162,23 +167,32 @@ namespace deckard::lexer
 	constexpr auto TokenSize = sizeof(Token);
 	static_assert(sizeof(Token) == 56);
 
+	using namespace deckard;
+
 	export class tokenizer
 	{
 	private:
 		using tokens = std::vector<Token>;
 
-		size_t       index{0};
-		utf8::string m_data;
-		tokens       m_tokens;
+		utf8::iterator it;
+		utf8::string   m_data;
+		tokens         m_tokens;
+		u64            line{}, column{};
 
 	private:
+		void assign(const std::span<u8>& buffer)
+		{
+			m_data.assign(buffer);
+			it = m_data.begin();
+		}
+
 		bool load_from_file(const fs::path path)
 		{
 			auto buffer = read_file(path);
 			if (buffer.empty())
 				return false;
 
-			m_data.assign(buffer);
+			assign(buffer);
 
 			return true;
 		}
@@ -188,8 +202,7 @@ namespace deckard::lexer
 			//
 			if (buffer.empty())
 				return false;
-
-			m_data.assign(buffer);
+			assign(buffer);
 			return true;
 		}
 
@@ -198,53 +211,62 @@ namespace deckard::lexer
 
 		explicit tokenizer(const fs::path path) { load_from_file(path); }
 
-		tokenizer(const char *input): m_data(input)
+		tokenizer(const char* input)
+			: m_data(input)
+			, it(m_data.begin())
 		{
 			tokenize();
 		}
 
 		tokenizer(std::string_view input)
 			: m_data(input)
+			, it(m_data.begin())
 		{
 			tokenize();
 		}
 
 		tokenizer(utf8::string input)
 			: m_data(input)
+			, it(m_data.begin())
 
 		{
 			tokenize();
 		}
 
-		auto eof() const 
-		{ 
+		auto eof() const
+		{
 			//
-			return false; 
+			return false;
 		}
 
 		auto peek(size_t offset = 0) const -> std::optional<char32>
 		{
-			if (offset < m_data.size_in_bytes())
-				return m_data[offset];
-
+			if (it + offset)
+				return *(it + offset);
 			return std::nullopt;
 		}
 
-		auto peek_next(size_t offset = 0) const -> std::optional<char32> 
-		{ return std::nullopt;
+		auto consume(codepoint_predicate auto&& pred) -> std::optional<char32>
+		{
+			// return count
+			auto start = it;
+
+			if (it == m_data.end())
+				return std::nullopt;
+			auto cp = *it;
+			if (pred(cp))
+			{
+				it++;
+				return cp;
+			}
+			return std::nullopt;
 		}
 
 		auto advance(size_t offset = 1)
-		{ 
-			if (index + offset < m_data.size_in_bytes())
-			{
-				auto cp = m_data[index];
-				index += offset;
-				return cp;
-			}
-
+		{
+			if (it)
+				it += offset;
 		}
-	
 
 		u64 scan_identifier(u64 offset)
 		{
@@ -261,52 +283,99 @@ namespace deckard::lexer
 			return i - offset;
 		}
 
-
 		auto tokenize()
 		{
-			for (u64 i = 0; i < m_data.size(); i++)
+			auto next_line = [this]() mutable
 			{
-				auto cp = m_data[i];
-				if(utf8::is_ascii_newline(cp))
-					continue;
+				line += 1;
+				column = 0;
+			};
+			auto next_codepoint = [this] () mutable
+			{
+				column += 1;
+			};
 
-				if (cp == BACKSLASH_CODEPOINT)
+			auto is_newline = [this]()
+			{
+				return peek() == LINE_FEED_CODEPOINT or peek() == CARRIAGE_RETURN_CODEPOINT or   // linux/mac
+					   (peek() == CARRIAGE_RETURN_CODEPOINT and peek(1) == LINE_FEED_CODEPOINT); // windows
+			};
+
+			while (it)
+			{
+				auto current = peek();
+				auto next    = peek(1);
+				if (not(current and next))
 				{
-					dbg::println("backslash: {}", (u32)cp);
-					
+					dbg::println("does not have two chars");
+					break;
+				}
+
+				it++;
+				u32 current_char = *current;
+				u32 next_char    = *next;
+
+				next_codepoint();
+
+
+				if (current_char == CARRIAGE_RETURN_CODEPOINT and next_char == LINE_FEED_CODEPOINT) // windows
+				{
+					dbg::println("windows newline: {}", (u32)current_char);
+					it++;
+					next_codepoint(); // consume \n
+					next_line();
 					continue;
 				}
 
-				if (cp == DOUBLE_QUOTE_CODEPOINT)
+				if (current_char == LINE_FEED_CODEPOINT or current_char == CARRIAGE_RETURN_CODEPOINT) // linux/mac
 				{
-					dbg::println("quote: {:x}", (u32)cp);
+					dbg::println("nix newline: {}", (u32)current_char);
+					next_line();
+					continue;
+				}
+
+				if (current_char == BACKSLASH_CODEPOINT)
+				{
+					dbg::println("backslash: {}", (u32)current_char);
+					continue;
+				}
+				if (current_char == DOUBLE_QUOTE_CODEPOINT)
+				{
+					dbg::println("quote: {:x}", (u32)current_char);
+					continue;
+				}
+				if (utf8::is_whitespace(current_char))
+				{
+					dbg::println("whitespace: {:x}", (u32)current_char);
+					continue;
+				}
+				if (utf8::is_identifier_start(current_char))
+				{
+					dbg::println("ident: {:x}", (u32)current_char);
+
+					// auto count = consume(is_identifier); // is_identifier -> is_xid_start and is_xid_continue lambda
+					// token.start = it;
+					// token.count = count;
+					// token.type = Token::IDENTIFIER;
+					// 
+					// it += count;
+					continue;
+				}
+				if (utf8::is_digit(current_char))
+				{
+					dbg::println("digit: {:x}", (u32)current_char);
 					continue;
 				}
 
 
-				if (utf8::is_whitespace(cp))
+				if(utf8::is_xid_continue(current_char))
 				{
-					dbg::println("whitespace: {:x}", (u32)cp);
+					dbg::println("xid continue: {:x}", (u32)current_char);
 					continue;
 				}
 
-				if (utf8::is_identifier_start(cp))
-				{
-					dbg::println("ident: {:x}", (u32)cp);
-					continue;
 
-					i += scan_identifier(i);
-					continue;
-				}
-				
-				// TODO: is_codepoint_digit(cp) ?
-				if (utf8::is_ascii_digit(cp))
-				{
-					continue;
-				}
-
-				dbg::println("unknown: {}", (u32)cp);
-
+				dbg::println("unknown: {:x}", (u32)current_char);
 			}
 		}
 	};

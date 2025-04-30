@@ -36,6 +36,15 @@ TEST_CASE("tokens", "[lexer]")
 		int j = 0;
 	}
 
+	
+	SECTION("tokenize base10 integer")
+	{
+		tokenizer tok("\r\n");
+		//
+		int j = 0;
+	}
+
+
 	SECTION("tokenize ascii-string") 
 	{ 
 		tokenizer tok("\"abc 🌍 \""); 

@@ -60,7 +60,7 @@ namespace deckard::utf8
 		return 0;
 	}
 
-	export constexpr u32 codepoint_width(char32_t codepoint)
+	export constexpr u32 codepoint_width(char32 codepoint)
 	{
 		if (codepoint < 0x80)
 			return 1;
@@ -74,14 +74,21 @@ namespace deckard::utf8
 		return 0;
 	}
 
-	export constexpr bool is_bom(char32_t codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
+	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
 	export constexpr bool start_with_bom(const std::span<u8> buffer)
 	{
 		return buffer.size() >= 3 and (buffer[0] == 0xEF and buffer[1] == 0xBB and buffer[2] == 0xBF);
 	}
 
-	export constexpr bool is_whitespace(char32_t codepoint)
+
+	export constexpr bool is_newline(char32 codepoint)
+	{
+		return (codepoint == 0x000A) or // LF
+			   (codepoint == 0x000D);   // CR
+	}
+
+	export constexpr bool is_whitespace(char32 codepoint)
 	{
 		// PropList-16.txt
 		// Pattern_White_Space
@@ -110,12 +117,12 @@ namespace deckard::utf8
 		return is_ascii_digit(codepoint);
 	}
 
-	export constexpr bool is_identifier_start(char32_t codepoint)
+	export constexpr bool is_identifier_start(char32 codepoint)
 	{
 		return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint);
 	}
 
-	export constexpr bool is_identifier_continue(char32_t codepoint)
+	export constexpr bool is_identifier_continue(char32 codepoint)
 	{
 		return is_ascii_identifier_continue(codepoint) or is_xid_continue(codepoint);
 	}
