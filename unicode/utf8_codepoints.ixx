@@ -81,7 +81,6 @@ namespace deckard::utf8
 		return buffer.size() >= 3 and (buffer[0] == 0xEF and buffer[1] == 0xBB and buffer[2] == 0xBF);
 	}
 
-
 	export constexpr bool is_newline(char32 codepoint)
 	{
 		return (codepoint == 0x000A) or // LF
@@ -109,18 +108,17 @@ namespace deckard::utf8
 		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
 	}
 
-	export constexpr bool is_digit(char32 codepoint) 
-	{ 
+	export constexpr bool is_digit(char32 codepoint)
+	{
 		// TODO: digit codepoints
 		// Proplist: ASCII_Hex_Digit + Hex_Digit
 		// UnicodeData: Nd
 		return is_ascii_digit(codepoint);
 	}
 
-	export constexpr bool is_identifier_start(char32 codepoint)
-	{
-		return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint);
-	}
+	export constexpr bool is_hex_digit(char32 codepoint) { return is_ascii_hex_digit(codepoint); }
+
+	export constexpr bool is_identifier_start(char32 codepoint) { return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint); }
 
 	export constexpr bool is_identifier_continue(char32 codepoint)
 	{
