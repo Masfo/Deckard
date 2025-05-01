@@ -124,7 +124,6 @@ namespace deckard::utf8
 		iterator& operator=(iterator&&)      = default;
 		~iterator()                          = default;
 
-
 		iterator(value_type& p)
 			: ptr(&p)
 			, current_index(0)
@@ -269,7 +268,6 @@ namespace deckard::utf8
 			return count;
 		}
 
-
 		bool empty() const { return ptr->empty(); }
 
 		unit operator[](difference_type n) const
@@ -296,13 +294,7 @@ namespace deckard::utf8
 
 		codepoint_type codepoint() const { return decode_current_codepoint(); }
 
-		explicit operator bool() const 
-		{
-			if (ptr == nullptr or current_index >= as<difference_type>(ptr->size()))
-				return false;
-			return true;
-		}
-
+		explicit operator bool() const { return current_index < as<difference_type>(ptr->size()) and ptr != nullptr; }
 	};
 
 	// #########################
@@ -453,8 +445,6 @@ namespace deckard::utf8
 			append(other);
 			return *this;
 		}
-
-	
 
 		iterator erase(iterator pos)
 		{

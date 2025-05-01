@@ -479,7 +479,7 @@ namespace deckard
 			if (self_insert)
 			{
 				// TODO: self insert check
-				dbg::breakpoint();
+				//dbg::breakpoint();
 			}
 
 			const size_t pivot   = std::distance(begin(), pos);

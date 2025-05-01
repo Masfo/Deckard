@@ -235,8 +235,7 @@ namespace deckard::lexer
 
 		auto eof() const
 		{
-			//
-			return false;
+			return it == m_data.end() or it == m_data.end() - 1;
 		}
 
 		auto peek(size_t offset = 0) const -> std::optional<char32>
@@ -305,15 +304,15 @@ namespace deckard::lexer
 			{
 				auto current = peek();
 				auto next    = peek(1);
-				if (not(current and next))
-				{
-					dbg::println("does not have two chars");
-					break;
-				}
+				//if (not(current and next))
+				//{
+				//	dbg::println("does not have two chars");
+				//	break;
+				//}
 
 				it++;
-				u32 current_char = *current;
-				u32 next_char    = *next;
+				u32 current_char = current ? *current : 0;
+				u32 next_char    = next ? *next : 0;
 
 				next_codepoint();
 
