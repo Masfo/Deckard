@@ -58,7 +58,7 @@ namespace deckard::utils
 	}
 
 	export template<typename T>
-	constexpr size_t hash_values(const std::span<T> &args)
+	constexpr size_t hash_values(const std::span<T>& args)
 	{
 		std::size_t seed = constant_seed;
 		for (const auto& arg : args)
@@ -262,63 +262,80 @@ namespace deckard::utils
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
 	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
 
+	static inline uint64_t chibihash64__load32le(const uint8_t* p)
+	{
+		return (uint64_t)p[0] << 0 | (uint64_t)p[1] << 8 | (uint64_t)p[2] << 16 | (uint64_t)p[3] << 24;
+	}
+
+	static inline uint64_t chibihash64__load64le(const uint8_t* p)
+	{
+		return chibihash64__load32le(p) | (chibihash64__load32le(p + 4) << 32);
+	}
+
+	static inline uint64_t chibihash64__rotl(uint64_t x, int n) { return (x << n) | (x >> (-n & 63)); }
+
 	export u64 chibihash64(const void* keyIn, size_t len, u64 seed)
 	{
-		const u8* k = as<const u8*>(keyIn);
-		size_t    l = len;
+		// https://github.com/N-R-K/ChibiHash/blob/master/chibihash64.h
 
-		const u64 P1 = 0x2B7E'1516'28AE'D2A5Ull;
-		const u64 P2 = 0x9E37'9349'2EED'C3F7Ull;
-		const u64 P3 = 0x3243'F6A8'885A'308DUll;
+		const uint8_t* p = (const uint8_t*)keyIn;
+		ptrdiff_t      l = len;
 
-		u64 h[4] = {P1, P2, P3, seed};
+		const uint64_t K     = 0x2B7E'1516'28AE'D2A7ULL; // digits of e
+		uint64_t       seed2 = chibihash64__rotl(seed - K, 15) + chibihash64__rotl(seed - K, 47);
+		uint64_t       h[4]  = {seed, seed + K, seed2, seed2 + (K * K ^ K)};
 
+		// depending on your system unrolling might (or might not) make things
+		// a tad bit faster on large strings. on my system, it actually makes
+		// things slower.
+		// generally speaking, the cost of bigger code size is usually not
+		// worth the trade-off since larger code-size will hinder inlinability
+		// but depending on your needs, you may want to uncomment the pragma
+		// below to unroll the loop.
+		// #pragma GCC unroll 2
 		for (; l >= 32; l -= 32)
 		{
-			for (i32 i = 0; i < 4; ++i, k += 8)
+			for (int i = 0; i < 4; ++i, p += 8)
 			{
-				u64 lane = deckard::load_as_le<u64>(k);
-				h[i] ^= lane;
-				h[i] *= P1;
-				h[(i + 1) & 3] ^= ((lane << 40) | (lane >> 24));
+				uint64_t stripe = chibihash64__load64le(p);
+				h[i]            = (stripe + h[i]) * K;
+				h[(i + 1) & 3] += chibihash64__rotl(stripe, 27);
 			}
 		}
 
-		h[0] += as<u64>(len << 32) | as<u64>(len >> 32);
-		if (l & 1)
+		for (; l >= 8; l -= 8, p += 8)
 		{
-			h[0] ^= k[0];
-			--l, ++k;
+			h[0] ^= chibihash64__load32le(p + 0);
+			h[0] *= K;
+			h[1] ^= chibihash64__load32le(p + 4);
+			h[1] *= K;
 		}
-		h[0] *= P2;
+
+		if (l >= 4)
+		{
+			h[2] ^= chibihash64__load32le(p);
+			h[3] ^= chibihash64__load32le(p + l - 4);
+		}
+		else if (l > 0)
+		{
+			h[2] ^= p[0];
+			h[3] ^= p[l / 2] | ((uint64_t)p[l - 1] << 8);
+		}
+
+		h[0] += chibihash64__rotl(h[2] * K, 31) ^ (h[2] >> 31);
+		h[1] += chibihash64__rotl(h[3] * K, 31) ^ (h[3] >> 31);
+		h[0] *= K;
 		h[0] ^= h[0] >> 31;
+		h[1] += h[0];
 
-		for (i32 i = 1; l >= 8; l -= 8, k += 8, ++i)
-		{
-			h[i] ^= deckard::load_as_le<u64>(k);
-			h[i] *= P2;
-			h[i] ^= h[i] >> 31;
-		}
+		uint64_t x = (uint64_t)len * K;
+		x ^= chibihash64__rotl(x, 29);
+		x += seed;
+		x ^= h[1];
 
-		for (i32 i = 0; l > 0; l -= 2, k += 2, ++i)
-		{
-			h[i] ^= (k[0] | ((u64)k[1] << 8));
-			h[i] *= P3;
-			h[i] ^= h[i] >> 31;
-		}
-
-		u64 x = seed;
-		x ^= h[0] * ((h[2] >> 32) | 1);
-		x ^= h[1] * ((h[3] >> 32) | 1);
-		x ^= h[2] * ((h[0] >> 32) | 1);
-		x ^= h[3] * ((h[1] >> 32) | 1);
-
-		// moremur: https://mostlymangling.blogspot.com/2019/12/stronger-better-morer-moremur-better.html
-		x ^= x >> 27;
-		x *= 0x3C79'AC49'2BA7'B653ULL;
-		x ^= x >> 33;
-		x *= 0x1C69'B3F7'4AC4'AE35ULL;
-		x ^= x >> 27;
+		x ^= chibihash64__rotl(x, 15) ^ chibihash64__rotl(x, 42);
+		x *= K;
+		x ^= chibihash64__rotl(x, 13) ^ chibihash64__rotl(x, 31);
 
 		return x;
 	}

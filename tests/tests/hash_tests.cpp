@@ -149,5 +149,5 @@ TEST_CASE("rapidhash digests", "[rapidhash][hash]")
 
 TEST_CASE("chibihash digest", "[chibihash][hash]")
 { 
-	CHECK("hello world"_chibihash64 == 0x4d6a1a71f530b808);
+	CHECK("hello world"_chibihash64 == 0x10f13d0ccc4b03c5);
 }
