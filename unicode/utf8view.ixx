@@ -15,7 +15,6 @@ namespace deckard::utf8
 		{ v.subspan() } -> std::same_as<std::span<u8>>;
 	};
 
-
 	export class view
 	{
 	private:
@@ -130,6 +129,9 @@ namespace deckard::utf8
 			return ret ? *ret : 0;
 		}
 
+		auto c_str() const { return as<const char*>(m_data.data()); }
+
+
 		size_t size() const { return length(); }
 
 		bool empty() const { return size() == 0uz; }
@@ -230,3 +232,29 @@ namespace deckard::utf8
 	};
 
 } // namespace deckard::utf8
+
+export namespace std
+
+{
+	using namespace deckard;
+
+	// template<>
+	// struct hash<utf8::view>
+	//{
+	//	size_t operator()(const utf8::view& value) const { return utils::hash_values(value.data()); }
+	// };
+
+	template<>
+	struct formatter<utf8::view>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const utf8::view& v, std::format_context& ctx) const
+		{
+			std::string_view view{v.c_str(), v.size_in_bytes()};
+			return std::format_to(ctx.out(), "{}", view);
+		}
+	};
+
+
+} // namespace std

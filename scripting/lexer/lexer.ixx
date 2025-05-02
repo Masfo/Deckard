@@ -233,10 +233,9 @@ namespace deckard::lexer
 			tokenize();
 		}
 
-		auto eof() const
-		{
-			return it == m_data.end() or it == m_data.end() - 1;
-		}
+		auto eof() const { return it >= m_data.end() - 1; }
+
+		bool eol() const { return false; }
 
 		auto peek(size_t offset = 0) const -> std::optional<char32>
 		{
@@ -245,20 +244,26 @@ namespace deckard::lexer
 			return std::nullopt;
 		}
 
-		auto consume(codepoint_predicate auto&& pred) -> std::optional<char32>
+		auto consume(codepoint_predicate auto&& pred) -> u32
 		{
-			// return count
+			u32  count = 0;
 			auto start = it;
 
-			if (it == m_data.end())
-				return std::nullopt;
-			auto cp = *it;
-			if (pred(cp))
+			while (start != m_data.end())
 			{
-				it++;
-				return cp;
+				if (auto cp = *start; pred(cp))
+				{
+
+					start++;
+					count++;
+				}
+				else
+				{
+					break;
+				}
 			}
-			return std::nullopt;
+
+			return count;
 		}
 
 		auto advance(size_t offset = 1)
@@ -289,10 +294,7 @@ namespace deckard::lexer
 				line += 1;
 				column = 0;
 			};
-			auto next_codepoint = [this] () mutable
-			{
-				column += 1;
-			};
+			auto next_codepoint = [this]() mutable { column += 1; };
 
 			auto is_newline = [this]()
 			{
@@ -304,25 +306,22 @@ namespace deckard::lexer
 			{
 				auto current = peek();
 				auto next    = peek(1);
-				//if (not(current and next))
+				// if (not(current and next))
 				//{
 				//	dbg::println("does not have two chars");
 				//	break;
-				//}
+				// }
 
-				it++;
 				u32 current_char = current ? *current : 0;
 				u32 next_char    = next ? *next : 0;
-
-				next_codepoint();
 
 
 				if (current_char == CARRIAGE_RETURN_CODEPOINT and next_char == LINE_FEED_CODEPOINT) // windows
 				{
 					dbg::println("windows newline: {}", (u32)current_char);
-					it++;
-					next_codepoint(); // consume \n
+					next_codepoint();                                                               // consume \n
 					next_line();
+					it++;
 					continue;
 				}
 
@@ -330,51 +329,67 @@ namespace deckard::lexer
 				{
 					dbg::println("nix newline: {}", (u32)current_char);
 					next_line();
+					it++;
 					continue;
 				}
 
 				if (current_char == BACKSLASH_CODEPOINT)
 				{
 					dbg::println("backslash: {}", (u32)current_char);
+					next_codepoint();
+					it++;
 					continue;
 				}
 				if (current_char == DOUBLE_QUOTE_CODEPOINT)
 				{
 					dbg::println("quote: {:x}", (u32)current_char);
+					next_codepoint();
+					it++;
 					continue;
 				}
 				if (utf8::is_whitespace(current_char))
 				{
 					dbg::println("whitespace: {:x}", (u32)current_char);
+					next_codepoint();
+					it++;
 					continue;
 				}
 				if (utf8::is_identifier_start(current_char))
 				{
-					dbg::println("ident: {:x}", (u32)current_char);
 
-					// auto count = consume(is_identifier); // is_identifier -> is_xid_start and is_xid_continue lambda
+					// 1 + is from identifier_start
+					u32 count = 1 + consume([](char32 codepoint) { return utf8::is_xid_continue(codepoint); });
+
+					auto wordview = m_data.subview(it, count);
+					it += count;
+					dbg::println("ident count: {}, '{}'", count, wordview);
 					// token.start = it;
 					// token.count = count;
 					// token.type = Token::IDENTIFIER;
-					// 
+					//
 					// it += count;
 					continue;
 				}
 				if (utf8::is_digit(current_char))
 				{
-					dbg::println("digit: {:x}", (u32)current_char);
-					continue;
-				}
+					auto count = consume(
+					  [](char32 codepoint)
+					  {
+						  //
+						  return utf8::is_digit(codepoint);
+					  });
+					dbg::println("digit count: {:x}, {}", (u32)current_char, count);
 
+					auto wordview = m_data.subview(it, count);
+					dbg::println("word: '{}'", wordview);
 
-				if(utf8::is_xid_continue(current_char))
-				{
-					dbg::println("xid continue: {:x}", (u32)current_char);
+					it += count;
 					continue;
 				}
 
 
 				dbg::println("unknown: {:x}", (u32)current_char);
+				it++;
 			}
 		}
 	};

@@ -211,15 +211,21 @@ namespace deckard::utf8
 
 		iterator operator+=(int v)
 		{
-			while (--v)
+			while (v)
+			{
 				next_codepoint();
+				v--;
+			}
 			return *this;
 		}
 
 		iterator operator-=(int v)
 		{
-			while (--v)
+			while (v)
+			{
 				previous_codepoint();
+				v--;
+			}
 			return *this;
 		}
 
@@ -286,6 +292,7 @@ namespace deckard::utf8
 			assert::check(index < ptr->size(), "Index out-of-bounds");
 			return ptr->at(index);
 		}
+
 
 		auto byte() const { return byte_at(current_index); }
 
@@ -804,6 +811,10 @@ namespace deckard::utf8
 		// returns raw bytes of the string
 		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<u8>
 		{
+			if (start >= size())
+			{
+				auto k = 0;
+			}
 			assert::check(start < size(), "Indexing out-of-bounds");
 
 			if (empty())
@@ -832,6 +843,15 @@ namespace deckard::utf8
 		string substr(size_t start = 0, size_t count = npos) const { return string(subspan(start, count)); }
 
 		auto subview(size_t start = 0, size_t count = npos) const { return view(subspan(start, count)); }
+
+		auto subview(iterator start, size_t count = npos) const 
+		{ 
+			auto start_index = start.byteindex();
+			
+			auto end_index   = (start + count).byteindex();
+			return subview(start_index, end_index - start_index);
+		}
+
 
 		auto data() const { return subspan(); }
 
@@ -936,5 +956,7 @@ export namespace std
 		int  parsed_base = 10;
 		bool uppercase   = false;
 	};
+
+
 
 } // namespace std

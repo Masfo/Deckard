@@ -47,7 +47,7 @@ TEST_CASE("tokens", "[lexer]")
 
 	SECTION("tokenize ascii-string") 
 	{ 
-		tokenizer tok("\"abc 🌍 \""); 
+		tokenizer tok("abc Σ"); 
 		//
 		int j = 0;
 	}
