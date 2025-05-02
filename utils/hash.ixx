@@ -109,13 +109,13 @@ namespace deckard::utils
 
 		switch (m.size() - blocks)
 		{
-			case 7: last7 |= (uint64_t)m[i + 6] << 48;
-			case 6: last7 |= (uint64_t)m[i + 5] << 40;
-			case 5: last7 |= (uint64_t)m[i + 4] << 32;
-			case 4: last7 |= (uint64_t)m[i + 3] << 24;
-			case 3: last7 |= (uint64_t)m[i + 2] << 16;
-			case 2: last7 |= (uint64_t)m[i + 1] << 8;
-			case 1: last7 |= (uint64_t)m[i + 0];
+			case 7: last7 |= (u64)m[i + 6] << 48;
+			case 6: last7 |= (u64)m[i + 5] << 40;
+			case 5: last7 |= (u64)m[i + 4] << 32;
+			case 4: last7 |= (u64)m[i + 3] << 24;
+			case 3: last7 |= (u64)m[i + 2] << 16;
+			case 2: last7 |= (u64)m[i + 1] << 8;
+			case 1: last7 |= (u64)m[i + 0];
 			case 0:
 			default:;
 		};
@@ -172,42 +172,42 @@ namespace deckard::utils
 
 	constexpr u64 rapid_secret[3] = {0x2d35'8dcc'aa6c'78a5ull, 0x8bb8'4b93'962e'acc9ull, 0x4b33'a62e'd433'd4a3ull};
 
-	void rapid_mum(uint64_t* A, uint64_t* B) { *A = _umul128(*A, *B, B); }
+	void rapid_mum(u64* A, u64* B) { *A = _umul128(*A, *B, B); }
 
-	u64 rapid_read64(const uint8_t* p)
+	u64 rapid_read64(const u8* p)
 	{
-		uint64_t v;
-		std::memcpy(&v, p, sizeof(uint64_t));
+		u64 v;
+		std::memcpy(&v, p, sizeof(u64));
 		return std::byteswap(v);
 	}
 
-	u64 rapid_read32(const uint8_t* p)
+	u64 rapid_read32(const u8* p)
 	{
-		uint32_t v;
-		std::memcpy(&v, p, sizeof(uint32_t));
+		u32 v;
+		std::memcpy(&v, p, sizeof(u32));
 		return std::byteswap(v);
 	}
 
-	u64 rapid_mix(uint64_t A, uint64_t B)
+	u64 rapid_mix(u64 A, u64 B)
 	{
 		rapid_mum(&A, &B);
 		return A ^ B;
 	}
 
-	u64 rapid_readsmall(const uint8_t* p, size_t k) { return (((uint64_t)p[0]) << 56) | (((uint64_t)p[k >> 1]) << 32) | p[k - 1]; }
+	u64 rapid_readsmall(const u8* p, size_t k) { return (((u64)p[0]) << 56) | (((u64)p[k >> 1]) << 32) | p[k - 1]; }
 
-	u64 rapidhash_internal(const void* key, size_t len, uint64_t seed, const uint64_t* secret)
+	u64 rapidhash_internal(const void* key, size_t len, u64 seed, const u64* secret)
 	{
-		const uint8_t* p = (const uint8_t*)key;
+		const u8* p = (const u8*)key;
 		seed ^= rapid_mix(seed ^ secret[0], secret[1]) ^ len;
-		uint64_t a, b;
+		u64 a, b;
 		if (len <= 16)
 		{
 			if (len >= 4)
 			{
-				const uint8_t* plast = p + len - 4;
+				const u8* plast = p + len - 4;
 				a                    = (rapid_read32(p) << 32) | rapid_read32(plast);
-				const uint64_t delta = ((len & 24) >> (len >> 3));
+				const u64 delta = ((len & 24) >> (len >> 3));
 				b                    = ((rapid_read32(p + delta) << 32) | rapid_read32(plast - delta));
 			}
 			else if (len > 0)
@@ -223,7 +223,7 @@ namespace deckard::utils
 			size_t i = len;
 			if (i > 48)
 			{
-				uint64_t see1 = seed, see2 = seed;
+				u64 see1 = seed, see2 = seed;
 				do
 				{
 					seed = rapid_mix(rapid_read64(p) ^ secret[0], rapid_read64(p + 8) ^ seed);
@@ -249,7 +249,7 @@ namespace deckard::utils
 		return rapid_mix(a ^ secret[0] ^ len, b ^ secret[1]);
 	}
 
-	export u64 rapidhash(const void* key, size_t len, uint64_t seed) { return rapidhash_internal(key, len, seed, rapid_secret); }
+	export u64 rapidhash(const void* key, size_t len, u64 seed) { return rapidhash_internal(key, len, seed, rapid_secret); }
 
 	export u64 rapidhash(const void* key, size_t len) { return rapidhash(key, len, RAPID_SEED); }
 
@@ -262,28 +262,30 @@ namespace deckard::utils
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
 	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
 
-	static inline uint64_t chibihash64__load32le(const uint8_t* p)
+	constexpr u64 chibihash64__load32le(const u8* p)
 	{
-		return (uint64_t)p[0] << 0 | (uint64_t)p[1] << 8 | (uint64_t)p[2] << 16 | (uint64_t)p[3] << 24;
+		return (u64)p[0] << 0 | (u64)p[1] << 8 | (u64)p[2] << 16 | (u64)p[3] << 24;
+
 	}
 
-	static inline uint64_t chibihash64__load64le(const uint8_t* p)
+	constexpr u64 chibihash64__load64le(const u8* p)
 	{
 		return chibihash64__load32le(p) | (chibihash64__load32le(p + 4) << 32);
+
 	}
 
-	static inline uint64_t chibihash64__rotl(uint64_t x, int n) { return (x << n) | (x >> (-n & 63)); }
+	constexpr u64 chibihash64__rotl(u64 x, int n) { return (x << n) | (x >> (-n & 63)); }
 
-	export u64 chibihash64(const void* keyIn, size_t len, u64 seed)
+	export constexpr u64 chibihash64(const void* keyIn, size_t len, u64 seed)
 	{
 		// https://github.com/N-R-K/ChibiHash/blob/master/chibihash64.h
 
-		const uint8_t* p = (const uint8_t*)keyIn;
+		const u8* p = (const u8*)keyIn;
 		ptrdiff_t      l = len;
 
-		const uint64_t K     = 0x2B7E'1516'28AE'D2A7ULL; // digits of e
-		uint64_t       seed2 = chibihash64__rotl(seed - K, 15) + chibihash64__rotl(seed - K, 47);
-		uint64_t       h[4]  = {seed, seed + K, seed2, seed2 + (K * K ^ K)};
+		const u64 K     = 0x2B7E'1516'28AE'D2A7ULL; // digits of e
+		u64       seed2 = chibihash64__rotl(seed - K, 15) + chibihash64__rotl(seed - K, 47);
+		u64       h[4]  = {seed, seed + K, seed2, seed2 + (K * K ^ K)};
 
 		// depending on your system unrolling might (or might not) make things
 		// a tad bit faster on large strings. on my system, it actually makes
@@ -297,7 +299,7 @@ namespace deckard::utils
 		{
 			for (int i = 0; i < 4; ++i, p += 8)
 			{
-				uint64_t stripe = chibihash64__load64le(p);
+				u64 stripe = chibihash64__load64le(p);
 				h[i]            = (stripe + h[i]) * K;
 				h[(i + 1) & 3] += chibihash64__rotl(stripe, 27);
 			}
@@ -319,7 +321,7 @@ namespace deckard::utils
 		else if (l > 0)
 		{
 			h[2] ^= p[0];
-			h[3] ^= p[l / 2] | ((uint64_t)p[l - 1] << 8);
+			h[3] ^= p[l / 2] | ((u64)p[l - 1] << 8);
 		}
 
 		h[0] += chibihash64__rotl(h[2] * K, 31) ^ (h[2] >> 31);
@@ -328,7 +330,7 @@ namespace deckard::utils
 		h[0] ^= h[0] >> 31;
 		h[1] += h[0];
 
-		uint64_t x = (uint64_t)len * K;
+		u64 x = (u64)len * K;
 		x ^= chibihash64__rotl(x, 29);
 		x += seed;
 		x ^= h[1];
