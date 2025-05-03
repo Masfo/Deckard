@@ -124,6 +124,7 @@ namespace deckard
 
 		// TODO: writing advances offset automatically
 
+
 		u64 write(const std::span<u8> buffer, size_t size = 0) const
 		{
 			DWORD written{};
@@ -163,6 +164,10 @@ namespace deckard
 			return read;
 		}
 	};
+
+	// 1. open, no view to
+	// 2. get slice
+	// 3. close
 
 	export class filemap
 	{
@@ -262,12 +267,7 @@ namespace deckard
 			return ret;
 		}
 
-		std::optional<std::span<u8>> opt_data() const
-		{
-			if (view.empty())
-				return {};
-			return view;
-		}
+		std::span<u8> span() const { return view; }
 
 		u64 size() const { return view.size_bytes(); }
 
@@ -290,6 +290,8 @@ namespace deckard
 			assert::check(index < view.size_bytes(), std::format("indexing out-of-bounds: {} out of {}", index + 1, view.size_bytes()));
 			return view[index];
 		}
+
+		std::span<u8> operator[](u64 index, u64 size) const { return view.subspan(index, size); }
 
 		static u32 write(std::filesystem::path file, std::optional<std::span<u8>> content, access flag = access::createnew)
 		{
@@ -387,7 +389,7 @@ namespace deckard
 		return std::string(v.begin(), v.end());
 	}
 
-	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines=true)
+	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
 	{
 		using namespace deckard::string;
 
