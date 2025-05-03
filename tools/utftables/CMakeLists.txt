@@ -1,4 +1,4 @@
-
+﻿
 
 cmake_minimum_required (VERSION 3.30)
 
@@ -227,6 +227,12 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
         ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
 message(STATUS Downloaded latest PropList.txt)
+endif()
+
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/UCD.zip)
+file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UCD.zip
+        ${CMAKE_CURRENT_LIST_DIR}/bin/UCD.zip)
+message(STATUS Downloaded latest UCD.zip)
 endif()
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)

@@ -1,5 +1,8 @@
-
+﻿
 import std;
+using i64 = std::int64_t;
+using u64 = std::uint64_t;
+
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -236,7 +239,7 @@ std::string_view trim(std::string_view s) noexcept
 	return trim_back(s);
 };
 
-template<typename T = i32>
+template<typename T = i64>
 auto to_number(std::string_view input, int base = 10) -> std::optional<T>
 {
 	T val{};
@@ -283,21 +286,21 @@ std::vector<std::string> split_csv(std::string_view str, std::string_view delimi
 
 struct UnicodeDataField
 {
-	int                   code_value{-1};                      // 0
+	i64                   code_value{-1};                      // 0
 	std::string           character_name;                      // 1
 	GeneralCategory       category{-1};                        // 2
-	int                   canonical_combining_classes{-1};     // 3
+	i64                   canonical_combining_classes{-1};     // 3
 	BiDirectionalCategory bidirectional_category{-1};          // 4
-	int                   character_decomposition_mapping{-1}; // 5
-	int                   decimal_digit_value{-1};             // 6
-	int                   digit_value{-1};                     // 7
-	int                   numeric_value{-1};                   // 8
-	int                   mirrored{-1};                        // 9
+	i64                   character_decomposition_mapping{-1}; // 5
+	i64                   decimal_digit_value{-1};             // 6
+	i64                   digit_value{-1};                     // 7
+	i64                   numeric_value{-1};                   // 8
+	i64                   mirrored{-1};                        // 9
 	std::string           unicode10_name;                      // 10. unicode 1.0 name
 	std::string           comment;                             // 11. 10646 comment field
-	int                   uppercase_mapping{-1};               // 12.
-	int                   lowercase_mapping{-1};               // 13
-	int                   titlecase_mapping{-1};               // 14
+	i64                   uppercase_mapping{-1};               // 12.
+	i64                   lowercase_mapping{-1};               // 13
+	i64                   titlecase_mapping{-1};               // 14
 };
 
 UnicodeDataField parse_field(std::string_view line)
@@ -333,7 +336,7 @@ UnicodeDataField parse_field(std::string_view line)
 	field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
 
 	// 8
-	field.numeric_value = to_number<int>(split_line[8], 10).value_or(-1);
+	field.numeric_value = to_number<i64>(split_line[8], 10).value_or(-1z);
 
 
 	// 12
@@ -354,12 +357,12 @@ UnicodeDataField parse_field(std::string_view line)
 
 struct char32_range
 {
-	unsigned int start;
-	unsigned int end;
+	u64 start;
+	u64 end;
 };
 
 using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
-using IntTable = std::map<int, int>;
+using IntTable = std::map<u64, u64>;
 
 auto compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
 {
@@ -386,9 +389,6 @@ auto compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range
 	ret.shrink_to_fit();
 	return ret;
 };
-
-
-
 
 void collapse_runs(std::vector<char32_range> &ranges)
 {
