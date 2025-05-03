@@ -1,4 +1,4 @@
-#include <windows.h>
+﻿#include <windows.h>
 #include <Commctrl.h>
 
 
@@ -424,6 +424,26 @@ dbg::println();
 		return ret;
 	};
 
+	auto r = R"(
+	 
+	)"sv;
+
+
+	filemap f("input.bin", filemap::access::readwrite);
+
+
+	auto slice = f[0, 256];
+
+	slice[0] = 'D';
+	slice[1] = 'E';
+	slice[2] = 'A';
+	slice[3] = 'D';
+
+	f.close();
+
+
+
+	
 
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");
@@ -449,6 +469,7 @@ dbg::println();
 	//  ::ffff:c0ab:0101
 	//
 	//  127.0.0.1 - ::ffff:7f00:1
+
 
 	std::string ittest;
 	dbg::println("{} - {}", ittest, ittest.size());
