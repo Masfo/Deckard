@@ -3,26 +3,103 @@ import deckard.types;
 
 export namespace deckard::utf8::characters
 {
-	constexpr char32 LINE_FEED       = U'\u000A';      // \n
-	constexpr char32 CARRIAGE_RETURN = U'\u000D';      // \r
-
-	constexpr char32 EQUALS_SIGN = U'\u003D';          // =
-	constexpr char32 NUMBER_SIGN = U'\u0023';          // #
-	constexpr char32 QUOTE_MARK  = U'\u0022';          // "
-	constexpr char32 APOSTROPHE  = U'\u0027';          // '
-	constexpr char32 COMMA       = U'\u002C';          // ,
-	constexpr char32 FULL_STOP   = U'\u002E';          // .
-
-
-	constexpr char32 LEFT_PARENTHESIS     = U'\u0028'; // (
-	constexpr char32 RIGHT_PARENTHESIS    = U'\u0029'; // )
-	constexpr char32 LEFT_SQUARE_BRACKET  = U'\u005B'; // [
-	constexpr char32 RIGHT_SQUARE_BRACKET = U'\u005D'; // ]
-	constexpr char32 LEFT_CURLY_BRACKET   = U'\u007B'; // {
-	constexpr char32 RIGHT_CURLY_BRACKET  = U'\u007C'; // }
-
-	constexpr char32 REVERSE_SOLIDUS = U'\u005C';      // -> \ <- escape char
-	constexpr char32 SOLIDUS         = U'\u002F';      // -> / <-
-
+	constexpr char32 CHARACTER_TABULATION   = U'\u0009';
+	constexpr char32 LINE_FEED              = U'\u000A';
+	constexpr char32 CARRIAGE_RETURN        = U'\u000D';
+	constexpr char32 SPACE                  = U'\u0020';
+	constexpr char32 EXCLAMATION_MARK       = U'\u0021'; // !
+	constexpr char32 QUOTATION_MARK         = U'\u0022'; // "
+	constexpr char32 NUMBER_SIGN            = U'\u0023'; // #
+	constexpr char32 DOLLAR_SIGN            = U'\u0024'; // $
+	constexpr char32 PERCENT_SIGN           = U'\u0025'; // %
+	constexpr char32 AMPERSAND              = U'\u0026'; // &
+	constexpr char32 APOSTROPHE             = U'\u0027'; // '
+	constexpr char32 LEFT_PARENTHESIS       = U'\u0028'; // (
+	constexpr char32 RIGHT_PARENTHESIS      = U'\u0029'; // )
+	constexpr char32 ASTERISK               = U'\u002A'; // *
+	constexpr char32 PLUS_SIGN              = U'\u002B'; // +
+	constexpr char32 COMMA                  = U'\u002C'; // ,
+	constexpr char32 HYPHEN_MINUS           = U'\u002D'; // -
+	constexpr char32 FULL_STOP              = U'\u002E'; // .
+	constexpr char32 SOLIDUS                = U'\u002F'; // /
+	constexpr char32 DIGIT_ZERO             = U'\u0030'; // 0
+	constexpr char32 DIGIT_ONE              = U'\u0031'; // 1
+	constexpr char32 DIGIT_TWO              = U'\u0032'; // 2
+	constexpr char32 DIGIT_THREE            = U'\u0033'; // 3
+	constexpr char32 DIGIT_FOUR             = U'\u0034'; // 4
+	constexpr char32 DIGIT_FIVE             = U'\u0035'; // 5
+	constexpr char32 DIGIT_SIX              = U'\u0036'; // 6
+	constexpr char32 DIGIT_SEVEN            = U'\u0037'; // 7
+	constexpr char32 DIGIT_EIGHT            = U'\u0038'; // 8
+	constexpr char32 DIGIT_NINE             = U'\u0039'; // 9
+	constexpr char32 COLON                  = U'\u003A'; // :
+	constexpr char32 SEMICOLON              = U'\u003B'; // ;
+	constexpr char32 LESS_THAN_SIGN         = U'\u003C'; // <
+	constexpr char32 EQUALS_SIGN            = U'\u003D'; // =
+	constexpr char32 GREATER_THAN_SIGN      = U'\u003E'; // >
+	constexpr char32 QUESTION_MARK          = U'\u003F'; // ?
+	constexpr char32 COMMERCIAL_AT          = U'\u0040'; // @
+	constexpr char32 LATIN_CAPITAL_LETTER_A = U'\u0041'; // A
+	constexpr char32 LATIN_CAPITAL_LETTER_B = U'\u0042'; // B
+	constexpr char32 LATIN_CAPITAL_LETTER_C = U'\u0043'; // C
+	constexpr char32 LATIN_CAPITAL_LETTER_D = U'\u0044'; // D
+	constexpr char32 LATIN_CAPITAL_LETTER_E = U'\u0045'; // E
+	constexpr char32 LATIN_CAPITAL_LETTER_F = U'\u0046'; // F
+	constexpr char32 LATIN_CAPITAL_LETTER_G = U'\u0047'; // G
+	constexpr char32 LATIN_CAPITAL_LETTER_H = U'\u0048'; // H
+	constexpr char32 LATIN_CAPITAL_LETTER_I = U'\u0049'; // I
+	constexpr char32 LATIN_CAPITAL_LETTER_J = U'\u004A'; // J
+	constexpr char32 LATIN_CAPITAL_LETTER_K = U'\u004B'; // K
+	constexpr char32 LATIN_CAPITAL_LETTER_L = U'\u004C'; // L
+	constexpr char32 LATIN_CAPITAL_LETTER_M = U'\u004D'; // M
+	constexpr char32 LATIN_CAPITAL_LETTER_N = U'\u004E'; // N
+	constexpr char32 LATIN_CAPITAL_LETTER_O = U'\u004F'; // O
+	constexpr char32 LATIN_CAPITAL_LETTER_P = U'\u0050'; // P
+	constexpr char32 LATIN_CAPITAL_LETTER_Q = U'\u0051'; // Q
+	constexpr char32 LATIN_CAPITAL_LETTER_R = U'\u0052'; // R
+	constexpr char32 LATIN_CAPITAL_LETTER_S = U'\u0053'; // S
+	constexpr char32 LATIN_CAPITAL_LETTER_T = U'\u0054'; // T
+	constexpr char32 LATIN_CAPITAL_LETTER_U = U'\u0055'; // U
+	constexpr char32 LATIN_CAPITAL_LETTER_V = U'\u0056'; // V
+	constexpr char32 LATIN_CAPITAL_LETTER_W = U'\u0057'; // W
+	constexpr char32 LATIN_CAPITAL_LETTER_X = U'\u0058'; // X
+	constexpr char32 LATIN_CAPITAL_LETTER_Y = U'\u0059'; // Y
+	constexpr char32 LATIN_CAPITAL_LETTER_Z = U'\u005A'; // Z
+	constexpr char32 LEFT_SQUARE_BRACKET    = U'\u005B'; // [
+	constexpr char32 REVERSE_SOLIDUS        = U'\u005C'; // '\'
+	constexpr char32 RIGHT_SQUARE_BRACKET   = U'\u005D'; // ]
+	constexpr char32 CIRCUMFLEX_ACCENT      = U'\u005E'; // ^
+	constexpr char32 LOW_LINE               = U'\u005F'; // _
+	constexpr char32 GRAVE_ACCENT           = U'\u0060'; // `
+	constexpr char32 LATIN_SMALL_LETTER_A   = U'\u0061'; // a
+	constexpr char32 LATIN_SMALL_LETTER_B   = U'\u0062'; // b
+	constexpr char32 LATIN_SMALL_LETTER_C   = U'\u0063'; // c
+	constexpr char32 LATIN_SMALL_LETTER_D   = U'\u0064'; // d
+	constexpr char32 LATIN_SMALL_LETTER_E   = U'\u0065'; // e
+	constexpr char32 LATIN_SMALL_LETTER_F   = U'\u0066'; // f
+	constexpr char32 LATIN_SMALL_LETTER_G   = U'\u0067'; // g
+	constexpr char32 LATIN_SMALL_LETTER_H   = U'\u0068'; // h
+	constexpr char32 LATIN_SMALL_LETTER_I   = U'\u0069'; // i
+	constexpr char32 LATIN_SMALL_LETTER_J   = U'\u006A'; // j
+	constexpr char32 LATIN_SMALL_LETTER_K   = U'\u006B'; // k
+	constexpr char32 LATIN_SMALL_LETTER_L   = U'\u006C'; // l
+	constexpr char32 LATIN_SMALL_LETTER_M   = U'\u006D'; // m
+	constexpr char32 LATIN_SMALL_LETTER_N   = U'\u006E'; // n
+	constexpr char32 LATIN_SMALL_LETTER_O   = U'\u006F'; // o
+	constexpr char32 LATIN_SMALL_LETTER_P   = U'\u0070'; // p
+	constexpr char32 LATIN_SMALL_LETTER_Q   = U'\u0071'; // q
+	constexpr char32 LATIN_SMALL_LETTER_R   = U'\u0072'; // r
+	constexpr char32 LATIN_SMALL_LETTER_S   = U'\u0073'; // s
+	constexpr char32 LATIN_SMALL_LETTER_T   = U'\u0074'; // t
+	constexpr char32 LATIN_SMALL_LETTER_U   = U'\u0075'; // u
+	constexpr char32 LATIN_SMALL_LETTER_V   = U'\u0076'; // v
+	constexpr char32 LATIN_SMALL_LETTER_W   = U'\u0077'; // w
+	constexpr char32 LATIN_SMALL_LETTER_X   = U'\u0078'; // x
+	constexpr char32 LATIN_SMALL_LETTER_Y   = U'\u0079'; // y
+	constexpr char32 LATIN_SMALL_LETTER_Z   = U'\u007A'; // z
+	constexpr char32 LEFT_CURLY_BRACKET     = U'\u007B'; // {
+	constexpr char32 VERTICAL_LINE          = U'\u007C'; // |
+	constexpr char32 RIGHT_CURLY_BRACKET    = U'\u007D'; // }
+	constexpr char32 TILDE                  = U'\u007E'; // ~
 
 } // namespace deckard::utf8::characters
