@@ -2,10 +2,12 @@
 import std;
 using i64 = std::int64_t;
 using u64 = std::uint64_t;
+using u32 = std::uint32_t;
 
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 
 constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
 
@@ -215,6 +217,12 @@ std::optional<unsigned int> to_char32(std::string_view str)
 	return {};
 }
 
+std::string to_upper(std::string str)
+{
+	std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::toupper(c); });
+	return str;
+}
+
 std::string_view trim_front(std::string_view s) noexcept
 {
 	if (s.empty())
@@ -248,6 +256,20 @@ auto to_number(std::string_view input, int base = 10) -> std::optional<T>
 		return {};
 
 	return val;
+}
+
+std::string replace_all(std::string str, std::string_view from, std::string_view to)
+{
+	if (from.empty())
+		return str;
+
+	size_t pos = 0;
+	while ((pos = str.find(from, pos)) != std::string::npos)
+	{
+		str.replace(pos, from.length(), to);
+		pos += to.length();
+	}
+	return str;
 }
 
 std::vector<std::string> split(const std::string_view str, const std::string_view delims = "\n")
@@ -364,6 +386,9 @@ struct char32_range
 using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
 using IntTable = std::map<u64, u64>;
 
+using Character  = std::pair<std::string, u32>;
+using Characters = std::vector<Character>;
+
 auto compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
 {
 	std::vector<char32_range> ret;
@@ -429,6 +454,49 @@ std::vector<std::string> read_lines(fs::path file)
 	return split(str);
 }
 
+void write_lines(Characters &input, fs::path filename)
+{
+	if (input.empty())
+	{
+		std::println("No input");
+		return;
+	}
+
+	std::ranges::sort(input, {}, &Character::second);
+
+
+	std::ofstream f(filename);
+
+	f << "export module deckard.utf8:characters;\n";
+	f << "import deckard.types;\n";
+	f << "\n";
+	f << "export namespace deckard::utf8::characters\n{\n";
+
+
+	for (const auto &i : input)
+	{
+		auto [name, id] = i;
+
+		name = replace_all(name, " ", "_");
+		name = replace_all(name, "-", "_");
+		name = to_upper(name);
+
+		bool        is_escape = id == 0x5c;
+		std::string comment;
+		if (id > 0x20)
+			comment = std::format("// {0}{1:c}{0}", is_escape ? "'" : "", id);
+
+		f << "\t";
+		f << std::format(R"(constexpr char32 {} = U'\u{:04X}';  {})", name, id, comment);
+		f << "\n";
+	}
+	f << "\n";
+	f << "}";
+
+	f.flush();
+	f.close();
+}
+
 void write_lines(const Tables &tables, const std::string &table_name, fs::path filename)
 {
 
@@ -459,6 +527,7 @@ void write_lines(const Tables &tables, const std::string &table_name, fs::path f
 
 	f << std::format("constexpr char32_t max_{} = {}[{}].end;\n\n", ctable_name, ctable_name, table.size() - 1);
 
+	f.flush();
 	f.close();
 }
 
@@ -483,6 +552,7 @@ void write_lines(const IntTable &table, const std::string &table_name, fs::path 
 
 	f << std::format("constexpr uint32_t max_{}{{{}}};\n\n", table_name, table.size() - 1);
 
+	f.flush();
 	f.close();
 }
 
@@ -604,6 +674,8 @@ void process_unicode_data()
 	IntTable to_uppercase;
 	IntTable digits;
 
+	Characters characters;
+
 
 	// TODO: to_uppercase, to_lowercase mappings
 	// 0x41, 0x61  ; LATIN CAPITAL LETTER A -> LATIN SMALL LETTER A
@@ -618,8 +690,10 @@ void process_unicode_data()
 		auto is = split_line.size();
 #endif
 
+
 		UnicodeDataField field{0};
 		field = parse_field(line);
+
 
 		if (field.uppercase_mapping != -1)
 			to_uppercase[field.code_value] = field.uppercase_mapping;
@@ -629,6 +703,19 @@ void process_unicode_data()
 
 		if (field.numeric_value != -1)
 			digits[field.code_value] = field.numeric_value;
+
+
+		// characters
+		if (field.code_value == 0x09)
+			characters.push_back({"character tabulation", field.code_value});
+
+		if (field.code_value == 0x0A)
+			characters.push_back({"line feed", field.code_value});
+		if (field.code_value == 0x0D)
+			characters.push_back({"carriage return", field.code_value});
+
+		if (field.code_value >= 0x20 and field.code_value <= 0x7E)
+			characters.push_back({field.character_name, field.code_value});
 
 
 		fields.emplace_back(field);
@@ -678,6 +765,8 @@ void process_unicode_data()
 
 	write_lines(whitespaces, "whitespace", "whitespaces.ixx");
 	write_lines(dashes, "dashes", "dashes.ixx");
+
+	write_lines(characters, "characters.ixx");
 }
 
 void process_casefolding()
@@ -686,6 +775,11 @@ void process_casefolding()
 
 	if (lines.empty())
 		return;
+}
+
+void process_ascii_character_list()
+{
+	//
 }
 
 int main()

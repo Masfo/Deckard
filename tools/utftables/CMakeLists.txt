@@ -204,6 +204,7 @@ target_compile_options(utftables PRIVATE
 include(ExternalProject)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+# TODO: function to download files
 
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCodeProperties.txt)
 file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
