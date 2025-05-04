@@ -7,6 +7,6 @@ export import :file;
 export import :string;
 export import :view;
 export import :decode;
-export import :characters;
+export import :basic_characters;
 
 import deckard.types;

@@ -1,7 +1,7 @@
-﻿export module deckard.utf8:characters;
+﻿export module deckard.utf8:basic_characters;
 import deckard.types;
 
-export namespace deckard::utf8::characters
+export namespace deckard::utf8::basic_characters
 {
 	constexpr char32 CHARACTER_TABULATION   = U'\u0009';
 	constexpr char32 LINE_FEED              = U'\u000A';
