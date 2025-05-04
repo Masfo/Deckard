@@ -1,4 +1,4 @@
-export module deckard.lexer;
+﻿export module deckard.lexer;
 import std;
 import deckard.utf8;
 import deckard.as;
@@ -147,10 +147,6 @@ namespace deckard::lexer
 		TOKEN_COUNT
 	};
 
-	constexpr char32 DOUBLE_QUOTE_CODEPOINT    = U'\U00000022'; // "
-	constexpr char32 BACKSLASH_CODEPOINT       = U'\U0000005C'; // -> \ <- escape char
-	constexpr char32 CARRIAGE_RETURN_CODEPOINT = U'\U0000000D'; // Carriage return, \r
-	constexpr char32 LINE_FEED_CODEPOINT       = U'\U0000000A'; // Line feed, \n
 
 
 	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
@@ -289,6 +285,8 @@ namespace deckard::lexer
 
 		auto tokenize()
 		{
+			using namespace deckard::utf8::basic_characters;
+
 			auto next_line = [this]() mutable
 			{
 				line += 1;
@@ -298,8 +296,8 @@ namespace deckard::lexer
 
 			auto is_newline = [this]()
 			{
-				return peek() == LINE_FEED_CODEPOINT or peek() == CARRIAGE_RETURN_CODEPOINT or   // linux/mac
-					   (peek() == CARRIAGE_RETURN_CODEPOINT and peek(1) == LINE_FEED_CODEPOINT); // windows
+				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or // linux/mac
+					   (peek() == CARRIAGE_RETURN and peek(1) == LINE_FEED); // windows
 			};
 
 			while (it)
@@ -316,16 +314,16 @@ namespace deckard::lexer
 				u32 next_char    = next ? *next : 0;
 
 
-				if (current_char == CARRIAGE_RETURN_CODEPOINT and next_char == LINE_FEED_CODEPOINT) // windows
+				if (current_char == CARRIAGE_RETURN and next_char == LINE_FEED) // windows
 				{
 					dbg::println("windows newline: {}", (u32)current_char);
-					next_codepoint();                                                               // consume \n
+					next_codepoint();                                                     // consume \n
 					next_line();
 					it++;
 					continue;
 				}
 
-				if (current_char == LINE_FEED_CODEPOINT or current_char == CARRIAGE_RETURN_CODEPOINT) // linux/mac
+				if (current_char == LINE_FEED or current_char == CARRIAGE_RETURN) // linux/mac
 				{
 					dbg::println("nix newline: {}", (u32)current_char);
 					next_line();
@@ -333,14 +331,14 @@ namespace deckard::lexer
 					continue;
 				}
 
-				if (current_char == BACKSLASH_CODEPOINT)
+				if (current_char == REVERSE_SOLIDUS)
 				{
 					dbg::println("backslash: {}", (u32)current_char);
 					next_codepoint();
 					it++;
 					continue;
 				}
-				if (current_char == DOUBLE_QUOTE_CODEPOINT)
+				if (current_char == QUOTATION_MARK)
 				{
 					dbg::println("quote: {:x}", (u32)current_char);
 					next_codepoint();
