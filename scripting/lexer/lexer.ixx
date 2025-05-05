@@ -346,7 +346,7 @@ namespace deckard::lexer
 				}
 				if (utf8::is_whitespace(current_char))
 				{
-					u32 count = 1+consume([](char32 codepoint) { return utf8::is_whitespace(codepoint); });
+					u32 count = consume([](char32 codepoint) { return utf8::is_whitespace(codepoint); });
 
 					dbg::println("whitespace: {}", count);
 					next_codepoint(count);
@@ -361,7 +361,9 @@ namespace deckard::lexer
 					u32 count = 1 + consume([](char32 codepoint) { return utf8::is_identifier_continue(codepoint); });
 
 					auto wordview = m_data.subview(start, count);
-					it += count;
+					
+					it += count-1; // HACK?
+
 					dbg::println("ident count: {}, '{}'", count, wordview);
 					// token.start = it;
 					// token.count = count;
