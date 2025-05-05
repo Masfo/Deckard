@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+﻿#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import deckard.lexer;
@@ -39,7 +39,7 @@ TEST_CASE("tokens", "[lexer]")
 	
 	SECTION("tokenize base10 integer")
 	{
-		tokenizer tok("123 Σ");
+		tokenizer tok("dec     Σ");
 		//
 		int j = 0;
 	}

@@ -148,7 +148,6 @@ namespace deckard::lexer
 	};
 
 
-
 	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
 
 	static_assert(sizeof(TokenValue) == 32);
@@ -292,11 +291,11 @@ namespace deckard::lexer
 				line += 1;
 				column = 0;
 			};
-			auto next_codepoint = [this]() mutable { column += 1; };
+			auto next_codepoint = [this](size_t count=1) mutable { column += count; };
 
 			auto is_newline = [this]()
 			{
-				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or // linux/mac
+				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or   // linux/mac
 					   (peek() == CARRIAGE_RETURN and peek(1) == LINE_FEED); // windows
 			};
 
@@ -317,7 +316,7 @@ namespace deckard::lexer
 				if (current_char == CARRIAGE_RETURN and next_char == LINE_FEED) // windows
 				{
 					dbg::println("windows newline: {}", (u32)current_char);
-					next_codepoint();                                                     // consume \n
+					next_codepoint();                                           // consume \n
 					next_line();
 					it++;
 					continue;
@@ -347,18 +346,21 @@ namespace deckard::lexer
 				}
 				if (utf8::is_whitespace(current_char))
 				{
-					dbg::println("whitespace: {:x}", (u32)current_char);
-					next_codepoint();
-					it++;
+					u32 count = 1+consume([](char32 codepoint) { return utf8::is_whitespace(codepoint); });
+
+					dbg::println("whitespace: {}", count);
+					next_codepoint(count);
+					it += count;
 					continue;
 				}
 				if (utf8::is_identifier_start(current_char))
 				{
-
+					auto start = it++;
+					
 					// 1 + is from identifier_start
-					u32 count = 1 + consume([](char32 codepoint) { return utf8::is_xid_continue(codepoint); });
+					u32 count = 1 + consume([](char32 codepoint) { return utf8::is_identifier_continue(codepoint); });
 
-					auto wordview = m_data.subview(it, count);
+					auto wordview = m_data.subview(start, count);
 					it += count;
 					dbg::println("ident count: {}, '{}'", count, wordview);
 					// token.start = it;
