@@ -1,4 +1,4 @@
-export module deckard.utf8:string;
+﻿export module deckard.utf8:string;
 import :codepoints;
 import :decode;
 import :view;
@@ -293,7 +293,6 @@ namespace deckard::utf8
 			return ptr->at(index);
 		}
 
-
 		auto byte() const { return byte_at(current_index); }
 
 		// pointer operator->() const { return ptr; }
@@ -413,6 +412,7 @@ namespace deckard::utf8
 
 		void assign(const std::span<u8>& input) { buffer.assign(input); }
 
+		// append
 		void append(const std::string_view str) { insert(end(), str); }
 
 		void append(const string& other) { insert(end(), other); }
@@ -425,6 +425,21 @@ namespace deckard::utf8
 		{
 			auto encoded = encode_codepoint(c);
 			buffer.append({encoded.bytes.data(), encoded.count});
+		}
+
+		// TODO: prepend
+		void prepend(const std::string_view str) { insert(begin(), str); }
+
+		void prepend(const string& other) { insert(begin(), other); }
+
+		void prepend(const u8 b) { buffer.prepend(b); }
+
+		void prepend(const char b) { buffer.prepend(b); }
+
+		void prepend(const char32 c)
+		{
+			auto encoded = encode_codepoint(c);
+			buffer.prepend({encoded.bytes.data(), encoded.count});
 		}
 
 		auto operator+(const std::string_view other) const
@@ -844,14 +859,13 @@ namespace deckard::utf8
 
 		auto subview(size_t start = 0, size_t count = npos) const { return view(subspan(start, count)); }
 
-		auto subview(iterator start, size_t count = npos) const 
-		{ 
+		auto subview(iterator start, size_t count = npos) const
+		{
 			auto start_index = start.byteindex();
-			
-			auto end_index   = (start + count).byteindex();
+
+			auto end_index = (start + count).byteindex();
 			return subview(start_index, end_index - start_index);
 		}
-
 
 		auto data() const { return subspan(); }
 
@@ -956,7 +970,6 @@ export namespace std
 		int  parsed_base = 10;
 		bool uppercase   = false;
 	};
-
 
 
 } // namespace std

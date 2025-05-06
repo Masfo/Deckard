@@ -1,4 +1,4 @@
-#include <catch2/catch_test_macros.hpp>
+﻿#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -289,6 +289,37 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[5] == 'c');
 		CHECK(d[6] == heart[0]);
 		CHECK(d[7] == 'X');
+	}
+
+	SECTION("prepend")
+	{
+		//
+		utf8::string a("hello 🌍");
+
+		CHECK(a.size() == 7);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == 0x1'f30d);
+
+
+		a.prepend("."sv);
+
+		CHECK(a.size() == 8);
+		CHECK(a.front() == '.');
+		CHECK(a.back() == 0x1'f30d);
+
+		char32 q = 0x274c; // ❌
+
+		a.prepend(q);
+		CHECK(a.size() == 9);
+		CHECK(a.front() == 0x274c);
+		CHECK(a.back() == 0x1'f30d);
+
+		utf8::string b("a");
+		a.prepend(b);
+		CHECK(a.size() == 10);
+		CHECK(a.front() == 'a');
+		CHECK(a.back() == 0x1'f30d);
+
 	}
 
 	SECTION("length")
@@ -752,6 +783,23 @@ TEST_CASE("utf8::string", "[utf8]")
 		auto pre2 = --it;
 		CHECK(*pre2 == (u32)'d');
 		CHECK(*it == (u32)'d');
+
+
+		utf8::string abc("abcdefg");
+		auto         it2 = abc.begin()+0;
+		CHECK(*it2 == 'a');
+
+		it2 += 1;
+		CHECK(*it2 == 'b');
+
+		it2 += 4;
+		CHECK(*it2 == 'f');
+
+		it2 -= 4;
+		CHECK(*it2 == 'b');
+
+		it2 -= 1;
+		CHECK(*it2 == 'a');
 	}
 
 	SECTION("construct string from iterator")

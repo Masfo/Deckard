@@ -1,4 +1,4 @@
-export module deckard.sbo;
+﻿export module deckard.sbo;
 
 import std;
 import deckard.types;
@@ -542,6 +542,20 @@ namespace deckard
 			//
 			for (const auto& i : il)
 				append(i);
+		}
+
+		// prepend
+		void prepend(const std::span<value_type> buffer) { insert(begin(), buffer); }
+
+		void prepend(const sbo<SIZE>& other) { prepend(other.data()); }
+
+		void prepend(const value_type& v) { prepend(std::span<value_type>{(pointer)&v, 1}); }
+
+		void prepend(const std::initializer_list<value_type>& il)
+		{
+			//
+			for (const auto& i : il)
+				prepend(i);
 		}
 
 		[[nodiscard("Use the front value")]] value_type front() const

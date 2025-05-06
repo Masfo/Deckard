@@ -1,4 +1,4 @@
-#include <catch2/catch_test_macros.hpp>
+﻿#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -642,6 +642,31 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 128 + 512);
 		CHECK(ss.capacity() == 128 + 512);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
+	}
+
+	SECTION("prepend")
+	{
+		sbo<32> ss{'A', 'B', 'C'};
+		CHECK(ss.size() == 3);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.front() == 'A');
+		CHECK(ss.back() == 'C');
+
+		ss.prepend('.');
+
+		CHECK(ss.size() == 4);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.front() == '.');
+		CHECK(ss.back() == 'C');
+
+		sbo<32> ss2{'X', 'Y', 'Z'};
+
+		ss.prepend(ss2);
+		CHECK(ss.size() == 7);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.front() == 'X');
+		CHECK(ss.back() == 'C');
+
 	}
 
 	SECTION("operator + (small)")
