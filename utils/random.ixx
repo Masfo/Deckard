@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <random> // random doesn't work without header (6.10.2024)
 export module deckard.random;
 
@@ -14,6 +14,7 @@ import deckard.as;
 
 namespace deckard::random
 {
+
 
 	export class splitmix64
 	{
@@ -76,7 +77,7 @@ namespace deckard::random
 		{
 		}
 
-		u64 operator()(){ return next(); }
+		u64 operator()() { return next(); }
 
 		operator u64() { return next(); }
 
@@ -118,6 +119,40 @@ namespace deckard::random
 			state[0] = s0;
 			state[1] = s1;
 		}
+	};
+
+	// https://github.com/the-othernet/DualMix128
+
+	export class dualmix128
+	{
+	private:
+		// Golden ratio fractional part * 2^64
+		const u64 GR = 0x9e37'79b9'7f4a'7c15ULL;
+
+	public:
+		dualmix128()
+		{
+			splitmix64 sm64;
+			state0 = sm64.next();
+			state1 = sm64.next();
+		}
+
+		// Initialized to non-zero with SplitMix64 (or equivalent)
+		u64 state0, state1;
+
+		// --- DualMix128 ---
+		u64 next()
+		{
+			uint64_t mix = state0 + state1;
+			state0       = mix + std::rotl(state0, 16);
+			state1       = mix + std::rotl(state1, 2);
+
+			return GR * mix;
+		}
+
+		u64 operator()() { return next(); }
+
+		operator u64() { return next(); }
 	};
 
 	std::random_device rd;
