@@ -429,6 +429,27 @@ dbg::println();
 	)"sv;
 
 
+	std::string abc("abcdefg");
+
+	auto it_abc = abc.begin() + 0;
+	dbg::println("a? auto: {}", *it_abc);
+
+	it_abc +=1;
+
+	dbg::println("b? auto: {}", *it_abc);
+
+
+	it_abc += 4;
+
+	dbg::println("f? auto: {}", *it_abc);
+
+
+	random::dualmix128 dmix;
+
+	auto vdmix = dmix.next();
+
+
+
 	filemap f("input.bin", filemap::access::readwrite);
 
 

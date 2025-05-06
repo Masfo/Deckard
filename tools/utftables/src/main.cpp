@@ -705,7 +705,7 @@ void process_unicode_data()
 			digits[field.code_value] = field.numeric_value;
 
 
-		// characters
+		// basic characters
 		if (field.code_value == 0x09)
 			characters.push_back({"character tabulation", field.code_value});
 
