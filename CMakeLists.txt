@@ -238,7 +238,7 @@ set(DECKARD_SRCS
         unicode/utf8string.ixx
         unicode/utf8view.ixx
         unicode/utf8_decode.ixx
-        unicode/utf8_characters.ixx
+        unicode/utf8_basic_characters.ixx
 
         # Graph
         graphs/graph.ixx
