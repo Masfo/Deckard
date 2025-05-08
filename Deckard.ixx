@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <cstdio>
 #include <objbase.h>
@@ -86,24 +86,20 @@ export import deckard_build;
 #endif
 
 
-
 void redirect_console(bool show)
 {
 
 	if (show)
 	{
-		static FILE* pNewStdout = nullptr;
-		static FILE* pNewStderr = nullptr;
-
 
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 			AllocConsole();
 
-		if (::freopen_s(&pNewStdout, "CONOUT$", "w", stdout) == 0)
-			std::cout.clear();
-
-		if (::freopen_s(&pNewStderr, "CONOUT$", "w", stderr) == 0)
-			std::cerr.clear();
+		FILE* fIn;
+		FILE* fOut;
+		freopen_s(&fIn, "conin$", "r", stdin);
+		freopen_s(&fOut, "conout$", "w", stdout);
+		freopen_s(&fOut, "conout$", "w", stderr);
 
 		std::ios::sync_with_stdio(1);
 	}
@@ -155,8 +151,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 #endif
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
-	
-	auto cmd = GetCommandLineW();
+
+	auto cmd     = GetCommandLineW();
 	auto cmdline = utf8::view{commandline};
 
 	// clang-format off
@@ -203,14 +199,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 	deckard::random::initialize();
 	net::initialize();
-	//dbg::println("Initialized");
+	// dbg::println("Initialized");
 
 
 	// main
 	int ret = deckard_main(cmdline);
 
 	//
-	//dbg::println("Deinitializing");
+	// dbg::println("Deinitializing");
 
 	if (CoUninitialize)
 		CoUninitialize();
