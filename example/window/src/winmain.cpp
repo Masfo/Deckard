@@ -492,13 +492,6 @@ dbg::println();
 	//  127.0.0.1 - ::ffff:7f00:1
 
 
-	std::string ittest;
-	dbg::println("{} - {}", ittest, ittest.size());
-	dbg::println("'{}' - '{}'", ittest.front(), ittest.back());
-
-	auto itb = ittest.begin();
-	auto ite = ittest.end() - 1;
-	dbg::println("'{}' - '{}'", *itb, *ite);
 
 
 	dbg::println("ipv6: {}", ipv6);

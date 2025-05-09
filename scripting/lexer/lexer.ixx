@@ -322,7 +322,7 @@ namespace deckard::lexer
 					continue;
 				}
 
-				if (current_char == LINE_FEED or current_char == CARRIAGE_RETURN) // linux/mac
+				if (current_char == LINE_FEED or current_char == CARRIAGE_RETURN) // posix
 				{
 					dbg::println("nix newline: {}", (u32)current_char);
 					next_line();

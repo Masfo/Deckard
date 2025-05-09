@@ -95,13 +95,6 @@ void redirect_console(bool show)
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 			AllocConsole();
 
-		FILE* fIn;
-		FILE* fOut;
-		freopen_s(&fIn, "conin$", "r", stdin);
-		freopen_s(&fOut, "conout$", "w", stdout);
-		freopen_s(&fOut, "conout$", "w", stderr);
-
-		std::ios::sync_with_stdio(1);
 	}
 	else
 	{
