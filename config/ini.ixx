@@ -2,6 +2,7 @@
 
 
 import std;
+import deckard.assert;
 import deckard.lexer;
 import deckard.types;
 import deckard.file;
@@ -18,10 +19,14 @@ namespace deckard::ini
 	//
 	// Assign token type but do not parse the string
 
+	template<typename T>
+	concept codepoint_predicate = requires(T&& v, char32 cp) {
+		{ v(cp) } -> std::same_as<bool>;
+	};
 
-	enum TokenType : u8
+	export enum struct TokenType : u8
 	{
-		EOL = 0x00,
+		NEW_LINE = 0x00,
 		SECTION,
 		KEY,
 		COMMENT,
@@ -30,11 +35,34 @@ namespace deckard::ini
 		BOOLEAN,
 
 
-		EOF = 0xFF,
+		END_OF_FILE = 0xFF,
 	};
 
-	using inivalue = std::variant<std::monostate, bool, i64, u64, double, std::string>;
+	enum struct State : u8
+	{
+		SECTION, 
+		KEY,     
+		COMMENT,
+		STRING,
+		NUMBER,
+	};
 
+	export struct Token
+	{
+		TokenType  type{};
+		utf8::view value;
+
+		bool operator==(const Token &other) const
+		{
+			if (type != other.type)
+				return false;
+			if (value != other.value)
+				return false;
+			return true;
+		}
+	};
+
+	using TokenValue = std::variant<std::monostate, bool, i64, u64, f64, utf8::view>;
 
 	/*
 	 * [section] # comment
@@ -66,34 +94,176 @@ namespace deckard::ini
 	 */
 
 
-// What happens if value written is large, should comment be moved or string split to multirow
-#if 0
+	// What happens if value written is large, should comment be moved or string split to multirow
 	export class ini
 	{
-	public:
-		 ini(fs::path filename) 
-		 { data = read_text_file(filename);
-		 }
+	private:
+		using value = u64;
 
+		utf8::iterator     it;
+		utf8::string       data;
+		std::vector<Token> tokens;
+		u64                line{}, column{};
 
-		value& operator[](std::string_view key)
+	private:
+		bool eof() const { return it >= data.end(); }
+
+		auto consume(codepoint_predicate auto&& pred) const -> u32
 		{
-			//
+			u32  count = 0;
+			auto start = it;
+
+			while (start != data.end())
+			{
+				if (auto cp = *start; pred(cp))
+				{
+
+					start++;
+					count++;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			return count;
 		}
 
-		value operator[](std::string_view key) const
+		auto consume_until(codepoint_predicate auto&& pred) const -> u32
 		{
-			//
+
+			u32  count = 0;
+			auto start = it;
+
+			while (start)
+			{
+				if (auto cp = *start; not pred(cp))
+				{
+
+					start++;
+					count++;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			return count;
+		}
+
+		auto peek(size_t offset = 0) const -> std::optional<char32>
+		{
+			if (it + offset)
+				return *(it + offset);
+			return std::nullopt;
+		}
+
+
+	public:
+		explicit ini(utf8::view view)
+			: data(view)
+		{
+		}
+
+		explicit ini(fs::path filename) { data = read_text_file(filename); }
+
+		value operator[](std::string_view key) const { return {}; }
+
+		auto at(size_t index) const
+		{
+			assert::check(index < tokens.size(), "index out of range");
+
+			return tokens[index];
 		}
 
 		void write() { }
 
-	private:
-		std::string        data;
-		std::vector<value> kv_map;
-		//	lexer::tokenizer   m_tokens;
+		void tokenize()
+		{
+			using namespace utf8::basic_characters;
+
+			auto skip_whitespace = [this]() mutable { it += consume([](char32 cp) { return utf8::is_whitespace(cp); }); };
+
+			auto is_newline = [this]()
+			{
+				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or   // posix LF
+					   (peek() == CARRIAGE_RETURN and peek(1) == LINE_FEED); // windows CR LF
+			};
+
+			//
+			it = data.begin();
+
+			while (it)
+			{
+				// state
+
+				auto cp = *it;
+
+				if (cp == LINE_FEED)
+				{
+					it++;
+
+					tokens.push_back({.type = TokenType::NEW_LINE});
+					continue;
+				}
+
+				if (cp == CARRIAGE_RETURN)
+				{
+					it++;
+
+					if (it and *it == LINE_FEED)
+					{
+						it++;
+						tokens.push_back({.type = TokenType::NEW_LINE});
+						continue;
+					}
+				}
+
+
+				if (cp == NUMBER_SIGN)
+				{
+					it++;
+					skip_whitespace();
+
+
+					auto count = consume_until([](char32 cp) { return cp == LINE_FEED or cp == CARRIAGE_RETURN; });
+					auto str = data.subview(it, count);
+
+					tokens.push_back({.type = TokenType::COMMENT, .value = str});
+					it += count;
+					continue;
+				}
+				
+				if (cp == LEFT_SQUARE_BRACKET)
+				{
+					it++;
+					skip_whitespace();
+					auto count = consume_until([](char32 cp) { return cp == RIGHT_SQUARE_BRACKET; });
+					auto str = data.subview(it, count);
+					tokens.push_back({.type = TokenType::SECTION, .value = str});
+					it += count;
+					continue;
+				}
+				
+				if (cp == EQUALS_SIGN)
+				{
+					it++;
+					skip_whitespace();
+					auto count = consume_until([](char32 cp) { return cp == LINE_FEED or cp == CARRIAGE_RETURN; });
+					auto str = data.subview(it, count);
+					tokens.push_back({.type = TokenType::KEY, .value = str});
+					it += count;
+					continue;
+				}
+				it++;
+
+			}
+			tokens.push_back({.type = TokenType::END_OF_FILE});
+
+			int i = 0;
+		}
 	};
-#endif
-	// TODO: read to vector so writeback doesnt change order.
 
 } // namespace deckard::ini

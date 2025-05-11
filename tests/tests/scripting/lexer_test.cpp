@@ -36,6 +36,13 @@ TEST_CASE("tokens", "[lexer]")
 		int j = 0;
 	}
 
+		
+	SECTION("tokenize comment")
+	{
+		tokenizer tok("# comment");
+		//
+		int j = 0;
+	}
 	
 	SECTION("tokenize base10 integer")
 	{

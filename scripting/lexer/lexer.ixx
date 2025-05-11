@@ -295,8 +295,8 @@ namespace deckard::lexer
 
 			auto is_newline = [this]()
 			{
-				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or   // linux/mac
-					   (peek() == CARRIAGE_RETURN and peek(1) == LINE_FEED); // windows
+				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or   // posix LF
+					   (peek() == CARRIAGE_RETURN and peek(1) == LINE_FEED); // windows CR LF
 			};
 
 			while (it)
@@ -330,20 +330,6 @@ namespace deckard::lexer
 					continue;
 				}
 
-				if (current_char == REVERSE_SOLIDUS)
-				{
-					dbg::println("backslash: {}", (u32)current_char);
-					next_codepoint();
-					it++;
-					continue;
-				}
-				if (current_char == QUOTATION_MARK)
-				{
-					dbg::println("quote: {:x}", (u32)current_char);
-					next_codepoint();
-					it++;
-					continue;
-				}
 				if (utf8::is_whitespace(current_char))
 				{
 					u32 count = consume([](char32 codepoint) { return utf8::is_whitespace(codepoint); });
@@ -353,41 +339,16 @@ namespace deckard::lexer
 					it += count;
 					continue;
 				}
-				if (utf8::is_identifier_start(current_char))
+
+
+				if (current_char == NUMBER_SIGN)
 				{
-					auto start = it++;
-					
-					// 1 + is from identifier_start
-					u32 count = 1 + consume([](char32 codepoint) { return utf8::is_identifier_continue(codepoint); });
-
-					auto wordview = m_data.subview(start, count);
-					
-					it += count-1; // HACK?
-
-					dbg::println("ident count: {}, '{}'", count, wordview);
-					// token.start = it;
-					// token.count = count;
-					// token.type = Token::IDENTIFIER;
-					//
-					// it += count;
+					dbg::println("backslash: {}", (u32)current_char);
+					next_codepoint();
+					it++;
 					continue;
 				}
-				if (utf8::is_digit(current_char))
-				{
-					auto count = consume(
-					  [](char32 codepoint)
-					  {
-						  //
-						  return utf8::is_digit(codepoint);
-					  });
-					dbg::println("digit count: {:x}, {}", (u32)current_char, count);
-
-					auto wordview = m_data.subview(it, count);
-					dbg::println("word: '{}'", wordview);
-
-					it += count;
-					continue;
-				}
+				
 
 
 				dbg::println("unknown: {:x}", (u32)current_char);
