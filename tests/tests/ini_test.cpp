@@ -34,7 +34,7 @@ TEST_CASE("ini read", "[ini]")
 
 	SECTION("tokenize section")
 	{
-		ini r("# comment\n[section]\nkey=value"_utf8);
+		ini r("[section]\nkey= # no value"_utf8);
 
 		r.tokenize();
 

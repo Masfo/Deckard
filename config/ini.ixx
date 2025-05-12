@@ -37,15 +37,6 @@ namespace deckard::ini
 		END_OF_FILE = 0xFF,
 	};
 
-	enum struct State : u8
-	{
-		SECTION,
-		KEY,
-		COMMENT,
-		STRING,
-		NUMBER,
-	};
-
 	export struct Token
 	{
 		TokenType  type{};
@@ -92,6 +83,11 @@ namespace deckard::ini
 	 *
 	 */
 
+	enum struct State
+	{
+		Key,
+		Value,
+	};
 
 	// What happens if value written is large, should comment be moved or string split to multirow
 	export class ini
@@ -197,6 +193,9 @@ namespace deckard::ini
 			//
 			it = data.begin();
 
+			State state = State::Key;
+			utf8::string key;
+
 			while (it)
 			{
 				// state
@@ -242,7 +241,7 @@ namespace deckard::ini
 				{
 					it++; // skip [
 					skip_whitespace();
-					auto count = consume_until([](char32 cp) { return cp == RIGHT_SQUARE_BRACKET; });
+					auto count      = consume_until([](char32 cp) { return cp == RIGHT_SQUARE_BRACKET; });
 					current_section = data.substr(it, count);
 
 					tokens.push_back({.type = TokenType::SECTION, .value = data.subview(it, count)});
@@ -254,12 +253,54 @@ namespace deckard::ini
 					continue;
 				}
 
+				if (state == State::Key)
+				{
+					if (utf8::is_identifier_start(cp))
+					{
+						u32 count = 0;
+						auto start = it;
+						while (start)
+						{
+							if (start and *start == NUMBER_SIGN)
+							{
+								// no equal sign, not valid key
+								it += 1;
+								continue;
+
+							}
+							if (start and (*start == EQUALS_SIGN))
+							{
+								count += 1;
+								it += 1; // skip '='
+
+								key  = data.substr(it, count);
+								state = State::Value;
+								it += count;
+								continue;
+							}
+
+							start += 1;
+							count += 1;
+						}
+						it += count;
+						
+					}
+					continue;
+				}
+
+				if (state == State::Value)
+				{
+					continue;
+				}
+
+
+
 				if (cp == EQUALS_SIGN)
 				{
 					it++;
 					skip_whitespace();
 					auto count = consume_until([](char32 cp) { return cp == LINE_FEED or cp == CARRIAGE_RETURN; });
-					auto    str   = data.substr(it, count);
+					auto str   = data.substr(it, count);
 					str.prepend(FULL_STOP);
 					str.prepend(current_section);
 
