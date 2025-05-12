@@ -24,8 +24,7 @@ namespace deckard::ini
 		{ v(cp) } -> std::same_as<bool>;
 	};
 
-	export enum struct TokenType : u8
-	{
+	export enum struct TokenType : u8 {
 		NEW_LINE = 0x00,
 		SECTION,
 		KEY,
@@ -40,8 +39,8 @@ namespace deckard::ini
 
 	enum struct State : u8
 	{
-		SECTION, 
-		KEY,     
+		SECTION,
+		KEY,
 		COMMENT,
 		STRING,
 		NUMBER,
@@ -52,7 +51,7 @@ namespace deckard::ini
 		TokenType  type{};
 		utf8::view value;
 
-		bool operator==(const Token &other) const
+		bool operator==(const Token& other) const
 		{
 			if (type != other.type)
 				return false;
@@ -100,10 +99,13 @@ namespace deckard::ini
 	private:
 		using value = u64;
 
-		utf8::iterator     it;
-		utf8::string       data;
-		std::vector<Token> tokens;
-		u64                line{}, column{};
+		utf8::iterator                      it;
+		utf8::string                        data;
+		std::vector<Token>                  tokens;
+		std::unordered_map<utf8::view, u64> token_indexes;
+		utf8::string                        current_section;
+
+		u64 line{}, column{};
 
 	private:
 		bool eof() const { return it >= data.end(); }
@@ -229,41 +231,52 @@ namespace deckard::ini
 
 
 					auto count = consume_until([](char32 cp) { return cp == LINE_FEED or cp == CARRIAGE_RETURN; });
-					auto str = data.subview(it, count);
+					auto str   = data.subview(it, count);
 
 					tokens.push_back({.type = TokenType::COMMENT, .value = str});
 					it += count;
 					continue;
 				}
-				
+
 				if (cp == LEFT_SQUARE_BRACKET)
 				{
-					it++;
+					it++; // skip [
 					skip_whitespace();
 					auto count = consume_until([](char32 cp) { return cp == RIGHT_SQUARE_BRACKET; });
-					auto str = data.subview(it, count);
-					tokens.push_back({.type = TokenType::SECTION, .value = str});
+					current_section = data.substr(it, count);
+
+					tokens.push_back({.type = TokenType::SECTION, .value = data.subview(it, count)});
+
 					it += count;
+					it += 1; // skip ]
+
+
 					continue;
 				}
-				
+
 				if (cp == EQUALS_SIGN)
 				{
 					it++;
 					skip_whitespace();
 					auto count = consume_until([](char32 cp) { return cp == LINE_FEED or cp == CARRIAGE_RETURN; });
-					auto str = data.subview(it, count);
+					auto    str   = data.substr(it, count);
+					str.prepend(FULL_STOP);
+					str.prepend(current_section);
+
 					tokens.push_back({.type = TokenType::KEY, .value = str});
 					it += count;
 					continue;
 				}
 				it++;
-
 			}
 			tokens.push_back({.type = TokenType::END_OF_FILE});
 
 			int i = 0;
 		}
+
+		void save() { }
+
+		bool save_as(const std::filesystem::path path) { return true; }
 	};
 
 } // namespace deckard::ini

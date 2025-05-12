@@ -857,6 +857,25 @@ namespace deckard::utf8
 
 		string substr(size_t start = 0, size_t count = npos) const { return string(subspan(start, count)); }
 
+		string substr(iterator start, size_t count = npos) const
+		{
+			assert::check(start.ptr == &buffer, "Iterator not from this string");
+
+			auto start_byte = start.byteindex();
+
+			if (count == npos)
+				return string(buffer.subspan(start_byte, count));
+
+			auto end_it = start;
+			for (size_t i = 0; i < count && end_it != end(); ++i)
+				++end_it;
+
+			auto end_byte = end_it.byteindex();
+			
+			return string(buffer.subspan(start_byte, end_byte - start_byte));
+		}
+
+
 		auto subview(size_t start = 0, size_t count = npos) const { return view(subspan(start, count)); }
 
 		auto subview(iterator start, size_t count = npos) const

@@ -362,6 +362,29 @@ TEST_CASE("utf8::string", "[utf8]")
 		// CHECK(g.size() == 0);
 	}
 
+	SECTION("substr iterator")
+	{
+		utf8::string a("hello 🌍");
+
+		CHECK(a.size() == 7);
+		CHECK(a.front() == 'h');
+		CHECK(a.back() == 0x1f30d);
+
+		utf8::string b = a.substr(a.begin(), 5);
+		CHECK(b.size() == 5);
+		CHECK(b[0] == 'h');
+		CHECK(b[1] == 'e');
+		CHECK(b[2] == 'l');
+		CHECK(b[3] == 'l');
+		CHECK(b[4] == 'o');
+
+		utf8::string c = a.substr(a.begin() + 6, 1);
+		CHECK(c.size() == 1);
+		CHECK(c[0] == 0x1f30d);
+
+
+	}
+
 	SECTION("replace")
 	{
 		utf8::string str("hello world");
@@ -912,6 +935,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		auto glyph = str.subspan(6, 1);
 		CHECK(glyph.size() == 4);
 	}
+
 
 	SECTION("valid")
 	{

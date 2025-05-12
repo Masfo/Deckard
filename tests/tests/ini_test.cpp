@@ -22,6 +22,9 @@ TEST_CASE("ini read", "[ini]")
 
 		r.tokenize();
 
+		// dont actually check each token
+		// just check if r["section.key"] == "value"
+
 		CHECK(r.at(0) == Token{.type = TokenType::COMMENT, .value = "comment"_utf8});
 		CHECK(r.at(1) == Token{.type = TokenType::NEW_LINE});
 		CHECK(r.at(2) == Token{.type = TokenType::COMMENT, .value = "short"_utf8});

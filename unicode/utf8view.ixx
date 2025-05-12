@@ -1,10 +1,11 @@
-export module deckard.utf8:view;
+﻿export module deckard.utf8:view;
 
 import :codepoints;
 import :decode;
 
 import std;
 import deckard.types;
+import deckard.utils.hash;
 import deckard.assert;
 import deckard.as;
 
@@ -228,6 +229,8 @@ namespace deckard::utf8
 
 		auto end() const { return m_data.end(); }
 
+		auto data() const { return m_data; }
+
 		// TODO: iterator
 	};
 
@@ -238,11 +241,11 @@ export namespace std
 {
 	using namespace deckard;
 
-	// template<>
-	// struct hash<utf8::view>
-	//{
-	//	size_t operator()(const utf8::view& value) const { return utils::hash_values(value.data()); }
-	// };
+	 template<>
+	 struct hash<utf8::view>
+	{
+		size_t operator()(const utf8::view& value) const { return utils::hash_values(value.data()); }
+	 };
 
 	template<>
 	struct formatter<utf8::view>
