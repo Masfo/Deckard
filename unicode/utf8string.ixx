@@ -427,6 +427,8 @@ namespace deckard::utf8
 			buffer.append({encoded.bytes.data(), encoded.count});
 		}
 
+		void append(const view v) { append(utf8::string(v)); };
+
 		// TODO: prepend
 		void prepend(const std::string_view str) { insert(begin(), str); }
 
@@ -441,6 +443,8 @@ namespace deckard::utf8
 			auto encoded = encode_codepoint(c);
 			buffer.prepend({encoded.bytes.data(), encoded.count});
 		}
+
+		void prepend(const view v) { prepend(utf8::string(v)); }
 
 		auto operator+(const std::string_view other) const
 		{
@@ -871,10 +875,9 @@ namespace deckard::utf8
 				++end_it;
 
 			auto end_byte = end_it.byteindex();
-			
+
 			return string(buffer.subspan(start_byte, end_byte - start_byte));
 		}
-
 
 		auto subview(size_t start = 0, size_t count = npos) const { return view(subspan(start, count)); }
 

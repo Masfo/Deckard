@@ -18,29 +18,15 @@ TEST_CASE("ini read", "[ini]")
 
 	SECTION("tokenize comments")
 	{
-		ini r("# comment\r\n#short"_utf8);
+		ini ini_win("# comment\r\n#short"_utf8);
 
-		r.tokenize();
+		ini_win.tokenize();
 
-		// dont actually check each token
-		// just check if r["section.key"] == "value"
-
-		CHECK(r.at(0) == Token{.type = TokenType::COMMENT, .value = "comment"_utf8});
-		CHECK(r.at(1) == Token{.type = TokenType::NEW_LINE});
-		CHECK(r.at(2) == Token{.type = TokenType::COMMENT, .value = "short"_utf8});
-		CHECK(r.at(3) == Token{.type = TokenType::END_OF_FILE});
-
+		auto str = ini_win.format();
+		CHECK(str == "# comment\n# short"_utf8);
 	}
 
 	SECTION("tokenize section")
 	{
-		ini r("[section]\nkey= # no value"_utf8);
-
-		r.tokenize();
-
-		//CHECK(r.at(0) == Token{.type = TokenType::COMMENT, .value = "comment"_utf8});
-		//CHECK(r.at(1) == Token{.type = TokenType::NEW_LINE});
-		//CHECK(r.at(2) == Token{.type = TokenType::COMMENT, .value = "short"_utf8});
-		//CHECK(r.at(3) == Token{.type = TokenType::END_OF_FILE});
 	}
 }

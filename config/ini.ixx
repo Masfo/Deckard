@@ -193,7 +193,7 @@ namespace deckard::ini
 			//
 			it = data.begin();
 
-			State state = State::Key;
+			State        state = State::Key;
 			utf8::string key;
 
 			while (it)
@@ -257,7 +257,7 @@ namespace deckard::ini
 				{
 					if (utf8::is_identifier_start(cp))
 					{
-						u32 count = 0;
+						u32  count = 0;
 						auto start = it;
 						while (start)
 						{
@@ -266,14 +266,13 @@ namespace deckard::ini
 								// no equal sign, not valid key
 								it += 1;
 								continue;
-
 							}
 							if (start and (*start == EQUALS_SIGN))
 							{
 								count += 1;
 								it += 1; // skip '='
 
-								key  = data.substr(it, count);
+								key   = data.substr(it, count);
 								state = State::Value;
 								it += count;
 								continue;
@@ -283,7 +282,6 @@ namespace deckard::ini
 							count += 1;
 						}
 						it += count;
-						
 					}
 					continue;
 				}
@@ -292,7 +290,6 @@ namespace deckard::ini
 				{
 					continue;
 				}
-
 
 
 				if (cp == EQUALS_SIGN)
@@ -315,9 +312,45 @@ namespace deckard::ini
 			int i = 0;
 		}
 
+		size_t size() const { return tokens.size(); }
+
 		void save() { }
 
 		bool save_as(const std::filesystem::path path) { return true; }
+
+		utf8::string format() const
+		{
+			utf8::string ret;
+
+			for (int i = 0; i < tokens.size(); i++)
+			{
+				auto token = tokens[i];
+				switch (token.type)
+				{
+					case TokenType::COMMENT:
+					{
+						ret.append("# ");
+						ret.append(token.value);
+						continue;
+					}
+
+
+					case TokenType::NEW_LINE:
+					{
+						ret.append("\n");
+						continue;
+					}
+
+					case TokenType::END_OF_FILE: [[fallthrough]];
+					default: 
+					{
+						break;
+					}
+				}
+			}
+
+			return ret;
+		}
 	};
 
 } // namespace deckard::ini
