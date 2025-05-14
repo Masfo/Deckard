@@ -23,10 +23,16 @@ TEST_CASE("ini read", "[ini]")
 		ini_win.tokenize();
 
 		auto str = ini_win.format();
-		CHECK(str == "# comment\n# short"_utf8);
+		CHECK(str.size() == 18);
+
+		CHECK(str == "# comment\r\n# short"_utf8);
 	}
 
 	SECTION("tokenize section")
-	{
+	{ 
+		ini a("\"str\\\"ing\""_utf8);
+
+		a.tokenize();
+		int j = 0;
 	}
 }

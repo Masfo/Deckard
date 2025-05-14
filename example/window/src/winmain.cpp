@@ -102,6 +102,26 @@ constexpr std::array<u32, 64> k_md5 = []
 	return table;
 }();
 
+constexpr f32 HALF_PI = std::numbers::pi / 2;
+
+f32 fastatan2(f32 y, f32 x)
+{
+	if (x == 0)
+		return y == 0 ? 0 : y > 0 ? HALF_PI : -HALF_PI;
+	if (y == 0)
+		return x >= 0 ? 0 : std::numbers::pi;
+	const auto absY     = std::fabs(y);
+	const auto absX     = std::fabs(x);
+	const auto inOctant = absY <= absX;
+
+	const auto a = inOctant ? absY / absX : absX / absY;
+	const auto s = a * a;
+
+	auto r = (((-0.046496 * s + 0.15931) * s - 0.32763) * s + 1) * a;
+	r      = inOctant ? r : HALF_PI - r;
+	r      = x < 0 ? std::numbers::pi - r : r;
+	return y < 0 ? -r : r;
+}
 
 template<typename T>
 std::vector<std::pair<u32, char>> compress_rle(const T input)
@@ -434,7 +454,7 @@ dbg::println();
 	auto it_abc = abc.begin() + 0;
 	dbg::println("a? auto: {}", *it_abc);
 
-	it_abc +=1;
+	it_abc += 1;
 
 	dbg::println("b? auto: {}", *it_abc);
 
@@ -447,7 +467,6 @@ dbg::println();
 	random::dualmix128 dmix;
 
 	auto vdmix = dmix.next();
-
 
 
 	filemap f("input.bin", filemap::access::readwrite);
@@ -463,9 +482,6 @@ dbg::println();
 	f.close();
 
 
-
-	
-
 	// std::string ipv6("2001:db8::1:0:0:1");
 	std::string ipv6("::ffff:7f00:1");
 
@@ -478,8 +494,6 @@ dbg::println();
 		dbg::println("{:#x}", nipv6[i]);
 	}
 
-	
-
 
 	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
@@ -490,8 +504,6 @@ dbg::println();
 	//  ::ffff:c0ab:0101
 	//
 	//  127.0.0.1 - ::ffff:7f00:1
-
-
 
 
 	dbg::println("ipv6: {}", ipv6);
@@ -509,7 +521,6 @@ dbg::println();
 	dbg::println("log2(92) = {}", std::log2(92));
 
 
-
 	std::vector<u8> kos = make_vector<u8>(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07);
 	std::span<u8>   vkos{kos};
 
@@ -521,8 +532,6 @@ dbg::println();
 
 	dbg::println("{}", vkos.size());
 	dbg::println("{}", vkos);
-
-
 
 
 	// ###################

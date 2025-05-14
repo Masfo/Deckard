@@ -4,6 +4,7 @@
 import std;
 import deckard.assert;
 import deckard.lexer;
+import deckard.debug;
 import deckard.types;
 import deckard.file;
 import deckard.utf8;
@@ -25,7 +26,10 @@ namespace deckard::ini
 	};
 
 	export enum struct TokenType : u8 {
-		NEW_LINE = 0x00,
+		NEWLINE = 0x00,
+		NEWLINE_POSIX,
+		NEWLINE_WINDOWS,
+
 		SECTION,
 		KEY,
 		COMMENT,
@@ -100,6 +104,7 @@ namespace deckard::ini
 		std::vector<Token>                  tokens;
 		std::unordered_map<utf8::view, u64> token_indexes;
 		utf8::string                        current_section;
+		TokenType                           newline_type{TokenType::NEWLINE};
 
 		u64 line{}, column{};
 
@@ -206,7 +211,10 @@ namespace deckard::ini
 				{
 					it++;
 
-					tokens.push_back({.type = TokenType::NEW_LINE});
+					if (newline_type == TokenType::NEWLINE)
+						newline_type = TokenType::NEWLINE_POSIX;
+
+					tokens.push_back({.type = TokenType::NEWLINE});
 					continue;
 				}
 
@@ -217,9 +225,65 @@ namespace deckard::ini
 					if (it and *it == LINE_FEED)
 					{
 						it++;
-						tokens.push_back({.type = TokenType::NEW_LINE});
+						if (newline_type == TokenType::NEWLINE)
+							newline_type = TokenType::NEWLINE_WINDOWS;
+
+						tokens.push_back({.type = TokenType::NEWLINE});
 						continue;
 					}
+				}
+
+				if (cp == QUOTATION_MARK)
+				{
+					it++;
+					skip_whitespace();
+
+					auto start = it;
+					i32  count = 0;
+
+
+					bool end_quote = false;
+					while (start)
+					{
+						cp = start ? *start : 0;
+
+						switch (cp)
+						{
+							case QUOTATION_MARK:
+							{
+								end_quote = true;
+								start++;
+								break;
+							}
+
+							case REVERSE_SOLIDUS:
+							{
+								start++;
+								cp = start ? *start : 0;
+								switch (cp)
+								{
+									case REVERSE_SOLIDUS:
+									{
+										start++;
+										break;
+									}
+									case QUOTATION_MARK:
+									{
+										start++;
+										break;
+									}
+									default:
+									{
+										dbg::println("Invalid escape sequence");
+										dbg::breakpoint();
+									}
+								}
+							}
+							default: start++; break;
+						}
+					}
+
+					continue;
 				}
 
 
@@ -334,15 +398,17 @@ namespace deckard::ini
 						continue;
 					}
 
-
-					case TokenType::NEW_LINE:
+					case TokenType::NEWLINE:
 					{
-						ret.append("\n");
+						if (newline_type == TokenType::NEWLINE_POSIX or newline_type == TokenType::NEWLINE)
+							ret.append("\n");
+						else if (newline_type == TokenType::NEWLINE_WINDOWS)
+							ret.append("\r\n");
 						continue;
 					}
 
 					case TokenType::END_OF_FILE: [[fallthrough]];
-					default: 
+					default:
 					{
 						break;
 					}
