@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 export module deckard.app:inputs;
 
@@ -196,11 +196,23 @@ namespace deckard::app
 		const pad& controller() const { return m_pad; }
 
 		// bind key to event enum
-		void bind(Key key, u32 event_id) { }
+		void bind(Key key, u32 event_id)
+		{
+			(key);
+			(event_id);
+		}
 
-		void bind(Mouse button, u32 event_id) { }
+		void bind(Mouse button, u32 event_id)
+		{
+			(button);
+			(event_id);
+		}
 
-		void bind(Controller button, u32 event_id) { }
+		void bind(Controller button, u32 event_id)
+		{
+			(button);
+			(event_id);
+		}
 	};
 
 } // namespace deckard::app

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <Xinput.h>
 
@@ -26,10 +26,9 @@ namespace deckard::app
 	public:
 		pad()
 		{
-			XINPUT_CAPABILITIES cap{};
-			DWORD               err = XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &cap);
+			//XINPUT_CAPABILITIES cap{};
+			//DWORD               err = XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &cap);
 
-			int k = 0;
 		}
 
 		void poll()
@@ -121,10 +120,10 @@ namespace deckard::app
 
 			return {angle, normalizedMagnitude};
 
-
+			/*
 			// #####
 
-			constexpr f32 tau = 2 * std::numbers::pi_v<f32>;
+			//constexpr f32 tau = 2 * std::numbers::pi_v<f32>;
 
 			// f32 rad = std::atan2f(normalizedLY, normalizedLX);
 			f32 rad = std::atan2f(y, x);
@@ -137,6 +136,7 @@ namespace deckard::app
 			return {std::atan2f(y, x), normalizedMagnitude};
 			return {x, y};
 			return {rad, normalizedMagnitude};
+			*/
 		}
 
 		std::pair<f32, f32> left_thumb_direction() const

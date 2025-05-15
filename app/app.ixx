@@ -1,4 +1,4 @@
-
+﻿
 module;
 #include <Windows.h>
 #include <Xinput.h>
@@ -1252,8 +1252,8 @@ namespace deckard::app
 				bool ctrl  = (GetKeyState(Key::Ctrl) & 0x8000);
 
 
-				bool wasDown = (lParam & (1 << 30)) != 0;
-				bool isDown  = (lParam & (1 << 31)) == 0;
+				//bool wasDown = (lParam & (1 << 30)) != 0;
+				//bool isDown  = (lParam & (1 << 31)) == 0;
 
 				dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
 
@@ -1280,8 +1280,8 @@ namespace deckard::app
 				i32 vk       = static_cast<i32>(wParam);
 				i32 scancode = (lParam >> 16) & 0xff;
 
-				bool wasDown = (lParam & (1 << 30)) != 0;
-				bool isDown  = (lParam & (1 << 31)) == 0;
+				//bool wasDown = (lParam & (1 << 30)) != 0;
+				//bool isDown  = (lParam & (1 << 31)) == 0;
 
 				if (keyboard_callback)
 					keyboard_callback(*this, vk, scancode, Action::Up, 0);

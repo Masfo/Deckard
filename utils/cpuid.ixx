@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <intrin.h>
 
@@ -256,93 +256,9 @@ namespace deckard::cpuid
 			return hz_count / std::mega::num;
 		}
 
-		[[deprecated("On Intel does not work")]] u32 logical_cores() const
-		{
-			auto [mfi, _, __, ___] = cpuid(0);
-
-			switch (vendor())
-			{
-				case Vendor::Intel:
-				{
-					if (mfi < 0xb)
-					{
-						if (mfi < 0)
-							return 0;
-
-						auto [_1, ebx, __1, ___1] = cpuid(1);
-						u32 logical               = (ebx >> 16) & 0xFF;
-						return logical;
-					}
-
-					auto [_2, ebx_intel, __2, ___2] = cpuidex(0xb, 0);
-					return ebx_intel & 0xFFFF;
-				}
-
-				case Vendor::AMD:
-				{
-					auto [_3, ebx_amd, __3, ___3] = cpuid(1);
-					return (ebx_amd >> 16) & 0xFF;
-				}
-
-				default: return 0;
-			}
-			std::unreachable();
-		}
-
-		[[deprecated("On Intel does not work")]] u32 threads_per_core() const
-		{
-
-			//
-			auto [mfi, _1, __1, edx] = cpuid(0);
-			if (mfi < 0x4)
-				return 1;
-
-			if (mfi < 0xb)
-			{
-				if (vendor() == Vendor::AMD)
-					return 1;
 
 
-				auto [_2, ebx, __2, ___2] = cpuid(1);
-				if ((edx & (1 << 28)) != 0)
-				{
-					u32 v = (ebx >> 16) & 0xFF;
-					if (v > 1)
-					{
-						auto [eax, _3, __3, ___3] = cpuid(4);
-						u32 v2                    = (eax >> 26) + 1;
-						if (v2 > 0)
-						{
-							return (u32)(v / v2);
-						}
-					}
-				}
-
-				return 1;
-			}
-
-			auto [_4, ebx, __4, ___4] = cpuidex(0xb, 0);
-			if ((ebx & 0xFFFF) == 0)
-			{
-				if (vendor() == Vendor::AMD)
-				{
-					CPU_Info i                    = info();
-					auto [_5, __5, ___5, edx_amd] = cpuid(1);
-					if ((edx_amd & (1 << 28)) != 0 && i.family >= 23)
-						return 2;
-				}
-				return 1;
-			}
-
-			u32 tpc = ebx & 0xFFFF;
-
-			auto [_6, __6, ___6, edx2] = cpuid(1);
-
-			u32 HTT = 0;
-			HTT     = (((edx2 & (1 << 28)) != 0) and (mfi >= 4)) && tpc > 1;
-
-			return tpc;
-		}
+		
 
 		auto core_count() const -> std::pair<u32, u32>
 		{

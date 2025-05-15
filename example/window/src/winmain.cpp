@@ -21,7 +21,7 @@ std::array<unsigned char, 256> current{0};
 
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
-	// dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
+	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
 
 	bool up = action == Action::Up;
 
@@ -36,9 +36,8 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 			GetKeyboardState(&current[0]);
 		}
 
-		auto shift = current[Key::Shift];
+		//auto shift = current[Key::Shift];
 
-		int k = 0;
 	}
 
 	if (key == Key::Escape and up)
@@ -102,26 +101,6 @@ constexpr std::array<u32, 64> k_md5 = []
 	return table;
 }();
 
-constexpr f32 HALF_PI = std::numbers::pi / 2;
-
-f32 fastatan2(f32 y, f32 x)
-{
-	if (x == 0)
-		return y == 0 ? 0 : y > 0 ? HALF_PI : -HALF_PI;
-	if (y == 0)
-		return x >= 0 ? 0 : std::numbers::pi;
-	const auto absY     = std::fabs(y);
-	const auto absX     = std::fabs(x);
-	const auto inOctant = absY <= absX;
-
-	const auto a = inOctant ? absY / absX : absX / absY;
-	const auto s = a * a;
-
-	auto r = (((-0.046496 * s + 0.15931) * s - 0.32763) * s + 1) * a;
-	r      = inOctant ? r : HALF_PI - r;
-	r      = x < 0 ? std::numbers::pi - r : r;
-	return y < 0 ? -r : r;
-}
 
 template<typename T>
 std::vector<std::pair<u32, char>> compress_rle(const T input)
@@ -289,7 +268,6 @@ dbg::println();
 
 	auto is_valid_ipv6 = [](const std::string_view input) -> bool
 	{
-		bool ret = false;
 
 		if (input.empty() or input.size() > 39)
 			return false;
@@ -336,7 +314,7 @@ dbg::println();
 			remaining.remove_prefix(colon + 1);
 		}
 
-		auto g = groups + (has_double_colon ? zeros : 0);
+		//auto g = groups + (has_double_colon ? zeros : 0);
 		return 8 == (groups + (has_double_colon ? zeros : 0));
 	};
 
@@ -368,8 +346,8 @@ dbg::println();
 
 			if (input[i] == ':')
 			{
-				ret[pos + 0] = accumulator >> 8;
-				ret[pos + 1] = accumulator;
+				ret[pos + 0] = as<u8>(accumulator >> 8);
+				ret[pos + 1] = as<u8>(accumulator);
 				accumulator  = 0;
 
 				if (colon_count && i && input[i - 1] == ':')
@@ -384,8 +362,8 @@ dbg::println();
 			}
 		}
 
-		ret[pos + 0] = accumulator >> 8;
-		ret[pos + 1] = accumulator;
+		ret[pos + 0] = as<u8>(accumulator >> 8);
+		ret[pos + 1] = as<u8>(accumulator);
 		return ret;
 	};
 
@@ -464,9 +442,6 @@ dbg::println();
 	dbg::println("f? auto: {}", *it_abc);
 
 
-	random::dualmix128 dmix;
-
-	auto vdmix = dmix.next();
 
 
 	filemap f("input.bin", filemap::access::readwrite);
@@ -584,71 +559,6 @@ dbg::println();
 
 
 	// ###########################################################################
-
-
-	deckard::db::db db("database.db");
-	auto            dkod = db.exec("PRAGMA he");
-
-	db.prepare("CREATE TABLE IF NOT EXISTS blobs(id INTEGER PRIMARY KEY, log_id INTERGER, text TEXT, data BLOB);").commit();
-	db.prepare("CREATE TABLE IF NOT EXISTS fs(path TEXT NOT NULL, size INTEGER NOT NULL, hash TEXT NOT NULL, data BLOB NOT NULL)").commit();
-
-
-	db.prepare("SELECT id,data FROM blobs WHERE id = 1").commit();
-	auto aid   = db.at("id");
-	auto adata = db.at<std::vector<u8>>("data");
-
-
-	if (aid)
-		dbg::println("id: {}", *aid);
-
-	if (adata)
-		dbg::println("data: {}", *adata);
-
-
-	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
-
-
-	ScopeTimer<std::milli> t("transaction");
-	db.begin_transaction();
-	if (auto count = db.at("count"); count)
-	{
-		t.start();
-
-		dbg::println("delete all data from fs");
-		db.prepare("DELETE FROM fs WHERE size > 0").commit();
-		db.end_transaction();
-
-		t.now("deletes");
-		t.reset();
-	}
-
-
-	constexpr u32 bulk_insert_count = 10000;
-
-	db.prepare("SELECT COUNT(*) AS count FROM fs;").commit();
-
-	db.begin_transaction();
-
-	t.start();
-	if (auto count = db.at("count"); count)
-	{
-		db.prepare("INSERT INTO fs (path, size, hash, data) VALUES (?1, ?2, ?3, ?4)");
-
-		for (int k : upto(bulk_insert_count))
-		{
-			db.bind(std::format("data/level{:03}/sprite_{:4}_{:02d}.qoi", random::randu32(0, 999), random::alpha(4), k),
-					random::randu32(1, 16 * 2048),
-					"ABCD",
-					"DATA");
-			db.commit();
-		}
-	}
-	t.now("bulk insert");
-	db.end_transaction();
-	t.now("commit");
-	t.stop();
-
-	db.close();
 
 
 	i32 ab1 = -125;

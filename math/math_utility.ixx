@@ -1,4 +1,4 @@
-module;
+﻿module;
 // #include <algorithm>
 // #include <functional>
 #include <immintrin.h>
@@ -128,9 +128,9 @@ export namespace deckard::math
 		return static_cast<T>(v * rad_to_degrees<T>);
 	}
 
-	constexpr f32 operator""_rad(long double deg) { return to_radians<f32>(deg); }
+	 f32 operator""_rad(long double deg) { return to_radians<f32>(as<f32>(deg)); }
 
-	constexpr f32 operator""_deg(long double rad) { return to_degrees<f32>(rad); }
+	 f32 operator""_deg(long double rad) { return to_degrees<f32>(as<f32>(rad)); }
 
 	namespace sse
 	{

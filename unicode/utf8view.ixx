@@ -27,16 +27,16 @@ namespace deckard::utf8
 		void advance_to_next_codepoint(size_t& idx) const
 		{
 
-			if (idx >= as<i64>(m_data.size_bytes()))
+			if (idx >= m_data.size_bytes())
 				return;
 
 			auto next = idx;
 			next++;
 
-			while (next < as<i64>(m_data.size_bytes()) and utf8::is_continuation_byte(m_data[next]))
+			while (next < m_data.size_bytes() and utf8::is_continuation_byte(m_data[next]))
 				next++;
 
-			while (next < as<i64>(m_data.size_bytes()))
+			while (next < m_data.size_bytes())
 			{
 				u8 byte = m_data[next];
 
@@ -69,7 +69,7 @@ namespace deckard::utf8
 
 		char32 decode_codepoint_at(size_t at) const
 		{
-			assert::check(at < as<size_t>(m_data.size_bytes()), "Index out-of-bounds");
+			assert::check(at < m_data.size_bytes(), "Index out-of-bounds");
 
 			auto   current   = at;
 			u8     state     = 0;
@@ -98,7 +98,7 @@ namespace deckard::utf8
 
 		class string;
 
-		view(subspannable auto&& const str)
+		view(subspannable auto&& str)
 			: m_data(str.subspan())
 			, byte_index(0uz)
 		{

@@ -1,4 +1,4 @@
-export module deckard.bigint;
+﻿export module deckard.bigint;
 
 import deckard.types;
 import deckard.assert;
@@ -883,7 +883,7 @@ namespace deckard
 				return "0";
 
 			std::string result;
-			u32         len  = digits.size() * bigint::base_digits + 1;
+			u32         len  = as<u8>(digits.size()) * bigint::base_digits + 1;
 			result.reserve(len);
 
 			if (newbase == 10)
@@ -1356,7 +1356,7 @@ namespace deckard
 	export bigint random_prime(size_t keysize = 0)
 	{
 		//
-
+		(keysize);
 
 		return {};
 	}

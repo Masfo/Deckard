@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <sqlite3.h>
 
 export module deckard.db;
@@ -19,6 +19,7 @@ namespace fs = std::filesystem;
 
 namespace deckard::db
 {
+	#if 0
 	struct option
 	{
 		bool autoreset{true};
@@ -471,4 +472,5 @@ namespace deckard::db
 		  sqlite3_result_double(ctx, x + y);
 	  });
 	*/
+	#endif
 } // namespace deckard::db

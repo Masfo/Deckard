@@ -18,6 +18,7 @@ export import deckard.enums;
 export import deckard.filemonitor;
 export import deckard.file;
 export import deckard.ini;
+export import deckard.config;
 
 
 // Math
@@ -145,7 +146,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
-	auto cmd     = GetCommandLineW();
+	//auto cmd     = GetCommandLineW();
 	auto cmdline = utf8::view{commandline};
 
 	// clang-format off

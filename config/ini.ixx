@@ -380,7 +380,11 @@ namespace deckard::ini
 
 		void save() { }
 
-		bool save_as(const std::filesystem::path path) { return true; }
+		bool save_as(const std::filesystem::path path) 
+		{
+			(path);
+			return true; 
+		}
 
 		utf8::string format() const
 		{

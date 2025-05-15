@@ -832,7 +832,7 @@ namespace deckard::utf8
 		{
 			if (start >= size())
 			{
-				auto k = 0;
+
 			}
 			assert::check(start < size(), "Indexing out-of-bounds");
 

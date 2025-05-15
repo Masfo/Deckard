@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -16,17 +16,24 @@ namespace deckard::net
 	public:
 		server_tcp() = default;
 
-		server_tcp(address server_address) { }
+		server_tcp(address server_address) 
+		{ 
+			//
+			(server_address); 
+		}
 
 		bool open(int max_pending_connections = 10)
 		{
 			//
+			(max_pending_connections);
 			return true;
 		}
 
 		bool send(std::span<char> data, address client_address)
 		{
 			//
+			(data);
+			(client_address);
 			return true;
 		}
 

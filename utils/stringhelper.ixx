@@ -1,4 +1,4 @@
-export module deckard.stringhelper;
+﻿export module deckard.stringhelper;
 
 import std;
 import deckard.helpers;
@@ -450,7 +450,7 @@ export namespace deckard::string
 	requires(N == 1)
 	constexpr auto ints(const std::string_view str) -> T
 	{
-		T ret{};
+		//T ret{};
 
 		T    acc   = 0;
 		bool added = false;

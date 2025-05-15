@@ -219,7 +219,7 @@ std::optional<unsigned int> to_char32(std::string_view str)
 
 std::string to_upper(std::string str)
 {
-	std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::toupper(c); });
+	std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return (char)std::toupper(c); });
 	return str;
 }
 
@@ -386,7 +386,7 @@ struct char32_range
 using Tables   = std::unordered_map<std::string, std::vector<char32_range>>;
 using IntTable = std::map<u64, u64>;
 
-using Character  = std::pair<std::string, u32>;
+using Character  = std::pair<std::string, i64>;
 using Characters = std::vector<Character>;
 
 auto compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
@@ -722,7 +722,7 @@ void process_unicode_data()
 
 		if (field.code_value == 0x41)
 		{
-			int k = 0;
+			//int k = 0;
 		}
 
 		if (field.category == GeneralCategory::Pd)

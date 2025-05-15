@@ -176,6 +176,7 @@ set(DECKARD_SRCS
 
         # Config
         config/ini.ixx
+        config/config.ixx
 
         # Math
         math/math.ixx

@@ -22,7 +22,6 @@ TEST_CASE("tokens", "[lexer]")
 	{
 	//	tokenizer tok("\"abc\""sv);
 
-		int j = 0;
 	}
 
 	SECTION("file initialize")
@@ -33,7 +32,6 @@ TEST_CASE("tokens", "[lexer]")
 
 		tokenizer tok(path / "simple01.txt");
 
-		int j = 0;
 	}
 
 		
@@ -41,14 +39,12 @@ TEST_CASE("tokens", "[lexer]")
 	{
 		tokenizer tok("# comment");
 		//
-		int j = 0;
 	}
 	
 	SECTION("tokenize base10 integer")
 	{
 		tokenizer tok("dec     Σ");
 		//
-		int j = 0;
 	}
 
 
@@ -56,14 +52,12 @@ TEST_CASE("tokens", "[lexer]")
 	{ 
 		tokenizer tok("abc Σ"); 
 		//
-		int j = 0;
 	}
 
 		SECTION("tokenize newlines")
 	{
 		tokenizer tok("\r\n");
 		//
-		int j = 0;
 	}
 }
 

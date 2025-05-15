@@ -261,7 +261,7 @@ namespace deckard::lexer
 			return count;
 		}
 
-		auto advance(size_t offset = 1)
+		auto advance(int offset = 1)
 		{
 			if (it)
 				it += offset;

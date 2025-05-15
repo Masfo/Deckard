@@ -1,4 +1,4 @@
-export module deckard.as;
+﻿export module deckard.as;
 
 import std;
 import deckard.debug;
@@ -65,7 +65,7 @@ namespace deckard
 					}
 					else if constexpr (std::is_floating_point_v<U> and std::is_floating_point_v<Ret>)
 					{
-						return u;
+						return static_cast<Ret>(u);
 					}
 					else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
 					{

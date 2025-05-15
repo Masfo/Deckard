@@ -33,6 +33,5 @@ TEST_CASE("ini read", "[ini]")
 		ini a("\"str\\\"ing\""_utf8);
 
 		a.tokenize();
-		int j = 0;
 	}
 }

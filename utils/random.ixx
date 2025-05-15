@@ -1,6 +1,4 @@
-﻿module;
-#include <random> // random doesn't work without header (6.10.2024)
-export module deckard.random;
+﻿export module deckard.random;
 
 
 #ifndef _DEBUG
@@ -121,9 +119,8 @@ namespace deckard::random
 		}
 	};
 
-	// https://github.com/the-othernet/DualMix128
-
-	export class dualmix128
+	
+	export class dualmix128 // https://github.com/the-othernet/DualMix128
 	{
 	private:
 		// Golden ratio fractional part * 2^64

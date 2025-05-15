@@ -273,12 +273,12 @@ namespace deckard
 		{
 			if (is_large())
 			{
-				std::fill_n(large_rawptr(), large_size(), 0);
+				std::fill_n(large_rawptr(), large_size(), 0_u8);
 
 				delete[] packed.large.ptr;
 			}
 
-			std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0u);
+			std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0_u8);
 			packed.small.size     = 0;
 			packed.small.is_large = 0;
 		}
@@ -433,12 +433,12 @@ namespace deckard
 		{
 			if (is_small())
 			{
-				std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0u);
+				std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0_u8);
 				packed.small.size = 0;
 			}
 			else
 			{
-				std::ranges::fill_n(packed.large.ptr, packed.large.size, 0u);
+				std::ranges::fill_n(packed.large.ptr, packed.large.size, 0_u8);
 				packed.large.size = 0;
 			}
 		}
@@ -472,8 +472,6 @@ namespace deckard
 				return pos;
 
 			// TODO: self copy, input == buffer, resize deletes it
-			const pointer ptr2        = rawptr();
-			const auto    bufptr      = buffer.data();
 			bool          self_insert = rawptr() == buffer.data();
 
 			if (self_insert)
@@ -617,9 +615,9 @@ namespace deckard
 		void fill(const value_type& v)
 		{
 			const pointer   ptr = rawptr();
-			const size_type max = capacity();
+			const auto max = capacity();
 
-			for (size_type i = 0; i < max; ++i)
+			for (auto i = 0ull; i < max; ++i)
 				ptr[i] = v;
 
 			set_size(max);
@@ -667,14 +665,14 @@ namespace deckard
 			if (newsize <= capacity())
 			{
 				pointer ptr = rawptr();
-				std::fill(ptr + newsize, ptr + capacity(), 0);
+				std::fill(ptr + newsize, ptr + capacity(), 0_u8);
 				set_size(newsize);
 				return;
 			}
 
 			size_t new_capacity = std::max(newsize, newcapacity_size(capacity()));
 			auto   newptr       = new value_type[new_capacity];
-			std::fill_n(newptr, new_capacity, 0u);
+			std::fill_n(newptr, new_capacity, 0_u8);
 
 			pointer oldptr = rawptr();
 			std::copy_n(oldptr, std::min(oldsize, newsize), newptr);
@@ -842,7 +840,7 @@ namespace deckard
 				std::copy(begin() + pivot, end(), begin() + pos);
 			}
 
-			std::fill(begin() + new_size, end(), 0);
+			std::fill(begin() + new_size, end(), 0_u8);
 			set_size(new_size);
 			return begin() + pos;
 		}
