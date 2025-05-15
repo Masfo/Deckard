@@ -1,4 +1,4 @@
-# Deckard - Utility Modules
+﻿# Deckard - Utility Modules
 
 1. in your CMakelists.txt add:
 ```
@@ -53,35 +53,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	  auto  u = as<u16>(X);  // No warning, value fits
 
 	  auto value = as<u32>(256);
-
-	  // Enums as flags
-	  namespace Filesystem
-	  {
-		enum class Permission : u8
-		{
-			No      = 0x00,
-			Read    = 0x01,
-			Write   = 0x02,
-			Execute = 0x04,
-		};
-
-		// Enable flags by adding the following to your enum
-		consteval void enable_bitmask_operations(Permission);
-	  } // namespace Filesystem
-	  
-	  // Usage:
-	  
-	  using Filesystem::Permission;
-	  Permission readAndWrite{Permission::Read | Permission::Write | Permission::Execute};
-	  
-	  readAndWrite &= ~Permission::Write; // Read | Execute
-	  readAndWrite |= Permission::Write;  // Read | Execute | Write
-	  
-	  // or alternatively using += and -=
-	  readAndWrite -= Permission::Execute; // Read | Write
-	  readAndWrite += Permission::Execute; // Read | Write | Execute
 	  ```
   - **[UTF-8 string](doc/utf8.md)**
+  - **[enums](doc/enums.md)**
 	
   - **Result**
 	```cpp
