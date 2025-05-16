@@ -11,10 +11,7 @@ import deckard.as;
 
 namespace deckard::utf8
 {
-	template<typename T>
-	concept subspannable = requires(T&& v) {
-		{ v.subspan() } -> std::same_as<std::span<u8>>;
-	};
+
 
 	export class view
 	{

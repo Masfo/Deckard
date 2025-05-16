@@ -239,7 +239,7 @@ namespace deckard::lexer
 			return std::nullopt;
 		}
 
-		auto consume(codepoint_predicate auto&& pred) -> u32
+		auto consume(const codepoint_predicate auto&& pred) -> u32
 		{
 			u32  count = 0;
 			auto start = it;
@@ -343,6 +343,7 @@ namespace deckard::lexer
 
 				if (current_char == NUMBER_SIGN)
 				{
+
 					dbg::println("backslash: {}", (u32)current_char);
 					next_codepoint();
 					it++;

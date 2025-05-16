@@ -56,6 +56,12 @@ namespace deckard::ini
 		}
 	};
 
+	// TODO:
+	// eat_char  - consume one codepoint
+	// eat_until - consume until predicate is true
+
+
+
 	using TokenValue = std::variant<std::monostate, bool, i64, u64, f64, utf8::view>;
 
 	/*
@@ -265,12 +271,12 @@ namespace deckard::ini
 									case REVERSE_SOLIDUS:
 									{
 										start++;
-										break;
+										continue;
 									}
 									case QUOTATION_MARK:
 									{
 										start++;
-										break;
+										continue;
 									}
 									default:
 									{

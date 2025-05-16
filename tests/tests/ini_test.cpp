@@ -2,6 +2,8 @@
 
 
 import deckard.ini;
+import deckard.config;
+
 import std;
 import deckard.utf8;
 #undef EOF
@@ -10,11 +12,14 @@ using namespace deckard::utf8;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-
 // Encode
 TEST_CASE("ini read", "[ini]")
 {
 
+	SECTION("config") 
+	{ 
+
+	}
 
 	SECTION("tokenize comments")
 	{
@@ -29,7 +34,7 @@ TEST_CASE("ini read", "[ini]")
 	}
 
 	SECTION("tokenize section")
-	{ 
+	{
 		ini a("\"str\\\"ing\""_utf8);
 
 		a.tokenize();
