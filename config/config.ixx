@@ -21,6 +21,9 @@ namespace deckard::config
 		END_OF_FILE = 0xFF,
 	};
 
+	// if [, consume_section, until ], if \n or EOF fail error
+
+
 	export struct Token
 	{
 		TokenType  type{};

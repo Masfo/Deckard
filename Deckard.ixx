@@ -1,6 +1,9 @@
 ﻿module;
 #include <Windows.h>
 #include <cstdio>
+#include <fcntl.h>
+#include <io.h>
+#include <ios>
 #include <objbase.h>
 
 export module deckard;
@@ -92,10 +95,23 @@ void redirect_console(bool show)
 
 	if (show)
 	{
+		// TODO: detect if piping to file.     cmd> window.exe > ok.txt
 
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
+		{
 			AllocConsole();
+			AttachConsole(GetCurrentProcessId());
+		}
 
+
+
+
+		freopen_s(reinterpret_cast<FILE**>(stdout), "CON", "w", stdout);
+		freopen_s(reinterpret_cast<FILE**>(stderr), "CON", "w", stderr);
+		freopen_s(reinterpret_cast<FILE**>(stdin), "CON", "r", stdin);
+
+
+		int  k = 0;
 	}
 	else
 	{
@@ -146,7 +162,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
-	//auto cmd     = GetCommandLineW();
+	// auto cmd     = GetCommandLineW();
 	auto cmdline = utf8::view{commandline};
 
 	// clang-format off
