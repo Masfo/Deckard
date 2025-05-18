@@ -8,6 +8,7 @@ import std;
 import deckard.utf8;
 #undef EOF
 using namespace deckard::ini;
+using namespace deckard::config;
 using namespace deckard::utf8;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -19,6 +20,10 @@ TEST_CASE("ini read", "[ini]")
 	SECTION("config") 
 	{ 
 
+		config c("[sect] # comment\r\n"_utf8);
+
+
+		int j = 0;
 	}
 
 	SECTION("tokenize comments")

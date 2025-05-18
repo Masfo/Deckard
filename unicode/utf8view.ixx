@@ -95,6 +95,12 @@ namespace deckard::utf8
 
 		class string;
 
+		view(const view begin, const view end)
+			: m_data(begin.m_data.subspan(0, end - begin))
+			, byte_index(0uz)
+		{
+		}
+
 		view(subspannable auto&& str)
 			: m_data(str.subspan())
 			, byte_index(0uz)
@@ -119,6 +125,12 @@ namespace deckard::utf8
 		{
 		}
 
+		size_t operator-(const view& other) const
+		{
+			assert::check(m_data.data() == other.m_data.data(), "Cannot subtract two different views");
+			return byte_index - other.byte_index;
+		}
+
 		size_t size_in_bytes() const { return m_data.size_bytes(); }
 
 		size_t length() const
@@ -128,7 +140,6 @@ namespace deckard::utf8
 		}
 
 		auto c_str() const { return as<const char*>(m_data.data()); }
-
 
 		size_t size() const { return length(); }
 
@@ -228,7 +239,12 @@ namespace deckard::utf8
 
 		auto data() const { return m_data; }
 
-		// TODO: iterator
+		view subview(const view start, size_t length) const
+		{
+			assert::check(m_data.data() == start.m_data.data(), "Cannot create subview from different data");
+			assert::check(start.byte_index + length <= m_data.size_bytes(), "Subview out-of-bounds");
+			return view(m_data.subspan(start.byte_index, length));
+		}
 	};
 
 } // namespace deckard::utf8
@@ -238,11 +254,11 @@ export namespace std
 {
 	using namespace deckard;
 
-	 template<>
-	 struct hash<utf8::view>
+	template<>
+	struct hash<utf8::view>
 	{
 		size_t operator()(const utf8::view& value) const { return utils::hash_values(value.data()); }
-	 };
+	};
 
 	template<>
 	struct formatter<utf8::view>
