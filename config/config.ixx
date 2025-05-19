@@ -62,6 +62,24 @@ namespace deckard::config
 			return section;
 		}
 
+		std::expected<utf8::view, std::string> consume_comment(utf8::iterator start)
+		{
+			start += 1; // skip #
+
+			auto comment_start = start;
+			auto end           = data.end();
+
+			while (comment_start != end && utf8::is_whitespace(*comment_start))
+				++comment_start;
+
+			while (start != end && *start != '\n' && *start != '\r')
+				++start;
+			if (start == end)
+				return std::unexpected("Invalid comment header");
+			auto comment = data.subview(comment_start, start-comment_start);
+			return comment;
+		}
+
 		void tokenize()
 		{
 			if (data.empty())
@@ -71,18 +89,25 @@ namespace deckard::config
 			auto end   = data.end();
 			while (start != end)
 			{
+				auto c = *start;
+
 				if (*start == '\n' || *start == '\r')
 				{
 					if (start + 1 != end && *(start + 1) == '\n')
 					{
-						//tokens.push_back({TokenType::NEWLINE_POSIX, utf8::view(start, start + 2)});
+						tokens.push_back({TokenType::NEWLINE_POSIX, {}});
 						start += 2;
 					}
 					else
 					{
-						//tokens.push_back({TokenType::NEWLINE, utf8::view(start, start + 1)});
+						tokens.push_back({TokenType::NEWLINE_WINDOWS, {}});
 						start += 1;
 					}
+				}
+				else if (utf8::is_whitespace(*start))
+				{
+					start++;
+					continue;
 				}
 				else if (*start == '[')
 				{
@@ -90,15 +115,16 @@ namespace deckard::config
 					if (section.has_value())
 						tokens.push_back({TokenType::SECTION, section.value()});
 
-					start += section.value().size();
+					start += section.value().size()+2;
 					continue;
 				}
 				else if (*start == '#')
 				{
-					auto comment_start = start;
-					while (start != end && *start != '\n' && *start != '\r')
-						++start;
-					//tokens.push_back({TokenType::COMMENT, utf8::view(comment_start, start)});
+					auto comment = consume_comment(start);
+					if(comment.has_value())
+						tokens.push_back({TokenType::COMMENT, comment.value()});
+					start += comment.value().size();
+					continue;
 				}
 				else
 				{
