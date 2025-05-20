@@ -69,6 +69,32 @@ export namespace deckard
 		constexpr i32 min<bool> = 0;
 		template<>
 		constexpr i32 max<bool> = 1;
+
+		template<std::unsigned_integral T = u64>
+		constexpr T bits_to_unsigned_max(u32 n)
+		{
+			if (n >= 64)
+				return std::numeric_limits<T>::max();
+			return (1 << n) - 1;
+		}
+
+		template<std::signed_integral T = i64>
+		constexpr T bits_to_signed_max(u32 n)
+		{
+			if (n >= 64)
+				return std::numeric_limits<T>::min();
+
+			return (1 << (n - 1)) - 1;
+		}
+
+		template<std::signed_integral T = i64>
+		constexpr T bits_to_signed_min(u32 n)
+		{
+			if (n >= 64)
+				return std::numeric_limits<T>::min();
+
+			return -(1 << (n - 1));
+		}
 	} // namespace limits
 
 	// Sizes
@@ -124,12 +150,11 @@ export namespace deckard
 
 	// ###########################################################################
 	// ###########################################################################
-	
+
 	template<typename T>
 	concept subspannable = requires(T&& v) {
 		{ v.subspan() } -> std::same_as<std::span<u8>>;
 	};
-
 
 	// ###########################################################################
 	// ###########################################################################
