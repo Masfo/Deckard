@@ -1,4 +1,4 @@
-export module deckard.helpers;
+﻿export module deckard.helpers;
 
 import std;
 import deckard.as;
@@ -467,10 +467,10 @@ export namespace deckard
 	bool isascii(char c) { return isrange(c, 'a', 'z') or isrange(c, 'A', 'Z'); }
 
 	template<arithmetic T = i32>
-	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::optional<T>
+	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::expected<T, std::string>
 	{
 		if (input.empty())
-			return {};
+			return std::unexpected("Empty string");
 
 		if (input.starts_with('+'))
 			input.remove_prefix(1);
@@ -499,9 +499,7 @@ export namespace deckard
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val);
 			if (ec != std::errc())
 			{
-				dbg::trace("try_to_number<float>(\"{}\"). Failed to convert", input, base);
-
-				return {};
+				return std::unexpected(std::format("try_to_number: Failed to convert to float: {}(base {})", input, base));
 			}
 
 			return val;
@@ -512,13 +510,11 @@ export namespace deckard
 			auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, base)};
 			if (ec == std::errc::result_out_of_range)
 			{
-				dbg::trace("try_to_number(\"{}\", base({})). Out of range", input, base);
-				return {};
+				return std::unexpected(std::format("try_to_number: Out of range: {}(base {})", input, base));
 			}
 			else if (ec != std::errc())
 			{
-				dbg::trace("try_to_number(\"{}\", base({})). Failed to convert", input, base);
-				return {};
+				return std::unexpected(std::format("try_to_number : Failed to convert: {}(base {})", input, base));
 			}
 
 			return val;
@@ -750,9 +746,9 @@ export namespace deckard
 	inline size_t int_log2(uint64_t x) { return 63 - std::countl_zero(x | 1); }
 
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	// count_digits, only positives, takes abs
-	 size_t count_digits(const u64 v)
+	size_t count_digits(const u64 v)
 	{
 		if (v == 0)
 			return 1;
@@ -764,7 +760,7 @@ export namespace deckard
 	{
 		return count_digits(as<u64>(v < 0 ? -v : v));
 	}
-	#else
+#else
 
 	// count_digits, only positives, takes abs
 	size_t count_digits(const u64 v)
@@ -800,7 +796,7 @@ export namespace deckard
 	{
 		return count_digits(as<u64>(v < 0 ? -v : v));
 	}
-	#endif
+#endif
 	template<arithmetic T>
 	constexpr auto split_digit(T v) -> std::pair<T, T>
 	{

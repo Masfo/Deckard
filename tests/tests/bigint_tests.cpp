@@ -1,4 +1,4 @@
-#include <catch2/catch_test_macros.hpp>
+﻿#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -129,12 +129,13 @@ TEST_CASE("bigint", "[bigint]")
 				CHECK(res.value() == a);
 			}
 		};
+		check(0);
+
 		check(limits::min<i64>);
 		check(limits::min<i32>);
 		check(limits::min<i16>);
 		check(limits::min<i8>);
 
-		check(0);
 		check(limits::max<u64>);
 		check(limits::max<i32>);
 		check(limits::max<i16>);

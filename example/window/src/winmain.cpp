@@ -264,6 +264,16 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
+	// ###############################################
+
+
+	constexpr auto umax  = limits::bits_to_unsigned_max(19);
+	constexpr auto mimax = limits::bits_to_signed_min(19);
+	constexpr auto imax  = limits::bits_to_signed_max(19);
+
+
+	// ###############################################
+
 
 	auto is_valid_ipv6 = [](const std::string_view input) -> bool
 	{
@@ -576,12 +586,11 @@ dbg::println();
 		return {centerX + r_val * std::cos(theta), centerY + r_val * std::sin(theta)};
 	};
 
-	//for(int i=0; i < 8000; ++i)
+	// for(int i=0; i < 8000; ++i)
 	//{
 	//	auto [x, y] = getRandomPointInCircle(5.0f);
 	//	dbg::println("{:.3f}, {:.3f}", x, y);
-	//}
-
+	// }
 
 
 	i32 ab1 = -125;

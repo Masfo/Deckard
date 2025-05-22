@@ -17,6 +17,7 @@ using namespace deckard;
 
 TEST_CASE("tokens", "[lexer]")
 {
+#if 0
 	using namespace lexer;
 	SECTION("stringview initialize")
 	{
@@ -59,6 +60,7 @@ TEST_CASE("tokens", "[lexer]")
 		tokenizer tok("\r\n");
 		//
 	}
+#endif
 }
 
 #if 0

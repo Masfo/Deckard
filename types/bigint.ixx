@@ -951,7 +951,7 @@ namespace deckard
 			u64 multiplier = 1;
 			for (const auto& digit : digits)
 			{
-				result += (T)(digit)*multiplier;
+				result += static_cast<T>(digit)*multiplier;
 				multiplier *= bigint::base;
 			}
 
@@ -960,7 +960,7 @@ namespace deckard
 				if (signum() == Sign::negative)
 				{
 					i64 iresult = result;
-					return as<T>(-iresult);
+					return static_cast<T>(-iresult);
 				}
 			}
 

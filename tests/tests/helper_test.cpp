@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+﻿#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -470,7 +470,7 @@ TEST_CASE("helpers", "[helpers]")
 	SECTION("to_number")
 	{
 		CHECK(123 == to_number("123"));
-		CHECK(0 == to_number("xyz"));
+		CHECK(false == try_to_number("xyz").has_value());
 	}
 
 	SECTION("as")
