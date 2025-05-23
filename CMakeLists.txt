@@ -264,6 +264,8 @@ set(DECKARD_SRCS
         # Vulkan
         app/vulkan.ixx
 
+        app/vulkan/core.ixx
+
         app/vulkan/helpers.ixx
         app/vulkan/instance.ixx
         app/vulkan/device.ixx
@@ -273,6 +275,7 @@ set(DECKARD_SRCS
         app/vulkan/fence.ixx
         app/vulkan/semaphore.ixx
         app/vulkan/images.ixx
+        app/vulkan/texture.ixx
         app/vulkan/debug.ixx
 
 

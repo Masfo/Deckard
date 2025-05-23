@@ -103,15 +103,10 @@ void redirect_console(bool show)
 			AttachConsole(GetCurrentProcessId());
 		}
 
-
-
-
 		freopen_s(reinterpret_cast<FILE**>(stdout), "CON", "w", stdout);
 		freopen_s(reinterpret_cast<FILE**>(stderr), "CON", "w", stderr);
 		freopen_s(reinterpret_cast<FILE**>(stdin), "CON", "r", stdin);
 
-
-		int  k = 0;
 	}
 	else
 	{
