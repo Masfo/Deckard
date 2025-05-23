@@ -580,6 +580,17 @@ namespace deckard::app
 			}
 		}
 
+		auto get(Attribute flags) const
+		{
+			using enum Attribute;
+			switch (flags)
+			{
+				case gameticks: return game_ticks_per_second;
+				default: break;
+			}
+			return 0u;
+		}
+
 		// ####################################################################################
 		// ####################################################################################
 		// ####################################################################################
@@ -801,21 +812,36 @@ namespace deckard::app
 		void gameloop()
 		{
 			f32  fixed_timestep = 1.0f / game_ticks_per_second;
-			f32  accumulator    = 0.0;
 			u32  frames         = 0;
 			u64  totalframes    = 0;
 			auto last_time      = clock_now();
 
 			f32       fps = 0;
 			f32       max_fps{0};
-			f32       fps_counter        = 0;
 			u32       update_tick        = 0;
+			u32       max_update_tick    = 0;
 			u32       total_update_ticks = 0;
 			u32       loops              = 0;
 			const u32 MAX_FRAMESKIP      = 5;
 
 			float next_title_update = 0.0f;
 
+			enum Updates: u32
+			{
+				Accumulator,
+				FPS,
+
+				Timer_5s,
+
+				Count
+			};
+
+			std::array<f32, as<u32>(Updates::Count)> timers;
+			timers.fill(0.0f);
+
+
+
+			// TODO: minimize and rendering
 
 			while (handle_messages())
 			{
@@ -828,11 +854,15 @@ namespace deckard::app
 				m_deltatime       = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
 				last_time         = current_time;
 
+				timers[Accumulator] += m_deltatime;
+				timers[FPS] += m_deltatime;
+
+				timers[Timer_5s] += m_deltatime;
+
+
 
 				loops = 0;
-				accumulator += m_deltatime;
-				fps_counter += m_deltatime;
-				while (accumulator >= fixed_timestep and loops < MAX_FRAMESKIP)
+				while (timers[Accumulator] >= fixed_timestep and loops < MAX_FRAMESKIP)
 				{
 					// Fixed update
 					if (fixed_update_callback)
@@ -840,9 +870,10 @@ namespace deckard::app
 
 					{
 						update_tick++;
+						max_update_tick = std::max(max_update_tick, update_tick);
 						total_update_ticks++;
 					}
-					accumulator -= fixed_timestep;
+					timers[Accumulator] -= fixed_timestep;
 					loops++;
 				}
 
@@ -850,17 +881,21 @@ namespace deckard::app
 				frames++;
 				totalframes++;
 
-				if (fps_counter > 1.0)
+				if (timers[FPS] > 1.0f)
 				{
-					fps     = frames / fps_counter;
+					fps     = frames / timers[FPS];
 					max_fps = std::max(fps, max_fps);
-
-#if 1
-#endif
-					fps_counter = 0;
+					timers[FPS] = 0;
 					update_tick = 0;
 					frames      = 0;
 				}
+
+				if(timers[Timer_5s] > 5.0f)
+				{
+					// example of timer
+					timers[Timer_5s] = 0.0f;
+				}
+
 
 				next_title_update += deltatime();
 				if (next_title_update > 0.05f)
@@ -868,13 +903,14 @@ namespace deckard::app
 
 
 					set_title(std::format(
-					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: ({}/{})/{}",
+					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: ({:3}[{:3}]/{:3})/{}",
 					  time(),
 					  fps,
 					  max_fps,
 					  totalframes,
 					  deltatime(),
 					  update_tick,
+						max_update_tick,
 					  total_update_ticks,
 					  game_ticks_per_second));
 

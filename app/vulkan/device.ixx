@@ -221,8 +221,6 @@ namespace deckard::vulkan
 				if (name.compare(VK_EXT_SHADER_OBJECT_EXTENSION_NAME) == 0)
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 
-				extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-
 				// TODO: check if 1.2 and supports VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
 				// and add to extensions
 			}

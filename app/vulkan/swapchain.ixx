@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
@@ -74,20 +74,22 @@ namespace deckard::vulkan
 
 			// present mode
 
-			std::array<VkPresentModeKHR, 3> try_order{};
+			std::array<VkPresentModeKHR, 4> try_order{};
 
 
 			if (m_vsync == true)
 			{
 				try_order[0] = VK_PRESENT_MODE_FIFO_KHR;      // is preferred as it does not drop frames and lacks tearing.
-				try_order[1] = VK_PRESENT_MODE_MAILBOX_KHR;   // may offer lower latency, but frames might be dropped.
-				try_order[2] = VK_PRESENT_MODE_IMMEDIATE_KHR; // or VSync off.
+				try_order[1] = VK_PRESENT_MODE_FIFO_RELAXED_KHR; 
+				try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR;   // may offer lower latency, but frames might be dropped.
+				try_order[3] = VK_PRESENT_MODE_IMMEDIATE_KHR; // or VSync off.
 			}
 			else
 			{
 				try_order[0] = VK_PRESENT_MODE_IMMEDIATE_KHR; // vsync off
 				try_order[1] = VK_PRESENT_MODE_FIFO_KHR;      //
-				try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR;   //
+				try_order[2] = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+				try_order[3] = VK_PRESENT_MODE_MAILBOX_KHR;   //
 			}
 
 			VkPresentModeKHR present_mode{};
