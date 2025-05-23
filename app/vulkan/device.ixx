@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
@@ -18,7 +18,11 @@ import deckard.assert;
 
 namespace deckard::vulkan
 {
-	constexpr u32 VENDOR_NVIDIA = 0x10DE;
+	constexpr u32 VENDOR_NVIDIA   = 0x10DE;
+	constexpr u32 VENDOR_AMD      = 0x1002;
+	constexpr u32 VENDOR_INTEL    = 0x8086;
+	constexpr u32 VENDOR_ARM      = 0x13B5;
+	constexpr u32 VENDOR_QUALCOMM = 0x5143;
 
 	export class device
 	{
@@ -155,6 +159,8 @@ namespace deckard::vulkan
 			dbg::println("Device: {}", prop.deviceName);
 
 
+			// NVidia versioning 10/8/8/6
+			// AMD, Intel, vulkan default 10/10/12
 			if (prop.vendorID == VENDOR_NVIDIA)
 			{
 				u32 major = (prop.driverVersion >> 22) & 0x3ff;
@@ -214,11 +220,13 @@ namespace deckard::vulkan
 
 				if (name.compare(VK_EXT_SHADER_OBJECT_EXTENSION_NAME) == 0)
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+
+				extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+				// TODO: check if 1.2 and supports VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
+				// and add to extensions
 			}
 
-			// Requested features
-			//
-			// dynamic
 
 			VkPhysicalDeviceVulkan13Features vulkan_features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 			vulkan_features13.synchronization2 = true;
@@ -228,10 +236,16 @@ namespace deckard::vulkan
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = true;
 
+			VkPhysicalDeviceDynamicRenderingFeatures vulkan_dynamic_rendering{
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
+
+			vulkan_dynamic_rendering.dynamicRendering = true;
+
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 			device_create.pNext     = &vulkan_features13;
 			vulkan_features13.pNext = &shader_features;
+			shader_features.pNext   = &vulkan_dynamic_rendering;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
@@ -256,6 +270,7 @@ namespace deckard::vulkan
 		}
 
 		void deinitialize()
+
 		{
 
 			if (m_device != nullptr)

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <windows.h>
 
 #include <vulkan/vk_enum_string_helper.h>
@@ -16,6 +16,8 @@ export import :command_buffer;
 export import :semaphore;
 export import :fence;
 export import :images;
+export import :core;
+export import :texture;
 
 /*
 module;
@@ -195,10 +197,6 @@ namespace deckard::vulkan
 			return;
 
 
-		// #0080c4
-		VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
-
-
 		// TODO: no reuse of command yet, record per frame
 		// render pass, framebuffer
 		// viewport, vkCmdDraw
@@ -239,6 +237,9 @@ namespace deckard::vulkan
 			  .baseArrayLayer = 0,
 			  .layerCount     = 1};
 
+			// image barrier begin: LAYOUT_UNDEFINED -> LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
+			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
 
 			// image layout
 			vkCmdPipelineBarrier(
@@ -253,14 +254,37 @@ namespace deckard::vulkan
 			  1,
 			  &image_barrier);                   // image memory barrier
 
+			// #0080c4
+			VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
+			VkClearValue      clear_depth = {.depthStencil = {.depth = 1.0f, .stencil = 0}};
+
 
 			const VkRenderingAttachmentInfo color_attachment_info{
 			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			  .imageView   = m_images.imageview(i),
 			  .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-			  .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			  .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-			  .clearValue  = clear_color,
+
+			  .resolveMode        = VK_RESOLVE_MODE_NONE,
+			  .resolveImageView   = VK_NULL_HANDLE,
+			  .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+
+			  .loadOp     = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			  .storeOp    = VK_ATTACHMENT_STORE_OP_STORE,
+			  .clearValue = clear_color,
+			};
+
+			VkClearValue depth_value{.depthStencil = {.depth = 1.0f, .stencil = 0}};
+
+			const VkRenderingAttachmentInfo depth_attachment_info{
+			  .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			  .imageView          = VK_NULL_HANDLE,
+			  .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			  .resolveMode        = VK_RESOLVE_MODE_NONE,
+			  .resolveImageView   = VK_NULL_HANDLE,
+			  .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			  .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			  .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
+			  .clearValue         = clear_depth,
 			};
 
 			const VkExtent2D      current_extent = m_surface.extent();
@@ -272,7 +296,7 @@ namespace deckard::vulkan
 			  .layerCount           = 1,
 			  .colorAttachmentCount = 1,
 			  .pColorAttachments    = &color_attachment_info,
-			  .pDepthAttachment     = nullptr,
+			  .pDepthAttachment     = &depth_attachment_info,
 			  .pStencilAttachment   = nullptr,
 			};
 

@@ -5,4 +5,4 @@
 #include <vulkan/vulkan_win32.h>
 
 
-export module deckard.vulkan:core;
+export module deckard.vulkan:texture;

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
@@ -89,6 +89,7 @@ namespace deckard::vulkan
 		VkImage image(u32 index) const { return swapchain_images[index]; }
 
 		VkImageView imageview(u32 index) const { return swapchain_imageviews[index]; }
+
 	};
 
 } // namespace deckard::vulkan
