@@ -110,7 +110,7 @@ namespace deckard::app
 		update_callback_ptr*       update_callback{nullptr};
 		render_callback_ptr*       render_callback{nullptr};
 
-		u32                                   game_ticks{60};
+		u32                                   game_ticks_per_second{60};
 		std::chrono::steady_clock::time_point start_time;
 		f32                                   m_deltatime{0.0f};
 
@@ -573,7 +573,7 @@ namespace deckard::app
 			{
 				case Attribute::gameticks:
 				{
-					game_ticks = std::clamp(value, 1u, 0xFFFF'FFFFu);
+					game_ticks_per_second = std::clamp(value, 1u, 0xFFFF'FFFFu);
 					break;
 				}
 				default: break;
@@ -800,7 +800,7 @@ namespace deckard::app
 
 		void gameloop()
 		{
-			f32  fixed_timestep = 1.0f / game_ticks;
+			f32  fixed_timestep = 1.0f / game_ticks_per_second;
 			f32  accumulator    = 0.0;
 			u32  frames         = 0;
 			u64  totalframes    = 0;
@@ -808,10 +808,11 @@ namespace deckard::app
 
 			f32       fps = 0;
 			f32       max_fps{0};
-			f32       fps_counter   = 0;
-			u32       update        = 0;
-			u32       loops         = 0;
-			const u32 MAX_FRAMESKIP = 5;
+			f32       fps_counter        = 0;
+			u32       update_tick        = 0;
+			u32       total_update_ticks = 0;
+			u32       loops              = 0;
+			const u32 MAX_FRAMESKIP      = 5;
 
 			float next_title_update = 0.0f;
 
@@ -820,7 +821,7 @@ namespace deckard::app
 			{
 
 
-				fixed_timestep = 1.0f / game_ticks;
+				fixed_timestep = 1.0f / game_ticks_per_second;
 
 
 				auto current_time = clock_now();
@@ -838,7 +839,8 @@ namespace deckard::app
 						fixed_update_callback(*this, fixed_timestep);
 
 					{
-						update++;
+						update_tick++;
+						total_update_ticks++;
 					}
 					accumulator -= fixed_timestep;
 					loops++;
@@ -856,7 +858,7 @@ namespace deckard::app
 #if 1
 #endif
 					fps_counter = 0;
-					update      = 0;
+					update_tick = 0;
 					frames      = 0;
 				}
 
@@ -866,14 +868,15 @@ namespace deckard::app
 
 
 					set_title(std::format(
-					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: {}/{}",
+					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: ({}/{})/{}",
 					  time(),
 					  fps,
 					  max_fps,
 					  totalframes,
 					  deltatime(),
-					  update,
-					  game_ticks));
+					  update_tick,
+					  total_update_ticks,
+					  game_ticks_per_second));
 
 					next_title_update = 0.0f;
 				}
@@ -1252,8 +1255,8 @@ namespace deckard::app
 				bool ctrl  = (GetKeyState(Key::Ctrl) & 0x8000);
 
 
-				//bool wasDown = (lParam & (1 << 30)) != 0;
-				//bool isDown  = (lParam & (1 << 31)) == 0;
+				// bool wasDown = (lParam & (1 << 30)) != 0;
+				// bool isDown  = (lParam & (1 << 31)) == 0;
 
 				dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
 
@@ -1280,8 +1283,8 @@ namespace deckard::app
 				i32 vk       = static_cast<i32>(wParam);
 				i32 scancode = (lParam >> 16) & 0xff;
 
-				//bool wasDown = (lParam & (1 << 30)) != 0;
-				//bool isDown  = (lParam & (1 << 31)) == 0;
+				// bool wasDown = (lParam & (1 << 30)) != 0;
+				// bool isDown  = (lParam & (1 << 31)) == 0;
 
 				if (keyboard_callback)
 					keyboard_callback(*this, vk, scancode, Action::Up, 0);
