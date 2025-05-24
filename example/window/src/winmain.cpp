@@ -71,6 +71,20 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 		app.set(Attribute::gameticks, 5u);
 		dbg::println("ticks 5");
 	}
+
+	if(key == Key::Add and up)
+	{
+		u32 newticks = app.get(Attribute::gameticks) * 2;
+		app.set(Attribute::gameticks, newticks);
+		dbg::println("ticks {}", newticks);
+	}
+
+	if (key == Key::Subtract and up)
+	{
+		u32 newticks = app.get(Attribute::gameticks) / 2;
+		app.set(Attribute::gameticks, newticks == 0 ? 1: newticks);
+		dbg::println("ticks {}", newticks);
+	}
 }
 
 void fixed_update(vulkanapp&, f32 /*fixed_delta*/)
@@ -267,8 +281,6 @@ dbg::println();
 	// ###############################################
 
 
-	constexpr auto umax  = limits::bits_to_unsigned_max(19);
-	constexpr auto mimax = limits::bits_to_signed_min(19);
 	constexpr auto imax  = limits::bits_to_signed_max(19);
 
 

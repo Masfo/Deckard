@@ -1,4 +1,4 @@
-module;
+﻿module;
 
 #include <Windows.h>
 #include <VersionHelpers.h>
@@ -147,7 +147,6 @@ namespace deckard::system
 
 	struct BuildInfo
 	{
-		//
 		u32 major{0};
 		u32 minor{0};
 		u32 build{0};
