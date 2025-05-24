@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+﻿cmake_minimum_required(VERSION 3.28)
 
 
 
@@ -60,6 +60,7 @@ target_sources(tests PUBLIC
     tests/serializer_test.cpp
     tests/sbo_test.cpp
     tests/commandline_test.cpp
+    tests/utils_test.cpp
 
     # UTF8
     tests/utf8_test.cpp

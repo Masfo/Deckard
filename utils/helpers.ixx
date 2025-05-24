@@ -460,11 +460,6 @@ export namespace deckard
 		return (c >= a) && (c <= b);
 	}
 
-	// isdigit
-	bool isdigit(char c) { return isrange(c, '0', '9'); }
-
-	// isascii
-	bool isascii(char c) { return isrange(c, 'a', 'z') or isrange(c, 'A', 'Z'); }
 
 	template<arithmetic T = i32>
 	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::expected<T, std::string>
