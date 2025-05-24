@@ -19,5 +19,8 @@ TEST_CASE("utility", "[utility]")
 
 		CHECK(-128 == limits::bits_to_signed_min(8));
 		CHECK(-262'144 == limits::bits_to_signed_min(19));
+
+		CHECK(0xFFFF'FFFF == limits::max<u32>);
+		CHECK(-2147483648 == limits::min<i32>);
 	}
 }
