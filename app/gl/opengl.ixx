@@ -1,4 +1,4 @@
-export module opengl;
+﻿export module opengl;
 
 // GL
 namespace gl
@@ -334,8 +334,8 @@ void close_renderer()
 void render()
 {
 #if 1
-	if (not vulkan.draw())
-		return;
+	//if (not vulkan.draw())
+	//	return;
 #else
 
 #ifdef _DEBUG

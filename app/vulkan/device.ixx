@@ -74,10 +74,12 @@ namespace deckard::vulkan
 			std::vector<u64> mem_counts;
 			mem_counts.resize(device_count);
 
+
 			for (u32 i = 0; i < device_count; i++)
 			{
 				VkPhysicalDeviceVulkan13Features v13_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-				VkPhysicalDeviceFeatures2        feat2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+
+				VkPhysicalDeviceFeatures2 feat2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 				feat2.pNext = &v13_features;
 				vkGetPhysicalDeviceFeatures2(devices[i], &feat2);
 
@@ -234,16 +236,11 @@ namespace deckard::vulkan
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = true;
 
-			VkPhysicalDeviceDynamicRenderingFeatures vulkan_dynamic_rendering{
-			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
-
-			vulkan_dynamic_rendering.dynamicRendering = true;
-
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 			device_create.pNext     = &vulkan_features13;
 			vulkan_features13.pNext = &shader_features;
-			shader_features.pNext   = &vulkan_dynamic_rendering;
+			shader_features.pNext   = nullptr;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;

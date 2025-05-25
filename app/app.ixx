@@ -582,13 +582,11 @@ namespace deckard::app
 
 		auto get(Attribute flags) const
 		{
-			using enum Attribute;
 			switch (flags)
 			{
-				case gameticks: return game_ticks_per_second;
-				default: break;
+				case Attribute::gameticks: return game_ticks_per_second;
+				default: return 0u;
 			}
-			return 0u;
 		}
 
 		// ####################################################################################
@@ -823,23 +821,22 @@ namespace deckard::app
 			u32       total_update_ticks = 0;
 			u32       loops              = 0;
 			const u32 MAX_FRAMESKIP      = 5;
+			u32       fixed_update_count = 0;
 
-			float next_title_update = 0.0f;
-
-			enum Updates: u32
+			enum Updates : u32
 			{
-				Accumulator,
 				FPS,
+				Accumulator,
+				NextTitleUpdate,
 
-				Timer_5s,
+				Timer5s,
 
 				Count
 			};
 
 			std::array<f32, as<u32>(Updates::Count)> timers;
 			timers.fill(0.0f);
-
-
+			game_ticks_per_second = 5;
 
 			// TODO: minimize and rendering
 
@@ -854,19 +851,19 @@ namespace deckard::app
 				m_deltatime       = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
 				last_time         = current_time;
 
-				timers[Accumulator] += m_deltatime;
-				timers[FPS] += m_deltatime;
-
-				timers[Timer_5s] += m_deltatime;
-
+				//
 
 
 				loops = 0;
+				timers[Accumulator] += m_deltatime;
 				while (timers[Accumulator] >= fixed_timestep and loops < MAX_FRAMESKIP)
 				{
 					// Fixed update
 					if (fixed_update_callback)
+					{
+						fixed_update_count += 1;
 						fixed_update_callback(*this, fixed_timestep);
+					}
 
 					{
 						update_tick++;
@@ -881,24 +878,33 @@ namespace deckard::app
 				frames++;
 				totalframes++;
 
+				timers[FPS] += m_deltatime;
 				if (timers[FPS] > 1.0f)
 				{
-					fps     = frames / timers[FPS];
-					max_fps = std::max(fps, max_fps);
-					timers[FPS] = 0;
+					fps         = frames / timers[FPS];
+					max_fps     = std::max(fps, max_fps);
 					update_tick = 0;
 					frames      = 0;
+
+					timers[FPS] = 0;
 				}
 
-				if(timers[Timer_5s] > 5.0f)
-				{
-					// example of timer
-					timers[Timer_5s] = 0.0f;
-				}
+				//timers[Timer5s] += m_deltatime;
+				//if (timers[Timer5s] > 5.0f)
+				//{
+				//	dbg::println(
+				//	  "{:05.3f}. Fixed updates: {}/{} = {}",
+				//	  time(),
+				//	  game_ticks_per_second,
+				//	  fixed_update_count,
+				//	  fixed_update_count / game_ticks_per_second);
+				//	fixed_update_count = 0;
+				//	timers[Timer5s]    = 0.0f;
+				//}
 
 
-				next_title_update += deltatime();
-				if (next_title_update > 0.05f)
+				timers[NextTitleUpdate] += deltatime();
+				if (timers[NextTitleUpdate] > 0.05f)
 				{
 
 
@@ -910,11 +916,11 @@ namespace deckard::app
 					  totalframes,
 					  deltatime(),
 					  update_tick,
-						max_update_tick,
+					  max_update_tick,
 					  total_update_ticks,
 					  game_ticks_per_second));
 
-					next_title_update = 0.0f;
+					timers[NextTitleUpdate] = 0.0f;
 				}
 
 

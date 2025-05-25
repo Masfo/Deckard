@@ -288,7 +288,7 @@ namespace deckard::vulkan
 			};
 
 			const VkExtent2D      current_extent = m_surface.extent();
-			VkRect2D              render_area{{0, 0}, {(uint32_t)current_extent.width, (uint32_t)current_extent.height}};
+			VkRect2D              render_area{{0, 0}, {current_extent.width, current_extent.height}};
 			const VkRenderingInfo render_info{
 			  .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 			  // TODO: update commands when resized
@@ -368,6 +368,7 @@ namespace deckard::vulkan
 			dbg::println("Acquire swapchain image failed: {}", string_VkResult(result));
 			return false;
 		}
+
 
 		in_flight.reset(m_device);
 
