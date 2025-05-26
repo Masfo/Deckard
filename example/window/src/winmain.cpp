@@ -50,6 +50,11 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 		app.set(Attribute::vsync);
 	}
 
+	if (key == Key::F2 and up)
+	{
+		app.resize(1280, 720);
+	}
+
 	if (up and (key == Key::F11 or key == Key::F))
 	{
 		app.set(Attribute::togglefullscreen);
@@ -655,7 +660,6 @@ dbg::println();
 	   .height = 720,
 	   .flags  = Attribute::vsync | Attribute::resizable});
 
-	app01.set_title(std::format("{}", sizeof(vulkanapp)));
 
 	app01.set_keyboard_callback(keyboard_callback);
 	app01.set_fixed_update_callback(fixed_update);

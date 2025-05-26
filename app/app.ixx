@@ -517,6 +517,13 @@ namespace deckard::app
 				render_callback = ptr;
 		}
 
+		void resize(u16 width, u16 height)
+		{
+			if (width == 0 or height == 0)
+				return;
+			set_client_size({width, height});
+		}
+
 		void set(Attribute flags)
 		{
 			switch (flags)

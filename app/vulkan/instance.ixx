@@ -1,9 +1,9 @@
-module;
+﻿module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_win32.h>
-
 
 export module deckard.vulkan:instance;
 import deckard.vulkan_helpers;
@@ -108,12 +108,13 @@ namespace deckard::vulkan
 #endif
 
 #ifdef _DEBUG
+			#if 0
 				if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
 				{
 					marked = true;
 					required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 				}
-
+				#endif
 
 				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 				{
