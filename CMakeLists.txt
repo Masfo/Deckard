@@ -277,6 +277,7 @@ set(DECKARD_SRCS
         app/vulkan/images.ixx
         app/vulkan/texture.ixx
         app/vulkan/debug.ixx
+        app/vulkan/shader.ixx
 
 
         # Types

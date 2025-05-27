@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_win32.h>
 
 export module deckard.vulkan:instance;
@@ -97,6 +96,8 @@ namespace deckard::vulkan
 					marked = true;
 					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 				}
+
+					
 
 
 #if 0

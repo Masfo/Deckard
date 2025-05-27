@@ -153,16 +153,6 @@ namespace deckard::vulkan
 			}
 			//
 
-#ifdef _DEBUG
-			dbg::println("Device extensions({}):", de_count);
-#if 0
-		for (const auto& extension : device_extensions)
-		{
-			dbg::println("{:>48}  (rev {})", extension.extensionName, VK_API_VERSION_PATCH(extension.specVersion));
-		}
-#endif
-#endif
-
 
 			const auto& prop = device_properties[best_gpu_index];
 
@@ -220,15 +210,14 @@ namespace deckard::vulkan
 			std::vector<const char*> extensions;
 			extensions.reserve(device_extensions.size());
 
-			bool supports_dynamic_rendering = has_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-			bool instance_is_1_3            = false;
+			bool instance_is_1_2 = false;
 
 			u32      InstanceVersion = 0;
 			VkResult res             = vkEnumerateInstanceVersion(&InstanceVersion);
 
 			if (res == VK_SUCCESS)
 			{
-				instance_is_1_3 = VK_API_VERSION_MAJOR(InstanceVersion) >= 1 and VK_API_VERSION_MINOR(InstanceVersion) >= 3;
+				instance_is_1_2 = VK_API_VERSION_MAJOR(InstanceVersion) >= 1 and VK_API_VERSION_MINOR(InstanceVersion) >= 2;
 				u32 major       = VK_API_VERSION_MAJOR(InstanceVersion);
 				u32 minor       = VK_API_VERSION_MINOR(InstanceVersion);
 				u32 patch       = VK_API_VERSION_PATCH(InstanceVersion);
@@ -244,19 +233,13 @@ namespace deckard::vulkan
 
 			for (const auto& extension : device_extensions)
 			{
-				std::string_view name = extension.extensionName;
+				std::string_view name   = extension.extensionName;
 				bool             marked = false;
 
 				if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
 				{
 					extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 					marked = true;
-				}
-
-				if (name.compare(VK_EXT_SHADER_OBJECT_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 				}
 
 				if (name.compare(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME) == 0)
@@ -273,33 +256,36 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 					marked = true;
 				}
-				if (instance_is_1_3 and name.compare(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)==0)
+
+				if (instance_is_1_2 and name.compare(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
 				{
 					marked = true;
 					extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 				}
+
+				if (name.compare(VK_EXT_SHADER_OBJECT_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+				}
+
 				dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
 			}
 			dbg::println();
+
 
 			VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering_features{
 			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
 			dynamic_rendering_features.dynamicRendering = true;
 
 
-			// VkPhysicalDeviceVulkan13Features vulkan_features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-			// vulkan_features13.synchronization2 = true;
-			// vulkan_features13.dynamicRendering = true;
-
-			//
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject     = true;
 			dynamic_rendering_features.pNext = &shader_features;
+			shader_features.pNext            = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 			device_create.pNext = &dynamic_rendering_features;
-			// vulkan_features13.pNext = &shader_features;
-			shader_features.pNext = nullptr;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
