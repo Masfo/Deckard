@@ -86,6 +86,8 @@ namespace deckard::vulkan
 			for (u32 i = 0; i < device_count; i++)
 			{
 				VkPhysicalDeviceVulkan13Features v13_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+				v13_features.synchronization2 = VK_TRUE;
+				v13_features.dynamicRendering = VK_TRUE;
 
 				VkPhysicalDeviceFeatures2 feat2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 				feat2.pNext = &v13_features;
@@ -269,23 +271,50 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 				}
 
+				//
+				if (name.compare(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+				}
+
+				if (name.compare(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
+				}
+
+				if (name.compare(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+				}
+
+				if (name.compare(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
+				}
+
+
 				dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
 			}
 			dbg::println();
 
-
-			VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering_features{
-			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
-			dynamic_rendering_features.dynamicRendering = true;
+			VkPhysicalDeviceVulkan13Features vulkan13_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+			vulkan13_features.synchronization2 = VK_TRUE;
+			vulkan13_features.dynamicRendering = VK_TRUE;
 
 
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
-			shader_features.shaderObject     = true;
-			dynamic_rendering_features.pNext = &shader_features;
-			shader_features.pNext            = nullptr;
+			shader_features.shaderObject = VK_TRUE;
+
+
+			vulkan13_features.pNext = &shader_features;
+			shader_features.pNext   = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-			device_create.pNext = &dynamic_rendering_features;
+			device_create.pNext = &vulkan13_features;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;

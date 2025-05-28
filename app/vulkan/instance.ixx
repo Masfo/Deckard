@@ -97,7 +97,11 @@ namespace deckard::vulkan
 					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 				}
 
-					
+				if(name.compare(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					required_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+				}	
 
 
 #if 0
