@@ -54,9 +54,10 @@ namespace deckard::vulkan
 
 			VkImageUsageFlags usage{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
 			if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-				usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+				usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-			usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			if(surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+				usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
 			create_swapchain.imageUsage = usage;
 
