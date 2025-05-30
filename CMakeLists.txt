@@ -202,6 +202,7 @@ set(DECKARD_SRCS
         net/address.ixx
         net/client.ixx
         net/server.ixx
+        net/ip.ixx
        
         # Taskpool
         taskpool/taskpool.ixx

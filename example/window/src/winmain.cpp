@@ -77,7 +77,7 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 		dbg::println("ticks 5");
 	}
 
-	if(key == Key::Add and up)
+	if (key == Key::Add and up)
 	{
 		u32 newticks = app.get(Attribute::gameticks) * 2;
 		app.set(Attribute::gameticks, newticks);
@@ -87,7 +87,7 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 	if (key == Key::Subtract and up)
 	{
 		u32 newticks = app.get(Attribute::gameticks) / 2;
-		app.set(Attribute::gameticks, newticks == 0 ? 1: newticks);
+		app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
 		dbg::println("ticks {}", newticks);
 	}
 }
@@ -286,7 +286,7 @@ dbg::println();
 	// ###############################################
 
 
-	constexpr auto imax  = limits::bits_to_signed_max(19);
+	constexpr auto imax = limits::bits_to_signed_max(19);
 
 
 	// ###############################################
@@ -296,6 +296,7 @@ dbg::println();
 	{
 		if (input.empty() or input.size() > 39)
 			return false;
+
 
 		u8   groups           = 0;
 		u8   zeros            = 0;
@@ -348,6 +349,17 @@ dbg::println();
 	{
 		static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
+		// https://www.rfc-editor.org/rfc/rfc4291
+		//
+		// TODO: check for .(dot) from end
+		//
+		//  0:0:0:0:0:0:13.1.68.3
+		//  0:0:0:0:0:FFFF:129.144.52.38
+		//
+		//	or in compressed form:
+		//
+		//  ::13.1.68.3
+		//  ::FFFF:129.144.52.38
 
 		std::array<u8, 16> ret{};
 
@@ -391,6 +403,15 @@ dbg::println();
 		ret[pos + 1] = as<u8>(accumulator);
 		return ret;
 	};
+	/*
+	The conversion algorithm is as follows:
+
+	Examine the first 12 bytes of the 16-byte representation
+		If they match the IPv4‑mapped prefix (10 bytes of 0x00 followed by 0xFF, 0xFF``):
+		Interpret the last 4 bytes as an IPv4 address in dotted‑decimal notation
+	Otherwise:
+		Interpret the 16 bytes as an IPv6 address in colon‑hexadecimal notation
+	*/
 
 	auto ipv6_to_string = [](const std::array<u8, 16>& buffer) -> std::string
 	{
@@ -446,6 +467,14 @@ dbg::println();
 		}
 		return ret;
 	};
+	// IPv6 Address:    2001:0db8:85a3:0000:0000:8a2e:0370:7334
+	//	16 - Byte Representation: [20 01 0d b8 85 a3 00 00 00 00 8a 2e 03 70 73 34]
+
+	auto ipvs6 = ipv6_from_string("2001:0db8:85a3::8a2e:0370:7334");
+
+	// IPv4 Address : 192.0.2.1 16 - Byte Representation
+	//	: [00 00 00 00 00 00 00 00 00 00 FF FF C0 00 02 01]
+	auto ipvs4 = ipv6_from_string("::ffff:192.0.2.1");
 
 	auto r = R"(
 	 

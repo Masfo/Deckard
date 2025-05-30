@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -8,6 +8,7 @@ export import :socket;
 export import :client;
 export import :server;
 export import :address;
+export import :ip;
 
 import deckard.types;
 
