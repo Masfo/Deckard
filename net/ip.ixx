@@ -1,4 +1,4 @@
-﻿export module deckard.net:client;
+﻿export module deckard.net:ip;
 
 import deckard.types;
 import std;
@@ -11,8 +11,7 @@ namespace deckard::net
 		std::array<u8, 16> address;
 
 		bool is_ipv4(std::string_view address) const
-		{
-			return address[
+		{ return true;
 		}
 
 		void read_address(std::string_view address_str)

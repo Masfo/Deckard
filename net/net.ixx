@@ -5,8 +5,8 @@
 export module deckard.net;
 
 export import :socket;
-export import :client;
 export import :server;
+export import :client;
 export import :address;
 export import :ip;
 
