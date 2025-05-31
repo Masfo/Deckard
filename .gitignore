@@ -17,4 +17,5 @@ bin
 /tools/utftables/out/build/x64-debug
 /external/zstd/*.zip
 /external/sqlite3/*.zip
+/external/monocypher/*.zip
 

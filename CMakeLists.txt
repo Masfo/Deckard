@@ -289,10 +289,13 @@ set(DECKARD_SRCS
 		types/bigint.ixx
 
 
+		# External helpers
+		compress/zstd.ixx
+		monocypher/monocypher.ixx
+
 		archive/archive.ixx
 		archive/db.ixx
 
-		compress/zstd.ixx
 
 		# win32
 		$<$<PLATFORM_ID:Windows>:utils/system_win32.ixx>
@@ -325,12 +328,15 @@ target_sources(deckard
 
 add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
+add_subdirectory(external/monocypher)
 
-add_dependencies(deckard sqlite3 ZSTD)
+add_dependencies(deckard sqlite3 ZSTD monocypher)
+
  
 set(THIRD_PARTY_LIBS
 	sqlite3
 	ZSTD
+	monocypher
 	opengl32.lib
 	ws2_32
 	xinput
