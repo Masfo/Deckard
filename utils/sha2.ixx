@@ -1,4 +1,4 @@
-export module deckard.sha2;
+﻿export module deckard.sha2;
 
 import deckard.assert;
 import deckard.as;
@@ -224,14 +224,18 @@ namespace deckard::sha256
 		  0x90be'fffa, 0xa450'6ceb, 0xbef9'a3f7, 0xc671'78f2};
 	};
 
-	export std::string quickhash(std::string_view input)
+	std::string quick_hash_generic(std::span<u8> input)
 	{
 		sha256::hasher hasher;
-		hasher.update({(u8*)input.data(), input.size()});
+		hasher.update(input);
 
 		sha256::digest digest = hasher.finalize();
 		return digest.to_string();
 	}
+
+	export std::string quickhash(std::string_view input) { return quick_hash_generic({(u8*)input.data(), input.size()}); }
+
+	export std::string quickhash(std::span<u8> input) { return quick_hash_generic(input); }
 
 	static_assert(sizeof(hasher) == 112);
 
@@ -410,15 +414,18 @@ namespace deckard::sha512
 
 	static_assert(sizeof(hasher) == 208);
 
-	export std::string quickhash(std::string_view input)
+	std::string quick_hash_generic(std::span<u8> input)
 	{
 		sha512::hasher hasher;
-		hasher.update({(u8*)input.data(), input.size()});
+		hasher.update(input);
 
 		sha512::digest digest = hasher.finalize();
 
 		return digest.to_string();
 	}
 
+	export std::string quickhash(std::string_view input) { return quick_hash_generic({(u8*)input.data(), input.size()}); }
+
+	export std::string quickhash(std::span<u8> input) { return quick_hash_generic(input); }
 
 } // namespace deckard::sha512
