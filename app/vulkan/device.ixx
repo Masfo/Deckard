@@ -136,6 +136,42 @@ namespace deckard::vulkan
 
 			m_physical_device = devices[best_gpu_index];
 
+			// device memory
+
+			VkPhysicalDeviceMemoryProperties memory_property{};
+			vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memory_property);
+
+			for (u32 i = 0; i < memory_property.memoryTypeCount; i++)
+			{
+				VkMemoryType memtype = memory_property.memoryTypes[i];
+				dbg::println("{}. {}, index {}", i, memtype.propertyFlags, memtype.heapIndex);
+
+				if (memtype.propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+					dbg::print("DEVICE LOCAL, ");
+				if (memtype.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+					dbg::print("HOST VISIBLE BIT, ");
+				if (memtype.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+					dbg::print("HOST COHERENT BIT, ");
+				if (memtype.propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+					dbg::print("HOST CACHED BIT, ");
+
+				dbg::println("{} bytes", memory_property.memoryHeaps[memtype.heapIndex].size);
+				dbg::println();
+			}
+
+			for (u32 i = 0; i < memory_property.memoryHeapCount; i++)
+			{
+				auto heap = memory_property.memoryHeaps[i];
+
+				dbg::print("Flags: ");
+				if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+					dbg::print("HEAP DEVICE LOCAL, ");
+				if (heap.flags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT)
+					dbg::print("HEAP MULTI INSTANCE BIT, ");
+				dbg::println();
+
+				dbg::println("Heap {}. {}, {} bytes", i, heap.flags, heap.size);
+			}
 
 			// device extensions
 			u32 de_count{0};

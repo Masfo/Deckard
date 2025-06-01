@@ -28,6 +28,7 @@ namespace deckard::vulkan
 	public:
 		bool initialize(device device, presentation_surface surface, bool vsync)
 		{
+
 			m_vsync = vsync;
 
 			surface.update(device);
