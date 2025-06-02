@@ -337,20 +337,28 @@ namespace deckard::vulkan
 			}
 			dbg::println();
 
-			VkPhysicalDeviceVulkan13Features vulkan13_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-			vulkan13_features.synchronization2 = VK_TRUE;
-			vulkan13_features.dynamicRendering = VK_TRUE;
+			//
+
+
+			//
+			VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+			features13.synchronization2 = VK_TRUE;
+			features13.dynamicRendering = VK_TRUE;
+
+			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+			features12.bufferDeviceAddress = true;
+			features12.descriptorIndexing  = true;
 
 
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = VK_TRUE;
 
-
-			vulkan13_features.pNext = &shader_features;
-			shader_features.pNext   = nullptr;
+			features12.pNext      = &features13;
+			features13.pNext      = &shader_features;
+			shader_features.pNext = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-			device_create.pNext = &vulkan13_features;
+			device_create.pNext = &features12;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
