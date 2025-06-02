@@ -251,6 +251,8 @@ namespace deckard::sha512
 	constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
 	constexpr u32 ROUNDS             = 80;
 
+	// TODO: use monocypher
+
 	export class hasher
 	{
 	public:

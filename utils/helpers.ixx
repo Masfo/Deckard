@@ -693,7 +693,7 @@ export namespace deckard
 		return result;
 	}
 
-	template<arithmetic T>
+	template<std::unsigned_integral T>
 	constexpr T pow10(T n)
 	{
 		T result = 1;
