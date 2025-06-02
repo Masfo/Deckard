@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -97,7 +97,6 @@ namespace deckard::net
 				return system::from_wide(buffer);
 			}
 		}
-
 		return {};
 	}
 

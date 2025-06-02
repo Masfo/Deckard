@@ -1,5 +1,6 @@
 ﻿module;
 #include <monocypher.h>
+#include <optional/monocypher-ed25519.h>
 
 export module deckard.monocypher;
 import std;
