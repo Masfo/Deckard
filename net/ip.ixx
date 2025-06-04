@@ -17,10 +17,12 @@ namespace deckard::net
 		void read_address(std::string_view input)
 		{
 			address.fill(0u);
-
+			
 			static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
 			// https://www.rfc-editor.org/rfc/rfc4291
+			// https://www.rfc-editor.org/rfc/rfc8200
+			// https://www.rfc-editor.org/rfc/rfc5952
 			//
 			//  0:0:0:0:0:0:13.1.68.3
 			//  0:0:0:0:0:FFFF:129.144.52.38
