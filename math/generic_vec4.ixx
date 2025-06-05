@@ -1,4 +1,4 @@
-export module deckard.vec:vec4;
+﻿export module deckard.vec:vec4;
 import :vec3;
 
 import std;
@@ -173,13 +173,13 @@ namespace deckard::math
 				   std::abs(w - lhs.w) == epsilon;
 		}
 
-		constexpr bool equals(const vec_type& other, const T epsilon = T{0.0001}) const
+		constexpr bool equals(const vec_type& other, const T epsilon = T{1e-5}) const
 		requires(std::is_floating_point_v<T>)
 		{
 			return is_close_enough(other, epsilon);
 		}
 
-		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.0001}) const
+		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{1e-5}) const
 		requires(std::is_floating_point_v<T>)
 		{
 			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon) and

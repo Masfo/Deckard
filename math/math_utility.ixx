@@ -9,7 +9,6 @@
 export module deckard.math.utils;
 import std;
 import deckard.types;
-import deckard.as;
 import deckard.assert;
 
 export namespace deckard::math
@@ -77,7 +76,7 @@ export namespace deckard::math
 	{
 		if (N == U{0})
 			return 0;
-		return as<T>((x % N + N) % N);
+		return static_cast<T>((x % N + N) % N);
 	}
 
 	// absolute difference
@@ -91,10 +90,21 @@ export namespace deckard::math
 
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{1e-5})
+	[[nodiscard]] constexpr bool is_close_enough(const T& a, const T& b, const T epsilon = T{1e-5})
 	{
-		const T diff = A - B;
-		return diff < error and diff > -error;
+		if (std::isnan(a) or std::isnan(b))
+			return false;
+
+		if (std::isinf(a) && std::isinf(b))
+			return (a > 0 && b > 0) or (a < 0 && b < 0);
+
+		if (std::isinf(a) or std::isinf(b))
+			return false;
+
+		if (a == 0.0 or b == 0.0)
+			return std::fabs(a - b) < epsilon;
+
+		return std::fabs(a - b) <= epsilon;
 	}
 
 	template<std::floating_point T>
@@ -128,9 +138,9 @@ export namespace deckard::math
 		return static_cast<T>(v * rad_to_degrees<T>);
 	}
 
-	 f32 operator""_rad(long double deg) { return to_radians<f32>(as<f32>(deg)); }
+	f32 operator""_rad(long double deg) { return to_radians<f32>(static_cast<f32>(deg)); }
 
-	 f32 operator""_deg(long double rad) { return to_degrees<f32>(as<f32>(rad)); }
+	f32 operator""_deg(long double rad) { return to_degrees<f32>(static_cast<f32>(rad)); }
 
 	namespace sse
 	{

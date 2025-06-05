@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+﻿#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -110,7 +110,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("equals")
 	{
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0f};
-		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.001f};
+		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0001f};
 
 		CHECK(m == m);
 		CHECK(m != m2);
