@@ -32,4 +32,6 @@ namespace deckard::monocypher
 {
 	// TODO: easy to use helpers
 
+
+
 }
