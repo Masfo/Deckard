@@ -9,6 +9,9 @@ import std;
 
 namespace deckard::net
 {
+	static constexpr u8 MAX_IPV4_ADDRESS_STR_LEN = 15;
+	static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
+
 	export class ip
 	{
 	private:
@@ -17,8 +20,6 @@ namespace deckard::net
 		void read_address(std::string_view input)
 		{
 			address.fill(0u);
-			
-			static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
 			// https://www.rfc-editor.org/rfc/rfc4291
 			// https://www.rfc-editor.org/rfc/rfc8200
@@ -48,7 +49,7 @@ namespace deckard::net
 			{
 				// ipv4 address
 				address[10] = address[11] = 0xFF;
-				pos         = 12;
+				pos                       = 12;
 
 				for (u8 i = 0; i < input.size(); i++)
 				{
@@ -68,7 +69,6 @@ namespace deckard::net
 						accumulator += as<u16>(utf8::ascii_hex_to_int(input[i]));
 						assert::check(accumulator <= 255, "IP octet too large");
 						// TODO: return expected
-
 					}
 				}
 				address[pos] += as<u8>(accumulator);
@@ -94,8 +94,8 @@ namespace deckard::net
 
 					if (input[i] == ':')
 					{
-						address[pos + 0] = as<u8>(accumulator >> 8);
-						address[pos + 1] = as<u8>(accumulator);
+						address[pos + 0] = as<u8>((accumulator >> 8) & 0xFF);
+						address[pos + 1] = as<u8>((accumulator >> 0) & 0xFF);
 						accumulator      = 0;
 
 						if (colon_count && i && input[i - 1] == ':')
@@ -110,8 +110,8 @@ namespace deckard::net
 					}
 				}
 
-				address[pos + 0] = as<u8>(accumulator >> 8);
-				address[pos + 1] = as<u8>(accumulator);
+				address[pos + 0] = as<u8>((accumulator >> 8) & 0xFF);
+				address[pos + 1] = as<u8>((accumulator >> 0) & 0xFF);
 			}
 		}
 
@@ -119,24 +119,106 @@ namespace deckard::net
 	public:
 		ip() { address.fill(0); }
 
-		ip(std::string_view address) { read_address(address); }
+		ip(std::string_view input) { read_address(input); }
 
 		bool is_ipv4() const
 		{
-			// IPv4 Address : 192.0.2.1 16 - Byte Representation
-			//   0  1  2  3  4  5  6  7  8  9 10 11
-			// [00 00 00 00 00 00 00 00 00 00 FF FF C0 00 02 01]
-
 			for (size_t i = 0; i < 10; ++i)
 			{
 				if (address[i] != 0)
 					return false;
 			}
-			// Check if bytes 10 and 11 are 0xFF
 			return address[10] == 0xFF && address[11] == 0xFF;
 		}
 
 		bool is_ipv6() const { return not is_ipv4(); }
+
+		std::string to_string() const
+		{
+			if (is_ipv4())
+				return std::format("{}.{}.{}.{}", address[12], address[13], address[14], address[15]);
+
+
+			std::array<u16, 8> groups;
+			for (int i = 0; i < 8; ++i)
+				groups[i] = as<u16>((address[2 * i] << 8) | address[2 * i + 1]);
+
+
+			int best_start = -1, best_len = 0;
+			for (int i = 0; i < groups.size();)
+			{
+				if (groups[i] == 0)
+				{
+					int j = i;
+					while (j < groups.size() && groups[j] == 0)
+						++j;
+					int len = j - i;
+					if (len > best_len)
+					{
+						best_start = i;
+						best_len   = len;
+					}
+					i = j;
+				}
+				else
+				{
+					++i;
+				}
+			}
+
+			if (best_len < 2)
+				best_start = -1;
+
+			std::string result;
+			result.reserve(MAX_IPV6_ADDRESS_STR_LEN);
+
+			for (int i = 0; i < 8;)
+			{
+				if (i == best_start)
+				{
+					result += (i == 0) ? ":" : ":";
+					i += best_len;
+
+					if (i >= 8)
+						break;
+				}
+				else
+				{
+					if (i > 0)
+						result += ":";
+					result += std::format("{:x}", groups[i]);
+
+					++i;
+				}
+			}
+			result.shrink_to_fit();
+			return result;
+		}
 	};
 
 } // namespace deckard::net
+
+namespace std
+{
+	using namespace deckard::net;
+
+	template<>
+	struct formatter<ip>
+	{
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto pos = ctx.begin();
+			//	while (pos != ctx.end() && *pos != '}')
+			//	{
+			//		uppercase_hex = *pos == 'X';
+			//		++pos;
+			//	}
+			return pos;
+		}
+
+		auto format(const ip& address, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", address.to_string()); }
+
+		// bool uppercase_hex{false};
+	};
+
+} // namespace std
