@@ -91,6 +91,12 @@ namespace deckard
 					return static_cast<Ret>(value);
 				}
 
+				if(std::isnan(new_value))
+				{
+					dbg::println("Casting '{}'(f64) to f32 resulted in NaN. Consider using f64 instead", value);
+					return static_cast<Ret>(value);
+				}
+
 				dbg::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
 				return static_cast<Ret>(value);
 			}
