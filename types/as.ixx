@@ -15,19 +15,26 @@ namespace deckard
 #ifdef _DEBUG
 		dbg::trace(loc);
 
+
+		T casted = static_cast<T>(value);
+
 		if constexpr (std::is_unsigned_v<U>)
 		{
-			dbg::println("Unable to cast '{}' safely. Target range is {}...{}",
-						 static_cast<u64>(value),
-						 std::numeric_limits<T>::min(),
-						 std::numeric_limits<T>::max());
+			dbg::println(
+			  "Unable to cast '{}' safely. Target range is {}...{}, cast to '{}",
+			  static_cast<u64>(value),
+			  std::numeric_limits<T>::min(),
+			  std::numeric_limits<T>::max(),
+			  casted);
 		}
 		else if constexpr (std::is_signed_v<U>)
 		{
-			dbg::println("Unable to cast '{}' safely. Target range is {}...{}",
-						 static_cast<i64>(value),
-						 std::numeric_limits<T>::min(),
-						 std::numeric_limits<T>::max());
+			dbg::println(
+			  "Unable to cast '{}' safely. Target range is {}...{}, casting to '{}'",
+			  static_cast<i64>(value),
+			  std::numeric_limits<T>::min(),
+			  std::numeric_limits<T>::max(),
+			  casted);
 		}
 #endif
 	}
@@ -40,9 +47,10 @@ namespace deckard
 #pragma warning(push)
 #pragma warning(disable : 4172) // returning address of local
 
-	// TODO: as<to, false/true>(from) true/false for warning
 
-	export template<typename Ret = void*, typename U>
+
+
+	export template<typename Ret = void*, bool give_warning = true, typename U>
 	constexpr Ret as(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
 	{
 		U value = u;
@@ -65,10 +73,29 @@ namespace deckard
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_floating_point_v<Ret>)
 		{
+			// integer -> float
 			return static_cast<Ret>(u);
 		}
 		else if constexpr (std::is_floating_point_v<U> and std::is_floating_point_v<Ret>)
 		{
+			// float to float
+			if constexpr(std::is_same_v<U, Ret>)
+				return static_cast<Ret>(u);
+			else if constexpr(std::is_same_v<U, f64> and std::is_same_v<Ret, f32>)
+			{
+				Ret new_value = static_cast<Ret>(u);
+
+				if (std::isinf(new_value))
+				{
+					dbg::println("Casting '{}'(f64) to f32 resulted in INF. Consider using f64 instead", value);
+					return static_cast<Ret>(value);
+				}
+
+				dbg::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
+				return static_cast<Ret>(value);
+			}
+
+			// f32 -> f64, no problem
 			return static_cast<Ret>(u);
 		}
 		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
@@ -78,18 +105,33 @@ namespace deckard
 		}
 		else if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
 		{
-			// integers
+			// integer -> integer
 #ifdef _DEBUG
 			if (std::in_range<Ret>(value))
 				return static_cast<Ret>(value);
 
-			warn_cast_limit<Ret>(u, loc);
+			if constexpr (give_warning)
+				warn_cast_limit<Ret>(u, loc);
 #endif
 			return static_cast<Ret>(value);
 		}
 		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
 		{
 			// floating point -> integer
+
+			Ret t = static_cast<Ret>(value);
+
+			if(value >= std::numeric_limits<Ret>::min() and
+			   value <= std::numeric_limits<Ret>::max())
+			{
+				return t;
+			}
+
+#ifdef _DEBUG
+			if constexpr (give_warning)
+				warn_cast_limit<Ret>(u, loc);
+#endif
+
 			return static_cast<Ret>(u);
 		}
 		else if constexpr (string_like_container<U>)
@@ -98,8 +140,12 @@ namespace deckard
 			auto v = try_to_number<Ret>(value);
 			if (v)
 				return as<Ret>(*v);
-
-			dbg::trace(loc);
+#ifdef _DEBUG
+			if constexpr (give_warning)
+			{
+				dbg::trace(loc);
+			}
+#endif
 			dbg::panic("Could not convert input from string");
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
@@ -107,14 +153,22 @@ namespace deckard
 			auto v = try_to_string<U>(value, base);
 			if (v)
 				return *v;
-
-			dbg::trace(loc);
+#ifdef _DEBUG
+			if constexpr (give_warning)
+			{
+				dbg::trace(loc);
+			}
+#endif
 			dbg::panic("Could not convert input to string");
 		}
 		else
 		{
-			dbg::println("fallback <as> {}({})", loc.file_name(), loc.line());
-			// Ret r = {};
+#ifdef _DEBUG
+			if constexpr (give_warning)
+			{
+				dbg::println("fallback <as> {}({})", loc.file_name(), loc.line());
+			}
+#endif
 			return static_cast<Ret>(u);
 		}
 	}
