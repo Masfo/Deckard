@@ -6,6 +6,7 @@ bin
 *.idb
 *.lib
 *.exp
+*.pem
 /.vs
 /out/
 /std.ixx
@@ -14,8 +15,6 @@ bin
 /Testing/Temporary
 /lib/
 /tools/utftables/.vs
-/tools/utftables/out/build/x64-debug
-/external/zstd/*.zip
-/external/sqlite3/*.zip
-/external/monocypher/*.zip
+/tools/utftables/out/*
+/external/*/*.zip
 

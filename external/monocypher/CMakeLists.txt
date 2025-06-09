@@ -32,31 +32,29 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_ZIP_NAME})
 
 	# Copy the files, create folder 
 	foreach(f IN LISTS MONOCYPHER_FILES)
-		message(STATUS "file: ${f}")
-
 	   get_filename_component(MONOCYPHER_DIR_NAME ${f} DIRECTORY)
-		message(STATUS "filename comp: ${MONOCYPHER_DIR_NAME}")
-
 	   file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_DIR_NAME})
 	   file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_ZIP_NAME_NO_EXT}/src/${f} ${CMAKE_CURRENT_LIST_DIR}/${f})
 	endforeach()
 
 	set(CMAKE_DISABLE_SOURCE_CHANGES ON)
-	message(STATUS "Monocypher files copied to ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_ZIP_NAME_NO_EXT}")
-
 
 	# Remove temp
 	file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_ZIP_NAME_NO_EXT})
 
 endif()
 
-project(monocypher)
+project(monocypher C)
 add_library(monocypher STATIC
 	monocypher.c
 	monocypher.h
 
 	optional/monocypher-ed25519.c
 	optional/monocypher-ed25519.h
+)
+
+set_target_properties(monocypher PROPERTIES
+	C_STANDARD 17
 )
 
 if(MSVC)

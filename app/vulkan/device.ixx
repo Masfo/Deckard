@@ -413,6 +413,22 @@ namespace deckard::vulkan
 			return vkQueuePresentKHR(m_queue, &present_info);
 		}
 
+		
+		VkResult present(VkSemaphore rendering_finished, u32& image_index, VkSwapchainKHR swapchain)
+		{
+			VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+
+			present_info.waitSemaphoreCount = 1;
+			present_info.pWaitSemaphores    = &rendering_finished;
+
+			present_info.swapchainCount = 1;
+			present_info.pSwapchains    = &swapchain;
+			present_info.pImageIndices  = &image_index;
+
+			return vkQueuePresentKHR(m_queue, &present_info);
+		}
+
+
 		i32 select_queue() const
 		{
 			u32 queue_families_count = 0;
@@ -447,20 +463,6 @@ namespace deckard::vulkan
 		{
 			assert::check(m_device != nullptr);
 			vkDeviceWaitIdle(m_device);
-		}
-
-		VkResult present(VkSemaphore rendering_finished, u32& image_index, VkSwapchainKHR swapchain)
-		{
-			VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-
-			present_info.waitSemaphoreCount = 1;
-			present_info.pWaitSemaphores    = &rendering_finished;
-
-			present_info.swapchainCount = 1;
-			present_info.pSwapchains    = &swapchain;
-			present_info.pImageIndices  = &image_index;
-
-			return vkQueuePresentKHR(m_queue, &present_info);
 		}
 
 		operator VkDevice() const { return m_device; }

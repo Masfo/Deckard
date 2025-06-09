@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.23)
+﻿cmake_minimum_required (VERSION 3.23)
 
 
 set(SQLITE_ZIP_URL https://www.sqlite.org/2025/sqlite-amalgamation-3490100.zip)
@@ -38,8 +38,12 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME})
 endif()
 
 
-project(sqlite3)
+project(sqlite3 C)
 add_library(sqlite3 STATIC sqlite3.c)
+
+set_target_properties(sqlite3 PROPERTIES
+	C_STANDARD 17
+)
 
 # target_compile_definitions(sqlite3 PRIVATE -DSQLITE_ENABLE_COLUMN_METADATA)
 

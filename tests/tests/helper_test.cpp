@@ -14,6 +14,36 @@ using namespace deckard::string;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
+TEST_CASE("as", "[as]")
+{
+	SECTION("string to number")
+	{
+		auto i  = as<i8, false>(99990);
+		auto i2 = as<f32>(994'564'566'990ull);
+
+		CHECK(123 == as<i32>("123"));
+		CHECK(123.456f == as<f32>("123.456"));
+		CHECK(-123.456f == as<f32>("-123.456"));
+		CHECK(456.654 == as<f64>("456.654"));
+		CHECK(128 == as<u8>("128"));
+		CHECK(666 == as<i16>("#29A", 16));
+	}
+	SECTION("number to string")
+	{
+		CHECK("ffff"sv == as<std::string>(0xFFFF, 16));
+		CHECK(0xFFFF == as<u32>("0xFFFF", 16));
+	}
+
+	SECTION("float to integer")
+	{
+		CHECK(123 == as<i32>(123.456f));
+		CHECK(-456 == as<i32>(-456.456f));
+	}
+
+	SECTION("float to float") { }
+
+} // namespace deckard::helpers
+
 TEST_CASE("helpers", "[helpers]")
 {
 	SECTION("replace")
@@ -505,4 +535,3 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK("1 MiB, 256 KiB, 128 bytes"sv == pretty_bytes(1_MiB + 256_KiB + 128));
 	}
 }
-

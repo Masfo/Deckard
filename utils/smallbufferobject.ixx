@@ -324,7 +324,7 @@ namespace deckard
 			other.reset();
 		}
 
-		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT); }
+		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>( SCALE_FACTOR * size), ALIGNMENT); }
 
 	public:
 		sbo() { reset(); }
