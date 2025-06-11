@@ -337,6 +337,17 @@ namespace deckard::utf8
 			return *this;
 		}
 
+		string& operator=(const view input)
+		{
+			if (input.empty())
+			{
+				clear();
+				return *this;
+			}
+			buffer.assign(input.data());
+			return *this;
+		}
+
 		[[nodiscard("use result of at method")]]
 		unit at(u64 index) const
 		{
@@ -832,7 +843,6 @@ namespace deckard::utf8
 		{
 			if (start >= size())
 			{
-
 			}
 			assert::check(start < size(), "Indexing out-of-bounds");
 

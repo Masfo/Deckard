@@ -22,7 +22,7 @@ namespace deckard::config
 	};
 
 	// if [, consume_section, until ], if \n or EOF fail error
-	
+
 
 	export struct Token
 	{
@@ -42,9 +42,9 @@ namespace deckard::config
 	export class config
 	{
 	private:
-		utf8::string data;
-		fs::path     filename;
+		utf8::string       data;
 		std::vector<Token> tokens;
+
 		std::expected<utf8::view, std::string> consume_section(utf8::iterator start)
 		{
 			auto section_start = start + 1; // skip '['
@@ -58,7 +58,7 @@ namespace deckard::config
 			}
 			if (start == end)
 				return std::unexpected("Invalid section header");
-			auto section = data.subview(section_start, start-section_start);
+			auto section = data.subview(section_start, start - section_start);
 			return section;
 		}
 
@@ -76,7 +76,7 @@ namespace deckard::config
 				++start;
 			if (start == end)
 				return std::unexpected("Invalid comment header");
-			auto comment = data.subview(comment_start, start-comment_start);
+			auto comment = data.subview(comment_start, start - comment_start);
 			return comment;
 		}
 
@@ -89,7 +89,7 @@ namespace deckard::config
 			auto end   = data.end();
 			while (start != end)
 			{
-				auto c = *start;
+				auto current = *start;
 
 				if (*start == '\n' || *start == '\r')
 				{
@@ -111,19 +111,23 @@ namespace deckard::config
 				}
 				else if (*start == '[')
 				{
+					// TODO: consume_section should return how many characters it consumed
 					auto section = consume_section(start);
 					if (section.has_value())
 						tokens.push_back({TokenType::SECTION, section.value()});
 
-					start += section.value().size()+2;
+					start += section.has_value() ? section.value().size() + 2 : 0;
 					continue;
 				}
 				else if (*start == '#')
 				{
 					auto comment = consume_comment(start);
-					if(comment.has_value())
+					if (comment.has_value())
 						tokens.push_back({TokenType::COMMENT, comment.value()});
-					start += comment.value().size();
+
+					// TODO: consume_comment should return how many characters it consumed
+					// +2 here is wrong, 
+					start += comment.has_value() ? comment.value().size() + 2 : 0;
 					continue;
 				}
 				else
@@ -131,34 +135,32 @@ namespace deckard::config
 					auto key_start = start;
 					while (start != end && *start != '=' && *start != '\n' && *start != '\r')
 						++start;
-					//auto key = utf8::view(key_start, start);
+					// auto key = utf8::view(key_start, start);
 					if (start != end && *start == '=')
 					{
 						++start; // consume '='
 						auto value_start = start;
 						while (start != end && *start != '\n' && *start != '\r')
 							++start;
-						//auto value = utf8::view(value_start, start-value_start);
-						//tokens.push_back({TokenType::KEY, key});
-						//tokens.push_back({TokenType::VALUE, value});
+						// auto value = utf8::view(value_start, start-value_start);
+						// tokens.push_back({TokenType::KEY, key});
+						// tokens.push_back({TokenType::VALUE, value});
 					}
 				}
 			}
-		
 		}
 
 	public:
 		explicit config(utf8::view view)
 			: data(view)
 		{
+			data = view;
 			tokenize();
 		}
 
-		explicit config(fs::path f)
+		config(std::string_view input)
 		{
-			filename = f;
-			data     = read_text_file(filename);
-
+			data = input;
 			tokenize();
 		}
 	};

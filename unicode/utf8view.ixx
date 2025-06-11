@@ -164,6 +164,16 @@ namespace deckard::utf8
 			return true;
 		}
 
+		auto& operator=(const view& input)
+		{
+			if (this != &input)
+			{
+				m_data     = input.m_data;
+				byte_index = input.byte_index;
+			}
+			return *this;
+		}
+
 		auto operator*() const { return decode_current_codepoint(); }
 
 		auto operator++()
