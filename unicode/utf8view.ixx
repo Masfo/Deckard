@@ -255,6 +255,10 @@ namespace deckard::utf8
 			assert::check(start.byte_index + length <= m_data.size_bytes(), "Subview out-of-bounds");
 			return view(m_data.subspan(start.byte_index, length));
 		}
+
+		auto span() const
+		{
+			return std::span<u8>(m_data.data(), m_data.size_bytes()); }
 	};
 
 } // namespace deckard::utf8

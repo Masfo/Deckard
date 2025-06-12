@@ -844,15 +844,20 @@ TEST_CASE("utf8::string", "[utf8]")
 
 	SECTION("find_first_of")
 	{
-#if 0
 		utf8::string str("🌍hello🌍 world🌍");
 		utf8::string w("🌍"_utf8);
-		auto         it = str.find_first_of(w);
-		CHECK(std::distance(str.begin(), it) == 0);
+		auto         found = str.find_first_of(w);
+		CHECK(found == 0);
+
+		found = str.find_first_of("w"sv);
+		CHECK(found == 8);
+
+
+		w = "d"_utf8;
+		found = str.find_first_of(w.subview());
+		CHECK(found == 12);
+
 		
-		//it = str.find_first_of("w"_utf8);
-		CHECK(std::distance(str.begin(), it) == 8);
-#endif
 	}
 
 	SECTION("hash")

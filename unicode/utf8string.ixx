@@ -903,66 +903,92 @@ namespace deckard::utf8
 
 		auto c_str() const { return as<const char*>(buffer.data().data()); }
 
-
-#if 0
-		iterator find_first_of(std::span<u8> input, size_t pos = 0)
+		size_t find_first_of(const string& str, size_t pos = 0) const
 		{
 			assert::check(pos < size(), "Index out of bounds");
 
-			auto it     = begin();
-			auto end_it = end();
-			for (; it != end_it; ++it)
+
+			if (str.empty() or pos >= size())
+				return npos;
+
+			auto it    = begin() + pos;
+			auto itend = end();
+
+			for (; it != itend; ++it)
 			{
-				for (auto input_it = input.begin(); input_it != input.end(); ++input_it)
+				for (auto byte : str)
 				{
-					if (*it == *input_it)
+					if (*it == byte)
 					{
-						return it;
+						return std::distance(begin(), it);
 					}
 				}
 			}
-			return end_it;
+
+
+			return npos;
 		}
 
-		iterator find_first_of(string &str, size_t pos = 0) { return find_first_of({str.data(), str.size_in_bytes()}, pos); }
-
-		iterator find_first_of(std::string_view str, size_t pos = 0) { return find_first_of({str.data(), str.size()}, pos); }
-
-
-		iterator find_first_not_of(string &str, size_t pos = 0)
+		size_t find_first_of(utf8::view view, size_t pos = 0) const
 		{
 			assert::check(pos < size(), "Index out of bounds");
 
-			auto it     = begin() + pos;
-			auto end_it = end();
+			if (view.empty() or pos >= size())
+				return npos;
 
-			for (; it != end_it; ++it)
+			auto it    = begin() + pos;
+			auto itend = end();
+
+			for (; it != itend; ++it)
 			{
-				bool found = false;
-				for (auto str_it = str.begin(); str_it != str.end(); ++str_it)
+				auto view_it  = view.begin();
+				auto view_end = view.end();
+
+				for (; view_it != view_end; ++view_it)
 				{
-					if (*it == *str_it)
+					if (*it == *view_it)
 					{
-						found = true;
-						break;
+						return std::distance(begin(), it);
 					}
 				}
-				if (!found)
+			}
+
+			return npos;
+		}
+		size_t find_first_of(std::string_view str, size_t pos = 0) 
+		{ 
+				assert::check(pos < size(), "Index out of bounds");
+
+
+			if (str.empty() or pos >= size())
+				return npos;
+
+			auto it    = begin() + pos;
+			auto itend = end();
+
+			for (; it != itend; ++it)
+			{
+				for (auto byte : str)
 				{
-					return it;
+					if (*it == byte)
+					{
+						return std::distance(begin(), it);
+					}
 				}
 			}
-			return end_it;
+
+			return npos;
 		}
-#endif
+
+
 	};
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
 	// TODO:
-	// find_first_of / first_not_of
-	// find_last_of  / last_no_of
-	// subview -> utf8::view
+	// first_not_of
+	// find_last_of  / last_not_of
+	// rfind
 	// self insert, deletes prev buffer
 	// standalone valid check
 
