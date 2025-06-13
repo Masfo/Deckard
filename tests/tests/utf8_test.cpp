@@ -319,7 +319,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.size() == 10);
 		CHECK(a.front() == 'a');
 		CHECK(a.back() == 0x1'f30d);
-
 	}
 
 	SECTION("length")
@@ -368,7 +367,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a.size() == 7);
 		CHECK(a.front() == 'h');
-		CHECK(a.back() == 0x1f30d);
+		CHECK(a.back() == 0x1'f30d);
 
 		utf8::string b = a.substr(a.begin(), 5);
 		CHECK(b.size() == 5);
@@ -380,9 +379,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		utf8::string c = a.substr(a.begin() + 6, 1);
 		CHECK(c.size() == 1);
-		CHECK(c[0] == 0x1f30d);
-
-
+		CHECK(c[0] == 0x1'f30d);
 	}
 
 	SECTION("replace")
@@ -809,7 +806,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 
 		utf8::string abc("abcdefg");
-		auto         it2 = abc.begin()+0;
+		auto         it2 = abc.begin() + 0;
 		CHECK(*it2 == 'a');
 
 		it2 += 1;
@@ -844,7 +841,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 	SECTION("find_first_of")
 	{
-		utf8::string str("🌍hello🌍 world🌍");
+		utf8::string str("🌍hello❌ world🌍");
 		utf8::string w("🌍"_utf8);
 		auto         found = str.find_first_of(w);
 		CHECK(found == 0);
@@ -853,11 +850,61 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(found == 8);
 
 
-		w = "d"_utf8;
+		w     = "d"_utf8;
 		found = str.find_first_of(w.subview());
 		CHECK(found == 12);
 
-		
+
+		char32 q = 0x274c;   // ❌
+		found    = str.find_first_of(q);
+		CHECK(found == 6);
+
+		char a = 'e';
+		found  = str.find_first_of(a);
+		CHECK(found == 2);
+
+	}
+
+	SECTION("find_first_not_of")
+	{ 
+		utf8::string str("🌍hello❌ world🌍");
+		utf8::string w("🌍❌oleh "_utf8);
+
+		auto found = str.find_first_not_of(w);
+		CHECK(found == 8);
+
+		char32 q = 0x274c; // ❌
+		found    = str.find_first_not_of(q);
+		CHECK(found == 0);
+
+		char a = 'e';
+		found  = str.find_first_not_of(q);
+		CHECK(found == 0);
+	}
+
+	SECTION("find_last_of")
+	{
+		//
+	}
+
+	SECTION("find_last_not_of")
+	{
+		//
+	}
+
+	SECTION("rfind")
+	{
+		//
+	}
+
+	SECTION("starts_with")
+	{
+		//
+	}
+
+	SECTION("ends_with")
+	{
+		//
 	}
 
 	SECTION("hash")
@@ -1417,8 +1464,6 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(v[4] == 'l');
 		CHECK(v[5] == 'o');
 		CHECK(v[6] == 0x1'f30d);
-
-
 	}
 
 	SECTION("hash")
