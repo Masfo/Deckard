@@ -14,7 +14,7 @@ namespace deckard::utf8
 {
 
 	template<typename T>
-	concept CharacterType = std::same_as<T, char> || std::same_as<T, char32>;
+	concept CharacterType = std::same_as<T, char> or std::same_as<T, char32>;
 
 
 	using value_type      = sbo<32>;
@@ -704,7 +704,7 @@ namespace deckard::utf8
 
 		bool starts_with(std::string_view str) const { return starts_with({as<u8*>(str.data()), str.size()}); }
 
-		bool starts_with(string str) const
+		bool starts_with(const string &str) const
 		{
 			if (str.empty())
 				return true;
@@ -721,6 +721,13 @@ namespace deckard::utf8
 			return true;
 		}
 
+		bool starts_with(char32 c) const 
+		{
+			if( empty() )
+				return false;
+
+			return front() == c;
+		}
 		// ends with
 		bool ends_with(std::span<u8> input) const
 		{
@@ -997,7 +1004,7 @@ namespace deckard::utf8
 
 			for (; it != itend; ++it)
 			{
-				if (*it == c)
+				if (*it == (char32)c)
 					return std::distance(begin(), it);
 			}
 

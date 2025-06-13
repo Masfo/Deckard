@@ -455,6 +455,11 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		b = "QW";
 		CHECK(a.starts_with(b) == false);
+
+		CHECK(a.starts_with('A') == true);
+
+		char32 q = 0x41; // 'A' U+0041
+		CHECK(a.starts_with(q) == true);
 	}
 
 	SECTION("ends_with")
@@ -876,10 +881,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		char32 q = 0x274c; // ❌
 		found    = str.find_first_not_of(q);
 		CHECK(found == 0);
-
-		char a = 'e';
-		found  = str.find_first_not_of(q);
-		CHECK(found == 0);
+		
+		CHECK(0 == str.find_first_not_of('e'));
 	}
 
 	SECTION("find_last_of")
