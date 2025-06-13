@@ -1081,7 +1081,7 @@ namespace deckard::utf8
 			for (; it != itend; ++it)
 			{
 				bool found = false;
-				if (*it == c)
+				if (*it == (char32)c)
 				{
 					found = true;
 					break;
