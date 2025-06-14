@@ -9,6 +9,7 @@ import deckard.timers;
 using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
+//using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 
@@ -285,7 +286,13 @@ dbg::println();
 #endif
 	// ###############################################
 
+	std::string sss("hello world");
 
+	auto find_h  = sss.find_first_not_of("ol leh"sv);
+
+
+
+	int j = 0;
 
 	// ###############################################
 

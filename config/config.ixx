@@ -116,7 +116,7 @@ namespace deckard::config
 					if (section.has_value())
 						tokens.push_back({TokenType::SECTION, section.value()});
 
-					start += section.has_value() ? section.value().size() + 2 : 0;
+					start += section.has_value() ? section.value().size() + 2ull : 0;
 					continue;
 				}
 				else if (*start == '#')
@@ -127,7 +127,7 @@ namespace deckard::config
 
 					// TODO: consume_comment should return how many characters it consumed
 					// +2 here is wrong, 
-					start += comment.has_value() ? comment.value().size() + 2 : 0;
+					start += comment.has_value() ? comment.value().size() + 2ull : 0;
 					continue;
 				}
 				else

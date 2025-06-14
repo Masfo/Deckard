@@ -1,7 +1,9 @@
-export module deckard.net:address;
+﻿export module deckard.net:address;
 
 import std;
 import :types;
+import :ip;
+
 import deckard.types;
 import deckard.enums;
 
@@ -26,7 +28,7 @@ namespace deckard::net
 		}
 
 		std::string        hostname;
-		std::array<u16, 8> ip{0};
+		ip                 ip;
 		u16                port{0};
 		protocol           proto{protocol::v4};
 		transport          transport{transport::tcp};

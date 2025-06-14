@@ -1,4 +1,4 @@
-export module deckard.vec;
+﻿export module deckard.vec;
 
 export import :vec2;
 export import :vec3;
@@ -103,7 +103,7 @@ export namespace deckard::math
 	}
 
 	template<std::unsigned_integral T>
-	constexpr T to_zorder(const T x, const T y)
+	constexpr T to_zorder(const T x, const T y)                                                                        
 	{
 		return to_zorder(generic_vec2<T>{x, y});
 	}
