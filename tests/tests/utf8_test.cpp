@@ -900,15 +900,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		//
 	}
 
-	SECTION("starts_with")
-	{
-		//
-	}
 
-	SECTION("ends_with")
-	{
-		//
-	}
 
 	SECTION("hash")
 	{
