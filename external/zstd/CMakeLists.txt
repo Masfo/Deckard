@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.23)
+﻿cmake_minimum_required (VERSION 3.23)
 
 set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.zip)
 set(ZSTD_ZIP_NAME_NOEXT zstd-1.5.7)
@@ -107,7 +107,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
 endif()
 
 project(ZSTD)
-add_library(ZSTD STATIC
+add_library(ZSTD OBJECT
         common/debug.c
         common/entropy_common.c
         common/error_private.c

@@ -45,7 +45,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_ZIP_NAME})
 endif()
 
 project(monocypher C)
-add_library(monocypher STATIC
+add_library(monocypher OBJECT
 	monocypher.c
 	monocypher.h
 

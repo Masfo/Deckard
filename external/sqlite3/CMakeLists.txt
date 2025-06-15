@@ -39,7 +39,7 @@ endif()
 
 
 project(sqlite3 C)
-add_library(sqlite3 STATIC sqlite3.c)
+add_library(sqlite3 OBJECT sqlite3.c)
 
 set_target_properties(sqlite3 PROPERTIES
 	C_STANDARD 17
