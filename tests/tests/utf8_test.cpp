@@ -886,8 +886,19 @@ TEST_CASE("utf8::string", "[utf8]")
 	}
 
 	SECTION("find_last_of")
-	{
-		//
+	{ 
+		utf8::string str("12 i12 12345");
+		utf8::string w("i12"_utf8);
+
+		auto found = str.find_last_of(w);
+		CHECK(found == 8);
+
+		utf8::string str2("12 ❌q2 12345");
+		utf8::string w2("❌q2"_utf8);
+
+		found = str2.find_last_of(w2);
+		CHECK(found == 8);
+		
 	}
 
 	SECTION("find_last_not_of")
