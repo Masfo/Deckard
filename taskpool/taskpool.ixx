@@ -1,7 +1,9 @@
-export module deckard.taskpool;
+﻿export module deckard.taskpool;
 
 import std;
 import deckard.types;
+import deckard.as;
+import deckard.function_ref;
 
 namespace deckard::taskpool
 {
@@ -44,7 +46,7 @@ namespace deckard::taskpool
 	export class taskpool
 	{
 	public:
-		using work = std::function<void(size_t id)>;
+		using work = function_ref<void(size_t id)>;
 
 	private:
 		std::vector<std::thread> threads;
@@ -62,8 +64,8 @@ namespace deckard::taskpool
 
 		taskpool(size_t threadcount)
 		{
-			if (threadcount == 0)
-				threadcount = std::thread::hardware_concurrency();
+			threadcount = std::max(threadcount, as<size_t>(std::thread::hardware_concurrency()));
+			threads.reserve(threadcount);
 
 			for (size_t i = 0; i < threadcount; i++)
 			{
@@ -75,7 +77,6 @@ namespace deckard::taskpool
 						  work task = get();
 						  if (not task)
 						  {
-							  this->add(nullptr);
 							  break;
 						  }
 						  else
@@ -89,7 +90,6 @@ namespace deckard::taskpool
 
 		void join()
 		{
-			add(nullptr);
 
 			for (auto& task : threads)
 				task.join();

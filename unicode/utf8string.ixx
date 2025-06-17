@@ -1121,6 +1121,25 @@ namespace deckard::utf8
 
 		}
 
+		size_t find_last_of(std::string_view view, size_t pos = npos) const
+		{
+			if (empty() or view.empty())
+				return npos;
+			if (pos >= size())
+				pos = size() - 1;
+			auto it = begin() + pos;
+			while (it >= begin())
+			{
+				for (char32 byte : view)
+				{
+					if (*it == byte)
+						return std::distance(begin(), it);
+				}
+				--it;
+			}
+			return npos;
+		}
+
 	};
 
 	static_assert(sizeof(string) == 32, "string size mismatch");

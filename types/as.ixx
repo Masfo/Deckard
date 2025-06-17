@@ -100,9 +100,12 @@ namespace deckard
 				dbg::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
 				return static_cast<Ret>(value);
 			}
+			else
+			{
 
-			// f32 -> f64, no problem
-			return static_cast<Ret>(u);
+				// f32 -> f64, no problem
+				return static_cast<Ret>(u);
+			}
 		}
 		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
 		{

@@ -9,7 +9,7 @@ import deckard.timers;
 using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
-//using namespace std::string_literals;
+// using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 
@@ -286,14 +286,23 @@ dbg::println();
 #endif
 	// ###############################################
 
-	std::string sss("hello world");
+	std::string sss("12 q2 543210");
 
-	auto find_h  = sss.find_first_not_of("ol leh"sv);
+	auto find_h = sss.find_last_of("q"sv);
+
+	size_t ths = std::thread::hardware_concurrency();
 
 
+	// ###############################################
+
+	taskpool::taskpool tp;
+
+	tp.add([](u32 i) { dbg::println("task {}", i); });
+
+
+	tp.join();
 
 	int j = 0;
-
 	// ###############################################
 
 
@@ -352,8 +361,6 @@ dbg::println();
 	//  ::ffff:c0ab:0101
 	//
 	//  127.0.0.1 - ::ffff:7f00:1
-
-
 
 
 	dbg::println("log2(32) = {}", std::log2(32));

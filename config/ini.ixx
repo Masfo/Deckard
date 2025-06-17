@@ -178,7 +178,11 @@ namespace deckard::ini
 
 		explicit ini(fs::path filename) { data = read_text_file(filename); }
 
-		value operator[](std::string_view key) const { return {}; }
+		value operator[](std::string_view key) const 
+		{
+			(key);
+			return {}; 
+		}
 
 		auto at(size_t index) const
 		{
@@ -245,7 +249,7 @@ namespace deckard::ini
 					skip_whitespace();
 
 					auto start = it;
-					i32  count = 0;
+					//i32  count = 0;
 
 
 					bool end_quote = false;
@@ -379,7 +383,6 @@ namespace deckard::ini
 			}
 			tokens.push_back({.type = TokenType::END_OF_FILE});
 
-			int i = 0;
 		}
 
 		size_t size() const { return tokens.size(); }

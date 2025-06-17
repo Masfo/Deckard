@@ -898,6 +898,9 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		found = str2.find_last_of(w2);
 		CHECK(found == 8);
+
+		//found = str2.find_last_of("q2"sv);
+		//CHECK(found == 5);
 		
 	}
 

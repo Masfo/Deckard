@@ -1,4 +1,4 @@
-export module deckard.function_ref;
+﻿export module deckard.function_ref;
 
 import std;
 
@@ -99,6 +99,8 @@ namespace deckard
 
 			return *this;
 		}
+
+		constexpr explicit operator bool() const noexcept { return obj_ != nullptr && callback_ != nullptr; }
 
 		constexpr void swap(function_ref<R(Args...)>& rhs) noexcept
 		{
