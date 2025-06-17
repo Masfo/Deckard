@@ -2,13 +2,13 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 bin
+out
 *.pdb
 *.idb
 *.lib
 *.exp
 *.pem
 /.vs
-/out/
 /std.ixx
 /scratch.txt
 /*.cmd
