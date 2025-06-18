@@ -704,7 +704,7 @@ namespace deckard::utf8
 
 		bool starts_with(std::string_view str) const { return starts_with({as<u8*>(str.data()), str.size()}); }
 
-		bool starts_with(const string &str) const
+		bool starts_with(const string& str) const
 		{
 			if (str.empty())
 				return true;
@@ -721,13 +721,14 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool starts_with(char32 c) const 
+		bool starts_with(char32 c) const
 		{
-			if( empty() )
+			if (empty())
 				return false;
 
 			return front() == c;
 		}
+
 		// ends with
 		bool ends_with(std::span<u8> input) const
 		{
@@ -1118,7 +1119,6 @@ namespace deckard::utf8
 			}
 
 			return npos;
-
 		}
 
 		size_t find_last_of(std::string_view view, size_t pos = npos) const
@@ -1140,6 +1140,48 @@ namespace deckard::utf8
 			return npos;
 		}
 
+		void trim_right()
+		{
+			if (empty())
+				return;
+
+			auto it       = end();
+			auto begin_it = begin();
+
+			while (it != begin_it)
+			{
+				auto prev = it - 1;
+				if (not utf8::is_whitespace(*prev))
+					break;
+
+				it = prev;
+			}
+
+			erase(it, end());
+		}
+
+		void trim_left()
+		{
+			if (empty())
+				return;
+			auto it     = begin();
+			auto end_it = end();
+
+			while (it != end_it)
+			{
+				char32 c = *it;
+				if (not utf8::is_whitespace(*it))
+					break;
+				++it;
+			}
+			erase(begin(), it);
+		}
+
+		void trim()
+		{
+			trim_left();
+			trim_right();
+		}
 	};
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
@@ -1147,6 +1189,7 @@ namespace deckard::utf8
 	// TODO:
 	// find_last_of  / last_not_of
 	// rfind
+	// split
 	// self insert, deletes prev buffer
 	// standalone valid check
 

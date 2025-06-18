@@ -914,6 +914,32 @@ TEST_CASE("utf8::string", "[utf8]")
 		//
 	}
 
+	
+	SECTION("trim_left")
+	{
+		utf8::string str("  🌍23❌");
+		CHECK(str.size() == 6);
+		CHECK(str == "  🌍23❌");
+
+		str.trim_left();
+
+		CHECK(str.size() == 4);
+		CHECK(str == "🌍23❌");
+	}
+
+	SECTION("trim_right")
+	{ 
+		utf8::string str("🌍23❌  ");
+		CHECK(str.size() == 6);
+		CHECK(str == "🌍23❌  ");
+
+		str.trim_right();
+
+		CHECK(str.size() == 4);
+		CHECK(str == "🌍23❌");
+	}
+
+
 
 
 	SECTION("hash")
