@@ -1179,6 +1179,7 @@ namespace deckard::utf8
 
 		void trim()
 		{
+			// TODO: combine trim_left and trim_right into one function
 			trim_left();
 			trim_right();
 		}
@@ -1190,6 +1191,7 @@ namespace deckard::utf8
 	// find_last_of  / last_not_of
 	// rfind
 	// split
+	// trim copy, trim modify inplace
 	// self insert, deletes prev buffer
 	// standalone valid check
 

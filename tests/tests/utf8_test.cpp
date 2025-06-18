@@ -860,18 +860,17 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(found == 12);
 
 
-		char32 q = 0x274c;   // ❌
+		char32 q = 0x274c; // ❌
 		found    = str.find_first_of(q);
 		CHECK(found == 6);
 
 		char a = 'e';
 		found  = str.find_first_of(a);
 		CHECK(found == 2);
-
 	}
 
 	SECTION("find_first_not_of")
-	{ 
+	{
 		utf8::string str("🌍hello❌ world🌍");
 		utf8::string w("🌍❌oleh "_utf8);
 
@@ -881,12 +880,12 @@ TEST_CASE("utf8::string", "[utf8]")
 		char32 q = 0x274c; // ❌
 		found    = str.find_first_not_of(q);
 		CHECK(found == 0);
-		
+
 		CHECK(0 == str.find_first_not_of('e'));
 	}
 
 	SECTION("find_last_of")
-	{ 
+	{
 		utf8::string str("12 i12 12345");
 		utf8::string w("i12"_utf8);
 
@@ -899,9 +898,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		found = str2.find_last_of(w2);
 		CHECK(found == 8);
 
-		//found = str2.find_last_of("q2"sv);
-		//CHECK(found == 5);
-		
+		// found = str2.find_last_of("q2"sv);
+		// CHECK(found == 5);
 	}
 
 	SECTION("find_last_not_of")
@@ -914,7 +912,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		//
 	}
 
-	
+
 	SECTION("trim_left")
 	{
 		utf8::string str("  🌍23❌");
@@ -928,7 +926,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	}
 
 	SECTION("trim_right")
-	{ 
+	{
 		utf8::string str("🌍23❌  ");
 		CHECK(str.size() == 6);
 		CHECK(str == "🌍23❌  ");
@@ -939,7 +937,15 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str == "🌍23❌");
 	}
 
-
+	SECTION("trim")
+	{
+		utf8::string str("  🌍23❌  ");
+		CHECK(str.size() == 8);
+		CHECK(str == "  🌍23❌  ");
+		str.trim();
+		CHECK(str.size() == 4);
+		CHECK(str == "🌍23❌");
+	}
 
 
 	SECTION("hash")
