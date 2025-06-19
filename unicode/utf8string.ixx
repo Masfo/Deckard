@@ -1140,6 +1140,91 @@ namespace deckard::utf8
 			return npos;
 		}
 
+		size_t find_last_of(CharacterType auto c, size_t pos = npos) const
+		{
+			if (empty() or c == 0)
+				return npos;
+
+			if (pos >= size())
+				pos = size() - 1;
+
+			auto it = begin() + pos;
+
+			while (it >= begin())
+			{
+				if (*it == (char32)c)
+						return std::distance(begin(), it);
+				--it;
+			}
+			return npos;
+		}
+
+		size_t find_last_not_of(const string& view, size_t pos = npos) const
+		{
+			if (empty() or view.empty())
+				return npos;
+			if (pos >= size())
+				pos = size() - 1;
+			auto it = begin() + pos;
+			while (it >= begin())
+			{
+				bool found = false;
+				auto view_it  = view.begin();
+				auto view_end = view.end();
+				for (; view_it != view_end; ++view_it)
+				{
+					if (*it == *view_it)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (not found)
+					return std::distance(begin(), it);
+				--it;
+			}
+			return npos;
+		}
+		size_t find_last_not_of(std::string_view view, size_t pos = npos) const
+		{
+			if (empty() or view.empty())
+				return npos;
+			if (pos >= size())
+				pos = size() - 1;
+			auto it = begin() + pos;
+			while (it >= begin())
+			{
+				bool found = false;
+				for (char32 byte : view)
+				{
+					if (*it == byte)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (not found)
+					return std::distance(begin(), it);
+				--it;
+			}
+			return npos;
+		}
+		size_t find_last_not_of(CharacterType auto c, size_t pos = npos) const
+		{
+			if (empty() or c == 0)
+				return npos;
+			if (pos >= size())
+				pos = size() - 1;
+			auto it = begin() + pos;
+			while (it >= begin())
+			{
+				if (*it != (char32)c)
+					return std::distance(begin(), it);
+				--it;
+			}
+			return npos;
+		}
+
 		void trim_right()
 		{
 			if (empty())
@@ -1179,18 +1264,18 @@ namespace deckard::utf8
 
 		void trim()
 		{
-			// TODO: combine trim_left and trim_right into one function
 			trim_left();
 			trim_right();
 		}
+
+
+		
 	};
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
 	// TODO:
-	// find_last_of  / last_not_of
 	// rfind
-	// split
 	// trim copy, trim modify inplace
 	// self insert, deletes prev buffer
 	// standalone valid check

@@ -898,13 +898,29 @@ TEST_CASE("utf8::string", "[utf8]")
 		found = str2.find_last_of(w2);
 		CHECK(found == 8);
 
+		char32 q = 0x274c; // ❌
+		CHECK(str2.find_last_of(q) == 3);
+
+		CHECK(str2.find_last_of('q') == 4);
 		// found = str2.find_last_of("q2"sv);
 		// CHECK(found == 5);
 	}
 
 	SECTION("find_last_not_of")
 	{
-		//
+		utf8::string str("🌍hello❌ world🌍");
+		utf8::string w("🌍❌helord "_utf8);
+
+		auto         found = str.find_last_not_of(w);
+		CHECK(found == 8);
+
+		found = str.find_last_not_of("hello world"sv);
+		CHECK(found == 13);
+
+		char32 q = 0x1'f30d; // 🌍
+		found    = str.find_last_not_of(q);
+		CHECK(found == 12);
+
 	}
 
 	SECTION("rfind")
