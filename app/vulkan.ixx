@@ -121,6 +121,12 @@ namespace deckard::vulkan
 
 	bool vulkan::initialize(HWND handle, bool vsync)
 	{
+		dbg::println(
+		  "Compiled against Vulkan Header Version: {}.{}.{}.{}",
+		  VK_API_VERSION_VARIANT(VK_HEADER_VERSION_COMPLETE),
+		  VK_API_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE),
+		  VK_API_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE),
+		  VK_API_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
 		m_vsync = vsync;
 
 		is_initialized = m_instance.initialize();
