@@ -738,7 +738,27 @@ export namespace deckard
 
 	constexpr odd_fn is_odd;
 
-	inline size_t int_log2(uint64_t x) { return 63 - std::countl_zero(x | 1); }
+	size_t int_log2(uint64_t x) { return 63 - std::countl_zero(x | 1); }
+
+	
+	template<std::integral T>
+	T round_up(T value, T multiple)
+	{
+		if(multiple == 0)
+			return value;
+
+		T divided = (value + multiple - 1) / multiple;
+		return divided * multiple;
+	}
+
+	template<std::integral T>
+	T round_down(T value, T multiple)
+	{
+		if(multiple == 0)
+			return value;
+
+		return (value / multiple) * multiple;
+	}
 
 
 #ifdef _DEBUG
