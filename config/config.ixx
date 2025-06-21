@@ -45,6 +45,17 @@ namespace deckard::config
 		utf8::string       data;
 		std::vector<Token> tokens;
 
+		struct ConsumedResult
+		{
+			utf8::view result;
+			size_t    consumed_chars;
+			ConsumedResult(utf8::view r, size_t chars)
+				: result(r)
+				, consumed_chars(chars)
+			{
+			}
+		};
+
 		std::expected<utf8::view, std::string> consume_section(utf8::iterator start)
 		{
 			auto section_start = start + 1; // skip '['
@@ -66,6 +77,7 @@ namespace deckard::config
 		{
 			start += 1; // skip #
 
+			auto total_start   = start;
 			auto comment_start = start;
 			auto end           = data.end();
 
@@ -74,9 +86,14 @@ namespace deckard::config
 
 			while (start != end && *start != '\n' && *start != '\r')
 				++start;
+
 			if (start == end)
 				return std::unexpected("Invalid comment header");
+
 			auto comment = data.subview(comment_start, start - comment_start);
+
+			size_t consumed_chars =comment_start-total_start;
+
 			return comment;
 		}
 
@@ -91,7 +108,7 @@ namespace deckard::config
 			{
 				auto current = *start;
 
-				if (*start == '\n' || *start == '\r')
+				if (*start == '\n' or *start == '\r')
 				{
 					if (start + 1 != end && *(start + 1) == '\n')
 					{
@@ -127,7 +144,10 @@ namespace deckard::config
 
 					// TODO: consume_comment should return how many characters it consumed
 					// +2 here is wrong, 
-					start += comment.has_value() ? comment.value().size() + 2ull : 0;
+
+					size_t len = comment.has_value() ? comment.value().size() + 2ull : 0;
+
+					start += len;
 					continue;
 				}
 				else
