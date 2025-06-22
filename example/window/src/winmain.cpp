@@ -286,9 +286,14 @@ dbg::println();
 #endif
 	// ###############################################
 
-	std::string sss("12 q2 543210");
 
-	auto find_h = sss.find_last_of("q"sv);
+
+	// ###############################################
+
+
+	std::string sss("12 Xq2 12345");
+
+	auto find_h = sss.find_last_not_of("12345q212 "sv);
 
 	size_t ths = std::thread::hardware_concurrency();
 
@@ -300,7 +305,7 @@ dbg::println();
 	tp.add([](u32 i) { dbg::println("task {}", i); });
 
 
-	tp.join();
+//	tp.join();
 
 	int j = 0;
 	// ###############################################

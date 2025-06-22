@@ -20,7 +20,7 @@ TEST_CASE("ini read", "[ini]")
 	SECTION("config") 
 	{ 
 
-		config c("[sect] # comment\r\n"_utf8);
+		config c("[sect] #     comment\r\n"_utf8);
 
 
 		int j = 0;

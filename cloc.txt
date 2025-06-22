@@ -1,12 +1,12 @@
-github.com/AlDanial/cloc v 1.98  T=0.20 s (514.1 files/s, 131439.3 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.19 s (543.2 files/s, 140087.8 lines/s)
 -----------------------------------------------------------------------------------------
 File                                                  blank        comment           code
 -----------------------------------------------------------------------------------------
 .\types\bigint.ixx                                      280             32           1146
 .\app\app.ixx                                           342            158           1048
+.\unicode\utf8string.ixx                                292             19           1008
 .\scripting\lexer\lexer.ixx                             261             52            977
-.\unicode\utf8string.ixx                                267             19            855
-.\utils\helpers.ixx                                     192             47            728
+.\utils\helpers.ixx                                     197             47            743
 .\utils\smallbufferobject.ixx                           217             36            718
 .\math\generic_vec4.ixx                                 112             10            508
 .\math\generic_vec3.ixx                                 121             11            500
@@ -22,19 +22,19 @@ File                                                  blank        comment      
 .\math\quaternion.ixx                                    87             12            329
 .\graphs\binarytree.ixx                                  82             12            324
 .\utils\bitbuffer.ixx                                    83              9            323
-.\example\window\src\winmain.cpp                        136             68            310
-.\config\ini.ixx                                         88             38            306
+.\example\window\src\winmain.cpp                        142             71            313
+.\config\ini.ixx                                         88             39            308
 .\utils\cpuid.ixx                                       101             14            298
 .\app\gl\opengl.ixx                                      58              7            289
 .\utils\hash.ixx                                         66             13            275
 .\utils\arrays.ixx                                      112              2            273
 .\math\vec4_sse.ixx                                      98             12            270
 .\unicode\utf8_xid_tables.ixx                             8              4            264
-.\app\vulkan.ixx                                         99             48            248
+.\app\vulkan.ixx                                         99             48            254
 .\net\socket.ixx                                         72              9            228
 .\math\math_utility.ixx                                  60             14            220
+.\types\as.ixx                                           41             17            218
 .\unicode\utf8view.ixx                                   73              0            217
-.\types\as.ixx                                           41             17            215
 .\utils\random.ixx                                       66              8            187
 .\app\inputs.ixx                                         36              4            178
 .\win32\win32.ixx                                        50              1            178
@@ -42,13 +42,13 @@ File                                                  blank        comment      
 .\app\vulkan\instance.ixx                                45              6            168
 .\net\ip.ixx                                             36             27            161
 .\file\filemonitor.ixx                                   38              7            154
+.\config\config.ixx                                      31              8            149
 .\debug\debug.ixx                                        40             10            149
 .\types\types.ixx                                        71             50            148
 .\utils\base64.ixx                                       39              0            147
 .\Deckard.ixx                                            62             22            141
 .\math\ease_functions.ixx                                25              7            141
 .\unicode\utf8_codepoints.ixx                            29              6            141
-.\config\config.ixx                                      24              8            136
 .\utils\base32.ixx                                       44              0            136
 .\app\vulkan\swapchain.ixx                               47              6            135
 .\utils\ringbuffer.ixx                                   40              2            134
@@ -56,8 +56,8 @@ File                                                  blank        comment      
 .\utils\uuid.ixx                                         22              2            116
 .\unicode\utf8_basic_characters.ixx                       2              0            103
 .\unicode\utf8_xid.ixx                                   14              2            103
+.\utils\function_ref.ixx                                 31              2            101
 .\app\controller.ixx                                     43             20            100
-.\utils\function_ref.ixx                                 30              2            100
 .\debug\debug_null.ixx                                   33              4             94
 .\app\vulkan\command_buffer.ixx                          33              3             93
 .\graphs\graph.ixx                                       17              5             92
@@ -91,7 +91,6 @@ File                                                  blank        comment      
 .\graphs\directed.ixx                                     6              0             17
 .\graphs\undirected.ixx                                   6              0             17
 .\net\types.ixx                                           4              0             17
-.\example\threader\src\winmain.cpp                       14              4             16
 .\unicode\utf8file.ixx                                    5              1             14
 .\debug\console.ixx                                       2              0             11
 .\unicode\utf8.ixx                                        1              0             11
@@ -99,11 +98,12 @@ File                                                  blank        comment      
 .\debug\assert_null.ixx                                   6              0              9
 .\monocypher\monocypher.ixx                               5             23              9
 .\net\client.ixx                                          5              0              9
+.\example\threader\src\winmain.cpp                        9              0              8
 .\example\empty\src\main.cpp                              2              1              7
 .\utils\serializer.ixx                                    6              6              7
 .\app\vulkan\core.ixx                                     2              0              6
 .\app\vulkan\texture.ixx                                  2              0              6
 .\scripting\parser\parser.ixx                            11             16              4
 -----------------------------------------------------------------------------------------
-SUM:                                                   5477           1375          19224
+SUM:                                                   5516           1375          19412
 -----------------------------------------------------------------------------------------
