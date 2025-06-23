@@ -23,6 +23,8 @@ namespace deckard::config
 
 	// if [, consume_section, until ], if \n or EOF fail error
 
+	// Section and keys ascii-only.
+	// strings utf8
 
 	export struct Token
 	{

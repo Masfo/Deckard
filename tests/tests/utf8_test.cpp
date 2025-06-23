@@ -1529,6 +1529,9 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		utf8::string str2("hello 🌍");
 		utf8::string str3("different string");
 
+		std::hash<utf8::view> hashview;
+		CHECK(hashview(utf8::view(str1)) == hashview(utf8::view(str2)));
+
 		std::hash<utf8::string> hasher;
 
 		CHECK(hasher(str1) == hasher(str2));
