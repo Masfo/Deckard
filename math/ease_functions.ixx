@@ -22,7 +22,7 @@ export namespace deckard::math
 	template<std::floating_point T>
 	[[nodiscard]] constexpr T inverse_smoothstep(T x)
 	{
-		return 0.5 - sin(asin(T{1} - T{2} * x) / T{3});
+		return 0.5 - std::sin(std::asin(T{1} - T{2} * x) / T{3});
 	}
 
 	template<arithmetic T>
