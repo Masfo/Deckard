@@ -1,4 +1,4 @@
-export module deckard.math:easing;
+﻿export module deckard.math:easing;
 
 import deckard.types;
 import deckard.as;
@@ -16,19 +16,19 @@ export namespace deckard::math
 	template<arithmetic T>
 	[[nodiscard]] constexpr T smoothstep(T x)
 	{
-		return x * x * (3.0f - 2.0f * x);
+		return x * x * (T{3} - T{2} * x);
 	}
 
 	template<std::floating_point T>
 	[[nodiscard]] constexpr T inverse_smoothstep(T x)
 	{
-		return 0.5 - sin(asin(1.0 - 2.0 * x) / 3.0);
+		return 0.5 - sin(asin(T{1} - T{2} * x) / T{3});
 	}
 
 	template<arithmetic T>
 	[[nodiscard]] constexpr T smootherstep(T x)
 	{
-		return x * x * x * (x * (6.0f * x - 15.0f) + 10.0f);
+		return x * x * x * (x * (T{6} * x - T{15}) + T{10});
 	}
 
 	// quadratic
