@@ -10,7 +10,7 @@ export namespace deckard::math
 	template<arithmetic T>
 	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha)
 	{
-		return as<T>(A + Alpha * (B - A));
+		return T{A + Alpha * (B - A)};
 	}
 
 	template<arithmetic T>
@@ -22,7 +22,7 @@ export namespace deckard::math
 	template<std::floating_point T>
 	[[nodiscard]] constexpr T inverse_smoothstep(T x)
 	{
-		return 0.5 - std::sin(std::asin(T{1} - T{2} * x) / T{3});
+		return T{0.5} - std::sin(std::asin(T{1} - T{2} * x) / T{3});
 	}
 
 	template<arithmetic T>
