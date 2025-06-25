@@ -97,6 +97,10 @@ void redirect_console(bool show)
 	{
 		// TODO: detect if piping to file.     cmd> window.exe > ok.txt
 
+		SetConsoleOutputCP(CP_UTF8);
+		SetConsoleCP(CP_UTF8);
+		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
+
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 		{
 			AllocConsole();
@@ -106,7 +110,6 @@ void redirect_console(bool show)
 		freopen_s(reinterpret_cast<FILE**>(stdout), "CON", "w", stdout);
 		freopen_s(reinterpret_cast<FILE**>(stderr), "CON", "w", stderr);
 		freopen_s(reinterpret_cast<FILE**>(stdin), "CON", "r", stdin);
-
 	}
 	else
 	{
@@ -157,10 +160,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
+
 	// auto cmd     = GetCommandLineW();
 	auto cmdline = utf8::view{commandline};
 
-	
 
 	// clang-format off
 	#if 0
@@ -191,6 +194,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	#endif
 	// clang-format on
 
+
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");
 
@@ -203,6 +207,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 	redirect_console(true);
+	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
 
 	deckard::random::initialize();
 	net::initialize();
@@ -211,6 +216,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 	// main
 	int ret = deckard_main(cmdline);
+
+	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
+
 
 	//
 	// dbg::println("Deinitializing");

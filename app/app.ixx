@@ -914,7 +914,6 @@ namespace deckard::app
 				if (timers[NextTitleUpdate] > 0.05f)
 				{
 
-
 					set_title(std::format(
 					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: ({:3}[{:3}]/{:3})/{}",
 					  time(),

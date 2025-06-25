@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <Windows.h>
+#include <Psapi.h>
 #include <VersionHelpers.h>
 #include <dwmapi.h>
 
@@ -224,6 +225,15 @@ namespace deckard::system
 		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)
 			return std::format("Failed to get error from code {:X}", error);
 		return std::string{err};
+	}
+
+
+	// in bytes
+	export size_t process_ram_usage()
+	{
+		PROCESS_MEMORY_COUNTERS_EX pmc{};
+		GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+		return pmc.WorkingSetSize;
 	}
 
 } // namespace deckard::system
