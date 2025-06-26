@@ -3,31 +3,32 @@
 import std;
 import deckard.types;
 import deckard.as;
-import deckard.function_ref;
+import deckard.debug;
+import deckard.helpers;
 
 namespace deckard::taskpool
 {
 
 
-	/* 
+	/*
 	 *
-	 * 
-	 * 
+	 *
+	 *
 	 *		_0__1__2__3__4__5__6__7_
 	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 0
 	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 1
 	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 2
 	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread 3
-	 * 
+	 *
 	 *		[ ][ ][ ][ ][ ][ ][ ][ ]		Thread n-1
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 *   pool.add([]( )
 			{
-				
 
-	 		});
+
+			});
 
 			class hash_task: taskpool::work
 			{
@@ -36,88 +37,83 @@ namespace deckard::taskpool
 					// do work
 				}
 			};
-	 * 
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
+	 *
 	 */
 
 
 	export class taskpool
 	{
 	public:
-		using work = function_ref<void(size_t id)>;
-
-	private:
-		std::vector<std::thread> threads;
-
-		std::queue<work>        work_queue;
-		std::mutex              work_lock;
-		std::condition_variable queue_condition;
-
-
-	public:
-		taskpool()
-			: taskpool(std::thread::hardware_concurrency())
+		taskpool(size_t num_threads = std::thread::hardware_concurrency())
 		{
-		}
 
-		taskpool(size_t threadcount)
-		{
-			threadcount = std::max(threadcount, as<size_t>(std::thread::hardware_concurrency()));
-			threads.reserve(threadcount);
-
-			for (size_t i = 0; i < threadcount; i++)
+			for (size_t i = 0; i < num_threads; ++i)
 			{
-				threads.emplace_back(
-				  [this, i]
+				threads_.emplace_back(
+				  [this]
 				  {
 					  while (true)
 					  {
-						  work task = get();
-						  if (not task)
+						  auto                  start_time = std::chrono::steady_clock::now();
+						  std::function<void()> task;
 						  {
-							  break;
+							  std::unique_lock<std::mutex> lock(queue_mutex_);
+
+							  cv_.wait(lock, [this] { return !tasks_.empty() || stop_; });
+
+							  if (stop_ && tasks_.empty())
+								  return;
+
+							  task = move(tasks_.front());
+							  tasks_.pop();
 						  }
-						  else
-						  {
-							  task(i);
-						  }
+
+						  task();
+						  auto end_time = std::chrono::steady_clock::now();
+						  #ifdef _DEBUG
+						  dbg::println("task done in {}", pretty_time(end_time-start_time));
+						  #endif
 					  }
 				  });
 			}
 		}
 
-		void join()
-		{
+		~taskpool() { stop(); }
 
-			for (auto& task : threads)
-				task.join();
-			threads.clear();
-		}
-
-		~taskpool() { join(); }
-
-		void add(work task)
+		void stop()
 		{
 			{
-				std::lock_guard<std::mutex> lock(work_lock);
-				work_queue.push(std::move(task));
+				std::unique_lock<std::mutex> lock(queue_mutex_);
+				stop_ = true;
 			}
-			queue_condition.notify_one();
+
+			cv_.notify_all();
+
+			for (auto& thread : threads_)
+				thread.join();
 		}
 
-		work get()
+		void push(std::function<void()> task)
 		{
-			std::unique_lock<std::mutex> lock(work_lock);
-			queue_condition.wait(lock, [this]() { return not work_queue.empty(); });
-
-			work task = std::move(work_queue.front());
-			work_queue.pop();
-			return task;
+			{
+				std::unique_lock<std::mutex> lock(queue_mutex_);
+				tasks_.emplace(move(task));
+			}
+			cv_.notify_one();
 		}
 
-		size_t size() const { return threads.size(); }
-	};
+	private:
+		std::vector<std::thread> threads_;
 
+		std::queue<std::function<void()>> tasks_;
+
+		std::mutex queue_mutex_;
+
+		std::condition_variable cv_;
+
+		bool stop_ = false;
+	};
 } // namespace deckard::taskpool
