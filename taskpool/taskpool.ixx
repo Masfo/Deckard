@@ -43,6 +43,7 @@ namespace deckard::taskpool
 	 *
 	 */
 
+	std::unordered_map<std::thread::id, int> thread_counts;
 
 	export class taskpool
 	{
@@ -57,6 +58,8 @@ namespace deckard::taskpool
 				  {
 					  while (true)
 					  {
+						  thread_counts[std::this_thread::get_id()]++;
+
 						  auto                  start_time = std::chrono::steady_clock::now();
 						  std::function<void()> task;
 						  {
@@ -70,11 +73,11 @@ namespace deckard::taskpool
 							  task = move(tasks_.front());
 							  tasks_.pop();
 						  }
-
+						  dbg::println("task started at thread {}", std::this_thread::get_id());
 						  task();
 						  auto end_time = std::chrono::steady_clock::now();
 						  #ifdef _DEBUG
-						  dbg::println("task done in {}", pretty_time(end_time-start_time));
+						  dbg::println("task done in {} ({})", pretty_time(end_time - start_time), std::this_thread::get_id());
 						  #endif
 					  }
 				  });
@@ -94,6 +97,12 @@ namespace deckard::taskpool
 
 			for (auto& thread : threads_)
 				thread.join();
+
+
+			for(const auto& [id, count] : thread_counts)
+			{
+				dbg::println("thread {} processed {} tasks", id, count);
+			}
 		}
 
 		void push(std::function<void()> task)
