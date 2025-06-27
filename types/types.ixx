@@ -5,6 +5,20 @@ export module deckard.types;
 
 import std;
 
+	// sink
+struct sink_t final
+{
+#ifdef __cpp_placeholder_variables
+#error("remove this");
+#endif
+	template<typename T>
+	constexpr void operator=(T&&) const
+	{
+	}
+};
+
+export inline constexpr sink_t _;
+
 export namespace deckard
 {
 
@@ -160,19 +174,7 @@ export namespace deckard
 	// ###########################################################################
 
 
-	// sink
-	struct sink_t final
-	{
-#ifdef __cpp_placeholder_variables
-#error("remove this");
-#endif
-		template<typename T>
-		constexpr void operator=(T&&) const
-		{
-		}
-	};
 
-	inline constexpr sink_t _;
 
 	template<std::unsigned_integral T = u16>
 	struct extent
