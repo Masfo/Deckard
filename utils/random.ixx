@@ -119,7 +119,6 @@ namespace deckard::random
 		}
 	};
 
-	
 	export class dualmix128 // https://github.com/the-othernet/DualMix128
 	{
 	private:
@@ -159,6 +158,7 @@ namespace deckard::random
 	  R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
 	constexpr std::string_view alphabet{alphanum_special.substr(0, 52)};
 	constexpr std::string_view alphanumeric{alphanum_special.substr(0, 62)};
+	constexpr std::string_view digits { alphanum_special.substr(52, 10) };
 
 	export template<integral_or_bool T = i32>
 	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
@@ -246,6 +246,8 @@ namespace deckard::random
 	export std::string alphanum(u32 len = 12) { return generate_with_dictionary(len, alphanumeric); }
 
 	export std::string password(u32 len = 12) { return generate_with_dictionary(len, alphanum_special); }
+
+	export std::string digit(u32 len = 12) { return generate_with_dictionary(len, digits); }
 
 	export void initialize()
 	{

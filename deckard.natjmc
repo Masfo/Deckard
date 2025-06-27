@@ -13,7 +13,7 @@
 
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
-	<File Name="_helpers.ixx"/>
+	<File Name="helpers.ixx"/>
 	<File Name="stringhelper.ixx"/>
 
 	<File Name="random.ixx"/>
