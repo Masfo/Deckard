@@ -1,5 +1,7 @@
 ﻿#include <windows.h>
 #include <Commctrl.h>
+#include <intrin.h>
+
 
 
 import std;
@@ -269,6 +271,46 @@ std::generator<u32> gen()
 	}
 }
 
+
+
+	using m128 = __m128;
+
+	union fvec4data
+	{
+		struct xyz
+		{
+			f32 x, y, z, w;
+		} c;
+
+		f32 element[4]{0.0f};
+
+		m128 reg;
+	};
+
+	struct alignas(16) fvec4
+	{
+	private:
+		fvec4data data;
+
+	public:
+
+		fvec4() { data.c.x = data.c.y = data.c.z = data.c.w = 0.0f;
+		}
+
+		f32 operator[](i32 index) const
+		{
+			switch (index)
+			{
+				case 0: return data.c.x;
+				case 1: return data.c.y;
+				case 2: return data.c.z;
+				case 3: return data.c.w;
+			}
+		}
+	};
+
+
+
 i32 deckard_main(utf8::view /*commandline*/)
 {
 #ifndef _DEBUG
@@ -286,7 +328,8 @@ dbg::println();
 #endif
 	// ###############################################
 
-
+fvec4 fv4{};
+fv4
 
 	// ###############################################
 
@@ -300,12 +343,44 @@ dbg::println();
 
 	// ###############################################
 
-	taskpool::taskpool tp;
+	{
+		taskpool::taskpool tp{};
 
-	tp.add([](u32 i) { dbg::println("task {}", i); });
+		tp.push([] { dbg::println("task {}", 0); });
 
 
-//	tp.join();
+		tp.push(
+		  []
+		  {
+			  std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 5));
+			  dbg::println("task sleep 10");
+		  });
+
+		tp.push(
+		  []
+		  {
+			  std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 3));
+			  dbg::println("task sleep 5");
+		  });
+
+		tp.push(
+		  []
+		  {
+			  std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 1));
+			  dbg::println("task sleep 2");
+		  });
+
+		for (int i = 0; i < 100; ++i)
+		{
+			tp.push(
+			  [i]
+			  {
+				  std::this_thread::sleep_for(std::chrono::milliseconds(100 * i/10));
+				  dbg::println("task sleep 1 - {}", i);
+			  });
+		}
+	}
+
 
 	int j = 0;
 	// ###############################################

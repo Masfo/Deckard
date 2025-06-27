@@ -307,7 +307,12 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 				}
 
-				//
+				//if (name.compare(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0)
+				//{
+				//	marked = true;
+				//	extensions.emplace_back(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
+				//}
+
 				if (name.compare(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) == 0)
 				{
 					marked = true;

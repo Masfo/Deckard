@@ -1,4 +1,4 @@
-export module deckard.ringbuffer;
+﻿export module deckard.ringbuffer;
 
 
 import std;
@@ -16,6 +16,34 @@ namespace deckard
 		using reference       = T&;
 		using const_reference = const T&;
 		using array_type      = std::vector<value_type>;
+
+	private:
+		array_type      m_array{};
+		size_type       m_head{1};
+		size_type       m_tail{0};
+		size_type       m_content_size{0};
+		const size_type m_array_size{0};
+
+		void increment_tail()
+		{
+			++m_tail;
+			++m_content_size;
+
+			if (m_tail == m_array_size)
+				m_tail = 0;
+		}
+
+		void increment_head()
+		{
+			if (m_content_size == 0)
+				return;
+			++m_head;
+			--m_content_size;
+
+			if (m_head == m_array_size)
+				m_head = 0;
+		}
+
 
 	public:
 		ringbuffer(size_type size = 8)
@@ -144,32 +172,7 @@ namespace deckard
 			return ret;
 		}
 
-	private:
-		void increment_tail()
-		{
-			++m_tail;
-			++m_content_size;
 
-			if (m_tail == m_array_size)
-				m_tail = 0;
-		}
-
-		void increment_head()
-		{
-			if (m_content_size == 0)
-				return;
-			++m_head;
-			--m_content_size;
-
-			if (m_head == m_array_size)
-				m_head = 0;
-		}
-
-		array_type      m_array{};
-		size_type       m_head{1};
-		size_type       m_tail{0};
-		size_type       m_content_size{0};
-		const size_type m_array_size{0};
 	};
 
 

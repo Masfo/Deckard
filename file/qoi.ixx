@@ -1,4 +1,4 @@
-export module deckard.qoi;
+﻿export module deckard.qoi;
 
 import deckard.file;
 import deckard.types;

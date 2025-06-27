@@ -43,10 +43,21 @@ namespace deckard::taskpool
 	 *
 	 */
 
-	std::unordered_map<std::thread::id, int> thread_counts;
 
 	export class taskpool
 	{
+	private:
+		std::vector<std::thread> threads_;
+
+		std::queue<std::function<void()>> tasks_;
+
+		std::mutex queue_mutex_;
+
+		std::condition_variable cv_;
+
+		bool stop_ = false;
+	std::unordered_map<std::thread::id, int> thread_counts;
+
 	public:
 		taskpool(size_t num_threads = std::thread::hardware_concurrency())
 		{
@@ -114,15 +125,6 @@ namespace deckard::taskpool
 			cv_.notify_one();
 		}
 
-	private:
-		std::vector<std::thread> threads_;
 
-		std::queue<std::function<void()>> tasks_;
-
-		std::mutex queue_mutex_;
-
-		std::condition_variable cv_;
-
-		bool stop_ = false;
 	};
 } // namespace deckard::taskpool

@@ -12,6 +12,12 @@ namespace deckard::net
 	static constexpr u8 MAX_IPV4_ADDRESS_STR_LEN = 15;
 	static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
+	// api.ipify.org
+	// 
+	// https://api64.ipify.org
+	// https://api.ipify.org
+	// https://api6.ipify.org
+
 	export class ip
 	{
 	private:
