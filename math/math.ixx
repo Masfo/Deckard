@@ -1,4 +1,4 @@
-export module deckard.math;
+﻿export module deckard.math;
 
 
 export import deckard.vec;
@@ -9,6 +9,15 @@ export import :quaternion;
 export import :easing;
 
 import deckard.types;
+
+// TODO:
+//      - ray
+//      - line
+//      - sphere
+//      - plane
+//      - 
+
+
 
 
 namespace deckard::math

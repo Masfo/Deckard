@@ -3,7 +3,6 @@
 #include <intrin.h>
 
 
-
 import std;
 import deckard;
 import deckard.types;
@@ -271,45 +270,39 @@ std::generator<u32> gen()
 	}
 }
 
+using m128 = __m128;
 
-
-	using m128 = __m128;
-
-	union fvec4data
+union fvec4data
+{
+	struct xyz
 	{
-		struct xyz
-		{
-			f32 x, y, z, w;
-		} c;
+		f32 x, y, z, w;
+	} c;
 
-		f32 element[4]{0.0f};
+	f32 element[4]{0.0f};
 
-		m128 reg;
-	};
+	m128 reg;
+};
 
-	struct alignas(16) fvec4
+struct alignas(16) fvec4
+{
+private:
+	fvec4data data;
+
+public:
+	fvec4() { data.c.x = data.c.y = data.c.z = data.c.w = 0.0f; }
+
+	f32 operator[](i32 index) const
 	{
-	private:
-		fvec4data data;
-
-	public:
-
-		fvec4() { data.c.x = data.c.y = data.c.z = data.c.w = 0.0f;
-		}
-
-		f32 operator[](i32 index) const
+		switch (index)
 		{
-			switch (index)
-			{
-				case 0: return data.c.x;
-				case 1: return data.c.y;
-				case 2: return data.c.z;
-				case 3: return data.c.w;
-			}
+			case 0: return data.c.x;
+			case 1: return data.c.y;
+			case 2: return data.c.z;
+			case 3: return data.c.w;
 		}
-	};
-
-
+	}
+};
 
 i32 deckard_main(utf8::view /*commandline*/)
 {
@@ -328,17 +321,10 @@ dbg::println();
 #endif
 	// ###############################################
 
-fvec4 fv4{};
-fv4
 
+
+	_ = 0;
 	// ###############################################
-
-
-	std::string sss("12 Xq2 12345");
-
-	auto find_h = sss.find_last_not_of("12345q212 "sv);
-
-	size_t ths = std::thread::hardware_concurrency();
 
 
 	// ###############################################
@@ -375,14 +361,14 @@ fv4
 			tp.push(
 			  [i]
 			  {
-				  std::this_thread::sleep_for(std::chrono::milliseconds(100 * i/10));
+				  std::this_thread::sleep_for(std::chrono::milliseconds(100 * i / 10));
 				  dbg::println("task sleep 1 - {}", i);
 			  });
 		}
 	}
 
 
-	int j = 0;
+	_ = 0;
 	// ###############################################
 
 

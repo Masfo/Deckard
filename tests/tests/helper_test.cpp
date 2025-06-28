@@ -18,8 +18,6 @@ TEST_CASE("as", "[as]")
 {
 	SECTION("string to number")
 	{
-		auto i  = as<i8, false>(99990);
-		auto i2 = as<f32>(994'564'566'990ull);
 
 		CHECK(123 == as<i32>("123"));
 		CHECK(123.456f == as<f32>("123.456"));
