@@ -73,4 +73,24 @@ export namespace deckard::math
 		}
 	};
 
+	struct capsule
+	{
+		vec3 start{0.0f, 0.0f, 0.0f};
+		vec3 end{0.0f, 0.0f, 1.0f};
+		f32   radius{1.0f};
+		capsule() = default;
+		capsule(const vec3& s, const vec3& e, f32 r)
+			: start(s)
+			, end(e)
+			, radius(r)
+		{
+		}
+		capsule(const vec3& e, f32 r)
+			: end(e)
+			, radius(r)
+		{
+			start = vec3(0.0f);
+		}
+	};
+
 } // namespace deckard::math
