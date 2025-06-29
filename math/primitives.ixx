@@ -3,6 +3,8 @@
 
 import deckard.types;
 import deckard.as;
+import deckard.vec;
+
 
 export namespace deckard::math
 {
