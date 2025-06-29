@@ -182,6 +182,7 @@ set(DECKARD_SRCS
 		math/math.ixx
 		math/ease_functions.ixx
 		math/math_utility.ixx
+		math/primitives.ixx
 		
 		
 		math/matrix.ixx
