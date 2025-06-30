@@ -11,12 +11,7 @@ export import :primitives;
 
 import deckard.types;
 
-// TODO:
-//      - ray
-//      - line
-//      - sphere
-//      - plane
-//      - 
+
 
 
 

@@ -1,4 +1,4 @@
-export module deckard.vec:vec3;
+﻿export module deckard.vec:vec3;
 import :vec2;
 
 import std;
@@ -405,6 +405,12 @@ namespace deckard::math
 		lhs *= generic_vec3<T>(scalar);
 	}
 
+		export template<arithmetic T, arithmetic U>
+	constexpr void operator*=(const U& scalar, generic_vec3<T>& lhs)
+	{
+		lhs *= generic_vec3<T>(scalar);
+	}
+
 	export template<arithmetic T, arithmetic U>
 	constexpr generic_vec3<T> operator*(const generic_vec3<T>& lhs, const U& scalar)
 	{
@@ -412,6 +418,15 @@ namespace deckard::math
 		result *= generic_vec3<T>(as<T>(scalar));
 		return result;
 	}
+
+		export template<arithmetic T, arithmetic U>
+	constexpr generic_vec3<T> operator*(const U&scalar, const generic_vec3<T>& lhs)
+	{
+		generic_vec3<T> result(lhs);
+		result *= generic_vec3<T>(as<T>(scalar));
+		return result;
+	}
+
 
 	export template<arithmetic T>
 	constexpr generic_vec3<T> operator*(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
