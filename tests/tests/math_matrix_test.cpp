@@ -10,6 +10,14 @@ using namespace std::string_literals;
 
 TEST_CASE("matrix generic", "[matrix]")
 {
+	SECTION("default constructor") 
+	{ 
+		mat4 identity;
+		CHECK(identity[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
+		CHECK(identity[1] == vec4{0.0f, 1.0f, 0.0f, 0.0f});
+		CHECK(identity[2] == vec4{0.0f, 0.0f, 1.0f, 0.0f});
+		CHECK(identity[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+	}
 
 	SECTION("constructors")
 	{

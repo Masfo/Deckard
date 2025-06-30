@@ -1,4 +1,4 @@
-
+﻿
 export module deckard.matrix;
 
 import std;
@@ -26,7 +26,10 @@ namespace deckard::math
 		// identity
 
 
-		mat4_generic() = default;
+		mat4_generic()
+			: mat4_generic(1.0f)
+		{
+		}
 
 		explicit mat4_generic(f32 scalar) // identity
 		{
