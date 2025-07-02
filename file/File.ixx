@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <windows.h>
 
 export module deckard.file;
@@ -388,6 +388,7 @@ namespace deckard
 
 		return std::string(v.begin(), v.end());
 	}
+
 
 	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
 	{

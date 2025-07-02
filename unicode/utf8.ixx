@@ -9,4 +9,3 @@ export import :view;
 export import :decode;
 export import :basic_characters;
 
-import deckard.types;
