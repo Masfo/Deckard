@@ -1,4 +1,4 @@
-export module deckard.bitbuffer;
+﻿export module deckard.bitbuffer;
 
 import std;
 import deckard.types;
@@ -9,7 +9,7 @@ namespace deckard::bitbuffer
 
 	export enum class padding : u8 { yes, no };
 
-	// TODO: name bitfield
+
 
 	export class bitwriter
 	{
