@@ -288,6 +288,7 @@ set(DECKARD_SRCS
 		types/enum_flags.ixx
 		types/helpertypes.ixx
 		types/bigint.ixx
+		types/uint128.ixx
 
 
 		# External helpers
