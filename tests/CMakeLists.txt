@@ -78,6 +78,9 @@ target_sources(tests PUBLIC
 
     # bigint
     tests/bigint_tests.cpp
+
+    # uint128
+    tests/uint128_test.cpp
 )
 
 

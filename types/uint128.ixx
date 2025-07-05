@@ -2,6 +2,7 @@
 
 import std;
 import deckard.types;
+import deckard.types;
 
 namespace deckard::uint128
 {
@@ -47,50 +48,34 @@ namespace deckard::uint128
 		}
 
 		uint128 operator-(const uint128& other) const
-		{ 
+		{
 			uint128 result;
-			result.low = low - other.low;
+			result.low  = low - other.low;
 			result.high = high - other.high - (result.low > low);
 			return result;
-
 		}
-
+#if 0
 		std::string to_string() const
 		{
-			if (high == 0)
+			if (*this == ZERO)
 			{
-				if (low == 0)
-					return "0";
-				return std::to_string(low);
+				return "0";
 			}
 
-			std::string result;
-			uint128     quotient = *this;
-			uint128     remainder;
-			uint128     divisor(0, 10);
+			std::string   s;
+			uint128       temp = *this;
+			const uint128 ten(10);
 
-			while (quotient != uint128(0, 0))
+			while (temp != ZERO)
 			{
-				remainder     = quotient;
-				quotient.high = 0;
-				for (int i = 127; i >= 0; i--)
-				{
-					remainder.high = (remainder.high << 1) | ((remainder.low & (1ULL << 63)) >> 63);
-					remainder.low  = remainder.low << 1;
-					quotient.low   = quotient.low << 1;
-					if (remainder >= divisor)
-					{
-						remainder = remainder - divisor;
-						quotient.low |= 1;
-					}
-				}
-				result.insert(0, 1, char('0' + static_cast<char>(remainder.low)));
+				s += static_cast<char>((temp % ten).low + '0');
+				temp /= ten;
 			}
-
-			return result;
-			
-
+			std::reverse(s.begin(), s.end());
+			return s;
 		}
+#endif
 	};
+
 
 } // namespace deckard::uint128
