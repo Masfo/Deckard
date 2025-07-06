@@ -323,10 +323,6 @@ dbg::println();
 
 
 
-	_ = 0;
-	// ###############################################
-
-
 	// ###############################################
 
 	{
@@ -499,37 +495,7 @@ dbg::println();
 
 	// ###########################################################################
 
-	// Distribution for [0, 1) for radius scaling
-	std::uniform_real_distribution<f32> uniform_zero_to_one(0.0f, 1.0f);
-	// Distribution for [0, 2*PI) for angle
-	std::uniform_real_distribution<f32> uniform_angle(0.0f, 2.0f * as<f32>(std::numbers::pi));
 
-	auto getRandomPointInCircle = [&](f32 radius, f32 centerX = 0.0f, f32 centerY = 0.0f) -> std::pair<f32, f32>
-	{
-		std::random_device rd;
-		// Generate random angle theta E [0, 2*PI)
-		f32 theta = uniform_angle(rd);
-
-		// Generate random u E [0, 1) for radius scaling
-		// The radius r is proportional to sqrt(u) to ensure uniform distribution.
-		f32 u     = uniform_zero_to_one(rd);
-		f32 r_val = radius * std::sqrt(u);
-
-		// Convert polar to Cartesian coordinates
-		return {centerX + r_val * std::cos(theta), centerY + r_val * std::sin(theta)};
-	};
-
-	// for(int i=0; i < 8000; ++i)
-	//{
-	//	auto [x, y] = getRandomPointInCircle(5.0f);
-	//	dbg::println("{:.3f}, {:.3f}", x, y);
-	// }
-
-
-	i32 ab1 = -125;
-
-	dbg::println("{}", std::in_range<u16>(ab1));
-	dbg::println("{}", std::in_range<i16>(ab1));
 
 	// ########################################################################
 
