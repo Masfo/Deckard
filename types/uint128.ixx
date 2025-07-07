@@ -22,10 +22,44 @@ namespace deckard::uint128
 		{
 		}
 
+		uint128(u64 value)
+			: high(0)
+			, low(value)
+		{
+		}
+
+
 		uint128(const uint128& other)                = default;
 		uint128(uint128&& other) noexcept            = default;
 		uint128& operator=(const uint128& other)     = default;
 		uint128& operator=(uint128&& other) noexcept = default;
+
+		uint128(std::string_view str) 
+		{
+			high = 0;
+			low  = 0;
+
+			if (str.empty())
+				return;
+
+			uint128       result;
+			const uint128 ten(10);
+
+			for (char c : str)
+			{
+				if (c < '0' || c > '9')
+				{
+					high = 0;
+					low  = 0;
+					return;
+				}
+
+				result = (*this) * ten + uint128(c - '0');
+
+				high = result.high;
+				low  = result.low;
+			}
+		}
 
 		constexpr bool operator==(const uint128& other) const { return high == other.high && low == other.low; }
 
@@ -54,6 +88,15 @@ namespace deckard::uint128
 			result.high = high - other.high - (result.low > low);
 			return result;
 		}
+
+		uint128 operator*(const uint128& other) const
+		{
+			uint128 result;
+			result.low = low * other.low;
+			result.high = high * other.low + low * other.high + (result.low < low);
+			return result;
+		}
+
 #if 0
 		std::string to_string() const
 		{

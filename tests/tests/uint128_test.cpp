@@ -29,7 +29,7 @@ TEST_CASE("uint128", "[uint128]")
 		uint128 sum = c + d;
 		CHECK(sum == uint128(1, UINT64_MAX));
 
-		sum = sum +  uint128(0,2);
+		sum = sum + uint128(0, 2);
 
 
 		CHECK(sum == uint128(2, 1));
@@ -40,7 +40,7 @@ TEST_CASE("uint128", "[uint128]")
 		CHECK(max1 + one == uint128(0, 0)); // Should wrap to zero
 	}
 
-	SECTION("sub") 
+	SECTION("sub")
 	{
 		uint128 max64(UINT64_MAX, UINT64_MAX);
 		uint128 max_one(0, UINT64_MAX);
@@ -51,8 +51,12 @@ TEST_CASE("uint128", "[uint128]")
 		CHECK(sub == uint128(UINT64_MAX, 0));
 
 		sub = sub - one;
-		CHECK(sub == uint128(UINT64_MAX - 1, UINT64_MAX ));
+		CHECK(sub == uint128(UINT64_MAX - 1, UINT64_MAX));
+	}
 
-
+	SECTION("mul")
+	{
+		uint128 a = uint128(0xFF'FF12'3567'8931) * uint128(0x12'3568'FFF4'5656);
+		CHECK(a == uint128("369309726874948344242154908060790"));
 	}
 }
