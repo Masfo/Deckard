@@ -32,9 +32,9 @@ export namespace deckard
 	using i64 = std::int64_t;
 
 	using char32 = char32_t;
-	using byte   = unsigned char;
-	using usize  = std::uintmax_t;
-	using isize  = std::intmax_t;
+	using byte   = u8;
+	using usize  = u64;
+	using isize  = i64;
 
 	using f32 = float;
 	using f64 = double;

@@ -41,22 +41,43 @@ namespace deckard::config
 		}
 	};
 
+	template<typename T>
+	concept consume_predicate = requires(T&& v, char32 cp) {
+		{ v(cp) } -> std::same_as<bool>;
+	};
+
+	struct ConsumeResult
+	{
+		utf8::view view;
+		u64        consumed_chars;
+
+		ConsumeResult(utf8::view v, u64 chars)
+			: view(v)
+			, consumed_chars(chars)
+		{
+		}
+	};
+
 	export class config
 	{
 	private:
 		utf8::string       data;
 		std::vector<Token> tokens;
 
-		struct ConsumedResult
+		ConsumeResult consume_ascii_until(consume_predicate auto&& predicate, utf8::iterator start)
 		{
-			utf8::view result;
-			size_t    consumed_chars;
-			ConsumedResult(utf8::view r, size_t chars)
-				: result(r)
-				, consumed_chars(chars)
+			auto end = data.end();
+			auto it  = start;
+			while (it != end && !predicate(*it))
 			{
+				if (utf8::is_whitespace(*it))
+					return {data.subview(start, it - start), it - start};
+				++it;
 			}
-		};
+			if (it == end)
+				return {data.subview(start, it - start), it - start};
+			return {data.subview(start, it - start), it - start + 1};
+		}
 
 		std::expected<utf8::view, std::string> consume_section(utf8::iterator start)
 		{
@@ -94,7 +115,7 @@ namespace deckard::config
 
 			auto comment = data.subview(comment_start, start - comment_start);
 
-			size_t consumed_chars =comment_start-total_start;
+			size_t consumed_chars = comment_start - total_start;
 
 			return comment;
 		}
@@ -145,7 +166,7 @@ namespace deckard::config
 						tokens.push_back({TokenType::COMMENT, comment.value()});
 
 					// TODO: consume_comment should return how many characters it consumed
-					// +2 here is wrong, 
+					// +2 here is wrong,
 
 					size_t len = comment.has_value() ? comment.value().size() + 2ull : 0;
 
@@ -172,6 +193,7 @@ namespace deckard::config
 			}
 		}
 
+
 	public:
 		explicit config(utf8::view view)
 			: data(view)
@@ -185,6 +207,55 @@ namespace deckard::config
 			data = input;
 			tokenize();
 		}
+
+		utf8::string to_string() const
+		{
+			utf8::string result;
+			for (const auto& token : tokens)
+			{
+				switch (token.type)
+				{
+					case TokenType::NEWLINE: [[fallthrough]];
+					case TokenType::NEWLINE_POSIX: result.append("\n"); break;
+					case TokenType::NEWLINE_WINDOWS: result.append("\r\n"); break;
+					case TokenType::SECTION:
+						result.append("[");
+						result.append(token.value);
+						result.append("]");
+						break;
+					case TokenType::KEY:
+						result.append(token.value);
+						result.append("=");
+						break;
+					case TokenType::VALUE: result.append(token.value); break;
+					case TokenType::COMMENT:
+						result.append("#");
+						result.append(token.value);
+						break;
+					default: break;
+				}
+			}
+			return result;
+		}
 	};
 
 } // namespace deckard::config
+
+export namespace std
+{
+	template<>
+	struct formatter<deckard::config::config>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::config::config& v, std::format_context& ctx) const 
+		{
+			return std::format_to(ctx.out(), "{}", v.to_string()); 
+		}
+
+		int  parsed_base = 10;
+		bool uppercase   = false;
+	};
+
+
+} // namespace std

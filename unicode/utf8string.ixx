@@ -1286,7 +1286,6 @@ namespace deckard::utf8
 } // namespace deckard::utf8
 
 export namespace std
-
 {
 	using namespace deckard;
 
