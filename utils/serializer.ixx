@@ -26,6 +26,11 @@ namespace deckard::serializer
 		u64             bitpos{0};
 		padding         pad{padding::no};
 
+	private:
+		u64 byte_index() const { return bitpos / 8u; }
+
+		u64 bit_offset() const { return bitpos % 8u; }
+
 		void align_to_byte_offset()
 		{
 			const u64 offset    = bit_offset();
@@ -36,6 +41,8 @@ namespace deckard::serializer
 				bitpos += remainder;
 			}
 		}
+
+	private: // Writing
 
 		void write_single_bit(u8 bit)
 		{
@@ -78,9 +85,25 @@ namespace deckard::serializer
 
 		void write_single_bit(bool bit) { write_single_bit(static_cast<u8>(bit)); }
 
-		u64 byte_index() const { return bitpos / 8u; }
+	private: // Reading
 
-		u64 bit_offset() const { return bitpos % 8u; }
+		bool read_bit()
+		{
+			const u64 offset    = bit_offset();
+			const u64 remainder = 7 - offset;
+
+			assert::check(empty(), "Buffer has no more data to read");
+
+
+			u8 byte   = buffer[byte_index()];
+			u8 masked = (byte >> remainder) & 1;
+
+			bitpos += 1;
+			align_to_byte_offset();
+
+			return masked;
+		}
+
 
 	public:
 		serializer()
@@ -212,8 +235,11 @@ namespace deckard::serializer
 		// TODO: operator &=(?) for simpler serialization
 		// struct S { int x;};
 		// serializer ser;
-		// ser &= s.x; 
+		// ser &= s.x;
 
+
+
+		// TODO: save types for serialized as a metadata
 	};
 
 
