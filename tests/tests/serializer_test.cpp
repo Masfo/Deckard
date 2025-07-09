@@ -1,4 +1,4 @@
-#include <catch2/catch_test_macros.hpp>
+﻿#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -11,6 +11,14 @@ using namespace std::string_view_literals;
 using namespace std::string_literals;
 
 using namespace deckard::bitbuffer;
+
+TEST_CASE("serializer", "[serializer]")
+{
+	SECTION("init")
+	{
+		//
+	}
+}
 
 TEST_CASE("bitwriter", "[bitwriter][serializer]")
 {
