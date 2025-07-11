@@ -3,6 +3,7 @@
 import deckard.utf8;
 import deckard.types;
 import deckard.file;
+import deckard.debug;
 
 namespace fs = std::filesystem;
 
@@ -232,7 +233,7 @@ namespace deckard::config
 						result.append("#");
 						result.append(token.value);
 						break;
-					default: break;
+					default: dbg::panic("no handler for this token type: {}", static_cast<u8>(token.type));
 				}
 			}
 			return result;

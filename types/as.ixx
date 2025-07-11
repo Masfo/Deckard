@@ -18,6 +18,17 @@ namespace deckard
 
 		T casted = static_cast<T>(value);
 
+		if constexpr (std::is_floating_point_v<U>)
+		{
+			dbg::println(
+			  "Unable to cast '{:f}' safely. Target range is {}...{}, cast to '{}",
+			  value,
+			  std::numeric_limits<T>::min(),
+			  std::numeric_limits<T>::max(),
+			  casted);
+			return;
+		}
+
 		if constexpr (std::is_unsigned_v<U>)
 		{
 			dbg::println(
@@ -27,7 +38,8 @@ namespace deckard
 			  std::numeric_limits<T>::max(),
 			  casted);
 		}
-		else if constexpr (std::is_signed_v<U>)
+		#if 0
+		else if constexpr(std::is_signed_v<U>) // is signed
 		{
 			dbg::println(
 			  "Unable to cast '{}' safely. Target range is {}...{}, casting to '{}'",
@@ -36,6 +48,7 @@ namespace deckard
 			  std::numeric_limits<T>::max(),
 			  casted);
 		}
+		#endif
 #endif
 	}
 
@@ -127,7 +140,6 @@ namespace deckard
 		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
 		{
 			// floating point -> integer
-
 			Ret t = static_cast<Ret>(value);
 
 			if(value >= std::numeric_limits<Ret>::min() and
@@ -138,7 +150,7 @@ namespace deckard
 
 #ifdef _DEBUG
 			if constexpr (give_warning)
-				warn_cast_limit<Ret>(u, loc);
+				warn_cast_limit<Ret>(value, loc);
 #endif
 
 			return static_cast<Ret>(u);

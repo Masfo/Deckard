@@ -38,18 +38,18 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	  ```cpp
 	  import deckard;
 
-	  // i8,u8,i16,u16,i32,u32,i64,u64
+	  // integers: i8,u8,i16,u16,i32,u32,i64,u64
+	- // floats: f32, f64
 
 	  u8 u  = 64_u8;
 	  i64 i = 112233_i64;
 
 	  // auto value = as<To>(From)
-	  float X = 128.0f;
+	  f32 X = 128.0f;
 	  auto  u = as<i8>(X);
-	  //  : Could not convert value '128' safely. Target too small: -128 < 128 < 127 
-	  //  : Loss of precision casting '128.000000' to '-128'
+	  //  :Unable to cast '128' safely. Target range is -128...127, casting to '-128'
 
-	  float X = 128.0f;
+	  f32 X = 128.0f;
 	  auto  u = as<u16>(X);  // No warning, value fits
 
 	  auto value = as<u32>(256);
