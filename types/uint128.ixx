@@ -73,6 +73,15 @@ namespace deckard::uint128
 
 		constexpr bool operator>=(const uint128& other) const { return !(*this < other); }
 
+		template<std::integral T>
+		uint128 operator+(const T value) const
+		{
+			uint128 result;
+			result.low  = low + static_cast<u64>(value);
+			result.high = high + (result.low < low ? 1 : 0);
+			return result;
+		}
+
 		uint128 operator+(const uint128& other) const
 		{
 			uint128 result;
