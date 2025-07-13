@@ -38,6 +38,10 @@ TEST_CASE("uint128", "[uint128]")
 		uint128 max1(UINT64_MAX, UINT64_MAX);
 		uint128 one(0, 1);
 		CHECK(max1 + one == uint128(0, 0)); // Should wrap to zero
+
+
+		uint128 dc(UINT64_MAX - 1, UINT64_MAX);
+		CHECK(dc + 1u == uint128(UINT64_MAX, 0)); 
 	}
 
 	SECTION("sub")

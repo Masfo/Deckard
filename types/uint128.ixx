@@ -73,7 +73,19 @@ namespace deckard::uint128
 
 		constexpr bool operator>=(const uint128& other) const { return !(*this < other); }
 
+
 		template<std::integral T>
+		uint128 operator+(const T value) const
+		{
+			if constexpr (std::is_signed_v<T>) {
+				if (value < 0) {
+					return *this - uint128(static_cast<u64>(-(value + 1))) - uint128(1);
+				}
+			}
+			return *this + uint128(static_cast<u64>(value));
+		}
+
+		template<std::unsigned_integral T>
 		uint128 operator+(const T value) const
 		{
 			uint128 result;
