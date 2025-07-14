@@ -5,7 +5,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.bitbuffer;
 
-namespace deckard::serializer
+namespace deckard
 {
 	// TODO: fixed size reader/writer
 	// TODO: append bitreader/writers
@@ -17,7 +17,11 @@ namespace deckard::serializer
 	 */
 
 
-	export enum class padding : u8 { yes, no };
+	enum class padding : u8
+	{
+		yes,
+		no
+	};
 
 	export class serializer
 	{
@@ -43,8 +47,7 @@ namespace deckard::serializer
 		}
 
 	private: // Writing
-
-		void write_single_bit(u8 bit) 
+		void write_single_bit(u8 bit)
 		{
 			const u64 byteindex = byte_index();
 			const u64 offset    = bit_offset();
@@ -86,8 +89,7 @@ namespace deckard::serializer
 		void write_single_bit(bool bit) { write_single_bit(static_cast<u8>(bit)); }
 
 	private: // Reading
-
-		bool read_bit() 
+		bool read_bit()
 		{
 			const u64 offset    = bit_offset();
 			const u64 remainder = 7 - offset;
@@ -183,7 +185,12 @@ namespace deckard::serializer
 		// Write arrays
 
 
-		void write(std::string_view input) { write(std::span{input}); }
+		void write(std::string_view input) 
+		{
+			// TODO: write string length and than data
+
+			write(std::span{input}); 
+		}
 
 		template<typename T, size_t S>
 		void write(std::array<T, S> input)
@@ -217,6 +224,7 @@ namespace deckard::serializer
 		}
 
 		// Reads
+
 
 		template<typename T, size_t Size = 8 * sizeof(T)>
 		T read(u32 len = Size)
@@ -310,6 +318,40 @@ namespace deckard::serializer
 			}
 		}
 
+		template<typename T>
+		T read_string(u32 len)
+		{
+			align_to_byte_offset();
+			assert::check(empty(), "Buffer has no more data to read");
+
+			T result{};
+			if constexpr (std::is_same_v<T, std::string>)
+			{
+				result.reserve(len);
+				for (u32 i = 0; i < len; i++)
+				{
+					result.push_back(static_cast<char>(buffer[byte_index()]));
+					bitpos += 8;
+				}
+			}
+			else // Assume char array
+			{
+				char* data = result.data();
+				for (u32 i = 0; i < len; i++)
+				{
+					data[i] = static_cast<char>(buffer[byte_index()]);
+					bitpos += 8;
+				}
+				// Null terminate if there's room
+				if (result.size() > len)
+				{
+					data[len] = '\0';
+				}
+			}
+			align_to_byte_offset();
+			return result;
+		}
+
 		template<typename T, size_t S>
 		void read(std::array<T, S>& output)
 		{
@@ -352,15 +394,24 @@ namespace deckard::serializer
 
 		bool empty() const { return byte_index() <= buffer.size(); }
 
-		size_t size() const { return buffer.size() * 8; }
-
-		size_t size_in_bytes() const { return buffer.size(); }
-
-		void clear()
+		void reset()
 		{
 			buffer.clear();
 			bitpos = 0;
 		}
+
+		// size in bytes
+		size_t size() const { return buffer.size(); }
+
+		size_t size_in_bits() const { return buffer.size()*8; }
+
+		void clear()
+		{
+			buffer.clear();
+			rewind();
+		}
+
+		void rewind() { bitpos = 0; }
 
 		void reserve(size_t size) { buffer.reserve(size); }
 
@@ -370,9 +421,8 @@ namespace deckard::serializer
 		// ser &= s.x;
 
 
-
 		// TODO: save types for serialized as a metadata
 	};
 
 
-} // namespace deckard::serializer
+} // namespace deckard

@@ -7,7 +7,7 @@ import deckard.assert;
 namespace deckard::bitbuffer
 {
 
-	export enum class padding : u8 { yes, no };
+	export enum class bitpadding : u8 { yes, no };
 
 
 
@@ -18,13 +18,13 @@ namespace deckard::bitbuffer
 		std::vector<u8> buffer;
 
 		u64     bitpos{0};
-		padding pad{padding::no};
+		bitpadding pad{bitpadding::no};
 
 		void align_to_byte_offset()
 		{
 			const u64 offset    = bit_offset();
 			const u64 remainder = 8 - offset;
-			if (pad == padding::yes and offset != 0)
+			if (pad == bitpadding::yes and offset != 0)
 			{
 				bitpos += remainder;
 			}
@@ -54,12 +54,12 @@ namespace deckard::bitbuffer
 	public:
 		bitwriter()
 			: bitpos{0}
-			, pad{padding::no}
+			, pad{bitpadding::no}
 		{
 			buffer.reserve(128);
 		}
 
-		bitwriter(padding p)
+		bitwriter(bitpadding p)
 			: bitwriter()
 		{
 			pad = p;
@@ -213,7 +213,7 @@ namespace deckard::bitbuffer
 	{
 	private:
 		std::span<u8> buffer{};
-		padding       pad{padding::no};
+		bitpadding       pad{bitpadding::no};
 		u64           bitpos{0};
 
 		u64 byte_index() const { return bitpos / 8u; }
@@ -224,7 +224,7 @@ namespace deckard::bitbuffer
 		{
 			const u64 offset    = bit_offset();
 			const u64 remainder = 8 - offset;
-			if (pad == padding::yes and offset != 0)
+			if (pad == bitpadding::yes and offset != 0)
 			{
 				bitpos += remainder;
 			}
@@ -249,7 +249,7 @@ namespace deckard::bitbuffer
 		}
 
 	public:
-		bitreader(std::span<u8> input, padding p = padding::no)
+		bitreader(std::span<u8> input, bitpadding p = bitpadding::no)
 			: buffer(input)
 			, bitpos{0}
 			, pad(p)

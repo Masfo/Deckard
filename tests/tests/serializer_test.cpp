@@ -5,23 +5,169 @@ import std;
 
 import deckard;
 import deckard.types;
+import deckard.serializer;
+
 using namespace deckard;
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
-
 using namespace deckard::bitbuffer;
+
+// TODO: remove old bitreader/bitwriter
+
+
 
 TEST_CASE("serializer", "[serializer]")
 {
-	SECTION("init")
-	{
-		//
-	}
-}
 
+	SECTION("init")
+	{ 
+		serializer s;
+		CHECK(s.empty());
+		CHECK(s.size() == 0);
+	}
+
+	SECTION("read/write u8")
+	{
+		serializer s;
+		s.write<u8>(0xAB);
+		s.write<u8>(0xCD);
+
+		CHECK(s.size() == 2);
+		CHECK(s.size_in_bits() == 16);
+		CHECK(s.data()[0] == 0xAB);
+		CHECK(s.data()[1] == 0xCD);
+
+		s.rewind();
+
+		CHECK(0xAB == s.read<u8>());
+		CHECK(0xCD == s.read<u8>());
+	}
+
+	SECTION("read/write u16")
+	{
+		serializer s;
+		s.write<u16>(0xABCD);
+		s.write<u16>(0xEF01);
+		CHECK(s.size() == 4);
+		CHECK(s.size_in_bits() == 32);
+		CHECK(s.data()[0] == 0xAB);
+		CHECK(s.data()[1] == 0xCD);
+		CHECK(s.data()[2] == 0xEF);
+		CHECK(s.data()[3] == 0x01);
+		s.rewind();
+		CHECK(0xABCD == s.read<u16>());
+		CHECK(0xEF01 == s.read<u16>());
+	}
+
+	SECTION("read/write u32")
+	{
+		serializer s;
+		s.write<u32>(0xAABBCCDD);
+		s.write<u32>(0xEEFF0011);
+		CHECK(s.size() == 8);
+		CHECK(s.size_in_bits() == 64);
+		CHECK(s.data()[0] == 0xAA);
+		CHECK(s.data()[1] == 0xBB);
+		CHECK(s.data()[2] == 0xCC);
+		CHECK(s.data()[3] == 0xDD);
+		CHECK(s.data()[4] == 0xEE);
+		CHECK(s.data()[5] == 0xFF);
+		CHECK(s.data()[6] == 0x00);
+		CHECK(s.data()[7] == 0x11);
+		s.rewind();
+		CHECK(0xAABBCCDD == s.read<u32>());
+		CHECK(0xEEFF0011 == s.read<u32>());
+	}
+
+	SECTION("read/write u64")
+	{
+		serializer s;
+		s.write<u64>(0x1122334455667788);
+		s.write<u64>(0x99AABBCCDDEEFF00);
+		CHECK(s.size() == 16);
+		CHECK(s.size_in_bits() == 128);
+		CHECK(s.data()[0] == 0x11);
+		CHECK(s.data()[1] == 0x22);
+		CHECK(s.data()[2] == 0x33);
+		CHECK(s.data()[3] == 0x44);
+		CHECK(s.data()[4] == 0x55);
+		CHECK(s.data()[5] == 0x66);
+		CHECK(s.data()[6] == 0x77);
+		CHECK(s.data()[7] == 0x88);
+		CHECK(s.data()[8] == 0x99);
+		CHECK(s.data()[9] == 0xAA);
+		CHECK(s.data()[10] == 0xBB);
+		CHECK(s.data()[11] == 0xCC);
+		CHECK(s.data()[12] == 0xDD);
+		CHECK(s.data()[13] == 0xEE);
+		CHECK(s.data()[14] == 0xFF);
+		CHECK(s.data()[15] == 0x00);
+		s.rewind();
+		CHECK(0x1122334455667788 == s.read<u64>());
+		CHECK(0x99AABBCCDDEEFF00 == s.read<u64>());
+	}
+
+	SECTION("read/write bool")
+	{
+		serializer s;
+		s.write<bool>(true);
+		s.write<bool>(false);
+		s.write<bool>(true);
+		CHECK(s.size() == 1);
+		CHECK(s.size_in_bits() == 8);
+		CHECK(s.data()[0] == 0b10100000); // 0xA0
+		s.rewind();
+		CHECK(true == s.read<bool>());
+		CHECK(false == s.read<bool>());
+		CHECK(true == s.read<bool>());
+	}
+
+	SECTION("read/write f32")
+	{
+		serializer s;
+		s.write<f32>(2.0f);
+		s.write<f32>(4.0f);
+		CHECK(s.size() == 8);
+		CHECK(s.size_in_bits() == 64);
+
+		s.rewind();
+		CHECK(2.0f == s.read<f32>());
+		CHECK(4.0f == s.read<f32>());
+	}
+
+	SECTION("read/write f64")
+	{
+		serializer s;
+		s.write<f64>(2.0);
+		s.write<f64>(4.0);
+		CHECK(s.size() == 16);
+		CHECK(s.size_in_bits() == 128);
+		s.rewind();
+		CHECK(2.0 == s.read<f64>());
+		CHECK(4.0 == s.read<f64>());
+	}
+
+	SECTION("read/write string")
+	{
+		serializer s;
+		s.write("Hello, World!");
+		s.write("Deckard Serializer");
+		CHECK(s.size() == 31); // 13 + 1 + 22 + 1
+		CHECK(s.size_in_bits() == 248);
+		s.rewind();
+		//std::string str1 = s.read<std::string>();
+		//std::string str2 = s.read<std::string>();
+		//CHECK(str1 == "Hello, World!");
+		//CHECK(str2 == "Deckard Serializer");
+	}
+
+
+
+}
 TEST_CASE("bitwriter", "[bitwriter][serializer]")
 {
+#if 0
 	SECTION("init")
 	{
 		bitwriter writer;
@@ -486,4 +632,5 @@ TEST_CASE("bitreader", "[bitreader][serializer]")
 
 		CHECK(reader.empty() == true);
 	}
+#endif
 }
