@@ -4,6 +4,7 @@ import std;
 import deckard.types;
 import deckard.assert;
 import deckard.bitbuffer;
+import deckard.as;
 
 namespace deckard
 {
@@ -27,42 +28,50 @@ namespace deckard
 	{
 	private:
 		std::vector<u8> buffer;
-		u64             bitpos{0};
+		u64             writepos{0};
+		u64             readpos{0};
 		padding         pad{padding::no};
 
 	private:
-		u64 byte_index() const { return bitpos / 8u; }
+		u64 byte_index(u64 offset) const { return offset / 8u; }
 
-		u64 bit_offset() const { return bitpos % 8u; }
+		u64 bit_offset(u64 offset) const { return offset % 8u; }
 
-		void align_to_byte_offset()
+		void align_to_byte_offset(auto& pos)
 		{
-			const u64 offset    = bit_offset();
+			const u64 offset    = bit_offset(pos);
 			const u64 remainder = 8 - offset;
 
 			if (pad == padding::yes and offset != 0)
 			{
-				bitpos += remainder;
+				pos += remainder;
 			}
 		}
+
+		void align_to_offset()
+		{
+			align_to_byte_offset(writepos);
+			align_to_byte_offset(readpos);
+		}
+
 
 	private: // Writing
 		void write_single_bit(u8 bit)
 		{
-			const u64 byteindex = byte_index();
-			const u64 offset    = bit_offset();
+			const u64 byteindex = byte_index(writepos);
+			const u64 offset    = bit_offset(writepos);
 			if (offset == 0)
 				buffer.push_back(0);
 			if (bit)
 				buffer[byteindex] |= 1 << (7 - offset);
-			bitpos++;
-			align_to_byte_offset();
+			writepos++;
+			align_to_byte_offset(writepos);
 		}
 
 		template<typename T, size_t Size = 8 * sizeof(T)>
 		void write_bits(const T input, u32 bits = Size)
 		{
-			const u64 offset = bitpos % 8;
+			const u64 offset = writepos % 8;
 			const u32 bytes  = bits / 8;
 			bool      aligns = bits % 8 == 0;
 
@@ -91,17 +100,18 @@ namespace deckard
 	private: // Reading
 		bool read_bit()
 		{
-			const u64 offset    = bit_offset();
+			const u64 offset    = bit_offset(readpos);
 			const u64 remainder = 7 - offset;
 
-			assert::check(empty(), "Buffer has no more data to read");
+			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data to read");
 
 
-			u8 byte   = buffer[byte_index()];
+			u8 byte   = buffer[byte_index(readpos)];
 			u8 masked = (byte >> remainder) & 1;
 
-			bitpos += 1;
-			align_to_byte_offset();
+			readpos += 1;
+			align_to_byte_offset(readpos);
+
 
 			return masked;
 		}
@@ -109,7 +119,7 @@ namespace deckard
 
 	public:
 		serializer()
-			: bitpos{0}
+			: writepos{0}
 			, pad{padding::no}
 		{
 			buffer.reserve(128);
@@ -130,7 +140,7 @@ namespace deckard
 
 		void write_byte(u8 byte)
 		{
-			const u64 offset    = bit_offset();
+			const u64 offset    = bit_offset(writepos);
 			const u64 remainder = 8 - offset;
 
 			if (offset == 0)
@@ -140,13 +150,24 @@ namespace deckard
 			else
 			{
 
-				buffer[byte_index()] |= byte >> offset;
+				buffer[byte_index(writepos)] |= byte >> offset;
 				buffer.push_back(byte << remainder);
 			}
 
-			bitpos += 8;
+			writepos += 8;
 
-			align_to_byte_offset();
+			align_to_byte_offset(writepos);
+		}
+
+		template<typename T>
+		void write(std::span<T> input, u32 size = 0)
+		{
+			u32 count = size == 0 ? as<u32>(input.size()) : size;
+
+			write<u32>(count);
+
+			for (const u8 c : input)
+				write_byte(c);
 		}
 
 		template<std::integral T>
@@ -185,11 +206,11 @@ namespace deckard
 		// Write arrays
 
 
-		void write(std::string_view input) 
+		void write(std::string_view input)
 		{
 			// TODO: write string length and than data
 
-			write(std::span{input}); 
+			write(std::span{input});
 		}
 
 		template<typename T, size_t S>
@@ -216,20 +237,30 @@ namespace deckard
 			write(std::span<T>{input.data(), bits / 8});
 		}
 
-		template<typename T>
-		void write(std::span<T> input)
-		{
-			for (const u8 c : input)
-				write_byte(c);
-		}
-
 		// Reads
+
+		template<typename T>
+		void read(std::span<T> output, u32 bits)
+		{
+
+			u32 bytecount = read<u32>();
+
+			const u32 count = bits == 0 ? bytecount : bits / 8;
+
+			assert::check(output.size() >= bytecount, "Output buffer not big enough");
+
+			while (bytecount--)
+			{
+				T element                 = read<T>(sizeof(T) * 8);
+				output[count - 1 - bytes] = element;
+			}
+		}
 
 
 		template<typename T, size_t Size = 8 * sizeof(T)>
 		T read(u32 len = Size)
 		{
-			align_to_byte_offset();
+			align_to_byte_offset(readpos);
 
 
 			if constexpr (std::is_convertible_v<T, std::string>)
@@ -238,7 +269,7 @@ namespace deckard
 			}
 			else
 			{
-				bool aligns = bit_offset() == 0;
+				bool aligns = bit_offset(readpos) == 0;
 				u32  bytes  = len / 8;
 				if (aligns)
 				{
@@ -246,8 +277,8 @@ namespace deckard
 					while (bytes--)
 					{
 						ret <<= 8;
-						ret |= buffer[byte_index()];
-						bitpos += 8;
+						ret |= buffer[byte_index(readpos)];
+						readpos += 8;
 					}
 					return ret;
 				}
@@ -266,9 +297,10 @@ namespace deckard
 		template<std::integral T>
 		T read()
 		{
-			align_to_byte_offset();
+			align_to_byte_offset(readpos);
 
-			assert::check(empty(), "Buffer has no more data");
+
+			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
 
 
 			if constexpr (std::is_same_v<T, bool>)
@@ -278,7 +310,7 @@ namespace deckard
 			else
 			{
 				u32  bytes  = sizeof(T);
-				bool aligns = bit_offset() == 0;
+				bool aligns = bit_offset(readpos) == 0;
 
 				T ret{};
 				if (aligns)
@@ -286,8 +318,8 @@ namespace deckard
 					while (bytes--)
 					{
 						ret <<= 8;
-						ret |= buffer[byte_index()];
-						bitpos += 8;
+						ret |= buffer[byte_index(readpos)];
+						readpos += 8;
 					}
 					return ret;
 				}
@@ -296,10 +328,13 @@ namespace deckard
 			}
 		}
 
+
 		template<std::floating_point T>
 		T read()
 		{
-			align_to_byte_offset();
+			align_to_byte_offset(readpos);
+
+			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
 
 
 			if constexpr (sizeof(T) == 4)
@@ -321,8 +356,9 @@ namespace deckard
 		template<typename T>
 		T read_string(u32 len)
 		{
-			align_to_byte_offset();
-			assert::check(empty(), "Buffer has no more data to read");
+			align_to_byte_offset(readpos);
+			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
+
 
 			T result{};
 			if constexpr (std::is_same_v<T, std::string>)
@@ -331,22 +367,20 @@ namespace deckard
 				for (u32 i = 0; i < len; i++)
 				{
 					result.push_back(static_cast<char>(buffer[byte_index()]));
-					bitpos += 8;
+					readpos += 8;
 				}
 			}
-			else // Assume char array
+			else 
 			{
 				char* data = result.data();
 				for (u32 i = 0; i < len; i++)
 				{
 					data[i] = static_cast<char>(buffer[byte_index()]);
-					bitpos += 8;
+					readpos += 8;
 				}
-				// Null terminate if there's room
 				if (result.size() > len)
-				{
 					data[len] = '\0';
-				}
+
 			}
 			align_to_byte_offset();
 			return result;
@@ -373,37 +407,23 @@ namespace deckard
 			read(std::span<u8>{output}, bits);
 		}
 
-		template<typename T>
-		void read(std::span<T> buffer, u32 bits)
-		{
-			const auto count = bits / 8;
-			auto       bytes = count;
-
-			assert::check(buffer.size() >= count, "Output buffer not big enough");
-
-			while (bytes--)
-			{
-				T element                 = read<T>(sizeof(T) * 8);
-				buffer[count - 1 - bytes] = element;
-			}
-		}
 
 		// Other
 
 		std::span<u8> data() { return {buffer.data(), buffer.size()}; }
 
-		bool empty() const { return byte_index() <= buffer.size(); }
+		bool empty() const { return buffer.empty(); }
 
 		void reset()
 		{
 			buffer.clear();
-			bitpos = 0;
+			writepos = 0;
 		}
 
 		// size in bytes
 		size_t size() const { return buffer.size(); }
 
-		size_t size_in_bits() const { return buffer.size()*8; }
+		size_t size_in_bits() const { return buffer.size() * 8; }
 
 		void clear()
 		{
@@ -411,7 +431,7 @@ namespace deckard
 			rewind();
 		}
 
-		void rewind() { bitpos = 0; }
+		void rewind() { readpos = 0; }
 
 		void reserve(size_t size) { buffer.reserve(size); }
 

@@ -153,13 +153,31 @@ TEST_CASE("serializer", "[serializer]")
 		serializer s;
 		s.write("Hello, World!");
 		s.write("Deckard Serializer");
-		CHECK(s.size() == 31); // 13 + 1 + 22 + 1
-		CHECK(s.size_in_bits() == 248);
+		CHECK(s.size() == 39); 
+		CHECK(s.size_in_bits() == 312);
 		s.rewind();
 		//std::string str1 = s.read<std::string>();
 		//std::string str2 = s.read<std::string>();
 		//CHECK(str1 == "Hello, World!");
 		//CHECK(str2 == "Deckard Serializer");
+	}
+
+	SECTION("write/read array")
+	{
+		serializer s;
+		std::array<u8, 4> arr1{0x01, 0x02, 0x03, 0x04};
+		std::array<u8, 6> arr2{0x05, 0x06, 0x07, 0x08, 0x09, 0x0A};
+		s.write(arr1);
+		s.write(arr2);
+		CHECK(s.size() == 18);
+		CHECK(s.size_in_bits() == 144);
+		s.rewind();
+		std::array<u8, 4> read_arr1{};
+		std::array<u8, 6> read_arr2{};
+		s.read(read_arr1);
+		s.read(read_arr2);
+		CHECK(std::ranges::equal(arr1, read_arr1));
+		CHECK(std::ranges::equal(arr2, read_arr2));
 	}
 
 
