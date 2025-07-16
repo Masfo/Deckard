@@ -12,10 +12,6 @@ namespace deckard
 	// TODO: append bitreader/writers
 
 
-	// TODO: bitbuffer, combine reader/writer
-	/*
-	 *  bb.read(
-	 */
 
 
 	enum class padding : u8
@@ -24,6 +20,7 @@ namespace deckard
 		no
 	};
 
+
 	export class serializer
 	{
 	private:
@@ -31,6 +28,8 @@ namespace deckard
 		u64             writepos{0};
 		u64             readpos{0};
 		padding         pad{padding::no};
+
+
 
 	private:
 		u64 byte_index(u64 offset) const { return offset / 8u; }
@@ -46,12 +45,6 @@ namespace deckard
 			{
 				pos += remainder;
 			}
-		}
-
-		void align_to_offset()
-		{
-			align_to_byte_offset(writepos);
-			align_to_byte_offset(readpos);
 		}
 
 
@@ -156,6 +149,8 @@ namespace deckard
 
 			writepos += 8;
 
+
+
 			align_to_byte_offset(writepos);
 		}
 
@@ -208,8 +203,6 @@ namespace deckard
 
 		void write(std::string_view input)
 		{
-			// TODO: write string length and than data
-
 			write(std::span{input});
 		}
 
@@ -244,6 +237,7 @@ namespace deckard
 		{
 
 			u32 bytecount = read<u32>();
+			const auto bytes     = bytecount;
 
 			const u32 count = bits == 0 ? bytecount : bits / 8;
 
@@ -252,10 +246,9 @@ namespace deckard
 			while (bytecount--)
 			{
 				T element                 = read<T>(sizeof(T) * 8);
-				output[count - 1 - bytes] = element;
+				output[count - 1 - bytecount] = element;
 			}
 		}
-
 
 		template<typename T, size_t Size = 8 * sizeof(T)>
 		T read(u32 len = Size)
@@ -265,7 +258,7 @@ namespace deckard
 
 			if constexpr (std::is_convertible_v<T, std::string>)
 			{
-				return read_string<T>(len);
+				return read_string<T>();
 			}
 			else
 			{
@@ -328,7 +321,6 @@ namespace deckard
 			}
 		}
 
-
 		template<std::floating_point T>
 		T read()
 		{
@@ -354,7 +346,7 @@ namespace deckard
 		}
 
 		template<typename T>
-		T read_string(u32 len)
+		T read_string()
 		{
 			align_to_byte_offset(readpos);
 			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
@@ -363,26 +355,17 @@ namespace deckard
 			T result{};
 			if constexpr (std::is_same_v<T, std::string>)
 			{
-				result.reserve(len);
-				for (u32 i = 0; i < len; i++)
-				{
-					result.push_back(static_cast<char>(buffer[byte_index()]));
-					readpos += 8;
-				}
-			}
-			else 
-			{
-				char* data = result.data();
-				for (u32 i = 0; i < len; i++)
-				{
-					data[i] = static_cast<char>(buffer[byte_index()]);
-					readpos += 8;
-				}
-				if (result.size() > len)
-					data[len] = '\0';
+				auto count = read<u32>();
 
+				result.reserve(count);
+				for (u32 i = 0; i < count; i++)
+				{
+					result.push_back(static_cast<char>(buffer[byte_index(readpos)]));
+					readpos += 8;
+				}
 			}
-			align_to_byte_offset();
+	
+			align_to_byte_offset(readpos);
 			return result;
 		}
 
@@ -406,7 +389,6 @@ namespace deckard
 
 			read(std::span<u8>{output}, bits);
 		}
-
 
 		// Other
 
