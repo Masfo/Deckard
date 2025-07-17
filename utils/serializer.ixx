@@ -10,16 +10,34 @@ namespace deckard
 {
 	// TODO: fixed size reader/writer
 	// TODO: append bitreader/writers
+	// TODO: limit array/string to 16-bit max?
 
-
-
-
-	enum class padding : u8
+#ifdef _DEBUG
+	enum class serialize_type : u8
 	{
-		yes,
-		no
+		boolean,
+		u8,
+		u16,
+		u32,
+		u64,
+		i8,
+		i16,
+		i32,
+		i64,
+		f32,
+		f64,
+		string,
+		array,
 	};
 
+	struct types
+	{
+		u32            size_in_bits{0}; // in bits
+		serialize_type type;
+	};
+#endif
+
+	export enum class padding : u8 { yes, no };
 
 	export class serializer
 	{
@@ -29,6 +47,40 @@ namespace deckard
 		u64             readpos{0};
 		padding         pad{padding::no};
 
+#ifdef _DEBUG
+		u32                current_type_index{0};
+		std::vector<types> types_written;
+
+		void write_type(serialize_type t, u32 size_in_bits)
+		{
+			if (types_written.empty() or types_written[current_type_index].type != t)
+			{
+				types_written.push_back({size_in_bits, t});
+				current_type_index++;
+			}
+		
+		}
+
+		bool check_read_type(const serialize_type t, u32 size) 
+		{
+			if (types_written.empty())
+				return true;
+
+			assert::check(current_type_index < types_written.size(),
+						  std::format("Current type index out of bounds: {}, types written: {}",
+						  current_type_index,
+						  types_written.size()));
+
+			if (types_written[current_type_index].type == t and types_written[current_type_index].size_in_bits == size)
+			{
+				current_type_index++;
+				return true;
+			}
+
+			assert::check(false, std::format("Incorrect type read, expected: {}, got: {}", as<u32>(types_written[current_type_index].type), as<u32>(t)));
+			return false;
+		}
+#endif
 
 
 	private:
@@ -59,6 +111,8 @@ namespace deckard
 				buffer[byteindex] |= 1 << (7 - offset);
 			writepos++;
 			align_to_byte_offset(writepos);
+
+
 		}
 
 		template<typename T, size_t Size = 8 * sizeof(T)>
@@ -150,7 +204,6 @@ namespace deckard
 			writepos += 8;
 
 
-
 			align_to_byte_offset(writepos);
 		}
 
@@ -201,10 +254,7 @@ namespace deckard
 		// Write arrays
 
 
-		void write(std::string_view input)
-		{
-			write(std::span{input});
-		}
+		void write(std::string_view input) { write(std::span{input}); }
 
 		template<typename T, size_t S>
 		void write(std::array<T, S> input)
@@ -237,7 +287,6 @@ namespace deckard
 		{
 
 			u32 bytecount = read<u32>();
-			const auto bytes     = bytecount;
 
 			const u32 count = bits == 0 ? bytecount : bits / 8;
 
@@ -245,7 +294,7 @@ namespace deckard
 
 			while (bytecount--)
 			{
-				T element                 = read<T>(sizeof(T) * 8);
+				T element                     = read<T>(sizeof(T) * 8);
 				output[count - 1 - bytecount] = element;
 			}
 		}
@@ -359,12 +408,9 @@ namespace deckard
 
 				result.reserve(count);
 				for (u32 i = 0; i < count; i++)
-				{
-					result.push_back(static_cast<char>(buffer[byte_index(readpos)]));
-					readpos += 8;
-				}
+					result.push_back(read<u8>());
 			}
-	
+
 			align_to_byte_offset(readpos);
 			return result;
 		}
@@ -405,7 +451,7 @@ namespace deckard
 		// size in bytes
 		size_t size() const { return buffer.size(); }
 
-		size_t size_in_bits() const { return buffer.size() * 8; }
+		size_t size_in_bits() const { return writepos; }
 
 		void clear()
 		{

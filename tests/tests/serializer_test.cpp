@@ -16,13 +16,19 @@ using namespace deckard::bitbuffer;
 // TODO: remove old bitreader/bitwriter
 
 
-
 TEST_CASE("serializer", "[serializer]")
 {
 
 	SECTION("init")
-	{ 
+	{
 		serializer s;
+		CHECK(s.empty());
+		CHECK(s.size() == 0);
+	}
+
+	SECTION("init w/o padding")
+	{
+		serializer s(padding::no);
 		CHECK(s.empty());
 		CHECK(s.size() == 0);
 	}
@@ -43,6 +49,20 @@ TEST_CASE("serializer", "[serializer]")
 		CHECK(0xAB == s.read<u8>());
 		CHECK(0xCD == s.read<u8>());
 	}
+	SECTION("read/write u8 q/o padding")
+	{
+		serializer s(padding::no);
+		s.write<u8>(0xAB);
+		s.write<bool>(true);
+		s.write<u8>(0xCD);
+		CHECK(s.size() == 3);
+		CHECK(s.size_in_bits() == 17);
+		s.rewind();
+		CHECK(0xAB == s.read<u8>());
+		CHECK(true == s.read<bool>());
+		CHECK(0xCD == s.read<u8>());
+	}
+
 
 	SECTION("read/write u16")
 	{
@@ -63,8 +83,8 @@ TEST_CASE("serializer", "[serializer]")
 	SECTION("read/write u32")
 	{
 		serializer s;
-		s.write<u32>(0xAABBCCDD);
-		s.write<u32>(0xEEFF0011);
+		s.write<u32>(0xAABB'CCDD);
+		s.write<u32>(0xEEFF'0011);
 		CHECK(s.size() == 8);
 		CHECK(s.size_in_bits() == 64);
 		CHECK(s.data()[0] == 0xAA);
@@ -76,15 +96,15 @@ TEST_CASE("serializer", "[serializer]")
 		CHECK(s.data()[6] == 0x00);
 		CHECK(s.data()[7] == 0x11);
 		s.rewind();
-		CHECK(0xAABBCCDD == s.read<u32>());
-		CHECK(0xEEFF0011 == s.read<u32>());
+		CHECK(0xAABB'CCDD == s.read<u32>());
+		CHECK(0xEEFF'0011 == s.read<u32>());
 	}
 
 	SECTION("read/write u64")
 	{
 		serializer s;
-		s.write<u64>(0x1122334455667788);
-		s.write<u64>(0x99AABBCCDDEEFF00);
+		s.write<u64>(0x1122'3344'5566'7788);
+		s.write<u64>(0x99AA'BBCC'DDEE'FF00);
 		CHECK(s.size() == 16);
 		CHECK(s.size_in_bits() == 128);
 		CHECK(s.data()[0] == 0x11);
@@ -104,8 +124,8 @@ TEST_CASE("serializer", "[serializer]")
 		CHECK(s.data()[14] == 0xFF);
 		CHECK(s.data()[15] == 0x00);
 		s.rewind();
-		CHECK(0x1122334455667788 == s.read<u64>());
-		CHECK(0x99AABBCCDDEEFF00 == s.read<u64>());
+		CHECK(0x1122'3344'5566'7788 == s.read<u64>());
+		CHECK(0x99AA'BBCC'DDEE'FF00 == s.read<u64>());
 	}
 
 	SECTION("read/write bool")
@@ -115,8 +135,8 @@ TEST_CASE("serializer", "[serializer]")
 		s.write<bool>(false);
 		s.write<bool>(true);
 		CHECK(s.size() == 1);
-		CHECK(s.size_in_bits() == 8);
-		CHECK(s.data()[0] == 0b10100000); // 0xA0
+		CHECK(s.size_in_bits() == 3);
+		CHECK(s.data()[0] == 0b1010'0000); // 0xA0
 		s.rewind();
 		CHECK(true == s.read<bool>());
 		CHECK(false == s.read<bool>());
@@ -153,7 +173,7 @@ TEST_CASE("serializer", "[serializer]")
 		serializer s;
 		s.write("Hello, World!");
 		s.write("Deckard Serializer");
-		CHECK(s.size() == 39); 
+		CHECK(s.size() == 39);
 		CHECK(s.size_in_bits() == 312);
 		s.rewind();
 		std::string str1 = s.read<std::string>();
@@ -164,7 +184,7 @@ TEST_CASE("serializer", "[serializer]")
 
 	SECTION("write/read array")
 	{
-		serializer s;
+		serializer        s;
 		std::array<u8, 4> arr1{0x01, 0x02, 0x03, 0x04};
 		std::array<u8, 6> arr2{0x05, 0x06, 0x07, 0x08, 0x09, 0x0A};
 		s.write(arr1);
@@ -180,9 +200,49 @@ TEST_CASE("serializer", "[serializer]")
 		CHECK(std::ranges::equal(arr2, read_arr2));
 	}
 
+	SECTION("write/read mixed types")
+	{
+		serializer s;
+		s.write<u8>(0xAB);
+		s.write<bool>(true);
+		s.write<u16>(0xCD01);
+		s.write<u32>(0x2345'6789);
+		s.write<f32>(3.14f);
+		s.write("Deckard");
+		CHECK(s.size() == 23);
+		CHECK(s.size_in_bits() == 177);
 
+		s.rewind();
 
+		CHECK(0xAB == s.read<u8>());
+		CHECK(true == s.read<bool>());
+		CHECK(0xCD01 == s.read<u16>());
+		CHECK(0x2345'6789 == s.read<u32>());
+		CHECK(3.14f == s.read<f32>());
+		CHECK("Deckard" == s.read<std::string>());
+	}
+
+	SECTION("write/read mixed types w/o padding")
+	{
+		serializer s(padding::no);
+		s.write<u8>(0xAB);         // 8
+		s.write<bool>(true);       // 9
+		s.write<u16>(0xCD01);      // 25
+		s.write<u32>(0x2345'6789); // 32 + 25 = 57
+		s.write<f32>(3.14f);       // 89
+		s.write("Deckard");        // 7*8 + 32 + 89 = 177
+		CHECK(s.size() == 23);
+		CHECK(s.size_in_bits() == 177);
+		s.rewind();
+		CHECK(0xAB == s.read<u8>());
+		CHECK(true == s.read<bool>());
+		CHECK(0xCD01 == s.read<u16>());
+		CHECK(0x2345'6789 == s.read<u32>());
+		CHECK(3.14f == s.read<f32>());
+		CHECK("Deckard" == s.read<std::string>());
+	}
 }
+
 TEST_CASE("bitwriter", "[bitwriter][serializer]")
 {
 #if 0
