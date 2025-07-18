@@ -304,6 +304,33 @@ public:
 	}
 };
 
+class Secret
+{
+private:
+	int secret_value{42};
+
+private:
+	friend int operator+(const Secret& lhs, const Secret& rhs);
+	friend int operator-(const Secret& lhs, const Secret& rhs);
+
+
+public:
+	Secret() = default;
+
+	Secret(int value)
+		: secret_value(value)
+	{
+	}
+
+	int get() const { return secret_value; }
+
+	void set(int value) { secret_value = value; }
+};
+
+auto operator+(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_value + rhs.secret_value; }
+
+auto operator-(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_value - rhs.secret_value; }
+
 i32 deckard_main(utf8::view /*commandline*/)
 {
 #ifndef _DEBUG
@@ -321,8 +348,11 @@ dbg::println();
 #endif
 	// ###############################################
 
- f32  X = 128.0f;
-	auto u = as<i8>(X);
+	Secret a{42};
+	Secret b{58};
+
+	Secret c{a - b};
+
 
 	_ = 0;
 
@@ -497,7 +527,6 @@ dbg::println();
 
 
 	// ###########################################################################
-
 
 
 	// ########################################################################

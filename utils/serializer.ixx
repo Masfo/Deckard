@@ -58,18 +58,15 @@ namespace deckard
 				types_written.push_back({size_in_bits, t});
 				current_type_index++;
 			}
-		
 		}
 
-		bool check_read_type(const serialize_type t, u32 size) 
+		bool check_read_type(const serialize_type t, u32 size)
 		{
 			if (types_written.empty())
 				return true;
 
 			assert::check(current_type_index < types_written.size(),
-						  std::format("Current type index out of bounds: {}, types written: {}",
-						  current_type_index,
-						  types_written.size()));
+						  std::format("Current type index out of bounds: {}, types written: {}", current_type_index, types_written.size()));
 
 			if (types_written[current_type_index].type == t and types_written[current_type_index].size_in_bits == size)
 			{
@@ -77,7 +74,9 @@ namespace deckard
 				return true;
 			}
 
-			assert::check(false, std::format("Incorrect type read, expected: {}, got: {}", as<u32>(types_written[current_type_index].type), as<u32>(t)));
+			assert::check(
+			  false,
+			  std::format("Incorrect type read, expected: {}, got: {}", as<u32>(types_written[current_type_index].type), as<u32>(t)));
 			return false;
 		}
 #endif
@@ -112,7 +111,9 @@ namespace deckard
 			writepos++;
 			align_to_byte_offset(writepos);
 
-
+#ifdef _DEBUG
+			write_type(serialize_type::boolean, 1);
+#endif
 		}
 
 		template<typename T, size_t Size = 8 * sizeof(T)>
@@ -130,6 +131,11 @@ namespace deckard
 					u8 byte = (input >> ((bits - 8) - i * 8)) & 0xFF;
 					write_byte(byte);
 				}
+
+#ifdef _DEBUG
+				write_type(serialize_type::u8, bytes);
+#endif
+
 				return;
 			}
 
@@ -139,6 +145,9 @@ namespace deckard
 				value = ((input >> (bits - 1 - i)) & 0x1);
 				write_single_bit(value);
 			}
+#ifdef _DEBUG
+			write_type(serialize_type::boolean, bits);
+#endif
 			return;
 		}
 
@@ -203,6 +212,9 @@ namespace deckard
 
 			writepos += 8;
 
+#ifdef _DEBUG
+			write_type(serialize_type::u8, 1);
+#endif
 
 			align_to_byte_offset(writepos);
 		}
@@ -211,6 +223,10 @@ namespace deckard
 		void write(std::span<T> input, u32 size = 0)
 		{
 			u32 count = size == 0 ? as<u32>(input.size()) : size;
+
+#ifdef _DEBUG
+			write_type(serialize_type::array, count);
+#endif
 
 			write<u32>(count);
 
@@ -238,11 +254,21 @@ namespace deckard
 			if constexpr (sizeof(T) == 4)
 			{
 				u32 bitcasted = std::bit_cast<u32>(input);
+
+#ifdef _DEBUG
+				write_type(serialize_type::f32, 32);
+#endif
+
 				write_bits(bitcasted);
 			}
 			else if constexpr (sizeof(T) == 8)
 			{
 				u64 bitcasted = std::bit_cast<u64>(input);
+
+#ifdef _DEBUG
+				write_type(serialize_type::f64, 64);
+#endif
+
 				write_bits(bitcasted);
 			}
 			else
@@ -254,23 +280,39 @@ namespace deckard
 		// Write arrays
 
 
-		void write(std::string_view input) { write(std::span{input}); }
+		void write(std::string_view input)
+		{
+#ifdef _DEBUG
+			write_type(serialize_type::string, input.size()*8);
+#endif
+
+			write(std::span{input});
+		}
 
 		template<typename T, size_t S>
 		void write(std::array<T, S> input)
 		{
+#ifdef _DEBUG
+			write_type(serialize_type::array, input.size() * 8);
+#endif
+
 			write(std::span<T>{input.data(), S});
 		}
 
 		template<typename T, size_t S>
 		void write(std::array<T, S> input, const u32 bits)
 		{
+#ifdef _DEBUG
+			write_type(serialize_type::array, bits);
+#endif
+
 			write(std::span<T>{input.data(), bits / 8});
 		}
 
 		template<typename T>
 		void write(std::vector<T>& input)
 		{
+
 			write(std::span{input});
 		}
 
