@@ -48,6 +48,7 @@ TEST_CASE("serializer", "[serializer]")
 
 		CHECK(0xAB == s.read<u8>());
 		CHECK(0xCD == s.read<u8>());
+		_ = 0;
 	}
 	SECTION("read/write u8 q/o padding")
 	{

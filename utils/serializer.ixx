@@ -5,6 +5,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.bitbuffer;
 import deckard.as;
+import deckard.debug;
 
 namespace deckard
 {
@@ -28,7 +29,61 @@ namespace deckard
 		f64,
 		string,
 		array,
+		nothing
 	};
+
+	std::string serialize_to_string(const serialize_type t) 
+	{
+		switch (t)
+		{
+			case serialize_type::boolean: return "boolean";
+			case serialize_type::u8:      return "u8";
+			case serialize_type::u16:     return "u16";
+			case serialize_type::u32:     return "u32";
+			case serialize_type::u64:     return "u64";
+			case serialize_type::i8:      return "i8";
+			case serialize_type::i16:     return "i16";
+			case serialize_type::i32:     return "i32";
+			case serialize_type::i64:     return "i64";
+			case serialize_type::f32:     return "f32";
+			case serialize_type::f64:     return "f64";
+			case serialize_type::string:  return "string";
+			case serialize_type::array:   return "array";
+			default:                      return "nothing";
+		}
+	}
+
+	template<typename T>
+	serialize_type type_to_serialize()
+	{
+		if constexpr (std::is_same_v<T, bool>)
+			return serialize_type::boolean;
+		else if constexpr (std::is_same_v<T, u8>)
+			return serialize_type::u8;
+		else if constexpr (std::is_same_v<T, u16>)
+			return serialize_type::u16;
+		else if constexpr (std::is_same_v<T, u32>)
+			return serialize_type::u32;
+		else if constexpr (std::is_same_v<T, u64>)
+			return serialize_type::u64;
+		else if constexpr (std::is_same_v<T, i8>)
+			return serialize_type::i8;
+		else if constexpr (std::is_same_v<T, i16>)
+			return serialize_type::i16;
+		else if constexpr (std::is_same_v<T, i32>)
+			return serialize_type::i32;
+		else if constexpr (std::is_same_v<T, i64>)
+			return serialize_type::i64;
+		else if constexpr (std::is_same_v<T, f32>)
+			return serialize_type::f32;
+		else if constexpr (std::is_same_v<T, f64>)
+			return serialize_type::f64;
+		else if constexpr (std::is_same_v<T, std::string>)
+			return serialize_type::string;
+		else if constexpr (std::is_array_v<T>)
+			return serialize_type::array;
+
+	}
 
 	struct types
 	{
@@ -53,30 +108,33 @@ namespace deckard
 
 		void write_type(serialize_type t, u32 size_in_bits)
 		{
-			if (types_written.empty() or types_written[current_type_index].type != t)
-			{
-				types_written.push_back({size_in_bits, t});
-				current_type_index++;
-			}
+			types_written.push_back({size_in_bits, t});
+			current_type_index++;
 		}
 
-		bool check_read_type(const serialize_type t, u32 size)
+		template<typename T>
+		bool check_read_type(u32 size)
 		{
 			if (types_written.empty())
 				return true;
 
-			assert::check(current_type_index < types_written.size(),
+			auto type = type_to_serialize<T>();
+
+
+			assert::check(current_type_index <= types_written.size(),
 						  std::format("Current type index out of bounds: {}, types written: {}", current_type_index, types_written.size()));
 
-			if (types_written[current_type_index].type == t and types_written[current_type_index].size_in_bits == size)
+			if (types_written[current_type_index].type == type and types_written[current_type_index].size_in_bits == size)
 			{
 				current_type_index++;
 				return true;
 			}
 
-			assert::check(
-			  false,
-			  std::format("Incorrect type read, expected: {}, got: {}", as<u32>(types_written[current_type_index].type), as<u32>(t)));
+			dbg::println("Incorrect type read, expected: '{}', got: '{}'", serialize_to_string(types_written[current_type_index].type), serialize_to_string(type));
+
+			// assert::check(
+			//   false,
+			//   std::format("Incorrect type read, expected: {}, got: {}", as<u32>(types_written[current_type_index].type), as<u32>(t)));
 			return false;
 		}
 #endif
@@ -133,7 +191,6 @@ namespace deckard
 				}
 
 #ifdef _DEBUG
-				write_type(serialize_type::u8, bytes);
 #endif
 
 				return;
@@ -213,7 +270,7 @@ namespace deckard
 			writepos += 8;
 
 #ifdef _DEBUG
-			write_type(serialize_type::u8, 1);
+			write_type(serialize_type::u8, 8);
 #endif
 
 			align_to_byte_offset(writepos);
@@ -283,7 +340,7 @@ namespace deckard
 		void write(std::string_view input)
 		{
 #ifdef _DEBUG
-			write_type(serialize_type::string, input.size()*8);
+			write_type(serialize_type::string, as<u32>(input.size() * 8ull));
 #endif
 
 			write(std::span{input});
@@ -293,7 +350,7 @@ namespace deckard
 		void write(std::array<T, S> input)
 		{
 #ifdef _DEBUG
-			write_type(serialize_type::array, input.size() * 8);
+			write_type(serialize_type::array, as<u32>(input.size() * 8));
 #endif
 
 			write(std::span<T>{input.data(), S});
@@ -393,6 +450,13 @@ namespace deckard
 			}
 			else
 			{
+
+#ifdef _DEBUG
+				if (check_read_type<T>(sizeof(T)*8) == false)
+					dbg::panic("wrong type");
+
+#endif
+
 				u32  bytes  = sizeof(T);
 				bool aligns = bit_offset(readpos) == 0;
 
@@ -501,7 +565,14 @@ namespace deckard
 			rewind();
 		}
 
-		void rewind() { readpos = 0; }
+		void rewind()
+		{
+			readpos = 0;
+
+#ifdef _DEBUG
+			current_type_index = 0;
+#endif
+		}
 
 		void reserve(size_t size) { buffer.reserve(size); }
 
