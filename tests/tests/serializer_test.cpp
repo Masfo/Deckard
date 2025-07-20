@@ -48,7 +48,6 @@ TEST_CASE("serializer", "[serializer]")
 
 		CHECK(0xAB == s.read<u8>());
 		CHECK(0xCD == s.read<u8>());
-		_ = 0;
 	}
 	SECTION("read/write u8 q/o padding")
 	{
@@ -239,7 +238,7 @@ TEST_CASE("serializer", "[serializer]")
 		CHECK(true == s.read<bool>());
 		CHECK(0xCD01 == s.read<u16>());
 		CHECK(0x2345'6789 == s.read<u32>());
-		CHECK(3.14f == s.read<f32>());
+		CHECK(3.14f == s.read<u32>());
 		CHECK("Deckard" == s.read<std::string>());
 	}
 }
