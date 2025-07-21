@@ -111,38 +111,41 @@ namespace deckard
 			current_type_index++;
 		}
 
-		template<typename T>
-		void check_read_type(u32 size)
+		void check_read_type(serialize_type type, u32 bits) 
 		{
 			if (types_written.empty())
 				dbg::panic("No types written, cannot check type");
 
-			auto type = type_to_serialize<T>();
 
-			const auto &expected_size = std::max(size, types_written[current_type_index].size_in_bits);
-			const auto &expected_type = types_written[current_type_index].type;
+			const auto& expected_size = std::max(bits, types_written[current_type_index].size_in_bits);
+			const auto& expected_type = types_written[current_type_index].type;
 
 			assert::check(current_type_index <= types_written.size(),
 						  std::format("Current type index out of bounds: {}, types written: {}", current_type_index, types_written.size()));
 
 			if (expected_type == type)
 			{
-				
-				
-				if (expected_size != std::max(size, expected_size))
+
+
+				if (expected_size != std::max(bits, expected_size))
 				{
-					dbg::println(
-					  "Types match '{}' but expected '{}' bits, got '{}' bits", size, expected_size);
+					dbg::println("Types match '{}' but expected '{}' bits, got '{}' bits", bits, expected_size);
 					dbg::panic("size mismatch");
 				}
 				current_type_index++;
 				return;
 			}
 
-			dbg::println("Incorrect type read, expected: '{}', got: '{}'",
-						 serialize_to_string(expected_type),
-						 serialize_to_string(type));
+			dbg::println("Incorrect type read, expected: '{}', got: '{}'", serialize_to_string(expected_type), serialize_to_string(type));
 			dbg::panic("wrong type");
+		}
+
+
+		template<typename T>
+		void check_read_type(u32 size)
+		{
+			const auto type = type_to_serialize<T>();
+			check_read_type(type, size);
 		}
 #endif
 
@@ -194,6 +197,7 @@ namespace deckard
 				}
 
 #ifdef _DEBUG
+				write_type(type_to_serialize<T>(), bits);
 #endif
 
 				return;
@@ -281,8 +285,6 @@ namespace deckard
 
 #ifdef _DEBUG
 			write_type(serialize_type::array, count * 8);
-			write_type(serialize_type::u32, 32);
-
 #endif
 
 			write<u32>(count);
@@ -294,18 +296,22 @@ namespace deckard
 		template<std::integral T>
 		void write(T input, u32 bits = sizeof(T) * 8)
 		{
-#ifdef _DEBUG
-			write_type(type_to_serialize<T>(), bits);
-#endif
+
 
 			if constexpr (std::is_same_v<T, bool>)
 			{
 				write_bits(input, 1);
+#ifdef _DEBUG
+				write_type(type_to_serialize<T>(), 1);
+#endif
 				return;
 			}
 			else
 			{
 				write_bits(input, bits);
+#ifdef _DEBUG
+				write_type(type_to_serialize<T>(), bits);
+#endif
 			}
 		}
 
@@ -515,7 +521,8 @@ namespace deckard
 			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
 
 #ifdef _DEBUG
-			check_read_type<T>(0);
+			check_read_type(serialize_type::string, 0);
+			check_read_type(serialize_type::array, 0);
 #endif
 
 			T result{};
