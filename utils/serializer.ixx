@@ -84,11 +84,6 @@ namespace deckard
 			return serialize_type::array;
 	}
 
-	struct types
-	{
-		u32            size_in_bits{0}; // in bits
-		serialize_type type;
-	};
 #endif
 
 	export enum class padding : u8 { yes, no };
@@ -101,53 +96,6 @@ namespace deckard
 		u64             readpos{0};
 		padding         pad{padding::no};
 
-#ifdef _DEBUG
-		u32                current_type_index{0};
-		std::vector<types> types_written;
-
-		void write_type(serialize_type t, u32 size_in_bits)
-		{
-			types_written.push_back({size_in_bits, t});
-			current_type_index++;
-		}
-
-		void check_read_type(serialize_type type, u32 bits) 
-		{
-			if (types_written.empty())
-				dbg::panic("No types written, cannot check type");
-
-
-			const auto& expected_size = std::max(bits, types_written[current_type_index].size_in_bits);
-			const auto& expected_type = types_written[current_type_index].type;
-
-			assert::check(current_type_index <= types_written.size(),
-						  std::format("Current type index out of bounds: {}, types written: {}", current_type_index, types_written.size()));
-
-			if (expected_type == type)
-			{
-
-
-				if (expected_size != std::max(bits, expected_size))
-				{
-					dbg::println("Types match '{}' but expected '{}' bits, got '{}' bits", bits, expected_size);
-					dbg::panic("size mismatch");
-				}
-				current_type_index++;
-				return;
-			}
-
-			dbg::println("Incorrect type read, expected: '{}', got: '{}'", serialize_to_string(expected_type), serialize_to_string(type));
-			dbg::panic("wrong type");
-		}
-
-
-		template<typename T>
-		void check_read_type(u32 size)
-		{
-			const auto type = type_to_serialize<T>();
-			check_read_type(type, size);
-		}
-#endif
 
 
 	private:
@@ -195,10 +143,6 @@ namespace deckard
 					u8 byte = (input >> ((bits - 8) - i * 8)) & 0xFF;
 					write_byte(byte);
 				}
-
-#ifdef _DEBUG
-				write_type(type_to_serialize<T>(), bits);
-#endif
 
 				return;
 			}
@@ -283,11 +227,8 @@ namespace deckard
 		{
 			u32 count = size == 0 ? as<u32>(input.size()) : size;
 
-#ifdef _DEBUG
-			write_type(serialize_type::array, count * 8);
-#endif
 
-			write<u32>(count);
+			write(count);
 
 			for (const u8 c : input)
 				write_byte(c);
@@ -301,17 +242,11 @@ namespace deckard
 			if constexpr (std::is_same_v<T, bool>)
 			{
 				write_bits(input, 1);
-#ifdef _DEBUG
-				write_type(type_to_serialize<T>(), 1);
-#endif
 				return;
 			}
 			else
 			{
 				write_bits(input, bits);
-#ifdef _DEBUG
-				write_type(type_to_serialize<T>(), bits);
-#endif
 			}
 		}
 
@@ -321,24 +256,11 @@ namespace deckard
 			if constexpr (sizeof(T) == 4)
 			{
 				u32 bitcasted = std::bit_cast<u32>(input);
-
-#ifdef _DEBUG
-				write_type(serialize_type::f32, 32);
-				write_type(serialize_type::u32, 32); // HACK
-#endif
-
 				write_bits(bitcasted);
 			}
 			else if constexpr (sizeof(T) == 8)
 			{
 				u64 bitcasted = std::bit_cast<u64>(input);
-
-#ifdef _DEBUG
-				write_type(serialize_type::f64, 64);
-				write_type(serialize_type::u64, 64); // HACK
-
-#endif
-
 				write_bits(bitcasted);
 			}
 			else
@@ -352,19 +274,12 @@ namespace deckard
 
 		void write(std::string_view input)
 		{
-#ifdef _DEBUG
-			write_type(serialize_type::string, as<u32>(input.size() * 8ull));
-#endif
-
 			write(std::span{input});
 		}
 
 		template<typename T, size_t S>
 		void write(std::array<T, S> input)
 		{
-#ifdef _DEBUG
-			write_type(serialize_type::array, as<u32>(input.size() * 8ull));
-#endif
 
 			write(std::span<T>{input.data(), S});
 		}
@@ -372,10 +287,6 @@ namespace deckard
 		template<typename T, size_t S>
 		void write(std::array<T, S> input, const u32 bits)
 		{
-#ifdef _DEBUG
-			write_type(serialize_type::array, bits);
-#endif
-
 			write(std::span<T>{input.data(), bits});
 		}
 
@@ -456,9 +367,6 @@ namespace deckard
 
 			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
 
-#ifdef _DEBUG
-				check_read_type<T>(sizeof(T) * 8);
-#endif
 
 
 			if constexpr (std::is_same_v<T, bool>)
@@ -494,10 +402,6 @@ namespace deckard
 
 			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
 
-#ifdef _DEBUG
-			check_read_type<T>(sizeof(T) * 8);
-#endif
-
 			if constexpr (sizeof(T) == 4)
 			{
 				u32 value = read<u32>();
@@ -520,17 +424,13 @@ namespace deckard
 			align_to_byte_offset(readpos);
 			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
 
-#ifdef _DEBUG
-			check_read_type(serialize_type::string, 0);
-			check_read_type(serialize_type::array, 0);
-#endif
-
 			T result{};
 			if constexpr (std::is_same_v<T, std::string>)
 			{
 				auto count = read<u32>();
 
 				result.reserve(count);
+
 				for (u32 i = 0; i < count; i++)
 					result.push_back(read<u8>());
 			}
@@ -587,9 +487,6 @@ namespace deckard
 		{
 			readpos = 0;
 
-#ifdef _DEBUG
-			current_type_index = 0;
-#endif
 		}
 
 		void reserve(size_t size) { buffer.reserve(size); }
