@@ -358,43 +358,6 @@ dbg::println();
 
 	// ###############################################
 
-	{
-		taskpool::taskpool tp{};
-
-		tp.push([] { dbg::println("task {}", 0); });
-
-
-		tp.push(
-		  []
-		  {
-			  std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 5));
-			  dbg::println("task sleep 10");
-		  });
-
-		tp.push(
-		  []
-		  {
-			  std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 3));
-			  dbg::println("task sleep 5");
-		  });
-
-		tp.push(
-		  []
-		  {
-			  std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 1));
-			  dbg::println("task sleep 2");
-		  });
-
-		for (int i = 0; i < 100; ++i)
-		{
-			tp.push(
-			  [i]
-			  {
-				  std::this_thread::sleep_for(std::chrono::milliseconds(100 * i / 10));
-				  dbg::println("task sleep 1 - {}", i);
-			  });
-		}
-	}
 
 
 	_ = 0;

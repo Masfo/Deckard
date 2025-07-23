@@ -43,88 +43,49 @@ namespace deckard::taskpool
 	 *
 	 */
 
-
-	export class taskpool
+	class taskpool
 	{
 	private:
-		std::vector<std::thread> threads_;
+		std::vector<std::thread> threads;
+		std::atomic<bool>        stop{false};
+		std::mutex               task_mutex;
+		std::condition_variable  task_cv;
+		std::queue<std::function<void()>> tasks;
 
-		std::queue<std::function<void()>> tasks_;
-
-		std::mutex queue_mutex_;
-
-		std::condition_variable cv_;
-
-		bool stop_ = false;
-	std::unordered_map<std::thread::id, int> thread_counts;
-
+		void worker_thread()
+		{
+			while (!stop)
+			{
+				std::function<void()> task;
+				{
+					std::unique_lock lock(task_mutex);
+					task_cv.wait(lock, [this]() { return !tasks.empty() || stop; });
+					if (stop && tasks.empty())
+						return;
+					task = std::move(tasks.front());
+					tasks.pop();
+				}
+				task();
+			}
+		}
 	public:
-		taskpool(size_t num_threads = std::thread::hardware_concurrency())
+		taskpool() = default;
+		taskpool(const taskpool&)            = delete;
+		taskpool& operator=(const taskpool&) = delete;
+
+		taskpool(u64 threadcount = std::thread::hardware_concurrency())
 		{
+			if (threadcount == 0)
+				threadcount = 1;
 
-			for (size_t i = 0; i < num_threads; ++i)
+			threads.reserve(threadcount);
+
+			for (u64 i = 0; i < threadcount; i++)
 			{
-				threads_.emplace_back(
-				  [this]
-				  {
-					  while (true)
-					  {
-						  thread_counts[std::this_thread::get_id()]++;
-
-						  auto                  start_time = std::chrono::steady_clock::now();
-						  std::function<void()> task;
-						  {
-							  std::unique_lock<std::mutex> lock(queue_mutex_);
-
-							  cv_.wait(lock, [this] { return !tasks_.empty() || stop_; });
-
-							  if (stop_ && tasks_.empty())
-								  return;
-
-							  task = move(tasks_.front());
-							  tasks_.pop();
-						  }
-						  dbg::println("task started at thread {}", std::this_thread::get_id());
-						  task();
-						  auto end_time = std::chrono::steady_clock::now();
-						  #ifdef _DEBUG
-						  dbg::println("task done in {} ({})", pretty_time(end_time - start_time), std::this_thread::get_id());
-						  #endif
-					  }
-				  });
+				threads.emplace_back([&, id=i]() { worker_thread(); });
 			}
 		}
-
-		~taskpool() { stop(); }
-
-		void stop()
-		{
-			{
-				std::unique_lock<std::mutex> lock(queue_mutex_);
-				stop_ = true;
-			}
-
-			cv_.notify_all();
-
-			for (auto& thread : threads_)
-				thread.join();
-
-
-			for(const auto& [id, count] : thread_counts)
-			{
-				dbg::println("thread {} processed {} tasks", id, count);
-			}
-		}
-
-		void push(std::function<void()> task)
-		{
-			{
-				std::unique_lock<std::mutex> lock(queue_mutex_);
-				tasks_.emplace(move(task));
-			}
-			cv_.notify_one();
-		}
-
-
 	};
+
+
 } // namespace deckard::taskpool
