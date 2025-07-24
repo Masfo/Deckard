@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+﻿#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -12,24 +12,32 @@ using namespace std::string_literals;
 
 TEST_CASE("quatertion", "[quaternion]")
 {
-	#if 0
-	SECTION("identity / indexing")
+	SECTION("default constructor")
 	{
 		quat q;
-
-		CHECK(q[0] == 1.0f);
+		CHECK(q[0] == 0.0f);
 		CHECK(q[1] == 0.0f);
 		CHECK(q[2] == 0.0f);
-		CHECK(q[3] == 0.0f);
+		CHECK(q[3] == 1.0f);
 	}
 
-	SECTION("vec3 init")
+	SECTION("init vec3")
 	{
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		CHECK(q == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(q == quat(-0.71828f, 0.31062f, 0.44443f, 0.43595f));
 	}
+
+	SECTION("vec3 neg/pos")
+	{
+		quat q(1.0f, -2.0f, -3.0f, 4.0f);
+
+		CHECK(-q == quat(-1.0f, 2.0f, 3.0f, -4.0f));
+		CHECK(+q == quat(1.0f, -2.0f, -3.0f, 4.0f));
+	}
+
+	#if 0
 
 	SECTION("vec3 neg/pos")
 	{

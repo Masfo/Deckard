@@ -1,4 +1,4 @@
-export module deckard.vec:vec2;
+﻿export module deckard.vec:vec2;
 
 import std;
 import deckard.debug;
@@ -555,10 +555,21 @@ namespace deckard::math
 		return lhs.x + lhs.y + lhs.z;
 	}
 
+	export template<std::floating_point T>
+	[[nodiscard("Use the cos vector")]] constexpr generic_vec2<T> cos(const generic_vec2<T>& lhs)
+	{
+		return generic_vec2<T>(std::cos(lhs.x), std::cos(lhs.y));
+	}
+
+	export template<std::floating_point T>
+	[[nodiscard("Use the sin vector")]] constexpr generic_vec2<T> sin(const generic_vec2<T>& lhs)
+	{
+		return generic_vec2<T>(std::sin(lhs.x), std::sin(lhs.y));
+	}
 
 } // namespace deckard::math
 
-export  namespace std
+export namespace std
 {
 	using namespace deckard;
 	using namespace deckard::math;

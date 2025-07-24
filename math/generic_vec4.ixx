@@ -18,10 +18,10 @@ namespace deckard::math
 		using vec_type = generic_vec4<T>;
 
 
-		T x{0};
-		T y{0};
-		T z{0};
-		T w{0};
+		type x{0};
+		type y{0};
+		type z{0};
+		type w{0};
 
 
 		constexpr generic_vec4() = default;
@@ -155,6 +155,30 @@ namespace deckard::math
 		}
 
 		constexpr operator generic_vec3<T>() const { return generic_vec3<T>(x, y, z); }
+
+		constexpr type operator[](size_t index)
+		{
+			switch (index)
+			{
+				case 0: return x;
+				case 1: return y;
+				case 2: return z;
+				case 3: return w;
+				default: assert::check(false, "generic_vec4: index out of bounds"); return T{0};
+			}
+		}
+
+		constexpr type operator[](size_t index) const
+		{
+			switch (index)
+			{
+				case 0: return x;
+				case 1: return y;
+				case 2: return z;
+				case 3: return w;
+				default: assert::check(false, "generic_vec4: index out of bounds"); return T{0};
+			}
+		}
 
 		constexpr auto operator<=>(const vec_type& other) const = default;
 
@@ -595,6 +619,17 @@ namespace deckard::math
 		return lhs.x + lhs.y + lhs.z + lhs.w;
 	}
 
+	export template<std::floating_point T>
+	[[nodiscard("Use the cos vector")]] constexpr generic_vec4<T> cos(const generic_vec4<T>& lhs)
+	{
+		return generic_vec4<T>(std::cos(lhs.x), std::cos(lhs.y), std::cos(lhs.z), std::cos(lhs.w));
+	}
+
+	export template<std::floating_point T>
+	[[nodiscard("Use the sin vector")]] constexpr generic_vec4<T> sin(const generic_vec4<T>& lhs)
+	{
+		return generic_vec4<T>(std::sin(lhs.x), std::sin(lhs.y), std::sin(lhs.z), std::sin(lhs.z));
+	}
 
 } // namespace deckard::math
 

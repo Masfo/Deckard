@@ -1,15 +1,65 @@
-module;
+﻿module;
 #include <intrin.h>
 export module deckard.math:quaternion;
 
 import deckard.assert;
 import deckard.types;
 import deckard.debug;
+import deckard.vec;
 
 import std;
 
 namespace deckard::math
 {
+
+	export class quat
+	{
+	private:
+		vec4 data{0.0f, 0.0f, 0.0f, 1.0f}; 
+	public:
+		quat() = default;
+
+		quat(f32 x, f32 y, f32 z, f32 w)
+		{
+			data.x = x;
+			data.y = y;
+			data.z = z;
+			data.w = w;
+		}
+
+		quat(const vec3 &v)
+		{
+			const vec3 half = v * 0.5f;
+			vec3 c = cos(half);
+			vec3 s = sin(half);
+
+			data.x = s.x * c.y * c.z - c.x * s.y * s.z;
+			data.y = c.x * s.y * c.z + s.x * c.y * s.z;
+			data.z = c.x * c.y * s.z - s.x * s.y * c.z;
+			data.w = c.x * c.y * c.z + s.x * s.y * s.z;
+		}
+
+		quat operator-() const { return quat(-data.x, -data.y, -data.z, -data.w); }
+
+		quat operator+() const { return *this; }
+
+
+
+		auto operator[](size_t index) const -> f32
+		{
+			assert::check(index < 4, "out-of-bounds, quat has 4 elements");
+			return data[index];
+		}
+
+		bool equals(const quat& lhs) const { return data == lhs.data; }
+
+
+
+	};
+
+		export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
+
+
 	#if 0
 	using m128 = __m128;
 

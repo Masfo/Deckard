@@ -76,6 +76,20 @@ namespace deckard::math
 			return mat[index];
 		}
 
+		//
+		f32 operator[](size_t x, size_t y)
+		{
+			assert::check(x < 4 and y < 4, "mat4: indexing out-of-bounds");
+			return mat[y][x];
+		}
+
+		const f32 operator[](size_t x, size_t y) const
+		{
+			assert::check(x < 4 and y < 4, "mat4: indexing out-of-bounds");
+			return mat[y][x];
+		}
+
+
 		mat4_generic operator*(const f32 scalar) const
 		{
 			return mat4_generic(mat[0] * scalar, mat[1] * scalar, mat[2] * scalar, mat[3] * scalar);

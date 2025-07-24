@@ -137,7 +137,6 @@ namespace deckard::math
 			z = v[2];
 		}
 
-
 		constexpr auto operator<=>(const vec_type& other) const = default;
 
 		constexpr bool operator==(const vec_type& other) const { return equals(other); }
@@ -177,10 +176,7 @@ namespace deckard::math
 			return vec_type(std::max(x, other.x), std::max(y, other.y), std::max(z, other.z));
 		}
 
-		[[nodiscard("Use the absolute value")]] constexpr vec_type abs() const
-		{
-			return vec_type(std::abs(x), std::abs(y), std::abs(z));
-		}
+		[[nodiscard("Use the absolute value")]] constexpr vec_type abs() const { return vec_type(std::abs(x), std::abs(y), std::abs(z)); }
 
 		// manhattan distance
 		[[nodiscard("Use the distance value")]] constexpr T distance(const vec_type& other) const
@@ -314,7 +310,6 @@ namespace deckard::math
 			return result;
 		}
 
-		
 		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const
 		requires(std::is_floating_point_v<T>)
 		{
@@ -405,7 +400,7 @@ namespace deckard::math
 		lhs *= generic_vec3<T>(scalar);
 	}
 
-		export template<arithmetic T, arithmetic U>
+	export template<arithmetic T, arithmetic U>
 	constexpr void operator*=(const U& scalar, generic_vec3<T>& lhs)
 	{
 		lhs *= generic_vec3<T>(scalar);
@@ -419,14 +414,13 @@ namespace deckard::math
 		return result;
 	}
 
-		export template<arithmetic T, arithmetic U>
-	constexpr generic_vec3<T> operator*(const U&scalar, const generic_vec3<T>& lhs)
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec3<T> operator*(const U& scalar, const generic_vec3<T>& lhs)
 	{
 		generic_vec3<T> result(lhs);
 		result *= generic_vec3<T>(as<T>(scalar));
 		return result;
 	}
-
 
 	export template<arithmetic T>
 	constexpr generic_vec3<T> operator*(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
@@ -514,7 +508,6 @@ namespace deckard::math
 		return result;
 	}
 
-	
 	export template<arithmetic T>
 	constexpr generic_vec3<T> operator%(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
@@ -523,9 +516,7 @@ namespace deckard::math
 		return result;
 	}
 
-
-
-	// 
+	//
 
 	export template<arithmetic T>
 	[[nodiscard("Use the maximum value")]] constexpr generic_vec3<T> min(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
@@ -551,10 +542,10 @@ namespace deckard::math
 		return lhs.distance(rhs);
 	}
 
-		export template<arithmetic T>
+	export template<arithmetic T>
 	[[nodiscard("Use the normalized vector")]] constexpr generic_vec3<T> normalized(const generic_vec3<T>& lhs)
 	{
-			return lhs.normalized();
+		return lhs.normalized();
 	}
 
 	export template<arithmetic T, arithmetic U, arithmetic R>
@@ -610,6 +601,18 @@ namespace deckard::math
 	[[nodiscard("Use the summed vector value")]] constexpr T sum(const generic_vec3<T>& lhs)
 	{
 		return lhs.x + lhs.y + lhs.z;
+	}
+
+	export template<std::floating_point T>
+	[[nodiscard("Use the cos vector")]] constexpr generic_vec3<T> cos(const generic_vec3<T>& lhs)
+	{
+		return generic_vec3<T>(std::cos(lhs.x), std::cos(lhs.y), std::cos(lhs.z));
+	}
+
+	export template<std::floating_point T>
+	[[nodiscard("Use the sin vector")]] constexpr generic_vec3<T> sin(const generic_vec3<T>& lhs)
+	{
+		return generic_vec3<T>(std::sin(lhs.x), std::sin(lhs.y), std::sin(lhs.z));
 	}
 
 
