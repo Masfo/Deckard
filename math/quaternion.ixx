@@ -15,7 +15,8 @@ namespace deckard::math
 	export class quat
 	{
 	private:
-		vec4 data{0.0f, 0.0f, 0.0f, 1.0f}; 
+		vec4 data{0.0f, 0.0f, 0.0f, 1.0f};
+
 	public:
 		quat() = default;
 
@@ -27,11 +28,11 @@ namespace deckard::math
 			data.w = w;
 		}
 
-		quat(const vec3 &v)
+		quat(const vec3& v)
 		{
 			const vec3 half = v * 0.5f;
-			vec3 c = cos(half);
-			vec3 s = sin(half);
+			vec3       c    = cos(half);
+			vec3       s    = sin(half);
 
 			data.x = s.x * c.y * c.z - c.x * s.y * s.z;
 			data.y = c.x * s.y * c.z + s.x * c.y * s.z;
@@ -43,8 +44,6 @@ namespace deckard::math
 
 		quat operator+() const { return *this; }
 
-
-
 		auto operator[](size_t index) const -> f32
 		{
 			assert::check(index < 4, "out-of-bounds, quat has 4 elements");
@@ -53,14 +52,42 @@ namespace deckard::math
 
 		bool equals(const quat& lhs) const { return data == lhs.data; }
 
+		quat operator+(const quat& other) const
+		{
+			return quat(data.x + other.data.x, data.y + other.data.y, data.z + other.data.z, data.w + other.data.w);
+		}
 
+		quat operator-(const quat& other) const
+		{
+			return quat(data.x - other.data.x, data.y - other.data.y, data.z - other.data.z, data.w - other.data.w);
+		}
 
+		quat operator*(const quat& other) const
+		{
+			const f32 x = data.w * other.data.x + data.x * other.data.w + data.y * other.data.z - data.z * other.data.y;
+			const f32 y = data.w * other.data.y + data.y * other.data.w + data.z * other.data.x - data.x * other.data.z;
+			const f32 z = data.w * other.data.z + data.z * other.data.w + data.x * other.data.y - data.y * other.data.x;
+			const f32 w = data.w * other.data.w - data.x * other.data.x - data.y * other.data.y - data.z * other.data.z;
+			return quat(x, y, z, w);
+		}
+
+		quat operator*(const f32 scalar) const { return quat(data.x * scalar, data.y * scalar, data.z * scalar, data.w * scalar); }
+
+		quat operator/(const f32 scalar) const
+		{
+			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
+			return quat(data.x / scalar, data.y / scalar, data.z / scalar, data.w / scalar);
+		}
 	};
 
-		export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
+	export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
+
+	export const quat operator*(f32 scalar, const quat& q) { return q * scalar; }
+
+	export const quat operator/(f32 scalar, const quat& q) { return q / scalar; }
 
 
-	#if 0
+#if 0
 	using m128 = __m128;
 
 	union QuatData
@@ -473,6 +500,5 @@ namespace deckard::math
 		const float half = angle * 0.5f;
 		return quat(0, 0, std::sin(half), std::cos(half));
 	}
-	#endif
+#endif
 } // namespace deckard::math
-

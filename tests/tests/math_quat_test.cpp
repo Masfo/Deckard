@@ -37,29 +37,26 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK(+q == quat(1.0f, -2.0f, -3.0f, 4.0f));
 	}
 
-	#if 0
-
-	SECTION("vec3 neg/pos")
-	{
-		quat q(1.0f, -2.0f, -3.0f, 4.0f);
-
-		CHECK(-q == quat(-1.0f, 2.0f, 3.0f, -4.0f));
-		CHECK(+q == quat(1.0f, -2.0f, -3.0f, 4.0f));
-	}
-
 	SECTION("vec3 add/sub/mul/div/scale")
 	{
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK((v1 + v2) == quat(1.18328f, -1.23312f, 0.14046f, 0.82849f));
-		CHECK((v1 - v2) == quat(-0.31137f, -0.20345f, 0.48078f, 0.06038f));
-		CHECK((v1 * v2) == quat(-0.16183f, -0.56632f, 0.20500f, 0.78171f));
-		CHECK((v1 / 0.75f) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
+		CHECK((v1 + v2) == quat(-1.23312f, 0.14046f, 0.82849f, 1.18328f));
+		CHECK((v1 - v2) == quat(-0.20345f, 0.48078f, 0.06038f, -0.31137f));
+		CHECK((v1 * v2) == quat(-0.56632f, 0.20500f, 0.78171f, -0.16183f));
+		
+		CHECK((v1 / 0.75f) == quat( -0.95772f, 0.41416f, 0.59258f, 0.58127f));
+		CHECK((0.75f / v1) == quat(-0.95772f, 0.41416f, 0.59258f, 0.58127f));
 
-		CHECK((v1 * 1.25f) == quat(0.54494f, -0.89786f, 0.38828f, 0.55554f));
-		CHECK((1.25f * v1) == quat(0.54494f, -0.89786f, 0.38828f, 0.55554f));
+		CHECK((v1 * 1.25f) == quat(-0.89786f, 0.38828f, 0.55554f, 0.54494f));
+		CHECK((1.25f * v1) == quat(-0.89786f, 0.38828f, 0.55554f, 0.54494f));
 	}
+
+#if 0
+
+
+
 
 	SECTION("inplace")
 	{
@@ -216,5 +213,5 @@ TEST_CASE("quatertion", "[quaternion]")
 
 		CHECK(f == "quat(0.43595, -0.71829, 0.31062, 0.44444)"s);
 	}
-	#endif
+#endif
 }
