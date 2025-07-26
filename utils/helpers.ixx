@@ -460,7 +460,6 @@ export namespace deckard
 		return (c >= a) && (c <= b);
 	}
 
-
 	template<arithmetic T = i32>
 	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::expected<T, std::string>
 	{
@@ -740,11 +739,10 @@ export namespace deckard
 
 	size_t int_log2(uint64_t x) { return 63 - std::countl_zero(x | 1); }
 
-	
 	template<std::integral T>
 	T round_up(T value, T multiple)
 	{
-		if(multiple == 0)
+		if (multiple == 0)
 			return value;
 
 		T divided = (value + multiple - 1) / multiple;
@@ -754,7 +752,7 @@ export namespace deckard
 	template<std::integral T>
 	T round_down(T value, T multiple)
 	{
-		if(multiple == 0)
+		if (multiple == 0)
 			return value;
 
 		return (value / multiple) * multiple;
@@ -983,5 +981,34 @@ export namespace deckard
 	*/
 
 	// ###############################
+
+	void delta_encode(std::span<u8> input)
+	{
+		if (input.empty())
+			return;
+
+		u8 last = 0;
+		for (auto& i : input)
+		{
+			u8 current = i;
+			i          = current - last;
+			last       = current;
+		}
+	}
+
+	void delta_decode(std::span<u8> input)
+	{
+		if (input.empty())
+			return;
+
+		u8 last = 0;
+		for (auto& i : input)
+		{
+			u8 delta = i;
+			i        = delta + last;
+			last     = i;
+		}
+	}
+
 
 } // namespace deckard

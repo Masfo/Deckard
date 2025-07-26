@@ -18,8 +18,8 @@ using namespace std::string_view_literals;
 import window;
 #endif
 
-std::array<unsigned char, 256> previous{0};
-std::array<unsigned char, 256> current{0};
+std::array<unsigned char, 256> previous_state{0};
+std::array<unsigned char, 256> current_state{0};
 
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
 {
@@ -32,10 +32,10 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (up and key == Key::B)
 	{
-		current.swap(previous);
+		current_state.swap(previous_state);
 		{
 			ScopeTimer<std::micro> _("state");
-			GetKeyboardState(&current[0]);
+			GetKeyboardState(&current_state[0]);
 		}
 
 		// auto shift = current[Key::Shift];
@@ -358,6 +358,19 @@ dbg::println();
 
 	// ###############################################
 
+
+	// ###############################################
+
+	u64             value = 0x12'3456;
+	std::vector<u8> bytes;
+	do
+	{
+		u8 byte = value & 0x7f; /* low-order 7 bits of value */
+		value >>= 7;
+		if (value != 0)         /* more bytes to come */
+			byte |= 0x80;       /* set high-order bit of byte */
+		bytes.push_back(byte);
+	} while (value != 0);
 
 
 	_ = 0;

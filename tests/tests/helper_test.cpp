@@ -532,4 +532,31 @@ TEST_CASE("helpers", "[helpers]")
 
 		CHECK("1 MiB, 256 KiB, 128 bytes"sv == pretty_bytes(1_MiB + 256_KiB + 128));
 	}
+
+	SECTION("delta encode/decode") 
+	{ 
+		std::vector<u8> data{0x01, 0x02, 0x02, 0x02, 0x03, 0x00, 0x01, 0x01};
+
+		delta_encode(data);
+
+		CHECK(data[0] == 0x01);
+		CHECK(data[1] == 0x01);
+		CHECK(data[2] == 0x00);
+		CHECK(data[3] == 0x00);
+		CHECK(data[4] == 0x01);
+		CHECK(data[5] == 0xFD);
+		CHECK(data[6] == 0x01);
+		CHECK(data[7] == 0x00);
+
+		delta_decode(data);
+
+		CHECK(data[0] == 0x01);
+		CHECK(data[1] == 0x02);
+		CHECK(data[2] == 0x02);
+		CHECK(data[3] == 0x02);
+		CHECK(data[4] == 0x03);
+		CHECK(data[5] == 0x00);
+		CHECK(data[6] == 0x01);
+		CHECK(data[7] == 0x01);
+	}
 }
