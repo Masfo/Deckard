@@ -40,6 +40,8 @@ namespace deckard::math
 			data.w = c.x * c.y * c.z + s.x * s.y * s.z;
 		}
 
+		
+
 		quat operator-() const { return quat(-data.x, -data.y, -data.z, -data.w); }
 
 		quat operator+() const { return *this; }
@@ -78,13 +80,72 @@ namespace deckard::math
 			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
 			return quat(data.x / scalar, data.y / scalar, data.z / scalar, data.w / scalar);
 		}
+
+		      quat& operator+=(const quat& other)
+		{
+			data.x += other.data.x;
+			data.y += other.data.y;
+			data.z += other.data.z;
+			data.w += other.data.w;
+			return *this;
+		}
+
+		quat& operator-=(const quat& other)
+		{
+			data.x -= other.data.x;
+			data.y -= other.data.y;
+			data.z -= other.data.z;
+			data.w -= other.data.w;
+			return *this;
+		}
+
+		quat& operator*=(const quat& other)
+		{
+			const quat temp(*this);
+			data.x = temp.data.w * other.data.x + temp.data.x * other.data.w + temp.data.y * other.data.z - temp.data.z * other.data.y;
+			data.y = temp.data.w * other.data.y + temp.data.y * other.data.w + temp.data.z * other.data.x - temp.data.x * other.data.z;
+			data.z = temp.data.w * other.data.z + temp.data.z * other.data.w + temp.data.x * other.data.y - temp.data.y * other.data.x;
+			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y - temp.data.z * other.data.z;
+			return *this;
+		}
+
+		quat& operator*=(const f32 scalar)
+		{
+			data.x *= scalar;
+			data.y *= scalar;
+			data.z *= scalar;
+			data.w *= scalar;
+			return *this;
+		}
+
+		quat& operator/=(const f32 scalar)
+		{
+			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
+			data.x /= scalar;
+			data.y /= scalar;
+			data.z /= scalar;
+			data.w /= scalar;
+			return *this;
+		}
 	};
 
 	export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
 
 	export const quat operator*(f32 scalar, const quat& q) { return q * scalar; }
+	export const quat operator*=(f32 scalar, quat& q)
+	{
+		q *= scalar;
+		return q;
+	}
+
+
 
 	export const quat operator/(f32 scalar, const quat& q) { return q / scalar; }
+	export const quat operator/=(f32 scalar, quat& q)
+	{
+		q /= scalar;
+		return q;
+	}
 
 
 #if 0
