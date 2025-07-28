@@ -15,6 +15,9 @@ namespace deckard::math
 	export class quat
 	{
 	private:
+		friend f32 dot(const quat& a, const quat b);
+
+	private:
 		vec4 data{0.0f, 0.0f, 0.0f, 1.0f};
 
 	public:
@@ -39,8 +42,6 @@ namespace deckard::math
 			data.z = c.x * c.y * s.z - s.x * s.y * c.z;
 			data.w = c.x * c.y * c.z + s.x * s.y * s.z;
 		}
-
-		
 
 		quat operator-() const { return quat(-data.x, -data.y, -data.z, -data.w); }
 
@@ -81,7 +82,7 @@ namespace deckard::math
 			return quat(data.x / scalar, data.y / scalar, data.z / scalar, data.w / scalar);
 		}
 
-		      quat& operator+=(const quat& other)
+		quat& operator+=(const quat& other)
 		{
 			data.x += other.data.x;
 			data.y += other.data.y;
@@ -127,25 +128,37 @@ namespace deckard::math
 			data.w /= scalar;
 			return *this;
 		}
+
+		quat conjugate() const { return quat(-data.x, -data.y, -data.z, data.w); }
 	};
 
 	export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
 
-	export const quat operator*(f32 scalar, const quat& q) { return q * scalar; }
-	export const quat operator*=(f32 scalar, quat& q)
+	export quat operator*(f32 scalar, const quat& q) { return q * scalar; }
+
+	export quat operator*=(f32 scalar, quat& q)
 	{
 		q *= scalar;
 		return q;
 	}
 
+	export quat operator/(f32 scalar, const quat& q) { return q / scalar; }
 
-
-	export const quat operator/(f32 scalar, const quat& q) { return q / scalar; }
-	export const quat operator/=(f32 scalar, quat& q)
+	export quat operator/=(f32 scalar, quat& q)
 	{
 		q /= scalar;
 		return q;
 	}
+
+	export f32 dot(const quat& a, const quat b)
+	{
+		vec4 tmp(a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z, a.data.w * b.data.w);
+		return (tmp.x + tmp.y) + (tmp.z + tmp.w);
+	}
+
+	export quat conjugate(const quat& q) { return q.conjugate(); }
+
+	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }
 
 
 #if 0

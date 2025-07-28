@@ -86,33 +86,20 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK(v3 == quat(-1.23928f, 1.15912f, 2.36147f, -0.80332f));
 	}
 
-#if 0
-
-
-
-
-	SECTION("inplace")
+	SECTION("conjugate")
 	{
-		const quat v1(vec3(1.0f, 2.0f, 3.0f));
-		const quat v2(vec3(2.0f, 3.0f, 4.0f));
-		quat       v3 = v1;
+		vec3 v(1.0f, 2.0f, 3.0f);
+		quat q(v);
 
-		CHECK(v3 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(q.conjugate() == quat(0.71828f, -0.31062f, -0.44443f, 0.43595f));
+	}
 
+	SECTION("dot")
+	{
+		quat v1(vec3(1.0f, 2.0f, 3.0f));
+		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		v3 *= 2.0f;
-		CHECK(v3 == quat(0.87191f, -1.43657f, 0.62124f, 0.88887f));
-
-		v3 += v1;
-		CHECK(v3 == quat(1.30786f, -2.15486f, 0.93187f, 1.33331f));
-		v3 -= v2;
-		CHECK(v3 == quat(0.56053f, -1.64003f, 1.10202f, 0.94925f));
-
-		v3 *= v2;
-		CHECK(v3 == quat(-0.60249f, -0.92946f, 0.86934f, 1.77110f));
-
-		v3 /= 0.75f;
-		CHECK(v3 == quat(-0.80332f, -1.23928f, 1.15912f, 2.36147f));
+		CHECK_THAT(dot(v1, v2), Catch::Matchers::WithinAbs(0.81343f, 0.00001f));
 	}
 
 	SECTION("inverse")
@@ -120,8 +107,10 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(inverse(v1 + v2) == quat(0.32625f, 0.34000f, -0.03873f, -0.22843f));
+		CHECK(inverse(v1 + v2) == quat(0.34000f, -0.03873f, -0.22843f, 0.32625f));
 	}
+
+#if 0
 
 	SECTION("cross")
 	{
@@ -139,13 +128,6 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK_THAT(length(v1 + v2), Catch::Matchers::WithinAbs(1.90443f, 0.00001f));
 	}
 
-	SECTION("dot")
-	{
-		quat v1(vec3(1.0f, 2.0f, 3.0f));
-		quat v2(vec3(2.0f, 3.0f, 4.0f));
-
-		CHECK_THAT(dot(v1, v2), Catch::Matchers::WithinAbs(0.81343f, 0.00001f));
-	}
 
 	SECTION("normalize")
 	{
@@ -156,13 +138,7 @@ TEST_CASE("quatertion", "[quaternion]")
 	}
 
 
-	SECTION("conjugate")
-	{
-		vec3 v(1.0f, 2.0f, 3.0f);
-		quat q(v);
 
-		CHECK(q.conjugate() == quat(0.43595f, 0.71828f, -0.31062f, -0.44443f));
-	}
 
 	SECTION("rotate")
 	{
