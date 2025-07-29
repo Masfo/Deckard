@@ -167,10 +167,10 @@ namespace deckard::math
 
 	export quat cross(const quat& q1, const quat& q2)
 	{
-		return {q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z,
-				q1.data.w * q2.data.x + q1.data.x * q2.data.w + q1.data.y * q2.data.z - q1.data.z * q2.data.y,
+		return {q1.data.w * q2.data.x + q1.data.x * q2.data.w + q1.data.y * q2.data.z - q1.data.z * q2.data.y,
 				q1.data.w * q2.data.y + q1.data.y * q2.data.w + q1.data.z * q2.data.x - q1.data.x * q2.data.z,
-				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x};
+				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x,
+				q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z};
 	}
 
 	export quat normalize(quat q)

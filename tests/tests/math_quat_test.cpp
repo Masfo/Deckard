@@ -115,7 +115,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(cross(v1, v2) == quat(-0.16183f, -0.56632f, 0.20500f, 0.78171f));
+		CHECK(cross(v1, v2) == quat(-0.56632f, 0.20500f, 0.78171f, -0.16183f));
 	}
 
 
