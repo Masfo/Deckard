@@ -6,6 +6,7 @@ import deckard.assert;
 import deckard.types;
 import deckard.debug;
 import deckard.vec;
+import deckard.math.utils;
 
 import std;
 
@@ -15,7 +16,11 @@ namespace deckard::math
 	export class quat
 	{
 	private:
-		friend f32 dot(const quat& a, const quat b);
+		friend f32  dot(const quat& a, const quat b);
+		friend quat cross(const quat& q1, const quat& q2);
+		friend quat conjugate(const quat& q);
+		friend quat normalize(quat q);
+
 
 	private:
 		vec4 data{0.0f, 0.0f, 0.0f, 1.0f};
@@ -128,8 +133,6 @@ namespace deckard::math
 			data.w /= scalar;
 			return *this;
 		}
-
-		quat conjugate() const { return quat(-data.x, -data.y, -data.z, data.w); }
 	};
 
 	export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
@@ -156,10 +159,36 @@ namespace deckard::math
 		return (tmp.x + tmp.y) + (tmp.z + tmp.w);
 	}
 
-	export quat conjugate(const quat& q) { return q.conjugate(); }
+	export f32 length(const quat& q) { return std::sqrt(dot(q, q)); };
+
+	export quat conjugate(const quat& q) { return quat(-q.data.x, -q.data.y, -q.data.z, q.data.w); }
 
 	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }
 
+	export quat cross(const quat& q1, const quat& q2)
+	{
+		return {q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z,
+				q1.data.w * q2.data.x + q1.data.x * q2.data.w + q1.data.y * q2.data.z - q1.data.z * q2.data.y,
+				q1.data.w * q2.data.y + q1.data.y * q2.data.w + q1.data.z * q2.data.x - q1.data.x * q2.data.z,
+				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x};
+	}
+
+	export quat normalize(quat q)
+	{
+		f32 len = length(q);
+
+		if (math::is_close_enough_zero(len))
+			return q;
+
+		f32 over = 1.0f / len;
+
+		q.data.w *= over;
+		q.data.x *= over;
+		q.data.y *= over;
+		q.data.z *= over;
+
+		return q;
+	}
 
 #if 0
 	using m128 = __m128;
@@ -481,13 +510,7 @@ namespace deckard::math
 		return q;
 	}
 
-	export quat cross(const quat& q1, const quat& q2)
-	{
-		return {q1.data.c.w * q2.data.c.w - q1.data.c.x * q2.data.c.x - q1.data.c.y * q2.data.c.y - q1.data.c.z * q2.data.c.z,
-				q1.data.c.w * q2.data.c.x + q1.data.c.x * q2.data.c.w + q1.data.c.y * q2.data.c.z - q1.data.c.z * q2.data.c.y,
-				q1.data.c.w * q2.data.c.y + q1.data.c.y * q2.data.c.w + q1.data.c.z * q2.data.c.x - q1.data.c.x * q2.data.c.z,
-				q1.data.c.w * q2.data.c.z + q1.data.c.z * q2.data.c.w + q1.data.c.x * q2.data.c.y - q1.data.c.y * q2.data.c.x};
-	}
+
 
 	f32 mix(f32 x, f32 y, f32 t) { return (x * (1.0f - t) + y * t); }
 
