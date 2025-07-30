@@ -182,12 +182,29 @@ namespace deckard::math
 
 		f32 over = 1.0f / len;
 
-		q.data.w *= over;
 		q.data.x *= over;
 		q.data.y *= over;
 		q.data.z *= over;
+		q.data.w *= over;
 
 		return q;
+	}
+
+	export quat rotate(const quat& q, const f32 angle, const vec3& v)
+	{
+		auto tmp = v;
+
+		f32 len = tmp.length();
+		if (std::abs(len - 1.0f) > 0.001f)
+		{
+			f32 over = 1.0f / len;
+			tmp.x *= over;
+			tmp.y *= over;
+			tmp.z *= over;
+		}
+
+		f32 s = std::sin(angle * 0.5f);
+		return q * quat(tmp.x * s, tmp.y * s, tmp.z * s, std::cos(angle * 0.5f));
 	}
 
 #if 0

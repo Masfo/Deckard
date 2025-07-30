@@ -135,11 +135,6 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK_THAT(length(v1 + v2), Catch::Matchers::WithinAbs(1.90443f, 0.00001f));
 	}
 
-#if 0
-
-
-
-
 	SECTION("rotate")
 	{
 		vec3 v(1.0f, 2.0f, 3.0f);
@@ -147,8 +142,13 @@ TEST_CASE("quatertion", "[quaternion]")
 
 		quat qrot = rotate(q, 45.0f, vec3(0, 1, 0));
 
-		CHECK(qrot == quat(-0.22939f, 0.84380f, -0.48365f, -0.03820f));
+		CHECK(qrot == quat(0.84380f, -0.48365f, -0.03820f, -0.22939f));
 	}
+#if 0
+
+
+
+
 
 	SECTION("lerp")
 	{
