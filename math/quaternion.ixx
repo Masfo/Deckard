@@ -15,7 +15,6 @@ import std;
 namespace deckard::math
 {
 
-	// TODO: switch to w,xyz
 	export class quat
 	{
 	private:
@@ -26,17 +25,18 @@ namespace deckard::math
 
 
 	private:
-		vec4 data{0.0f, 0.0f, 0.0f, 1.0f};
+		vec4 data{1.0f, 0.0f, 0.0f, 0.0f};
 
 	public:
 		quat() = default;
 
-		quat(f32 x, f32 y, f32 z, f32 w)
+		quat(f32 w, f32 x, f32 y, f32 z)
 		{
+			data.w = w;
+
 			data.x = x;
 			data.y = y;
 			data.z = z;
-			data.w = w;
 		}
 
 		quat(const vec3& v)
@@ -45,13 +45,14 @@ namespace deckard::math
 			vec3       c    = cos(half);
 			vec3       s    = sin(half);
 
+			data.w = c.x * c.y * c.z + s.x * s.y * s.z;
+
 			data.x = s.x * c.y * c.z - c.x * s.y * s.z;
 			data.y = c.x * s.y * c.z + s.x * c.y * s.z;
 			data.z = c.x * c.y * s.z - s.x * s.y * c.z;
-			data.w = c.x * c.y * c.z + s.x * s.y * s.z;
 		}
 
-		quat operator-() const { return quat(-data.x, -data.y, -data.z, -data.w); }
+		quat operator-() const { return quat(-data.w, -data.x, -data.y, -data.z); }
 
 		quat operator+() const { return *this; }
 
@@ -65,21 +66,23 @@ namespace deckard::math
 
 		quat operator+(const quat& other) const
 		{
-			return quat(data.x + other.data.x, data.y + other.data.y, data.z + other.data.z, data.w + other.data.w);
+			return quat(data.w + other.data.w, data.x + other.data.x, data.y + other.data.y, data.z + other.data.z);
 		}
 
 		quat operator-(const quat& other) const
 		{
-			return quat(data.x - other.data.x, data.y - other.data.y, data.z - other.data.z, data.w - other.data.w);
+			return quat(data.w - other.data.w, data.x - other.data.x, data.y - other.data.y, data.z - other.data.z);
 		}
 
 		quat operator*(const quat& other) const
 		{
+			const f32 w = data.w * other.data.w - data.x * other.data.x - data.y * other.data.y - data.z * other.data.z;
+
 			const f32 x = data.w * other.data.x + data.x * other.data.w + data.y * other.data.z - data.z * other.data.y;
 			const f32 y = data.w * other.data.y + data.y * other.data.w + data.z * other.data.x - data.x * other.data.z;
 			const f32 z = data.w * other.data.z + data.z * other.data.w + data.x * other.data.y - data.y * other.data.x;
-			const f32 w = data.w * other.data.w - data.x * other.data.x - data.y * other.data.y - data.z * other.data.z;
-			return quat(x, y, z, w);
+
+			return quat(w, x, y, z);
 		}
 
 		quat operator*(const f32 scalar) const { return quat(data.x * scalar, data.y * scalar, data.z * scalar, data.w * scalar); }
@@ -87,53 +90,65 @@ namespace deckard::math
 		quat operator/(const f32 scalar) const
 		{
 			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
-			return quat(data.x / scalar, data.y / scalar, data.z / scalar, data.w / scalar);
+			return quat(data.w / scalar, data.x / scalar, data.y / scalar, data.z / scalar);
 		}
 
 		quat& operator+=(const quat& other)
 		{
+			data.w += other.data.w;
+
 			data.x += other.data.x;
 			data.y += other.data.y;
 			data.z += other.data.z;
-			data.w += other.data.w;
+
 			return *this;
 		}
 
 		quat& operator-=(const quat& other)
 		{
+			data.w -= other.data.w;
+
 			data.x -= other.data.x;
 			data.y -= other.data.y;
 			data.z -= other.data.z;
-			data.w -= other.data.w;
+
 			return *this;
 		}
 
 		quat& operator*=(const quat& other)
 		{
 			const quat temp(*this);
+
+			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y - temp.data.z * other.data.z;
+
 			data.x = temp.data.w * other.data.x + temp.data.x * other.data.w + temp.data.y * other.data.z - temp.data.z * other.data.y;
 			data.y = temp.data.w * other.data.y + temp.data.y * other.data.w + temp.data.z * other.data.x - temp.data.x * other.data.z;
 			data.z = temp.data.w * other.data.z + temp.data.z * other.data.w + temp.data.x * other.data.y - temp.data.y * other.data.x;
-			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y - temp.data.z * other.data.z;
+
 			return *this;
 		}
 
 		quat& operator*=(const f32 scalar)
 		{
+			data.w *= scalar;
+
 			data.x *= scalar;
 			data.y *= scalar;
 			data.z *= scalar;
-			data.w *= scalar;
+
 			return *this;
 		}
 
 		quat& operator/=(const f32 scalar)
 		{
 			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
+
+			data.w /= scalar;
+
 			data.x /= scalar;
 			data.y /= scalar;
 			data.z /= scalar;
-			data.w /= scalar;
+
 			return *this;
 		}
 	};
@@ -158,22 +173,22 @@ namespace deckard::math
 
 	export f32 dot(const quat& a, const quat b)
 	{
-		vec4 tmp(a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z, a.data.w * b.data.w);
+		vec4 tmp( a.data.w * b.data.w, a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z);
 		return (tmp.x + tmp.y) + (tmp.z + tmp.w);
 	}
 
 	export f32 length(const quat& q) { return std::sqrt(dot(q, q)); };
 
-	export quat conjugate(const quat& q) { return quat(-q.data.x, -q.data.y, -q.data.z, q.data.w); }
+	export quat conjugate(const quat& q) { return quat(q.data.w, -q.data.x, -q.data.y, -q.data.z); }
 
 	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }
 
 	export quat cross(const quat& q1, const quat& q2)
 	{
-		return {q1.data.w * q2.data.x + q1.data.x * q2.data.w + q1.data.y * q2.data.z - q1.data.z * q2.data.y,
+		return {q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z,
+				q1.data.w * q2.data.x + q1.data.x * q2.data.w + q1.data.y * q2.data.z - q1.data.z * q2.data.y,
 				q1.data.w * q2.data.y + q1.data.y * q2.data.w + q1.data.z * q2.data.x - q1.data.x * q2.data.z,
-				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x,
-				q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z};
+				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x};
 	}
 
 	export quat normalize(quat q)
@@ -185,10 +200,11 @@ namespace deckard::math
 
 		f32 over = 1.0f / len;
 
+		q.data.w *= over;
+
 		q.data.x *= over;
 		q.data.y *= over;
 		q.data.z *= over;
-		q.data.w *= over;
 
 		return q;
 	}
@@ -207,7 +223,7 @@ namespace deckard::math
 		}
 
 		f32 s = std::sin(angle * 0.5f);
-		return q * quat(tmp.x * s, tmp.y * s, tmp.z * s, std::cos(angle * 0.5f));
+		return q * quat(std::cos(angle * 0.5f), tmp.x * s, tmp.y * s, tmp.z * s);
 	}
 
 #if 0
@@ -620,13 +636,12 @@ namespace deckard::math
 #endif
 } // namespace deckard::math
 
-
 namespace std
 {
 	template<>
 	struct hash<quat>
 	{
-		size_t operator()(const quat& q) const { return deckard::utils::hash_values(q[0], q[1], q[2], q[3]); }
+		size_t operator()(const quat& q) const { return deckard::utils::hash_values(q[3], q[0], q[1], q[1]); }
 	};
 
 	template<>
@@ -636,7 +651,7 @@ namespace std
 
 		auto format(const quat& q, std::format_context& ctx) const
 		{
-			return std::format_to(ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, w:{:.5f})", q[0], q[1], q[2], q[3]);
+			return std::format_to(ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, {:.5f})", q[3], q[0], q[1], q[2]);
 		}
 	};
 } // namespace std

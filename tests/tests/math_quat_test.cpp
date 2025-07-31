@@ -15,10 +15,10 @@ TEST_CASE("quatertion", "[quaternion]")
 	SECTION("default constructor")
 	{
 		quat q;
-		CHECK(q[0] == 0.0f);
+		CHECK(q[0] == 1.0f);
 		CHECK(q[1] == 0.0f);
 		CHECK(q[2] == 0.0f);
-		CHECK(q[3] == 1.0f);
+		CHECK(q[3] == 0.0f);
 	}
 
 	SECTION("init vec3")
@@ -26,7 +26,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		CHECK(q == quat(-0.71828f, 0.31062f, 0.44443f, 0.43595f));
+		CHECK(q == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
 	}
 
 	SECTION("vec3 neg/pos")
@@ -42,13 +42,14 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK((v1 + v2) == quat(-1.23312f, 0.14046f, 0.82849f, 1.18328f));
-		CHECK((v1 - v2) == quat(-0.20345f, 0.48078f, 0.06038f, -0.31137f));
-		CHECK((v1 * v2) == quat(-0.56632f, 0.20500f, 0.78171f, -0.16183f));
+		CHECK((v1 + v2) == quat(1.18328f, -1.23312f, 0.14046f, 0.82849f));
+		CHECK((v1 - v2) == quat(-0.31137f, -0.20345f, 0.48078f, 0.06038f));
+		CHECK((v1 * v2) == quat(-0.16183f, -0.56632f, 0.20500f, 0.78171f));
 
-		CHECK((v1 / 0.75f) == quat(-0.95772f, 0.41416f, 0.59258f, 0.58127f));
-		CHECK((0.75f / v1) == quat(-0.95772f, 0.41416f, 0.59258f, 0.58127f));
+		CHECK((v1 / 0.75f) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
+		CHECK((0.75f / v1) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
 
+		auto v11 = v1 * 1.25f;
 		CHECK((v1 * 1.25f) == quat(-0.89786f, 0.38828f, 0.55554f, 0.54494f));
 		CHECK((1.25f * v1) == quat(-0.89786f, 0.38828f, 0.55554f, 0.54494f));
 	}
@@ -58,8 +59,8 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat       v2 = v1;
 
-		CHECK(v1 == quat(-0.71828f, 0.31062f, 0.44443f, 0.43595f));
-		CHECK(v2 == quat(-0.71828f, 0.31062f, 0.44443f, 0.43595f));
+		CHECK(v1 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v2 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
 	}
 
 
@@ -69,21 +70,21 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 		quat       v3 = v1;
 
-		CHECK(v3 == quat(-0.71828f, 0.31062f, 0.44443f, 0.43595f));
+		CHECK(v3 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
 
 		v3 *= 2.0f;
-		CHECK(v3 == quat(-1.43657f, 0.62124f, 0.88887f, 0.87191f));
+		CHECK(v3 == quat(0.87191f, -1.43657f, 0.62124f, 0.88887f));
 
 		v3 += v1;
-		CHECK(v3 == quat(-2.15486f, 0.93187f, 1.33331f, 1.30786f));
+		CHECK(v3 == quat(1.30786f, -2.15486f, 0.93187f, 1.33331f));
 		v3 -= v2;
-		CHECK(v3 == quat(-1.64003f, 1.10202f, 0.94925f, 0.56053f));
+		CHECK(v3 == quat(0.56053f, -1.64003f, 1.10202f, 0.94925f));
 
 		v3 *= v2;
-		CHECK(v3 == quat(-0.92946f, 0.86934f, 1.77110f, -0.60249f));
+		CHECK(v3 == quat(-0.60249f, -0.92946f, 0.86934f, 1.77110f));
 
 		v3 /= 0.75f;
-		CHECK(v3 == quat(-1.23928f, 1.15912f, 2.36147f, -0.80332f));
+		CHECK(v3 == quat(-0.80332f, -1.23928f, 1.15912f, 2.36147f));
 	}
 
 	SECTION("conjugate")
@@ -91,7 +92,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		CHECK(conjugate(q) == quat(0.71828f, -0.31062f, -0.44443f, 0.43595f));
+		CHECK(conjugate(q) == quat(0.43595f, 0.71828f, -0.31062f, -0.44443f));
 	}
 
 	SECTION("dot")
@@ -107,7 +108,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(inverse(v1 + v2) == quat(0.34000f, -0.03873f, -0.22843f, 0.32625f));
+		CHECK(inverse(v1 + v2) == quat(0.32625f, 0.34000f, -0.03873f, -0.22843f));
 	}
 
 	SECTION("cross")
@@ -115,7 +116,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(cross(v1, v2) == quat(-0.56632f, 0.20500f, 0.78171f, -0.16183f));
+		CHECK(cross(v1, v2) == quat(-0.16183f, -0.56632f, 0.20500f, 0.78171f));
 	}
 
 
@@ -124,7 +125,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(normalize(v1 + v2) == quat(-0.64750f, 0.07376f, 0.43503f, 0.62133f));
+		CHECK(normalize(v1 + v2) == quat(0.62133f, -0.64750f, 0.07376f, 0.43503f));
 	}
 
 	SECTION("length")
@@ -142,17 +143,16 @@ TEST_CASE("quatertion", "[quaternion]")
 
 		quat qrot = rotate(q, 45.0f, vec3(0, 1, 0));
 
-		CHECK(qrot == quat(0.84380f, -0.48365f, -0.03820f, -0.22939f));
+		CHECK(qrot == quat(-0.22939f, 0.84380f, -0.48365f, -0.03820f));
 	}
 
 
-	
 	SECTION("format")
 	{
 		quat        q(vec3(1.0f, 2.0f, 3.0f));
 		std::string f = std::format("{}", q);
 
-		CHECK(f == "quat(-0.71829, 0.31062, 0.44444, 0.43595)"s);
+		CHECK(f == "quat(0.43595, -0.71829, 0.31062, 0.44444)"s);
 	}
 
 
