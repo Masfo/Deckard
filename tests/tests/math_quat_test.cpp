@@ -144,6 +144,18 @@ TEST_CASE("quatertion", "[quaternion]")
 
 		CHECK(qrot == quat(0.84380f, -0.48365f, -0.03820f, -0.22939f));
 	}
+
+
+	
+	SECTION("format")
+	{
+		quat        q(vec3(1.0f, 2.0f, 3.0f));
+		std::string f = std::format("{}", q);
+
+		CHECK(f == "quat(-0.71829, 0.31062, 0.44444, 0.43595)"s);
+	}
+
+
 #if 0
 
 

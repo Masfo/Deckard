@@ -7,12 +7,15 @@ import deckard.types;
 import deckard.debug;
 import deckard.vec;
 import deckard.math.utils;
+import deckard.utils.hash;
+
 
 import std;
 
 namespace deckard::math
 {
 
+	// TODO: switch to w,xyz
 	export class quat
 	{
 	private:
@@ -616,3 +619,24 @@ namespace deckard::math
 	}
 #endif
 } // namespace deckard::math
+
+
+namespace std
+{
+	template<>
+	struct hash<quat>
+	{
+		size_t operator()(const quat& q) const { return deckard::utils::hash_values(q[0], q[1], q[2], q[3]); }
+	};
+
+	template<>
+	struct formatter<quat>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const quat& q, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, w:{:.5f})", q[0], q[1], q[2], q[3]);
+		}
+	};
+} // namespace std
