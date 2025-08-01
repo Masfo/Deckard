@@ -49,9 +49,8 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK((v1 / 0.75f) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
 		CHECK((0.75f / v1) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
 
-		auto v11 = v1 * 1.25f;
-		CHECK((v1 * 1.25f) == quat(-0.89786f, 0.38828f, 0.55554f, 0.54494f));
-		CHECK((1.25f * v1) == quat(-0.89786f, 0.38828f, 0.55554f, 0.54494f));
+		CHECK((v1 * 1.25f) == quat(0.54494f, -0.89786f, 0.38828f, 0.55554f));
+		CHECK((1.25f * v1) == quat(0.54494f, -0.89786f, 0.38828f, 0.55554f));
 	}
 
 	SECTION("assign")
@@ -138,12 +137,20 @@ TEST_CASE("quatertion", "[quaternion]")
 
 	SECTION("rotate")
 	{
-		vec3 v(1.0f, 2.0f, 3.0f);
-		quat q(v);
+		const vec3 v(0.0f, 0.0f, 0.0f);
+		const quat q(v);
 
-		quat qrot = rotate(q, 45.0f, vec3(0, 1, 0));
+		quat rot = rotate(q, to_radians(90.0f), vec3(1, 0, 0));
+		CHECK(rot == quat(0.70710f, 0.70710f, 0.0f, 0.0f));
 
-		CHECK(qrot == quat(-0.22939f, 0.84380f, -0.48365f, -0.03820f));
+		quat xrot = rotate_x(q, to_radians(90.0f));
+		CHECK(xrot == quat(0.70710f, 0.70710f, 0.0f, 0.0f));
+
+		quat yrot = rotate_y(q, to_radians(90.0f));
+		CHECK(yrot == quat(0.70710f, 0.0f, 0.70710f, 0.0f));
+
+		quat zrot = rotate_z(q, to_radians(90.0f));
+		CHECK(zrot == quat(0.70710f, 0.0f, 0.0f, 0.70710f));
 	}
 
 
@@ -155,27 +162,18 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK(f == "quat(0.43595, -0.71829, 0.31062, 0.44444)"s);
 	}
 
-
-#if 0
-
-
-
-
-
 	SECTION("lerp")
 	{
 
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		quat l = lerp(v1, v2, 0.0f);
-		CHECK(l == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v1 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v2 == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
 
-		l = lerp(v1, v2, 0.5f);
-		CHECK(l == quat(0.59163f, -0.61656f, 0.07023f, 0.41424f));
-
-		l = lerp(v1, v2, 1.0f);
-		CHECK(l == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
+		CHECK(lerp(v1, v2, 0.0f) == v1);
+		CHECK(lerp(v1, v2, 0.5f) == quat(0.59163f, -0.61656f, 0.07023f, 0.41424f));
+		CHECK(lerp(v1, v2, 1.0f) == v2);
 	}
 
 	SECTION("slerp")
@@ -183,16 +181,13 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		quat l = slerp(v1, v2, 0.0f);
-		CHECK(l == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v1 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v2 == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
 
-		l = slerp(v1, v2, 0.5f);
-		CHECK(l == quat(0.62133f, -0.64750f, 0.07376f, 0.43503f));
-
-		l = slerp(v1, v2, 1.0f);
-		CHECK(l == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
+		CHECK(slerp(v1, v2, 0.0f) == v1);
+		CHECK(slerp(v1, v2, 0.5f) == quat(0.62133f, -0.64750f, 0.07376f, 0.43503f));
+		CHECK(slerp(v1, v2, 1.0f) == v2);
 	}
-
 
 	SECTION("to rotation mat4")
 	{
@@ -220,10 +215,27 @@ TEST_CASE("quatertion", "[quaternion]")
 		  -0.22485f,
 		  0.00000f);
 
-		mat4 q_mat = q.get_rotation_matrix();
-
-		CHECK(result == q_mat);
+		CHECK(result == q.to_mat4());
 	}
+
+	SECTION("from rotation mat4")
+	{
+		vec3 v(1.0f, 2.0f, 3.0f);
+		quat q(v);
+		mat4 m = q.to_mat4();
+		quat r = q.from_mat4(m);
+		CHECK(r == q);
+	}
+
+
+#if 0
+
+
+
+
+
+
+
 
 
 	SECTION("format")
