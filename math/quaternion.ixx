@@ -22,6 +22,8 @@ namespace deckard::math
 		friend quat cross(const quat& q1, const quat& q2);
 		friend quat conjugate(const quat& q);
 		friend quat normalize(quat q);
+		friend quat slerp(const quat& x, const quat& y, f32 t);
+		friend quat mix(const quat& x, const quat& y, f32 t);
 
 
 	private:
@@ -85,7 +87,7 @@ namespace deckard::math
 			return quat(w, x, y, z);
 		}
 
-		quat operator*(const f32 scalar) const { return quat(data.x * scalar, data.y * scalar, data.z * scalar, data.w * scalar); }
+		quat operator*(const f32 scalar) const { return quat(data.w * scalar, data.x * scalar, data.y * scalar, data.z * scalar); }
 
 		quat operator/(const f32 scalar) const
 		{
@@ -173,7 +175,7 @@ namespace deckard::math
 
 	export f32 dot(const quat& a, const quat b)
 	{
-		vec4 tmp( a.data.w * b.data.w, a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z);
+		vec4 tmp(a.data.w * b.data.w, a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z);
 		return (tmp.x + tmp.y) + (tmp.z + tmp.w);
 	}
 
@@ -224,6 +226,49 @@ namespace deckard::math
 
 		f32 s = std::sin(angle * 0.5f);
 		return q * quat(std::cos(angle * 0.5f), tmp.x * s, tmp.y * s, tmp.z * s);
+	}
+
+	f32 mix(f32 x, f32 y, f32 t) { return (x * (1.0f - t) + y * t); }
+
+	quat mix(const quat& x, const quat& y, f32 t)
+	{
+		f32 theta = dot(x, y);
+
+		if (theta > (1.0f - 0.000001f))
+		{
+			return quat(mix(x.data.w, y.data.w, t), mix(x.data.x, y.data.x, t), mix(x.data.y, y.data.y, t), mix(x.data.z, y.data.z, t));
+		}
+
+		f32 angle = std::acos(theta);
+		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * y) / std::sin(angle);
+	}
+
+	export quat lerp(const quat& x, const quat& y, f32 t)
+	{
+		assert::check(t >= 0.0f);
+		assert::check(t <= 1.0f);
+
+		return x * (1.0f - t) + (y * t);
+	}
+
+	export quat slerp(const quat& x, const quat& y, f32 t)
+	{
+		quat z     = y;
+		f32  theta = dot(x, y);
+		if (theta < 0.0f)
+		{
+			z     = -y;
+			theta = -theta;
+		}
+
+		if (theta > (1.0f - 0.000001f))
+		{
+			return quat(mix(x.data.w, z.data.w, t), mix(x.data.x, z.data.x, t), mix(x.data.y, z.data.y, t), mix(x.data.z, z.data.z, t));
+		}
+
+
+		f32 angle = std::acos(theta);
+		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * z) / std::sin(angle);
 	}
 
 #if 0
