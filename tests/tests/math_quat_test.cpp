@@ -228,13 +228,6 @@ TEST_CASE("quatertion", "[quaternion]")
 	}
 
 
-#if 0
-
-
-
-
-
-
 
 
 
@@ -246,5 +239,4 @@ TEST_CASE("quatertion", "[quaternion]")
 
 		CHECK(f == "quat(0.43595, -0.71829, 0.31062, 0.44444)"s);
 	}
-#endif
 }

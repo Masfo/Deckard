@@ -331,6 +331,9 @@ auto operator+(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_
 
 auto operator-(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_value - rhs.secret_value; }
 
+
+
+
 i32 deckard_main(utf8::view /*commandline*/)
 {
 #ifndef _DEBUG
