@@ -444,7 +444,6 @@ namespace deckard::utf8
 
 		void append(const view v) { append(utf8::string(v)); };
 
-		// TODO: prepend
 		void prepend(const std::string_view str) { insert(begin(), str); }
 
 		void prepend(const string& other) { insert(begin(), other); }

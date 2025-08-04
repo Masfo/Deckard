@@ -416,6 +416,11 @@ namespace deckard
 		bool operator<=(const sbo&) = delete("Less-than compare doesn't make sense");
 		bool operator>(const sbo&)  = delete("Greater-than compare doesn't make sense");
 		bool operator>=(const sbo&) = delete("Greater-than compare doesn't make sense");
+		#else
+		bool operator<(const sbo&)  = delete;
+		bool operator<=(const sbo&) = delete;
+		bool operator>(const sbo&)  = delete;
+		bool operator>=(const sbo&) = delete;
 #endif
 
 
@@ -472,6 +477,7 @@ namespace deckard
 				return pos;
 
 			// TODO: self copy, input == buffer, resize deletes it
+			// small -> large destroys, create new large buffer then copy old to new
 			bool          self_insert = rawptr() == buffer.data();
 
 			if (self_insert)
@@ -647,6 +653,8 @@ namespace deckard
 
 		void pop_back()
 		{
+			assert::check(not empty(), "Cannot pop back from empty sbo");
+
 			if (is_large() and large_size() > 0)
 			{
 				packed.large.size -= 1;
@@ -733,7 +741,6 @@ namespace deckard
 
 		[[nodiscard("Use the data span")]] std::span<value_type> data() const
 		{
-			assert::check(not empty(), "Data span cannot be empty");
 
 			return is_large() ? large_data() : small_data();
 		}

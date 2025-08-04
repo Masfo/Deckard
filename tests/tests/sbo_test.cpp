@@ -488,6 +488,8 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
 
+	
+
 	SECTION("clear (small)")
 	{
 		sbo<32> ss;
@@ -1219,6 +1221,91 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.back() == 'P');
 		CHECK(ss.size() == 263);
 		CHECK(ss.capacity() == 384);
+	}
+
+	SECTION("self insert")
+	{
+		sbo<32> ss;
+		CHECK(ss.size() == 0);
+		CHECK(ss.capacity() == 31);
+		CHECK(ss.max_size() == 31);
+		ss.push_back('A');
+		ss.push_back('B');
+		ss.push_back('C');
+		ss.push_back('D');
+		CHECK(ss.size() == 4);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		ss.insert(ss.begin(), ss.data());
+		CHECK(ss.size() == 8);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'A');
+		CHECK(ss[5] == 'B');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
+
+		ss.insert(ss.begin(), ss.data());
+		CHECK(ss.size() == 16);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'A');
+		CHECK(ss[5] == 'B');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
+		CHECK(ss[8] == 'A');
+		CHECK(ss[9] == 'B');
+		CHECK(ss[10] == 'C');
+		CHECK(ss[11] == 'D');
+		CHECK(ss[12] == 'A');
+		CHECK(ss[13] == 'B');
+		CHECK(ss[14] == 'C');
+		CHECK(ss[15] == 'D');
+
+		// TODO: self insert with data
+		// small -> large
+		// 
+		//ss.insert(ss.begin(), ss.data());
+		//CHECK(ss.size() == 32);
+		//CHECK(ss[0] == 'A');
+		//CHECK(ss[1] == 'B');
+		//CHECK(ss[2] == 'C');
+		//CHECK(ss[3] == 'D');
+		//CHECK(ss[4] == 'A');
+		//CHECK(ss[5] == 'B');
+		//CHECK(ss[6] == 'C');
+		//CHECK(ss[7] == 'D');
+		//CHECK(ss[8] == 'A');
+		//CHECK(ss[9] == 'B');
+		//CHECK(ss[10] == 'C');
+		//CHECK(ss[11] == 'D');
+		//CHECK(ss[12] == 'A');
+		//CHECK(ss[13] == 'B');
+		//CHECK(ss[14] == 'C');
+		//CHECK(ss[15] == 'D');
+		//CHECK(ss[16] == 'A');
+		//CHECK(ss[17] == 'B');
+		//CHECK(ss[18] == 'C');
+		//CHECK(ss[19] == 'D');
+		//CHECK(ss[20] == 'A');
+		//CHECK(ss[21] == 'B');
+		//CHECK(ss[22] == 'C');
+		//CHECK(ss[23] == 'D');
+		//CHECK(ss[24] == 'A');
+		//CHECK(ss[25] == 'B');
+		//CHECK(ss[26] == 'C');
+		//CHECK(ss[27] == 'D');
+		//CHECK(ss[28] == 'A');
+		//CHECK(ss[29] == 'B');
+		//CHECK(ss[30] == 'C');
+		//CHECK(ss[31] == 'D');
+
 	}
 
 

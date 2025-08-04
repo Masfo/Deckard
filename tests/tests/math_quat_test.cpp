@@ -218,6 +218,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK(result == q.to_mat4());
 	}
 
+
 	SECTION("from rotation mat4")
 	{
 		vec3 v(1.0f, 2.0f, 3.0f);
@@ -226,9 +227,6 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat r = q.from_mat4(m);
 		CHECK(r == q);
 	}
-
-
-
 
 
 	SECTION("format")

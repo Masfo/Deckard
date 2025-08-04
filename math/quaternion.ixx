@@ -229,17 +229,17 @@ namespace deckard::math
 			  0,
 			  0,
 			  1,
-			  //
+
 			  1.0f - 2.0f * (y2 + z2),
 			  2.0f * (xy + wz),
 			  2.0f * (xz - wy),
+
 			  0,
-			  //
 			  2.0f * (xy - wz),
 			  1.0f - 2.0f * (x2 + z2),
 			  2.0f * (yz + wx),
+
 			  0,
-			  //
 			  2.0f * (xz + wy),
 			  2.0f * (yz - wx),
 			  1.0f - 2.0f * (x2 + y2),
@@ -306,7 +306,6 @@ namespace deckard::math
 	export quat rotate(const quat& q, const f32 radians, const vec3& v)
 	{
 		auto tmp = v.normalized();
-
 
 		f32 s = std::sin(radians * 0.5f);
 		return q * quat(std::cos(radians * 0.5f), tmp.x * s, tmp.y * s, tmp.z * s);
