@@ -2,7 +2,7 @@
 cmake_minimum_required (VERSION 3.30.0)
 
 
-project(deckard LANGUAGES CXX ASM_NASM)
+project(deckard LANGUAGES CXX)
 
 add_library(deckard STATIC)
 
