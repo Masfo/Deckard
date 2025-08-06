@@ -6,6 +6,17 @@ project(deckard LANGUAGES CXX)
 
 add_library(deckard STATIC)
 
+
+option(DECKARD_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
+option(DECKARD_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
+option(DECKARD_BUILD_TOOLS "Build tools" ${PROJECT_IS_TOP_LEVEL})
+option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
+
+
+
+
+
+
 set_target_properties(deckard PROPERTIES
 	CXX_STANDARD 23
 	CXX_STANDARD_REQUIRED ON
@@ -392,10 +403,7 @@ target_compile_options(deckard PRIVATE
 ###################################
 
 
-#####################################
-#####################################
-if(PROJECT_IS_TOP_LEVEL)
-
+if(DECKARD_RUN_BUILDINC)
 	find_program(BUILDINC_TOOL "buildinc")
 	if(BUILDINC_TOOL)
 	add_custom_command(TARGET deckard
@@ -405,20 +413,22 @@ if(PROJECT_IS_TOP_LEVEL)
 					   COMMENT "Increase build number"
 	)
 	endif()
-
-	add_subdirectory(tools/dbc)
-	add_subdirectory(tools/utftables)
-
-	
-	
-	enable_testing()
-	add_subdirectory(tests)
-	
-	#add_subdirectory(example/empty)
-	add_subdirectory(example/window)
-	add_subdirectory(example/threader)
-
-
 endif()
 
 
+if(DECKARD_BUILD_TESTS)
+	enable_testing()
+	add_subdirectory(tests)
+endif()
+
+
+if(DECKARD_BUILD_EXAMPLES)
+	#add_subdirectory(example/empty)
+	add_subdirectory(example/window)
+	add_subdirectory(example/threader)
+endif()
+
+if(DECKARD_BUILD_TOOLS)
+	add_subdirectory(tools/dbc)
+	add_subdirectory(tools/utftables)
+endif()

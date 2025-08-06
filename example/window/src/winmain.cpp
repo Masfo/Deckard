@@ -331,7 +331,7 @@ auto operator+(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_
 
 auto operator-(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_value - rhs.secret_value; }
 
-
+int function_call(int input) { return input * 10; }
 
 
 i32 deckard_main(utf8::view /*commandline*/)
@@ -376,8 +376,29 @@ dbg::println();
 	} while (value != 0);
 
 
+	// ###############################################
+
+	std::vector<function_ref<int(int)>> vints;
+
+
+	vints.push_back([](int input) -> int { return input * 2; });
+	vints.push_back([](int input) -> int { return input * 3; });
+	vints.push_back(function_call);
+
+	auto copy_vints = vints;
+
+	for (const auto& callable : copy_vints)
+	{
+		int result = callable(6);
+		dbg::println("result: {}", result);
+	}
+
+
+	 
+	
 	_ = 0;
 	// ###############################################
+
 
 
 	deckard::net::ip gip("2001:0db8:0000:0000:0000:8a2e:0370:7334");
