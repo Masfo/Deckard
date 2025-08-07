@@ -6,11 +6,21 @@ import deckard.as;
 export namespace deckard::math
 {
 
+
+
 	// lerp
 	template<arithmetic T>
 	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha)
 	{
 		return T{A + Alpha * (B - A)};
+	}
+
+	template<arithmetic T>
+	[[nodiscard]] constexpr T inverse_lerp(T A, T B, T Value)
+	{
+		if (B == A)
+			return T{0};
+		return (Value - A) / (B - A);
 	}
 
 	template<arithmetic T>
