@@ -194,7 +194,7 @@ set(DECKARD_SRCS
 		math/ease_functions.ixx
 		math/math_utility.ixx
 		math/primitives.ixx
-		
+		math/curves.ixx
 		
 		math/matrix.ixx
 
