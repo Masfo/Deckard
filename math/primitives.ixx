@@ -41,10 +41,15 @@ namespace deckard::math
 		}
 	};
 
+
+
 	export struct plane
 	{
+
 		vec3 normal{0.0f, 0.0f, 1.0f};
 		f32  d{0.0f};
+
+		 
 		plane() = default;
 
 		plane(const vec3& n, f32 distance)
@@ -86,7 +91,7 @@ namespace deckard::math
 			if (math::is_close_enough_zero(denom))
 			{
 				// Calculate distance along ray
-				result.distance = -(dot(p.normal, origin) + p.d) / denom;
+				//result.distance = (dot(p.normal, origin) + p.normal) / denom;
 
 				// Check if intersection is in front of ray origin
 				if (result.distance >= 0.0f)

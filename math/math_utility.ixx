@@ -92,6 +92,7 @@ export namespace deckard::math
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& a, const T& b, const T epsilon = T{1e-5})
 	{
+#ifdef _DEBUG
 		if (std::isnan(a) or std::isnan(b))
 			return false;
 
@@ -100,17 +101,18 @@ export namespace deckard::math
 
 		if (std::isinf(a) or std::isinf(b))
 			return false;
+#endif
 
-		if (a == 0.0 or b == 0.0)
+		if (a == T{0.0} or b == T{0.0})
 			return std::fabs(a - b) < epsilon;
 
 		return std::fabs(a - b) <= epsilon;
 	}
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T error = T{1e-5})
+	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T epsilon = T{1e-5})
 	{
-		return std::abs(A) <= error;
+		return is_close_enough(A, T{0}, epsilon);
 	}
 
 	template<std::integral T>

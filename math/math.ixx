@@ -8,6 +8,7 @@ export import deckard.math.utils;
 export import :quaternion;
 export import :easing;
 export import :primitives;
+export import :curves;
 
 import deckard.types;
 
