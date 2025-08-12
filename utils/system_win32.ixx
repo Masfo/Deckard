@@ -127,9 +127,9 @@ namespace deckard::system
 				elapsed      = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - elapsed_start);
 				if (elapsed > timeout)
 				{
+					result.output    = std::string(output_buffer.begin(), output_buffer.end());
 					result.error    = "Process output reading timed out";
 					result.exit_code = -6;
-					result.output    = std::string(output_buffer.begin(), output_buffer.end());
 
 					CloseHandle(readpipe);
 					CloseHandle(pi.hProcess);

@@ -100,7 +100,7 @@ namespace deckard::app
 		extent<u16> min_extent{640, 480};
 		extent<u16> normalized_client_size{0, 0};
 		DWORD       style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD       ex_style{0};
+		DWORD       ex_style{WS_EX_NOREDIRECTIONBITMAP};
 
 		inputs m_inputs;
 

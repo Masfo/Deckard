@@ -208,7 +208,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 	redirect_console(true);
-	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
+//	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
 
 	deckard::random::initialize();
 	net::initialize();
@@ -218,7 +218,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	// main
 	int ret = deckard_main(cmdline);
 
-	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
+//	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
 
 
 	//

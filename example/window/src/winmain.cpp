@@ -12,6 +12,7 @@ using namespace deckard::app;
 using namespace deckard::random;
 // using namespace std::string_literals;
 using namespace std::string_view_literals;
+using namespace std::chrono_literals;
 
 
 #ifndef _DEBUG
@@ -333,8 +334,36 @@ auto operator-(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_
 
 int function_call(int input) { return input * 10; }
 
+struct boolflag
+{
+	boolflag(std::string_view name, bool b)
+		: name(name)
+		, flag(b)
+	{
+	}
 
-i32 deckard_main(utf8::view /*commandline*/)
+	std::string name;
+	bool       flag{false};
+};
+
+class clitest
+{
+private:
+	std::vector<boolflag> boolflags;
+
+public:
+	void add_flag(std::string_view str, bool& flag) { boolflags.push_back({str, flag}); }
+
+	void dump() 
+	{
+		for(const auto& bf : boolflags)
+		{
+			dbg::println("{}: {}", bf.name, bf.flag ? "true" : "false");
+		}
+	}
+};
+
+i32 deckard_main(utf8::view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
@@ -351,6 +380,22 @@ dbg::println();
 #endif
 	// ###############################################
 
+	clitest ct;
+
+	bool flag1{false};
+	bool flag2{true};
+
+	ct.add_flag("flag1", flag1);
+	ct.add_flag("flag2", flag2);
+
+	ct.dump();
+
+	_ = 0;
+
+
+	// ###############################################
+
+
 	Secret a{42};
 	Secret b{58};
 
@@ -362,28 +407,21 @@ dbg::println();
 	// ###############################################
 
 
-	// ###############################################
+	using callable_ref = function_ref<int(int)>;
 
-	u64             value = 0x12'3456;
-	std::vector<u8> bytes;
-	do
-	{
-		u8 byte = value & 0x7f; /* low-order 7 bits of value */
-		value >>= 7;
-		if (value != 0)         /* more bytes to come */
-			byte |= 0x80;       /* set high-order bit of byte */
-		bytes.push_back(byte);
-	} while (value != 0);
-
-
-	// ###############################################
-
-	std::vector<function_ref<int(int)>> vints;
+	std::vector<callable_ref> vints;
 
 
 	vints.push_back([](int input) -> int { return input * 2; });
-	vints.push_back([](int input) -> int { return input * 3; });
+	vints.push_back(
+	  [](int input) -> int
+	  {
+		  dbg::println("input*3: {}", input);
+		  return input * 3;
+	  });
 	vints.push_back(function_call);
+
+	dbg::println("size: {} / {}", sizeof(callable_ref), vints.size());
 
 	auto copy_vints = vints;
 
@@ -393,12 +431,26 @@ dbg::println();
 		dbg::println("result: {}", result);
 	}
 
-
-	 
-	
-	_ = 0;
 	// ###############################################
 
+	auto process_result = system::execute_process("alinesleep.exe", "1", 1200ms);
+
+
+	_ = 0;
+
+	// ###############################################
+
+	auto execute_proc =
+	  [](std::string_view      executable,
+		 std::string_view      commandline,
+		 std::filesystem::path working_directory = std::filesystem::current_path())
+	{
+		//
+	};
+
+
+	_ = 0;
+	// ###############################################
 
 
 	deckard::net::ip gip("2001:0db8:0000:0000:0000:8a2e:0370:7334");
