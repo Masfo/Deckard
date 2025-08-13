@@ -35,13 +35,16 @@ namespace deckard::system
 	struct execute_process_result
 	{
 		std::string               output;
+		std::string               error;
 		std::chrono::milliseconds elapsed_time{0};
 		int                       exit_code{0};
 	};
 
 	export auto execute_process(std::filesystem::path executable, std::string_view commandline = "",
-								std::filesystem::path     working_directory = std::filesystem::current_path(),
-								std::chrono::milliseconds timeout           = 0ms) -> execute_process_result
+								std::chrono::milliseconds timeout = 0ms,
+								std::filesystem::path     working_directory = std::filesystem::current_path()
+	)
+		-> execute_process_result
 	{
 		execute_process_result result{.exit_code = -1};
 
@@ -55,15 +58,15 @@ namespace deckard::system
 		sa.bInheritHandle       = TRUE;
 		sa.lpSecurityDescriptor = nullptr;
 
+
 		if (not CreatePipe(&readpipe, &writepipe, &sa, TEMP_BUFFER_SIZE))
 		{
-			result.output    = std::format("CreatePipe failed: {}", GetLastError());
+			result.error    = std::format("CreatePipe failed: {}", GetLastError());
 			result.exit_code = -1;
 			return result;
 		}
 
 		SetHandleInformation(readpipe, HANDLE_FLAG_INHERIT, 0);
-		//SetHandleInformation(writepipe, HANDLE_FLAG_INHERIT, 0);
 
 		PROCESS_INFORMATION pi{};
 		STARTUPINFOA        si{.cb = sizeof(si)};
@@ -96,7 +99,7 @@ namespace deckard::system
 				  &si,
 				  &pi))
 			{
-				result.output    = std::format("CreateProcess('{}') failed: {}", command, GetLastError());
+				result.error    = std::format("CreateProcess('{}') failed: {}", command, GetLastError());
 				result.exit_code = -2;
 				CloseHandle(readpipe);
 				CloseHandle(writepipe);
@@ -110,9 +113,31 @@ namespace deckard::system
 		std::array<char, TEMP_BUFFER_SIZE> temp_buffer{};
 		std::vector<char>                  output_buffer;
 		output_buffer.reserve(TEMP_BUFFER_SIZE);
+
+		auto elapsed_start = std::chrono::system_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - elapsed_start);
+
 		DWORD bytes_read{0};
 		while (true)
 		{
+			// Check if we've exceeded timeout
+			if (timeout != 0ms)
+			{
+				auto current_time = std::chrono::system_clock::now();
+				elapsed      = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - elapsed_start);
+				if (elapsed > timeout)
+				{
+					result.error    = "Process output reading timed out";
+					result.exit_code = -6;
+					result.output    = std::string(output_buffer.begin(), output_buffer.end());
+
+					CloseHandle(readpipe);
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
+					return result;
+				}
+			}
+
 			auto peek_result = PeekNamedPipe(readpipe, nullptr, 0, nullptr, &bytes_read, nullptr);
 			if (not peek_result)
 				break;
@@ -124,13 +149,16 @@ namespace deckard::system
 
 				if (not peek_result or bytes_read == 0)
 				{
-					result.output    = std::format("ReadFile failed or no data available: {}", GetLastError());
+					result.error    = std::format("ReadFile failed or no data available: {}", GetLastError());
 					result.exit_code = -3;
 					CloseHandle(readpipe);
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
 					return result;
 				}
 				output_buffer.insert(output_buffer.end(), temp_buffer.data(), temp_buffer.data() + bytes_read);
 				temp_buffer.fill(0);
+
 			}
 		}
 
@@ -145,12 +173,12 @@ namespace deckard::system
 		auto waitresult     = WaitForSingleObject(pi.hProcess, timeout_ms);
 		if (waitresult == WAIT_TIMEOUT)
 		{
-			result.output    = "WaitForSingleObject timed out";
+			result.error    = "WaitForSingleObject timed out";
 			result.exit_code = -4;
 		}
 		else if (waitresult == WAIT_FAILED)
 		{
-			result.output    = std::format("WaitForSingleObject failed: {}", GetLastError());
+			result.error    = std::format("WaitForSingleObject failed: {}", GetLastError());
 			result.exit_code = -5;
 		}
 		else
