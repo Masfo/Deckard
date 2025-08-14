@@ -1,4 +1,4 @@
-export module deckard.timers;
+﻿export module deckard.timers;
 
 import std;
 import deckard.types;
@@ -33,9 +33,9 @@ namespace deckard
 
 		void start() { start_time = clock_now(); }
 
-		void stop()
+		void stop(std::string_view input="")
 		{
-			now();
+			now(input);
 			stopped = true;
 		}
 
