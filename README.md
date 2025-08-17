@@ -155,7 +155,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	````
   - **Serialization**
 	```cpp
-// TODO: rewrite new example
 	import deckard.serialization;
 	using namespace deckard;
 
