@@ -343,7 +343,7 @@ struct boolflag
 	}
 
 	std::string name;
-	bool       flag{false};
+	bool        flag{false};
 };
 
 class clitest
@@ -354,14 +354,96 @@ private:
 public:
 	void add_flag(std::string_view str, bool& flag) { boolflags.push_back({str, flag}); }
 
-	void dump() 
+	void dump()
 	{
-		for(const auto& bf : boolflags)
+		for (const auto& bf : boolflags)
 		{
 			dbg::println("{}: {}", bf.name, bf.flag ? "true" : "false");
 		}
 	}
 };
+
+struct CmdOptions
+{
+	std::unordered_map<std::string, std::string> options;    // --option=value or --option value
+	std::unordered_set<std::string>              flags;      // --flag or -f
+	std::vector<std::string>                     positional; // positional arguments
+};
+
+CmdOptions parse_command_line(std::string_view cmdl)
+{
+	CmdOptions               result;
+	std::vector<std::string> tokens;
+	std::string              current;
+	bool                     in_quotes = false;
+
+	// Tokenize, handling quotes
+	for (size_t i = 0; i < cmdl.size(); ++i)
+	{
+		char c = cmdl[i];
+		if (c == '"')
+		{
+			in_quotes = !in_quotes;
+		}
+		else if (std::isspace(static_cast<unsigned char>(c)) && !in_quotes)
+		{
+			if (!current.empty())
+			{
+				tokens.push_back(current);
+				current.clear();
+			}
+		}
+		else
+		{
+			current += c;
+		}
+	}
+	if (!current.empty())
+		tokens.push_back(current);
+
+	for (size_t i = 0; i < tokens.size(); ++i)
+	{
+		const std::string& token = tokens[i];
+		if (token.starts_with("--"))
+		{
+			auto eq = token.find('=');
+			if (eq != std::string::npos)
+			{
+				std::string key     = token.substr(2, eq - 2);
+				std::string value   = token.substr(eq + 1);
+				result.options[key] = value;
+			}
+			else
+			{
+				std::string key = token.substr(2);
+				// Check if next token is a value (not starting with -)
+				if (i + 1 < tokens.size() && !tokens[i + 1].starts_with('-'))
+				{
+					result.options[key] = tokens[i + 1];
+					++i;
+				}
+				else
+				{
+					result.flags.insert(key);
+				}
+			}
+		}
+		else if (token.starts_with('-') && token.size() > 1)
+		{
+			// Short flags, possibly grouped: -abc
+			for (size_t j = 1; j < token.size(); ++j)
+			{
+				std::string key(1, token[j]);
+				result.flags.insert(key);
+			}
+		}
+		else
+		{
+			result.positional.push_back(token);
+		}
+	}
+	return result;
+}
 
 i32 deckard_main(utf8::view commandline)
 {
@@ -378,7 +460,39 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
+	// ########################################################################
+
+
+	std::string cmdl = "deckard --version --verbose -O2 --path=./test.txt -d";
+
+	// Pseudocode plan:
+	// 1. Define a struct to hold parsed options (flags, options with values, positional arguments).
+	// 2. Write a function parse_command_line that takes a std::string_view and returns the struct.
+	// 3. Tokenize the input string by spaces, handle quoted arguments.
+	// 4. For each token:
+	//    - If it starts with "--", it's a long option (possibly with '=') or a flag.
+	//    - If it starts with "-", it's a short flag or group of flags.
+	//    - Otherwise, it's a positional argument.
+	// 5. Store results in the struct and return.
+
+
+	// Example usage:
+	auto opts = parse_command_line(cmdl);
+	dbg::println("Flags:");
+	for (const auto& f : opts.flags)
+		dbg::println("  {}", f);
+	dbg::println("Options:");
+	for (const auto& [k, v] : opts.options)
+		dbg::println("  {} = {}", k, v);
+	dbg::println("Positional:");
+	for (const auto& p : opts.positional)
+		dbg::println("  {}", p);
+
+
+	_ = 0;
+
 	// ###############################################
+
 
 	clitest ct;
 
@@ -579,9 +693,6 @@ dbg::println();
 
 
 	// ###########################################################################
-
-
-	// ########################################################################
 
 	// ########################################################################
 
