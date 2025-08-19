@@ -213,7 +213,6 @@ namespace deckard::db
 		{
 			clear();
 
-			// TODO: statement to own struct/class, caching it
 			i32 rc = sqlite3_prepare_v2(m_db, input.data(), -1, &m_statement, nullptr);
 
 			if (rc != SQLITE_OK)

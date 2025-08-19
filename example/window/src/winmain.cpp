@@ -401,6 +401,9 @@ CmdOptions parse_command_line(std::string_view cmdl)
 	if (!current.empty())
 		tokens.push_back(current);
 
+	constexpr int min_level = 0;
+	constexpr int max_level = 3;
+
 	for (size_t i = 0; i < tokens.size(); ++i)
 	{
 		const std::string& token = tokens[i];
@@ -430,6 +433,14 @@ CmdOptions parse_command_line(std::string_view cmdl)
 		}
 		else if (token.starts_with('-') && token.size() > 1)
 		{
+			// Special case: -O2, -O3, etc. (optimization level)
+			if (token[1] == 'O' && token.size() > 2 && std::isdigit(token[2]))
+			{
+				int level = token[2] - '0';
+				level = std::clamp(level, min_level, max_level);
+				result.options["O"] = std::to_string(level);
+				continue;
+			}
 			// Short flags, possibly grouped: -abc
 			for (size_t j = 1; j < token.size(); ++j)
 			{
@@ -465,18 +476,6 @@ dbg::println();
 
 	std::string cmdl = "deckard --version --verbose -O2 --path=./test.txt -d";
 
-	// Pseudocode plan:
-	// 1. Define a struct to hold parsed options (flags, options with values, positional arguments).
-	// 2. Write a function parse_command_line that takes a std::string_view and returns the struct.
-	// 3. Tokenize the input string by spaces, handle quoted arguments.
-	// 4. For each token:
-	//    - If it starts with "--", it's a long option (possibly with '=') or a flag.
-	//    - If it starts with "-", it's a short flag or group of flags.
-	//    - Otherwise, it's a positional argument.
-	// 5. Store results in the struct and return.
-
-
-	// Example usage:
 	auto opts = parse_command_line(cmdl);
 	dbg::println("Flags:");
 	for (const auto& f : opts.flags)

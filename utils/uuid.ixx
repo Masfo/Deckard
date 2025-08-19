@@ -18,7 +18,6 @@ namespace deckard::uuid
 		{
 			u64 ab{};
 			u64 cd{};
-			// TODO: serialize to disk
 		};
 
 		export uuid generate()
@@ -55,7 +54,6 @@ namespace deckard::uuid
 		{
 			u64 ab{};
 			u64 cd{};
-			// TODO: serialize to disk
 		};
 
 		export uuid generate()

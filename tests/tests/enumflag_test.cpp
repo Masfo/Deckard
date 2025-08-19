@@ -114,8 +114,6 @@ TEST_CASE("enumflags", "[enum]")
 	CHECK(true == (rwx && Permission::Execute));
 
 
-	// TODO: add format printing when it is supported
-	// TODO: this is just temp
 	CHECK(std::format("{}", (Permission::Read)) == "001"s);
 	CHECK(std::format("{}", (Permission::Write)) == "010"s);
 	CHECK(std::format("{}", (Permission::Execute)) == "100"s);

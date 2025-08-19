@@ -36,6 +36,7 @@ namespace deckard::math
 		quat(f32 w, f32 x, f32 y, f32 z)
 		{
 			data.w = w;
+
 			data.x = x;
 			data.y = y;
 			data.z = z;

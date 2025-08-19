@@ -96,8 +96,6 @@ void redirect_console(bool show)
 
 	if (show)
 	{
-		// TODO: detect if piping to file.     cmd> window.exe > ok.txt
-
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
 		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
