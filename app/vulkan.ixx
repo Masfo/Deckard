@@ -73,7 +73,7 @@ namespace deckard::vulkan
 	public:
 		vulkan() = default;
 
-		vulkan(HWND handle, bool vsync) { initialize(handle, vsync); }
+		vulkan(HWND handle, bool vsync, u32 apiversion) { initialize(handle, vsync, apiversion); }
 
 		~vulkan() { deinitialize(); };
 
@@ -86,7 +86,7 @@ namespace deckard::vulkan
 		vulkan& operator=(vulkan&&) = delete;
 
 
-		bool initialize(HWND handle, bool vsync);
+		bool initialize(HWND handle, bool vsync, u32 apiversion);
 		void deinitialize();
 
 		void resize();
@@ -119,7 +119,7 @@ namespace deckard::vulkan
 		bool m_vsync{true};
 	};
 
-	bool vulkan::initialize(HWND handle, bool vsync)
+	bool vulkan::initialize(HWND handle, bool vsync, u32 apiversion)
 	{
 		dbg::println(
 		  "Compiled against Vulkan Header Version: {}.{}.{}.{}",
@@ -129,12 +129,18 @@ namespace deckard::vulkan
 		  VK_API_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
 		m_vsync = vsync;
 
-		is_initialized = m_instance.initialize();
+		is_initialized = m_instance.initialize(apiversion);
 #ifdef _DEBUG
 		is_initialized &= m_debug.initialize(m_instance, nullptr);
 #endif
 
-		is_initialized &= m_device.initialize(m_instance);
+		is_initialized &= m_device.initialize(m_instance, apiversion);
+
+		if (m_device == nullptr)
+		{
+			dbg::println("Failed to create Vulkan device");
+			return false;
+		}
 		is_initialized &= m_surface.initialize(m_instance, m_device, handle);
 
 		is_initialized &= m_swapchain.initialize(m_device, m_surface, vsync);
@@ -202,15 +208,12 @@ namespace deckard::vulkan
 		if (not m_command_buffer.initialize(m_device, m_swapchain))
 			return;
 
-
 		// TODO: no reuse of command yet, record per frame
 		// render pass, framebuffer
 		// viewport, vkCmdDraw
 
 		for (u32 i = 0; i < m_command_buffer.size(); ++i)
 		{
-			const VkCommandBuffer& command_buffer = m_command_buffer[i];
-			assert::check(command_buffer != nullptr);
 
 
 			// VkCommandBufferBeginInfo cmd_buffer_begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = 0};
@@ -223,44 +226,9 @@ namespace deckard::vulkan
 				return;
 			}
 
-			VkImageMemoryBarrier image_barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+			assert::check(m_command_buffer[i] != nullptr);
 
-			image_barrier.srcAccessMask = 0;
-			image_barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-
-
-			image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			image_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-
-			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-			image_barrier.image            = m_images.image(i);
-			image_barrier.subresourceRange = {
-			  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT, //
-			  .baseMipLevel   = 0,
-			  .levelCount     = 1,
-			  .baseArrayLayer = 0,
-			  .layerCount     = 1};
-
-			// image barrier begin: LAYOUT_UNDEFINED -> LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
-			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
-
-			// image layout
-			vkCmdPipelineBarrier(
-			  command_buffer,
-			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // src
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,    // dst
-			  0,
-			  0,
-			  nullptr,                           // memory barrier
-			  0,
-			  nullptr,                           // buffer memory barrier
-			  1,
-			  &image_barrier);                   // image memory barrier
-
-			// #0080c4
+						// #0080c4
 			VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
 			VkClearValue      clear_depth = {.depthStencil = {.depth = 1.0f, .stencil = 0}};
 
@@ -269,7 +237,7 @@ namespace deckard::vulkan
 			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			  .imageView   = m_images.imageview(i),
 			  .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-
+			  
 			  .resolveMode        = VK_RESOLVE_MODE_NONE,
 			  .resolveImageView   = VK_NULL_HANDLE,
 			  .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -306,7 +274,48 @@ namespace deckard::vulkan
 			  .pStencilAttachment   = nullptr,
 			};
 
-			vkCmdBeginRendering(command_buffer, &render_info);
+
+
+
+#if 1
+			VkImageMemoryBarrier image_barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+
+			image_barrier.srcAccessMask = 0;
+			image_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+
+			image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			image_barrier.image            = m_images.image(i);
+			image_barrier.subresourceRange = {
+			  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT, //
+			  .baseMipLevel   = 0,
+			  .levelCount     = 1,
+			  .baseArrayLayer = 0,
+			  .layerCount     = 1};
+
+			// image barrier begin: LAYOUT_UNDEFINED -> LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
+			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
+
+			// image layout
+			vkCmdPipelineBarrier(
+			  m_command_buffer[i],
+			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // src
+			  VK_PIPELINE_STAGE_TRANSFER_BIT,    // dst
+			  0,
+			  0,
+			  nullptr,                           // memory barrier
+			  0,
+			  nullptr,                           // buffer memory barrier
+			  1,
+			  &image_barrier);                   // image memory barrier
+
+#endif
 
 
 			//
@@ -318,15 +327,11 @@ namespace deckard::vulkan
 			  .minDepth = 0.0f,
 			  .maxDepth = 1.0f};
 
-			vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+			vkCmdSetViewport(m_command_buffer[i], 0, 1, &viewport);
 
 			VkRect2D scissor = render_area;
-			vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+			vkCmdSetScissor(m_command_buffer[i], 0, 1, &scissor);
 
-
-			// render pass
-
-			vkCmdEndRendering(command_buffer);
 
 			// image layout present
 
@@ -336,17 +341,18 @@ namespace deckard::vulkan
 			image_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-			vkCmdPipelineBarrier(
-			  command_buffer,
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,       // src
-			  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dst
-			  0,
-			  0,
-			  nullptr,                              // memory barrier
-			  0,
-			  nullptr,                              // buffer memory barrier
-			  1,
-			  &image_barrier);                      // image memory barrier
+			//vkCmdPipelineBarrier(
+			//  m_command_buffer[i],
+			//  VK_PIPELINE_STAGE_TRANSFER_BIT,       // src
+			//  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dst
+			//  0,
+			//  0,
+			//  nullptr,                              // memory barrier
+			//  0,
+			//  nullptr,                              // buffer memory barrier
+			//  1,
+			//  &image_barrier);                      // image memory barrier
+			//
 
 
 			result = m_command_buffer.end(i);

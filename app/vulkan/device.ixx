@@ -42,7 +42,7 @@ namespace deckard::vulkan
 		VkQueue          m_queue{nullptr};
 
 	public:
-		bool initialize(VkInstance instance)
+		bool initialize(VkInstance instance, u32 apiversion)
 		{
 			assert::check(instance != nullptr);
 
@@ -85,6 +85,8 @@ namespace deckard::vulkan
 
 			for (u32 i = 0; i < device_count; i++)
 			{
+
+
 				VkPhysicalDeviceVulkan13Features v13_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 				v13_features.synchronization2 = VK_TRUE;
 				v13_features.dynamicRendering = VK_TRUE;
@@ -97,6 +99,32 @@ namespace deckard::vulkan
 				vkGetPhysicalDeviceProperties(devices[i], &device_properties[i]);
 
 				const auto& prop = device_properties[i];
+
+				u32 device_api_version = prop.apiVersion;
+				u32 api_major          = VK_API_VERSION_MAJOR(device_api_version);
+				u32 api_minor          = VK_API_VERSION_MINOR(device_api_version);
+				u32 api_patch          = VK_API_VERSION_PATCH(device_api_version);
+				dbg::println(
+				  "Device {}: {} - API Version: {}.{}.{}",
+				  i,
+				  prop.deviceName,
+				  api_major,
+				  api_minor,
+				  api_patch);
+
+				if(api_major < VK_API_VERSION_MAJOR(apiversion) ||
+				   (api_major == VK_API_VERSION_MAJOR(apiversion) && api_minor < VK_API_VERSION_MINOR(apiversion)))
+				{
+					dbg::println("Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
+								 i,
+								 api_major,
+								 api_minor,
+								 api_patch,
+								 VK_API_VERSION_MAJOR(apiversion),
+								 VK_API_VERSION_MINOR(apiversion),
+								 VK_API_VERSION_PATCH(apiversion));
+					continue;
+				}
 
 				if (prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 					discrete_gpus.push_back(i);
@@ -116,7 +144,7 @@ namespace deckard::vulkan
 			gpu_score.resize(device_count);
 			// TODO: u32 score, add points for best score, d-gpu +10, i-gpu, +5
 
-			u32 best_gpu_index{0};
+			u32 best_gpu_index{0xFFFF'FFFF};
 			if (not discrete_gpus.empty())
 			{
 				// just take first discrete
@@ -307,11 +335,11 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 				}
 
-				//if (name.compare(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0)
+				// if (name.compare(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0)
 				//{
 				//	marked = true;
 				//	extensions.emplace_back(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
-				//}
+				// }
 
 				if (name.compare(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) == 0)
 				{
@@ -358,12 +386,12 @@ namespace deckard::vulkan
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = VK_TRUE;
 
-			features12.pNext      = &features13;
-			features13.pNext      = &shader_features;
+			features12.pNext      = &shader_features;
+			//features13.pNext      = &shader_features;
 			shader_features.pNext = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-			device_create.pNext = &features12;
+			//device_create.pNext = &features12;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
@@ -418,7 +446,6 @@ namespace deckard::vulkan
 			return vkQueuePresentKHR(m_queue, &present_info);
 		}
 
-		
 		VkResult present(VkSemaphore rendering_finished, u32& image_index, VkSwapchainKHR swapchain)
 		{
 			VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
@@ -432,7 +459,6 @@ namespace deckard::vulkan
 
 			return vkQueuePresentKHR(m_queue, &present_info);
 		}
-
 
 		i32 select_queue() const
 		{

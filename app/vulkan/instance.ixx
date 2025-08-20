@@ -55,7 +55,7 @@ namespace deckard::vulkan
 		VkInstance m_instance{nullptr};
 
 	public:
-		bool initialize()
+		bool initialize(u32 apiversion)
 		{
 
 			if (bool ext_init = enumerate_instance_extensions(instance_extensions); not ext_init)
@@ -64,7 +64,7 @@ namespace deckard::vulkan
 				return false;
 
 			VkApplicationInfo app_info{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO};
-			app_info.apiVersion = VK_API_VERSION_1_3;
+			app_info.apiVersion = apiversion;
 
 			app_info.pApplicationName   = "Deckard";
 			app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
@@ -194,7 +194,22 @@ namespace deckard::vulkan
 
 			VkResult result = vkCreateInstance(&instance_create, nullptr, &m_instance);
 
-			if (result != VK_SUCCESS or m_instance == nullptr)
+			if(result == VK_ERROR_INCOMPATIBLE_DRIVER)
+			{
+				dbg::println("Vulkan driver is incompatible with the application.");
+				return false;
+			}
+			else if (result == VK_ERROR_EXTENSION_NOT_PRESENT)
+			{
+				dbg::println("Vulkan extension not present.");
+				return false;
+			}
+			else if (result == VK_ERROR_LAYER_NOT_PRESENT)
+			{
+				dbg::println("Vulkan layer not present.");
+				return false;
+			}
+			else if(result != VK_SUCCESS or m_instance == nullptr)
 			{
 				dbg::println("Create vulkan instance failed: {}", string_VkResult(result));
 				return false;

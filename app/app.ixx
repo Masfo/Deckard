@@ -8,6 +8,7 @@ module;
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
 #include <windowsx.h>
+#include <vulkan/vulkan_core.h>
 
 export module deckard.app;
 export import :inputs;
@@ -746,7 +747,7 @@ namespace deckard::app
 
 			bool vsync = m_properties.flags && Attribute::vsync;
 
-			if (not vulkan.initialize(handle, vsync))
+			if (not vulkan.initialize(handle, vsync, VK_API_VERSION_1_2))
 			{
 				dbg::println("Vulkan not initialized");
 				return;
