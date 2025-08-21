@@ -86,17 +86,28 @@ namespace deckard::vulkan
 			for (u32 i = 0; i < device_count; i++)
 			{
 
+				auto device = devices[i];
 
-				VkPhysicalDeviceVulkan13Features v13_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-				v13_features.synchronization2 = VK_TRUE;
-				v13_features.dynamicRendering = VK_TRUE;
-
-				VkPhysicalDeviceFeatures2 feat2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-				feat2.pNext = &v13_features;
-				vkGetPhysicalDeviceFeatures2(devices[i], &feat2);
+				VkPhysicalDeviceFeatures deviceFeatures{};
+				vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
 
-				vkGetPhysicalDeviceProperties(devices[i], &device_properties[i]);
+
+				VkPhysicalDeviceFeatures2        features2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+				VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+				VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+				VkPhysicalDeviceVulkan14Features features14{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+				
+				features2.pNext  = &features12; 
+				features12.pNext = &features13;  
+				features13.pNext = &features14;
+				vkGetPhysicalDeviceFeatures2(device, &features2);
+
+
+	
+
+
+				vkGetPhysicalDeviceProperties(device, &device_properties[i]);
 
 				const auto& prop = device_properties[i];
 
@@ -104,25 +115,20 @@ namespace deckard::vulkan
 				u32 api_major          = VK_API_VERSION_MAJOR(device_api_version);
 				u32 api_minor          = VK_API_VERSION_MINOR(device_api_version);
 				u32 api_patch          = VK_API_VERSION_PATCH(device_api_version);
-				dbg::println(
-				  "Device {}: {} - API Version: {}.{}.{}",
-				  i,
-				  prop.deviceName,
-				  api_major,
-				  api_minor,
-				  api_patch);
+				dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
 
-				if(api_major < VK_API_VERSION_MAJOR(apiversion) ||
-				   (api_major == VK_API_VERSION_MAJOR(apiversion) && api_minor < VK_API_VERSION_MINOR(apiversion)))
+				if (api_major < VK_API_VERSION_MAJOR(apiversion) ||
+					(api_major == VK_API_VERSION_MAJOR(apiversion) && api_minor < VK_API_VERSION_MINOR(apiversion)))
 				{
-					dbg::println("Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
-								 i,
-								 api_major,
-								 api_minor,
-								 api_patch,
-								 VK_API_VERSION_MAJOR(apiversion),
-								 VK_API_VERSION_MINOR(apiversion),
-								 VK_API_VERSION_PATCH(apiversion));
+					dbg::println(
+					  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
+					  i,
+					  api_major,
+					  api_minor,
+					  api_patch,
+					  VK_API_VERSION_MAJOR(apiversion),
+					  VK_API_VERSION_MINOR(apiversion),
+					  VK_API_VERSION_PATCH(apiversion));
 					continue;
 				}
 
@@ -132,12 +138,12 @@ namespace deckard::vulkan
 				if (prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 					integrated_gpus.push_back(i);
 
-				vkGetPhysicalDeviceMemoryProperties(devices[i], &device_memories[i]);
+				vkGetPhysicalDeviceMemoryProperties(device, &device_memories[i]);
 				for (u32 j = 0; j < device_memories[i].memoryHeapCount; j++)
 					mem_counts[i] += device_memories[i].memoryHeaps[j].size;
 
 				// Features
-				vkGetPhysicalDeviceFeatures(devices[i], &device_features[i]);
+				vkGetPhysicalDeviceFeatures(device, &device_features[i]);
 			}
 
 			std::vector<u32> gpu_score;
@@ -386,12 +392,12 @@ namespace deckard::vulkan
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = VK_TRUE;
 
-			features12.pNext      = &shader_features;
-			//features13.pNext      = &shader_features;
+			features12.pNext = &shader_features;
+			// features13.pNext      = &shader_features;
 			shader_features.pNext = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-			//device_create.pNext = &features12;
+			// device_create.pNext = &features12;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
