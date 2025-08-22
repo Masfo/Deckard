@@ -385,7 +385,7 @@ namespace deckard::vulkan
 			features13.dynamicRendering = VK_TRUE;
 
 			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-			features12.bufferDeviceAddress = true;
+			features12.bufferDeviceAddress = false;
 			features12.descriptorIndexing  = true;
 
 
@@ -397,7 +397,8 @@ namespace deckard::vulkan
 			shader_features.pNext = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-			// device_create.pNext = &features12;
+			
+			device_create.pNext = &features12; // add features to chain
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
