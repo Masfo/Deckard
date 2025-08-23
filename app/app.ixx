@@ -747,7 +747,7 @@ namespace deckard::app
 
 			bool vsync = m_properties.flags && Attribute::vsync;
 
-			if (not vulkan.initialize(handle, vsync, VK_API_VERSION_1_2))
+			if (not vulkan.initialize(handle, vsync, VK_API_VERSION_1_3))
 			{
 				dbg::println("Vulkan not initialized");
 				return;

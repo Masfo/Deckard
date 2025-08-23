@@ -12,6 +12,8 @@ void output_message(const std::string_view message)
 {
 	std::print(std::cout, "{}"sv, message);
 
+
+
 	OutputDebugStringA(message.data());
 }
 

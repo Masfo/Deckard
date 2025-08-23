@@ -96,16 +96,18 @@ void redirect_console(bool show)
 
 	if (show)
 	{
-		SetConsoleOutputCP(CP_UTF8);
-		SetConsoleCP(CP_UTF8);
-		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
-
+	
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 		{
 			AllocConsole();
 			AttachConsole(GetCurrentProcessId());
 		}
-
+	
+		SetConsoleOutputCP(CP_UTF8);
+		SetConsoleCP(CP_UTF8);
+		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
+		SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
+	
 		freopen_s(reinterpret_cast<FILE**>(stdout), "CON", "w", stdout);
 		freopen_s(reinterpret_cast<FILE**>(stderr), "CON", "w", stderr);
 		freopen_s(reinterpret_cast<FILE**>(stdin), "CON", "r", stdin);

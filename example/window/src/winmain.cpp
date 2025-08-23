@@ -566,51 +566,6 @@ dbg::println();
 	// ###############################################
 
 
-	deckard::net::ip gip("2001:0db8:0000:0000:0000:8a2e:0370:7334");
-
-	auto fss = std::format("{}", gip);
-
-
-	std::string abc("abcdefg");
-
-	auto it_abc = abc.begin() + 0;
-	dbg::println("a? auto: {}", *it_abc);
-
-	it_abc += 1;
-
-	dbg::println("b? auto: {}", *it_abc);
-
-
-	it_abc += 4;
-
-	dbg::println("f? auto: {}", *it_abc);
-
-
-	filemap f("input.bin", filemap::access::readwrite);
-
-
-	auto slice = f[0, 256];
-
-	slice[0] = 'D';
-	slice[1] = 'E';
-	slice[2] = 'A';
-	slice[3] = 'D';
-
-	f.close();
-
-
-	// std::string ipv6("2001:db8::1:0:0:1");
-	std::string ipv6("::ffff:7f00:1");
-
-	std::string nipv6 = ipv6.substr(2, 24);
-	nipv6.reserve(64);
-	nipv6.shrink_to_fit();
-
-	for (int i = 0; i < nipv6.size(); i++)
-	{
-		dbg::println("{:#x}", nipv6[i]);
-	}
-
 
 	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
@@ -623,23 +578,6 @@ dbg::println();
 	//  127.0.0.1 - ::ffff:7f00:1
 
 
-	dbg::println("log2(32) = {}", std::log2(32));
-	dbg::println("log2(64) = {}", std::log2(64));
-	dbg::println("log2(85) = {}", std::log2(85));
-	dbg::println("log2(92) = {}", std::log2(92));
-
-
-	std::vector<u8> kos = make_vector<u8>(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07);
-	std::span<u8>   vkos{kos};
-
-	dbg::println("{}", vkos.size());
-	dbg::println("{}", vkos);
-
-
-	kos.clear();
-
-	dbg::println("{}", vkos.size());
-	dbg::println("{}", vkos);
 
 
 	// ###################
@@ -648,21 +586,6 @@ dbg::println();
 
 	// ###################
 
-	for (const auto& coord : Iter2D(4, 5))
-		dbg::print("({}, {}) ", coord.x, coord.y);
-
-	dbg::println();
-
-	{
-		constexpr std::string_view unicode[]{"▀▄─", "▄▀─", "▀─▄", "▄─▀"};
-
-		for (int y{}, p{}; y != 6; ++y, p = ((p + 1) % 4))
-		{
-			for (int x{}; x != 16; ++x)
-				dbg::print("{}", unicode[p]);
-			dbg::println();
-		}
-	}
 
 
 	// ########################################################################
@@ -674,25 +597,6 @@ dbg::println();
 	{
 		dbg::println("{} - {}", i.first, i.second);
 	}
-
-
-	// Bailey–Borwein–Plouffe
-	f64 pi{0};
-	for (auto k : range(0, 15))
-	{
-		f64 term =
-		  (1.0 / std::pow(16, k)) *  //
-		  ((4.0 / (8.0 * k + 1.0)) - //
-		   (2.0 / (8.0 * k + 4.0)) - //
-		   (1.0 / (8.0 * k + 5.0)) - //
-		   (1.0 / (8.0 * k + 6.0)));
-
-		pi += term;
-	}
-
-
-	// ###########################################################################
-
 	// ########################################################################
 
 	// Lexer       lexer(input);
