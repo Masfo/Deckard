@@ -96,10 +96,10 @@ void redirect_console(bool show)
 
 	if (show)
 	{
+		AllocConsole();
 	
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 		{
-			AllocConsole();
 			AttachConsole(GetCurrentProcessId());
 		}
 	
@@ -115,6 +115,7 @@ void redirect_console(bool show)
 	else
 	{
 		FreeConsole();
+
 	}
 #ifdef _DEBUG
 #endif
@@ -195,6 +196,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	#endif
 	// clang-format on
 
+	redirect_console(true);
 
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");
@@ -207,7 +209,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	if (CoInitializeEx)
 		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-	redirect_console(true);
 //	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
 
 	deckard::random::initialize();

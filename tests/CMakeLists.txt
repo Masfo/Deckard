@@ -17,6 +17,7 @@ set_target_properties(tests PROPERTIES
 
 
 
+
 target_compile_options(tests PRIVATE /nologo)
 target_compile_options(tests PRIVATE -Zc:__cplusplus /Zc:alignedNew)
 target_compile_options(tests PRIVATE /utf-8)
