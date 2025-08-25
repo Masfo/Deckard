@@ -32,23 +32,34 @@ namespace deckard::system
 		return function;
 	}
 
+	enum class exit_code_enum : u8
+	{
+		ok = 0,
+		createpipe_fail,
+		createprocess_fail,
+		wait_fail,
+		timeout,
+		readfile_fail,
+
+		unknown = limits::max<u8>
+	};
+
 	struct execute_process_result
 	{
 		std::string               output;
 		std::string               error;
 		std::chrono::milliseconds elapsed_time{0};
-		int                       exit_code{0};
+
+		using enum exit_code_enum;
+		exit_code_enum exit_code{ok};
 	};
 
-	export auto execute_process(std::filesystem::path executable, std::string_view commandline = "",
-								std::chrono::milliseconds timeout = 0ms,
-								std::filesystem::path     working_directory = std::filesystem::current_path()
-	)
-		-> execute_process_result
+	export auto
+	execute_process(std::filesystem::path executable, std::string_view commandline = "", std::chrono::milliseconds timeout = 0ms,
+					std::filesystem::path working_directory = std::filesystem::current_path()) -> execute_process_result
 	{
-		execute_process_result result{.exit_code = -1};
-
-		u32 timeout_ms = timeout.count() == 0 ? INFINITE : as<u32>(timeout.count());
+		execute_process_result result{};
+		u32                    timeout_ms = timeout.count() == 0 ? INFINITE : as<u32>(timeout.count());
 
 		constexpr u32 TEMP_BUFFER_SIZE = 1024 * 4;
 
@@ -61,8 +72,8 @@ namespace deckard::system
 
 		if (not CreatePipe(&readpipe, &writepipe, &sa, TEMP_BUFFER_SIZE))
 		{
-			result.error    = std::format("CreatePipe failed: {}", GetLastError());
-			result.exit_code = -1;
+			result.error     = std::format("CreatePipe failed: {}", GetLastError());
+			result.exit_code = exit_code_enum::createpipe_fail;
 			return result;
 		}
 
@@ -82,7 +93,16 @@ namespace deckard::system
 		std::string command = std::format("{} {}", executable.string(), commandline);
 
 		if (not CreateProcessA(
-			  nullptr, (LPSTR)command.data(), nullptr, nullptr, TRUE, flags, nullptr, const_cast<char*>(working_directory.string().c_str()), &si, &pi))
+			  nullptr,
+			  (LPSTR)command.data(),
+			  nullptr,
+			  nullptr,
+			  TRUE,
+			  flags,
+			  nullptr,
+			  const_cast<char*>(working_directory.string().c_str()),
+			  &si,
+			  &pi))
 		{
 			// try again with cmd
 			command.insert(0, "cmd /c ");
@@ -99,8 +119,8 @@ namespace deckard::system
 				  &si,
 				  &pi))
 			{
-				result.error    = std::format("CreateProcess('{}') failed: {}", command, GetLastError());
-				result.exit_code = -2;
+				result.error     = std::format("CreateProcess('{}') failed: {}", command, GetLastError());
+				result.exit_code = exit_code_enum::createprocess_fail;
 				CloseHandle(readpipe);
 				CloseHandle(writepipe);
 				return result;
@@ -114,22 +134,25 @@ namespace deckard::system
 		std::vector<char>                  output_buffer;
 		output_buffer.reserve(TEMP_BUFFER_SIZE);
 
-		auto elapsed_start = std::chrono::system_clock::now();
-		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - elapsed_start);
+		std::chrono::milliseconds elapsed =
+		  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timer_start);
 
 		DWORD bytes_read{0};
 		while (true)
 		{
-			// Check if we've exceeded timeout
+			elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timer_start);
+
 			if (timeout != 0ms)
 			{
-				auto current_time = std::chrono::system_clock::now();
-				elapsed      = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - elapsed_start);
 				if (elapsed > timeout)
 				{
 					result.output    = std::string(output_buffer.begin(), output_buffer.end());
-					result.error    = "Process output reading timed out";
-					result.exit_code = -6;
+					result.error     = "Process output reading timed out";
+					result.exit_code = exit_code_enum::timeout;
+
+					result.output       = std::string(output_buffer.begin(), output_buffer.end());
+					result.elapsed_time = elapsed;
+
 
 					CloseHandle(readpipe);
 					CloseHandle(pi.hProcess);
@@ -140,17 +163,25 @@ namespace deckard::system
 
 			auto peek_result = PeekNamedPipe(readpipe, nullptr, 0, nullptr, &bytes_read, nullptr);
 			if (not peek_result)
+			{
 				break;
+			}
 
 			if (bytes_read > 0)
 			{
-				peek_result = ReadFile(
-				  readpipe, temp_buffer.data(), static_cast<DWORD>(temp_buffer.size()), &bytes_read,nullptr);
+				peek_result = ReadFile(readpipe, temp_buffer.data(), static_cast<DWORD>(temp_buffer.size()), &bytes_read, nullptr);
 
 				if (not peek_result or bytes_read == 0)
 				{
-					result.error    = std::format("ReadFile failed or no data available: {}", GetLastError());
-					result.exit_code = -3;
+					result.error     = std::format("ReadFile failed or no data available: {}", GetLastError());
+					result.exit_code = exit_code_enum::readfile_fail;
+
+					result.output = std::string(output_buffer.begin(), output_buffer.end());
+
+					elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timer_start);
+					result.elapsed_time = elapsed;
+
+
 					CloseHandle(readpipe);
 					CloseHandle(pi.hProcess);
 					CloseHandle(pi.hThread);
@@ -158,28 +189,29 @@ namespace deckard::system
 				}
 				output_buffer.insert(output_buffer.end(), temp_buffer.data(), temp_buffer.data() + bytes_read);
 				temp_buffer.fill(0);
-
 			}
 		}
 
 		CloseHandle(readpipe);
 
+		elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timer_start);
 
-
-		auto timer_end      = std::chrono::system_clock::now();
+		result.elapsed_time = elapsed;
 		result.output       = std::string(output_buffer.begin(), output_buffer.end());
-		result.elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timer_end - timer_start);
 
-		auto waitresult     = WaitForSingleObject(pi.hProcess, timeout_ms);
+
+		auto wait_timer = std::chrono::system_clock::now();
+
+		auto waitresult = WaitForSingleObject(pi.hProcess, timeout_ms);
 		if (waitresult == WAIT_TIMEOUT)
 		{
-			result.error    = "WaitForSingleObject timed out";
-			result.exit_code = -4;
+			result.error     = "WaitForSingleObject timed out";
+			result.exit_code = exit_code_enum::timeout;
 		}
 		else if (waitresult == WAIT_FAILED)
 		{
-			result.error    = std::format("WaitForSingleObject failed: {}", GetLastError());
-			result.exit_code = -5;
+			result.error     = std::format("WaitForSingleObject failed: {}", GetLastError());
+			result.exit_code = exit_code_enum::wait_fail;
 		}
 		else
 		{
