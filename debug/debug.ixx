@@ -64,6 +64,41 @@ export namespace deckard::dbg
 
 
 	// TODO: own debug window
+	HWND debug_window{nullptr};
+	std::vector<std::string> debug_lines;
+	
+
+
+	/*
+		InitCommonControls
+
+
+		dbg::println("Hello {}!", "World");
+
+		- thread safe 
+		- output to log file
+		- output to debug window
+		- has text input and status bar for extra info
+		- timestamp
+
+		status bar:
+			- fps
+			- frame time
+			- memory usage
+			- cpu usage
+			- gpu usage
+			- network usage
+			- custom messages
+
+			dbg::register_status(FPS, "FPS");		int -> text
+			dbg::status(FPS, 58.03);					in status bar TEXT: value, example FPS: 58.03
+			 Register template text for enum/int, then set value, it will format it to text
+
+			 dbg::register_status(FPS, "FPS {3.3f}");
+			 dbg::status(FPS, 58.03); -> status bar TEXT: FPS: 58.030
+	 
+	 
+	*/
 
 
 

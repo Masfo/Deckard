@@ -546,7 +546,7 @@ dbg::println();
 
 	// ###############################################
 
-	auto process_result = system::execute_process("alinesleep.exe", "1", 1200ms);
+	auto process_result = system::execute_process("alinesleep.exe", "1", 1s);
 
 
 	_ = 0;

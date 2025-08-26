@@ -353,6 +353,7 @@ set(THIRD_PARTY_LIBS
 	opengl32.lib
 	ws2_32
 	xinput
+	Comctl32.lib
 	#cpuid
    # libcpmtd.lib
    # libcmtd.lib
