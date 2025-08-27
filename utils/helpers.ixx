@@ -86,10 +86,28 @@ export namespace deckard
 
 	auto clock_now() { return std::chrono::steady_clock::now(); }
 
-	void clock_stop(std::string_view id, std::chrono::steady_clock::time_point start)
+	template<typename TimeType = std::chrono::milliseconds>
+	void clock_delta(std::string_view id, const decltype(clock_now()) start)
 	{
-		std::chrono::duration<double, std::milli> took(clock_now() - start);
-		std::println("{} took {}", id, took);
+		const auto duration = clock_now() - start;
+		const auto took     = std::chrono::duration<f64, TimeType::period>(duration).count();
+
+#ifdef _DEBUG
+		if constexpr (std::is_same_v<TimeType, std::chrono::hours>)
+			dbg::println("{} took {:.6f} hrs", id, took);
+		else if constexpr (std::is_same_v<TimeType, std::chrono::minutes>)
+			dbg::println("{} took {:.6f} min", id, took);
+		else if constexpr (std::is_same_v<TimeType, std::chrono::seconds>)
+			dbg::println("{} took {:.6f} s", id, took);
+		else if constexpr (std::is_same_v<TimeType, std::chrono::milliseconds>)
+			dbg::println("{} took {} ms", id, (i64)(took));
+		else if constexpr (std::is_same_v<TimeType, std::chrono::microseconds>)
+			dbg::println("{} took {} us", id, (i64)(took));
+		else if constexpr (std::is_same_v<TimeType, std::chrono::nanoseconds>)
+			dbg::println("{} took {} ns", id, (i64)(took));
+		else
+			dbg::println("{} took {} (unknown) ", id, (i64)(took));
+#endif
 	}
 
 	// to_hex
