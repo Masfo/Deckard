@@ -3,7 +3,7 @@
 
 	<!-- Files -->
 	<File Name="types.ixx"/>
-	<File Name="_as.ixx"/>
+	<File Name="as.ixx"/>
 	<File Name="enum_flags.ixx"/>
 	<File Name="scope_exit.ixx"/>
 
@@ -21,8 +21,8 @@
 
 
 
-	<File Name="_base64.ixx"/>
-	<File Name="_base32.ixx"/>
+	<File Name="base64.ixx"/>
+	<File Name="base32.ixx"/>
 
 	<File Name="sha2.ixx"/>
 

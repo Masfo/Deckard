@@ -436,8 +436,8 @@ CmdOptions parse_command_line(std::string_view cmdl)
 			// Special case: -O2, -O3, etc. (optimization level)
 			if (token[1] == 'O' && token.size() > 2 && std::isdigit(token[2]))
 			{
-				int level = token[2] - '0';
-				level = std::clamp(level, min_level, max_level);
+				int level           = token[2] - '0';
+				level               = std::clamp(level, min_level, max_level);
 				result.options["O"] = std::to_string(level);
 				continue;
 			}
@@ -456,6 +456,14 @@ CmdOptions parse_command_line(std::string_view cmdl)
 	return result;
 }
 
+i64 deckard_time()
+{
+	LARGE_INTEGER freq{}, count{};
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&count);
+	return (int64_t)(count.QuadPart * 1000.0 / freq.QuadPart);
+}
+
 i32 deckard_main(utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -471,6 +479,45 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
+
+	// ########################################################################
+
+	auto start = clock_now();
+
+
+	std::this_thread::sleep_for(2541ms);
+
+	clock_delta("sleep", start);
+
+	_ = 0;
+
+	// ########################################################################
+
+	struct argument_def
+	{
+		std::string short_name;
+		std::string long_name;
+		bool        is_flag{false};
+		bool        requires_value{false};
+		int         int_value{0};
+		std::string str_value{}; // utf8
+		f64         float_value{0.0};
+	};
+
+	std::unordered_map<std::string, bool> flags; // key is normalized from long or short name
+												 // verbose or v
+
+	flags["--verbose"] = true;
+	flags["-v"]        = true;
+
+	auto argparser = [&](std::string_view cmdl) { };
+
+	// add<int>("count", 'c', "Number of items", 42);				// long, short, description, default
+	// add<bool>("verbose", 'v', "Enable verbose output", false);
+	// add<std::string>("out", 'o', "Output file", "out.txt");
+
+	_;
+
 	// ########################################################################
 
 
@@ -566,7 +613,6 @@ dbg::println();
 	// ###############################################
 
 
-
 	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
 
@@ -578,14 +624,11 @@ dbg::println();
 	//  127.0.0.1 - ::ffff:7f00:1
 
 
-
-
 	// ###################
 
 	dbg::println("{}", string::match("*X*", "qH1") ? "match!" : "not found");
 
 	// ###################
-
 
 
 	// ########################################################################
