@@ -216,8 +216,8 @@ set(DECKARD_SRCS
 		net/client.ixx
 		net/ip.ixx
 	   
-		# Taskpool
-		taskpool/taskpool.ixx
+		# threadpool
+		threadpool/threadpool.ixx
 
 
 
@@ -241,6 +241,7 @@ set(DECKARD_SRCS
 		utils/stringhelper.ixx
 		utils/timers.ixx
 		utils/smallbufferobject.ixx
+		utils/threadutils.ixx
 
 		# Unicode
 		unicode/utf8.ixx

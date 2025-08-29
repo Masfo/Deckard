@@ -51,6 +51,7 @@ export import deckard.grid;
 export import deckard.stringhelper;
 export import deckard.timers;
 export import deckard.sbo;
+export import deckard.threadutil;
 
 #ifdef __cpp_pp_embed
 #error("Use embed on something");
