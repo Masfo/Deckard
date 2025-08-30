@@ -11,7 +11,7 @@ namespace deckard
 	export class threadpool
 	{
 	private:
-		using function_t = std::function<void()>;
+		using function_t = std::move_only_function<void()>;
 	private:
 		std::vector<std::thread>          workers;
 		std::queue<function_t> tasks;

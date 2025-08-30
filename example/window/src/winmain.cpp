@@ -472,6 +472,110 @@ dbg::print("{} ", x);
 dbg::println();
 #endif
 	// ########################################################################
+	{
+		constexpr size_t mof_size  = sizeof(std::move_only_function<void()>);
+		constexpr size_t stdf_size = sizeof(std::function<void()>);
+		constexpr size_t fr_size   = sizeof(function_ref<void()>);
+		dbg::println("move_only_function size: {} / std::function size: {}, function_ref size: {}", mof_size, stdf_size, fr_size);
+
+		using function_t = function_ref<void()>;
+
+		std::mutex                       mtx;
+		std::mutex                       vfr_mutex;
+		std::deque<function_t> vfr;
+		std::condition_variable          cv;
+		std::condition_variable          cv1;
+
+		std::atomic_int counter{0}, threader_tasks{0};
+
+		std::atomic_bool stop{false};
+
+		bool ready{false};
+		for (int i = 0; i < 20; i++)
+		{
+			vfr.push_back([i,&counter] 
+				{ 
+					std::this_thread::sleep_for(std::chrono::seconds(2));
+				  counter++;
+				});
+		}
+
+		vfr.emplace_back([] { dbg::println("hello from function_ref 1!"); });
+		vfr.emplace_back(
+		  []
+		  {
+			  dbg::println("hello from function_ref 2!");
+			  std::this_thread::sleep_for(10s);
+		  });
+		vfr.emplace_back(
+		  []
+		  {
+			  dbg::println("hello from function_ref 3!");
+			  std::this_thread::sleep_for(5s);
+		  });
+		vfr.emplace_back([] { dbg::println("hello from function_ref 4!"); });
+
+
+		auto tasker = [&]()
+		{
+			dbg::println("\ttasker started");
+
+
+
+
+			dbg::println("\ttasker loop started");
+
+
+			while (true)
+			{
+				function_t task{[] { }};
+				{
+
+					std::unique_lock vlock(vfr_mutex);
+					cv1.wait(vlock, [&] { return not vfr.empty(); });
+
+					if (vfr.empty())
+						break;
+
+					task = vfr.front();
+					vfr.pop_front();
+				}
+				threader_tasks++;
+				task();
+			}
+			dbg::println("\ttasker loop ended");
+		};
+
+		std::vector<std::thread> tasks;
+		tasks.reserve(10);
+		for (int i = 0; i < 10; ++i)
+			tasks.emplace_back(tasker);
+
+		dbg::println("tasks waiting...");
+
+		cv.notify_all();
+		ready = true;
+
+		dbg::println("tasks started");
+
+		for (int i = 0; i < 5; i++)
+		{
+			dbg::println("main thread {}", i);
+			std::this_thread::sleep_for(1s);
+		}
+
+		dbg::println("joining...");
+		cv1.notify_all();
+
+		for (auto& t : tasks)
+			t.join();
+
+		dbg::println("joined");
+		dbg::println("tasks run {} / {}", counter.load(), threader_tasks.load());
+		_;
+	}
+
+	// ########################################################################
 
 	auto       tpool_start = clock_now();
 	threadpool tpool;
@@ -506,20 +610,19 @@ dbg::println();
 
 	auto t3 = tpool.enqueue(task3);
 
-	for(int i=0; i < 50; i++)
+	for (int i = 0; i < 50; i++)
 	{
-		tpool.enqueue([i]
-		{
+		tpool.enqueue(
+		  [i]
+		  {
 			  dbg::println("{} task", i);
 			  std::this_thread::sleep_for(2s);
-			return i * 2;
-		});
+			  return i * 2;
+		  });
 	}
 
 
 	clock_delta("300 enq", tpool_start);
-
-
 
 
 	{
