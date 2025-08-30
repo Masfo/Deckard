@@ -24,6 +24,7 @@ import deckard.win32;
 import deckard.debug;
 import deckard.assert;
 import deckard.enums;
+import deckard.threadutil;
 
 namespace deckard::app
 {
@@ -966,7 +967,7 @@ namespace deckard::app
 
 				  set_visible(true);
 
-				  system::set_thread_name("App::Run");
+				  thread::set_thread_name("App::Run");
 
 
 				  // init_inputs();

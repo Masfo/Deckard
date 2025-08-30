@@ -456,14 +456,6 @@ CmdOptions parse_command_line(std::string_view cmdl)
 	return result;
 }
 
-i64 deckard_time()
-{
-	LARGE_INTEGER freq{}, count{};
-	QueryPerformanceFrequency(&freq);
-	QueryPerformanceCounter(&count);
-	return (int64_t)(count.QuadPart * 1000.0 / freq.QuadPart);
-}
-
 i32 deckard_main(utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -479,7 +471,82 @@ for (char x : tree->traverse_inorder())
 dbg::print("{} ", x);
 dbg::println();
 #endif
+	// ########################################################################
 
+	auto       tpool_start = clock_now();
+	threadpool tpool;
+
+	clock_delta("threadpool init", tpool_start);
+
+	auto task1 = []
+	{
+		dbg::println("Hello from threadpool!");
+		return 42;
+	};
+
+	auto task2 = []
+	{
+		std::this_thread::sleep_for(2s);
+		dbg::println("long task");
+		return std::string("long done");
+	};
+
+	auto t2 = tpool.enqueue(task2);
+	clock_delta("q2", tpool_start);
+
+	auto t1 = tpool.enqueue(task1);
+	clock_delta("q1", tpool_start);
+
+	auto task3 = []
+	{
+		std::this_thread::sleep_for(1s);
+		dbg::println("short task");
+		return 666.314;
+	};
+
+	auto t3 = tpool.enqueue(task3);
+
+	for(int i=0; i < 50; i++)
+	{
+		tpool.enqueue([i]
+		{
+			  dbg::println("{} task", i);
+			  std::this_thread::sleep_for(2s);
+			return i * 2;
+		});
+	}
+
+
+	clock_delta("300 enq", tpool_start);
+
+
+
+
+	{
+		dbg::println("work on main thread");
+
+		for (int i = 0; i < 5; i++)
+		{
+			dbg::println("main thread working... {}", i);
+			std::this_thread::sleep_for(1s);
+		}
+		dbg::println("done main thread");
+	}
+
+	dbg::println("waiting for tasks...");
+	int rt1 = t1.get();
+	f64 rt3 = t3.get();
+	clock_delta("get 1/3", tpool_start);
+	dbg::println("results: {} / {}", rt1, rt3);
+
+	std::string rt2 = t2.get();
+	clock_delta("get 2 long", tpool_start);
+	dbg::println("result2: {}", rt2);
+
+	tpool.join();
+	clock_delta<std::chrono::seconds>("join", tpool_start);
+
+	_;
 	// ########################################################################
 
 	auto start = clock_now();

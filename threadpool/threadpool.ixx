@@ -2,13 +2,83 @@
 
 import std;
 import deckard.function_ref;
+import deckard.threadutil;
+import deckard.debug;
 
 namespace deckard
 {
+
 	export class threadpool
 	{
 	private:
-		// using function_t = deckard::function_ref<void()>;
+		using function_t = std::function<void()>;
+	private:
+		std::vector<std::thread>          workers;
+		std::queue<function_t> tasks;
+		std::mutex                        mutex;
+		std::condition_variable           cv;
+		bool                              stop = false;
+
+	public:
+		explicit threadpool(size_t n = std::thread::hardware_concurrency())
+		{
+
+			n = std::max(1ull, n);
+
+			for (size_t i = 0; i < n; ++i)
+			{
+				workers.emplace_back(
+				  [i,this]
+				  {
+					thread::set_thread_name(std::format("deckard-pool-{}", i));
+
+					  while (true)
+					  {
+						  function_t task;
+						  {
+							  std::unique_lock lock(mutex);
+							  cv.wait(lock, [this] { return stop or !tasks.empty(); });
+							  if (stop && tasks.empty())
+								  return;
+							  task = std::move(tasks.front());
+							  tasks.pop();
+						  }
+						  task();
+					  }
+				  });
+			}
+		}
+
+		~threadpool() { join(); }
+
+		void join()
+		{
+			{
+				std::lock_guard lock(mutex);
+				stop = true;
+			}
+			cv.notify_all();
+			for (auto& t : workers)
+				t.join();
+		}
+
+		template<typename F, typename... Args>
+		auto enqueue(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
+		{
+			using ret_t = std::invoke_result_t<F, Args...>;
+			auto ntask   = std::make_shared<std::packaged_task<ret_t()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+			{
+				std::lock_guard lock(mutex);
+				tasks.emplace([ntask] { (*ntask)(); });
+			}
+			cv.notify_one();
+			return ntask->get_future();
+		}
+	};
+
+	export class taskpool
+	{
+	private:
 		using function_t = std::function<void()>;
 
 
@@ -21,7 +91,7 @@ namespace deckard
 
 
 	public:
-		explicit threadpool(size_t n = std::thread::hardware_concurrency())
+		explicit taskpool(size_t n = std::thread::hardware_concurrency() - 2)
 			: stop(false)
 		{
 
@@ -31,19 +101,21 @@ namespace deckard
 			for (size_t i = 0; i < n; ++i)
 			{
 				workers.emplace_back(
-				  [this, i, n]
+				  [this, i]
 				  {
+					  thread::set_thread_name(std::format("deckard-pool-{}", i));
+
 					  while (true)
 					  {
-						  function_t task; // = []{};
-						  if (pop_task(i, task) or steal_task(i, task) or pop_global(task))
+						  function_t task;
+						  if (pop_task(i, task) || steal_task(i, task) || pop_global(task))
 						  {
 							  task();
 						  }
 						  else
 						  {
 							  std::unique_lock lock(mutex);
-							  cv.wait(lock, [this, i] { return stop or !queues[i].empty() or !global.empty(); });
+							  cv.wait(lock, [this, i] { return stop || !queues[i].empty() || !global.empty(); });
 							  if (stop && all_empty())
 								  return;
 						  }
@@ -52,7 +124,7 @@ namespace deckard
 			}
 		}
 
-		~threadpool() { close(); }
+		~taskpool() { close(); }
 
 		void join()
 		{
@@ -96,6 +168,7 @@ namespace deckard
 
 		bool steal_task(size_t idx, function_t& task)
 		{
+
 			std::lock_guard lock(mutex);
 			for (size_t i = 0; i < queues.size(); ++i)
 			{
@@ -134,4 +207,4 @@ namespace deckard
 	};
 
 
-} // namespace deckard::taskpool
+} // namespace deckard
