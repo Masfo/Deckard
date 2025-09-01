@@ -26,6 +26,9 @@ namespace deckard::vulkan
 	constexpr u32 VENDOR_ARM      = 0x13B5;
 	constexpr u32 VENDOR_QUALCOMM = 0x5143;
 
+	PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR{nullptr};
+	PFN_vkCmdEndRenderingKHR   vkCmdEndRenderingKHR{nullptr};
+
 	export class device
 	{
 	private:
@@ -46,6 +49,15 @@ namespace deckard::vulkan
 		{
 			assert::check(instance != nullptr);
 
+
+			// Dynamic renderer
+			vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
+			vkCmdEndRenderingKHR   = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
+			if (vkCmdBeginRenderingKHR == nullptr || vkCmdEndRenderingKHR == nullptr)
+			{
+				dbg::println("Could not get dynamic rendering functions");
+				return false;
+			}
 
 			u32      device_count{0};
 			VkResult result = vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
@@ -92,19 +104,15 @@ namespace deckard::vulkan
 				vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
 
-
 				VkPhysicalDeviceFeatures2        features2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 				VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 				VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 				VkPhysicalDeviceVulkan14Features features14{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
-				
-				features2.pNext  = &features12; 
-				features12.pNext = &features13;  
+
+				features2.pNext  = &features12;
+				features12.pNext = &features13;
 				features13.pNext = &features14;
 				vkGetPhysicalDeviceFeatures2(device, &features2);
-
-
-	
 
 
 				vkGetPhysicalDeviceProperties(device, &device_properties[i]);
@@ -224,6 +232,28 @@ namespace deckard::vulkan
 				return false;
 			}
 			//
+
+			// ########
+			VkPhysicalDeviceVulkan12Properties vulkan12Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES};
+			VkPhysicalDeviceVulkan13Properties vulkan13Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES};
+
+			VkPhysicalDeviceProperties2        properties2        = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+			properties2.pNext                                     = &vulkan12Properties;
+			vulkan12Properties.pNext                              = &vulkan13Properties;
+
+			vkGetPhysicalDeviceProperties2(m_physical_device, &properties2);
+
+			dbg::println("Driver name: {}", vulkan12Properties.driverName);
+			dbg::println("Driver ver:  {}", vulkan12Properties.driverInfo);
+			dbg::println(
+			  "Conformance version: {}.{}.{}.{}",
+			  vulkan12Properties.conformanceVersion.major,
+			  vulkan12Properties.conformanceVersion.minor,
+			  vulkan12Properties.conformanceVersion.subminor,
+			  vulkan12Properties.conformanceVersion.patch);
+
+
+			// ########
 
 
 			const auto& prop = device_properties[best_gpu_index];
@@ -386,20 +416,19 @@ namespace deckard::vulkan
 			features13.dynamicRendering = VK_TRUE;
 
 			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-			features12.bufferDeviceAddress = false;
-			features12.descriptorIndexing  = true;
+			features12.bufferDeviceAddress = VK_TRUE;
+			features12.descriptorIndexing  = VK_TRUE;
 
 
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = VK_TRUE;
 
+			features13.pNext = &features12;
 			features12.pNext = &shader_features;
-			// features13.pNext      = &shader_features;
-			shader_features.pNext = nullptr;
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-			
-			device_create.pNext = &features12; // add features to chain
+
+			device_create.pNext = &features13; // add features to chain
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;

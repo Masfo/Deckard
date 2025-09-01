@@ -121,6 +121,12 @@ namespace deckard::vulkan
 				}
 				#endif
 
+				if(name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+				}
+
 				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 				{
 					marked = true;

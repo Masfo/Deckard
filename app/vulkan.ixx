@@ -2,6 +2,8 @@
 #include <windows.h>
 
 #include <vulkan/vk_enum_string_helper.h>
+#define VK_ONLY_EXPORTED_PROTOTYPES
+
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
 
@@ -228,38 +230,20 @@ namespace deckard::vulkan
 
 			assert::check(m_command_buffer[i] != nullptr);
 
-						// #0080c4
+			// #0080c4
 			VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
-			VkClearValue      clear_depth = {.depthStencil = {.depth = 1.0f, .stencil = 0}};
 
 
 			const VkRenderingAttachmentInfo color_attachment_info{
 			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			  .imageView   = m_images.imageview(i),
 			  .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-			  
-			  .resolveMode        = VK_RESOLVE_MODE_NONE,
-			  .resolveImageView   = VK_NULL_HANDLE,
-			  .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 
 			  .loadOp     = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			  .storeOp    = VK_ATTACHMENT_STORE_OP_STORE,
 			  .clearValue = clear_color,
 			};
 
-			VkClearValue depth_value{.depthStencil = {.depth = 1.0f, .stencil = 0}};
-
-			const VkRenderingAttachmentInfo depth_attachment_info{
-			  .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			  .imageView          = VK_NULL_HANDLE,
-			  .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			  .resolveMode        = VK_RESOLVE_MODE_NONE,
-			  .resolveImageView   = VK_NULL_HANDLE,
-			  .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			  .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			  .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
-			  .clearValue         = clear_depth,
-			};
 
 			const VkExtent2D      current_extent = m_surface.extent();
 			VkRect2D              render_area{{0, 0}, {current_extent.width, current_extent.height}};
@@ -270,55 +254,44 @@ namespace deckard::vulkan
 			  .layerCount           = 1,
 			  .colorAttachmentCount = 1,
 			  .pColorAttachments    = &color_attachment_info,
-			  .pDepthAttachment     = &depth_attachment_info,
-			  .pStencilAttachment   = nullptr,
 			};
 
+			VkImageMemoryBarrier top_image_memory_barrier{
+			  .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			  .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			  .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
+			  .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			  .image            = m_images.image(i),
+			  .subresourceRange = {
+				.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel   = 0,
+				.levelCount     = 1,
+				.baseArrayLayer = 0,
+				.layerCount     = 1,
+			  }};
 
-
-
-#if 1
-			VkImageMemoryBarrier image_barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-
-			image_barrier.srcAccessMask = 0;
-			image_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-
-			image_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-			image_barrier.image            = m_images.image(i);
-			image_barrier.subresourceRange = {
-			  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT, //
-			  .baseMipLevel   = 0,
-			  .levelCount     = 1,
-			  .baseArrayLayer = 0,
-			  .layerCount     = 1};
-
-			// image barrier begin: LAYOUT_UNDEFINED -> LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
-			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
-
-			// image layout
 			vkCmdPipelineBarrier(
 			  m_command_buffer[i],
-			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // src
-			  VK_PIPELINE_STAGE_TRANSFER_BIT,    // dst
+			  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,             // srcStageMask
+			  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
 			  0,
 			  0,
-			  nullptr,                           // memory barrier
+			  nullptr,
 			  0,
-			  nullptr,                           // buffer memory barrier
-			  1,
-			  &image_barrier);                   // image memory barrier
+			  nullptr,
+			  1,                    // imageMemoryBarrierCount
+			  &top_image_memory_barrier // pImageMemoryBarriers
+			);
 
-#endif
+
+			vkCmdBeginRenderingKHR(m_command_buffer[i], &render_info);
+
+			// draw here
+
+			vkCmdEndRenderingKHR(m_command_buffer[i]);
 
 
-			//
+#if 0
 			const VkViewport viewport{
 			  .x        = 0.0f, //
 			  .y        = 0.0f,
@@ -331,29 +304,47 @@ namespace deckard::vulkan
 
 			VkRect2D scissor = render_area;
 			vkCmdSetScissor(m_command_buffer[i], 0, 1, &scissor);
+#endif
 
 
-			// image layout present
-
-			image_barrier.srcAccessMask = 0;
-			image_barrier.dstAccessMask = 0;
-
-			image_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			image_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-			//vkCmdPipelineBarrier(
-			//  m_command_buffer[i],
-			//  VK_PIPELINE_STAGE_TRANSFER_BIT,       // src
-			//  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dst
-			//  0,
-			//  0,
-			//  nullptr,                              // memory barrier
-			//  0,
-			//  nullptr,                              // buffer memory barrier
-			//  1,
-			//  &image_barrier);                      // image memory barrier
 			//
 
+
+#if 1
+			// image barrier begin: LAYOUT_UNDEFINED -> LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
+			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
+
+			VkImageMemoryBarrier bottom_image_memory_barrier{
+			  .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			  .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			  .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			  .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
+			  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			  .image            = m_images.image(i),
+			  .subresourceRange = {
+				.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel   = 0,
+				.levelCount     = 1,
+				.baseArrayLayer = 0,
+				.layerCount     = 1,
+			  }};
+
+			vkCmdPipelineBarrier(
+			  m_command_buffer[i],
+			  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
+			  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,          // dstStageMask
+			  0,
+			  0,
+			  nullptr,
+			  0,
+			  nullptr,
+			  1,                        // imageMemoryBarrierCount
+			  &bottom_image_memory_barrier // pImageMemoryBarriers
+			);
+
+#endif
 
 			result = m_command_buffer.end(i);
 			if (result != VK_SUCCESS)
@@ -369,6 +360,8 @@ namespace deckard::vulkan
 		in_flight.wait(m_device);
 		bool     resized{false};
 		u32      image_index{0};
+
+		// image_available multiple?
 		VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, image_available, nullptr, &image_index);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{

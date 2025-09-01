@@ -621,7 +621,9 @@ namespace deckard::app
 
 		void create()
 		{
-
+			dbg::println("CPU: {}", system::GetCPUIDString());
+			dbg::println("RAM: {}", system::GetRAMString());
+			dbg::println("OS:  {}", system::GetOSVersionString());
 
 			if (IsWindows7OrGreater())
 			{
