@@ -84,6 +84,9 @@ namespace deckard::cpuid
 		RDRAND,
 		RDSEED,
 
+		HT,
+		FMA, 
+
 		MAX_FEATURE
 	};
 
@@ -107,17 +110,21 @@ namespace deckard::cpuid
 	  {"RDRAND", 1, cpu_register::ecx, 30},
 	  {"RDSEED", 7, cpu_register::ebx, 18},
 
-	  //{"HTT", 1, cpu_register::edx, 28},
+	  {"HT", 1, cpu_register::edx, 28},
+	  {"FMA", 1, cpu_register::ecx, 12},
+
 	}};
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	export extern "C" bool has_cpuid(); // cpuid.asm
+	//export extern "C" bool has_cpuid(); // cpuid.asm
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
+		#if 0
 		if (!has_cpuid())
 			return {0, 0, 0, 0};
+		#endif
 
 		std::array<u32, 4> regs{0};
 		__cpuid(std::bit_cast<i32*>(regs.data()), id);
@@ -126,8 +133,10 @@ namespace deckard::cpuid
 
 	export auto cpuidex(int id, int leaf) -> std::array<u32, 4>
 	{
+		#if 0
 		if (!has_cpuid())
 			return {0, 0, 0, 0};
+		#endif
 
 		std::array<u32, 4> regs{0};
 		__cpuidex(std::bit_cast<i32*>(regs.data()), id, leaf);
@@ -247,19 +256,23 @@ namespace deckard::cpuid
 
 		u32 speed_in_mhz() const
 		{
-			const auto delay = 20ms;
+			constexpr auto delay = 200ms;
 
-			auto       timer_start = std::chrono::high_resolution_clock::now();
-			const auto timer_end   = timer_start + delay;
+			auto start_time = clock_now();
+			auto start_tsc  = __rdtsc();
+			std::this_thread::sleep_for(delay);
+			auto end_tsc  = __rdtsc();
+			auto end_time = clock_now();
 
 
-			auto cycle_start = __rdtsc();
-			while (timer_start <= timer_end)
-				timer_start = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<f64> elapsed = end_time - start_time;
+			f64                        seconds = elapsed.count();
 
-			u32 hz_count = as<u32>((__rdtsc() - cycle_start) * (1000 / delay.count()));
+			f64 cycles = as<f64>(end_tsc - start_tsc);
+			f64 hz     = cycles / seconds;
+			f64 mhz    = hz / std::mega::num;
 
-			return hz_count / std::mega::num;
+			return as<u32>(mhz);
 		}
 
 
@@ -328,6 +341,9 @@ namespace deckard::cpuid
 				SYSTEM_INFO si{};
 				GetSystemInfo(&si);
 				cores = threads = si.dwNumberOfProcessors;
+
+				if(has(Feature::HT))
+					cores /= 2;
 			}
 
 			return {cores, threads};
