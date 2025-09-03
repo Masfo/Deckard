@@ -112,6 +112,7 @@ export namespace deckard
 	} // namespace limits
 
 	// Sizes
+	using bytes = std::ratio<1,1>;
 	using kibi = std::ratio<1ULL << 10>;
 	using mebi = std::ratio<1ULL << 20>;
 	using gibi = std::ratio<1ULL << 30>;

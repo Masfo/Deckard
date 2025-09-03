@@ -15,6 +15,7 @@ import deckard.debug;
 import deckard.helpers;
 import deckard.scope_exit;
 import deckard.system;
+import deckard.cpuid;
 
 namespace deckard::system
 {
@@ -167,18 +168,16 @@ namespace deckard::system
 		return {major, minor, build};
 	}
 
-	export u64 GetRAM()
+	export template<typename SizeType = gibi>
+	u64 GetRAM()
 	{
-		MEMORYSTATUSEX status{};
-		status.dwLength = sizeof(status);
+		MEMORYSTATUSEX status{.dwLength = sizeof(status)};
 		GlobalMemoryStatusEx(&status);
 
-		return static_cast<u64>(status.ullTotalPhys);
+		return as<u64>(status.ullTotalPhys) / SizeType::num;
 	}
 
-	export std::string GetRAMString() { return human_readable_bytes(GetRAM()); }
-
-	
+	export std::string GetRAMString() { return human_readable_bytes(GetRAM<bytes>()); }
 
 	export std::string get_windows_error(DWORD error)
 	{
@@ -188,7 +187,6 @@ namespace deckard::system
 		return std::string{err};
 	}
 
-
 	// in bytes
 	export size_t process_ram_usage()
 	{
@@ -196,5 +194,12 @@ namespace deckard::system
 		GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
 		return pmc.WorkingSetSize;
 	}
+
+	export std::string GetCPUIDString()
+	{
+		cpuid::CPUID id;
+		return id.as_string();
+	}
+
 
 } // namespace deckard::system
