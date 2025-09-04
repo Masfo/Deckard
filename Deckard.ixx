@@ -29,7 +29,6 @@ export import deckard.config;
 export import deckard.math;
 
 
-
 // Utils
 export import deckard.base32;
 export import deckard.base64;
@@ -99,25 +98,20 @@ void redirect_console(bool show)
 	if (show)
 	{
 		AllocConsole();
-	
-		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
-		{
-			AttachConsole(GetCurrentProcessId());
-		}
-	
+		AttachConsole(GetCurrentProcessId());
+
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
 		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
 		SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
-	
-		freopen_s(reinterpret_cast<FILE**>(stdout), "CON", "w", stdout);
-		freopen_s(reinterpret_cast<FILE**>(stderr), "CON", "w", stderr);
-		freopen_s(reinterpret_cast<FILE**>(stdin), "CON", "r", stdin);
+
+		freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
+		freopen_s(reinterpret_cast<FILE**>(stderr), "CONOUT$", "w", stderr);
+		freopen_s(reinterpret_cast<FILE**>(stdin), "CONIN$", "r", stdin);
 	}
 	else
 	{
 		FreeConsole();
-
 	}
 #ifdef _DEBUG
 #endif
@@ -208,12 +202,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	auto CoInitializeEx     = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
 	auto CoUninitialize     = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
 
-	//InitCommonControls();
+	// InitCommonControls();
 
 	if (CoInitializeEx)
 		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-//	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
+	//	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
 
 	deckard::random::initialize();
 	net::initialize();
@@ -223,7 +217,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	// main
 	int ret = deckard_main(cmdline);
 
-//	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
+	//	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
 
 
 	//

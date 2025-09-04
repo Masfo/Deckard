@@ -13,12 +13,25 @@ import deckard.types;
 import deckard.as;
 import deckard.assert;
 
+import :core;
+
 #ifndef _DEBUG
 import deckard_build;
 #endif
 
 namespace deckard::vulkan
 {
+
+	bool core::initialize_instance(u32 )
+	{
+		//
+		instance = nullptr;
+		return false;
+	}
+
+	// core ------------------------------
+
+
 	bool enumerate_instance_extensions(std::vector<VkExtensionProperties>& extensions)
 	{
 		u32      count{0};
@@ -97,11 +110,11 @@ namespace deckard::vulkan
 					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 				}
 
-				if(name.compare(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
+				if (name.compare(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
 				{
 					marked = true;
 					required_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-				}	
+				}
 
 
 #if 0
@@ -113,15 +126,15 @@ namespace deckard::vulkan
 #endif
 
 #ifdef _DEBUG
-			#if 0
+#if 0
 				if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
 				{
 					marked = true;
 					required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 				}
-				#endif
+#endif
 
-				if(name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
+				if (name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
 				{
 					marked = true;
 					required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -200,7 +213,7 @@ namespace deckard::vulkan
 
 			VkResult result = vkCreateInstance(&instance_create, nullptr, &m_instance);
 
-			if(result == VK_ERROR_INCOMPATIBLE_DRIVER)
+			if (result == VK_ERROR_INCOMPATIBLE_DRIVER)
 			{
 				dbg::println("Vulkan driver is incompatible with the application.");
 				return false;
@@ -215,7 +228,7 @@ namespace deckard::vulkan
 				dbg::println("Vulkan layer not present.");
 				return false;
 			}
-			else if(result != VK_SUCCESS or m_instance == nullptr)
+			else if (result != VK_SUCCESS or m_instance == nullptr)
 			{
 				dbg::println("Create vulkan instance failed: {}", string_VkResult(result));
 				return false;

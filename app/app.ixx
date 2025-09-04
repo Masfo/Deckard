@@ -7,8 +7,8 @@ module;
 #include <hidusage.h>
 #include <shellscalingapi.h>
 #include <versionhelpers.h>
-#include <windowsx.h>
 #include <vulkan/vulkan_core.h>
+#include <windowsx.h>
 
 export module deckard.app;
 export import :inputs;
@@ -28,6 +28,8 @@ import deckard.threadutil;
 
 namespace deckard::app
 {
+	using flicks = std::chrono::duration<std::chrono::nanoseconds::rep, std::ratio<1, 705'600'000>>;
+
 
 	export enum class Attribute : u8 {
 		fullscreen       = BIT(0),
@@ -836,6 +838,7 @@ namespace deckard::app
 
 			enum Updates : u32
 			{
+				FPS_FLICKS,
 				FPS,
 				Accumulator,
 				NextTitleUpdate,
@@ -849,6 +852,7 @@ namespace deckard::app
 			timers.fill(0.0f);
 			game_ticks_per_second = 5;
 
+
 			// TODO: minimize and rendering
 
 			while (handle_messages())
@@ -860,6 +864,8 @@ namespace deckard::app
 
 				auto current_time = clock_now();
 				m_deltatime       = std::chrono::duration_cast<std::chrono::duration<f32>>(current_time - last_time).count();
+
+				auto flicks_delta = current_time - last_time;
 				last_time         = current_time;
 
 				//
@@ -890,18 +896,23 @@ namespace deckard::app
 				totalframes++;
 
 				timers[FPS] += m_deltatime;
+
+				auto deltaFlicks     = std::chrono::duration_cast<flicks>(flicks_delta);
+				f32  fps_from_flicks = as<f32>(flicks::period::den) / deltaFlicks.count();
+
+
 				if (timers[FPS] > 1.0f)
 				{
 					fps         = frames / timers[FPS];
 					max_fps     = std::max(fps, max_fps);
 					update_tick = 0;
 					frames      = 0;
-
 					timers[FPS] = 0;
+					timers[FPS_FLICKS] = fps_from_flicks;
 				}
 
-				//timers[Timer5s] += m_deltatime;
-				//if (timers[Timer5s] > 5.0f)
+				// timers[Timer5s] += m_deltatime;
+				// if (timers[Timer5s] > 5.0f)
 				//{
 				//	dbg::println(
 				//	  "{:05.3f}. Fixed updates: {}/{} = {}",
@@ -911,7 +922,7 @@ namespace deckard::app
 				//	  fixed_update_count / game_ticks_per_second);
 				//	fixed_update_count = 0;
 				//	timers[Timer5s]    = 0.0f;
-				//}
+				// }
 
 
 				timers[NextTitleUpdate] += deltatime();
@@ -919,7 +930,7 @@ namespace deckard::app
 				{
 
 					set_title(std::format(
-					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: ({:3}[{:3}]/{:3})/{}",
+					  "[{:05.3f}] FPS: {:.3f}/{:.3f}/{}, D: {:.3f}, T: ({:3}[{:3}]/{:3})/{} | Flicks: {} - {:.3f}",
 					  time(),
 					  fps,
 					  max_fps,
@@ -928,7 +939,9 @@ namespace deckard::app
 					  update_tick,
 					  max_update_tick,
 					  total_update_ticks,
-					  game_ticks_per_second));
+					  game_ticks_per_second,
+					  deltaFlicks.count(),
+					  timers[FPS_FLICKS]));
 
 					timers[NextTitleUpdate] = 0.0f;
 				}
