@@ -10,16 +10,15 @@ using namespace std::string_view_literals;
 
 void output_message(const std::string_view message)
 {
-	std::print(std::cout, "{}"sv, message);
 
-
+	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.data(), static_cast<DWORD>(message.size()), nullptr, nullptr);
 
 	OutputDebugStringA(message.data());
 }
 
 void error_output_message(const std::string_view message)
 {
-	std::print(std::cerr, "{}"sv, message);
+	WriteFile(GetStdHandle(STD_ERROR_HANDLE), message.data(), static_cast<DWORD>(message.size()), nullptr, nullptr);
 
 	OutputDebugStringA(message.data());
 }
