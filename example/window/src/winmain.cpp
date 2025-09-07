@@ -469,10 +469,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 
-	vulkan::core vcore;
-
-	bool c = vcore.initialize_instance(0);
-
 
 
 	_ = 0;
