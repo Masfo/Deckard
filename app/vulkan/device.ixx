@@ -9,6 +9,8 @@
 export module deckard.vulkan:device;
 
 import :semaphore;
+import :core;
+
 
 import deckard.vulkan_helpers;
 
@@ -20,14 +22,203 @@ import deckard.assert;
 
 namespace deckard::vulkan
 {
-	constexpr u32 VENDOR_NVIDIA   = 0x10DE;
-	constexpr u32 VENDOR_AMD      = 0x1002;
-	constexpr u32 VENDOR_INTEL    = 0x8086;
-	constexpr u32 VENDOR_ARM      = 0x13B5;
-	constexpr u32 VENDOR_QUALCOMM = 0x5143;
 
-	PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR{nullptr};
-	PFN_vkCmdEndRenderingKHR   vkCmdEndRenderingKHR{nullptr};
+
+	bool core::initialize_device()
+	{
+		assert::check(instance != nullptr);
+
+		// Dynamic renderer
+		vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
+		vkCmdEndRenderingKHR   = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
+		if (vkCmdBeginRenderingKHR == nullptr || vkCmdEndRenderingKHR == nullptr)
+		{
+			dbg::println("Could not get dynamic rendering functions");
+			return false;
+		}
+
+
+		// devices
+		u32                           device_count{0};
+		std::vector<VkPhysicalDevice> devices;
+
+		VkResult result = vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate physical devices failed: {}", string_VkResult(result));
+
+			return false;
+		}
+
+		devices.resize(device_count);
+		result = vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
+
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("{}", string_VkResult(result));
+
+			return false;
+		}
+
+		std::vector<u32> discrete_gpus;
+		std::vector<u32> integrated_gpus;
+
+		std::vector<VkPhysicalDeviceProperties> device_properties;
+		device_properties.resize(device_count);
+
+		std::vector<VkPhysicalDeviceMemoryProperties> device_memories;
+		device_memories.resize(device_count);
+
+		std::vector<VkPhysicalDeviceFeatures> device_features;
+		device_features.resize(device_count);
+
+		std::vector<u64> mem_counts;
+		mem_counts.resize(device_count);
+
+
+		for (u32 i = 0; i < device_count; i++)
+		{
+
+			auto device = devices[i];
+
+			VkPhysicalDeviceFeatures deviceFeatures{};
+			vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+
+			VkPhysicalDeviceFeatures2        features2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+			VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+			VkPhysicalDeviceVulkan14Features features14{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+
+			features2.pNext  = &features12;
+			features12.pNext = &features13;
+			features13.pNext = &features14;
+			vkGetPhysicalDeviceFeatures2(device, &features2);
+
+
+			vkGetPhysicalDeviceProperties(device, &device_properties[i]);
+
+			const auto& prop = device_properties[i];
+
+			u32 device_api_version = prop.apiVersion;
+			u32 api_major          = VK_API_VERSION_MAJOR(device_api_version);
+			u32 api_minor          = VK_API_VERSION_MINOR(device_api_version);
+			u32 api_patch          = VK_API_VERSION_PATCH(device_api_version);
+
+			dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
+
+			if (api_major < VK_API_VERSION_MAJOR(minimum_apiversion) ||
+				(api_major == VK_API_VERSION_MAJOR(minimum_apiversion) && api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
+			{
+				dbg::println(
+				  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
+				  i,
+				  api_major,
+				  api_minor,
+				  api_patch,
+				  VK_API_VERSION_MAJOR(minimum_apiversion),
+				  VK_API_VERSION_MINOR(minimum_apiversion),
+				  VK_API_VERSION_PATCH(minimum_apiversion));
+				continue;
+			}
+
+			if (prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+				discrete_gpus.push_back(i);
+
+			if (prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+				integrated_gpus.push_back(i);
+
+			vkGetPhysicalDeviceMemoryProperties(device, &device_memories[i]);
+			for (u32 j = 0; j < device_memories[i].memoryHeapCount; j++)
+				mem_counts[i] += device_memories[i].memoryHeaps[j].size;
+
+			// Features
+			vkGetPhysicalDeviceFeatures(device, &device_features[i]);
+		}
+
+		// Select best gpu
+		std::vector<u32> gpu_score;
+		gpu_score.resize(device_count);
+		// TODO: u32 score, add points for best score, d-gpu +10, i-gpu, +5
+
+		u32 best_gpu_index{0xFFFF'FFFF};
+		if (not discrete_gpus.empty())
+		{
+			// just take first discrete
+			// TODO: maybe better way
+			best_gpu_index = discrete_gpus[0];
+		}
+		else if (not integrated_gpus.empty())
+		{
+			// fallback on integrated
+			best_gpu_index = integrated_gpus[0];
+		}
+		else
+		{
+			dbg::println("Vulkan: no suitable GPU");
+			return false;
+		}
+
+		physical_device = devices[best_gpu_index];
+
+
+		// device memory
+
+		VkPhysicalDeviceMemoryProperties memory_property{};
+		vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_property);
+
+		for (u32 i = 0; i < memory_property.memoryTypeCount; i++)
+		{
+			VkMemoryType memtype = memory_property.memoryTypes[i];
+			dbg::println("{}. {}, index {}", i, memtype.propertyFlags, memtype.heapIndex);
+
+			if (memtype.propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+				dbg::print("DEVICE LOCAL, ");
+			if (memtype.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+				dbg::print("HOST VISIBLE BIT, ");
+			if (memtype.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+				dbg::print("HOST COHERENT BIT, ");
+			if (memtype.propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+				dbg::print("HOST CACHED BIT, ");
+
+			dbg::println("{} bytes", memory_property.memoryHeaps[memtype.heapIndex].size);
+			dbg::println();
+		}
+
+		for (u32 i = 0; i < memory_property.memoryHeapCount; i++)
+		{
+			auto heap = memory_property.memoryHeaps[i];
+
+			dbg::print("Flags: ");
+			if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+				dbg::print("HEAP DEVICE LOCAL, ");
+			if (heap.flags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT)
+				dbg::print("HEAP MULTI INSTANCE BIT, ");
+			dbg::println();
+
+			dbg::println("Heap {}. {}, {} bytes", i, heap.flags, heap.size);
+		}
+
+
+		// device extensions
+		u32 de_count{0};
+		result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &de_count, nullptr);
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate device extensions: {}", string_VkResult(result));
+			return false;
+		}
+
+		device_extensions.resize(de_count);
+		result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &de_count, device_extensions.data());
+		if (result != VK_SUCCESS)
+		{
+			dbg::println("Enumerate device extensions: {}", string_VkResult(result));
+			return false;
+		}
+		//
+		return true;
+	}
 
 	export class device
 	{
@@ -236,10 +427,12 @@ namespace deckard::vulkan
 			// ########
 			VkPhysicalDeviceVulkan12Properties vulkan12Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES};
 			VkPhysicalDeviceVulkan13Properties vulkan13Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES};
+			VkPhysicalDeviceVulkan14Properties vulkan14Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES};
 
-			VkPhysicalDeviceProperties2        properties2        = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-			properties2.pNext                                     = &vulkan12Properties;
-			vulkan12Properties.pNext                              = &vulkan13Properties;
+			VkPhysicalDeviceProperties2 properties2 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+			properties2.pNext                       = &vulkan12Properties;
+			vulkan12Properties.pNext                = &vulkan13Properties;
+			vulkan13Properties.pNext                = &vulkan14Properties;
 
 			vkGetPhysicalDeviceProperties2(m_physical_device, &properties2);
 
@@ -251,6 +444,13 @@ namespace deckard::vulkan
 			  vulkan12Properties.conformanceVersion.minor,
 			  vulkan12Properties.conformanceVersion.subminor,
 			  vulkan12Properties.conformanceVersion.patch);
+
+			properties2.properties.driverVersion = 0x0'0080'005e;
+
+			dbg::println("Driver version: {}.{}.{}",
+						 VK_VERSION_MAJOR(properties2.properties.driverVersion),
+						 0,
+						 VK_VERSION_PATCH(properties2.properties.driverVersion));
 
 
 			// ########
@@ -337,6 +537,13 @@ namespace deckard::vulkan
 			{
 				std::string_view name   = extension.extensionName;
 				bool             marked = false;
+
+				if (name.compare(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+				}
+
 
 				if (name.compare(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
 				{
@@ -445,9 +652,21 @@ namespace deckard::vulkan
 				return false;
 			}
 
-
 			vkGetDeviceQueue(m_device, queue_index, 0, &m_queue);
 			assert::check(m_queue != nullptr);
+
+
+			VkPhysicalDeviceDriverProperties driverProperties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES};
+			_                                                 = 0;
+			VkPhysicalDeviceProperties2 pdp{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+			pdp.pNext = &driverProperties;
+
+			vkGetPhysicalDeviceProperties2(m_physical_device, &pdp);
+			dbg::println("Driver name: {}", pdp.properties.deviceName);
+			dbg::println(
+			  "Driver version: {}.0.{}", VK_VERSION_MAJOR(pdp.properties.driverVersion), VK_VERSION_PATCH(pdp.properties.driverVersion));
+			// ########
+
 
 			return true;
 		}
