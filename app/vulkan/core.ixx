@@ -1,6 +1,7 @@
 ﻿module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
+#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
 
@@ -18,6 +19,18 @@ namespace deckard::vulkan
 	constexpr u32 VENDOR_INTEL    = 0x8086;
 	constexpr u32 VENDOR_ARM      = 0x13B5;
 	constexpr u32 VENDOR_QUALCOMM = 0x5143;
+
+	struct GPUInfo
+	{
+		u64              vram_size_mb{0};
+		VkPhysicalDevice physical_device{nullptr};
+		VkPhysicalDeviceType type{VK_PHYSICAL_DEVICE_TYPE_OTHER}; // Discrete, Integrated
+		int                  score{0};
+		bool                 dynamic_rendering{false};
+
+		bool operator<(const GPUInfo& other) const { return score > other.score; } // High to low
+
+	};
 
 	// Dynamic renderer
 	PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR{nullptr};
