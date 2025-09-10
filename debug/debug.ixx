@@ -5,8 +5,13 @@
 export module deckard.debug;
 
 import std;
-
+import deckard.types;
+//import deckard.log;
+using namespace deckard;
 using namespace std::string_view_literals;
+
+//export deckard::log::log_to_file global_log;
+
 
 void output_message(const std::string_view message)
 {
@@ -14,6 +19,8 @@ void output_message(const std::string_view message)
 	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.data(), static_cast<DWORD>(message.size()), nullptr, nullptr);
 
 	OutputDebugStringA(message.data());
+
+	//log::global_log.log(message);
 }
 
 void error_output_message(const std::string_view message)
@@ -63,10 +70,8 @@ export namespace deckard::dbg
 
 
 	// TODO: own debug window
-	HWND debug_window{nullptr};
+	HWND                     debug_window{nullptr};
 	std::vector<std::string> debug_lines;
-	
-
 
 	/*
 		InitCommonControls
@@ -74,7 +79,7 @@ export namespace deckard::dbg
 
 		dbg::println("Hello {}!", "World");
 
-		- thread safe 
+		- thread safe
 		- output to log file
 		- output to debug window
 		- has text input and status bar for extra info
@@ -95,12 +100,9 @@ export namespace deckard::dbg
 
 			 dbg::register_status(FPS, "FPS {3.3f}");
 			 dbg::status(FPS, 58.03); -> status bar TEXT: FPS: 58.030
-	 
-	 
+
+
 	*/
-
-
-
 
 
 	void breakpoint()
