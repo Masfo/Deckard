@@ -1,22 +1,24 @@
 {
-    "version": "0.2.1",
-    "defaults": {},
-    "configurations": [
-        {
-            "type": "default",
-            "project": "CMakeLists.txt",
-            "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
-            "name": "window debug utf8",
-            "args": [ "arg1 🐱 argv2" ]
-
-        },
-        {
-            "type": "debug",
-            "project": "CMakeLists.txt",
-            "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
-            "name": "hello utf8",
-            "args": [ "hello 🐱" ]
-
-        }
-    ]
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
+      "name": "window debug utf8",
+      "args": [
+        "arg1 \uD83D\uDC31 argv2"
+      ]
+    },
+    {
+      "type": "debug",
+      "project": "CMakeLists.txt",
+      "projectTarget": "window.exe (D:\\projektit\\Deckard\\bin\\window.exe)",
+      "name": "hello utf8",
+      "args": [
+        "hello \uD83D\uDC31"
+      ]
+    }
+  ]
 }

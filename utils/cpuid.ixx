@@ -113,11 +113,12 @@ namespace deckard::cpuid
 	  {"HT", 1, cpu_register::edx, 28},
 	  {"FMA", 1, cpu_register::ecx, 12},
 
+
 	}};
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	//export extern "C" bool has_cpuid(); // cpuid.asm
+	extern "C" bool has_cpuid(); // cpuid.asm
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{

@@ -11,6 +11,7 @@ export module deckard;
 
 
 export import deckard.debug;
+export import deckard.log;
 export import deckard.assert;
 export import deckard.types;
 export import deckard.as;

@@ -174,9 +174,12 @@ set(DECKARD_SRCS
 
 		$<$<CONFIG:Debug>:debug/debug.ixx>
 		$<$<CONFIG:Debug>:debug/assert.ixx>
+		$<$<CONFIG:Debug>:debug/log.ixx>
 
 		$<$<CONFIG:RelWithDebInfo,Release>:debug/debug_null.ixx>
 		$<$<CONFIG:RelWithDebInfo,Release>:debug/assert_null.ixx>
+		$<$<CONFIG:RelWithDebInfo,Release>:debug/log_null.ixx>
+
 
 		$<$<PLATFORM_ID:Windows>:debug/console.ixx>
 

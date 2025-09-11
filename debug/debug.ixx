@@ -104,7 +104,6 @@ export namespace deckard::dbg
 
 	*/
 
-
 	void breakpoint()
 	{
 #if __cpp_lib_debugging && __has_include(<debugging>)

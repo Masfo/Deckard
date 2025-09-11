@@ -1253,7 +1253,6 @@ namespace deckard::utf8
 
 			while (it != end_it)
 			{
-				char32 c = *it;
 				if (not utf8::is_whitespace(*it))
 					break;
 				++it;

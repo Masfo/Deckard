@@ -314,18 +314,26 @@ namespace deckard::math
 
 	export quat rotate_x(const quat& q, f32 radians)
 	{
+		// TODO: rotate q
+		todo();
 		const float half = radians * 0.5f;
 		return quat(std::cos(half), std::sin(half), 0.0f, 0.0f);
 	}
 
 	export quat rotate_y(const quat& q, f32 radians)
 	{
+		// TODO: rotate q
+		todo();
+
 		const float half = radians * 0.5f;
 		return quat(std::cos(half), 0, std::sin(half), 0);
 	}
 
 	export quat rotate_z(const quat& q, f32 radians)
 	{
+		// TODO: rotate q
+		todo();
+
 		const float half = radians * 0.5f;
 		return quat(std::cos(half), 0.0f, 0.0f, std::sin(half));
 	}
