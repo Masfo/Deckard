@@ -30,36 +30,88 @@ namespace deckard
 		// read file to buffer
 		// expected on errors
 
-		export std::expected<bool, std::string> write_file(fs::path file, const std::span<u8> content, bool overwrite = false)
+		export std::expected<bool, std::string>
+		write_file(fs::path file, const std::span<u8> content, size_t content_size, bool overwrite = false)
 		{
 			DWORD bytes_written{0};
 			DWORD mode = CREATE_ALWAYS;
+
+			content_size = std::min(content_size, content.size_bytes());
+
 			if (not overwrite)
 				mode = CREATE_NEW;
+
 			HANDLE handle =
 			  CreateFileW(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
+
 			if (handle == INVALID_HANDLE_VALUE)
 			{
 				if (GetLastError() == ERROR_ALREADY_EXISTS)
 					return std::unexpected(std::format("write_file: file '{}' already exists", system::from_wide(file.wstring()).c_str()));
 				else
-					return std::unexpected(std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
+					return std::unexpected(
+					  std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
 			}
-			if (not WriteFile(handle, content.data(), as<DWORD>(content.size_bytes()), &bytes_written, nullptr))
+
+			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
 			{
 				CloseHandle(handle);
 				return std::unexpected(std::format("write_file: could not write to file '{}'", system::from_wide(file.wstring()).c_str()));
 			}
+
 			CloseHandle(handle);
-			if (bytes_written < content.size_bytes())
-				return std::unexpected(
-				  std::format("write_file: wrote partial {}/{} to file '{}'", bytes_written, content.size_bytes(), system::from_wide(file.wstring()).c_str()));
+
+			if (bytes_written < content_size)
+				return std::unexpected(std::format(
+				  "write_file: wrote partial {}/{} to file '{}'", bytes_written, content_size, system::from_wide(file.wstring()).c_str()));
 			return true;
 		}
 
-		
-	}
+		export std::expected<bool, std::string> write_file(fs::path file, const std::span<u8> content, bool overwrite = false)
+		{
+			return write_file(file, content, content.size_bytes(), overwrite);
+		}
 
+
+
+		export  std::expected<bool, std::string> read_file(fs::path file, std::span<u8> buffer, size_t buffer_size=0)
+		{
+			if(not fs::exists(file))
+				return std::unexpected(std::format("read_file: file '{}' does not exist", system::from_wide(file.wstring()).c_str()));
+
+			auto file_size = fs::file_size(file);
+			if (file_size == 0)
+				return std::unexpected(std::format("read_file: file '{}' is empty", system::from_wide(file.wstring()).c_str()));
+
+			if (buffer_size == 0)
+				buffer_size = file_size;
+
+			buffer_size = std::min(buffer_size, buffer.size_bytes());
+
+
+			DWORD read{0};
+			HANDLE handle = CreateFileW(file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			if (handle == INVALID_HANDLE_VALUE)
+				return std::unexpected(std::format("read_file: could not open file '{}'", system::from_wide(file.wstring()).c_str()));
+
+			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
+			{
+				CloseHandle(handle);
+				return std::unexpected(std::format("read_file: could not read from file '{}'", system::from_wide(file.wstring()).c_str()));
+			}
+
+			CloseHandle(handle);
+
+			if(file_size > read)
+				return std::unexpected(std::format(
+				  "read_file: buffer too small for file '{}', need at least {} bytes",
+				  system::from_wide(file.wstring()).c_str(),
+				  file_size));
+		
+			return true;
+		}
+
+	} // namespace v2
 
 	inline namespace v1
 	{
