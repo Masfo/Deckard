@@ -9,6 +9,7 @@ import std;
 import deckard.types;
 import deckard.debug;
 import deckard.as;
+import deckard.assert;
 
 namespace deckard::random
 {
@@ -154,11 +155,11 @@ namespace deckard::random
 	std::random_device rd;
 	std::mt19937       mersenne_twister;
 
-	constexpr std::string_view alphanum_special{
+	constexpr std::string_view dict_alphanum_special{
 	  R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
-	constexpr std::string_view alphabet{alphanum_special.substr(0, 52)};
-	constexpr std::string_view alphanumeric{alphanum_special.substr(0, 62)};
-	constexpr std::string_view digits { alphanum_special.substr(52, 10) };
+	constexpr std::string_view dict_alphabet{dict_alphanum_special.substr(0, 52)};
+	constexpr std::string_view dict_alphanumeric{dict_alphanum_special.substr(0, 62)};
+	constexpr std::string_view dict_digits{dict_alphanum_special.substr(52, 10)};
 
 	export template<integral_or_bool T = i32>
 	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
@@ -241,13 +242,94 @@ namespace deckard::random
 		return ret;
 	}
 
-	export std::string alpha(u32 len = 12) { return generate_with_dictionary(len, alphabet); }
+	template<typename T>
+	void generate_with_dictionary(std::span<T> buffer, u32 len, const std::string_view dictionary)
+	{
+		len = std::min(len, as<u32>(buffer.size()));
+		std::ranges::generate_n(buffer.begin(), len, [&dictionary] { return dictionary[rnd<u64>(0u, dictionary.length() - 1)]; });
+	}
 
-	export std::string alphanum(u32 len = 12) { return generate_with_dictionary(len, alphanumeric); }
+	// alpha ########################################################################################################
 
-	export std::string password(u32 len = 12) { return generate_with_dictionary(len, alphanum_special); }
+	export std::string alpha(u32 len = 12) { return generate_with_dictionary(len, dict_alphabet); }
 
-	export std::string digit(u32 len = 12) { return generate_with_dictionary(len, digits); }
+	export void alpha(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_alphabet); }
+
+	export void alpha(std::string_view buffer, u32 len)
+	{
+		assert::check(len <= buffer.size(), "buffer too small");
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphabet);
+	}
+
+	export void alpha(std::string& buffer, u32 len)
+	{
+		if (buffer.size() < len)
+			buffer.resize(len);
+
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphabet);
+	}
+
+	// alphanum ########################################################################################################
+
+	export std::string alphanum(u32 len = 12) { return generate_with_dictionary(len, dict_alphanumeric); }
+
+	export void alphanum(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_alphanumeric); }
+
+	export void alphanum(std::string_view buffer, u32 len)
+	{
+		assert::check(len <= buffer.size(), "buffer too small");
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphanumeric);
+	}
+
+	export void alphanum(std::string& buffer, u32 len)
+	{
+		if (buffer.size() < len)
+			buffer.resize(len);
+
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphanumeric);
+	}
+
+	// password ########################################################################################################
+
+	export std::string password(u32 len) { return generate_with_dictionary(len, dict_alphanum_special); }
+
+	export void password(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_alphanum_special); }
+
+	export void password(std::string_view buffer, u32 len)
+	{
+		assert::check(len <= buffer.size(), "buffer too small");
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphanum_special);
+	}
+
+	export void password(std::string& buffer, u32 len)
+	{
+		if (buffer.size() < len)
+			buffer.resize(len);
+
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphanum_special);
+	}
+
+	// digit ########################################################################################################
+
+	export std::string digit(u32 len = 12) { return generate_with_dictionary(len, dict_digits); }
+
+	export void digit(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_digits); }
+
+	export void digit(std::string_view buffer, u32 len)
+	{
+		assert::check(len <= buffer.size(), "buffer too small");
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_digits);
+	}
+
+	export void digit(std::string& buffer, u32 len)
+	{
+		if (buffer.size() < len)
+			buffer.resize(len);
+
+		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_digits);
+	}
+
+	// ########################################################################################################
 
 	export void initialize()
 	{
