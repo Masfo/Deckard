@@ -33,13 +33,11 @@ namespace deckard
 		namespace impl
 		{
 			template<typename T>
-			std::expected<bool, std::string>
+			std::expected<u32, std::string>
 			write_file_impl(fs::path file, const std::span<T> content, size_t content_size, bool overwrite = false)
 			{
 				DWORD bytes_written{0};
 				DWORD mode = CREATE_ALWAYS;
-
-				size_t original_content_size = content_size;
 
 				content_size = std::min(content_size, content.size_bytes());
 
@@ -75,26 +73,19 @@ namespace deckard
 					  content_size,
 					  system::from_wide(file.wstring()).c_str()));
 
-				if (bytes_written < original_content_size)
-					return std::unexpected(std::format(
-					  "write_file: requested {} bytes but buffer only has {} bytes, wrote {} bytes to file '{}'",
-					  original_content_size,
-					  content.size_bytes(),
-					  bytes_written,
-					  system::from_wide(file.wstring()).c_str()));
 
-				return true;
+				return bytes_written;
 			}
 
 			template<typename T>
-			std::expected<bool, std::string> write_file_impl(fs::path file, const std::span<T> content, bool overwrite = false)
+			std::expected<u32, std::string> write_file_impl(fs::path file, const std::span<T> content, bool overwrite = false)
 			{
-				return write_file(file, content, content.size_bytes(), overwrite);
+				return write_file_impl(file, content, content.size_bytes(), overwrite);
 			}
 
 			// read
 			template<typename T>
-			std::expected<bool, std::string> read_file_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
+			std::expected<u32, std::string> read_file_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
 			{
 				if (not fs::exists(file))
 					return std::unexpected(std::format("read_file: file '{}' does not exist", system::from_wide(file.wstring()).c_str()));
@@ -126,27 +117,36 @@ namespace deckard
 
 				if (file_size > read)
 					return std::unexpected(std::format(
-					  "read_file: buffer too small for file '{}', need at least {} bytes",
+					  "read_file: buffer too small for file '{}', need at least {} bytes, read only {} bytes",
 					  system::from_wide(file.wstring()).c_str(),
-					  file_size));
+					  file_size,
+					  read));
 
-				return true;
+				return read;
 			}
 
 		} // namespace impl
 
-		export std::expected<bool, std::string>
+		// write
+		export std::expected<u32, std::string>
 		write_file(fs::path file, const std::span<u8> content, size_t content_size, bool overwrite = false)
 		{
 			return impl::write_file_impl<u8>(file, content, content_size, overwrite);
 		}
 
-		export std::expected<bool, std::string> write_file(fs::path file, const std::span<u8> content, bool overwrite = false)
+		export std::expected<u32, std::string> write_file(fs::path file, const std::span<u8> content, bool overwrite = false)
 		{
 			return impl::write_file_impl<u8>(file, content, content.size_bytes(), overwrite);
 		}
 
-		export std::expected<bool, std::string> read_file(fs::path file, std::span<u8> buffer, size_t buffer_size = 0)
+		export std::expected<u32, std::string> write_file(fs::path file, const std::string_view content, bool overwrite = false)
+		{
+			return impl::write_file_impl<char>(file, std::span<char>(as<char*>(content.data()), content.size()), overwrite);
+		}
+
+		// read
+
+		export std::expected<u32, std::string> read_file(fs::path file, std::span<u8> buffer, size_t buffer_size = 0)
 		{
 			return impl::read_file_impl<u8>(file, buffer, buffer_size);
 		}
