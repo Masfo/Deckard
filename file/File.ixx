@@ -22,6 +22,45 @@ namespace deckard
 	//
 	// virtualfile
 	// fills buffers, if full dump to disk
+
+	namespace v2
+	{
+		// TODO: simple read/write api
+		// write buffer to file
+		// read file to buffer
+		// expected on errors
+
+		export std::expected<bool, std::string> write_file(fs::path file, const std::span<u8> content, bool overwrite = false)
+		{
+			DWORD bytes_written{0};
+			DWORD mode = CREATE_ALWAYS;
+			if (not overwrite)
+				mode = CREATE_NEW;
+			HANDLE handle =
+			  CreateFileW(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				if (GetLastError() == ERROR_ALREADY_EXISTS)
+					return std::unexpected(std::format("write_file: file '{}' already exists", system::from_wide(file.wstring()).c_str()));
+				else
+					return std::unexpected(std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
+			}
+			if (not WriteFile(handle, content.data(), as<DWORD>(content.size_bytes()), &bytes_written, nullptr))
+			{
+				CloseHandle(handle);
+				return std::unexpected(std::format("write_file: could not write to file '{}'", system::from_wide(file.wstring()).c_str()));
+			}
+			CloseHandle(handle);
+			if (bytes_written < content.size_bytes())
+				return std::unexpected(
+				  std::format("write_file: wrote partial {}/{} to file '{}'", bytes_written, content.size_bytes(), system::from_wide(file.wstring()).c_str()));
+			return true;
+		}
+
+		
+	}
+
+
 	inline namespace v1
 	{
 		export class file
