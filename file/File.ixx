@@ -99,6 +99,9 @@ namespace deckard
 
 				buffer_size = std::min(buffer_size, buffer.size_bytes());
 
+				if(buffer_size == 0)
+					return std::unexpected(
+					  std::format("read_file: buffer size is zero for file '{}'", system::from_wide(file.wstring()).c_str()));
 
 				DWORD  read{0};
 				HANDLE handle = CreateFileW(
@@ -114,13 +117,6 @@ namespace deckard
 				}
 
 				CloseHandle(handle);
-
-				if (file_size > read)
-					return std::unexpected(std::format(
-					  "read_file: buffer too small for file '{}', need at least {} bytes, read only {} bytes",
-					  system::from_wide(file.wstring()).c_str(),
-					  file_size,
-					  read));
 
 				return read;
 			}
@@ -141,7 +137,7 @@ namespace deckard
 
 		export std::expected<u32, std::string> write_file(fs::path file, const std::string_view content, bool overwrite = false)
 		{
-			return impl::write_file_impl<char>(file, std::span<char>(as<char*>(content.data()), content.size()), overwrite);
+			return impl::write_file_impl(file, std::span<char>(as<char*>(content.data()), content.size()), overwrite);
 		}
 
 		// read
@@ -149,6 +145,20 @@ namespace deckard
 		export std::expected<u32, std::string> read_file(fs::path file, std::span<u8> buffer, size_t buffer_size = 0)
 		{
 			return impl::read_file_impl<u8>(file, buffer, buffer_size);
+		}
+
+		export std::expected<u32, std::string> read_file(fs::path file, std::string_view buffer, size_t buffer_size = 0)
+		{
+			return impl::read_file_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
+		}
+
+		export std::expected<u32, std::string> read_file(fs::path file, std::string& buffer, size_t buffer_size = 0)
+		{
+			if (buffer_size == 0)
+				buffer_size = fs::file_size(file);
+			if (buffer.size() < buffer_size)
+				buffer.resize(buffer_size);
+			return impl::read_file_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
 		}
 
 	} // namespace v2
