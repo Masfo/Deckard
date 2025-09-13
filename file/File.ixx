@@ -25,6 +25,7 @@ namespace deckard
 
 	namespace v2
 	{
+
 		// TODO: simple read/write api
 		// write buffer to file
 		// read file to buffer
@@ -99,7 +100,7 @@ namespace deckard
 
 				buffer_size = std::min(buffer_size, buffer.size_bytes());
 
-				if(buffer_size == 0)
+				if (buffer_size == 0)
 					return std::unexpected(
 					  std::format("read_file: buffer size is zero for file '{}'", system::from_wide(file.wstring()).c_str()));
 
@@ -160,6 +161,23 @@ namespace deckard
 				buffer.resize(buffer_size);
 			return impl::read_file_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
 		}
+
+		export std::expected<u64, std::string> filesize(fs::path file)
+		{
+			if (fs::exists(file))
+				return fs::file_size(file);
+
+			return std::unexpected(std::format("filesize: could not find file '{}'", system::from_wide(file.wstring()).c_str()));
+		}
+
+
+		export class file
+		{
+		private:
+
+		public:
+		};
+
 
 	} // namespace v2
 
