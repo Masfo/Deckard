@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <intrin.h>
 
 export module deckard.utils.hash;
@@ -160,12 +160,6 @@ namespace deckard::utils
 
 	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64(str.data(), str.length()); }
 
-	export constexpr u32 operator"" _hash32(char const* s, size_t count) { return fnv1a_32(s, count); }
-
-	export constexpr u64 operator"" _hash64(char const* s, size_t count) { return fnv1a_64(s, count); }
-
-	static_assert("hello world"_hash32 == 0xd58b'3fa7);
-	static_assert("hello world"_hash64 == 0x779a'65e7'023c'd2e7);
 
 	//
 	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
@@ -255,9 +249,6 @@ namespace deckard::utils
 
 	export u64 rapidhash(std::span<u8> buffer) { return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED); }
 
-	export u32 operator"" _rapidhash32(char const* s, size_t count) { return rapidhash((void*)s, count) & 0xFFFF'FFFF; }
-
-	export u64 operator"" _rapidhash64(char const* s, size_t count) { return rapidhash((void*)s, count); }
 
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
 	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
@@ -348,7 +339,6 @@ namespace deckard::utils
 
 	export u64 chibihash64(std::string_view buffer) { return chibihash64({as<u8*>(buffer.data()), buffer.size()}); }
 
-	export u64 operator"" _chibihash64(char const* s, size_t count) { return chibihash64((void*)s, count); }
 
 
 } // namespace deckard::utils

@@ -249,6 +249,8 @@ namespace deckard::random
 		std::ranges::generate_n(buffer.begin(), len, [&dictionary] { return dictionary[rnd<u64>(0u, dictionary.length() - 1)]; });
 	}
 
+	// TODO: perfect candidate for reflection
+	// 
 	// alpha ########################################################################################################
 
 	export std::string alpha(u32 len = 12) { return generate_with_dictionary(len, dict_alphabet); }

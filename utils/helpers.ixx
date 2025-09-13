@@ -110,6 +110,8 @@ export namespace deckard
 #endif
 	}
 
+
+
 	// to_hex
 	struct HexOption
 	{

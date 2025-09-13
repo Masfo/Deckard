@@ -8,6 +8,113 @@ import deckard.assert;
 namespace deckard
 {
 
+	struct alignas(std::hardware_destructive_interference_size) SlotFlag
+	{
+		enum class State : u8
+		{
+			Empty   = 0,
+			Writing = 1,
+			Ready   = 2
+		};
+		std::atomic<State> flag{State::Empty};
+	};
+
+	export template<typename T, std::size_t N>
+	class atomic_ringbuffer
+	{
+	private:
+		using index_type = u64;
+		static_assert((N & (N - 1)) == 0, "Must be a power of two");
+		static_assert(std::is_nothrow_move_constructible_v<T> || std::is_nothrow_copy_constructible_v<T>,
+					  "T must be move‑ or copy‑constructible without throwing");
+
+		alignas(std::hardware_destructive_interference_size) std::atomic<index_type> head{0};
+		alignas(std::hardware_destructive_interference_size) std::atomic<index_type> tail{0};
+
+		const index_type mask{N - 1};
+
+		std::vector<std::aligned_storage_t<sizeof(T), alignof(T)>> slots;
+		std::vector<SlotFlag>                                      flags;
+
+
+	public:
+		constexpr atomic_ringbuffer() noexcept
+			: head{0}
+			, tail{0}
+			, mask{N - 1}
+			, slots(N)
+			, flags(N)
+		{
+		}
+		bool try_push(const T& value) noexcept
+		{
+			index_type pos   = tail.fetch_add(1, std::memory_order_relaxed);
+			index_type index = pos & mask;
+
+			index_type current_head = head.load(std::memory_order_acquire);
+			if (pos - current_head >= N)
+			{
+				tail.fetch_sub(1, std::memory_order_relaxed);
+				return false;
+			}
+
+			flags[index].flag.store(SlotFlag::State::Writing, std::memory_order_relaxed);
+
+			new (&slots[index]) T(value);
+
+			flags[index].flag.store(SlotFlag::State::Ready, std::memory_order_release);
+			return true;
+		}
+
+		bool try_push(T&& value) noexcept
+		{
+			index_type pos   = tail.fetch_add(1, std::memory_order_relaxed);
+			index_type index = pos & mask;
+
+			index_type current_head = head.load(std::memory_order_acquire);
+			if (pos - current_head >= N)
+			{
+				tail.fetch_sub(1, std::memory_order_relaxed);
+				return false;
+			}
+			flags[index].flag.store(SlotFlag::State::Writing, std::memory_order_relaxed);
+
+			new (&slots[index]) T(std::move(value));
+
+			flags[index].flag.store(SlotFlag::State::Ready, std::memory_order_release);
+			return true;
+		}
+
+		std::optional<T> try_pop() noexcept
+		{
+			index_type pos   = head.fetch_add(1, std::memory_order_relaxed);
+			index_type index = pos & mask;
+
+			auto state = flags[index].flag.load(std::memory_order_acquire);
+			if (state != SlotFlag::State::Ready)
+				return std::nullopt;
+
+			T* elem  = reinterpret_cast<T*>(&slots[index]);
+			T  value = std::move(*elem);
+			elem->~T();
+
+			flags[index].flag.store(SlotFlag::State::Empty, std::memory_order_release);
+
+			head.store(pos + 1, std::memory_order_relaxed);
+			return value;
+		}
+
+		bool empty() const noexcept { return head.load(std::memory_order_acquire) == tail.load(std::memory_order_acquire); }
+
+		bool full() const noexcept { return (tail.load(std::memory_order_acquire) - head.load(std::memory_order_acquire)) >= N; }
+
+		std::size_t size() const noexcept
+		{
+			return static_cast<std::size_t>(tail.load(std::memory_order_acquire) - head.load(std::memory_order_acquire));
+		}
+
+	};
+
 	export template<typename T>
 	class ringbuffer
 	{
@@ -171,8 +278,6 @@ namespace deckard
 
 			return ret;
 		}
-
-
 	};
 
 
