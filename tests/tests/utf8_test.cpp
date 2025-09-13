@@ -78,16 +78,16 @@ TEST_CASE("utf8::string", "[utf8]")
 		auto moved = std::move(str);
 
 		CHECK(moved.size() == 7);
-		CHECK(moved == "hello 🌍"_utf8);
+		CHECK(moved == "hello 🌍");
 
 		CHECK(str.size() == 0);
 		CHECK(str.empty());
-		CHECK(str != "hello 🌍"_utf8);
+		CHECK(str != "hello 🌍");
 
 		// Test self-move
 		moved = std::move(moved);
 		CHECK(moved.size() == 7);
-		CHECK(moved == "hello 🌍"_utf8);
+		CHECK(moved == "hello 🌍");
 	}
 
 	SECTION("move operations")
@@ -102,7 +102,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(moved.size() == 7);
 		CHECK(moved.length() == 7);
 		CHECK(moved.size_in_bytes() == 10);
-		CHECK(moved == "hello 🌍"_utf8);
+		CHECK(moved == "hello 🌍");
 
 		// Original should be empty after move
 		CHECK(original.empty());
@@ -116,7 +116,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(target.size() == 7);
 		CHECK(target.length() == 7);
 		CHECK(target.size_in_bytes() == 10);
-		CHECK(target == "hello 🌍"_utf8);
+		CHECK(target == "hello 🌍");
 
 		// Source should be empty after move
 		CHECK(moved.empty());
@@ -129,7 +129,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(target.size() == 7);
 		CHECK(target.length() == 7);
 		CHECK(target.size_in_bytes() == 10);
-		CHECK(target == "hello 🌍"_utf8);
+		CHECK(target == "hello 🌍");
 
 		// Chain of moves
 		utf8::string a("test 🌍");
@@ -137,7 +137,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string c = std::move(b);
 		CHECK(a.empty());
 		CHECK(b.empty());
-		CHECK(c == "test 🌍"_utf8);
+		CHECK(c == "test 🌍");
 		CHECK(c.size() == 6);
 	}
 
@@ -208,14 +208,14 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(c == "hello 🌍b🌍🌍♥");
 
 
-		b = "♥"_utf8;
-		c = b + "♦"_utf8;
+		b = "♥";
+		c = b + "♦";
 		CHECK(c.size() == 2);
 		CHECK(c.front() == 0x2665);
 		CHECK(c.back() == 0x2666);
 		CHECK(c == "♥♦");
 
-		c += "♧"_utf8;
+		c += "♧";
 		CHECK(c.size() == 3);
 		CHECK(c.front() == 0x2665);
 		CHECK(c.back() == 0x2667);
@@ -385,7 +385,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("replace")
 	{
 		utf8::string str("hello world");
-		str.replace(6, 5, "🌍"_utf8);
+		str.replace(6, 5, "🌍");
 		CHECK(str == "hello 🌍");
 		CHECK(str.size() == 7);
 
@@ -847,7 +847,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("find_first_of")
 	{
 		utf8::string str("🌍hello❌ world🌍");
-		utf8::string w("🌍"_utf8);
+		utf8::string w("🌍");
 		auto         found = str.find_first_of(w);
 		CHECK(found == 0);
 
@@ -855,7 +855,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(found == 8);
 
 
-		w     = "d"_utf8;
+		w     = "d";
 		found = str.find_first_of(w.subview());
 		CHECK(found == 12);
 
@@ -872,7 +872,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("find_first_not_of")
 	{
 		utf8::string str("🌍hello❌ world🌍");
-		utf8::string w("🌍❌oleh "_utf8);
+		utf8::string w("🌍❌oleh ");
 
 		auto found = str.find_first_not_of(w);
 		CHECK(found == 8);
@@ -887,13 +887,13 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("find_last_of")
 	{
 		utf8::string str("12 i12 12345");
-		utf8::string w("i12"_utf8);
+		utf8::string w("i12");
 
 		auto found = str.find_last_of(w);
 		CHECK(found == 8);
 
 		utf8::string str2("12 ❌q2 12345");
-		utf8::string w2("❌q2"_utf8);
+		utf8::string w2("❌q2");
 
 		found = str2.find_last_of(w2);
 		CHECK(found == 8);
@@ -909,7 +909,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	SECTION("find_last_not_of")
 	{
 		utf8::string str("🌍hello❌ world🌍");
-		utf8::string w("🌍❌helord "_utf8);
+		utf8::string w("🌍❌helord ");
 
 		auto         found = str.find_last_not_of(w);
 		CHECK(found == 8);

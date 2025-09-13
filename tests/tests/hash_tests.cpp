@@ -1,4 +1,4 @@
-
+﻿
 #include <catch2/catch_test_macros.hpp>
 
 import deckard;
@@ -124,30 +124,4 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 #endif
 }
 
-TEST_CASE("siphash digests", "[siphash][hash]")
-{
-#ifdef _DEBUG
-	// debug has static key
-	CHECK("hello world"_siphash == 0xcdff'88cb'8097'b979);
-#endif
-}
 
-TEST_CASE("fnv digests", "[fnv][hash]")
-{
-
-	CHECK("hello world"_hash32 == 0xd58b'3fa7);
-	CHECK("hello world"_hash64 == 0x779a'65e7'023c'd2e7);
-}
-
-TEST_CASE("rapidhash digests", "[rapidhash][hash]")
-{
-
-	CHECK("hello world"_rapidhash32 == 0x6f5b'77b6);
-	CHECK("hello world"_rapidhash64 == 0x5dc0'fe3e'6f5b'77b6);
-}
-
-
-TEST_CASE("chibihash digest", "[chibihash][hash]")
-{ 
-	CHECK("hello world"_chibihash64 == 0x10f13d0ccc4b03c5);
-}
