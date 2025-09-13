@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <Psapi.h>
+#include <Shlobj.h>
 #include <VersionHelpers.h>
 #include <dwmapi.h>
 
@@ -16,6 +17,8 @@ import deckard.helpers;
 import deckard.scope_exit;
 import deckard.system;
 import deckard.cpuid;
+
+namespace fs = std::filesystem;
 
 namespace deckard::system
 {
@@ -200,6 +203,25 @@ namespace deckard::system
 		cpuid::CPUID id;
 		return id.as_string();
 	}
+
+	fs::path GetKnownFolderPath(const KNOWNFOLDERID& id)
+	{
+		wchar_t* buffer{0};
+
+		if (S_OK == SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, 0, &buffer))
+			return fs::path(buffer);
+
+		return {};
+	}
+
+	// known folder paths
+	export fs::path get_local_appdata_path() { return GetKnownFolderPath(FOLDERID_LocalAppData); }
+
+	export fs::path get_roaming_appdata_path() { return GetKnownFolderPath(FOLDERID_RoamingAppData); }
+
+	export fs::path get_profile_path() { return GetKnownFolderPath(FOLDERID_Profile); }
+
+	export fs::path get_savegame_path() { return GetKnownFolderPath(FOLDERID_SavedGames); }
 
 
 } // namespace deckard::system
