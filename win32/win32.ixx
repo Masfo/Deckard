@@ -223,5 +223,7 @@ namespace deckard::system
 
 	export fs::path get_savegame_path() { return GetKnownFolderPath(FOLDERID_SavedGames); }
 
+	export fs::path current_path() { return fs::current_path(); }
+
 
 } // namespace deckard::system
