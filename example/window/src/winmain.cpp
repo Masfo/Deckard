@@ -50,7 +50,7 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (key == Key::F1 and up)
 	{
-		app.set(Attribute::vsync);
+		// app.set(Attribute::vsync);
 	}
 
 	if (key == Key::F2 and up)
@@ -60,38 +60,38 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (up and (key == Key::F11 or key == Key::F))
 	{
-		app.set(Attribute::togglefullscreen);
+		// app.set(Attribute::togglefullscreen);
 	}
 
 	if (key == Key::Numpad1 and up)
 	{
-		app.set(Attribute::gameticks, 60u);
+		// app.set(Attribute::gameticks, 60u);
 		dbg::println("ticks 60");
 	}
 	if (key == Key::Numpad2 and up)
 	{
-		app.set(Attribute::gameticks, 30u);
+		// app.set(Attribute::gameticks, 30u);
 		dbg::println("ticks 30");
 	}
 
 	if (key == Key::Numpad3 and up)
 	{
-		app.set(Attribute::gameticks, 5u);
+		// app.set(Attribute::gameticks, 5u);
 		dbg::println("ticks 5");
 	}
 
 	if (key == Key::Add and up)
 	{
-		u32 newticks = app.get(Attribute::gameticks) * 2;
-		app.set(Attribute::gameticks, newticks);
-		dbg::println("ticks {}", newticks);
+		// u32 newticks = app.get(Attribute::gameticks) * 2;
+		// app.set(Attribute::gameticks, newticks);
+		// dbg::println("ticks {}", newticks);
 	}
 
 	if (key == Key::Subtract and up)
 	{
-		u32 newticks = app.get(Attribute::gameticks) / 2;
-		app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
-		dbg::println("ticks {}", newticks);
+		// u32 newticks = app.get(Attribute::gameticks) / 2;
+		// app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
+		// dbg::println("ticks {}", newticks);
 	}
 }
 
@@ -114,7 +114,7 @@ constexpr std::array<u32, 64> k_md5 = []
 {
 	std::array<u32, 64> table = {};
 #ifdef __cpp_lib_constexpr_cmath
-#error("use std::sin")
+#error ("use std::sin")
 	for (u32 i : table)
 		table[i] = static_cast<u32>(std::floor(0x1'0000'0000 * std::fabs(std::sin(i + 1))));
 #else
@@ -456,7 +456,91 @@ CmdOptions parse_command_line(std::string_view cmdl)
 	return result;
 }
 
+struct ComponentBase
+{
+	virtual std::unique_ptr<ComponentBase> clone() const = 0;
 
+	virtual ~ComponentBase() { }
+};
+
+struct Transform : public ComponentBase
+{
+	Transform() = default;
+	float x, y, z;
+
+	std::unique_ptr<ComponentBase> clone() const { return std::make_unique<Transform>(*this); }
+
+	Transform copy() const { return *static_cast<Transform*>(clone().get()); }
+};
+
+struct Velocity : public ComponentBase
+{
+	Velocity() = default;
+
+	Velocity(f32 x, f32 y, f32 z)
+		: x(x)
+		, y(y)
+		, z(z)
+	{
+	}
+
+	std::unique_ptr<ComponentBase> clone() const { return std::make_unique<Velocity>(*this); }
+
+	Velocity copy() const { return *static_cast<Velocity*>(clone().get()); }
+
+	float x, y, z;
+};
+
+struct Name : public ComponentBase
+{
+	Name() = default;
+
+	Name(std::string_view s)
+		: name(s)
+	{
+	}
+
+	std::string name;
+
+	std::unique_ptr<ComponentBase> clone() const override { return std::make_unique<Name>(*this); }
+
+	Name copy() const { return *static_cast<Name*>(clone().get()); }
+};
+
+enum class Components : u8
+{
+	Transform,
+	Velocity,
+	Name,
+
+
+	Count
+};
+
+
+
+template<typename T>
+requires(std::is_enum_v<T>)
+class ECS
+{
+private:
+	std::vector<std::vector<std::unique_ptr<ComponentBase>>> components;
+
+public:
+	ECS() { components.resize(std::to_underlying(T::Count)); }
+	ECS(u32 count) { components.resize(count); }
+
+
+
+	template<typename R, typename... Args>
+	void insert(const T index, Args... args)
+	{
+		components[std::to_underlying(index)].emplace_back(std::make_unique<R>(args...));
+	}
+
+
+
+};
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -467,9 +551,191 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	/*
+	 *  vector<vector<InterfaceComponent>> components
+	 *
+	 *  class Transform: InterfaceComponent
+	 *  class Velocity: InterfaceComponentsd
+	 *
+	 *  enum: Transform = 0, Velocity = 1
+	 *
+	 *  auto all_transforms = &components[Transform];
+	 *  auto all_velocity = &components[Velocity];
+	 *
+	 */
+
+
+	// std::array<std::vector<ComponentInterface*>, std::to_underlying(Components::Count)> components;
+	// std::vector<std::vector<ComponentInterface*> >components;
+	{
+		std::vector<std::vector<std::unique_ptr<ComponentBase>>> components;
+
+		components.resize(std::to_underlying(Components::Count));
+
+		// Position, Velocity
+
+		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 1.0f, 6.0f));
+		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 2.0f, 7.0f));
+		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 3.0f, 8.0f));
+		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 4.0f, 9.0f));
+		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 5.0f, 0.0f));
+
+		ECS<Components> ecs;
+		ecs.insert<Velocity>(Components::Velocity, 1.0f, 1.0f, 6.0f);
+		ecs.insert<Velocity>(Components::Velocity, 1.0f, 2.0f, 7.0f);
+		ecs.insert<Velocity>(Components::Velocity, 1.0f, 3.0f, 8.0f);
+		ecs.insert<Velocity>(Components::Velocity, 1.0f, 4.0f, 0.0f);
+
+
+		ecs.insert<Name>(Components::Name, "P1");
+		ecs.insert<Name>(Components::Name, "P2");
+		ecs.insert<Name>(Components::Name, "P3");
+		ecs.insert<Name>(Components::Name, "P4");
 
 
 
+
+		  components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player1"));
+		components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player2"));
+
+
+		Name* p1name = reinterpret_cast<Name*>(components[std::to_underlying(Components::Name)][0].get());
+
+
+		auto p1copy = p1name->clone();
+
+		p1name->name.assign("New Player 2");
+		Name p2copy = p1name->copy();
+
+		p2copy.name = "extend";
+
+
+		for (const auto& name : components[std::to_underlying(Components::Name)])
+		{
+
+			Name& ptr = *reinterpret_cast<Name*>(name.get());
+			dbg::println("player {}", ptr.name);
+		}
+
+		for (const auto& name : components[std::to_underlying(Components::Velocity)])
+		{
+
+			Velocity& ptr = *reinterpret_cast<Velocity*>(name.get());
+
+			dbg::println("velocity {} {} {}", ptr.x, ptr.y, ptr.z);
+		}
+	}
+
+	_ = 0;
+
+	// ########################################################################
+
+	std::array<u8, 1024> buffer{};
+
+	// auto rpass = random::password(32);
+	// std::ranges::copy(rpass, buffer.begin());
+	std::string npass;
+	npass.resize(32);
+	std::string_view spass{npass};
+
+	random::digit(spass, 32);
+
+	auto ret = v2::write_file("test_file.txt", spass, true);
+
+	buffer.fill(0);
+
+	std::string smallbuf;
+	smallbuf.resize(16);
+	std::string_view smallbufv{smallbuf};
+
+	ret = v2::read_file("test_file.txt", smallbuf, 16);
+
+	dbg::println("before thread");
+
+	std::atomic<u64> log_index{0};
+	std::vector<u8>  log_buffer(3_MiB);
+	std::ranges::fill(log_buffer, '\n');
+
+	constexpr u32 message_count = 10000;
+
+
+	atomic_ringbuffer<u32, 8> arb;
+
+	for (int i = 0; i < 16; ++i)
+		arb.try_push(i);
+
+
+	auto arb_pop = arb.try_pop();
+	arb_pop      = arb.try_pop();
+
+
+	_ = 0;
+
+	auto pthread = std::thread(
+	  [&]()
+	  {
+		  std::string msg(128, '\0');
+		  dbg::println("thread 1 start");
+
+		  for (int i = 0; i < message_count; ++i)
+		  {
+			  auto const time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+
+			  msg = std::format("[{:%F %T}] {:<32} ; {}", time, random::alphanum(8), std::this_thread::get_id());
+
+			  auto old_index = log_index.fetch_add(msg.size() + 1);
+			  std::ranges::copy(msg, log_buffer.begin() + old_index);
+
+			  std::this_thread::yield();
+		  }
+		  dbg::println("thread 1 end");
+	  });
+
+	auto pthread2 = std::thread(
+	  [&]()
+	  {
+		  dbg::println("thread 2 start");
+		  std::string msg(128, '\0');
+
+		  for (int i = 0; i < message_count; ++i)
+		  {
+			  auto const time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+
+			  msg = std::format("[{:%F %T}] {:<32} ; {}", time, random::digit(16), std::this_thread::get_id());
+
+			  auto old_index = log_index.fetch_add(msg.size() + 1);
+			  std::ranges::copy(msg, log_buffer.begin() + old_index);
+
+			  std::this_thread::yield();
+		  }
+		  dbg::println("thread 2 end");
+	  });
+
+	auto pthread3 = std::jthread(
+	  [&]()
+	  {
+		  std::string msg(128, '\0');
+
+		  for (int i = 0; i < message_count; ++i)
+		  {
+			  auto const time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+
+			  msg = std::format("[{:%F %T}] {:<32} ; {}", time, random::alpha(24), std::this_thread::get_id());
+
+
+			  auto old_index = log_index.fetch_add(msg.size() + 1);
+
+
+			  std::ranges::copy(msg, log_buffer.begin() + old_index);
+			  std::this_thread::yield();
+		  }
+	  });
+
+	pthread.join();
+	pthread2.join();
+	pthread3.join();
+	dbg::println("log_indeX: {}", log_index.load() - 1);
+	ret = v2::write_file("log.txt", log_buffer, log_index.load() - 1, true);
 
 	_ = 0;
 
@@ -487,7 +753,6 @@ dbg::println();
 	// ########################################################################
 	if constexpr (false)
 	{
-
 		constexpr size_t mof_size  = sizeof(std::move_only_function<void()>);
 		constexpr size_t stdf_size = sizeof(std::function<void()>);
 		constexpr size_t fr_size   = sizeof(function_ref<void()>);
@@ -666,6 +931,7 @@ dbg::println();
 	}
 
 	_;
+
 	// ########################################################################
 
 
@@ -688,7 +954,7 @@ dbg::println();
 	flags["--verbose"] = true;
 	flags["-v"]        = true;
 
-	auto argparser = [&](std::string_view ) { };
+	auto argparser = [&](std::string_view) { };
 
 	// add<int>("count", 'c', "Number of items", 42);				// long, short, description, default
 	// add<bool>("verbose", 'v', "Enable verbose output", false);
@@ -734,9 +1000,7 @@ dbg::println();
 	// ###############################################
 
 
-
 	// ###############################################
-
 
 
 	//
@@ -803,7 +1067,7 @@ dbg::println();
 	   .flags  = Attribute::vsync | Attribute::resizable});
 
 
-	app01.set_keyboard_callback(keyboard_callback);
+	// app01.set_keyboard_callback(keyboard_callback);
 	app01.set_fixed_update_callback(fixed_update);
 	app01.set_update_callback(update);
 	app01.set_render_callback(render);
