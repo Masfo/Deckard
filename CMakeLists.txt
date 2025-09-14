@@ -142,6 +142,7 @@ if(MSVC)
 		target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
 
 
+		option(DECKARD_BUILD_TESTS "Build tests" FALSE)
 
 
 

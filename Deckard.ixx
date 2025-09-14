@@ -98,8 +98,11 @@ void redirect_console(bool show)
 
 	if (show)
 	{
-		AllocConsole();
-		AttachConsole(GetCurrentProcessId());
+		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
+		{
+			AllocConsole();
+			AttachConsole(GetCurrentProcessId());
+		}
 
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
@@ -212,7 +215,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 	deckard::random::initialize();
 	net::initialize();
-	// dbg::println("Initialized");
+	 dbg::println("Initialized");
 
 
 	// main
@@ -222,7 +225,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 
 	//
-	// dbg::println("Deinitializing");
+	 dbg::println("Deinitializing");
 
 	if (CoUninitialize)
 		CoUninitialize();

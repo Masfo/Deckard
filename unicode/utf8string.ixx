@@ -1276,9 +1276,6 @@ namespace deckard::utf8
 	// rfind
 	// trim copy, trim modify inplace
 	// self insert, deletes prev buffer
-	// standalone valid check
-
-	export string operator"" _utf8(char const* s, size_t count) { return utf8::string({s, count}); }
 
 
 } // namespace deckard::utf8

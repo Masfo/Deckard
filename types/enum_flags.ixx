@@ -1,4 +1,4 @@
-export module deckard.enums;
+﻿export module deckard.enums;
 
 import std;
 
@@ -93,6 +93,7 @@ export namespace deckard
 	//      r1 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3070r1.html
 	//		r2 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3070r2.html
 	//      r3 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3070r3.html
+
 	template<EnumFlagType T>
 	auto format_as(T f)
 	{

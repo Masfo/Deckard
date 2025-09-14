@@ -23,6 +23,12 @@ namespace deckard
 	// virtualfile
 	// fills buffers, if full dump to disk
 
+	// MemoryBuffer -> flushed to disk
+	// read file -> memorybuffer
+
+	// membuf[index]
+
+
 	namespace v2
 	{
 

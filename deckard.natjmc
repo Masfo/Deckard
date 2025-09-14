@@ -30,7 +30,7 @@
 
 
 
-	<File Name="win32.ixx"/>
+	<File Name="_win32.ixx"/>
 
 	<File Name="zstd.ixx"/>
 	<File Name="smallbufferobject.ixx"/>
