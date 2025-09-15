@@ -56,7 +56,8 @@ namespace deckard
 
 				if (handle == INVALID_HANDLE_VALUE)
 				{
-					if (GetLastError() == ERROR_ALREADY_EXISTS)
+					const auto err = GetLastError();
+					if (err == ERROR_FILE_EXISTS)
 						return std::unexpected(
 						  std::format("write_file: file '{}' already exists", system::from_wide(file.wstring()).c_str()));
 					else
@@ -182,6 +183,7 @@ namespace deckard
 		private:
 
 		public:
+			void resize() { }
 		};
 
 

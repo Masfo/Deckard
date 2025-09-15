@@ -507,39 +507,55 @@ struct Name : public ComponentBase
 	Name copy() const { return *static_cast<Name*>(clone().get()); }
 };
 
+struct Health : public ComponentBase
+{
+	Health() = default;
+
+	Health(f32 f)
+		: value(f)
+	{
+	}
+
+	f32 value{1.0f};
+
+	std::unique_ptr<ComponentBase> clone() const override { return std::make_unique<Health>(*this); }
+
+	Health copy() const { return *static_cast<Health*>(clone().get()); }
+};
+
 enum class Components : u8
 {
 	Transform,
 	Velocity,
 	Name,
+	Health,
 
 
-	Count
+	Count,
 };
 
 
+template<typename T>
+concept ComponentHasCount = requires {
+	{ T::Count } -> std::convertible_to<T>;
+};
 
 template<typename T>
-requires(std::is_enum_v<T>)
 class ECS
 {
+	static_assert(std::is_scoped_enum_v<T> and ComponentHasCount<T>, "ECS enum must have a count. T::Count");
+
 private:
-	std::vector<std::vector<std::unique_ptr<ComponentBase>>> components;
+	std::array<std::vector<std::unique_ptr<ComponentBase>>, std::to_underlying(T::Count)> dense_components{};
 
 public:
-	ECS() { components.resize(std::to_underlying(T::Count)); }
-	ECS(u32 count) { components.resize(count); }
-
-
-
 	template<typename R, typename... Args>
 	void insert(const T index, Args... args)
 	{
-		components[std::to_underlying(index)].emplace_back(std::make_unique<R>(args...));
+		assert::check(std::to_underlying(index) < std::to_underlying(T::Count), "Index out-of-bounds");
+
+		dense_components[std::to_underlying(index)].emplace_back(std::make_unique<R>(args...));
 	}
-
-
-
 };
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
@@ -548,6 +564,101 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	// ########################################################################
+
+	std::array<u8, 256> binr;
+	for (int i = 0; i < binr.size(); ++i)
+	{
+		binr[i] = as<u8>(i);
+	}
+
+	std::filesystem::path binfile("256.bin");
+
+	auto res = v2::write_file(binfile, binr, true);
+	if (res)
+		dbg::println("binr ok {}", *res);
+	else
+		dbg::println("{}", res.error());
+
+
+
+	std::span<u8> view{};
+
+	HANDLE handle = CreateFileW(
+	  binfile.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (handle == INVALID_HANDLE_VALUE)
+	{
+		dbg::println("Could not open file: {}", system::from_wide(binfile.wstring().c_str()));
+	}
+
+	u64 size = v2::filesize(binfile).value_or(0);
+
+
+
+	HANDLE mapping = CreateFileMapping(handle, 0, PAGE_READWRITE, 0, 0, nullptr);
+	if (mapping == nullptr)
+	{
+		FlushViewOfFile(view.data(), 0);
+		UnmapViewOfFile(view.data());
+		view = {};
+	}
+
+	
+
+
+	u8* raw_address = as<u8*>(MapViewOfFile(mapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0));
+	if (raw_address == nullptr)
+	{
+		FlushViewOfFile(view.data(), 0);
+		UnmapViewOfFile(view.data());
+		view = {};
+	}
+	else
+	{
+		// Resize
+		u32 newsize = 512;
+		SetFilePointerEx(
+		  handle,
+		  LARGE_INTEGER{
+			.LowPart  = newsize,
+			.HighPart = 0,
+		  },
+		  nullptr,
+		  FILE_BEGIN);
+		SetEndOfFile(handle);
+		
+		LARGE_INTEGER filesize{0};
+		GetFileSizeEx(handle, &filesize);
+
+		CloseHandle(handle);
+		handle = nullptr;
+
+		CloseHandle(mapping);
+		mapping = nullptr;
+
+		size = filesize.LowPart;
+		view = std::span<u8>{as<u8*>(raw_address), size};
+
+
+
+
+		// 
+		view[0] = random::randu8();
+
+
+		if (0 == FlushViewOfFile(view.data(), 0))
+		{
+			dbg::println("flush :{}", system::get_windows_error(GetLastError()));
+
+		}
+		if (0 == UnmapViewOfFile(view.data()))
+		{
+			dbg::println("unmap: {}", system::get_windows_error(GetLastError()));
+		}
+	}
+
+	_ = 0;
 
 	// ########################################################################
 
@@ -564,22 +675,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	 *
 	 */
 
-
-	// std::array<std::vector<ComponentInterface*>, std::to_underlying(Components::Count)> components;
-	// std::vector<std::vector<ComponentInterface*> >components;
 	{
-		std::vector<std::vector<std::unique_ptr<ComponentBase>>> components;
-
-		components.resize(std::to_underlying(Components::Count));
-
-		// Position, Velocity
-
-		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 1.0f, 6.0f));
-		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 2.0f, 7.0f));
-		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 3.0f, 8.0f));
-		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 4.0f, 9.0f));
-		components[std::to_underlying(Components::Velocity)].push_back(std::make_unique<Velocity>(1.0f, 5.0f, 0.0f));
-
 		ECS<Components> ecs;
 		ecs.insert<Velocity>(Components::Velocity, 1.0f, 1.0f, 6.0f);
 		ecs.insert<Velocity>(Components::Velocity, 1.0f, 2.0f, 7.0f);
@@ -592,38 +688,46 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		ecs.insert<Name>(Components::Name, "P3");
 		ecs.insert<Name>(Components::Name, "P4");
 
+		ecs.insert<Health>(Components::Health, 1.0f);
+		ecs.insert<Health>(Components::Health, 0.5f);
+		ecs.insert<Health>(Components::Health, 0.2f);
+		ecs.insert<Health>(Components::Health, 0.0f);
+
+		// entity X
 
 
-
-		  components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player1"));
-		components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player2"));
+		_ = 0;
 
 
-		Name* p1name = reinterpret_cast<Name*>(components[std::to_underlying(Components::Name)][0].get());
-
-
-		auto p1copy = p1name->clone();
-
-		p1name->name.assign("New Player 2");
-		Name p2copy = p1name->copy();
-
-		p2copy.name = "extend";
-
-
-		for (const auto& name : components[std::to_underlying(Components::Name)])
-		{
-
-			Name& ptr = *reinterpret_cast<Name*>(name.get());
-			dbg::println("player {}", ptr.name);
-		}
-
-		for (const auto& name : components[std::to_underlying(Components::Velocity)])
-		{
-
-			Velocity& ptr = *reinterpret_cast<Velocity*>(name.get());
-
-			dbg::println("velocity {} {} {}", ptr.x, ptr.y, ptr.z);
-		}
+		// components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player1"));
+		// components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player2"));
+		//
+		//
+		// Name* p1name = reinterpret_cast<Name*>(components[std::to_underlying(Components::Name)][0].get());
+		//
+		//
+		// auto p1copy = p1name->clone();
+		//
+		// p1name->name.assign("New Player 2");
+		// Name p2copy = p1name->copy();
+		//
+		// p2copy.name = "extend";
+		//
+		//
+		// for (const auto& name : components[std::to_underlying(Components::Name)])
+		//{
+		//
+		//	Name& ptr = *reinterpret_cast<Name*>(name.get());
+		//	dbg::println("player {}", ptr.name);
+		// }
+		//
+		// for (const auto& name : components[std::to_underlying(Components::Velocity)])
+		//{
+		//
+		//	Velocity& ptr = *reinterpret_cast<Velocity*>(name.get());
+		//
+		//	dbg::println("velocity {} {} {}", ptr.x, ptr.y, ptr.z);
+		// }
 	}
 
 	_ = 0;
