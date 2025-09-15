@@ -1,4 +1,4 @@
-export module deckard.utf8:codepoints;
+﻿export module deckard.utf8:codepoints;
 import :xid;
 
 import std;
@@ -89,23 +89,23 @@ namespace deckard::utf8
 
 	export constexpr bool is_whitespace(char32 codepoint)
 	{
-		// PropList-16.txt
+		// PropList-17.txt
 		// Pattern_White_Space
 		// White_Space
 
 		return (
-		  (codepoint == 0x0020) or                             // space
-		  ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control
-		  (codepoint == 0x0085) or                             // control
-		  (codepoint == 0x00A0) or                             // no-break space
-		  (codepoint == 0x1680) or                             // Ogham space mark
-		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE
-		  ((codepoint >= 0x200E) and (codepoint <= 0x200F)) or // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK
-		  (codepoint == 0x2028) or                             // LINE SEPARATOR
-		  (codepoint == 0x2029) or                             // PARAGRAPH SEPARATOR
-		  (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE
-		  (codepoint == 0x205F) or                             // Medium Mathematical Space.
-		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE
+		  (codepoint == 0x0020) or                             // space										White_Space / Pattern_White_Space
+		  ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control									White_Space / Pattern_White_Space
+		  (codepoint == 0x0085) or                             // control									White_Space / Pattern_White_Space
+		  (codepoint == 0x00A0) or                             // no-break space							White_Space / 
+		  (codepoint == 0x1680) or                             // Ogham space mark							White_Space / 
+		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE						White_Space / 
+		  ((codepoint >= 0x200E) and (codepoint <= 0x200F)) or // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK                / Pattern_White_Space
+		  (codepoint == 0x2028) or                             // LINE SEPARATOR							White_Space / Pattern_White_Space
+		  (codepoint == 0x2029) or                             // PARAGRAPH SEPARATOR						White_Space / Pattern_White_Space
+		  (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE						White_Space / 
+		  (codepoint == 0x205F) or                             // Medium Mathematical Space.				White_Space / 
+		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE							White_Space / 
 	}
 
 	export constexpr bool is_digit(char32 codepoint)
