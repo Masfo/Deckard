@@ -46,6 +46,9 @@ namespace deckard
 				DWORD bytes_written{0};
 				DWORD mode = CREATE_ALWAYS;
 
+
+				file = std::filesystem::absolute(file);
+
 				content_size = std::min(content_size, content.size_bytes());
 
 				if (not overwrite)
@@ -56,13 +59,15 @@ namespace deckard
 
 				if (handle == INVALID_HANDLE_VALUE)
 				{
-					const auto err = GetLastError();
-					if (err == ERROR_FILE_EXISTS)
+					if (GetLastError() == ERROR_FILE_EXISTS)
+					{
 						return std::unexpected(
-						  std::format("write_file: file '{}' already exists", system::from_wide(file.wstring()).c_str()));
-					else
-						return std::unexpected(
-						  std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
+						  std::format("write_file: file '{}' already exists. Maybe add overwrite flag?", system::from_wide(file.wstring()).c_str()));
+					}
+
+
+					return std::unexpected(
+					  std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
 				}
 
 				if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
@@ -95,6 +100,9 @@ namespace deckard
 			template<typename T>
 			std::expected<u32, std::string> read_file_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
 			{
+				file = std::filesystem::absolute(file);
+
+
 				if (not fs::exists(file))
 					return std::unexpected(std::format("read_file: file '{}' does not exist", system::from_wide(file.wstring()).c_str()));
 
@@ -171,19 +179,26 @@ namespace deckard
 
 		export std::expected<u64, std::string> filesize(fs::path file)
 		{
+			file = std::filesystem::absolute(file);
+
+
 			if (fs::exists(file))
 				return fs::file_size(file);
 
 			return std::unexpected(std::format("filesize: could not find file '{}'", system::from_wide(file.wstring()).c_str()));
 		}
 
-
 		export class file
 		{
 		private:
-
 		public:
 			void resize() { }
+
+			std::span<u8> operator[](size_t start, size_t end) const
+			{
+				//
+				return {};
+			}
 		};
 
 
