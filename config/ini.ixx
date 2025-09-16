@@ -176,7 +176,7 @@ namespace deckard::ini
 		{
 		}
 
-		explicit ini(fs::path filename) { data = read_text_file(filename); }
+		explicit ini(fs::path filename) { data = v1::read_text_file(filename); }
 
 		value operator[](std::string_view key) const 
 		{

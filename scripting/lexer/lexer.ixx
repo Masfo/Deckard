@@ -183,7 +183,7 @@ namespace deckard::lexer
 
 		bool load_from_file(const fs::path path)
 		{
-			auto buffer = read_file(path);
+			auto buffer = v1::read_file(path);
 			if (buffer.empty())
 				return false;
 

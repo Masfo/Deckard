@@ -30,6 +30,7 @@ namespace deckard::config
 	export struct Token
 	{
 		TokenType  type{};
+		
 		utf8::view value;
 
 		bool operator==(const Token& other) const

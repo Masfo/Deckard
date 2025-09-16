@@ -1,8 +1,7 @@
-export module deckard.log;
+﻿export module deckard.log;
 import std;
 import deckard.types;
 import deckard.as;
-import deckard.file;
 
 namespace deckard::log
 {
@@ -31,12 +30,6 @@ namespace deckard::log
 			if (lines.empty())
 				return;
 
-			file f(path);
-			if (not f)
-				return;
-
-			f.write(std::span{as<u8*>(lines[0].data()), lines[0].size()});
-			f.close();
 		}
 
 		void log(std::string_view msg)
