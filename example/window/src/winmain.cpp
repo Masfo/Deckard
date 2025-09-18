@@ -1,7 +1,9 @@
 ﻿#include <windows.h>
 #include <Commctrl.h>
 #include <intrin.h>
-
+#include <time.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 import std;
 import deckard;
@@ -558,12 +560,287 @@ public:
 	}
 };
 
+class test_span_operator
+{
+private:
+	std::vector<u8> buffer;
+
+public:
+	test_span_operator(const std::vector<u8>& b)
+		: buffer(b)
+	{
+	}
+
+	std::expected<std::span<u8>, std::string> operator[](size_t index, size_t count) const
+	{
+
+		if (index + count > buffer.size())
+			return std::unexpected(std::format("cannot index to {}, only has {} items", index + count, buffer.size()));
+
+		return std::span<u8>{(u8*)buffer.data() + index, count};
+	};
+};
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	// ########################################################################
+	{
+		std::vector<u8> binr;
+		binr.resize(256);
+		for (int i = 0; i < binr.size(); ++i)
+			binr[i] = as<u8>(i);
+
+		test_span_operator spo(binr);
+
+		auto view = spo[128, 128];
+
+		_ = 0;
+	}
+
+	///
+	{
+		constexpr size_t   NTP_PACKET_SIZE = 48;
+		constexpr uint32_t NTP_DELTA       = 2'208'988'800U; // seconds between 1900‑01‑01 and 1970‑01‑01
+		constexpr double   TWO_POW_32      = 4294967296.0;   // 2^32, used for fractional conversion
+
+		//const char* hostname = "pool.ntp.org";
+		const char* hostname = "time.cloudflare.com";
+		const char* service  = "123";                        // NTP uses UDP port 123
+
+															 // ----------------------- Resolve host ---------------------------------
+		addrinfo hints{}, *result = nullptr;
+		hints.ai_family   = AF_UNSPEC;  // IPv4 or IPv6
+		hints.ai_socktype = SOCK_DGRAM; // UDP
+		hints.ai_protocol = IPPROTO_UDP;
+
+		int rc = getaddrinfo(hostname, service, &hints, &result);
+		if (rc != 0)
+		{
+			dbg::println("getaddrinfo: {}", gai_strerrorA(rc));
+		}
+
+		// ----------------------- Create socket ---------------------------------
+		SOCKET sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+		if (sock == INVALID_SOCKET)
+		{
+			dbg::println("socket() failed: {}", WSAGetLastError());
+			freeaddrinfo(result);
+		}
+
+		// ----------------------- Build NTP request packet -----------------------
+		std::vector<uint8_t> packet(NTP_PACKET_SIZE, 0);
+
+		// clang-format off
+
+		//                 2   3   3   
+		//                LI  VN   Mode
+		//                 |   |   |   
+		constexpr u8 ntp_config = 0b00'011'011;
+		//  LI : 0 No warning
+		// VN  : 011 v3, 100 v4
+		// Mode: 011 (3) client 
+		// 
+		// clang-format on
+
+		packet[0] = ntp_config;                           // LI = 0, VN = 3 (or 4), Mode = 3 (client)
+													// ----------------------- Record t1 (client send time) ------------------
+		auto t1 = std::chrono::steady_clock::now(); // high‑resolution monotonic clock
+
+		// ----------------------- Send request ----------------------------------
+		int sent = sendto(
+		  sock,
+		  reinterpret_cast<const char*>(packet.data()),
+		  static_cast<int>(packet.size()),
+		  0,
+		  result->ai_addr,
+		  static_cast<int>(result->ai_addrlen));
+
+		if (sent == SOCKET_ERROR)
+		{
+			dbg::println("sendto() failed: {}", WSAGetLastError());
+			closesocket(sock);
+			freeaddrinfo(result);
+			WSACleanup();
+			return 1;
+		}
+
+		// ----------------------- Set receive timeout (5 seconds) ---------------
+		DWORD timeoutMs = 50000;
+		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
+
+		// ----------------------- Receive reply ---------------------------------
+		int recvLen = recvfrom(sock, reinterpret_cast<char*>(packet.data()), static_cast<int>(packet.size()), 0, nullptr, nullptr);
+
+		// Record t4 (client receive time) as soon as possible
+		auto t4 = std::chrono::steady_clock::now();
+
+		if (recvLen == SOCKET_ERROR)
+		{
+			dbg::println("recvfrom() failed (timeout?): {}", WSAGetLastError());
+			closesocket(sock);
+			freeaddrinfo(result);
+			WSACleanup();
+		}
+
+		if (recvLen < static_cast<int>(NTP_PACKET_SIZE))
+		{
+			dbg::println("Received packet too short ({}) bytes", recvLen);
+			closesocket(sock);
+			freeaddrinfo(result);
+			WSACleanup();
+		}
+
+		// ---------------------------------------------------------------------------
+		// Helper: turn a 64‑bit NTP timestamp (seconds + fraction) into a chrono duration
+		// ---------------------------------------------------------------------------
+		auto ntp_to_duration = [](u32 sec_net, u32 frac_net) -> std::chrono::duration<double>
+		{
+			u32    sec  = ntohl(sec_net);
+			u32    frac = ntohl(frac_net);
+			double d    = static_cast<double>(sec) + static_cast<double>(frac) / TWO_POW_32;
+			return std::chrono::duration<double>(d);
+		};
+
+		auto ntp_to_dur = [](u32 nsec, u32 nfrac) -> std::chrono::system_clock::time_point
+		{
+			constexpr i64 NTP_TO_UNIX = 2'208'988'800LL; // seconds between 1900‑01‑01 and 1970‑01‑01
+			u32           sec         = ntohl(nsec);
+			u32           frac        = ntohl(nfrac);
+
+			f64 secs = static_cast<f64>(sec) + static_cast<f64>(frac) / 4294967296.0; // 2^32
+
+
+			// Shift to Unix epoch and cast to system_clock duration
+			auto dur = std::chrono::duration<double>(secs - NTP_TO_UNIX);
+			return std::chrono::system_clock::time_point{std::chrono::duration_cast<std::chrono::system_clock::duration>(dur)};
+		};
+
+		// ----------------------- Extract timestamps ----------------------------
+		// Offsets inside the packet (all network‑byte‑order):
+		//   Originate Timestamp  (bytes 24‑31) – time client sent request (t1)
+		//   Receive   Timestamp  (bytes 32‑39) – time server received request (t2)
+		//   Transmit  Timestamp  (bytes 40‑47) – time server sent reply   (t3)
+
+		u32 orig_sec  = *reinterpret_cast<u32*>(packet.data() + 24);
+		u32 orig_frac = *reinterpret_cast<u32*>(packet.data() + 28);
+		u32 recv_sec  = *reinterpret_cast<u32*>(packet.data() + 32);
+		u32 recv_frac = *reinterpret_cast<u32*>(packet.data() + 36);
+		u32 xmit_sec  = *reinterpret_cast<u32*>(packet.data() + 40);
+		u32 xmit_frac = *reinterpret_cast<u32*>(packet.data() + 44);
+
+		// Convert server timestamps to chrono::duration<double> (seconds)
+
+		using namespace std::chrono;
+		duration<double> t2 = ntp_to_duration(recv_sec, recv_frac); // server receive
+		duration<double> t3 = ntp_to_duration(xmit_sec, xmit_frac); // server transmit
+
+		// Convert client steady_clock timestamps to double seconds
+		duration<double> d_t1 = t1.time_since_epoch();
+		duration<double> d_t4 = t4.time_since_epoch();
+
+		// ---- Compute delay & offset ---------------------------------------
+		f64 delay  = (d_t4 - d_t1).count() - (t3 - t2).count();
+		f64 offset = ((t2 - d_t1).count() + (t3 - d_t4).count()) / 2.0;
+
+
+		// ----------------------- Convert server transmit to Unix time ----------
+		// NTP epoch (1900‑01‑01) → Unix epoch (1970‑01‑01)
+		u64 unix_seconds = static_cast<u64>(ntohl(xmit_sec)) - NTP_DELTA;
+		f64 fraction_sec = static_cast<f64>(ntohl(xmit_frac)) / TWO_POW_32;
+
+
+		auto ntp_time = std::chrono::system_clock::time_point{
+		  std::chrono::seconds(unix_seconds)
+		  //
+		  + duration_cast<milliseconds>(duration<f64>(fraction_sec))
+		  //
+		};
+
+
+		//// If you need a time_point anchored to the system clock:
+		std::chrono::system_clock::time_point tp = ntp_time;
+
+		auto format_utc = [](std::chrono::system_clock::time_point tp) -> std::string
+		{
+			std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+			std::tm     utc_tm{};
+			gmtime_s(&utc_tm, &tt);
+			std::ostringstream oss;
+			oss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S UTC");
+			return oss.str();
+		};
+
+
+		// ----------------------- Output ----------------------------------------
+		dbg::println("Server: {}", hostname);
+		dbg::println("Current UTC time (server transmit): {}", format_utc(ntp_time));
+		dbg::println("Integer seconds: {}, Fractional part: {}", unix_seconds, fraction_sec);
+		dbg::println("Round-trip statistics:\n");
+		dbg::println("Client send (t1)   : {}s (steady_clock))", d_t1.count());
+		dbg::println("Server receive (t2): {}s (NTP)", t2.count());
+		dbg::println("Server transmit(t3): {}s (NTP)", t3.count());
+		dbg::println("Client recv (t4)   : {}s (steady_clock)\n", d_t4.count());
+		dbg::println("Delay     = {}s", delay);
+		dbg::println("Offset    = {}s", offset);
+		dbg::println("Offset -  = {}s", offset - NTP_DELTA);
+
+		dbg::println("Integer seconds: {}, Fractional part: {}", unix_seconds, fraction_sec);
+
+
+		// Round to the nearest minute – most zones are minute‑aligned
+		int  total_min = static_cast<int>(std::round(offset / 60.0));
+		int  hh        = total_min / 60;
+		int  mm        = std::abs(total_min % 60);
+		char sign      = (hh < 0 || (hh == 0 && offset < 0)) ? '-' : '+';
+		dbg::println("UTC offset: {}{:02}:{:02}", sign, std::abs(hh), mm);
+
+		// 1. Estimate the true UTC moment of t₁ using the offset we just computed:
+		// std::chrono::system_clock::time_point approx_t1_utc = std::chrono::system_clock::now() - std::chrono::duration<double>{offset};
+
+		// 2. Derive t₄_utc by adding the measured steady‑clock interval:
+		// auto                                  client_interval = d_t4 - d_t1; // steady_clock duration
+		//		std::chrono::system_clock::time_point approx_t4_utc   = approx_t1_utc + client_interval;
+		// dbg::println("Approx t1: {}", approx_t1_utc);
+		// dbg::println("Approx t4: {}", approx_t4_utc);
+
+		auto zone_for_offset = [](seconds offset, system_clock::time_point tp = system_clock::now()) -> std::string
+		{
+			for (const auto& z : get_tzdb().zones)
+			{
+				// `z.get_info(tp)` gives the rule that applies at `tp`
+				auto info = z.get_info(tp);
+				if (info.offset == offset)
+				{
+					return std::string(z.name()); // e.g. "Europe/Berlin"
+				}
+			}
+			return {};                            // no match found
+		};
+
+		dbg::println("Zone: {}", zone_for_offset(duration_cast<seconds>((duration<f64>(offset)))));
+
+		std::string tz_name = "Europe/Helsinki";
+
+		// Offset -  = 1757562486.6314878s
+		//             1758139549
+
+		// + milliseconds { fraction_sec }};
+
+
+		zoned_time zt(tz_name, tp);
+		dbg::println("In zone: {:%F %T %Z}", zt);
+
+		// 1758137824
+		// Integer seconds : 1758137820, Fractional part : 0.8626013642642647
+
+		closesocket(sock);
+		freeaddrinfo(result);
+	}
 
 	// ########################################################################
 
@@ -573,14 +850,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		binr[i] = as<u8>(i);
 	}
 
-	std::filesystem::path binfile("256.bin");
+	std::filesystem::path binfile("data/../256.bin");
 
-	auto res = v2::write_file(binfile, binr, true);
+	auto res = file::v2::write(binfile, binr, true);
 	if (res)
 		dbg::println("binr ok {}", *res);
 	else
 		dbg::println("{}", res.error());
-
 
 
 	std::span<u8> view{};
@@ -592,8 +868,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		dbg::println("Could not open file: {}", system::from_wide(binfile.wstring().c_str()));
 	}
 
-	u64 size = v2::filesize(binfile).value_or(0);
-
+	u64 size = file::v2::filesize(binfile).value_or(0);
 
 
 	HANDLE mapping = CreateFileMapping(handle, 0, PAGE_READWRITE, 0, 0, nullptr);
@@ -603,8 +878,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		UnmapViewOfFile(view.data());
 		view = {};
 	}
-
-	
 
 
 	u8* raw_address = as<u8*>(MapViewOfFile(mapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0));
@@ -627,7 +900,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		  nullptr,
 		  FILE_BEGIN);
 		SetEndOfFile(handle);
-		
+
 		LARGE_INTEGER filesize{0};
 		GetFileSizeEx(handle, &filesize);
 
@@ -641,16 +914,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		view = std::span<u8>{as<u8*>(raw_address), size};
 
 
-
-
-		// 
+		//
 		view[0] = random::randu8();
 
 
 		if (0 == FlushViewOfFile(view.data(), 0))
 		{
 			dbg::println("flush :{}", system::get_windows_error(GetLastError()));
-
 		}
 		if (0 == UnmapViewOfFile(view.data()))
 		{
@@ -744,7 +1014,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	random::digit(spass, 32);
 
-	auto ret = v2::write_file("test_file.txt", spass, true);
+	auto ret = file::v2::write("test_file.txt", spass, true);
 
 	buffer.fill(0);
 
@@ -752,7 +1022,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	smallbuf.resize(16);
 	std::string_view smallbufv{smallbuf};
 
-	ret = v2::read_file("test_file.txt", smallbuf, 16);
+	ret = file::v2::read("test_file.txt", smallbuf, 16);
 
 	dbg::println("before thread");
 
@@ -839,10 +1109,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	pthread2.join();
 	pthread3.join();
 	dbg::println("log_indeX: {}", log_index.load() - 1);
-	ret = v2::write_file("log.txt", log_buffer, log_index.load() - 1, true);
+	ret = file::v2::write("log.txt", log_buffer, log_index.load() - 1, true);
 
 	_ = 0;
 
+
+	// ########################################################################
 
 	// ########################################################################
 
