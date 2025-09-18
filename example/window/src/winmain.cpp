@@ -581,6 +581,211 @@ public:
 	};
 };
 
+struct NtpPacket
+{
+	u8 leapIndicator{}; // 2 bits
+	u8 version{};       // 3 bits
+	u8 mode{};          // 3 bits
+
+	u8                        stratum{};
+	std::chrono::milliseconds poll{};
+	std::chrono::nanoseconds  precision{};
+
+	std::chrono::milliseconds root_delay;
+	std::chrono::milliseconds root_dispersion{};
+
+	u32         refId{};
+	std::string ref_id_string;
+
+	u32 unix_epoch{0};
+
+	std::chrono::system_clock::time_point refTimestamp{};
+	std::chrono::system_clock::time_point origTimestamp{};
+	std::chrono::system_clock::time_point rxTimestamp{};
+	std::chrono::system_clock::time_point txTimestamp{};
+
+
+	std::chrono::milliseconds roundtrip_delay;
+	std::chrono::milliseconds local_clock_offset;
+};
+
+std::chrono::system_clock::time_point ntp_to_chrono(u64 ntp_ts)
+{
+
+	using namespace std::chrono;
+	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800U;
+
+	u32 seconds  = static_cast<u32>(ntp_ts >> 32);
+	u32 fraction = static_cast<u32>(ntp_ts & 0xFFFF'FFFFULL);
+
+
+	f64  frac_seconds = static_cast<f64>(fraction) / 4294967296.0;
+	auto secs         = seconds - NTP_UNIX_OFFSET;
+
+	auto ntp_time = std::chrono::system_clock::time_point{
+	  std::chrono::seconds(secs) + duration_cast<std::chrono::system_clock::duration>(duration<f64>(frac_seconds))};
+
+	return ntp_time;
+}
+
+u64 chrono_to_ntp(std::chrono::system_clock::time_point tp)
+{
+	using namespace std::chrono;
+	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800U;
+
+	auto duration = tp.time_since_epoch();
+	auto secs     = duration_cast<seconds>(duration).count();
+	auto frac     = duration - seconds(secs);
+
+	u32 ntp_secs = static_cast<u32>(secs + NTP_UNIX_OFFSET);
+	u32 ntp_frac = static_cast<u32>((static_cast<f64>(frac.count()) / seconds(1).count()) * 4294967296.0);
+
+	return (static_cast<u64>(ntp_secs) << 32) | ntp_frac;
+}
+
+u32 to_unix_epoch(u64 ntp_ts)
+{
+	using namespace std::chrono;
+	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800U;
+
+	u32 seconds = static_cast<u32>(ntp_ts >> 32);
+	u32 secs    = seconds - NTP_UNIX_OFFSET;
+	return secs;
+}
+
+NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_point t1, std::chrono::system_clock::time_point t4)
+{
+	if (raw.size() < 48)
+		return {};
+
+	NtpPacket pkt{};
+
+	uint8_t li_vn_mode = raw[0];
+	pkt.leapIndicator  = (li_vn_mode >> 6) & 0x03;
+	pkt.version        = (li_vn_mode >> 3) & 0x07;
+	pkt.mode           = li_vn_mode & 0x07;
+
+	pkt.stratum = raw[1];
+
+	// Poll
+	i8  poll         = raw[2];
+	f64 poll_seconds = 0;
+	if (poll < 0)
+		poll_seconds = 1.0 / (1ULL << -poll);
+	else
+	{
+		if (poll < 64)
+			poll_seconds = static_cast<f64>(1ULL << poll);
+		else
+			poll_seconds = std::pow(2.0, poll);
+	}
+
+	pkt.poll = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(poll_seconds));
+
+	// Precision
+	i8  raw_precision     = raw[3];
+	f64 precision_seconds = 1.0 / (1ULL << (std::abs(raw_precision)));
+	pkt.precision         = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<f64>(precision_seconds));
+
+
+	// pkt.rootDelay =
+	u32 root_delay = load_as<u32>(raw, 4).value_or(0);
+	{
+		i16 int_part  = root_delay >> 16;
+		u16 frac_part = root_delay & 0xFFFF;
+
+		f64 frac_seconds       = static_cast<f64>(frac_part) / 65536.0;
+		f64 root_delay_seconds = int_part + frac_seconds;
+
+		pkt.root_delay = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(root_delay_seconds));
+	}
+
+
+	// Root dispersion
+	u32 root_dispersion = load_as<u32>(raw, 8).value_or(0);
+	{
+		u16 int_part  = root_dispersion >> 16;
+		u16 frac_part = root_dispersion & 0xFFFF;
+
+		f64 frac_seconds            = static_cast<f64>(frac_part) / 65536.0;
+		f64 root_dispersion_seconds = int_part + frac_seconds;
+		pkt.root_dispersion = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(root_dispersion_seconds));
+	}
+
+
+	pkt.refId = load_as<u32>(raw, 12).value_or(0);
+
+	if (pkt.stratum == 0 or pkt.stratum == 1)
+	{
+		// stratum 0 Kiss of Death,
+
+		char chars[4] = {
+		  static_cast<char>((pkt.refId >> 24) & 0xFF),
+		  static_cast<char>((pkt.refId >> 16) & 0xFF),
+		  static_cast<char>((pkt.refId >> 8) & 0xFF),
+		  static_cast<char>(pkt.refId & 0xFF)};
+
+		pkt.ref_id_string = std::string(chars, chars + 4);
+		if (pkt.ref_id_string.ends_with('\0'))
+			pkt.ref_id_string.resize(pkt.ref_id_string.size() - 1);
+	}
+	else if (pkt.stratum >= 2 and pkt.stratum <= 15)
+	{
+		u32 ip            = pkt.refId;
+		pkt.ref_id_string = std::format("{}.{}.{}.{} ({:X})", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, ip);
+	}
+	else if (pkt.stratum > 16)
+	{
+		pkt.ref_id_string = "Reserved/Unknown";
+	}
+
+
+	pkt.unix_epoch = to_unix_epoch(load_as<u64>(raw, 32).value_or(0));
+
+
+	pkt.refTimestamp = ntp_to_chrono(load_as<u64>(raw, 16).value_or(0));
+
+	auto origtime = load_as<u64>(raw, 24);
+
+	pkt.origTimestamp = ntp_to_chrono(load_as<u64>(raw, 24).value_or(0));
+	pkt.rxTimestamp   = ntp_to_chrono(load_as<u64>(raw, 32).value_or(0));
+	pkt.txTimestamp   = ntp_to_chrono(load_as<u64>(raw, 40).value_or(0));
+
+	auto t2 = pkt.rxTimestamp;
+	auto t3 = pkt.txTimestamp;
+
+	pkt.roundtrip_delay    = std::chrono::duration_cast<std::chrono::milliseconds>((t4 - t1) - (t3 - t2));
+	pkt.local_clock_offset = std::chrono::duration_cast<std::chrono::milliseconds>(((t2 - t1) + (t3 - t4)) / 2);
+
+
+	auto tz                  = std::chrono::current_zone();
+	const std::chrono::zoned_time zt{tz, pkt.origTimestamp};
+	dbg::println("Local zone: {}", zt);
+
+	//auto local_time = zt.get_local_time();
+	//std::chrono::system_clock::time_point local_tp{zt.get_local_time()};
+
+	 // Create a time point in a specific time zone, e.g., Tokyo
+	const auto*      tz2 = std::chrono::locate_zone("Asia/Tokyo");
+	const std::chrono::zoned_time tokyo_time{tz, pkt.origTimestamp};
+
+	// Extract the system_clock::time_point from the zoned_time
+	const auto sys_tp = tokyo_time.get_sys_time();
+	const auto local_tp = tokyo_time.get_local_time();
+
+	// Print the times to demonstrate the conversion
+	dbg::println("Original zoned_time (in Tokyo): {}", std::format("{:%Y-%m-%d %H:%M:%S %Z}", tokyo_time));
+
+	dbg::println("Converted time_point (UTC): {}", sys_tp);
+	dbg::println("Converted time_point (UTC): {}", local_tp);
+
+	std::chrono::local_time local_new = tokyo_time.get_local_time();
+	dbg::println("Converted time_point (UTC): {}", local_new);
+
+	
+	return pkt;
+}
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -604,25 +809,60 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	///
 	{
-		constexpr size_t   NTP_PACKET_SIZE = 48;
-		constexpr uint32_t NTP_DELTA       = 2'208'988'800U; // seconds between 1900‑01‑01 and 1970‑01‑01
-		constexpr double   TWO_POW_32      = 4294967296.0;   // 2^32, used for fractional conversion
+		constexpr size_t NTP_PACKET_SIZE = 48;
 
-		//const char* hostname = "pool.ntp.org";
-		const char* hostname = "time.cloudflare.com";
-		const char* service  = "123";                        // NTP uses UDP port 123
+		std::array<std::string_view, 5> hostnames{
+		  //
+		  "time.google.com"sv,
+		  "fi.pool.ntp.org"sv,
+		  "pool.ntp.org"sv,
+		  "time.cloudflare.com"sv,
+		  "time.windows.com"sv};
 
-															 // ----------------------- Resolve host ---------------------------------
+		u8 hostname_index = random::randu8(0, as<u8>(hostnames.size() - 1));
+		// hostname_index    = 0;
+
+		std::string_view hostname = hostnames[hostname_index];
+
+		const char* service = "123"; // NTP uses UDP port 123
+
+									 // ----------------------- Resolve host ---------------------------------
 		addrinfo hints{}, *result = nullptr;
 		hints.ai_family   = AF_UNSPEC;  // IPv4 or IPv6
 		hints.ai_socktype = SOCK_DGRAM; // UDP
 		hints.ai_protocol = IPPROTO_UDP;
 
-		int rc = getaddrinfo(hostname, service, &hints, &result);
+		int rc = getaddrinfo(hostname.data(), service, &hints, &result);
 		if (rc != 0)
 		{
 			dbg::println("getaddrinfo: {}", gai_strerrorA(rc));
 		}
+
+		// ip
+		std::string resolved_ip;
+		char        ip_str[INET6_ADDRSTRLEN]; // Buffer for IPv4 or IPv6
+		auto        addr = result->ai_addr;
+
+		if (addr->sa_family == AF_INET)
+		{
+			struct sockaddr_in* sin = (struct sockaddr_in*)addr;
+			if (inet_ntop(AF_INET, &sin->sin_addr, ip_str, INET_ADDRSTRLEN) == nullptr)
+				dbg::println("Invalid IP");
+		}
+		else if (addr->sa_family == AF_INET6)
+		{
+			struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
+			if (inet_ntop(AF_INET6, &sin6->sin6_addr, ip_str, INET6_ADDRSTRLEN) == nullptr)
+				dbg::println("Invalid IP");
+		}
+		else
+		{
+			dbg::println("Unsupported address family");
+		}
+
+		resolved_ip = std::string(ip_str);
+		dbg::println("{} hosted @ {}", hostname, resolved_ip);
+
 
 		// ----------------------- Create socket ---------------------------------
 		SOCKET sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
@@ -632,24 +872,57 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			freeaddrinfo(result);
 		}
 
+		DWORD timeoutMs = 5000;
+		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
+
+
 		// ----------------------- Build NTP request packet -----------------------
-		std::vector<uint8_t> packet(NTP_PACKET_SIZE, 0);
+		std::array<uint8_t, NTP_PACKET_SIZE> packet{};
 
 		// clang-format off
-
-		//                 2   3   3   
-		//                LI  VN   Mode
-		//                 |   |   |   
-		constexpr u8 ntp_config = 0b00'011'011;
-		//  LI : 0 No warning
-		// VN  : 011 v3, 100 v4
-		// Mode: 011 (3) client 
-		// 
+		//                                2   3   3   
+		//                               LI  VN   Mode
+		//                                |   |   |   
+		constexpr u8 ntp_config_byte = 0b00'100'011;
 		// clang-format on
 
-		packet[0] = ntp_config;                           // LI = 0, VN = 3 (or 4), Mode = 3 (client)
-													// ----------------------- Record t1 (client send time) ------------------
-		auto t1 = std::chrono::steady_clock::now(); // high‑resolution monotonic clock
+		// LI  : 0
+		// VN  : 011 v3, 100 v4
+		// Mode: 011 (3) client
+		//
+
+
+		auto chrono_to_poll = [](std::chrono::seconds duration) -> u8
+		{
+			if (duration.count() <= 1.0)
+				return 0;
+
+
+			f64 log2_value = std::log2(duration.count());
+			u8  poll       = static_cast<u8>(std::floor(log2_value));
+
+			return std::clamp<u8>(poll, 0, 10); // Max 2^10 seconds- 1024
+		};
+
+		packet[0] = ntp_config_byte;
+		 packet[1] = 1; // stratum
+		 packet[2] = chrono_to_poll(8s);
+		// packet[3] = static_cast<u8>(-20) & 0xFF; // Precision
+
+
+		auto t1 = std::chrono::system_clock::now();
+
+		u64 t1_packet = chrono_to_ntp(t1);
+
+
+		// Origin timestamp
+		for (int i = 0; i < 8; ++i)
+			packet[24 + i] = static_cast<u8>(t1_packet >> (56 - 8 * i));
+
+		// Transmit timestamp (optional)
+		for (int i = 0; i < 8; ++i)
+			packet[40 + i] = static_cast<u8>(t1_packet >> (56 - 8 * i));
+
 
 		// ----------------------- Send request ----------------------------------
 		int sent = sendto(
@@ -668,20 +941,17 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			WSACleanup();
 			return 1;
 		}
+		dbg::println("send = {}", sent);
 
 		// ----------------------- Set receive timeout (5 seconds) ---------------
-		DWORD timeoutMs = 50000;
-		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
-
 		// ----------------------- Receive reply ---------------------------------
 		int recvLen = recvfrom(sock, reinterpret_cast<char*>(packet.data()), static_cast<int>(packet.size()), 0, nullptr, nullptr);
 
-		// Record t4 (client receive time) as soon as possible
-		auto t4 = std::chrono::steady_clock::now();
+		auto t4 = std::chrono::system_clock::now();
 
 		if (recvLen == SOCKET_ERROR)
 		{
-			dbg::println("recvfrom() failed (timeout?): {}", WSAGetLastError());
+			dbg::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
 			closesocket(sock);
 			freeaddrinfo(result);
 			WSACleanup();
@@ -691,152 +961,43 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		{
 			dbg::println("Received packet too short ({}) bytes", recvLen);
 			closesocket(sock);
-			freeaddrinfo(result);
-			WSACleanup();
+			if (not result)
+				freeaddrinfo(result);
 		}
 
-		// ---------------------------------------------------------------------------
-		// Helper: turn a 64‑bit NTP timestamp (seconds + fraction) into a chrono duration
-		// ---------------------------------------------------------------------------
-		auto ntp_to_duration = [](u32 sec_net, u32 frac_net) -> std::chrono::duration<double>
+		if (recvLen == NTP_PACKET_SIZE)
 		{
-			u32    sec  = ntohl(sec_net);
-			u32    frac = ntohl(frac_net);
-			double d    = static_cast<double>(sec) + static_cast<double>(frac) / TWO_POW_32;
-			return std::chrono::duration<double>(d);
-		};
-
-		auto ntp_to_dur = [](u32 nsec, u32 nfrac) -> std::chrono::system_clock::time_point
-		{
-			constexpr i64 NTP_TO_UNIX = 2'208'988'800LL; // seconds between 1900‑01‑01 and 1970‑01‑01
-			u32           sec         = ntohl(nsec);
-			u32           frac        = ntohl(nfrac);
-
-			f64 secs = static_cast<f64>(sec) + static_cast<f64>(frac) / 4294967296.0; // 2^32
 
 
-			// Shift to Unix epoch and cast to system_clock duration
-			auto dur = std::chrono::duration<double>(secs - NTP_TO_UNIX);
-			return std::chrono::system_clock::time_point{std::chrono::duration_cast<std::chrono::system_clock::duration>(dur)};
-		};
+			auto ntp = parse_ntp(packet, t1, t4);
 
-		// ----------------------- Extract timestamps ----------------------------
-		// Offsets inside the packet (all network‑byte‑order):
-		//   Originate Timestamp  (bytes 24‑31) – time client sent request (t1)
-		//   Receive   Timestamp  (bytes 32‑39) – time server received request (t2)
-		//   Transmit  Timestamp  (bytes 40‑47) – time server sent reply   (t3)
-
-		u32 orig_sec  = *reinterpret_cast<u32*>(packet.data() + 24);
-		u32 orig_frac = *reinterpret_cast<u32*>(packet.data() + 28);
-		u32 recv_sec  = *reinterpret_cast<u32*>(packet.data() + 32);
-		u32 recv_frac = *reinterpret_cast<u32*>(packet.data() + 36);
-		u32 xmit_sec  = *reinterpret_cast<u32*>(packet.data() + 40);
-		u32 xmit_frac = *reinterpret_cast<u32*>(packet.data() + 44);
-
-		// Convert server timestamps to chrono::duration<double> (seconds)
-
-		using namespace std::chrono;
-		duration<double> t2 = ntp_to_duration(recv_sec, recv_frac); // server receive
-		duration<double> t3 = ntp_to_duration(xmit_sec, xmit_frac); // server transmit
-
-		// Convert client steady_clock timestamps to double seconds
-		duration<double> d_t1 = t1.time_since_epoch();
-		duration<double> d_t4 = t4.time_since_epoch();
-
-		// ---- Compute delay & offset ---------------------------------------
-		f64 delay  = (d_t4 - d_t1).count() - (t3 - t2).count();
-		f64 offset = ((t2 - d_t1).count() + (t3 - d_t4).count()) / 2.0;
+			dbg::println("{:<20}: {}", "Leap", ntp.leapIndicator);
 
 
-		// ----------------------- Convert server transmit to Unix time ----------
-		// NTP epoch (1900‑01‑01) → Unix epoch (1970‑01‑01)
-		u64 unix_seconds = static_cast<u64>(ntohl(xmit_sec)) - NTP_DELTA;
-		f64 fraction_sec = static_cast<f64>(ntohl(xmit_frac)) / TWO_POW_32;
+			dbg::println("{:<20}: {}", "Precision", ntp.precision);
+			dbg::println("{:<20}: {}", "Root delay", ntp.root_delay);
+			dbg::println("{:<20}: {}", "Reference ID", ntp.ref_id_string);
+			dbg::println("{:<20}: {}", "Root dispersion", ntp.root_dispersion);
+			dbg::println("{:<20}: {}", "Reference time", ntp.refTimestamp);
+			dbg::println("{:<20}: {}", "Origin time", ntp.origTimestamp);
+			dbg::println("{:<20}: {}", "Receive time", ntp.rxTimestamp);
+			dbg::println("{:<20}: {}", "Transmit time", ntp.txTimestamp);
 
+			dbg::println("{:<20}: {}", "Round trip", ntp.roundtrip_delay);
+			dbg::println("{:<20}: {}", "Clock offset", ntp.local_clock_offset);
+			dbg::println("{:<20}: {}", "Unix Epoch", ntp.unix_epoch);
+			dbg::println("{:<20}: {}", "Local Epoch", epoch());
+			dbg::println();
+			dbg::println("NTP from {}", hostname);
+			dbg::println("{:<20}: {}", "Version", ntp.version);
+			dbg::println("{:<20}: {}", "Mode", ntp.mode);
+			dbg::println("{:<20}: {}", "Stratum", ntp.stratum);
+			dbg::println("{:<20}: {}", "Poll", ntp.poll);
+		}
+		_ = 0;
 
-		auto ntp_time = std::chrono::system_clock::time_point{
-		  std::chrono::seconds(unix_seconds)
-		  //
-		  + duration_cast<milliseconds>(duration<f64>(fraction_sec))
-		  //
-		};
+		// ---------------------
 
-
-		//// If you need a time_point anchored to the system clock:
-		std::chrono::system_clock::time_point tp = ntp_time;
-
-		auto format_utc = [](std::chrono::system_clock::time_point tp) -> std::string
-		{
-			std::time_t tt = std::chrono::system_clock::to_time_t(tp);
-			std::tm     utc_tm{};
-			gmtime_s(&utc_tm, &tt);
-			std::ostringstream oss;
-			oss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S UTC");
-			return oss.str();
-		};
-
-
-		// ----------------------- Output ----------------------------------------
-		dbg::println("Server: {}", hostname);
-		dbg::println("Current UTC time (server transmit): {}", format_utc(ntp_time));
-		dbg::println("Integer seconds: {}, Fractional part: {}", unix_seconds, fraction_sec);
-		dbg::println("Round-trip statistics:\n");
-		dbg::println("Client send (t1)   : {}s (steady_clock))", d_t1.count());
-		dbg::println("Server receive (t2): {}s (NTP)", t2.count());
-		dbg::println("Server transmit(t3): {}s (NTP)", t3.count());
-		dbg::println("Client recv (t4)   : {}s (steady_clock)\n", d_t4.count());
-		dbg::println("Delay     = {}s", delay);
-		dbg::println("Offset    = {}s", offset);
-		dbg::println("Offset -  = {}s", offset - NTP_DELTA);
-
-		dbg::println("Integer seconds: {}, Fractional part: {}", unix_seconds, fraction_sec);
-
-
-		// Round to the nearest minute – most zones are minute‑aligned
-		int  total_min = static_cast<int>(std::round(offset / 60.0));
-		int  hh        = total_min / 60;
-		int  mm        = std::abs(total_min % 60);
-		char sign      = (hh < 0 || (hh == 0 && offset < 0)) ? '-' : '+';
-		dbg::println("UTC offset: {}{:02}:{:02}", sign, std::abs(hh), mm);
-
-		// 1. Estimate the true UTC moment of t₁ using the offset we just computed:
-		// std::chrono::system_clock::time_point approx_t1_utc = std::chrono::system_clock::now() - std::chrono::duration<double>{offset};
-
-		// 2. Derive t₄_utc by adding the measured steady‑clock interval:
-		// auto                                  client_interval = d_t4 - d_t1; // steady_clock duration
-		//		std::chrono::system_clock::time_point approx_t4_utc   = approx_t1_utc + client_interval;
-		// dbg::println("Approx t1: {}", approx_t1_utc);
-		// dbg::println("Approx t4: {}", approx_t4_utc);
-
-		auto zone_for_offset = [](seconds offset, system_clock::time_point tp = system_clock::now()) -> std::string
-		{
-			for (const auto& z : get_tzdb().zones)
-			{
-				// `z.get_info(tp)` gives the rule that applies at `tp`
-				auto info = z.get_info(tp);
-				if (info.offset == offset)
-				{
-					return std::string(z.name()); // e.g. "Europe/Berlin"
-				}
-			}
-			return {};                            // no match found
-		};
-
-		dbg::println("Zone: {}", zone_for_offset(duration_cast<seconds>((duration<f64>(offset)))));
-
-		std::string tz_name = "Europe/Helsinki";
-
-		// Offset -  = 1757562486.6314878s
-		//             1758139549
-
-		// + milliseconds { fraction_sec }};
-
-
-		zoned_time zt(tz_name, tp);
-		dbg::println("In zone: {:%F %T %Z}", zt);
-
-		// 1758137824
-		// Integer seconds : 1758137820, Fractional part : 0.8626013642642647
 
 		closesocket(sock);
 		freeaddrinfo(result);
