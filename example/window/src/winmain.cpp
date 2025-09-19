@@ -806,6 +806,182 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		_ = 0;
 	}
+	{
+		std::array<std::pair<std::string, std::string>, 4> hostnames{
+		  //
+		  std::pair{"stun.fbsbx.com", "3478"},
+		  std::pair{"stun2.l.google.com", "19302"},
+		  std::pair{"stun.l.google.com", "19302"},
+		  std::pair{"stun.cloudflare.com", "3478"},
+		};
+		u8 hostname_index = random::randu8(0, as<u8>(hostnames.size() - 1));
+		hostname_index    = 0;
+
+		std::string_view hostname = hostnames[hostname_index].first;
+		std::string_view service  = hostnames[hostname_index].second;
+
+
+		// ----------------------- Resolve host ---------------------------------
+		addrinfo hints{}, *result = nullptr;
+		hints.ai_family   = AF_UNSPEC;  // IPv4 or IPv6
+		hints.ai_socktype = SOCK_DGRAM; // UDP
+		hints.ai_protocol = IPPROTO_UDP;
+
+		int rc = getaddrinfo(hostname.data(), service.data(), &hints, &result);
+		if (rc != 0)
+		{
+			dbg::println("getaddrinfo: {}", gai_strerrorA(rc));
+		}
+
+		// ip
+		std::string resolved_ip;
+		char        ip_str[INET6_ADDRSTRLEN]; // Buffer for IPv4 or IPv6
+		auto        addr = result->ai_addr;
+
+		if (addr->sa_family == AF_INET)
+		{
+			struct sockaddr_in* sin = (struct sockaddr_in*)addr;
+			if (inet_ntop(AF_INET, &sin->sin_addr, ip_str, INET_ADDRSTRLEN) == nullptr)
+				dbg::println("Invalid IP");
+		}
+		else if (addr->sa_family == AF_INET6)
+		{
+			struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
+			if (inet_ntop(AF_INET6, &sin6->sin6_addr, ip_str, INET6_ADDRSTRLEN) == nullptr)
+				dbg::println("Invalid IP");
+		}
+		else
+		{
+			dbg::println("Unsupported address family");
+		}
+
+		resolved_ip = std::string(ip_str);
+		dbg::println("{} hosted @ {}", hostname, resolved_ip);
+
+
+		// ----------------------- Create socket ---------------------------------
+		SOCKET sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+		if (sock == INVALID_SOCKET)
+		{
+			dbg::println("socket() failed: {}", WSAGetLastError());
+			freeaddrinfo(result);
+		}
+
+		std::array<uint8_t, 20> packet{
+		  // STUN Message Type: 0x0001 (Binding Request)
+		  0x00,
+		  0x01,
+
+		  // Message Length: 0x0000 (No attributes for a basic request)
+		  0x00,
+		  0x00,
+
+		  // Magic Cookie: 0x2112A442
+		  // This value helps differentiate STUN from legacy protocols.
+		  0x21,
+		  0x12,
+		  0xA4,
+		  0x42,
+
+		  // Transaction ID: A random, 96-bit (12-byte) identifier.
+		  // This example uses a placeholder, but should be generated randomly for a real application.
+		  // For example: `0x6f, 0x4c, 0x3a, 0x6e, 0x5a, 0x7b, 0x73, 0x9c, 0x2d, 0x82, 0x4f, 0x3a`
+		  0xDE,
+		  0xAD,
+		  0xBE,
+		  0xEF,
+		  0x69,
+		  0xCA,
+		  0xFE,
+		  0xBA,
+		  0xBE,
+		  0x11,
+		  0x22,
+		  0x33};
+
+		DWORD timeoutMs = 5000;
+		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
+
+
+		int sent = sendto(
+		  sock,
+		  reinterpret_cast<const char*>(packet.data()),
+		  static_cast<int>(packet.size()),
+		  0,
+		  result->ai_addr,
+		  static_cast<int>(result->ai_addrlen));
+
+		if (sent == SOCKET_ERROR)
+		{
+			dbg::println("sendto() failed: {}", WSAGetLastError());
+			closesocket(sock);
+			freeaddrinfo(result);
+			WSACleanup();
+			return 1;
+		}
+		dbg::println("send = {}", sent);
+
+		// ----------------------- Set receive timeout (5 seconds) ---------------
+		// ----------------------- Receive reply ---------------------------------
+
+		std::vector<u8> incoming{};
+		incoming.resize(1024);
+
+		int len = recvfrom(sock, reinterpret_cast<char*>(incoming.data()), static_cast<int>(incoming.size()), 0, nullptr, nullptr);
+
+		if (len == SOCKET_ERROR)
+		{
+			dbg::println("recvfrom() failed: {}", WSAGetLastError());
+		}
+		else
+		{
+
+			dbg::println("received {} bytes:", len);
+			incoming.resize(len);
+
+			for (const auto& c : incoming)
+				dbg::print("{:02X} ", c);
+			dbg::println("\n\n");
+		}
+
+		// FB stun
+		// 01 01
+		// 00 18
+		// 21 12 A4 42
+		// DE AD BE EF 69 CA FE BA BE 11 22 33
+		// 00 01
+		// 00 08 0x0008: MESSAGE-INTEGRITY
+		// 00 01 len
+		// E6 14 D5 98 A1 EA 00 20 00 08 00 01 C7 06 F4 8A 05 A8
+
+
+		// Google stun
+		// 01 01
+		// 00 0C
+		// 21 12 A4 42
+		// DE AD BE EF 69 CA FE BA BE 11 22 33
+		// 00 20
+		// 00 08						0x0008: MESSAGE-INTEGRITY
+		// 00 01 DC 42 F4 8A 05 A8
+
+
+		// Cloudflare
+		// 01 01									0x0101 STUN response
+		// 00 18									Length
+		// 21 12 A4 42								MAGIC cookie
+		// DE AD BE EF 69 CA FE BA BE 11 22 33		Transaction ID (same as sent)
+		//
+		// 00 20			XOR-mapped-address
+		// 00 14			length
+		// 00 02			padding byte, version byte (01 ipv4, 02 ipv6)
+		// CD B2			port xor'd with MAGIC
+		//
+		// 01 13 B0 F8		xor with magic
+		//					xor rest with transaction id
+		// 98 AC BE EF 6D B3 3C 8D 02 7A C9 11
+
+		_ = 0;
+	}
 
 	///
 	{
