@@ -130,7 +130,7 @@ if(MSVC)
 
 		target_compile_definitions(deckard PRIVATE -DNDEBUG)
 
-		target_compile_options(deckard PRIVATE /O2 /Os)
+		target_compile_options(deckard PRIVATE /O2 /Os /Ob2)
 		target_compile_options(deckard PRIVATE /GS-)
 		target_compile_options(deckard PRIVATE /Gw /MP)
 		target_compile_options(deckard PRIVATE /EHsc)
@@ -232,7 +232,8 @@ set(DECKARD_SRCS
 		utils/hash.ixx
 		utils/helpers.ixx
 		utils/uuid.ixx
-		utils/sha2.ixx
+		utils/sha.ixx
+		utils/hmac.ixx
 		utils/cpuid.ixx
 		utils/ringbuffer.ixx
 		utils/serializer.ixx
