@@ -14,6 +14,13 @@ using namespace deckard;
 
 namespace deckard
 {
+	export template<class H>
+	concept Digester = requires(H h) {
+		{ h.to_string() } -> std::same_as<std::string>;
+		{ h.size() } -> std::same_as<std::size_t>;
+		{ h.data() } -> std::same_as<std::span<const u8>>;
+	};
+
 	export template<u32 Size>
 	[[nodiscard("You are not using your hash digest.")]] class generic_sha_digest final
 	{
@@ -106,7 +113,6 @@ namespace deckard
 				result[index++] = HEX_LUT[b & 0x0F];
 			}
 			return result;
-		
 		}
 
 		[[nodiscard("You are not using your hash digest size")]]
@@ -134,6 +140,13 @@ namespace deckard
 	};
 
 } // namespace deckard
+
+export template<typename T>
+concept Hasher = requires(T& obj) {
+	{ obj.reset() } -> std::same_as<void>;
+	{ obj.update(std::span<u8>{}) } -> std::same_as<void>;
+	{ obj.update(std::string_view{}) } -> std::same_as<void>;
+} and std::is_same_v<decltype(std::declval<T>().finalize()), typename T::Digest>;
 
 namespace deckard::sha1 // ############################################################################
 {
@@ -329,6 +342,12 @@ namespace deckard::sha256 // ###################################################
 	export class hasher
 	{
 	public:
+		static constexpr u32 CHUNK_SIZE_IN_BITS = 512;
+		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
+		static constexpr u32 ROUNDS             = 64;
+
+		using Digest = digest;
+
 		hasher() { reset(); }
 
 		void reset()
@@ -371,9 +390,6 @@ namespace deckard::sha256 // ###################################################
 			return ret;
 		}
 
-		static constexpr u32 CHUNK_SIZE_IN_BITS = 512;
-		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
-		static constexpr u32 ROUNDS             = 64;
 
 	private:
 		template<typename T>
@@ -526,6 +542,11 @@ namespace deckard::sha512 // ###################################################
 	export class hasher
 	{
 	public:
+		static constexpr u32 CHUNK_SIZE_IN_BITS = 1024;
+		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
+		static constexpr u32 ROUNDS             = 80;
+		using Digest                            = digest;
+
 		hasher() { reset(); }
 
 		void reset()
@@ -580,9 +601,6 @@ namespace deckard::sha512 // ###################################################
 			return ret;
 		}
 
-		static constexpr u32 CHUNK_SIZE_IN_BITS = 1024;
-		static constexpr u32 BLOCK_SIZE         = CHUNK_SIZE_IN_BITS / 8;
-		static constexpr u32 ROUNDS             = 80;
 
 	private:
 		template<typename T>

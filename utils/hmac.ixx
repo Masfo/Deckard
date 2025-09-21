@@ -8,17 +8,7 @@ import deckard.helpers;
 
 namespace deckard::hmac
 {
-
-
-	template<class H>
-	concept Hasher = requires(H h, std::span<const std::byte> s) {
-		{ H::block_size } -> std::convertible_to<std::size_t>;
-		typename H::digest_type;
-		{ h.update(s) } -> std::same_as<void>;
-		{ h.finalize() } -> std::same_as<typename H::digest_type>;
-	};
-
-	template<typename Hasher, typename Digest, u32 BLOCK_SIZE>
+	template<Hasher Hasher, Digester Digest, u32 BLOCK_SIZE>
 	Digest generic_hmac(std::span<u8> key, std::span<u8> message)
 	{
 		std::array<u8, BLOCK_SIZE> norm_key{};

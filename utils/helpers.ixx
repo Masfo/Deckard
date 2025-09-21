@@ -58,6 +58,37 @@ export namespace deckard
 		return ret;
 	}
 
+	template<typename To>
+	std::optional<To> load_as(std::span<const u8> buf, std::size_t offset)
+	{
+		static_assert(std::is_integral_v<To>, "load_as only supports integral types");
+
+		if (offset + sizeof(To) > buf.size())
+			return {};
+
+		To tmp{};
+		std::memcpy(&tmp, buf.data() + offset, sizeof(To));
+
+		if constexpr (std::endian::native == std::endian::little)
+		{
+			if constexpr (sizeof(To) == 2)
+				return std::byteswap(tmp);
+			if constexpr (sizeof(To) == 4)
+				return std::byteswap(tmp);
+			if constexpr (sizeof(To) == 8)
+				return std::byteswap(tmp);
+		}
+
+		return tmp; // already correct on big-endian
+	}
+
+	export template<std::integral To>
+	std::optional<To> load_as_be(const std::span<const u8> buffer, size_t offset)
+	{
+		auto v = load_as<To>(buffer, offset);
+		return v ? std::byteswap(*v) : v;
+	}
+
 	export template<typename To, typename From>
 	To load_as_be(const From from)
 	{
@@ -109,8 +140,6 @@ export namespace deckard
 			dbg::println("{} took {} (unknown) ", id, (i64)(took));
 #endif
 	}
-
-
 
 	// to_hex
 	struct HexOption
@@ -220,6 +249,20 @@ export namespace deckard
 	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
 	{
 		return to_hex_string(std::span{as<u8*>(input.data()), len}, options);
+	}
+
+	std::span<u8> to_span(std::string_view sv) { return {(u8*)sv.data(), sv.size()}; }
+
+	template<typename T>
+	auto as_span_bytes(const T& array) -> std::span<const u8>
+	{
+		if constexpr (requires { array.data() and array.size(); })
+			return {reinterpret_cast<const u8*>(array.data()), array.size() * sizeof(array[0])};
+		else
+		{
+			assert::check(false, "as_span_bytes requires a container with data() and size()");
+			return {};
+		}
 	}
 
 	// epoch
