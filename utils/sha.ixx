@@ -13,9 +13,119 @@ using namespace deckard;
 
 export enum class Uppercase { Yes, No };
 
+namespace deckard
+{
+	export template<u32 Size>
+	[[nodiscard("You are not using your hash digest.")]] class generic_sha_digest final
+	{
+	public:
+		generic_sha_digest() = default;
+
+		generic_sha_digest(std::string_view input)
+		{
+			assert::check(input.size() % 2 == 0, "Input must be even number of hex digits");
+			assert::check(
+			  input.size() == binary.size() * 2,
+			  std::format("Input is not correct size ({} bytes) for SHA256 digest ({} bytes)", std::floor(input.size() / 2), Size));
+
+			if (input.starts_with("0x") or input.starts_with("0X"))
+				input.remove_prefix(2);
+
+			u32 count{0};
+			for (const auto& word : input | std::views::chunk(2))
+			{
+				bool valid = word.size() == 2 and utf8::is_ascii_hex_digit(word[0]) and utf8::is_ascii_hex_digit(word[1]);
+				assert::check(valid, std::format("Input contains invalid hex digit in SHA256 digest '{}' - Invalid '{}'", input, word));
+
+				if (not valid)
+				{
+					binary.fill(0);
+					break;
+				}
+
+				u8 result{};
+				auto [ptr, ec] = std::from_chars(word.data(), word.data() + word.size(), result, 16);
+				if (ec == std::errc{})
+				{
+					binary[count++] = result;
+					continue;
+				}
+
+				auto ws = word | std::ranges::to<std::string>();
+				binary.fill(0);
+				assert::check(false, std::format("Cannot convert word '{}' in hash '{}'", ws, input));
+			}
+		}
+
+		generic_sha_digest(const std::initializer_list<u8>& digits)
+		{
+			assert::check(digits.size() == binary.size(), "Initializer-list must be same size as digest");
+
+			std::copy(digits.begin(), digits.end(), binary.begin());
+		}
+
+		template<std::unsigned_integral T, size_t N>
+		requires(sizeof(T) == 1)
+		generic_sha_digest(const std::array<T, N>& digits)
+		{
+			static_assert(N == Size, "Array must be same size as digest");
+			static_assert(std::is_same_v<T, u8>, "Array type must be u8");
+			assert::check(N == binary.size(), "Input buffer must be same size as digest");
+
+			binary = digits;
+		}
+
+		template<typename T>
+		requires(sizeof(T) == 1 and std::is_unsigned_v<T>)
+		generic_sha_digest(const std::span<u8>& digits)
+		{
+			assert::check(digits.size() == binary.size(), "Input buffer must be same size as digest");
+
+			std::copy(digits.begin(), digits.end(), binary.begin());
+		}
+
+		[[nodiscard("You are not using your hash digest data")]]
+		auto data() const -> std::span<const u8>
+		{
+			return as_span_bytes(binary);
+		}
+
+		[[nodiscard("You are not using your hash digest string.")]]
+		std::string to_string(const Uppercase uppercase = Uppercase::No)
+		{
+			return to_hex_string<u8>(
+			  binary, {.delimiter = "", .endian_swap = true, .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
+		}
+
+		[[nodiscard("You are not using your hash digest size")]]
+		auto size() const
+		{
+			return binary.size();
+		}
+
+		u8 operator[](int index) const
+		{
+			assert::check(index < binary.size(), "Indexing out-of-bounds");
+			return binary[index];
+		}
+
+		u8& operator[](int index)
+		{
+			assert::check(index < binary.size(), "Indexing out-of-bounds");
+			return binary[index];
+		}
+
+		bool operator==(const generic_sha_digest<Size>& that) const { return std::ranges::equal(binary, that.binary); }
+
+	private:
+		std::array<u8, Size> binary{};
+	};
+
+} // namespace deckard
+
 namespace deckard::sha1 // ############################################################################
 {
-
+#if 0
 	export class digest final
 	{
 	public:
@@ -84,6 +194,10 @@ namespace deckard::sha1 // #####################################################
 
 		std::array<type, 20> binary{0};
 	};
+#endif
+
+	export using digest = generic_sha_digest<20>;
+
 
 	static_assert(sizeof(digest) == 20);
 
@@ -104,9 +218,20 @@ namespace deckard::sha1 // #####################################################
 			m_block.fill(std::byte{0});
 		}
 
-		void update(std::string_view data) { update<const char>(data); }
+	
+		void update(std::string_view data) { generic_update<const char>(data); }
 
-		void update(std::span<u8> const data) { update<u8>(data); }
+		template<typename T>
+		void update(std::span<T> const data)
+		{
+			generic_update<T>(data);
+		}
+
+		template<typename T, size_t N>
+		void update(std::array<T, N>& data)
+		{
+			generic_update<T>(data);
+		}
 
 		[[nodiscard]] digest finalize()
 		{
@@ -141,7 +266,7 @@ namespace deckard::sha1 // #####################################################
 
 	private:
 		template<typename T>
-		void update(std::span<const T> data)
+		void generic_update(std::span<const T> data)
 		{
 			u64 i = 0;
 
@@ -257,180 +382,10 @@ namespace deckard::sha1 // #####################################################
 
 } // namespace deckard::sha1
 
-export template<u32 Size>
-[[nodiscard("You are not using your hash digest.")]] class new_generic_sha2_digest final
-{
-public:
-	new_generic_sha2_digest() = default;
-
-	new_generic_sha2_digest(std::string_view input)
-	{
-		assert::check(input.size() % 2 == 0, "Input must be even number of hex digits");
-		assert::check(input.size() == binary.size() * 2,
-					  std::format("Input is not correct size ({} bytes) for SHA256 digest ({} bytes)", std::floor(input.size() / 2), Size));
-
-		if (input.starts_with("0x") or input.starts_with("0X"))
-			input.remove_prefix(2);
-
-		u32 count{0};
-		for (const auto& word : input | std::views::chunk(2))
-		{
-			bool valid = word.size() == 2 and utf8::is_ascii_hex_digit(word[0]) and utf8::is_ascii_hex_digit(word[1]);
-			assert::check(valid, std::format("Input contains invalid hex digit in SHA256 digest '{}' - Invalid '{}'", input, word));
-
-			if (not valid)
-			{
-				binary.fill(0);
-				break;
-			}
-
-			u8 result{};
-			auto [ptr, ec] = std::from_chars(word.data(), word.data() + word.size(), result, 16);
-			if (ec == std::errc{})
-			{
-				binary[count++] = result;
-				continue;
-			}
-
-			auto ws = word | std::ranges::to<std::string>();
-			binary.fill(0);
-			assert::check(false, std::format("Cannot convert word '{}' in hash '{}'", ws, input));
-		}
-	}
-
-	new_generic_sha2_digest(const std::initializer_list<u8>& digits)
-	{
-		assert::check(digits.size() == binary.size(), "Initializer-list must be same size as digest");
-
-		std::copy(digits.begin(), digits.end(), binary.begin());
-	}
-
-	template<std::unsigned_integral T, size_t N>
-	requires(sizeof(T) == 1)
-	new_generic_sha2_digest(const std::array<T, N>& digits)
-	{
-		static_assert(N == Size, "Array must be same size as digest");
-		static_assert(std::is_same_v<T, u8>, "Array type must be u8");
-		assert::check(N == binary.size(), "Input buffer must be same size as digest");
-
-		binary = digits;
-	}
-
-	template<typename T>
-	requires(sizeof(T) == 1 and std::is_unsigned_v<T>)
-	new_generic_sha2_digest(const std::span<u8>& digits)
-	{
-		assert::check(digits.size() == binary.size(), "Input buffer must be same size as digest");
-
-		std::copy(digits.begin(), digits.end(), binary.begin());
-	}
-
-	[[nodiscard("You are not using your hash digest data")]]
-	auto data() const -> std::span<const u8>
-	{
-		return as_span_bytes(binary);
-	}
-
-	[[nodiscard("You are not using your hash digest size")]]
-	auto size() const
-	{
-		return binary.size();
-	}
-
-	u8 operator[](int index) const
-	{
-		assert::check(index < binary.size(), "Indexing out-of-bounds");
-		return binary[index];
-	}
-
-	u8& operator[](int index)
-	{
-		assert::check(index < binary.size(), "Indexing out-of-bounds");
-		return binary[index];
-	}
-
-	bool operator==(const new_generic_sha2_digest<Size>& that) const { return std::ranges::equal(binary, that.binary); }
-
-private:
-	std::array<u8, Size> binary{};
-};
-
-
-
-template<typename Type>
-requires std::is_integral_v<Type>
-[[nodiscard("You are not using your hash digest.")]] class generic_sha2_digest final
-{
-public:
-	using type = Type;
-
-	generic_sha2_digest() = default;
-
-	generic_sha2_digest(std::string_view string_hash)
-	{
-
-		assert::check(string_hash.size() == binary.size() * sizeof(type) * 2, "Hash parameter not correct size for sha256");
-		constexpr size_t wordsize = sizeof(type) * 2;
-
-		u32 count{0};
-		for (const auto& word : string_hash | std::views::chunk(wordsize))
-		{
-			type result{};
-			if (std::from_chars(word.data(), word.data() + word.size(), result, 16).ec == std::errc{})
-			{
-				binary[count++] = result;
-			}
-			else
-			{
-				auto ws = word | std::ranges::to<std::string>();
-				dbg::println("Cannot convert word '{}' in hash '{}'", ws, string_hash);
-				binary.fill(0);
-			}
-		}
-	}
-
-	generic_sha2_digest(const std::initializer_list<Type>& digits)
-	{
-		assert::check(digits.size() == binary.size(), "Initializer-list must be same size as digest");
-
-		std::copy(digits.begin(), digits.end(), binary.begin());
-	};
-
-	[[nodiscard("You are not using your hash digest string.")]]
-	std::string to_string(const Uppercase uppercase = Uppercase::No)
-	{
-		return to_hex_string<Type>(
-		  binary, {.delimiter = "", .endian_swap = true, .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
-	}
-
-	Type operator[](int index) const
-	{
-		assert::check(index < binary.size(), "Indexing out-of-bounds");
-		return binary[index];
-	}
-
-	[[nodiscard("You are not using your hash digest data")]]
-	auto data() const -> std::span<const std::byte>
-	{
-		std::span<const std::array<Type, 8>> state_span{&binary, 1};
-		return std::as_bytes(state_span);
-	}
-
-	[[nodiscard("You are not using your hash digest size")]]
-	auto size() const
-	{
-		return binary.size();
-	}
-
-	bool operator==(const generic_sha2_digest<Type>& other) const { return std::ranges::equal(binary, other.binary); }
-
-	std::array<Type, 8> binary{0};
-};
-
 namespace deckard::sha256 // ############################################################################
 {
 
-	export using digest = generic_sha2_digest<u32>;
+	export using digest = generic_sha_digest<32>;
 
 	static_assert(sizeof(digest) == 32);
 
@@ -449,8 +404,6 @@ namespace deckard::sha256 // ###################################################
 
 		void update(std::string_view data) { generic_update<const char>(data); }
 
-		// void update(std::span<u8> const data) { generic_update<u8>(data); }
-
 		template<typename T>
 		void update(std::span<T> const data)
 		{
@@ -465,15 +418,18 @@ namespace deckard::sha256 // ###################################################
 
 		digest finalize()
 		{
-			digest ret;
 
 			pad();
-			// TODO: generic_digest to store bytes, convert sha256 m_state to bytes
-			// doing the lazy here, just copying internal states
 
-			// 256: generic_digest<256>
-			// 512: generic_digest<512>
-			ret.binary = m_state;
+			digest ret;
+			u32    state_index = 0;
+			for (const auto& state : m_state)
+			{
+				ret[state_index++] = state >> 24 & 0xFF;
+				ret[state_index++] = state >> 16 & 0xFF;
+				ret[state_index++] = state >> 8 & 0xFF;
+				ret[state_index++] = state >> 0 & 0xFF;
+			}
 			reset();
 			return ret;
 		}
@@ -515,7 +471,6 @@ namespace deckard::sha256 // ###################################################
 			u32                maj{}, S0{}, ch{}, S1{}, temp1{}, temp2{}, w[ROUNDS]{0};
 			std::array<u32, 8> state;
 
-			// copy chunk into first 16 words w[0..15] of the message schedule array
 			for (u32 i = 0, j = 0; i < 16; i++, j += 4)
 				w[i] = load_as_be<u32>(&m_block[j]);
 
@@ -599,6 +554,13 @@ namespace deckard::sha256 // ###################################################
 		  0x90be'fffa, 0xa450'6ceb, 0xbef9'a3f7, 0xc671'78f2};
 	};
 
+	export sha256::digest hash(std::string_view input)
+	{
+		sha256::hasher hasher;
+		hasher.update(input);
+		return hasher.finalize();
+	}
+
 	std::string quick_hash_generic(std::span<u8> input)
 	{
 		sha256::hasher hasher;
@@ -623,7 +585,7 @@ namespace deckard::sha256 // ###################################################
 
 namespace deckard::sha512 // ############################################################################
 {
-	export using digest = generic_sha2_digest<u64>;
+	export using digest = generic_sha_digest<64>;
 
 	static_assert(sizeof(digest) == 64);
 
@@ -652,14 +614,36 @@ namespace deckard::sha512 // ###################################################
 
 		void update(std::string_view data) { generic_update<const char>(data); }
 
-		void update(std::span<u8> const data) { generic_update<u8>(data); }
+		template<typename T>
+		void update(std::span<T> const data)
+		{
+			generic_update<T>(data);
+		}
+
+		template<typename T, size_t N>
+		void update(std::array<T, N>& data)
+		{
+			generic_update<T>(data);
+		}
 
 		digest finalize()
 		{
-			digest ret;
-
 			pad();
-			ret.binary = m_state;
+
+			digest ret;
+			u32    state_index = 0;
+
+			for (const auto& state : m_state)
+			{
+				ret[state_index++] = state >> 56 & 0xFF;
+				ret[state_index++] = state >> 48 & 0xFF;
+				ret[state_index++] = state >> 40 & 0xFF;
+				ret[state_index++] = state >> 32 & 0xFF;
+				ret[state_index++] = state >> 24 & 0xFF;
+				ret[state_index++] = state >> 16 & 0xFF;
+				ret[state_index++] = state >> 8 & 0xFF;
+				ret[state_index++] = state >> 0 & 0xFF;
+			}
 			reset();
 			return ret;
 		}
@@ -796,6 +780,13 @@ namespace deckard::sha512 // ###################################################
 
 	static_assert(sizeof(hasher) == 208);
 
+	export sha512::digest hash(std::string_view input)
+	{
+		sha512::hasher hasher;
+		hasher.update(input);
+		return hasher.finalize();
+	}
+
 	std::string quick_hash_generic(std::span<u8> input)
 	{
 		sha512::hasher hasher;
@@ -811,3 +802,28 @@ namespace deckard::sha512 // ###################################################
 	export std::string quickhash(std::span<u8> input) { return quick_hash_generic(input); }
 
 } // namespace deckard::sha512
+
+export namespace std
+{
+	using namespace deckard;
+
+	// template<>
+	// struct hash<sha1::digest>
+	//{
+	//	size_t operator()(const sha1::digest& value) const { return 0; }
+	// };
+	//
+	// template<>
+	// struct formatter<sha1::digest>
+	//{
+	//	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+	//
+	//	auto format(const sha1::digest& v, std::format_context& ctx) const
+	//	{
+	//		//
+	//		return std::format_to(ctx.out(), "{}", v.to_string());
+	//	}
+	// };
+	//
+
+} // namespace std

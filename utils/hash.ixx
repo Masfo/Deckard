@@ -62,9 +62,8 @@ namespace deckard::utils
 	{
 		std::size_t seed = constant_seed;
 		for (const auto& arg : args)
-		{
 			hash_combine(seed, arg);
-		}
+
 		return seed;
 	}
 
@@ -131,10 +130,10 @@ namespace deckard::utils
 #ifdef _DEBUG
 		// key from random.org
 		const unsigned char key[16] = {0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
-		return siphash(key, {as<u8*>(str.data()), str.length()});
+		return siphash(key, to_span(str));
 
 #else
-		return siphash(deckard_build::build::rng_buffer, {as<u8*>(str.data()), str.length()});
+		return siphash(deckard_build::build::rng_buffer, to_span(str));
 #endif
 	}
 
