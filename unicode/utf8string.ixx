@@ -1152,7 +1152,7 @@ namespace deckard::utf8
 			while (it >= begin())
 			{
 				if (*it == (char32)c)
-						return std::distance(begin(), it);
+					return std::distance(begin(), it);
 				--it;
 			}
 			return npos;
@@ -1167,7 +1167,7 @@ namespace deckard::utf8
 			auto it = begin() + pos;
 			while (it >= begin())
 			{
-				bool found = false;
+				bool found    = false;
 				auto view_it  = view.begin();
 				auto view_end = view.end();
 				for (; view_it != view_end; ++view_it)
@@ -1184,6 +1184,7 @@ namespace deckard::utf8
 			}
 			return npos;
 		}
+
 		size_t find_last_not_of(std::string_view view, size_t pos = npos) const
 		{
 			if (empty() or view.empty())
@@ -1208,6 +1209,7 @@ namespace deckard::utf8
 			}
 			return npos;
 		}
+
 		size_t find_last_not_of(CharacterType auto c, size_t pos = npos) const
 		{
 			if (empty() or c == 0)
@@ -1265,9 +1267,6 @@ namespace deckard::utf8
 			trim_left();
 			trim_right();
 		}
-
-
-		
 	};
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
