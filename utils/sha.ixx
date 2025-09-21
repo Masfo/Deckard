@@ -6,12 +6,11 @@ import deckard.debug;
 import deckard.types;
 import deckard.helpers;
 import deckard.utf8;
+import deckard.utils.hash;
+
 import std;
 
 using namespace deckard;
-
-
-export enum class Uppercase { Yes, No };
 
 namespace deckard
 {
@@ -91,10 +90,23 @@ namespace deckard
 		}
 
 		[[nodiscard("You are not using your hash digest string.")]]
-		std::string to_string(const Uppercase uppercase = Uppercase::No)
+		std::string to_string() const
 		{
-			return to_hex_string<u8>(
-			  binary, {.delimiter = "", .endian_swap = true, .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
+			std::string result;
+			result.resize(binary.size() * 2);
+
+			constexpr static std::array<char, 16> HEX_LUT{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+			// TODO: Generic to_hex
+
+			u32 index = 0;
+			for (const auto& b : binary)
+			{
+				result[index++] = HEX_LUT[(b >> 4)];
+				result[index++] = HEX_LUT[b & 0x0F];
+			}
+			return result;
+		
 		}
 
 		[[nodiscard("You are not using your hash digest size")]]
@@ -125,80 +137,7 @@ namespace deckard
 
 namespace deckard::sha1 // ############################################################################
 {
-#if 0
-	export class digest final
-	{
-	public:
-		using type = u8;
-
-
-		digest() = default;
-
-		digest(std::string_view string_hash)
-		{
-
-			assert::check(string_hash.size() == binary.size() * 2, "Hash parameter not correct size for sha1");
-			constexpr size_t wordsize = 2;
-
-			if (string_hash.starts_with("0x") || string_hash.starts_with("0X"))
-				string_hash.remove_prefix(2);
-
-			u32 count{0};
-			for (const auto& word : string_hash | std::views::chunk(wordsize))
-			{
-				type result{};
-				if (std::from_chars(word.data(), word.data() + word.size(), result, 16).ec == std::errc{})
-				{
-					binary[count++] = result;
-				}
-				else
-				{
-					auto ws = word | std::ranges::to<std::string>();
-					dbg::println("Cannot convert word '{}' in hash '{}'", ws, string_hash);
-					binary.fill(0);
-				}
-			}
-		}
-
-		digest(const std::initializer_list<type>& digits)
-		{
-			assert::check(digits.size() == binary.size(), "Initializer-list must be same size as digest");
-
-			std::copy(digits.begin(), digits.end(), binary.begin());
-		};
-
-		[[nodiscard("You are not using your hash digest string.")]]
-		std::string to_string(const Uppercase uppercase = Uppercase::No)
-		{
-			return to_hex_string<type>(
-			  binary, {.delimiter = "", .endian_swap = true, .lowercase = (uppercase != Uppercase::Yes), .show_hex = false});
-		}
-
-		type operator[](int index) const
-		{
-			assert::check(index < binary.size(), "Indexing out-of-bounds");
-			return binary[index];
-		}
-
-		type& operator[](int index)
-		{
-			assert::check(index < binary.size(), "Indexing out-of-bounds");
-			return binary[index];
-		}
-
-		auto data() const { return std::span<u8>{(u8*)binary.data(), binary.size()}; }
-
-		auto size() const { return binary.size(); }
-
-		bool operator==(const digest& that) const { return binary == that.binary; }
-
-		std::array<type, 20> binary{0};
-	};
-#endif
-
 	export using digest = generic_sha_digest<20>;
-
-
 	static_assert(sizeof(digest) == 20);
 
 	export class hasher
@@ -218,7 +157,6 @@ namespace deckard::sha1 // #####################################################
 			m_block.fill(std::byte{0});
 		}
 
-	
 		void update(std::string_view data) { generic_update<const char>(data); }
 
 		template<typename T>
@@ -386,7 +324,6 @@ namespace deckard::sha256 // ###################################################
 {
 
 	export using digest = generic_sha_digest<32>;
-
 	static_assert(sizeof(digest) == 32);
 
 	export class hasher
@@ -568,9 +505,6 @@ namespace deckard::sha256 // ###################################################
 
 		sha256::digest digest = hasher.finalize();
 
-		// auto byts = std::as_bytes(std::span((u8*)digest.data().data(), digest.size() * 8));
-
-
 		return digest.to_string();
 	}
 
@@ -588,8 +522,6 @@ namespace deckard::sha512 // ###################################################
 	export using digest = generic_sha_digest<64>;
 
 	static_assert(sizeof(digest) == 64);
-
-	// TODO: use monocypher
 
 	export class hasher
 	{
@@ -805,25 +737,24 @@ namespace deckard::sha512 // ###################################################
 
 export namespace std
 {
-	using namespace deckard;
 
-	// template<>
-	// struct hash<sha1::digest>
-	//{
-	//	size_t operator()(const sha1::digest& value) const { return 0; }
-	// };
-	//
-	// template<>
-	// struct formatter<sha1::digest>
-	//{
-	//	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-	//
-	//	auto format(const sha1::digest& v, std::format_context& ctx) const
-	//	{
-	//		//
-	//		return std::format_to(ctx.out(), "{}", v.to_string());
-	//	}
-	// };
-	//
+	template<>
+	struct hash<deckard::sha1::digest>
+	{
+		size_t operator()(const sha1::digest& value) const { return utils::hash_values(value.data()); }
+	};
+
+	template<>
+	struct formatter<deckard::sha1::digest>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::sha1::digest& value, std::format_context& ctx) const
+		{
+			//
+			return std::format_to(ctx.out(), "{}", value.to_string());
+		}
+	};
+
 
 } // namespace std
