@@ -578,27 +578,27 @@ namespace deckard::app
 			}
 		}
 
-		void set(Attribute flags, u32 value)
-		{
-			switch (flags)
-			{
-				case Attribute::gameticks:
-				{
-					game_ticks_per_second = std::clamp(value, 1u, 0xFFFF'FFFFu);
-					break;
-				}
-				default: break;
-			}
-		}
-
-		auto get(Attribute flags) const
-		{
-			switch (flags)
-			{
-				case Attribute::gameticks: return game_ticks_per_second;
-				default: return 0u;
-			}
-		}
+		//void set(Attribute flags, u32 value)
+		//{
+		//	switch (flags)
+		//	{
+		//		case Attribute::gameticks:
+		//		{
+		//			game_ticks_per_second = std::clamp(value, 1u, 0xFFFF'FFFFu);
+		//			break;
+		//		}
+		//		default: break;
+		//	}
+		//}
+		//
+		//auto get(Attribute flags) const
+		//{
+		//	switch (flags)
+		//	{
+		//		case Attribute::gameticks: return game_ticks_per_second;
+		//		default: return 0u;
+		//	}
+		//}
 
 		// ####################################################################################
 		// ####################################################################################

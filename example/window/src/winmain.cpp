@@ -758,19 +758,19 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 	pkt.local_clock_offset = std::chrono::duration_cast<std::chrono::milliseconds>(((t2 - t1) + (t3 - t4)) / 2);
 
 
-	auto tz                  = std::chrono::current_zone();
+	auto                          tz = std::chrono::current_zone();
 	const std::chrono::zoned_time zt{tz, pkt.origTimestamp};
 	dbg::println("Local zone: {}", zt);
 
-	//auto local_time = zt.get_local_time();
-	//std::chrono::system_clock::time_point local_tp{zt.get_local_time()};
+	// auto local_time = zt.get_local_time();
+	// std::chrono::system_clock::time_point local_tp{zt.get_local_time()};
 
-	 // Create a time point in a specific time zone, e.g., Tokyo
-	const auto*      tz2 = std::chrono::locate_zone("Asia/Tokyo");
+	// Create a time point in a specific time zone, e.g., Tokyo
+	const auto*                   tz2 = std::chrono::locate_zone("Asia/Tokyo");
 	const std::chrono::zoned_time tokyo_time{tz, pkt.origTimestamp};
 
 	// Extract the system_clock::time_point from the zoned_time
-	const auto sys_tp = tokyo_time.get_sys_time();
+	const auto sys_tp   = tokyo_time.get_sys_time();
 	const auto local_tp = tokyo_time.get_local_time();
 
 	// Print the times to demonstrate the conversion
@@ -782,7 +782,7 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 	std::chrono::local_time local_new = tokyo_time.get_local_time();
 	dbg::println("Converted time_point (UTC): {}", local_new);
 
-	
+
 	return pkt;
 }
 
@@ -792,6 +792,93 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+
+	// ########################################################################
+	std::array<u32, 4> state{0xDEAD'BEEF, 0xCAFE'BABE, 0x0BAD'F00D, 0xB00b'C0DE};
+
+	auto byts = std::as_bytes(std::span(state));
+
+
+	// Fixed‑size array of two uint32_t values.
+	std::array<std::uint32_t, 8> numbers = {0x1122'3344u, 0xAABB'CCDDu};
+
+	// Create a span that covers the whole array.
+
+	auto bytes_wr = std::span<u8>((u8*)numbers.data(), numbers.size() * sizeof(u32));
+
+	std::span<std::uint32_t> num_span{numbers};
+	auto                     bytes_rd = std::as_bytes(num_span);
+
+	_ = 0;
+
+	// ########################################################################
+
+
+	auto test_sha1 = sha256::quickhash(""sv);
+	// e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+	// ########################################################################
+
+	std::array<u8, 4>  key{0x4a, 0x65, 0x66, 0x65};
+	std::array<u8, 28> data{0x77, 0x68, 0x61, 0x74, 0x20, 0x64, 0x6f, 0x20, 0x79, 0x61, 0x20, 0x77, 0x61, 0x6e,
+							0x74, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x6e, 0x6f, 0x74, 0x68, 0x69, 0x6e, 0x67, 0x3f};
+
+
+	auto hmac1 = hmac::sha1::hash(key, data);
+	// effcdf6ae5eb2fa2d27416d5f184df9c259a7c79
+
+	auto sha256 = sha256::hash("abc");
+	// ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+
+	sha256::digest sha256_n("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+
+	auto sha512 = sha512::quickhash("abc");
+	// ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f
+	auto sha512_n = sha512::hash("abc");
+
+	auto hmac256_ne = hmac::sha512::hash("Jefe", "what do ya want for nothing?");
+	// 5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
+	// 164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737
+
+
+	auto hmac256_o = hmac::sha256::hash(key, data).to_string();
+
+	_ = 0;
+
+	// ########################################################################
+
+
+	std::array<u8, 32> saas{0x5b, 0xdc, 0xc1, 0x46, 0xbf, 0x60, 0x75, 0x4e, 0x6a, 0x04, 0x24, 0x26, 0x08, 0x95, 0x75, 0xc7,
+							0x5a, 0x00, 0x3f, 0x08, 0x9d, 0x27, 0x39, 0x83, 0x9d, 0xec, 0x58, 0xb9, 0x64, 0xec, 0x38, 0x43};
+
+	generic_sha_digest<32> d256("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843");
+	generic_sha_digest<32> d2562(saas);
+	generic_sha_digest<32> d2563{0x5b, 0xdc, 0xc1, 0x46, 0xbf, 0x60, 0x75, 0x4e, 0x6a, 0x04, 0x24, 0x26, 0x08, 0x95, 0x75, 0xc7,
+								 0x5a, 0x00, 0x3f, 0x08, 0x9d, 0x27, 0x39, 0x83, 0x9d, 0xec, 0x58, 0xb9, 0x64, 0xec, 0x38, 0x43};
+
+	dbg::println("d256:  {} {}", d256 == d2562, d2562 == d2563);
+
+	auto d122 = d256.data();
+
+	// ########################################################################
+
+	std::vector<int> v{1, 2, 3};
+
+	std::string_view    input = "ABC";
+	std::array<char, 3> r1    = {'A', 'B', 'C'};
+
+	std::vector<std::string> vs{"Alice", "Bob", "Carol"};
+
+	std::span<char> r2 = {(char*)input.data(), input.size()};
+
+
+	auto perm1 = permutation<2>(r2);
+	auto kombo1 = permutation(r2, 2);
+
+
+
+
+	_ = 0;
 
 	// ########################################################################
 	{
@@ -1081,8 +1168,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		};
 
 		packet[0] = ntp_config_byte;
-		 packet[1] = 1; // stratum
-		 packet[2] = chrono_to_poll(8s);
+		packet[1] = 1; // stratum
+		packet[2] = chrono_to_poll(8s);
 		// packet[3] = static_cast<u8>(-20) & 0xFF; // Precision
 
 
