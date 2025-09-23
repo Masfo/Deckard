@@ -403,9 +403,27 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(v4 == make_array(1, 2, 3, 4, 5, 6));
 	}
 
-	SECTION("kcombo/dynamic")
+	
+	SECTION("kperm/dynamic")
 	{
-		const auto dyna = kcombo("ABCD"sv, 2);
+
+
+
+		//const auto dyna = kperm<2>("ABC"sv);
+		//
+		//CHECK(dyna.size() == 6);
+		//CHECK(dyna[0] == make_vector('A', 'B'));
+		//CHECK(dyna[1] == make_vector('A', 'C'));
+		//CHECK(dyna[2] == make_vector('B', 'A'));
+		//CHECK(dyna[3] == make_vector('B', 'C'));
+		//CHECK(dyna[4] == make_vector('C', 'A'));
+		//CHECK(dyna[5] == make_vector('C', 'B'));
+
+	}
+
+	SECTION("unique_permutation/dynamic")
+	{
+		const auto dyna = unique_permutation("ABCD"sv, 2);
 
 		CHECK(dyna.size() == 6);
 		CHECK(dyna[0] == make_vector('A', 'B'));
@@ -415,13 +433,13 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(dyna[4] == make_vector('B', 'D'));
 		CHECK(dyna[5] == make_vector('C', 'D'));
 
-		for (const auto& [i, v] : std::views::enumerate(kcombo("ABCD"sv, 2)))
+		for (const auto& [i, v] : std::views::enumerate(unique_permutation("ABCD"sv, 2)))
 		{
 			CHECK(v == dyna[i]);
 		}
 
 
-		const auto dyna3 = kcombo("ABCD"sv, 3);
+		const auto dyna3 = unique_permutation("ABCD"sv, 3);
 		CHECK(dyna3.size() == 4);
 		CHECK(dyna3[0] == make_vector('A', 'B', 'C'));
 		CHECK(dyna3[1] == make_vector('A', 'B', 'D'));
@@ -429,9 +447,9 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(dyna3[3] == make_vector('B', 'C', 'D'));
 	}
 
-	SECTION("kcombo/static")
+	SECTION("unique_permutation/static")
 	{
-		const auto dyna = kcombo<2>("ABCD"sv);
+		const auto dyna = unique_permutation<2>("ABCD"sv);
 
 		CHECK(dyna.size() == 6);
 		CHECK(dyna[0] == make_array('A', 'B'));
@@ -442,13 +460,13 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(dyna[5] == make_array('C', 'D'));
 
 		i32 i = 0;
-		for (const auto [a, b] : kcombo<2>("ABCD"sv))
+		for (const auto [a, b] : unique_permutation<2>("ABCD"sv))
 		{
 			CHECK(make_array(a, b) == dyna[i++]);
 		}
 
 
-		for (const auto [index, v] : std::views::enumerate(kcombo<2>("ABCD"sv)))
+		for (const auto [index, v] : std::views::enumerate(unique_permutation<2>("ABCD"sv)))
 		{
 			const auto [a, b] = v;
 			CHECK(make_array(a, b) == dyna[index]);
