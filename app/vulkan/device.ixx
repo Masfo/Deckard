@@ -445,7 +445,6 @@ namespace deckard::vulkan
 			  vulkan12Properties.conformanceVersion.subminor,
 			  vulkan12Properties.conformanceVersion.patch);
 
-			properties2.properties.driverVersion = 0x0'0080'005e;
 
 			dbg::println("Driver version: {}.{}.{}",
 						 VK_VERSION_MAJOR(properties2.properties.driverVersion),
@@ -551,6 +550,7 @@ namespace deckard::vulkan
 					marked = true;
 				}
 
+
 				if (name.compare(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME) == 0)
 				{
 					marked = true;
@@ -578,12 +578,7 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 				}
 
-				// if (name.compare(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0)
-				//{
-				//	marked = true;
-				//	extensions.emplace_back(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
-				// }
-
+	
 				if (name.compare(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) == 0)
 				{
 					marked = true;
