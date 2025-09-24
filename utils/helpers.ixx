@@ -572,57 +572,59 @@ export namespace deckard
 		return strings;
 	}
 
-	// static permutation
-	template<size_t COUNT, typename T>
-	auto permutation(std::span<T> span) -> std::vector<std::array<T, COUNT>>
+	// ##############################################################################
+
+	template<typename T>
+	auto unique_util(const std::span<T> span) -> std::vector<T>
 	{
+		std::vector<T> result;
+		result.reserve(span.size());
 
-		if (COUNT > span.size())
-			return {};
+		std::unordered_set<T> seen;
 
-		std::vector<std::array<T, COUNT>> results;
-		std::array<T, COUNT>              current{};
-		std::vector<u8>                   used(span.size(), 0);
-		size_t                            depth{0};
-
-		auto backtrack = [&](this auto& self)
+		for (const auto& item : span)
 		{
-			if (depth == COUNT)
-			{
-				results.push_back(current);
-				return;
-			}
-			for (std::size_t i = 0; i < span.size(); ++i)
-			{
-				if (used[i])
-					continue;
+			if (seen.contains(item))
+				continue;
+			seen.insert(item);
+			result.emplace_back(item);
+		}
 
-				current[depth] = span[i];
-				used[i]        = 1;
-				++depth;
-				self();
-				--depth;
-				used[i] = 0;
+		return result;
+			}
+
+	template<typename T>
+	auto unique(const std::vector<T> &v) -> std::vector<T>
+			{
+		auto copy = v;
+		return unique_util<T>(copy);
 			}
 		};
 
-		backtrack();
-		return results;
+	template<typename T>
+	auto unique(std::span<T> span) -> std::vector<T>
+	{
+		return unique_util(span);
 	}
 
-	template<size_t COUNT, typename T>
-	auto permutation(const T& container) -> std::vector<std::array<typename T::value_type, COUNT>>
+	template<typename T, size_t N>
+	auto unique(const std::array<T, N>& arr) -> std::vector<T>
 	{
-		std::vector<typename T::value_type> vec(container.begin(), container.end());
-		return permutation<COUNT>(std::span{vec});
+		auto copy = arr;
+		return unique_util<T>(copy);
 	}
 
-	template<size_t COUNT>
-	auto permutation(std::string_view str) -> std::vector<std::array<char, COUNT>>
+	auto unique(std::string_view str) -> std::string
 	{
-		std::vector<char> vec(str.begin(), str.end());
-		return permutation<COUNT>(std::span{vec});
+		auto res = unique(std::span{(char*)str.data(), str.size()});
+		return std::string{res.begin(), res.end()};
 	}
+
+	auto unique(const std::string& str) -> std::string { return unique(std::string_view{str}); }
+
+	// ##############################################################################
+	// ##############################################################################
+
 
 	// isrange
 	template<typename T>

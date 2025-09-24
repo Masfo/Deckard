@@ -11,6 +11,7 @@ import deckard.enums;
 
 using namespace deckard;
 using namespace deckard::string;
+using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
@@ -576,5 +577,64 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(data[5] == 0x00);
 		CHECK(data[6] == 0x01);
 		CHECK(data[7] == 0x01);
+	}
+
+	SECTION("unique")
+	{
+		{
+			std::array<u32, 9> data{1, 2, 2, 3, 3, 3, 4, 5, 5};
+			auto               res = unique(data);
+			CHECK(res.size() == 5);
+			CHECK(res[0] == 1);
+			CHECK(res[1] == 2);
+			CHECK(res[2] == 3);
+			CHECK(res[3] == 4);
+			CHECK(res[4] == 5);
+		}
+
+		{
+			std::array<u32, 9> data{5, 5, 4, 3, 3, 3, 2, 2, 1};
+			auto               res = unique(data);
+			CHECK(res.size() == 5);
+			CHECK(res[0] == 5);
+			CHECK(res[1] == 4);
+			CHECK(res[2] == 3);
+			CHECK(res[3] == 2);
+			CHECK(res[4] == 1);
+		}
+
+		{
+			std::vector<u32> data{1, 2, 2, 3, 3, 3, 4, 5, 5};
+			auto             res = unique(data);
+			CHECK(res.size() == 5);
+			CHECK(res[0] == 1);
+			CHECK(res[1] == 2);
+			CHECK(res[2] == 3);
+			CHECK(res[3] == 4);
+			CHECK(res[4] == 5);
+		}
+
+
+		{
+			std::vector<std::string> data{"hello", "world", "hello", "dog", "cat", "dog"};
+			auto                     res = unique(data);
+			CHECK(res.size() == 4);
+			CHECK(res[0] == "hello");
+			CHECK(res[1] == "world");
+			CHECK(res[2] == "dog");
+			CHECK(res[3] == "cat");
+		}
+
+		{
+			std::string input("122333455");
+			auto        res = unique(input);
+			CHECK(res == "12345"s);
+		}
+
+		{
+			std::string input("554333221");
+			auto        res = unique(input);
+			CHECK(res == "54321"s);
+		}
 	}
 }
