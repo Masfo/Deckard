@@ -469,100 +469,164 @@ export namespace deckard
 		return result;
 	}
 
-	// unique_permutation
-	template<std::ranges::input_range O, std::ranges::input_range T, std::ranges::input_range R>
-	void unique_permutation_util(const O& r, i32 start, i32 count, i32 subindex, T& current, R& ret)
-	{
-		if (count == 0)
-		{
-			ret.emplace_back(current);
-			return;
-		}
+	// ##############################################################################
+	// ##############################################################################
+	// ##############################################################################
 
-		for (auto i = start; i < r.size(); ++i)
-		{
-			current[subindex] = r[i];
-			unique_permutation_util(r, i + 1, count - 1, subindex + 1, current, ret);
-		}
-	}
-
-	template<std::ranges::input_range R>
-	auto unique_permutation(const R& r, i32 count = 2)
-	{
-		using range_type = std::ranges::range_value_t<R>;
-		using sub_range  = std::vector<range_type>;
-
-		std::vector<sub_range> ret;
-		sub_range              current(count, {});
-
-		unique_permutation_util(r, 0, count, 0, current, ret);
-
-		return ret;
-	}
-
-	template<size_t COUNT, std::ranges::input_range R>
-	auto unique_permutation(const R& r)
-	{
-		using range_type = std::ranges::range_value_t<R>;
-		using sub_range  = std::array<range_type, COUNT>;
-
-		static_assert(COUNT > 1, "unique_permutation is for two or more items");
-
-		std::vector<sub_range> ret;
-		sub_range              current{};
-
-		unique_permutation_util(r, 0, COUNT, 0, current, ret);
-
-		return ret;
-	}
-
+	// unique permutation util
 	template<typename T>
-	auto permutation(std::span<T> span, std::size_t count) -> std::vector<std::vector<T>>
+	auto unique_permutation_util(std::span<T> span, u64 count, bool unique_check = false) -> std::vector<std::vector<T>>
 	{
 		if (count == 0)
 			count = span.size();
 
-		count = std::min(count, span.size());
+		if (count > span.size())
+			return {};
 
 		std::vector<std::vector<T>> results;
 		std::vector<T>              current;
-		std::vector<u8>             used(span.size(), 0);
+		current.reserve(count);
+		std::vector<u8> used(span.size(), 0);
 
-		auto backtrack = [&](this auto& self)
+		std::ranges::sort(span);
+
+		auto generate = [&](this auto& self)
 		{
 			if (current.size() == count)
 			{
-				results.push_back(current);
+				results.emplace_back(current);
 				return;
 			}
-			for (std::size_t i = 0; i < span.size(); ++i)
+			for (u64 i = 0; i < span.size(); ++i)
 			{
-				if (0 == used[i])
-				{
-					current.push_back(span[i]);
-					used[i] = 1;
-					self();
-					used[i] = 0;
-					current.pop_back();
-				}
+				if (used[i])
+					continue;
+
+				// unique check
+				if (unique_check and i > 0 and span[i] == span[i - 1] and not used[i - 1])
+					continue;
+
+				current.push_back(span[i]);
+				used[i] = 1;
+				self();
+				used[i] = 0;
+				current.pop_back();
 			}
 		};
 
-		backtrack();
+		generate();
+		std::ranges::sort(results);
+
 		return results;
 	}
 
 	template<typename T>
-	auto permutation(const T& container, size_t count = 0) -> std::vector<std::vector<typename T::value_type>>
+	auto permutations(std::span<T> span, std::size_t count) -> std::vector<std::vector<T>>
 	{
-		std::vector<typename T::value_type> vec(container.begin(), container.end());
-		return permutation(std::span{vec}, count);
+		return unique_permutation_util(span, count, false);
 	}
 
-	auto permutation(std::string_view str, std::size_t count = 0) -> std::vector<std::string>
+	template<basic_container T>
+	auto permutations(const T& container, size_t count = 0) -> std::vector<std::vector<typename T::value_type>>
+	{
+		std::vector<typename T::value_type> vec(container.begin(), container.end());
+		return unique_permutation_util(std::span{vec}, count, false);
+	}
+
+	auto permutations(std::string_view str, std::size_t count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = permutation(std::span{vec}, count);
+		auto              result = permutations(std::span{vec}, count);
+
+		std::vector<std::string> strings;
+		for (const auto& perm : result)
+			strings.emplace_back(perm.begin(), perm.end());
+
+
+		return strings;
+	}
+
+	// unique permutation
+	template<typename T>
+	auto unique_permutations(std::span<T> span, u64 count) -> std::vector<std::vector<T>>
+	{
+		return unique_permutation_util(span, count, true);
+	}
+
+	template<non_string_container T>
+	auto unique_permutations(const T& container, u64 count = 0) -> std::vector<std::vector<typename T::value_type>>
+	{
+		std::vector<typename T::value_type> vec(container.begin(), container.end());
+		return unique_permutation_util(std::span{vec}, count, true);
+	}
+
+	auto unique_permutations(std::string_view str, u64 count = 0) -> std::vector<std::string>
+	{
+		std::vector<char> vec(str.begin(), str.end());
+		auto              result = unique_permutations(std::span{vec}, count);
+
+		std::vector<std::string> strings;
+		for (const auto& perm : result)
+			strings.emplace_back(perm.begin(), perm.end());
+
+
+		return strings;
+	}
+
+	// combinations
+	template<typename T>
+	auto combinations_util(std::span<T> span, u64 count) -> std::vector<std::vector<T>>
+	{
+		if (count == 0)
+			count = span.size();
+
+		if (count > span.size())
+			return {};
+
+		std::ranges::sort(span);
+
+		std::vector<std::vector<T>> result;
+		std::vector<T>              current;
+		current.reserve(count);
+
+		auto generate = [&](this auto& self, u64 start, u64 remaining)
+		{
+			if (remaining == 0)
+			{
+				result.emplace_back(current);
+				return;
+			}
+			for (u64 i = start; i < span.size(); ++i)
+			{
+				current.push_back(span[i]);
+				self(i + 1, remaining - 1);
+				current.pop_back();
+			}
+		};
+		generate(0, count);
+
+		std::ranges::sort(result);
+
+		return result;
+	}
+
+	template<typename T>
+	auto combinations(std::span<T> span, u64 count = 0) -> std::vector<std::vector<T>>
+	{
+		return combinations_util(span, count);
+	}
+
+	template<non_string_container T>
+	auto combinations(const T& container, u64 count = 0) -> std::vector<std::vector<typename T::value_type>>
+	{
+		std::vector<typename T::value_type> vec(container.begin(), container.end());
+		return combinations_util(std::span{vec}, count);
+	}
+
+	auto combinations(std::string_view str, u64 count = 0) -> std::vector<std::string>
+	{
+		std::vector<char> vec(str.begin(), str.end());
+		auto              result = combinations(std::span{vec}, count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -591,15 +655,21 @@ export namespace deckard
 		}
 
 		return result;
-			}
+	}
 
 	template<typename T>
-	auto unique(const std::vector<T> &v) -> std::vector<T>
-			{
+	auto unique(const T& v) -> std::vector<T>
+	{
+		auto copy = v;
+		return unique_util<T>(std::span{copy});
+	}
+
+	template<typename T>
+	auto unique(const std::vector<T>& v) -> std::vector<T>
+	{
 		auto copy = v;
 		return unique_util<T>(copy);
-			}
-		};
+	}
 
 	template<typename T>
 	auto unique(std::span<T> span) -> std::vector<T>
@@ -686,6 +756,15 @@ export namespace deckard
 
 			return val;
 		}
+	}
+
+	template<arithmetic T>
+	auto to_number(T input, int [[maybe_unused]] base = 10) -> std::optional<std::string>
+	{
+		if (auto result = try_to_number<i64>(std::to_string(input), base); result.has_value())
+			return std::to_string(*result);
+
+		return {};
 	}
 
 	template<arithmetic T = i32>

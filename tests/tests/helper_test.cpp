@@ -404,75 +404,167 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(v4 == make_array(1, 2, 3, 4, 5, 6));
 	}
 
-	
-	SECTION("kperm/dynamic")
+
+	SECTION("permutations/dynamic")
 	{
-
-
-
-		//const auto dyna = kperm<2>("ABC"sv);
-		//
-		//CHECK(dyna.size() == 6);
-		//CHECK(dyna[0] == make_vector('A', 'B'));
-		//CHECK(dyna[1] == make_vector('A', 'C'));
-		//CHECK(dyna[2] == make_vector('B', 'A'));
-		//CHECK(dyna[3] == make_vector('B', 'C'));
-		//CHECK(dyna[4] == make_vector('C', 'A'));
-		//CHECK(dyna[5] == make_vector('C', 'B'));
-
-	}
-
-	SECTION("unique_permutation/dynamic")
-	{
-		const auto dyna = unique_permutation("ABCD"sv, 2);
-
-		CHECK(dyna.size() == 6);
-		CHECK(dyna[0] == make_vector('A', 'B'));
-		CHECK(dyna[1] == make_vector('A', 'C'));
-		CHECK(dyna[2] == make_vector('A', 'D'));
-		CHECK(dyna[3] == make_vector('B', 'C'));
-		CHECK(dyna[4] == make_vector('B', 'D'));
-		CHECK(dyna[5] == make_vector('C', 'D'));
-
-		for (const auto& [i, v] : std::views::enumerate(unique_permutation("ABCD"sv, 2)))
 		{
-			CHECK(v == dyna[i]);
+			const auto dyna = permutations("ABC"sv, 2);
+
+			CHECK(dyna.size() == 6);
+			CHECK(dyna[0] == "AB"s);
+			CHECK(dyna[1] == "AC"s);
+			CHECK(dyna[2] == "BA"s);
+			CHECK(dyna[3] == "BC"s);
+			CHECK(dyna[4] == "CA"s);
+			CHECK(dyna[5] == "CB"s);
+		}
+		{
+			const auto dyna = permutations("ABCD"sv, 3);
+			CHECK(dyna.size() == 24);
 		}
 
+		{
+			const auto dyna = permutations("ABCDA"sv, 3);
+			CHECK(dyna.size() == 60);
+		}
 
-		const auto dyna3 = unique_permutation("ABCD"sv, 3);
-		CHECK(dyna3.size() == 4);
-		CHECK(dyna3[0] == make_vector('A', 'B', 'C'));
-		CHECK(dyna3[1] == make_vector('A', 'B', 'D'));
-		CHECK(dyna3[2] == make_vector('A', 'C', 'D'));
-		CHECK(dyna3[3] == make_vector('B', 'C', 'D'));
+		{
+			const std::array<std::string, 3> names{"Alice", "Bob", "Eve"};
+			const auto                       dyna = permutations(names, 2);
+			CHECK(dyna.size() == 6);
+			CHECK(dyna[0] == make_vector("Alice"s, "Bob"s));
+			CHECK(dyna[1] == make_vector("Alice"s, "Eve"s));
+			CHECK(dyna[2] == make_vector("Bob"s, "Alice"s));
+			CHECK(dyna[3] == make_vector("Bob"s, "Eve"s));
+			CHECK(dyna[4] == make_vector("Eve"s, "Alice"s));
+			CHECK(dyna[5] == make_vector("Eve"s, "Bob"s));
+		}
 	}
 
-	SECTION("unique_permutation/static")
+
+	SECTION("unique_permutations/dynamic")
 	{
-		const auto dyna = unique_permutation<2>("ABCD"sv);
-
-		CHECK(dyna.size() == 6);
-		CHECK(dyna[0] == make_array('A', 'B'));
-		CHECK(dyna[1] == make_array('A', 'C'));
-		CHECK(dyna[2] == make_array('A', 'D'));
-		CHECK(dyna[3] == make_array('B', 'C'));
-		CHECK(dyna[4] == make_array('B', 'D'));
-		CHECK(dyna[5] == make_array('C', 'D'));
-
-		i32 i = 0;
-		for (const auto [a, b] : unique_permutation<2>("ABCD"sv))
 		{
-			CHECK(make_array(a, b) == dyna[i++]);
+			const auto dyna = unique_permutations("AAB"sv, 3);
+
+			CHECK(dyna.size() == 3);
+			CHECK(dyna[0] == "AAB"s);
+			CHECK(dyna[1] == "ABA"s);
+			CHECK(dyna[2] == "BAA"s);
 		}
 
-
-		for (const auto [index, v] : std::views::enumerate(unique_permutation<2>("ABCD"sv)))
 		{
-			const auto [a, b] = v;
-			CHECK(make_array(a, b) == dyna[index]);
+			const auto dyna = unique_permutations("ABCDA"sv, 3);
+			CHECK(dyna.size() == 33);
+		}
+
+		{
+			const std::array<std::string, 3> names{"A", "A", "B"};
+			const auto                       dyna = unique_permutations(names, 3);
+			CHECK(dyna.size() == 3);
+			CHECK(dyna[0] == make_vector("A"s, "A"s, "B"s));
+			CHECK(dyna[1] == make_vector("A"s, "B"s, "A"s));
+			CHECK(dyna[2] == make_vector("B"s, "A"s, "A"s));
+		}
+
+		{
+			const std::array<std::string, 3> names{"Alice", "Bob", "Eve"};
+			const auto                       dyna = unique_permutations(names, 3);
+			CHECK(dyna.size() == 6);
+			CHECK(dyna[0] == make_vector("Alice"s, "Bob"s, "Eve"s));
+			CHECK(dyna[1] == make_vector("Alice"s, "Eve"s, "Bob"s));
+			CHECK(dyna[2] == make_vector("Bob"s, "Alice"s, "Eve"s));
+			CHECK(dyna[3] == make_vector("Bob"s, "Eve"s, "Alice"s));
+			CHECK(dyna[4] == make_vector("Eve"s, "Alice"s, "Bob"s));
+			CHECK(dyna[5] == make_vector("Eve"s, "Bob"s, "Alice"s));
 		}
 	}
+
+	SECTION("combinations/dynamic")
+	{
+		{
+			const auto dyna = combinations("ABCD"sv, 2);
+			CHECK(dyna.size() == 6);
+		}
+		{
+			const std::array<std::string, 3> names{"Alice", "Bob", "Eve"};
+			const auto                       dyna = combinations(names, 3);
+			CHECK(dyna.size() == 1);
+		}
+
+		{
+			const std::array<std::string, 4> names{"Alice", "Bob", "Eve", "David"};
+			const auto                       dyna = combinations(names, 3);
+
+			CHECK(dyna.size() == 4);
+			CHECK(dyna[0] == make_vector("Alice"s, "Bob"s, "David"s));
+			CHECK(dyna[1] == make_vector("Alice"s, "Bob"s, "Eve"s));
+			CHECK(dyna[2] == make_vector("Alice"s, "David"s, "Eve"s));
+			CHECK(dyna[3] == make_vector("Bob"s, "David"s, "Eve"s));
+		}
+	}
+
+	SECTION("5 elements on combinations/permutations/unique_permutations")
+	{
+		const std::array<std::string, 5> names{"Alice", "Bob", "Eve", "David", "Carl"};
+
+		u32 count = 1;
+		CHECK(permutations(names, count).size() == 5);
+		CHECK(unique_permutations(names, count).size() == 5);
+		CHECK(combinations(names, count).size() == 5);
+
+		count = 2;
+		CHECK(permutations(names, count).size() == 20);
+		CHECK(unique_permutations(names, count).size() == 20);
+		CHECK(combinations(names, count).size() == 10);
+
+		count = 3;
+		CHECK(permutations(names, count).size() == 60);
+		CHECK(unique_permutations(names, count).size() == 60);
+		CHECK(combinations(names, count).size() == 10);
+
+		count = 4;
+		CHECK(permutations(names, count).size() == 120);
+		CHECK(unique_permutations(names, count).size() == 120);
+		CHECK(combinations(names, count).size() == 5);
+
+		count = 5;
+		CHECK(permutations(names, count).size() == 120);
+		CHECK(unique_permutations(names, count).size() == 120);
+		CHECK(combinations(names, count).size() == 1);
+	}
+
+
+	SECTION("4 elements on combinations/permutations/unique_permutations")
+	{
+		const std::array<std::string, 4> names{"Alice", "Bob", "Alice", "Eve"};
+
+		u32 count = 1;
+		CHECK(permutations(names, count).size() == 4);
+		CHECK(unique_permutations(names, count).size() == 3);
+		CHECK(combinations(names, count).size() == 4);
+
+		count = 2;
+		CHECK(permutations(names, count).size() == 12);
+		CHECK(unique_permutations(names, count).size() == 7);
+		CHECK(combinations(names, count).size() == 6);
+
+		count = 3;
+		CHECK(permutations(names, count).size() == 24);
+		CHECK(unique_permutations(names, count).size() == 12);
+		CHECK(combinations(names, count).size() == 4);
+
+		count = 4;
+		CHECK(permutations(names, count).size() == 24);
+		CHECK(unique_permutations(names, count).size() == 12);
+		CHECK(combinations(names, count).size() == 1);
+
+		count = 5;
+		CHECK(permutations(names, count).size() == 0);
+		CHECK(unique_permutations(names, count).size() == 0);
+		CHECK(combinations(names, count).size() == 0);
+	}
+
 
 	SECTION("try_to_number")
 	{
@@ -552,8 +644,8 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK("1 MiB, 256 KiB, 128 bytes"sv == pretty_bytes(1_MiB + 256_KiB + 128));
 	}
 
-	SECTION("delta encode/decode") 
-	{ 
+	SECTION("delta encode/decode")
+	{
 		std::vector<u8> data{0x01, 0x02, 0x02, 0x02, 0x03, 0x00, 0x01, 0x01};
 
 		delta_encode(data);

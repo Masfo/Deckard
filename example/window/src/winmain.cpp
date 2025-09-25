@@ -786,6 +786,12 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 	return pkt;
 }
 
+template<size_t N>
+struct xkey
+{
+	std::array<u8, N> data;
+};
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -862,23 +868,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	std::vector<int> v{1, 2, 3};
+		const std::array<std::string, 5> names{"Alice", "Bob", "Eve", "David", "Carl"};
 
-	std::string_view    input = "ABC";
-	std::array<char, 3> r1    = {'A', 'B', 'C'};
-
-	std::vector<std::string> vs{"Alice", "Bob", "Carol"};
-
-	std::span<char> r2 = {(char*)input.data(), input.size()};
-
-
-	auto perm1 = permutation<2>(r2);
-	auto kombo1 = permutation(r2, 2);
-
-
-
-
-	_ = 0;
+		dbg::println("Names: {}", names);
+		_ = 0;
 
 	// ########################################################################
 	{
