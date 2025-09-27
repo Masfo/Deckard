@@ -9,6 +9,7 @@ import std;
 import deckard;
 import deckard.types;
 import deckard.timers;
+import deckard.helpers;
 using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
@@ -794,7 +795,7 @@ enum class IPVersion : u32
 
 struct IPAddressResult
 {
-	std::string     ip;
+	std::string ip;
 	IPVersion   version{IPVersion::IPV4};
 };
 
@@ -803,8 +804,8 @@ std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const 
 	struct addrinfo  hints{};
 	struct addrinfo* result = nullptr;
 
-	hints.ai_family   = AF_UNSPEC;   
-	hints.ai_socktype = SOCK_STREAM; 
+	hints.ai_family   = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags    = 0;
 	hints.ai_protocol = 0;
 
@@ -834,7 +835,6 @@ std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const 
 			if (inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, sizeof(ip_str)))
 			{
 				addresses.push_back({std::string(ip_str), IPVersion::IPV6});
-
 			}
 		}
 	}
@@ -843,6 +843,51 @@ std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const 
 	return addresses;
 }
 
+/*
+* The message type field is decomposed further into the following
+   structure:
+
+						0                 1
+						2  3  4 5 6 7 8 9 0 1 2 3 4 5
+
+					   +--+--+-+-+-+-+-+-+-+-+-+-+-+-+
+					   |M |M |M|M|M|C|M|M|M|C|M|M|M|M|
+					   |11|10|9|8|7|1|6|5|4|0|3|2|1|0|
+					   +--+--+-+-+-+-+-+-+-+-+-+-+-+-+
+
+				Figure 3: Format of STUN Message Type Field
+
+   Here the bits in the message type field are shown as most significant
+   (M11) through least significant (M0).  M11 through M0 represent a 12-
+   bit encoding of the method.  C1 and C0 represent a 2-bit encoding of
+   the class.  A class of 0b00 is a request, a class of 0b01 is an
+   indication, a class of 0b10 is a success response, and a class of
+   0b11 is an error response.  This specification defines a single
+   method, Binding.  The method and class are orthogonal, so that for
+   each method, a request, success response, error response, and
+   indication are possible for that method.  Extensions defining new
+   methods MUST indicate which classes are permitted for that method.
+
+   For example, a Binding request has class=0b00 (request) and
+   method=0b000000000001 (Binding) and is encoded into the first 16 bits
+   as 0x0001.  A Binding response has class=0b10 (success response) and
+   method=0b000000000001, and is encoded into the first 16 bits as
+   0x0101.
+*/
+
+struct STUNHeader
+{
+	u16                type{0};
+	u16                length{0};
+	u32                cookie{0x2112'A442};
+	std::array<u8, 12> transaction_id{};
+
+	bool is_zero() const { return (type >> 14) == 0; }
+
+	u8 class_bits() const { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); }
+
+	u16 method_bits() const { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); }
+};
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -928,7 +973,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		{
 			for (const auto& ip : *ip_addresses)
 			{
-				dbg::println("IP Address: {} {}", ip.ip, ip.version == IPVersion::IPV4 ?  "ipv4": "ipv6");
+				dbg::println("IP Address: {} {}", ip.ip, ip.version == IPVersion::IPV4 ? "ipv4" : "ipv6");
 			}
 		}
 		else
@@ -970,7 +1015,17 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		// ----------------------- Resolve host ---------------------------------
 		addrinfo hints{}, *result = nullptr;
-		hints.ai_family   = AF_UNSPEC;  // IPv4 or IPv6
+
+		int ip_ver = 0;
+
+		if (ip_ver == 0)
+			hints.ai_family = AF_UNSPEC;
+		else if (ip_ver == 1)
+			hints.ai_family = AF_INET;
+		else
+			hints.ai_family = AF_INET6;
+
+
 		hints.ai_socktype = SOCK_DGRAM; // UDP
 		hints.ai_protocol = IPPROTO_UDP;
 
@@ -1044,7 +1099,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		  0xBE,
 		  0x11,
 		  0x22,
-		  0x33};
+		  0x33
+		};
 
 		DWORD timeoutMs = 5000;
 		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
@@ -1091,27 +1147,372 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			dbg::println("\n\n");
 		}
 
-		// FB stun
-		// 01 01
-		// 00 18
-		// 21 12 A4 42
-		// DE AD BE EF 69 CA FE BA BE 11 22 33
-		// 00 01
-		// 00 08 0x0008: MESSAGE-INTEGRITY
-		// 00 01 len
-		// E6 14 D5 98 A1 EA 00 20 00 08 00 01 C7 06 F4 8A 05 A8
+		STUNHeader stun_header{};
+		if (incoming.size() < 20)
+		{
+			dbg::println("STUN response too small: {}", incoming.size());
+		}
+
+		bitbuffer::bitreader packetx(incoming);
+
+		stun_header.type   = packetx.read<u16>();
+		stun_header.length = packetx.read<u16>();
+		stun_header.cookie = packetx.read<u32>();
+		packetx.read<u8, 12>(stun_header.transaction_id);
+
+		auto class_bits = [](u16 type) -> u16 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
+
+		auto method_bits = [](u16 type) -> u16 { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); };
 
 
-		// Google stun
-		// 01 01
-		// 00 0C
-		// 21 12 A4 42
-		// DE AD BE EF 69 CA FE BA BE 11 22 33
-		// 00 20
-		// 00 08						0x0008: MESSAGE-INTEGRITY
-		// 00 01 DC 42 F4 8A 05 A8
+		switch (class_bits(stun_header.type))
+		{
+			case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
+			case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
+			case 0b10: dbg::println("  Attribute Class: Success Response (0b10)"); break;
+			case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
+			default: dbg::println("  Attribute Class: Unknown"); break;
+		}
+
+		switch (method_bits(stun_header.type))
+		{
+			case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
+			default: dbg::println("  Attribute Method: Unknown"); break;
+		}
 
 
+		if (not stun_header.is_zero())
+		{
+			dbg::println("Invalid STUN message type (most significant 2 bits must be 0)");
+		}
+		// Validate message length
+		if (stun_header.length + 20 != incoming.size())
+		{
+			dbg::println("STUN message length mismatch: header length = {}, actual length = {}", stun_header.length, incoming.size() - 20);
+		}
+
+		// Validate magic cookie
+		if (stun_header.cookie != 0x2112'A442)
+		{
+			dbg::println("Invalid STUN magic cookie: 0x{:08X}", stun_header.cookie);
+		}
+
+
+		// Binding request: class 00, method 000000000001
+		// Binding response: class 10, method 000000000001
+
+		dbg::println("STUN Message Type: 0b{:014b}", as<u16>(stun_header.type));
+		dbg::println("  Class:    0b{:02b}", stun_header.class_bits());
+		dbg::println("  Method:   0b{:012b}", stun_header.method_bits());
+		dbg::println("Message Length: {}", stun_header.length);
+		dbg::println("Magic Cookie: 0x{:04X}", stun_header.cookie);
+		dbg::println("Transaction ID: {}", to_hex_string(std::span<u8>{stun_header.transaction_id}, {.delimiter = " ", .show_hex = false}));
+
+		std::span<u8> rest = std::span<u8>{incoming}.subspan(20, incoming.size() - 20);
+		dbg::println("Rest: {}", to_hex_string(rest, {.delimiter = " ", .show_hex = false}));
+
+		packetx.reset(rest);
+
+		while (packetx.remaining_bytes() >= 4)
+		{
+			u16 attr_type = packetx.read<u16>();
+
+
+			u8 class_encoding = class_bits(attr_type);
+			u8 method         = method_bits(attr_type);
+
+			dbg::println("  Attribute Class: 0b{:02b}", class_encoding);
+			switch (class_encoding)
+			{
+				case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
+				case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
+				case 0b10: dbg::println("  Attribute Class: Success Response (0b10)"); break;
+				case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
+				default: dbg::println("  Attribute Class: Unknown"); break;
+			}
+			dbg::println("  Attribute Method: 0b{:012b}", method);
+			switch (method)
+			{
+				case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
+				default: dbg::println("  Attribute Method: Unknown"); break;
+			}
+
+			u16 attr_length = packetx.read<u16>();
+			if (packetx.remaining_bytes() < attr_length)
+			{
+				dbg::println("Attribute length exceeds remaining packet size");
+				break;
+			}
+
+			switch (attr_type)
+			{
+
+				case 0x0001: dbg::println("Attribute Type: MAPPED-ADDRESS (0x0001)"); break;
+				case 0x0006: dbg::println("Attribute Type: USERNAME (0x0006)"); break;
+				case 0x0008: dbg::println("Attribute Type: MESSAGE-INTEGRITY (0x0008)"); break;
+				case 0x0009: dbg::println("Attribute Type: ERROR-CODE (0x0009)"); break;
+				case 0x000A: dbg::println("Attribute Type: UNKNOWN-ATTRIBUTES (0x000A)"); break;
+				case 0x0014: dbg::println("Attribute Type: REALM (0x0014)"); break;
+				case 0x0015: dbg::println("Attribute Type: NONCE (0x0015)"); break;
+
+				case 0x0020: dbg::println("Attribute Type: XOR-MAPPED-ADDRESS (0x0020)"); break;
+
+				// Optional
+				case 0x8022: dbg::println("Attribute Type: SOFTWARE (0x8022) "); break;
+				case 0x8023: dbg::println("Attribute Type: ALTERNATE-SERVER (0x8023)"); break;
+				case 0x8028: dbg::println("Attribute Type: FINGERPRINT (0x8028)"); break;
+				default: dbg::println("Unhandled type: {:02X}", attr_type); break;
+			}
+
+			packetx.read<u8>(); // PADDING
+			dbg::println("Attribute Type: 0x{:04X}, Length: {}", attr_type, attr_length);
+
+			u8  ip_version = packetx.read<u8>();
+			u16 port       = packetx.read<u16>();
+
+			dbg::println("  IP Version: {}, Port: {}", ip_version, port);
+
+			u32 ip = 0;
+			if (ip_version == 1)
+				ip = packetx.read<u32>();
+			std::array<u8, 16> ip6{};
+			if (ip_version == 2)
+				packetx.read<u8, 16>(ip6);
+
+			if (attr_type == 0x0001 and ip_version == 1)
+			{
+				// MAPPED-ADDRESS
+				// The port is in network byte order (big-endian).
+				// The IP address is also in network byte order.
+				// To get the actual port number, you may need to convert it from network byte order to host byte order.
+				// On most systems, you can use the ntohs function for this purpose.
+				u16 real_port = port;
+				dbg::println("Real Port: {}", real_port);
+				dbg::println("{}.{}.{}.{}", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
+			}
+
+			if (attr_type == 0x0001 and ip_version == 2)
+			{
+				u16 real_port = port;
+				dbg::println("Real Port: {}", real_port);
+				dbg::println("IPv6: {}", to_hex_string(std::span<u8>{ip6}, {.delimiter = ":", .show_hex = false}));
+			}
+
+
+			if (attr_type == 0x0020 and ip_version == 1)
+			{
+				u16 xport = port ^ (stun_header.cookie >> 16);
+				// XOR-MAPPED-ADDRESS
+				u32 xip = ip ^ stun_header.cookie;
+				dbg::println("X-Port: {}, X-IP: {}.{}.{}.{}", xport, (xip >> 24) & 0xFF, (xip >> 16) & 0xFF, (xip >> 8) & 0xFF, xip & 0xFF);
+			}
+
+			if (attr_type == 0x0020 and ip_version == 2)
+			{
+				u16 xport = port ^ (stun_header.cookie >> 16);
+
+				std::array<u8, 16> xip6{};
+				for (size_t i = 0; i < 16; ++i)
+				{
+					if (i < 4)
+						xip6[i] = ip6[i] ^ ((stun_header.cookie >> (24 - i * 8)) & 0xFF);
+					else
+						xip6[i] = ip6[i] ^ stun_header.transaction_id[i - 4];
+				}
+				dbg::println("X-Port: {}, X-IP6: {}", xport, to_hex_string(std::span<u8>{xip6}, {.delimiter = ":", .show_hex = false}));
+			}
+
+			dbg::println("Remaining: {}", packetx.remaining_bytes());
+			//// Align to 4-byte boundary
+			// size_t padding = (4 - (attr_length % 4)) % 4;
+			// if (padding > 0 && packetx.remaining() >= padding)
+			//{
+			//	packetx.read<u8>(padding);
+			// }
+		}
+
+		// Another packet
+		{
+
+			std::string username("alice");
+			std::string realm("example.org");
+			std::string nonce("f2b3c4d5e6");
+
+			std::vector<u8> packet{};
+
+
+			// STUN Header (20 bytes)
+			// Message Type
+			packet.push_back(0x01); // MSB of message typ)e
+			packet.push_back(0x01);
+
+			packet.push_back(0x00); // Message Length (to be filled later)
+			packet.push_back(0x00); // LSB of message length
+
+			// Magic Cookie
+			//packet.push_back(0x21);
+			//packet.push_back(0x12);
+			//packet.push_back(0xA4);
+			//packet.push_back(0x42);
+
+			// Transaction ID (12 bytes)
+			for (int i = 0; i < 12; ++i)
+				packet.push_back(random::randu8());
+
+			// Add USERNAME attribute if provided
+			if (!username.empty())
+			{
+				// Attribute header: Type + Length
+				packet.push_back((0x0006 >> 8) & 0xFF);
+				packet.push_back(0x0006 & 0xFF);
+
+				uint16_t username_length = static_cast<uint16_t>(username.length());
+				packet.push_back((username_length >> 8) & 0xFF);
+				packet.push_back(username_length & 0xFF);
+
+				// Attribute value
+				for(auto &c: username)
+					packet.push_back(static_cast<u8>(c));
+
+				// Padding to 4-byte boundary
+				size_t padding = (4 - (username_length % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
+
+			// Add REALM attribute if provided
+			if (!realm.empty())
+			{
+				// Attribute header: Type + Length
+				packet.push_back((0x0014 >> 8) & 0xFF);
+				packet.push_back(0x0014 & 0xFF);
+
+				uint16_t realm_length = static_cast<uint16_t>(realm.length());
+				packet.push_back((realm_length >> 8) & 0xFF);
+				packet.push_back(realm_length & 0xFF);
+
+				// Attribute value
+				for(auto& c : realm)
+					packet.push_back(static_cast<u8>(c));
+
+				// Padding to 4-byte boundary
+				size_t padding = (4 - (realm_length % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
+
+			// Add NONCE attribute if provided
+			if (!nonce.empty())
+			{
+				// Attribute header: Type + Length
+				packet.push_back((0x0015 >> 8) & 0xFF);
+				packet.push_back(0x0015 & 0xFF);
+
+				uint16_t nonce_length = static_cast<uint16_t>(nonce.length());
+				packet.push_back((nonce_length >> 8) & 0xFF);
+				packet.push_back(nonce_length & 0xFF);
+
+				// Attribute value
+				for (auto& c : nonce)
+					packet.push_back(static_cast<u8>(c));
+
+				// Padding to 4-byte boundary
+				size_t padding = (4 - (nonce_length % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
+
+			{
+				// Attribute header: Type + Length
+				packet.push_back((0x0008 >> 8) & 0xFF);
+				packet.push_back(0x0008 & 0xFF);
+
+				std::array<u8, 20> key{0x4a, 0x65, 0x66, 0x65};
+				uint16_t keylen = static_cast<uint16_t>(key.size());
+				packet.push_back((keylen >> 8) & 0xFF);
+				packet.push_back(keylen & 0xFF);
+
+				// Attribute value
+				for (auto& c : key)
+					packet.push_back(static_cast<u8>(c));
+
+				// Padding to 4-byte boundary
+				size_t padding = (4 - (key.size() % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
+
+			// Update message length in header
+			uint16_t total_length             = static_cast<uint16_t>(packet.size() - 20);
+			packet[2]     = (total_length >> 8) & 0xFF;
+			packet[3] = total_length & 0xFF;
+
+			// Create final array with actual size
+        
+
+			sent = sendto(
+			  sock,
+			  reinterpret_cast<const char*>(packet.data()),
+			  static_cast<int>(packet.size()),
+			  0,
+			  result->ai_addr,
+			  static_cast<int>(result->ai_addrlen));
+
+			if (sent == SOCKET_ERROR)
+			{
+				dbg::println("sendto() failed: {}", WSAGetLastError());
+				closesocket(sock);
+				freeaddrinfo(result);
+				WSACleanup();
+				return 1;
+			}
+			dbg::println("send 2 = {}", sent);
+
+			// ----------------------- Set receive timeout (5 seconds) ---------------
+			// ----------------------- Receive reply ---------------------------------
+
+			std::vector<u8> incoming{};
+			incoming.resize(1024);
+
+			len = recvfrom(sock, reinterpret_cast<char*>(incoming.data()), static_cast<int>(incoming.size()), 0, nullptr, nullptr);
+
+			if (len == SOCKET_ERROR)
+			{
+				dbg::println("recvfrom() failed: {}", WSAGetLastError());
+			}
+			else
+			{
+
+				dbg::println("received {} bytes:", len);
+				incoming.resize(len);
+
+				for (const auto& c : incoming)
+					dbg::print("{:02X} ", c);
+				dbg::println("\n\n");
+			}
+		}
+
+		// PAcket 2:
+		// 01 01 
+		// 00 18 
+		// 21 12 A4 42 
+		// DE AD BE EF 69 CA FE BA BE 11 22 33 
+		// 
+		// 00 01  Mapped address
+		// 00 08 
+		// 00 01 DC 6C D5 98 A1 0A 00 20 00 08 00 01 FD 7E F4 8A 05 48 
+
+		// 2a00:1678:2470:38:172e:6bff:5dbb:b0ae
+
+		_ = 0;
 		// Cloudflare
 		// 01 01									0x0101 STUN response
 		// 00 18									Length
@@ -1126,6 +1527,29 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		// 01 13 B0 F8		xor with magic
 		//					xor rest with transaction id
 		// 98 AC BE EF 6D B3 3C 8D 02 7A C9 11
+
+
+		// FB stun
+		// 01 01			STUN Message type
+		// 00 18			Message length
+		// 21 12 A4 42		Magic cookie
+		// DE AD BE EF 69 CA FE BA BE 11 22 33
+		//
+		// 00 01		 Attribute: MAPPED-ADDRESS
+		// 00 08 0x0008: MESSAGE-INTEGRITY
+		// 00 01 len
+		// E6 14 D5 98 A1 EA 00 20 00 08 00 01 C7 06 F4 8A 05 A8
+
+
+		// Google stun
+		// 01 01
+		// 00 0C
+		// 21 12 A4 42
+		// DE AD BE EF 69 CA FE BA BE 11 22 33
+		// 00 20
+		// 00 08						0x0008: MESSAGE-INTEGRITY
+		// 00 01 DC 42 F4 8A 05 A8
+
 
 		_ = 0;
 	}

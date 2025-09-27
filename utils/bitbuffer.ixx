@@ -411,5 +411,17 @@ namespace deckard::bitbuffer
 		size_t size_in_bytes() const { return buffer.size(); }
 
 		bool empty() const { return byte_index() <= buffer.size(); }
+
+		void reset() { bitpos = 0; }
+		void reset(std::span<u8> input)
+		{
+			buffer = input;
+			bitpos = 0;
+		}
+
+		size_t remaining_bytes() const 
+		{
+			return size_in_bytes() - (bitpos/8); 
+		}
 	};
 } // namespace deckard::bitbuffer
