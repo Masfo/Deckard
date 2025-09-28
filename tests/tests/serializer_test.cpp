@@ -11,7 +11,6 @@ using namespace deckard;
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
-using namespace deckard::bitbuffer;
 
 
 TEST_CASE("serializer", "[serializer]")

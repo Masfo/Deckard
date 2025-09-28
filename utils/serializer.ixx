@@ -3,7 +3,6 @@
 import std;
 import deckard.types;
 import deckard.assert;
-import deckard.bitbuffer;
 import deckard.as;
 import deckard.debug;
 
@@ -191,6 +190,14 @@ namespace deckard
 			: serializer()
 		{
 			pad = p;
+		}
+
+		serializer(std::span<const u8> data)
+			: serializer()
+		{
+			buffer.insert(buffer.end(), data.begin(), data.end());
+			writepos = 0;
+			readpos  = 0;
 		}
 
 		// Copy
@@ -471,6 +478,17 @@ namespace deckard
 			buffer.clear();
 			writepos = 0;
 		}
+
+		void reset(std::span<u8> data)
+		{
+			buffer.resize(data.size());
+			std::memcpy(buffer.data(), data.data(), data.size());
+			writepos = 0;
+			rewind();
+		}
+
+		// remaining
+		size_t remaining() const { return buffer.size() - byte_index(readpos); }
 
 		// size in bytes
 		size_t size() const { return buffer.size(); }

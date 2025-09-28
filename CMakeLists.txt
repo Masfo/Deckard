@@ -240,7 +240,6 @@ set(DECKARD_SRCS
 		utils/random.ixx
 		utils/function_ref.ixx
 		utils/arrays.ixx
-		utils/bitbuffer.ixx
 		utils/grid.ixx
 		utils/commandline.ixx
 		utils/stringhelper.ixx

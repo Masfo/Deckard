@@ -47,7 +47,6 @@ export import deckard.function_ref;
 export import deckard.serializer;
 export import deckard.arrays;
 export import deckard.bigint;
-export import deckard.bitbuffer;
 export import deckard.grid;
 export import deckard.stringhelper;
 export import deckard.timers;
