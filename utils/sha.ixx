@@ -756,6 +756,7 @@ namespace deckard::sha512 // ###################################################
 export namespace std
 {
 
+	// SHA1
 	template<>
 	struct hash<deckard::sha1::digest>
 	{
@@ -769,10 +770,44 @@ export namespace std
 
 		auto format(const deckard::sha1::digest& value, std::format_context& ctx) const
 		{
-			//
 			return std::format_to(ctx.out(), "{}", value.to_string());
 		}
 	};
 
+	// SHA256
+	template<>
+	struct hash<deckard::sha256::digest>
+	{
+		size_t operator()(const sha1::digest& value) const { return utils::hash_values(value.data()); }
+	};
+
+	template<>
+	struct formatter<deckard::sha256::digest>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::sha256::digest& value, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", value.to_string());
+		}
+	};
+
+	// SHA512
+	template<>
+	struct hash<deckard::sha512::digest>
+	{
+		size_t operator()(const sha1::digest& value) const { return utils::hash_values(value.data()); }
+	};
+
+	template<>
+	struct formatter<deckard::sha512::digest>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::sha512::digest& value, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", value.to_string());
+		}
+	};
 
 } // namespace std
