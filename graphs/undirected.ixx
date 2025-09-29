@@ -1,4 +1,4 @@
-export module deckard.graph:undirected;
+﻿export module deckard.graph:undirected;
 
 import std;
 import deckard.types;
