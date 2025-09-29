@@ -15,7 +15,7 @@ import deckard.stringhelper;
 
 namespace fs = std::filesystem;
 
-namespace deckard
+namespace deckard::file
 {
 	// TODO: remove many imports, more standalone
 	// returns bool -> std::expected<bool, std::string>
@@ -29,182 +29,169 @@ namespace deckard
 	// membuf[index]
 
 
-	namespace file::v2
+	// TODO: simple read/write api
+	// write buffer to file
+	// read file to buffer
+	// expected on errors
+
+	namespace impl
 	{
-
-		// TODO: simple read/write api
-		// write buffer to file
-		// read file to buffer
-		// expected on errors
-
-		namespace impl
+		template<typename T>
+		std::expected<u32, std::string> write_impl(fs::path file, const std::span<T> content, size_t content_size, bool overwrite = false)
 		{
-			template<typename T>
-			std::expected<u32, std::string>
-			write_impl(fs::path file, const std::span<T> content, size_t content_size, bool overwrite = false)
+			DWORD bytes_written{0};
+			DWORD mode = CREATE_ALWAYS;
+
+			file = std::filesystem::absolute(file);
+
+
+			content_size = std::min(content_size, content.size_bytes());
+
+			if (not overwrite)
+				mode = CREATE_NEW;
+
+			HANDLE handle =
+			  CreateFileW(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+			if (handle == INVALID_HANDLE_VALUE)
 			{
-				DWORD bytes_written{0};
-				DWORD mode = CREATE_ALWAYS;
-
-				file = std::filesystem::absolute(file);
-
-
-				content_size = std::min(content_size, content.size_bytes());
-
-				if (not overwrite)
-					mode = CREATE_NEW;
-
-				HANDLE handle =
-				  CreateFileW(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-				if (handle == INVALID_HANDLE_VALUE)
+				if (GetLastError() == ERROR_FILE_EXISTS)
 				{
-					if (GetLastError() == ERROR_FILE_EXISTS)
-					{
-						return std::unexpected(std::format(
-						  "write_file: file '{}' already exists. Maybe add overwrite flag?", system::from_wide(file.wstring()).c_str()));
-					}
-
-
-					return std::unexpected(
-					  std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
-				}
-
-				if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
-				{
-					CloseHandle(handle);
-					return std::unexpected(
-					  std::format("write_file: could not write to file '{}'", system::from_wide(file.wstring()).c_str()));
-				}
-
-				CloseHandle(handle);
-
-				if (bytes_written < content_size)
 					return std::unexpected(std::format(
-					  "write_file: wrote partial {}/{} to file '{}'",
-					  bytes_written,
-					  content_size,
-					  system::from_wide(file.wstring()).c_str()));
-
-
-				return bytes_written;
-			}
-
-			template<typename T>
-			std::expected<u32, std::string> write_impl(fs::path file, const std::span<T> content, bool overwrite = false)
-			{
-				return write_impl(file, content, content.size_bytes(), overwrite);
-			}
-
-			// read
-			template<typename T>
-			std::expected<u32, std::string> read_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
-			{
-				file = std::filesystem::absolute(file);
-
-
-				if (not fs::exists(file))
-					return std::unexpected(std::format("read_file: file '{}' does not exist", system::from_wide(file.wstring()).c_str()));
-
-				auto file_size = fs::file_size(file);
-				if (file_size == 0)
-					return std::unexpected(std::format("read_file: file '{}' is empty", system::from_wide(file.wstring()).c_str()));
-
-				if (buffer_size == 0)
-					buffer_size = file_size;
-
-				buffer_size = std::min(buffer_size, buffer.size_bytes());
-
-				if (buffer_size == 0)
-					return std::unexpected(
-					  std::format("read_file: buffer size is zero for file '{}'", system::from_wide(file.wstring()).c_str()));
-
-				DWORD  read{0};
-				HANDLE handle = CreateFileW(
-				  file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-				if (handle == INVALID_HANDLE_VALUE)
-					return std::unexpected(std::format("read_file: could not open file '{}'", system::from_wide(file.wstring()).c_str()));
-
-				if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
-				{
-					CloseHandle(handle);
-					return std::unexpected(
-					  std::format("read_file: could not read from file '{}'", system::from_wide(file.wstring()).c_str()));
+					  "write_file: file '{}' already exists. Maybe add overwrite flag?", system::from_wide(file.wstring()).c_str()));
 				}
 
-				CloseHandle(handle);
 
-				return read;
+				return std::unexpected(
+				  std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
 			}
 
-		} // namespace impl
+			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
+			{
+				CloseHandle(handle);
+				return std::unexpected(std::format("write_file: could not write to file '{}'", system::from_wide(file.wstring()).c_str()));
+			}
 
-		// write
-		export std::expected<u32, std::string>
-		write(fs::path file, const std::span<u8> content, size_t content_size, bool overwrite = false)
-		{
-			return impl::write_impl<u8>(file, content, content_size, overwrite);
+			CloseHandle(handle);
+
+			if (bytes_written < content_size)
+				return std::unexpected(std::format(
+				  "write_file: wrote partial {}/{} to file '{}'", bytes_written, content_size, system::from_wide(file.wstring()).c_str()));
+
+
+			return bytes_written;
 		}
 
-		export std::expected<u32, std::string> write(fs::path file, const std::span<u8> content, bool overwrite = false)
+		template<typename T>
+		std::expected<u32, std::string> write_impl(fs::path file, const std::span<T> content, bool overwrite = false)
 		{
-			return impl::write_impl<u8>(file, content, content.size_bytes(), overwrite);
-		}
-
-		export std::expected<u32, std::string> write(fs::path file, const std::string_view content, bool overwrite = false)
-		{
-			return impl::write_impl(file, std::span<char>(as<char*>(content.data()), content.size()), overwrite);
+			return write_impl(file, content, content.size_bytes(), overwrite);
 		}
 
 		// read
-
-		export std::expected<u32, std::string> read(fs::path file, std::span<u8> buffer, size_t buffer_size = 0)
-		{
-			return impl::read_impl<u8>(file, buffer, buffer_size);
-		}
-
-		export std::expected<u32, std::string> read(fs::path file, std::string_view buffer, size_t buffer_size = 0)
-		{
-			return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
-		}
-
-		export std::expected<u32, std::string> read(fs::path file, std::string& buffer, size_t buffer_size = 0)
-		{
-			if (buffer_size == 0)
-				buffer_size = fs::file_size(file);
-			if (buffer.size() < buffer_size)
-				buffer.resize(buffer_size);
-			return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
-		}
-
-		export std::expected<u64, std::string> filesize(fs::path file)
+		template<typename T>
+		std::expected<u32, std::string> read_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
 		{
 			file = std::filesystem::absolute(file);
 
 
-			if (fs::exists(file))
-				return fs::file_size(file);
+			if (not fs::exists(file))
+				return std::unexpected(std::format("read_file: file '{}' does not exist", system::from_wide(file.wstring()).c_str()));
 
-			return std::unexpected(std::format("filesize: could not find file '{}'", system::from_wide(file.wstring()).c_str()));
+			auto file_size = fs::file_size(file);
+			if (file_size == 0)
+				return std::unexpected(std::format("read_file: file '{}' is empty", system::from_wide(file.wstring()).c_str()));
+
+			if (buffer_size == 0)
+				buffer_size = file_size;
+
+			buffer_size = std::min(buffer_size, buffer.size_bytes());
+
+			if (buffer_size == 0)
+				return std::unexpected(
+				  std::format("read_file: buffer size is zero for file '{}'", system::from_wide(file.wstring()).c_str()));
+
+			DWORD  read{0};
+			HANDLE handle =
+			  CreateFileW(file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			if (handle == INVALID_HANDLE_VALUE)
+				return std::unexpected(std::format("read_file: could not open file '{}'", system::from_wide(file.wstring()).c_str()));
+
+			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
+			{
+				CloseHandle(handle);
+				return std::unexpected(std::format("read_file: could not read from file '{}'", system::from_wide(file.wstring()).c_str()));
+			}
+
+			CloseHandle(handle);
+
+			return read;
 		}
 
-		export class file
+	} // namespace impl
+
+	// write
+	export std::expected<u32, std::string> write(fs::path file, const std::span<u8> content, size_t content_size, bool overwrite = false)
+	{
+		return impl::write_impl<u8>(file, content, content_size, overwrite);
+	}
+
+	export std::expected<u32, std::string> write(fs::path file, const std::span<u8> content, bool overwrite = false)
+	{
+		return impl::write_impl<u8>(file, content, content.size_bytes(), overwrite);
+	}
+
+	export std::expected<u32, std::string> write(fs::path file, const std::string_view content, bool overwrite = false)
+	{
+		return impl::write_impl(file, std::span<char>(as<char*>(content.data()), content.size()), overwrite);
+	}
+
+	// read
+
+	export std::expected<u32, std::string> read(fs::path file, std::span<u8> buffer, size_t buffer_size = 0)
+	{
+		return impl::read_impl<u8>(file, buffer, buffer_size);
+	}
+
+	export std::expected<u32, std::string> read(fs::path file, std::string_view buffer, size_t buffer_size = 0)
+	{
+		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
+	}
+
+	export std::expected<u32, std::string> read(fs::path file, std::string& buffer, size_t buffer_size = 0)
+	{
+		if (buffer_size == 0)
+			buffer_size = fs::file_size(file);
+		if (buffer.size() < buffer_size)
+			buffer.resize(buffer_size);
+		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
+	}
+
+	export std::expected<u64, std::string> filesize(fs::path file)
+	{
+		file = std::filesystem::absolute(file);
+
+
+		if (fs::exists(file))
+			return fs::file_size(file);
+
+		return std::unexpected(std::format("filesize: could not find file '{}'", system::from_wide(file.wstring()).c_str()));
+	}
+
+	export class file
+	{
+	private:
+	public:
+		void resize() { }
+
+		std::span<u8> operator[](size_t start, size_t end) const
 		{
-		private:
-		public:
-			void resize() { }
+			//
+			return {};
+		}
+	};
 
-			std::span<u8> operator[](size_t start, size_t end) const
-			{
-				//
-				return {};
-			}
-		};
-
-
-	} // namespace file
-
-	 namespace v1
+	namespace v1
 	{
 		export class file
 		{
@@ -694,4 +681,4 @@ namespace deckard
 
 	}; // namespace v1
 
-} // namespace deckard
+} // namespace deckard::file
