@@ -329,33 +329,68 @@ export namespace deckard
 	}
 
 	// sum
-	template<class A, class... Args>
+	template<arithmetic A, arithmetic... Args>
 	constexpr A sum(A a, A b, Args... args)
 	{
+		static_assert(can_subtract_v<A, A>, "Cannot sum types");
+
+
 		if constexpr (sizeof...(args) == 0)
 			return a + b;
 		else
 			return sum(sum(a, b), args...);
 	}
 
+	template<std::ranges::input_range Container>
+	auto sum(const Container& container) -> std::ranges::range_value_t<Container>
+	{
+		using ValueType = std::ranges::range_value_t<Container>;
+		static_assert(can_sum_v<ValueType, ValueType>, "Cannot sum types on this container");
+
+		return std::ranges::fold_left(container, ValueType{}, std::plus<>{});
+	}
+
 	// subtract
 	template<class A, class... Args>
 	constexpr A subtract(A a, A b, Args... args)
 	{
+		static_assert(can_subtract_v<A, A>, "Cannot subtract types");
+
 		if constexpr (sizeof...(args) == 0)
 			return a - b;
 		else
 			return subtract(subtract(a, b), args...);
 	}
 
+	
+	template<std::ranges::input_range Container>
+	auto subtract(const Container& container) -> std::ranges::range_value_t<Container>
+	{
+		using ValueType = std::ranges::range_value_t<Container>;
+		static_assert(can_subtract_v<ValueType, ValueType>, "Cannot sum types on this container");
+
+		return std::ranges::fold_left(container, ValueType{}, std::plus<>{});
+	}
+
 	// product
 	template<class A, class... Args>
 	constexpr A product(A a, A b, Args... args)
 	{
+		static_assert(can_multiply_v<A, A>, "Cannot multiply types");
+
 		if constexpr (sizeof...(args) == 0)
 			return a * b;
 		else
 			return product(product(a, b), args...);
+	}
+
+
+	template<std::ranges::input_range Container>
+	auto product(const Container& container) -> std::ranges::range_value_t<Container>
+	{
+		using ValueType = std::ranges::range_value_t<Container>;
+		static_assert(can_multiply_v<ValueType, ValueType>, "Cannot multiply types on this container");
+		return std::ranges::fold_left(container, ValueType{1}, std::multiplies<>{});
 	}
 
 	// min
@@ -368,6 +403,14 @@ export namespace deckard
 			return vmin(vmin(a, b), args...);
 	}
 
+	template<std::ranges::input_range Container>
+	auto min(const Container& container)
+	{
+		assert::check(not container.empty(), "empty container");
+
+		return *std::ranges::min_element(container);
+	}
+
 	// max
 	template<std::integral A, std::integral... Args>
 	constexpr A vmax(A a, A b, Args... args)
@@ -376,6 +419,13 @@ export namespace deckard
 			return std::max(a, b);
 		else
 			return vmax(vmax(a, b), args...);
+	}
+
+	template<std::ranges::input_range Container>
+	auto max(const Container& container)
+	{
+		assert::check(not container.empty(), "empty container");
+		return *std::ranges::max_element(container);
 	}
 
 	// lcm
@@ -1261,6 +1311,4 @@ export namespace deckard
 			last     = i;
 		}
 	}
-
-
 } // namespace deckard
