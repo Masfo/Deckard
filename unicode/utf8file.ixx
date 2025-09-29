@@ -11,19 +11,9 @@ namespace deckard::utf8
 
 	export utf8::string read_utf8_file(fs::path path)
 	{
-		auto v = v1::read_file(path);
-		
-		if (v.empty())
-			return utf8::string{};
+		(path);
+		return {};
 
-
-
-		utf8::string ret;
-		ret.reserve(v.size());
-
-		ret.assign(v);
-
-		return ret;
 	}
 
 
