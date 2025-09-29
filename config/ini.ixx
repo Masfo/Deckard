@@ -61,7 +61,6 @@ namespace deckard::ini
 	// eat_until - consume until predicate is true
 
 
-
 	using TokenValue = std::variant<std::monostate, bool, i64, u64, f64, utf8::view>;
 
 	/*
@@ -176,12 +175,12 @@ namespace deckard::ini
 		{
 		}
 
-		explicit ini(fs::path filename) { data = v1::read_text_file(filename); }
+		explicit ini(fs::path) { }
 
-		value operator[](std::string_view key) const 
+		value operator[](std::string_view key) const
 		{
 			(key);
-			return {}; 
+			return {};
 		}
 
 		auto at(size_t index) const
@@ -249,7 +248,7 @@ namespace deckard::ini
 					skip_whitespace();
 
 					auto start = it;
-					//i32  count = 0;
+					// i32  count = 0;
 
 
 					bool end_quote = false;
@@ -382,17 +381,16 @@ namespace deckard::ini
 				it++;
 			}
 			tokens.push_back({.type = TokenType::END_OF_FILE});
-
 		}
 
 		size_t size() const { return tokens.size(); }
 
 		void save() { }
 
-		bool save_as(const std::filesystem::path path) 
+		bool save_as(const std::filesystem::path path)
 		{
 			(path);
-			return true; 
+			return true;
 		}
 
 		utf8::string format() const
