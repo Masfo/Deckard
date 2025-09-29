@@ -580,6 +580,12 @@ export namespace std
 		size_t operator()(const generic_vec2<T>& value) const { return deckard::utils::hash_values(value.x, value.y); }
 	};
 
+	template<>
+	struct hash<generic_vec2<i64>>
+	{
+		size_t operator()(const generic_vec2<i64>& value) const { return deckard::utils::hash_values(value.x, value.y); }
+	};
+
 	template<arithmetic T>
 	struct formatter<generic_vec2<T>>
 	{
