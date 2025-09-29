@@ -181,13 +181,9 @@ namespace deckard::lexer
 			it = m_data.begin();
 		}
 
-		bool load_from_file(const fs::path path)
+		bool load_from_file(const fs::path )
 		{
-			auto buffer = v1::read_file(path);
-			if (buffer.empty())
-				return false;
-
-			assign(buffer);
+		
 
 			return true;
 		}
