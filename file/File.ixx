@@ -523,162 +523,161 @@ namespace deckard::file
 				return write(file, std::span<u8>{as<u8*>(content.data()), content.size()}, flag);
 			}
 		};
-
-		// simple api
-
-		export std::vector<u8> read_file(fs::path path)
-		{
-			file f(path);
-			if (not f)
-			{
-				dbg::eprintln("read_text_file: could not open '{}'", path.generic_string());
-				return {};
-			}
-
-			if (f.size() == 0)
-			{
-				dbg::eprintln("read_file: file '{}' is empty", path.generic_string());
-				return {};
-			}
-
-			std::vector<u8> ret;
-			ret.resize(f.size());
-
-			auto read_size = f.read({as<u8*>(ret.data()), ret.size()});
-			if (read_size < ret.size())
-			{
-				dbg::eprintln("read_text_file: read partial {}/{}", read_size, ret.size());
-			}
-			ret.shrink_to_fit();
-
-			return ret;
-		}
-
-		export std::string read_text_file(fs::path path)
-		{
-			auto v = read_file(path);
-
-			if (v.empty())
-				return "";
-
-
-			return std::string(v.begin(), v.end());
-		}
-
-		export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
-		{
-			using namespace deckard::string;
-
-
-			auto s   = read_text_file(path);
-			auto ret = split_exact(s, delimiter, include_empty_lines);
-
-			return ret;
-		}
-
-		export std::vector<std::string>
-		read_lines_delimiter(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
-		{
-			using namespace deckard::string;
-
-			std::vector<std::string> ret;
-
-			if (include_empty_lines == false)
-			{
-				auto f = read_text_file(path);
-				if (f.empty())
-					return {};
-				ret = split<std::string>(f, delimiter);
-			}
-			else
-			{
-				ret = read_lines_exact(path, delimiter, include_empty_lines);
-			}
-
-			return ret;
-		}
-
-		export std::vector<std::string> read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
-		{
-			return read_lines_delimiter(path, delimiter, include_empty_lines);
-		}
-
-		export std::vector<std::string> read_all_lines(fs::path path, std::string_view delimiter = "\n")
-		{
-			return read_lines(path, delimiter, true);
-		}
-
-		// try read
-
-		export template<arithmetic T>
-		std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
-		{
-			using namespace deckard::string;
-
-			const auto     lines = read_lines(path, delimiter, include_empty_lines);
-			std::vector<T> ret;
-
-			ret.reserve(lines.size());
-
-			for (const auto& line : lines)
-			{
-				auto value = try_to_number<T>(trim(line));
-				if (value)
-					ret.emplace_back(*value);
-			}
-
-			return ret;
-		}
-
-		export template<arithmetic T>
-		std::vector<T> read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
-		{
-			return read_lines_as<T>(path, delimiter, true);
-		}
-
-		export template<arithmetic T>
-		std::vector<std::optional<T>> try_read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
-		{
-			using namespace deckard::string;
-
-			const auto                    lines = read_lines(path, delimiter, include_empty_lines);
-			std::vector<std::optional<T>> ret;
-
-			ret.reserve(lines.size());
-
-			for (const auto& line : lines)
-				ret.emplace_back(try_to_number<T>(trim(line)));
-
-			return ret;
-		}
-
-		export template<arithmetic T>
-		std::vector<std::optional<T>> try_read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
-		{
-			return try_read_lines_as<T>(path, delimiter, true);
-		}
-
-		std::vector<std::optional<std::string>>
-		try_read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
-		{
-			using namespace deckard::string;
-
-			const auto                              lines = read_lines(path, delimiter, include_empty_lines);
-			std::vector<std::optional<std::string>> ret;
-			ret.reserve(lines.size());
-
-			for (const auto& line : lines)
-			{
-				if (line.empty())
-					ret.emplace_back(std::nullopt);
-				else
-					ret.emplace_back(line);
-			}
-			return ret;
-		}
-
-		export auto try_read_all_lines(fs::path path, std::string_view delimiter = "\n") { return try_read_lines(path, delimiter, true); }
-
 	}; // namespace v1
+
+	// simple api
+
+	export std::vector<u8> read_file(fs::path path)
+	{
+		v1::file f(path);
+		if (not f)
+		{
+			dbg::eprintln("read_text_file: could not open '{}'", path.generic_string());
+			return {};
+		}
+
+		if (f.size() == 0)
+		{
+			dbg::eprintln("read_file: file '{}' is empty", path.generic_string());
+			return {};
+		}
+
+		std::vector<u8> ret;
+		ret.resize(f.size());
+
+		auto read_size = f.read({as<u8*>(ret.data()), ret.size()});
+		if (read_size < ret.size())
+		{
+			dbg::eprintln("read_text_file: read partial {}/{}", read_size, ret.size());
+		}
+		ret.shrink_to_fit();
+
+		return ret;
+	}
+
+	export std::string read_text_file(fs::path path)
+	{
+		auto v = read_file(path);
+
+		if (v.empty())
+			return "";
+
+
+		return std::string(v.begin(), v.end());
+	}
+
+	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
+	{
+		using namespace deckard::string;
+
+
+		auto s   = read_text_file(path);
+		auto ret = split_exact(s, delimiter, include_empty_lines);
+
+		return ret;
+	}
+
+	export std::vector<std::string> read_lines_delimiter(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	{
+		using namespace deckard::string;
+
+		std::vector<std::string> ret;
+
+		if (include_empty_lines == false)
+		{
+			auto f = read_text_file(path);
+			if (f.empty())
+				return {};
+			ret = split<std::string>(f, delimiter);
+		}
+		else
+		{
+			ret = read_lines_exact(path, delimiter, include_empty_lines);
+		}
+
+		return ret;
+	}
+
+	export std::vector<std::string> read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	{
+		return read_lines_delimiter(path, delimiter, include_empty_lines);
+	}
+
+	export std::vector<std::string> read_all_lines(fs::path path, std::string_view delimiter = "\n")
+	{
+		return read_lines(path, delimiter, true);
+	}
+
+	// try read
+
+	export template<arithmetic T>
+	std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	{
+		using namespace deckard::string;
+
+		const auto     lines = read_lines(path, delimiter, include_empty_lines);
+		std::vector<T> ret;
+
+		ret.reserve(lines.size());
+
+		for (const auto& line : lines)
+		{
+			auto value = try_to_number<T>(trim(line));
+			if (value)
+				ret.emplace_back(*value);
+		}
+
+		return ret;
+	}
+
+	export template<arithmetic T>
+	std::vector<T> read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
+	{
+		return read_lines_as<T>(path, delimiter, true);
+	}
+
+	export template<arithmetic T>
+	std::vector<std::optional<T>> try_read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	{
+		using namespace deckard::string;
+
+		const auto                    lines = read_lines(path, delimiter, include_empty_lines);
+		std::vector<std::optional<T>> ret;
+
+		ret.reserve(lines.size());
+
+		for (const auto& line : lines)
+			ret.emplace_back(try_to_number<T>(trim(line)));
+
+		return ret;
+	}
+
+	export template<arithmetic T>
+	std::vector<std::optional<T>> try_read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
+	{
+		return try_read_lines_as<T>(path, delimiter, true);
+	}
+
+	std::vector<std::optional<std::string>>
+	try_read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	{
+		using namespace deckard::string;
+
+		const auto                              lines = read_lines(path, delimiter, include_empty_lines);
+		std::vector<std::optional<std::string>> ret;
+		ret.reserve(lines.size());
+
+		for (const auto& line : lines)
+		{
+			if (line.empty())
+				ret.emplace_back(std::nullopt);
+			else
+				ret.emplace_back(line);
+		}
+		return ret;
+	}
+
+	export auto try_read_all_lines(fs::path path, std::string_view delimiter = "\n") { return try_read_lines(path, delimiter, true); }
+
 
 } // namespace deckard::file
