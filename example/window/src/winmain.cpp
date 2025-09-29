@@ -767,21 +767,21 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 	// std::chrono::system_clock::time_point local_tp{zt.get_local_time()};
 
 	// Create a time point in a specific time zone, e.g., Tokyo
-	const auto*                   tz2 = std::chrono::locate_zone("Asia/Tokyo");
-	const std::chrono::zoned_time tokyo_time{tz, pkt.origTimestamp};
-
-	// Extract the system_clock::time_point from the zoned_time
-	const auto sys_tp   = tokyo_time.get_sys_time();
-	const auto local_tp = tokyo_time.get_local_time();
-
-	// Print the times to demonstrate the conversion
-	dbg::println("Original zoned_time (in Tokyo): {}", std::format("{:%Y-%m-%d %H:%M:%S %Z}", tokyo_time));
-
-	dbg::println("Converted time_point (UTC): {}", sys_tp);
-	dbg::println("Converted time_point (UTC): {}", local_tp);
-
-	std::chrono::local_time local_new = tokyo_time.get_local_time();
-	dbg::println("Converted time_point (UTC): {}", local_new);
+	// const auto*                   tz2 = std::chrono::locate_zone("Asia/Tokyo");
+	// const std::chrono::zoned_time tokyo_time{tz, pkt.origTimestamp};
+	//
+	//// Extract the system_clock::time_point from the zoned_time
+	// const auto sys_tp   = tokyo_time.get_sys_time();
+	// const auto local_tp = tokyo_time.get_local_time();
+	//
+	//// Print the times to demonstrate the conversion
+	// dbg::println("Original zoned_time (in Tokyo): {}", std::format("{:%Y-%m-%d %H:%M:%S %Z}", tokyo_time));
+	//
+	// dbg::println("Converted time_point (UTC): {}", sys_tp);
+	// dbg::println("Converted time_point (UTC): {}", local_tp);
+	//
+	// std::chrono::local_time local_new = tokyo_time.get_local_time();
+	// dbg::println("Converted time_point (UTC): {}", local_new);
 
 
 	return pkt;
@@ -843,6 +843,8 @@ std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const 
 	return addresses;
 }
 
+
+
 /*
 * The message type field is decomposed further into the following
    structure:
@@ -875,6 +877,7 @@ std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const 
    0x0101.
 */
 
+
 struct STUNHeader
 {
 	u16                type{0};
@@ -895,119 +898,42 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
+	// ########################################################################
+
+
 
 	// ########################################################################
-	std::array<u32, 4> state{0xDEAD'BEEF, 0xCAFE'BABE, 0x0BAD'F00D, 0xB00b'C0DE};
 
-	auto byts = std::as_bytes(std::span(state));
+	auto ip_addresses = get_ip_addresses("api.taboobuilder.com");
+	if (ip_addresses)
+	{
+		for (const auto& ip : *ip_addresses)
+		{
+			dbg::println("IP Address: {: <25} {}", ip.ip, ip.version == IPVersion::IPV4 ? "ipv4" : "ipv6");
+		}
+	}
+	else
+	{
+		dbg::println("Error resolving domain: {}", ip_addresses.error());
+	}
 
-
-	// Fixed‑size array of two uint32_t values.
-	std::array<std::uint32_t, 8> numbers = {0x1122'3344u, 0xAABB'CCDDu};
-
-	// Create a span that covers the whole array.
-
-	auto bytes_wr = std::span<u8>((u8*)numbers.data(), numbers.size() * sizeof(u32));
-
-	std::span<std::uint32_t> num_span{numbers};
-	auto                     bytes_rd = std::as_bytes(num_span);
 
 	_ = 0;
 
 	// ########################################################################
 
-
-	auto test_sha1 = sha256::quickhash(""sv);
-	// e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-
-	// ########################################################################
-
-	std::array<u8, 4>  key{0x4a, 0x65, 0x66, 0x65};
-	std::array<u8, 28> data{0x77, 0x68, 0x61, 0x74, 0x20, 0x64, 0x6f, 0x20, 0x79, 0x61, 0x20, 0x77, 0x61, 0x6e,
-							0x74, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x6e, 0x6f, 0x74, 0x68, 0x69, 0x6e, 0x67, 0x3f};
-
-
-	auto hmac1 = hmac::sha1::hash(key, data);
-	// effcdf6ae5eb2fa2d27416d5f184df9c259a7c79
-
-	auto sha256 = sha256::hash("abc");
-	// ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
-
-	sha256::digest sha256_n("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-
-	auto sha512 = sha512::quickhash("abc");
-	// ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f
-	auto sha512_n = sha512::hash("abc");
-
-	auto hmac256_ne = hmac::sha512::hash("Jefe", "what do ya want for nothing?");
-	// 5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
-	// 164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737
-
-
-	auto hmac256_o = hmac::sha256::hash(key, data).to_string();
-
-	_ = 0;
-	// ########################################################################
-
-
-	std::array<u8, 32> saas{0x5b, 0xdc, 0xc1, 0x46, 0xbf, 0x60, 0x75, 0x4e, 0x6a, 0x04, 0x24, 0x26, 0x08, 0x95, 0x75, 0xc7,
-							0x5a, 0x00, 0x3f, 0x08, 0x9d, 0x27, 0x39, 0x83, 0x9d, 0xec, 0x58, 0xb9, 0x64, 0xec, 0x38, 0x43};
-
-	generic_sha_digest<32> d256("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843");
-	generic_sha_digest<32> d2562(saas);
-	generic_sha_digest<32> d2563{0x5b, 0xdc, 0xc1, 0x46, 0xbf, 0x60, 0x75, 0x4e, 0x6a, 0x04, 0x24, 0x26, 0x08, 0x95, 0x75, 0xc7,
-								 0x5a, 0x00, 0x3f, 0x08, 0x9d, 0x27, 0x39, 0x83, 0x9d, 0xec, 0x58, 0xb9, 0x64, 0xec, 0x38, 0x43};
-
-	dbg::println("d256:  {} {}", d256 == d2562, d2562 == d2563);
-
-	auto d122 = d256.data();
-
-	// ########################################################################
-
-	const std::array<std::string, 5> names{"Alice", "Bob", "Eve", "David", "Carl"};
-
-	dbg::println("Names: {}", names);
 	{
-		auto ip_addresses = get_ip_addresses("api.taboobuilder.com");
-		if (ip_addresses)
-		{
-			for (const auto& ip : *ip_addresses)
-			{
-				dbg::println("IP Address: {} {}", ip.ip, ip.version == IPVersion::IPV4 ? "ipv4" : "ipv6");
-			}
-		}
-		else
-		{
-			dbg::println("Error resolving domain: {}", ip_addresses.error());
-		}
-
-
-		_ = 0;
-	}
-
-	// ########################################################################
-	{
-		std::vector<u8> binr;
-		binr.resize(256);
-		for (int i = 0; i < binr.size(); ++i)
-			binr[i] = as<u8>(i);
-
-		test_span_operator spo(binr);
-
-		auto view = spo[128, 128];
-
-		_ = 0;
-	}
-	{
-		std::array<std::pair<std::string, std::string>, 4> hostnames{
+		std::vector<std::pair<std::string, std::string>> hostnames{
 		  //
-		  std::pair{"stun.fbsbx.com", "3478"},
-		  std::pair{"stun2.l.google.com", "19302"},
 		  std::pair{"stun.l.google.com", "19302"},
+		  std::pair{"stun2.l.google.com", "19302"},
+		  std::pair{"stun3.l.google.com", "19302"},
+		  std::pair{"stun4.l.google.com", "19302"},
 		  std::pair{"stun.cloudflare.com", "3478"},
+		  std::pair{"stun.fbsbx.com", "3478"},
 		};
 		u8 hostname_index = random::randu8(0, as<u8>(hostnames.size() - 1));
-		hostname_index    = 0;
+		// hostname_index    = 5;
 
 		std::string_view hostname = hostnames[hostname_index].first;
 		std::string_view service  = hostnames[hostname_index].second;
@@ -1016,7 +942,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		// ----------------------- Resolve host ---------------------------------
 		addrinfo hints{}, *result = nullptr;
 
-		int ip_ver = 0;
+		int ip_ver = 2;
 
 		if (ip_ver == 0)
 			hints.ai_family = AF_UNSPEC;
@@ -1069,7 +995,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			freeaddrinfo(result);
 		}
 
-		std::array<u8, 20> packet{
+		std::array<u8, 20> stunpacket{
 		  // STUN Message Type: 0x0001 (Binding Request)
 		  0x00,
 		  0x01,
@@ -1099,17 +1025,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		  0xBE,
 		  0x11,
 		  0x22,
-		  0x33
-		};
+		  0x33};
 
-		DWORD timeoutMs = 5000;
+		DWORD timeoutMs = 2500;
 		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
 
 
 		int sent = sendto(
 		  sock,
-		  reinterpret_cast<const char*>(packet.data()),
-		  static_cast<int>(packet.size()),
+		  reinterpret_cast<const char*>(stunpacket.data()),
+		  static_cast<int>(stunpacket.size()),
 		  0,
 		  result->ai_addr,
 		  static_cast<int>(result->ai_addrlen));
@@ -1153,14 +1078,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			dbg::println("STUN response too small: {}", incoming.size());
 		}
 
-		bitbuffer::bitreader packetx(incoming);
+		deckard::serializer packetx(incoming);
 
 		stun_header.type   = packetx.read<u16>();
 		stun_header.length = packetx.read<u16>();
 		stun_header.cookie = packetx.read<u32>();
 		packetx.read<u8, 12>(stun_header.transaction_id);
 
-		auto class_bits = [](u16 type) -> u16 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
+		auto class_bits = [](u16 type) -> u8 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
 
 		auto method_bits = [](u16 type) -> u16 { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); };
 
@@ -1213,13 +1138,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		packetx.reset(rest);
 
-		while (packetx.remaining_bytes() >= 4)
+		while (packetx.remaining() >= 4)
 		{
 			u16 attr_type = packetx.read<u16>();
 
 
-			u8 class_encoding = class_bits(attr_type);
-			u8 method         = method_bits(attr_type);
+			u8  class_encoding = class_bits(attr_type);
+			u16 method         = method_bits(attr_type);
 
 			dbg::println("  Attribute Class: 0b{:02b}", class_encoding);
 			switch (class_encoding)
@@ -1238,7 +1163,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			}
 
 			u16 attr_length = packetx.read<u16>();
-			if (packetx.remaining_bytes() < attr_length)
+			if (packetx.remaining() < attr_length)
 			{
 				dbg::println("Attribute length exceeds remaining packet size");
 				break;
@@ -1322,7 +1247,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				dbg::println("X-Port: {}, X-IP6: {}", xport, to_hex_string(std::span<u8>{xip6}, {.delimiter = ":", .show_hex = false}));
 			}
 
-			dbg::println("Remaining: {}", packetx.remaining_bytes());
+			dbg::println("Remaining: {}", packetx.remaining());
 			//// Align to 4-byte boundary
 			// size_t padding = (4 - (attr_length % 4)) % 4;
 			// if (padding > 0 && packetx.remaining() >= padding)
@@ -1334,77 +1259,39 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		// Another packet
 		{
 
-			std::string username("alice");
-			std::string realm("example.org");
-			std::string nonce("f2b3c4d5e6");
+			std::string username("");
+			std::string realm("realm");
+			std::string nonce;
+			std::string pass("pass");
+
 
 			std::vector<u8> packet{};
 
 
 			// STUN Header (20 bytes)
 			// Message Type
-			packet.push_back(0x01); // MSB of message typ)e
-			packet.push_back(0x01);
 
-			packet.push_back(0x00); // Message Length (to be filled later)
-			packet.push_back(0x00); // LSB of message length
+			//                   Y    X    1
+			u16 type = 0b0000'0000'0000'0001;     // Binding Request
+
+
+			packet.push_back((type >> 8) & 0xFF); // MSB of message typ)e
+			packet.push_back(type & 0xFF);
+
+			packet.push_back(0x00);               // Message Length (to be filled later)
+			packet.push_back(0x00);               // LSB of message length
 
 			// Magic Cookie
-			//packet.push_back(0x21);
-			//packet.push_back(0x12);
-			//packet.push_back(0xA4);
-			//packet.push_back(0x42);
+			packet.push_back(0x21);
+			packet.push_back(0x12);
+			packet.push_back(0xA4);
+			packet.push_back(0x42);
 
 			// Transaction ID (12 bytes)
 			for (int i = 0; i < 12; ++i)
 				packet.push_back(random::randu8());
 
-			// Add USERNAME attribute if provided
-			if (!username.empty())
-			{
-				// Attribute header: Type + Length
-				packet.push_back((0x0006 >> 8) & 0xFF);
-				packet.push_back(0x0006 & 0xFF);
-
-				uint16_t username_length = static_cast<uint16_t>(username.length());
-				packet.push_back((username_length >> 8) & 0xFF);
-				packet.push_back(username_length & 0xFF);
-
-				// Attribute value
-				for(auto &c: username)
-					packet.push_back(static_cast<u8>(c));
-
-				// Padding to 4-byte boundary
-				size_t padding = (4 - (username_length % 4)) % 4;
-				for (size_t i = 0; i < padding; ++i)
-				{
-					packet.push_back(0x00);
-				}
-			}
-
-			// Add REALM attribute if provided
-			if (!realm.empty())
-			{
-				// Attribute header: Type + Length
-				packet.push_back((0x0014 >> 8) & 0xFF);
-				packet.push_back(0x0014 & 0xFF);
-
-				uint16_t realm_length = static_cast<uint16_t>(realm.length());
-				packet.push_back((realm_length >> 8) & 0xFF);
-				packet.push_back(realm_length & 0xFF);
-
-				// Attribute value
-				for(auto& c : realm)
-					packet.push_back(static_cast<u8>(c));
-
-				// Padding to 4-byte boundary
-				size_t padding = (4 - (realm_length % 4)) % 4;
-				for (size_t i = 0; i < padding; ++i)
-				{
-					packet.push_back(0x00);
-				}
-			}
-
+#if 1
 			// Add NONCE attribute if provided
 			if (!nonce.empty())
 			{
@@ -1427,19 +1314,75 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					packet.push_back(0x00);
 				}
 			}
+#endif
 
+			// Add USERNAME attribute if provided
+			if (!username.empty())
 			{
+				// Attribute header: Type + Length
+				packet.push_back((0x0006 >> 8) & 0xFF);
+				packet.push_back(0x0006 & 0xFF);
+
+				uint16_t username_length = static_cast<uint16_t>(username.length());
+				packet.push_back((username_length >> 8) & 0xFF);
+				packet.push_back(username_length & 0xFF);
+
+				// Attribute value
+				for (auto& c : username)
+					packet.push_back(static_cast<u8>(c));
+
+				// Padding to 4-byte boundary
+				size_t padding = (4 - (username_length % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
+#if 0
+			// Add REALM attribute if provided
+			if (!realm.empty())
+			{
+				// Attribute header: Type + Length
+				packet.push_back((0x0014 >> 8) & 0xFF);
+				packet.push_back(0x0014 & 0xFF);
+
+				uint16_t realm_length = static_cast<uint16_t>(realm.length());
+				packet.push_back((realm_length >> 8) & 0xFF);
+				packet.push_back(realm_length & 0xFF);
+
+				// Attribute value
+				for(auto& c : realm)
+					packet.push_back(static_cast<u8>(c));
+
+				// Padding to 4-byte boundary
+				size_t padding = (4 - (realm_length % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
+#endif
+
+#if 0
+			{
+				std::array<u8, 16> key{0x84, 0x93, 0xfb, 0xc5, 0x3b, 0xa5, 0x82, 0xfb, 0x4c, 0x04, 0x4c, 0x45, 0x6b, 0xdc, 0x40, 0xeb};
+				uint16_t           keylen = static_cast<uint16_t>(key.size());
+
+				auto hmac = hmac::sha1::hash(key, std::span<u8>{packet});
+
+
+				// Message Integrity (HMAC-SHA1)
 				// Attribute header: Type + Length
 				packet.push_back((0x0008 >> 8) & 0xFF);
 				packet.push_back(0x0008 & 0xFF);
 
-				std::array<u8, 20> key{0x4a, 0x65, 0x66, 0x65};
-				uint16_t keylen = static_cast<uint16_t>(key.size());
-				packet.push_back((keylen >> 8) & 0xFF);
-				packet.push_back(keylen & 0xFF);
+				u16 hmaclen = static_cast<uint16_t>(hmac.data().size());
+				packet.push_back((hmaclen >> 8) & 0xFF);
+				packet.push_back(hmaclen & 0xFF);
 
-				// Attribute value
-				for (auto& c : key)
+
+
+				for (auto& c : hmac.data())
 					packet.push_back(static_cast<u8>(c));
 
 				// Padding to 4-byte boundary
@@ -1449,14 +1392,25 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					packet.push_back(0x00);
 				}
 			}
+#endif
+
+#if 0
+#endif
+			{
+				size_t padding = (4 - (packet.size() % 4)) % 4;
+				for (size_t i = 0; i < padding; ++i)
+				{
+					packet.push_back(0x00);
+				}
+			}
 
 			// Update message length in header
-			uint16_t total_length             = static_cast<uint16_t>(packet.size() - 20);
-			packet[2]     = (total_length >> 8) & 0xFF;
-			packet[3] = total_length & 0xFF;
+			uint16_t total_length = static_cast<uint16_t>(packet.size() - 20);
+			packet[2]             = (total_length >> 8) & 0xFF;
+			packet[3]             = total_length & 0xFF;
 
 			// Create final array with actual size
-        
+
 
 			sent = sendto(
 			  sock,
@@ -1478,11 +1432,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			// ----------------------- Set receive timeout (5 seconds) ---------------
 			// ----------------------- Receive reply ---------------------------------
+			std::vector<u8> incoming2{};
+			incoming2.resize(1024);
 
-			std::vector<u8> incoming{};
-			incoming.resize(1024);
-
-			len = recvfrom(sock, reinterpret_cast<char*>(incoming.data()), static_cast<int>(incoming.size()), 0, nullptr, nullptr);
+			len = recvfrom(sock, reinterpret_cast<char*>(incoming2.data()), static_cast<int>(incoming2.size()), 0, nullptr, nullptr);
 
 			if (len == SOCKET_ERROR)
 			{
@@ -1492,23 +1445,27 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			{
 
 				dbg::println("received {} bytes:", len);
-				incoming.resize(len);
+				incoming2.resize(len);
 
-				for (const auto& c : incoming)
+				for (const auto& c : incoming2)
 					dbg::print("{:02X} ", c);
 				dbg::println("\n\n");
 			}
 		}
 
+		// 01 01 00 18 21 12 A4 42 DD 0C 8D CE 70 1F 76 17 54 5A B3 0C 00 01 00 08 00 01 EE 6E D5 98 A1 0A 00 20 00 08 00 01 CF 7C F4 8A
+		// 05 48
+
+
 		// PAcket 2:
-		// 01 01 
-		// 00 18 
-		// 21 12 A4 42 
-		// DE AD BE EF 69 CA FE BA BE 11 22 33 
-		// 
+		// 01 01
+		// 00 18
+		// 21 12 A4 42
+		// DE AD BE EF 69 CA FE BA BE 11 22 33
+		//
 		// 00 01  Mapped address
-		// 00 08 
-		// 00 01 DC 6C D5 98 A1 0A 00 20 00 08 00 01 FD 7E F4 8A 05 48 
+		// 00 08
+		// 00 01 DC 6C D5 98 A1 0A 00 20 00 08 00 01 FD 7E F4 8A 05 48
 
 		// 2a00:1678:2470:38:172e:6bff:5dbb:b0ae
 
@@ -1516,7 +1473,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		// Cloudflare
 		// 01 01									0x0101 STUN response
 		// 00 18									Length
-		// 21 12 A4 42								MAGIC cookie
+		// 21 12 A4 42						ipv6.src == fd7d:76ee:e68f:a993:977:ca24:f8af:5038		MAGIC cookie
 		// DE AD BE EF 69 CA FE BA BE 11 22 33		Transaction ID (same as sent)
 		//
 		// 00 20			XOR-mapped-address
@@ -1750,93 +1707,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		freeaddrinfo(result);
 	}
 
-	// ########################################################################
 
-	std::array<u8, 256> binr;
-	for (int i = 0; i < binr.size(); ++i)
-	{
-		binr[i] = as<u8>(i);
-	}
-
-	std::filesystem::path binfile("data/../256.bin");
-
-	auto res = file::v2::write(binfile, binr, true);
-	if (res)
-		dbg::println("binr ok {}", *res);
-	else
-		dbg::println("{}", res.error());
-
-
-	std::span<u8> view{};
-
-	HANDLE handle = CreateFileW(
-	  binfile.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (handle == INVALID_HANDLE_VALUE)
-	{
-		dbg::println("Could not open file: {}", system::from_wide(binfile.wstring().c_str()));
-	}
-
-	u64 size = file::v2::filesize(binfile).value_or(0);
-
-
-	HANDLE mapping = CreateFileMapping(handle, 0, PAGE_READWRITE, 0, 0, nullptr);
-	if (mapping == nullptr)
-	{
-		FlushViewOfFile(view.data(), 0);
-		UnmapViewOfFile(view.data());
-		view = {};
-	}
-
-
-	u8* raw_address = as<u8*>(MapViewOfFile(mapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0));
-	if (raw_address == nullptr)
-	{
-		FlushViewOfFile(view.data(), 0);
-		UnmapViewOfFile(view.data());
-		view = {};
-	}
-	else
-	{
-		// Resize
-		u32 newsize = 512;
-		SetFilePointerEx(
-		  handle,
-		  LARGE_INTEGER{
-			.LowPart  = newsize,
-			.HighPart = 0,
-		  },
-		  nullptr,
-		  FILE_BEGIN);
-		SetEndOfFile(handle);
-
-		LARGE_INTEGER filesize{0};
-		GetFileSizeEx(handle, &filesize);
-
-		CloseHandle(handle);
-		handle = nullptr;
-
-		CloseHandle(mapping);
-		mapping = nullptr;
-
-		size = filesize.LowPart;
-		view = std::span<u8>{as<u8*>(raw_address), size};
-
-
-		//
-		view[0] = random::randu8();
-
-
-		if (0 == FlushViewOfFile(view.data(), 0))
-		{
-			dbg::println("flush :{}", system::get_windows_error(GetLastError()));
-		}
-		if (0 == UnmapViewOfFile(view.data()))
-		{
-			dbg::println("unmap: {}", system::get_windows_error(GetLastError()));
-		}
-	}
-
-	_ = 0;
 
 	// ########################################################################
 
@@ -1922,7 +1793,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	random::digit(spass, 32);
 
-	auto ret = file::v2::write("test_file.txt", spass, true);
+	auto ret = file::write("test_file.txt", spass, true);
 
 	buffer.fill(0);
 
@@ -1930,7 +1801,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	smallbuf.resize(16);
 	std::string_view smallbufv{smallbuf};
 
-	ret = file::v2::read("test_file.txt", smallbuf, 16);
+	ret = file::read("test_file.txt", smallbuf, 16);
 
 	dbg::println("before thread");
 
@@ -2017,7 +1888,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	pthread2.join();
 	pthread3.join();
 	dbg::println("log_indeX: {}", log_index.load() - 1);
-	ret = file::v2::write("log.txt", log_buffer, log_index.load() - 1, true);
+	ret = file::write("log.txt", log_buffer, log_index.load() - 1, true);
 
 	_ = 0;
 

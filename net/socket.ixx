@@ -5,6 +5,7 @@
 export module deckard.net:socket;
 
 import :address;
+import :ip;
 
 import std;
 import deckard.scope_exit;
@@ -15,10 +16,9 @@ import deckard.win32;
 
 namespace deckard::net
 {
-	// TODO: TLSE
 	using namespace deckard::system;
 
-	//
+
 
 
 	sockaddr_in address_to_sockaddr(address addr)
@@ -101,12 +101,12 @@ namespace deckard::net
 	}
 
 	//
-	class socket
+	class socket_old
 	{
 	public:
-		socket() = default;
+		socket_old() = default;
 
-		socket(transport proto, bool* ok)
+		socket_old(transport proto, bool* ok)
 		{
 			if (proto == transport::nul)
 			{
@@ -180,9 +180,9 @@ namespace deckard::net
 			return true;
 		}
 
-		std::optional<socket> accept()
+		std::optional<socket_old> accept()
 		{
-			socket ret;
+			socket_old ret;
 			SOCKET acceptsocket = INVALID_SOCKET;
 
 			acceptsocket = ::accept(m_socket, (SOCKADDR*)&ret.m_sockaddr, &ret.m_addr_size);
