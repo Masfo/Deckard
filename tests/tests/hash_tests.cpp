@@ -79,7 +79,8 @@ TEST_CASE("HMAC-SHA256 digests", "[hmac][sha256][hash]")
 		std::array<u8, 131> key{};
 		key.fill(0xAA);
 
-		std::string data("This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm."sv);
+		std::string data(
+		  "This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm."sv);
 
 		auto digest = hmac::sha256::hash(key, data);
 
@@ -94,7 +95,9 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 	SECTION("Jefe key")
 	{
 		auto digest = hmac::sha512::quickhash("Jefe"sv, "what do ya want for nothing?"sv);
-		CHECK(digest == "164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737"s);
+		CHECK(
+		  digest ==
+		  "164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737"s);
 	}
 
 	SECTION("0xaa repeated 131 times - Data 54")
@@ -106,7 +109,8 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 
 		auto digest = hmac::sha512::hash(key, data);
 
-		sha512::digest correct_digest("80b24263c7c1a3ebb71493c1dd7be8b49b46d1f41b4aeec1121b013783f8f3526b56d037e05f2598bd0fd2215d6a1e5295e64f73f63f0aec8b915a985d786598");
+		sha512::digest correct_digest("80b24263c7c1a3ebb71493c1dd7be8b49b46d1f41b4aeec1121b013783f8f3526b56d037e05f2598bd0fd2215d6a1e5295e6"
+									  "4f73f63f0aec8b915a985d786598");
 
 		CHECK(digest == correct_digest);
 	}
@@ -121,7 +125,8 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 
 		auto digest = hmac::sha512::hash(key, data);
 
-		sha512::digest correct_digest("e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de15134676fb6de0446065c97440fa8c6a58");
+		sha512::digest correct_digest("e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de151346"
+									  "76fb6de0446065c97440fa8c6a58");
 
 		CHECK(digest == correct_digest);
 	}
@@ -183,7 +188,8 @@ TEST_CASE("SHA256 digests", "[sha][hash]")
 	CHECK(correct_abc_digest == hash256_str);
 
 
-	sha512::digest correct_512_digest{"cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"};
+	sha512::digest correct_512_digest{
+	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"};
 
 	sha512::digest hash512_str(
 	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"sv);
@@ -267,4 +273,44 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 				"d8cc09b");
 	}
 #endif
+}
+
+TEST_CASE("SHA1/SHA256/SHA512 digest formatting", "[sha1][sha256][sha512][hash]")
+{
+	SECTION("sha1 digest")
+	{
+		const sha1::digest correct_abc_digest{"a9993e364706816aba3e25717850c26c9cd0d89d"};
+
+		sha1::hasher h;
+		h.update("abc"sv);
+		auto abc_digest = h.finalize();
+
+		CHECK(abc_digest == correct_abc_digest);
+		CHECK(std::format("{}", abc_digest) == std::format("{}", correct_abc_digest));
+	}
+
+	SECTION("sha256 digest")
+	{
+		sha256::digest correct_abc_digest{"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"};
+
+		sha256::hasher h;
+		h.update("abc"sv);
+		auto abc_digest = h.finalize();
+
+		CHECK(abc_digest == correct_abc_digest);
+		CHECK(std::format("{}", abc_digest) == std::format("{}", correct_abc_digest));
+	}
+
+	SECTION("sha512 digest")
+	{
+		sha512::digest correct_abc_digest{"ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
+										  "454d4423643ce80e2a9ac94fa54ca49f"};
+
+		sha512::hasher h;
+		h.update("abc"sv);
+		auto abc_digest = h.finalize();
+
+		CHECK(abc_digest == correct_abc_digest);
+		CHECK(std::format("{}", abc_digest) == std::format("{}", correct_abc_digest));
+	}
 }

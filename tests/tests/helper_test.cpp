@@ -228,6 +228,18 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(first == real);
 	}
 
+	SECTION("head")
+	{
+		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::vector<u32> real{10, 20, 30, 40, 50, 60, 70, 80};
+
+		auto first = head(input, 10);
+		CHECK(first.size() == real.size());
+		CHECK(first == real);
+
+		CHECK(head(input, 0).empty());
+	}
+
 	SECTION("head-array")
 	{
 		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
@@ -246,6 +258,21 @@ TEST_CASE("helpers", "[helpers]")
 		auto first = tail(input, 3);
 		CHECK(first.size() == real.size());
 		CHECK(first == real);
+
+		CHECK(tail(input, 0).empty());
+
+	}
+
+
+	SECTION("tail")
+	{
+		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
+		std::vector<u32> real{10, 20, 30, 40, 50, 60, 70, 80};
+
+		auto first = tail(input, 10);
+		CHECK(first.size() == real.size());
+		CHECK(first == real);
+
 	}
 
 	SECTION("tail-array")
@@ -257,6 +284,7 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(first.size() == real.size());
 		CHECK(first == real);
 	}
+
 
 	SECTION("last")
 	{
@@ -310,8 +338,7 @@ TEST_CASE("helpers", "[helpers]")
 	{
 		std::string input("ABC123DEF");
 
-		using enum string::option;
-		input = include_only(input, d);
+		input = include_only(input, string::option::d);
 		CHECK(input == "123");
 	}
 
@@ -727,6 +754,11 @@ TEST_CASE("helpers", "[helpers]")
 			std::string input("554333221");
 			auto        res = unique(input);
 			CHECK(res == "54321"s);
+		}
+		{
+			std::string input("554333221");
+			auto        res = unique<i32>(input);
+			CHECK(res == 5);
 		}
 	}
 }
