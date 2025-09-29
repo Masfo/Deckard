@@ -176,16 +176,18 @@ export namespace deckard::dbg
 		return std::to_string(strace[index]);
 	}
 
-	void stacktrace(std::string_view file_to_ignore = __FILE__)
+	void stacktrace()
 	{
 		auto traces = std::stacktrace::current();
 
 		for (const auto& traceline : traces)
 		{
+			#ifdef _DEBUG
 			if (traceline.source_file().contains("catch2"))
 				continue;
+			#endif
 
-			if (traceline.source_file().contains(file_to_ignore))
+			if (traceline.source_file().contains(std::string_view{__FILE__}))
 				continue;
 
 			dbg::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
