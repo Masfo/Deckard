@@ -1,4 +1,4 @@
-﻿export module deckard.serializer;
+export module deckard.serializer;
 
 import std;
 import deckard.types;
@@ -316,7 +316,7 @@ namespace deckard
 		void read(std::span<T> output, u32 bits)
 		{
 
-			u32 bytecount = read<u32>();
+			u32 bytecount = bits / 8;
 
 			const u32 count = bits == 0 ? bytecount : bits / 8;
 
