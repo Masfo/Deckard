@@ -1,9 +1,12 @@
 export module deckard.commandline;
 
 import std;
+import deckard.types;
 import deckard.stringhelper;
 import deckard.utf8;
 import deckard.as;
+
+using namespace std::literals::string_view_literals;
 
 namespace deckard
 {
@@ -32,12 +35,18 @@ namespace deckard
 		std::unordered_set<std::string>              flags;
 	public:
 
+		void flag(std::string_view name) 
+		{
+			//
+		}
+
 	};
 
 	export void test_cmdliner() 
 	{
 		//
-
+		std::string input("XYZ -v -X "sv);
+		_;
 	}
 
 
