@@ -232,11 +232,6 @@ namespace deckard
 		template<typename T>
 		void write(std::span<T> input, u32 size = 0)
 		{
-			u32 count = size == 0 ? as<u32>(input.size()) : size;
-
-
-			write(count);
-
 			for (const u8 c : input)
 				write_byte(c);
 		}
@@ -281,6 +276,7 @@ namespace deckard
 
 		void write(std::string_view input)
 		{
+			write<u32>(input.size());
 			write(std::span{input});
 		}
 

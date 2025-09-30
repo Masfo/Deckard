@@ -561,7 +561,7 @@ export namespace deckard::string
 
 				size_t start      = input_index;
 
-				while (input[input_index] != read_until)
+				while (input_index < input.size() and input[input_index] != read_until)
 					input_index += 1;
 
 
