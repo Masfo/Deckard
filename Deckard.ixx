@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 #include <commctrl.h>
 #include <cstdio>
@@ -9,21 +9,20 @@
 
 export module deckard;
 
-
-export import deckard.debug;
-export import deckard.log;
-export import deckard.assert;
-export import deckard.types;
 export import deckard.as;
-export import deckard.helpertypes;
-export import deckard.uuid;
+export import deckard.assert;
+export import deckard.debug;
 export import deckard.enums;
+export import deckard.helpertypes;
+export import deckard.log;
+export import deckard.types;
+export import deckard.uuid;
 
 // File
-export import deckard.filemonitor;
-export import deckard.file;
-export import deckard.ini;
 export import deckard.config;
+export import deckard.file;
+export import deckard.filemonitor;
+export import deckard.ini;
 
 
 // Math
@@ -31,27 +30,28 @@ export import deckard.math;
 
 
 // Utils
+export import deckard.arrays;
 export import deckard.base32;
 export import deckard.base64;
-export import deckard.helpers;
-export import deckard.utils.hash;
-export import deckard.scope_exit;
-export import deckard.uuid;
-export import deckard.sha;
-export import deckard.hmac;
-export import deckard.cpuid;
-export import deckard.system;
-export import deckard.ringbuffer;
-export import deckard.random;
-export import deckard.function_ref;
-export import deckard.serializer;
-export import deckard.arrays;
 export import deckard.bigint;
+export import deckard.commandline;
+export import deckard.cpuid;
+export import deckard.function_ref;
 export import deckard.grid;
-export import deckard.stringhelper;
-export import deckard.timers;
+export import deckard.helpers;
+export import deckard.hmac;
+export import deckard.random;
+export import deckard.ringbuffer;
 export import deckard.sbo;
+export import deckard.scope_exit;
+export import deckard.serializer;
+export import deckard.sha;
+export import deckard.stringhelper;
+export import deckard.system;
 export import deckard.threadutil;
+export import deckard.timers;
+export import deckard.utils.hash;
+export import deckard.uuid;
 
 #ifdef __cpp_pp_embed
 #error("Use embed on something");

@@ -1,4 +1,4 @@
-﻿
+
 cmake_minimum_required (VERSION 3.29.0)
 
 
@@ -226,45 +226,45 @@ set(DECKARD_SRCS
 
 
 		# Utils
+		utils/arrays.ixx
 		utils/base32.ixx
 		utils/base64.ixx
-		utils/scope_exit.ixx
+		utils/commandline.ixx
+		utils/cpuid.ixx
+		utils/function_ref.ixx
+		utils/grid.ixx
 		utils/hash.ixx
 		utils/helpers.ixx
-		utils/uuid.ixx
-		utils/sha.ixx
 		utils/hmac.ixx
-		utils/cpuid.ixx
-		utils/ringbuffer.ixx
-		utils/serializer.ixx
 		utils/random.ixx
-		utils/function_ref.ixx
-		utils/arrays.ixx
-		utils/grid.ixx
-		utils/commandline.ixx
-		utils/stringhelper.ixx
-		utils/timers.ixx
+		utils/ringbuffer.ixx
+		utils/scope_exit.ixx
+		utils/serializer.ixx
+		utils/sha.ixx
 		utils/smallbufferobject.ixx
+		utils/stringhelper.ixx
 		utils/threadutils.ixx
+		utils/timers.ixx
+		utils/uuid.ixx
 
 		# Unicode
 		unicode/utf8.ixx
+		unicode/utf8_ascii.ixx
+		unicode/utf8_basic_characters.ixx
 		unicode/utf8_codepoints.ixx
+		unicode/utf8_decode.ixx
 		unicode/utf8_xid.ixx
 		unicode/utf8_xid_tables.ixx
-		unicode/utf8_ascii.ixx
 		unicode/utf8file.ixx
 		unicode/utf8string.ixx
 		unicode/utf8view.ixx
-		unicode/utf8_decode.ixx
-		unicode/utf8_basic_characters.ixx
 
 		# Graph
-		graphs/graph.ixx
 		graphs/avltree.ixx
 		graphs/binarytree.ixx
-		graphs/undirected.ixx
 		graphs/directed.ixx
+		graphs/graph.ixx
+		graphs/undirected.ixx
 
 
 
@@ -282,28 +282,27 @@ set(DECKARD_SRCS
 		# Vulkan
 		app/vulkan.ixx
 
+		app/vulkan/command_buffer.ixx
 		app/vulkan/core.ixx
-
-		app/vulkan/helpers.ixx
-		app/vulkan/instance.ixx
+		app/vulkan/debug.ixx
 		app/vulkan/device.ixx
+		app/vulkan/fence.ixx
+		app/vulkan/helpers.ixx
+		app/vulkan/images.ixx
+		app/vulkan/instance.ixx
+		app/vulkan/semaphore.ixx
+		app/vulkan/shader.ixx
 		app/vulkan/surface.ixx
 		app/vulkan/swapchain.ixx
-		app/vulkan/command_buffer.ixx
-		app/vulkan/fence.ixx
-		app/vulkan/semaphore.ixx
-		app/vulkan/images.ixx
 		app/vulkan/texture.ixx
-		app/vulkan/debug.ixx
-		app/vulkan/shader.ixx
 
 
 		# Types
-		types/types.ixx
 		types/as.ixx
+		types/bigint.ixx
 		types/enum_flags.ixx
 		types/helpertypes.ixx
-		types/bigint.ixx
+		types/types.ixx
 		types/uint128.ixx
 
 

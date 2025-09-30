@@ -1,4 +1,4 @@
-﻿export module deckard.commandline;
+export module deckard.commandline;
 
 import std;
 import deckard.stringhelper;
@@ -27,14 +27,19 @@ namespace deckard
 
 	class commandlineparser
 	{
-	public:
 	private:
 		std::vector<std::string> args;
 		std::unordered_map<std::string, std::string> options;
 		std::unordered_set<std::string>              flags;
+	public:
 
 	};
-	
+
+	export void test_cmdliner() 
+	{
+		//
+
+	}
 
 
 } // namespace deckard
