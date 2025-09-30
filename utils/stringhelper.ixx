@@ -230,7 +230,7 @@ export namespace deckard::string
 	}
 
 	// split
-	template<typename T=std::string_view>
+	template<typename T = std::string_view>
 	std::vector<T> split(std::string_view strv, std::string_view delims = " ")
 	{
 		std::vector<T> output;
@@ -420,9 +420,7 @@ export namespace deckard::string
 				added = false;
 				neg   = false;
 				acc   = 0;
-
 			}
-
 		}
 
 
@@ -437,7 +435,7 @@ export namespace deckard::string
 			neg   = false;
 			acc   = 0;
 		}
-		
+
 		assert::check(not added, std::format("\"{}\" does not contain a number", str));
 		return ret;
 	}
@@ -536,6 +534,138 @@ export namespace deckard::string
 
 
 		return ret;
+	}
+
+	export auto simple_pattern_match(std::string_view expression, std::string_view input) -> std::vector<std::string_view>
+	{
+		std::vector<std::string_view> ret;
+
+		size_t expression_index = 0;
+		size_t input_index      = 0;
+
+		while (expression_index < expression.size() and input_index < input.size())
+		{
+
+			if (expression[expression_index] == input[input_index])
+			{
+				expression_index += 1;
+				input_index += 1;
+				continue;
+			}
+
+			if (expression[expression_index] == '?')
+			{
+				expression_index += 1;
+
+				char read_until = expression_index < expression.size() ? expression[expression_index] : ' ';
+
+				size_t start      = input_index;
+
+				while (input[input_index] != read_until)
+					input_index += 1;
+
+
+				std::string_view token = input.substr(start, input_index - start);
+				ret.emplace_back(token);
+			}
+		}
+		return ret;
+	}
+
+	export template<typename T1, typename T2>
+	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<T1, T2>
+	{
+		auto result = simple_pattern_match(expr, input);
+
+		assert::check(result.size() >= 2, std::format("Expected pattern to match at least 2, found {}", result.size()));
+
+		T1 t1{};
+		T2 t2{};
+
+		// T1
+		if constexpr (std::is_integral_v<T1>)
+			t1 = to_number<T1>(result[0]);
+		if constexpr (std::is_convertible_v<T1, std::string>)
+			t1 = result[0];
+
+		// T2
+		if constexpr (std::is_integral_v<T2>)
+			t2 = to_number<T2>(result[1]);
+		if constexpr (std::is_convertible_v<T2, std::string>)
+			t2 = result[1];
+
+		return {t1, t2};
+	}
+
+	export template<typename T1, typename T2, typename T3>
+	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<T1, T2, T3>
+	{
+		auto result = simple_pattern_match(expr, input);
+
+		assert::check(result.size() >= 3, std::format("Expected pattern to match at least 3, found {}", result.size()));
+
+		T1 t1{};
+		T2 t2{};
+		T3 t3{};
+
+		// T1
+		if constexpr (std::is_integral_v<T1>)
+			t1 = to_number<T1>(result[0]);
+		if constexpr (std::is_convertible_v<T1, std::string>)
+			t1 = result[0];
+
+		// T2
+		if constexpr (std::is_integral_v<T2>)
+			t2 = to_number<T2>(result[1]);
+		if constexpr (std::is_convertible_v<T2, std::string>)
+			t2 = result[1];
+
+		// T2
+		if constexpr (std::is_integral_v<T3>)
+			t3 = to_number<T3>(result[2]);
+		if constexpr (std::is_convertible_v<T3, std::string>)
+			t3 = result[2];
+
+		return {t1, t2, t3};
+	}
+
+	export template<typename T1, typename T2, typename T3, typename T4>
+	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<T1, T2, T3, T4>
+	{
+		auto result = simple_pattern_match(expr, input);
+
+		assert::check(result.size() >= 4, std::format("Expected pattern to match at least 4, found {}", result.size()));
+
+		T1 t1{};
+		T2 t2{};
+		T3 t3{};
+		T4 t4{};
+
+		// T1
+		if constexpr (std::is_integral_v<T1>)
+			t1 = to_number<T1>(result[0]);
+		if constexpr (std::is_convertible_v<T1, std::string>)
+			t1 = result[0];
+
+		// T2
+		if constexpr (std::is_integral_v<T2>)
+			t2 = to_number<T2>(result[1]);
+		if constexpr (std::is_convertible_v<T2, std::string>)
+			t2 = result[1];
+
+		// T3
+		if constexpr (std::is_integral_v<T3>)
+			t3 = to_number<T3>(result[2]);
+		if constexpr (std::is_convertible_v<T3, std::string>)
+			t3 = result[2];
+
+		// T4
+		if constexpr (std::is_integral_v<T4>)
+			t4 = to_number<T4>(result[3]);
+		if constexpr (std::is_convertible_v<T4, std::string>)
+			t4 = result[3];
+
+		return {t1, t2, t3, t4};
 	}
 
 } // namespace deckard::string
