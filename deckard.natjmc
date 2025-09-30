@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <NonUserCode xmlns="http://schemas.microsoft.com/vstudio/debugger/jmc/2015">
 
 	<!-- Files -->
@@ -14,7 +14,7 @@
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
 	<File Name="_helpers.ixx"/>
-	<File Name="stringhelper.ixx"/>
+	<File Name="_stringhelper.ixx"/>
 	<File Name="bitbuffer.ixx"/>
 
 

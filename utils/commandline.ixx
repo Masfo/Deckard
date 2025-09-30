@@ -2,6 +2,7 @@ export module deckard.commandline;
 
 import std;
 import deckard.stringhelper;
+import deckard.utf8;
 import deckard.as;
 
 namespace deckard
@@ -23,9 +24,7 @@ namespace deckard
 	 * 
 	*/
 
-
-
-	class commandlineparser
+	class cli
 	{
 	private:
 		std::vector<std::string> args;
