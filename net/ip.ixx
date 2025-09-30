@@ -1,4 +1,8 @@
-﻿export module deckard.net:ip;
+module;
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+export module deckard.net:ip;
 
 import deckard.types;
 import deckard.as;
@@ -11,6 +15,66 @@ namespace deckard::net
 {
 	static constexpr u8 MAX_IPV4_ADDRESS_STR_LEN = 15;
 	static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
+
+	export enum class IPVersion : u32
+	{
+		IPV4 = 4,
+		IPV6 = 6,
+	};
+
+
+
+	export struct IPAddressResult
+	{
+		std::string ip;
+		IPVersion   version{IPVersion::IPV4};
+	};
+
+	export std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const std::string_view domain) noexcept
+	{
+		struct addrinfo  hints{};
+		struct addrinfo* result = nullptr;
+
+		hints.ai_family   = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags    = 0;
+		hints.ai_protocol = 0;
+
+		int status = getaddrinfo(domain.data(), nullptr, &hints, &result);
+		if (status != 0)
+			return std::unexpected(std::format("getaddrinfo: {} ({})", domain, WSAGetLastError()));
+
+		std::vector<IPAddressResult> addresses;
+
+		for (struct addrinfo* p = result; p != nullptr; p = p->ai_next)
+		{
+			char ip_str[INET6_ADDRSTRLEN] = {0};
+
+			if (p->ai_family == AF_INET)
+			{
+				// IPv4
+				struct sockaddr_in* addr_in = reinterpret_cast<struct sockaddr_in*>(p->ai_addr);
+				if (inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, sizeof(ip_str)))
+				{
+					addresses.push_back({std::string(ip_str), IPVersion::IPV4});
+				}
+			}
+			else if (p->ai_family == AF_INET6)
+			{
+				// IPv6
+				struct sockaddr_in6* addr_in6 = reinterpret_cast<struct sockaddr_in6*>(p->ai_addr);
+				if (inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, sizeof(ip_str)))
+				{
+					addresses.push_back({std::string(ip_str), IPVersion::IPV6});
+				}
+			}
+		}
+
+		freeaddrinfo(result);
+		return addresses;
+	}
+
+
 
 	// api.ipify.org
 	// 
