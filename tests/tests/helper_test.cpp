@@ -76,6 +76,12 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted[0] == "aa");
 		CHECK(splitted[1] == "bb");
 		CHECK(splitted[2] == "cc");
+
+
+		input = "rrgwru, gwubwg, wgbbw, bwb, ugrgw, uwgguuw, wuggb, bgwb, ubrr, grruuub, rwbwgbub, wwwggg, uuw";
+		splitted = split(input, ", ");
+		CHECK(splitted.size() == 13);
+
 	}
 
 
@@ -161,6 +167,8 @@ TEST_CASE("helpers", "[helpers]")
 
 		i64 t1 = ints<1>("hello 123");
 		CHECK(t1 == 123);
+
+
 	}
 
 	SECTION("ints/dynamic")
@@ -172,6 +180,22 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(ps[2] == 34);
 		CHECK(ps[3] == -45);
 		CHECK(ps[4] == 56);
+
+
+		std::string csv("1,5,9,7,5,6,7,8,9");
+		auto        pcsv = ints(csv);
+		CHECK(pcsv.size() == 9);
+		CHECK(pcsv[0] == 1);
+		CHECK(pcsv[1] == 5);
+		CHECK(pcsv[2] == 9);
+		CHECK(pcsv[3] == 7);
+		CHECK(pcsv[4] == 5);
+		CHECK(pcsv[5] == 6);
+		CHECK(pcsv[6] == 7);
+		CHECK(pcsv[7] == 8);
+		CHECK(pcsv[8] == 9);
+
+
 	}
 
 
@@ -771,6 +795,14 @@ TEST_CASE("helpers", "[helpers]")
 			auto        res = unique<i32>(input);
 			CHECK(res == 5);
 		}
+	}
+
+	SECTION("match")
+	{
+		std::string input("turn left and rotate 180");
+		std::string expr("tur? left and rot?te *");
+
+		CHECK(match(expr, input) == true);
 	}
 
 	SECTION("simple-pattern-match")
