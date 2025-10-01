@@ -834,6 +834,16 @@ struct STUNHeader
 	u16 method_bits() const { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); }
 };
 
+// Frequency map
+template<typename T>
+std::unordered_map<T, int> freqMap(const std::vector<T>& v)
+{
+	std::unordered_map<T, int> freq;
+	for (auto& x : v)
+		freq[x]++;
+	return freq;
+}
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -851,6 +861,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	std::string test_string2("t 123 y DOOR XXX");                    // shouldn't read XXX
 
 	auto parse_result = string::simple_pattern_match(test_expr, test_string);
+
 
 	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
@@ -885,6 +896,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	
+
 
 
 

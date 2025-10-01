@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 
 export module deckard.types;
@@ -60,6 +60,12 @@ export namespace deckard
 	constexpr f32 operator""_f32(const u64 value) { return static_cast<f32>(value); }
 
 	constexpr f64 operator""_f64(const u64 value) { return static_cast<f64>(value); }
+
+	template<class... Ts>
+	struct overloads : Ts...
+	{
+		using Ts::operator()...;
+	};
 
 	template<typename T>
 	concept arithmetic = std::is_arithmetic_v<T>;
