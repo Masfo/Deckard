@@ -854,6 +854,40 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
+	// ########################################################################
+
+	using namespace deckard::monocypher;
+	
+	publickey my_publickey;
+	privatekey my_privatekey;
+	sharedkey my_sharedkey;
+
+	publickey  their_publickey;
+	privatekey their_privatekey;
+	sharedkey  their_sharedkey;
+
+	create_private_and_public_keys(my_publickey, my_privatekey);
+	create_private_and_public_keys(their_publickey, their_privatekey);
+
+	dbg::println("My Pub     : {}", my_publickey.key);
+	dbg::println("My Priv    : {}", my_privatekey.key);
+
+	dbg::println("Their Pub  : {}", their_publickey.key);
+	dbg::println("Their Priv : {}", their_privatekey.key);
+
+	create_shared_key(my_sharedkey, my_privatekey, their_publickey);
+	create_shared_key(their_sharedkey, their_privatekey, my_publickey);
+
+	dbg::println("My shared    : {}", my_sharedkey.key);
+	dbg::println("Their shared : {}", their_sharedkey.key);
+
+
+
+
+	
+
+
+
 
 	_ = 0;
 
