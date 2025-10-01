@@ -366,6 +366,19 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(input == "123");
 	}
 
+	SECTION("slice")
+	{
+		std::vector<int> v = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+		std::span<int>  sp(v);
+
+
+		auto s1 = slice(sp, 2, 5);   // {2, 3, 4}
+		auto s2 = slice(sp, 3);      // {3, 4, 5, 6, 7, 8, 9}
+		auto s3 = slice(sp, -3, -1); // {7, 8}
+		auto s4 = slice(sp, 0, -2);  // {0, 1, 2, 3, 4, 5, 6, 7}
+	}
+
+
 	SECTION("try_to_string")
 	{
 		auto a = try_to_string(0xffff, 16);
