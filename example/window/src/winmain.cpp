@@ -893,6 +893,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	dbg::println("Their shared : {}", their_sharedkey.key);
 
 
+	create_session_key(my_sharedkey, my_privatekey, their_publickey);
 
 
 	
