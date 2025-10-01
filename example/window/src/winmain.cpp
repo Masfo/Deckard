@@ -787,64 +787,6 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 	return pkt;
 }
 
-enum class IPVersion : u32
-{
-	IPV4 = 4,
-	IPV6 = 6,
-};
-
-struct IPAddressResult
-{
-	std::string ip;
-	IPVersion   version{IPVersion::IPV4};
-};
-
-std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const std::string& domain) noexcept
-{
-	struct addrinfo  hints{};
-	struct addrinfo* result = nullptr;
-
-	hints.ai_family   = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags    = 0;
-	hints.ai_protocol = 0;
-
-	int status = getaddrinfo(domain.c_str(), nullptr, &hints, &result);
-	if (status != 0)
-		return std::unexpected(std::format("getaddrinfo: {} ({})", domain, WSAGetLastError()));
-
-	std::vector<IPAddressResult> addresses;
-
-	for (struct addrinfo* p = result; p != nullptr; p = p->ai_next)
-	{
-		char ip_str[INET6_ADDRSTRLEN] = {0};
-
-		if (p->ai_family == AF_INET)
-		{
-			// IPv4
-			struct sockaddr_in* addr_in = reinterpret_cast<struct sockaddr_in*>(p->ai_addr);
-			if (inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, sizeof(ip_str)))
-			{
-				addresses.push_back({std::string(ip_str), IPVersion::IPV4});
-			}
-		}
-		else if (p->ai_family == AF_INET6)
-		{
-			// IPv6
-			struct sockaddr_in6* addr_in6 = reinterpret_cast<struct sockaddr_in6*>(p->ai_addr);
-			if (inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, sizeof(ip_str)))
-			{
-				addresses.push_back({std::string(ip_str), IPVersion::IPV6});
-			}
-		}
-	}
-
-	freeaddrinfo(result);
-	return addresses;
-}
-
-
-
 /*
 * The message type field is decomposed further into the following
    structure:
@@ -916,18 +858,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	std::string test_string("turn off 123,456 through 789,012 XXX"); // shouldn't read XXX
 
 	std::string test_expr2("t ? y ?");
-	std::string test_string2("t 123 y DOOR XXX");    // shouldn't read XXX
+	std::string test_string2("t 123 y DOOR XXX");                    // shouldn't read XXX
 
-	auto        parse_result = string::simple_pattern_match(test_expr, test_string);
-
-	const auto [x,y] = string::simple_pattern_match<u32,std::string>(test_expr2, test_string2);
-	// ########################################################################
-
-	std::string expr("");
+	auto parse_result = string::simple_pattern_match(test_expr, test_string);
 
 
-
-
+	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
 
 
@@ -935,20 +871,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	auto ip_addresses = get_ip_addresses("api.taboobuilder.com");
-	if (ip_addresses)
+	if (auto ip_result = net::get_ip_addresses("api.taboobuilder.com"); ip_result)
 	{
-		for (const auto& ip : *ip_addresses)
+		for (const auto& ip : *ip_result)
 		{
-			dbg::println("IP Address: {: <25} {}", ip.ip, ip.version == IPVersion::IPV4 ? "ipv4" : "ipv6");
+			dbg::println("{}:{}", ip.ip, ip.version == net::IPVersion::IPV4 ? "ipv4" : "ipv6");
 		}
 	}
-	else
-	{
-		dbg::println("Error resolving domain: {}", ip_addresses.error());
-	}
-
-
 	_ = 0;
 
 	// ########################################################################
