@@ -1,10 +1,11 @@
-﻿module;
+module;
 #include <monocypher.h>
 #include <optional/monocypher-ed25519.h>
 
 export module deckard.monocypher;
 import std;
 import deckard.types;
+import deckard.random;
 
 // const uint8_t their_pk[32]{};    /* Their public key          */
 // uint8_t your_sk[32]{};       /* Your secret key           */
@@ -32,6 +33,49 @@ namespace deckard::monocypher
 {
 	// TODO: easy to use helpers
 
+	export struct publickey
+	{
+		std::array<u8, 32> key{};
+
+		bool operator==(const publickey& rhs) const { return std::ranges::equal(key, rhs.key); }
+		
+	};
+
+	export struct privatekey
+	{
+		std::array<u8, 32> key{};
+
+		bool operator==(const privatekey& rhs) const { return std::ranges::equal(key, rhs.key); }
+
+	};
+
+	export struct sharedkey
+	{
+		std::array<u8, 32> key;
+
+		bool operator==(const sharedkey& rhs) const { return std::ranges::equal(key, rhs.key); }
+	};
+
+	void initialize_privatekey(privatekey& privkey) { random::cryptographic_random_bytes(privkey.key); }
+
+	void wipe_key(privatekey& privkey) 
+	{ crypto_wipe(privkey.key.data(), privkey.key.size());
+	}
+
+	export void create_private_and_public_keys(publickey& pubkey, privatekey& privkey) 
+	{ 
+		initialize_privatekey(privkey);
+		crypto_x25519_public_key(pubkey.key.data(), privkey.key.data());
+	}
+
+	export void create_shared_key(sharedkey& skey, privatekey &your_private_key, const publickey& their_public_key)
+	{
+		crypto_x25519(skey.key.data(), your_private_key.key.data(), their_public_key.key.data());
+
+		wipe_key(your_private_key);
+		
+	}
+	
 
 
 }

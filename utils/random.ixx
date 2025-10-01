@@ -1,4 +1,4 @@
-﻿export module deckard.random;
+export module deckard.random;
 
 
 #ifndef _DEBUG
@@ -152,7 +152,7 @@ namespace deckard::random
 		operator u64() { return next(); }
 	};
 
-	std::random_device rd;
+	std::random_device random_device;
 	std::mt19937       mersenne_twister;
 
 	constexpr std::string_view dict_alphanum_special{
@@ -226,11 +226,11 @@ namespace deckard::random
 
 	export f32 float11() { return rnd<f32>(-1.0f, 1.0f); }
 
-	export void random_bytes(std::span<u8> buffer)
+	export void cryptographic_random_bytes(std::span<u8> buffer)
 	{
 		std::uniform_int_distribution<i16> dist(0, 255);
 
-		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(rd) & 0xFF); });
+		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(random_device) & 0xFF); });
 	}
 
 	std::string generate_with_dictionary(u32 len, const std::string_view dictionary)
@@ -335,8 +335,8 @@ namespace deckard::random
 
 	export void initialize()
 	{
-		std::random_device::result_type random_data[(64 - 1) / sizeof(rd()) + 1];
-		std::generate(std::begin(random_data), std::end(random_data), std::ref(rd));
+		std::random_device::result_type random_data[(64 - 1) / sizeof(random_device()) + 1];
+		std::generate(std::begin(random_data), std::end(random_data), std::ref(random_device));
 		std::seed_seq seeds(std::begin(random_data), std::end(random_data));
 
 		mersenne_twister.seed(seeds);
