@@ -54,15 +54,18 @@ namespace deckard
 	auto try_to_value(const CLIValue& v) -> std::optional<T>
 	{
 
-#define MACRO_TypeGet(x)                                                                                                                   \
+#define MACRO_TypeGet(TYPE)                                                                                                                   \
+	if constexpr (std::is_same_v<T, TYPE>)                                                                                                    \
 	{                                                                                                                                      \
-		if constexpr (std::is_same_v<T, x>)                                                                                                \
-		{                                                                                                                                  \
-			if (std::holds_alternative<x>(v))                                                                                              \
-				return std::get<x>(v);                                                                                                     \
-			return {};                                                                                                                     \
-		}                                                                                                                                  \
+		if (std::holds_alternative<TYPE>(v))                                                                                                  \
+			return std::get<TYPE>(v);                                                                                                         \
+		return {};                                                                                                                         \
 	}
+
+#if defined(__cpp_reflection)
+error "Native reflection supported. use it."
+#endif
+		// TODO: reflection?
 
 		MACRO_TypeGet(bool);
 		MACRO_TypeGet(char);
@@ -79,7 +82,6 @@ namespace deckard
 		MACRO_TypeGet(f64);
 		MACRO_TypeGet(std::string);
 #undef MACRO_TypeGet
-		return T{};
 	}
 
 	static_assert(sizeof(CLIValue) == 48);

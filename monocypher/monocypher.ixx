@@ -64,8 +64,13 @@ namespace deckard::monocypher
 
 	void initialize_privatekey(privatekey& privkey) { random::cryptographic_random_bytes(privkey.key); }
 
-	template<typename T>
-	requires (std::is_same_v<T, privatekey> or std::is_same_v<T, sharedkey>)
+		template<typename T>
+	concept KeyType =
+	  std::is_same_v<std::remove_cvref_t<T>, privatekey> or std::is_same_v<std::remove_cvref_t<T>, sharedkey> or
+	  std::is_same_v<std::remove_cvref_t<T>, publickey> or std::is_same_v<std::remove_cvref_t<T>, sessionkey>;
+
+
+	template<KeyType T>
 	void wipe_key(T& key) 
 	{
 		crypto_wipe(key.key.data(), key.key.size()); 
