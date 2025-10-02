@@ -896,7 +896,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	create_session_key(my_sharedkey, my_privatekey, their_publickey);
 
 
-	
 
 
 
