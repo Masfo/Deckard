@@ -48,75 +48,37 @@ namespace deckard
 	 */
 
 
-	// using CLIValue = std::variant<std::monostate, bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
-	using CLIValue = std::variant<bool, std::string>;
-
-
-	const auto visitor = overloads{
-	  [](bool b)
-	  {
-		  dbg::println("bool = {}\n", b);
-		  return b;
-	  },
-	  [](std::string_view s) { dbg::println("string = “{}”", s); },
-	  [](const i64 v) { dbg::println("i64 = {}", v); }};
+	using CLIValue = std::variant<bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
 
 	template<class T>
 	auto try_to_value(const CLIValue& v) -> std::optional<T>
 	{
 
-		if constexpr (std::is_same_v<T, bool>)
-		{
-			if (std::holds_alternative<bool>(v))
-				return std::get<bool>(v);
-			return {};
-		}
+#define MACRO_TypeGet(x)                                                                                                                   \
+	{                                                                                                                                      \
+		if constexpr (std::is_same_v<T, x>)                                                                                                \
+		{                                                                                                                                  \
+			if (std::holds_alternative<x>(v))                                                                                              \
+				return std::get<x>(v);                                                                                                     \
+			return {};                                                                                                                     \
+		}                                                                                                                                  \
+	}
 
-#if 0
-		if (std::holds_alternative<char>(v))
-			return std::get<char>(v);
+		MACRO_TypeGet(bool);
+		MACRO_TypeGet(char);
 
-		// integers
-		if (std::holds_alternative<i8>(v))
-			return std::get<i8>(v);
-
-		if (std::holds_alternative<u8>(v))
-			return std::get<u8>(v);
-
-		if (std::holds_alternative<i16>(v))
-			return std::get<i16>(v);
-
-		if (std::holds_alternative<u16>(v))
-			return std::get<u16>(v);
-
-		if (std::holds_alternative<i32>(v))
-			return std::get<i32>(v);
-
-		if (std::holds_alternative<u32>(v))
-			return std::get<u32>(v);
-
-		if (std::holds_alternative<i64>(v))
-			return std::get<i64>(v);
-
-		if (std::holds_alternative<u64>(v))
-			return std::get<u64>(v);
-
-		// floats
-		if (std::holds_alternative<f32>(v))
-			return std::get<f32>(v);
-
-		if (std::holds_alternative<f64>(v))
-			return std::get<f64>(v);
-
-#endif
-		//
-		if constexpr (std::is_same_v<T, std::string>)
-		{
-			if (std::holds_alternative<std::string>(v))
-				return std::get<std::string>(v);
-			return {};
-		}
-
+		MACRO_TypeGet(i8);
+		MACRO_TypeGet(u8);
+		MACRO_TypeGet(i16);
+		MACRO_TypeGet(u16);
+		MACRO_TypeGet(i32);
+		MACRO_TypeGet(u32);
+		MACRO_TypeGet(i64);
+		MACRO_TypeGet(u64);
+		MACRO_TypeGet(f32);
+		MACRO_TypeGet(f64);
+		MACRO_TypeGet(std::string);
+#undef MACRO_TypeGet
 		return T{};
 	}
 
