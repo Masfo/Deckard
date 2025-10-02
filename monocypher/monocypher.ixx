@@ -45,7 +45,6 @@ namespace deckard::monocypher
 		std::array<u8, 32> key{};
 
 		bool operator==(const privatekey& rhs) const { return crypto_verify32(key.data(), rhs.key.data()) == 0; }
-
 	};
 
 	export struct sharedkey
@@ -62,18 +61,22 @@ namespace deckard::monocypher
 		bool operator==(const sessionkey& rhs) const { return crypto_verify32(key.data(), rhs.key.data()) == 0; }
 	};
 
+	template<typename T>
+	concept KeyType =
+	  std::is_same_v<std::remove_cvref_t<T>, privatekey> or std::is_same_v<std::remove_cvref_t<T>, sharedkey> or
+	  std::is_same_v<std::remove_cvref_t<T>, publickey> or std::is_same_v<std::remove_cvref_t<T>, sessionkey>;
+
 	void initialize_privatekey(privatekey& privkey) { random::cryptographic_random_bytes(privkey.key); }
 
-	template<typename T>
-	requires (std::is_same_v<T, privatekey> or std::is_same_v<T, sharedkey>)
-	void wipe_key(T& key) 
+
+
+	template<KeyType T>
+	void wipe_key(T& key)
 	{
-		crypto_wipe(key.key.data(), key.key.size()); 
+		crypto_wipe(key.key.data(), key.key.size());
 	}
 
-
 	void wipe_key(sharedkey& key) { crypto_wipe(key.key.data(), key.key.size()); }
-
 
 	export void create_private_and_public_keys(publickey& pubkey, privatekey& privkey)
 	{
@@ -89,9 +92,9 @@ namespace deckard::monocypher
 		wipe_key(your_private_key);
 	}
 
-	export void create_session_key(sharedkey &sharedkey, const privatekey &your_private_key, const publickey &their_public_key)
+	export void create_session_key(sharedkey& sharedkey, const privatekey& your_private_key, const publickey& their_public_key)
 	{
-		sessionkey         shared_key;
+		sessionkey shared_key;
 
 		std::array<u8, 64> shared_keys;
 
@@ -101,7 +104,7 @@ namespace deckard::monocypher
 		crypto_blake2b_update(&ctx, your_private_key.key.data(), your_private_key.key.size());
 		crypto_blake2b_update(&ctx, their_public_key.key.data(), their_public_key.key.size());
 		crypto_blake2b_final(&ctx, shared_keys.data());
-		sessionkey     session_key_1, session_key_2;
+		sessionkey session_key_1, session_key_2;
 
 
 		std::ranges::copy_n(shared_keys.data(), 32, session_key_1.key.data());
