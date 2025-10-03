@@ -69,7 +69,7 @@ namespace deckard
 	{
 #if defined(_WIN32) or defined(_WIN64)
 
-		const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
+    const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
 		{
 			int size = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
 			if (size <= 0)

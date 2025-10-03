@@ -13,7 +13,10 @@ option(DECKARD_BUILD_TOOLS "Build tools" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 
 
-
+# find_program(CCACHE_PROGRAM ccache)
+# if(CCACHE_PROGRAM)
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+# endif()
 
 
 

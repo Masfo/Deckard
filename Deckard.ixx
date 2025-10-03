@@ -53,6 +53,8 @@ export import deckard.timers;
 export import deckard.utils.hash;
 export import deckard.uuid;
 
+export import deckard.monocypher;
+
 #ifdef __cpp_pp_embed
 #error("Use embed on something");
 #endif
