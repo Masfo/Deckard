@@ -90,6 +90,8 @@ namespace deckard::net
 		void read_address(std::string_view input)
 		{
 			address.fill(0u);
+			if (input.empty())
+				return;
 
 			// https://www.rfc-editor.org/rfc/rfc4291
 			// https://www.rfc-editor.org/rfc/rfc8200
@@ -114,10 +116,12 @@ namespace deckard::net
 			u8  dot_count   = 0;
 			u8  pos         = 0;
 
+	
+
 
 			if (input.size() >= 4 and (input[1] == '.' or input[2] == '.' or input[3] == '.'))
 			{
-				// ipv4 address
+				// assume ipv4 address
 				address[10] = address[11] = 0xFF;
 				pos                       = 12;
 

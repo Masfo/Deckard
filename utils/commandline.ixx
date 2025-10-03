@@ -1,3 +1,9 @@
+module;
+#if defined(_WIN32)
+#include <Windows.h>
+#include <shellapi.h>
+#endif
+
 export module deckard.commandline;
 
 import std;
@@ -21,6 +27,15 @@ namespace deckard
 	 *	-v, --verbose				- Flag
 	 *  -dv (same as -d -v)			- Multiple flags
 	 *
+	 *  Key:
+	 *		-o --output
+	 *
+	 *  Value:
+	 *		--output=file
+	 *		--output file
+	 *
+	 *  Booleans:
+	 *		f,false,t,true, 0,1
 	 *
 	 *	bool verbose = false;
 	 *  cli.option("-v, --verbose", "Enable verbose output", verbose);
@@ -45,82 +60,85 @@ namespace deckard
 	 *  Subcommands:
 	 *		TODO
 	 *
+	 *	cli cli;
+	 *
+	 *
 	 */
 
-
-	// using CLIValue = std::variant<std::monostate, bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
-	using CLIValue = std::variant<bool, std::string>;
-
-
-	const auto visitor = overloads{
-	  [](bool b)
-	  {
-		  dbg::println("bool = {}\n", b);
-		  return b;
-	  },
-	  [](std::string_view s) { dbg::println("string = “{}”", s); },
-	  [](const i64 v) { dbg::println("i64 = {}", v); }};
-
-	template<class T>
-	auto try_to_value(const CLIValue& v) -> std::optional<T>
+	export std::string join_arguments([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 	{
+#if defined(_WIN32) or defined(_WIN64)
 
-		if constexpr (std::is_same_v<T, bool>)
+		const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
 		{
-			if (std::holds_alternative<bool>(v))
-				return std::get<bool>(v);
+			int size = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+			if (size <= 0)
+				return {};
+
+			std::vector<char> buffer(static_cast<size_t>(size));
+			int               ok = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, buffer.data(), size, nullptr, nullptr);
+			if (ok == 0)
+				return {};
+
+			return std::string(buffer.data(), static_cast<size_t>(size - 1));
+		};
+
+		int     wargc = 0;
+		LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+		if (not argv)
 			return {};
-		}
 
-#if 0
-		if (std::holds_alternative<char>(v))
-			return std::get<char>(v);
+		std::vector<std::string> ret;
+		ret.reserve(wargc);
 
-		// integers
-		if (std::holds_alternative<i8>(v))
-			return std::get<i8>(v);
+		for (int i = 1; i < wargc; ++i)
+			ret.emplace_back(wide_to_utf8(wargv[i]));
 
-		if (std::holds_alternative<u8>(v))
-			return std::get<u8>(v);
+		return ret | std::views::join_with(' ') | std::ranges::to<std::string>();
 
-		if (std::holds_alternative<i16>(v))
-			return std::get<i16>(v);
-
-		if (std::holds_alternative<u16>(v))
-			return std::get<u16>(v);
-
-		if (std::holds_alternative<i32>(v))
-			return std::get<i32>(v);
-
-		if (std::holds_alternative<u32>(v))
-			return std::get<u32>(v);
-
-		if (std::holds_alternative<i64>(v))
-			return std::get<i64>(v);
-
-		if (std::holds_alternative<u64>(v))
-			return std::get<u64>(v);
-
-		// floats
-		if (std::holds_alternative<f32>(v))
-			return std::get<f32>(v);
-
-		if (std::holds_alternative<f64>(v))
-			return std::get<f64>(v);
-
+#else
+		std::vector<std::string> args(argv, argv + argc);
+		return args | std::views::drop(1) | std::views::join_with(' ') | std::ranges::to<std::string>();
 #endif
-		//
-		if constexpr (std::is_same_v<T, std::string>)
-		{
-			if (std::holds_alternative<std::string>(v))
-				return std::get<std::string>(v);
-			return {};
-		}
-
-		return T{};
 	}
 
-	static_assert(sizeof(CLIValue) == 48);
+	using Value = std::variant<bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
+
+	template<class T>
+	auto try_to_value(const Value& v) -> std::optional<T>
+	{
+
+#define MACRO_TypeGet(TYPE)                                                                                                                \
+	if constexpr (std::is_same_v<T, TYPE>)                                                                                                 \
+	{                                                                                                                                      \
+		if (std::holds_alternative<TYPE>(v))                                                                                               \
+			return std::get<TYPE>(v);                                                                                                      \
+		return {};                                                                                                                         \
+	}
+
+#if defined(__cpp_reflection)
+		error "Native reflection supported. use it."
+#endif
+		  // TODO: reflection?
+
+		  MACRO_TypeGet(bool);
+		MACRO_TypeGet(char);
+
+		MACRO_TypeGet(i8);
+		MACRO_TypeGet(u8);
+		MACRO_TypeGet(i16);
+		MACRO_TypeGet(u16);
+		MACRO_TypeGet(i32);
+		MACRO_TypeGet(u32);
+		MACRO_TypeGet(i64);
+		MACRO_TypeGet(u64);
+		MACRO_TypeGet(f32);
+		MACRO_TypeGet(f64);
+		MACRO_TypeGet(std::string);
+#undef MACRO_TypeGet
+	}
+
+	static_assert(sizeof(Value) == 48);
 
 	class cli
 	{
@@ -158,7 +176,7 @@ namespace deckard
 
 		cli cli(input);
 
-		CLIValue v = true;
+		Value v = true;
 
 		auto new_bool = try_to_value<bool>(v);
 		auto new_str2 = try_to_value<std::string>(v);

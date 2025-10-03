@@ -844,6 +844,24 @@ std::unordered_map<T, int> freqMap(const std::vector<T>& v)
 	return freq;
 }
 
+struct XA
+{
+	int type;
+	int age;
+};
+
+struct XB
+{
+	int type;
+	int age;
+};
+
+struct XC
+{
+	int type;
+	int age;
+};
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -852,7 +870,46 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
+
+
+	using Something = std::variant<std::monostate, XA, XB, XC>;
+	Something something;
+
+	dbg::println("{}", sizeof("::") - 1);
+
+
+	auto visire = [&]
+	{
+		std::visit(
+		  overloads{//
+					[](std::monostate) { dbg::println("monostate"); },
+					[](XA a) { dbg::println("{} is age {} of type {}", "a", a.age, a.type); },
+					[](XB a) { dbg::println("{} is age {} of type {}", "b", a.age, a.type); },
+					[](XC a) { dbg::println("{} is age {} of type {}", "c", a.age, a.type); }},
+		  something);
+	};
+
+	dbg::println("sizeof(Variant) = {} - {} - {}", sizeof(Something), sizeof(XA), sizeof(std::monostate));
+
+	visire();
+	something = XA{.type = 1, .age = 122};
+	visire();
+
+	something = XB{.type = 2, .age = 10};
+	visire();
+
+	something = XC{.type = 3, .age = 45};
+	visire();
+
+	something = {};
+	visire();
+
+	something = XA{.type = 10, .age = 5};
+	visire();
+
 	test_cmdliner();
+
+	// ########################################################################
 
 	std::string test_expr("turn off ?,? through ?,?");
 	std::string test_string("turn off 123,456 through 789,012 XXX"); // shouldn't read XXX
@@ -865,6 +922,53 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
+	// ########################################################################
+	#if 0
+	using namespace deckard::monocypher;
+
+	publickey  my_publickey;
+	privatekey my_privatekey;
+	sharedkey  my_sharedkey;
+
+	publickey  their_publickey;
+	privatekey their_privatekey;
+	sharedkey  their_sharedkey;
+
+	create_private_and_public_keys(my_publickey, my_privatekey);
+	create_private_and_public_keys(their_publickey, their_privatekey);
+
+	dbg::println("My Pub     : {}", my_publickey.key);
+	dbg::println("My Priv    : {}", my_privatekey.key);
+
+	dbg::println("Their Pub  : {}", their_publickey.key);
+	dbg::println("Their Priv : {}", their_privatekey.key);
+
+	create_shared_key(my_sharedkey, my_privatekey, their_publickey);
+	create_shared_key(their_sharedkey, their_privatekey, my_publickey);
+
+	dbg::println("My shared    : {}", my_sharedkey.key);
+	dbg::println("Their shared : {}", their_sharedkey.key);
+
+
+	create_session_key(my_sharedkey, my_privatekey, their_publickey);
+#endif
+
+	auto normalize = [](std::string& input) -> std::string
+	{
+		if (input.starts_with("--"))
+			input.erase(0, 2);
+		else if (input.starts_with("-"))
+			input.erase(0, 1);
+		return input;
+	};
+
+	std::string str_in("--verbose");
+
+	dbg::println("1. {}", str_in);
+
+	normalize(str_in);
+
+	dbg::println("2. {}", str_in);
 
 
 	_ = 0;
@@ -1413,8 +1517,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			}
 		}
 
-		// 01 01 00 18 21 12 A4 42 DD 0C 8D CE 70 1F 76 17 54 5A B3 0C 00 01 00 08 00 01 EE 6E D5 98 A1 0A 00 20 00 08 00 01 CF 7C F4 8A
-		// 05 48
+		// 01 01 00 18 21 12 A4 42 DD 0C 8D CE 70 1F 76 17 54 5A B3 0C 00 01 00 08 00 01 EE 6E D5 98 A1 0A 00 20 00 08 00 01 CF
+		// 7C F4 8A 05 48
 
 
 		// PAcket 2:

@@ -1323,4 +1323,6 @@ export namespace deckard
 			last     = i;
 		}
 	}
+
+	
 } // namespace deckard
