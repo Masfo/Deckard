@@ -1,3 +1,9 @@
+module;
+#if defined(_WIN32)
+#include <Windows.h>
+#include <shellapi.h>
+#endif
+
 export module deckard.commandline;
 
 import std;
@@ -21,6 +27,15 @@ namespace deckard
 	 *	-v, --verbose				- Flag
 	 *  -dv (same as -d -v)			- Multiple flags
 	 *
+	 *  Key:
+	 *		-o --output
+	 *
+	 *  Value:
+	 *		--output=file
+	 *		--output file
+	 *
+	 *  Booleans:
+	 *		f,false,t,true, 0,1
 	 *
 	 *	bool verbose = false;
 	 *  cli.option("-v, --verbose", "Enable verbose output", verbose);
@@ -45,29 +60,68 @@ namespace deckard
 	 *  Subcommands:
 	 *		TODO
 	 *
+	 *	cli cli;
+	 *
+	 *
 	 */
 
+	export std::string join_arguments([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
+	{
+#if defined(_WIN32) or defined(_WIN64)
 
-	using CLIValue = std::variant<bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
+    const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
+		{
+			int size = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+			if (size <= 0)
+				return {};
+
+			std::vector<char> buffer(static_cast<size_t>(size));
+			int               ok = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, buffer.data(), size, nullptr, nullptr);
+			if (ok == 0)
+				return {};
+
+			return std::string(buffer.data(), static_cast<size_t>(size - 1));
+		};
+
+		int     wargc = 0;
+		LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+		if (not argv)
+			return {};
+
+		std::vector<std::string> ret;
+		ret.reserve(wargc);
+
+		for (int i = 1; i < wargc; ++i)
+			ret.emplace_back(wide_to_utf8(wargv[i]));
+
+		return ret | std::views::join_with(' ') | std::ranges::to<std::string>();
+
+#else
+		std::vector<std::string> args(argv, argv + argc);
+		return args | std::views::drop(1) | std::views::join_with(' ') | std::ranges::to<std::string>();
+#endif
+	}
+
+	using Value = std::variant<bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
 
 	template<class T>
-	auto try_to_value(const CLIValue& v) -> std::optional<T>
+	auto try_to_value(const Value& v) -> std::optional<T>
 	{
 
-#define MACRO_TypeGet(TYPE)                                                                                                                   \
-	if constexpr (std::is_same_v<T, TYPE>)                                                                                                    \
+#define MACRO_TypeGet(TYPE)                                                                                                                \
+	if constexpr (std::is_same_v<T, TYPE>)                                                                                                 \
 	{                                                                                                                                      \
-		if (std::holds_alternative<TYPE>(v))                                                                                                  \
-			return std::get<TYPE>(v);                                                                                                         \
+		if (std::holds_alternative<TYPE>(v))                                                                                               \
+			return std::get<TYPE>(v);                                                                                                      \
 		return {};                                                                                                                         \
 	}
 
 #if defined(__cpp_reflection)
-error "Native reflection supported. use it."
+		error "Native reflection supported. use it."
 #endif
-		// TODO: reflection?
+		  // TODO: reflection?
 
-		MACRO_TypeGet(bool);
+		  MACRO_TypeGet(bool);
 		MACRO_TypeGet(char);
 
 		MACRO_TypeGet(i8);
@@ -84,7 +138,7 @@ error "Native reflection supported. use it."
 #undef MACRO_TypeGet
 	}
 
-	static_assert(sizeof(CLIValue) == 48);
+	static_assert(sizeof(Value) == 48);
 
 	class cli
 	{
@@ -122,7 +176,7 @@ error "Native reflection supported. use it."
 
 		cli cli(input);
 
-		CLIValue v = true;
+		Value v = true;
 
 		auto new_bool = try_to_value<bool>(v);
 		auto new_str2 = try_to_value<std::string>(v);
