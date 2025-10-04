@@ -65,11 +65,10 @@ namespace deckard
 	 *
 	 */
 
-	export std::string join_arguments([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
+	export std::vector<std::string> get_arguments([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 	{
-#if defined(_WIN32) or defined(_WIN64)
-
-    const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
+#if defined(_WIN32)
+		const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
 		{
 			int size = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
 			if (size <= 0)
@@ -94,12 +93,18 @@ namespace deckard
 		for (int i = 1; i < wargc; ++i)
 			ret.emplace_back(wide_to_utf8(wargv[i]));
 
-		return ret | std::views::join_with(' ') | std::ranges::to<std::string>();
-
+		return ret;
 #else
+
 		std::vector<std::string> args(argv, argv + argc);
-		return args | std::views::drop(1) | std::views::join_with(' ') | std::ranges::to<std::string>();
+		returg                   args | std::views::drop(1) | std::ranges::to<std::vector>();
 #endif
+	}
+
+	export std::string join_arguments(int argc, char* argv[])
+	{
+		const auto ret = get_arguments(argc, argv);
+		return ret | std::views::join_with(' ') | std::ranges::to<std::string>();
 	}
 
 	using Value = std::variant<bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
