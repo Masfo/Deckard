@@ -378,6 +378,8 @@ export namespace deckard::string
 		return false;
 	}
 
+
+
 	// ints
 	template<size_t N, std::integral T = i64>
 	requires(N > 1)
@@ -559,7 +561,7 @@ export namespace deckard::string
 
 				char read_until = expression_index < expression.size() ? expression[expression_index] : ' ';
 
-				size_t start      = input_index;
+				size_t start = input_index;
 
 				while (input_index < input.size() and input[input_index] != read_until)
 					input_index += 1;

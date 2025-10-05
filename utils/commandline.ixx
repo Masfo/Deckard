@@ -10,6 +10,7 @@ import std;
 import deckard.debug;
 import deckard.types;
 import deckard.utf8;
+import deckard.win32;
 import deckard.as;
 
 using namespace std::literals::string_view_literals;
@@ -68,20 +69,6 @@ namespace deckard
 	export std::vector<std::string> get_arguments([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 	{
 #if defined(_WIN32)
-		const auto wide_to_utf8 = [](const wchar_t* wstr) -> std::string
-		{
-			int size = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
-			if (size <= 0)
-				return {};
-
-			std::vector<char> buffer(static_cast<size_t>(size));
-			int               ok = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, buffer.data(), size, nullptr, nullptr);
-			if (ok == 0)
-				return {};
-
-			return std::string(buffer.data(), static_cast<size_t>(size - 1));
-		};
-
 		int     wargc = 0;
 		LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
 		if (not argv)
@@ -91,7 +78,7 @@ namespace deckard
 		ret.reserve(wargc);
 
 		for (int i = 1; i < wargc; ++i)
-			ret.emplace_back(wide_to_utf8(wargv[i]));
+			ret.emplace_back(system::from_wide(wargv[i]));
 
 		return ret;
 #else

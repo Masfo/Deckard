@@ -32,8 +32,7 @@ namespace deckard::system
 		return function;
 	}
 
-	enum class exit_code_enum : u8
-	{
+	export enum class exit_code_enum : u8 {
 		ok = 0,
 		createpipe_fail,
 		createprocess_fail,
@@ -55,7 +54,7 @@ namespace deckard::system
 	};
 
 	export auto
-	execute_process(std::filesystem::path executable, std::string_view commandline = "", std::chrono::milliseconds timeout = 0ms,
+	execute_process(std::filesystem::path executable, std::string_view commandline = "", std::chrono::milliseconds timeout = 10s,
 					std::filesystem::path working_directory = std::filesystem::current_path()) -> execute_process_result
 	{
 		execute_process_result result{};
@@ -153,6 +152,8 @@ namespace deckard::system
 					result.output       = std::string(output_buffer.begin(), output_buffer.end());
 					result.elapsed_time = elapsed;
 
+					TerminateThread(pi.hThread, 0);
+					TerminateProcess(pi.hProcess, 0);
 
 					CloseHandle(readpipe);
 					CloseHandle(pi.hProcess);
@@ -183,8 +184,13 @@ namespace deckard::system
 
 
 					CloseHandle(readpipe);
+
+					TerminateThread(pi.hThread, 0);
+					TerminateProcess(pi.hProcess, 0);
+
 					CloseHandle(pi.hProcess);
 					CloseHandle(pi.hThread);
+
 					return result;
 				}
 				output_buffer.insert(output_buffer.end(), temp_buffer.data(), temp_buffer.data() + bytes_read);
@@ -218,6 +224,8 @@ namespace deckard::system
 			GetExitCodeProcess(pi.hProcess, reinterpret_cast<LPDWORD>(&result.exit_code));
 		}
 
+		TerminateThread(pi.hThread, 0);
+		TerminateProcess(pi.hProcess, 0);
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 

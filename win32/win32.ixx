@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include <Windows.h>
 #include <Psapi.h>
@@ -38,14 +38,16 @@ namespace deckard::system
 
 	export std::string from_wide(std::wstring_view wstr)
 	{
-		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), nullptr, 0, nullptr, nullptr);
-		std::string strTo;
+		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), -1, nullptr, 0, nullptr, nullptr);
+		std::string str;
 		if (num_chars > 0)
 		{
-			strTo.resize(static_cast<u64>(num_chars));
-			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), &strTo[0], num_chars, nullptr, nullptr);
+			str.resize(static_cast<size_t>(num_chars));
+			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), str.data(), num_chars, nullptr, nullptr);
+			return str;
+
 		}
-		return strTo;
+		return str;
 	}
 
 	std::string GetRegistryValue(HKEY computer, std::string_view key, std::string_view value)

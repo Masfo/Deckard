@@ -83,6 +83,14 @@ namespace deckard
 			}
 		}
 
+
+		// TODO: subgrid
+		grid<T, array2d<T>> subgrid(const u32 x, const u32 y, const u32 width, const u32 height) const
+		{
+			//
+			return {};
+		}
+
 		T operator[](const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
