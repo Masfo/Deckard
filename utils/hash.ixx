@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <intrin.h>
 
 export module deckard.utils.hash;
@@ -145,20 +145,54 @@ namespace deckard::utils
 	constexpr u64 val_64_const   = 0xcbf2'9ce4'8422'2325;
 	constexpr u64 prime_64_const = 0x100'0000'01b3;
 
-	export constexpr u32 fnv1a_32(char const* s, size_t count)
+	export constexpr u32 fnv1a_32(char const* buffer, size_t count)
 	{
-		return count ? (fnv1a_32(s, count - 1) ^ s[count - 1]) * prime_32_const : val_32_const;
+		uint32_t hash  = val_32_const;
+		uint32_t prime = prime_32_const;
+
+		for (int i = 0; i < count; ++i)
+		{
+			uint8_t value = buffer[i];
+			hash          = hash ^ value;
+			hash *= prime;
+		}
+
+		return hash;
 	}
 
-	export constexpr u64 fnv1a_64(char const* s, size_t count)
+	export constexpr u64 fnv1a_64(const std::span<u8> buffer)
 	{
-		return count ? (fnv1a_64(s, count - 1) ^ s[count - 1]) * prime_64_const : val_64_const;
+		uint64_t hash = val_64_const;
+
+		for (int i = 0; i < buffer.size(); ++i)
+		{
+			hash = hash ^ buffer[i];
+			hash *= prime_64_const;
+		}
+
+		return hash;
 	}
 
-	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32(str.data(), str.length()); }
+	export constexpr u32 fnv1a_32(const std::span<u8> buffer)
+	{
+		uint64_t hash = val_32_const;
 
-	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64(str.data(), str.length()); }
+		for (int i = 0; i < buffer.size(); ++i)
+		{
+			hash = hash ^ buffer[i];
+			hash *= prime_32_const;
+		}
 
+		return hash;
+	}
+
+	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32({str.data(), str.length()}); }
+
+	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64({str.data(), str.length()}); }
+
+	export u32 operator""_fnv32(char const* s, size_t count) { return fnv1a_32({s, count}); }
+
+	export u64 operator""_fnv64(char const* s, size_t count) { return fnv1a_64({s, count}); }
 
 	//
 	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
@@ -199,9 +233,9 @@ namespace deckard::utils
 			if (len >= 4)
 			{
 				const u8* plast = p + len - 4;
-				a                    = (rapid_read32(p) << 32) | rapid_read32(plast);
+				a               = (rapid_read32(p) << 32) | rapid_read32(plast);
 				const u64 delta = ((len & 24) >> (len >> 3));
-				b                    = ((rapid_read32(p + delta) << 32) | rapid_read32(plast - delta));
+				b               = ((rapid_read32(p + delta) << 32) | rapid_read32(plast - delta));
 			}
 			else if (len > 0)
 			{
@@ -248,21 +282,12 @@ namespace deckard::utils
 
 	export u64 rapidhash(std::span<u8> buffer) { return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED); }
 
-
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
 	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
 
-	constexpr u64 chibihash64__load32le(const u8* p)
-	{
-		return (u64)p[0] << 0 | (u64)p[1] << 8 | (u64)p[2] << 16 | (u64)p[3] << 24;
+	constexpr u64 chibihash64__load32le(const u8* p) { return (u64)p[0] << 0 | (u64)p[1] << 8 | (u64)p[2] << 16 | (u64)p[3] << 24; }
 
-	}
-
-	constexpr u64 chibihash64__load64le(const u8* p)
-	{
-		return chibihash64__load32le(p) | (chibihash64__load32le(p + 4) << 32);
-
-	}
+	constexpr u64 chibihash64__load64le(const u8* p) { return chibihash64__load32le(p) | (chibihash64__load32le(p + 4) << 32); }
 
 	constexpr u64 chibihash64__rotl(u64 x, int n) { return (x << n) | (x >> (-n & 63)); }
 
@@ -271,7 +296,7 @@ namespace deckard::utils
 		// https://github.com/N-R-K/ChibiHash/blob/master/chibihash64.h
 
 		const u8* p = (const u8*)keyIn;
-		ptrdiff_t      l = len;
+		ptrdiff_t l = len;
 
 		const u64 K     = 0x2B7E'1516'28AE'D2A7ULL; // digits of e
 		u64       seed2 = chibihash64__rotl(seed - K, 15) + chibihash64__rotl(seed - K, 47);
@@ -290,7 +315,7 @@ namespace deckard::utils
 			for (int i = 0; i < 4; ++i, p += 8)
 			{
 				u64 stripe = chibihash64__load64le(p);
-				h[i]            = (stripe + h[i]) * K;
+				h[i]       = (stripe + h[i]) * K;
 				h[(i + 1) & 3] += chibihash64__rotl(stripe, 27);
 			}
 		}
@@ -332,12 +357,13 @@ namespace deckard::utils
 		return x;
 	}
 
-	export u64 chibihash64(const void* keyIn, size_t len) { return chibihash64(keyIn, len, CHIBI_SEED); }
+	export u64 chibihash64(const void* buffer, size_t len) { return chibihash64(buffer, len, CHIBI_SEED); }
 
 	export u64 chibihash64(std::span<u8> buffer) { return chibihash64(buffer.data(), buffer.size_bytes(), CHIBI_SEED); }
 
 	export u64 chibihash64(std::string_view buffer) { return chibihash64({as<u8*>(buffer.data()), buffer.size()}); }
 
+	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
 
 
 } // namespace deckard::utils
