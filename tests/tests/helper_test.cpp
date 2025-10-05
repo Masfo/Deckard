@@ -401,6 +401,16 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(1234 == concat(1, 2, 3, 4));
 	}
 
+	SECTION("nth_digit")
+	{ 
+		CHECK(5 == nth_digit(12345, 1));
+		CHECK(4 == nth_digit(12345, 2));
+		CHECK(3 == nth_digit(12345, 3));
+		CHECK(2 == nth_digit(12345, 4));
+		CHECK(1 == nth_digit(12345, 5));
+
+	}
+
 	SECTION("count digits")
 	{
 		CHECK(1 == count_digits(0));

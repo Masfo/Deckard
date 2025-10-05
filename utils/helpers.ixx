@@ -1105,6 +1105,26 @@ export namespace deckard
 	}
 
 
+	// return nth digit from the right: (12345,3) returns the 100ths digit 3
+	template<arithmetic T>
+	T nth_digit(T num, i32 n)
+	{
+		T divisor = 1;
+		T base    = 10;
+		i32 exp     = n - 1;
+
+		while (exp > 0)
+		{
+			if (exp % 2 == 1)
+				divisor *= base;
+
+			base *= base;
+			exp /= 2;
+		}
+
+		return (std::abs<T>(num) / divisor) % 10;
+	}
+
 #ifdef _DEBUG
 	// count_digits, only positives, takes abs
 	size_t count_digits(const u64 v)

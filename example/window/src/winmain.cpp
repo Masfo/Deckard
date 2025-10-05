@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <shellapi.h>
 #include <Commctrl.h>
 #include <intrin.h>
 #include <time.h>
@@ -834,33 +835,7 @@ struct STUNHeader
 	u16 method_bits() const { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); }
 };
 
-// Frequency map
-template<typename T>
-std::unordered_map<T, int> freqMap(const std::vector<T>& v)
-{
-	std::unordered_map<T, int> freq;
-	for (auto& x : v)
-		freq[x]++;
-	return freq;
-}
 
-struct XA
-{
-	int type;
-	int age;
-};
-
-struct XB
-{
-	int type;
-	int age;
-};
-
-struct XC
-{
-	int type;
-	int age;
-};
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -871,41 +846,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 
+	// ########################################################################
 
-	using Something = std::variant<std::monostate, XA, XB, XC>;
-	Something something;
-
-	dbg::println("{}", sizeof("::") - 1);
-
-
-	auto visire = [&]
-	{
-		std::visit(
-		  overloads{//
-					[](std::monostate) { dbg::println("monostate"); },
-					[](XA a) { dbg::println("{} is age {} of type {}", "a", a.age, a.type); },
-					[](XB a) { dbg::println("{} is age {} of type {}", "b", a.age, a.type); },
-					[](XC a) { dbg::println("{} is age {} of type {}", "c", a.age, a.type); }},
-		  something);
-	};
-
-	dbg::println("sizeof(Variant) = {} - {} - {}", sizeof(Something), sizeof(XA), sizeof(std::monostate));
-
-	visire();
-	something = XA{.type = 1, .age = 122};
-	visire();
-
-	something = XB{.type = 2, .age = 10};
-	visire();
-
-	something = XC{.type = 3, .age = 45};
-	visire();
-
-	something = {};
-	visire();
-
-	something = XA{.type = 10, .age = 5};
-	visire();
 
 	test_cmdliner();
 
@@ -922,8 +864,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
-	// ########################################################################
-	#if 0
+// ########################################################################
+#if 0
 	using namespace deckard::monocypher;
 
 	publickey  my_publickey;

@@ -165,8 +165,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
 
-	// auto cmd     = GetCommandLineW();
-	auto cmdline = utf8::view{commandline};
 
 
 	// clang-format off
@@ -221,6 +219,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 
 	// main
+	auto cmdline = utf8::view{commandline};
+
 	int ret = deckard_main(cmdline);
 
 	//	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
