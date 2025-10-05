@@ -162,7 +162,7 @@ namespace deckard::utils
 
 	export constexpr u64 fnv1a_64(const std::span<u8> buffer)
 	{
-		uint64_t hash = val_64_const;
+		u64 hash = val_64_const;
 
 		for (int i = 0; i < buffer.size(); ++i)
 		{
@@ -175,7 +175,7 @@ namespace deckard::utils
 
 	export constexpr u32 fnv1a_32(const std::span<u8> buffer)
 	{
-		uint64_t hash = val_32_const;
+		u32 hash = val_32_const;
 
 		for (int i = 0; i < buffer.size(); ++i)
 		{

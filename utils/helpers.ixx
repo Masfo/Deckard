@@ -1104,13 +1104,12 @@ export namespace deckard
 		return (value / multiple) * multiple;
 	}
 
-
 	// return nth digit from the right: (12345,3) returns the 100ths digit 3
-	template<arithmetic T>
+	template<std::integral T>
 	T nth_digit(T num, i32 n)
 	{
-		T divisor = 1;
-		T base    = 10;
+		T   divisor = 1;
+		T   base    = 10;
 		i32 exp     = n - 1;
 
 		while (exp > 0)
@@ -1376,5 +1375,5 @@ export namespace deckard
 		}
 	}
 
-	
+
 } // namespace deckard
