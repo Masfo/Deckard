@@ -1,4 +1,4 @@
-﻿export module deckard.utf8:string;
+export module deckard.utf8:string;
 import :codepoints;
 import :decode;
 import :view;
@@ -25,7 +25,7 @@ namespace deckard::utf8
 
 	using difference_type = std::ptrdiff_t;
 	using codepoint_type  = u32;
-	using unit            = char32;
+	export using unit     = char32;
 
 	static constexpr size_t BYTES_PER_CODEPOINT = sizeof(codepoint_type);
 	static_assert(BYTES_PER_CODEPOINT == 4, "sizeof(char32) is assumed to be 4 bytes");
@@ -335,6 +335,8 @@ namespace deckard::utf8
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
+		string(unit u) { assign(u); }
+
 		string& operator=(std::string_view input)
 		{
 			buffer.assign({as<u8*>(input.data()), input.size()});
@@ -426,6 +428,12 @@ namespace deckard::utf8
 		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
 
 		void assign(const std::span<u8>& input) { buffer.assign(input); }
+
+		void assign(unit u)
+		{
+			auto encoded = encode_codepoint(u);
+			buffer.assign({encoded.bytes.data(), encoded.count});
+		}
 
 		// append
 		void append(const std::string_view str) { insert(end(), str); }
@@ -913,6 +921,8 @@ namespace deckard::utf8
 		auto data() const { return subspan(); }
 
 		auto c_str() const { return as<const char*>(buffer.data().data()); }
+
+		std::string to_string() const { return std::string(c_str()); }
 
 		size_t find_first_of(const string& str, size_t pos = 0) const
 		{
