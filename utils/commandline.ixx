@@ -131,17 +131,18 @@ namespace deckard
 
 	struct option
 	{
+		Value       default_value;
+		std::string help_description;
 	};
 
 	class cli
 	{
 	private:
-		using unit = utf8::unit;
-
 		std::string input;
 		u64         pos{0};
 
-		std::unordered_map<std::string, option> options;
+		std::unordered_map<std::string, option>      options;
+		std::unordered_map<std::string, std::string> alias;
 
 
 	public:
@@ -183,21 +184,48 @@ namespace deckard
 		{
 		}
 
-		void flag(std::string_view name)
+		void add_option(const std::string_view shortname, std::string_view longname, option o)
 		{
-		
-			name;
+			//
+			alias[std::string{longname}]  = shortname;
+			alias[std::string{shortname}] = longname;
+
+			options[std::string{longname}] = o;
+		}
+
+		void add_flag(const std::string& shortname, const std::string& longname, const std::string& description)
+		{
+			// TODO: error expected
+			if (shortname.empty() and longname.empty())
+				return;
+			else if (not shortname.empty() and not longname.empty())
+			{
+				alias[shortname] = longname;
+				alias[longname]  = shortname;
+			}
+			else if (shortname.empty() and not longname.empty())
+			{
+				alias[longname] = longname;
+			}
+			else if (not shortname.empty() and longname.empty())
+			{
+				alias[shortname] = shortname;
+			}
+
+			option o{.default_value = false, .help_description = description};
+			options[longname] = o;
 		}
 	};
 
 	export void test_cmdliner()
 	{
 		//
-		std::string input(R"(-d -v1v)");
+		std::string input(R"(-d -v -dv)");
 
 		cli cli(input);
 
-		cli.flag("");
+		cli.add_flag("d", "debug", "Debug output");
+		cli.add_flag("v", "verbose", "Verbose output");
 
 
 		while (cli.peek().has_value())

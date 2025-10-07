@@ -1,7 +1,7 @@
 #include <windows.h>
-#include <shellapi.h>
 #include <Commctrl.h>
 #include <intrin.h>
+#include <shellapi.h>
 #include <time.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -835,7 +835,24 @@ struct STUNHeader
 	u16 method_bits() const { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); }
 };
 
+class reffer final
+{
+private:
+	int* value{nullptr};
 
+public:
+	reffer() = default;
+
+	void call(std::string_view str, int &v)
+	{
+		dbg::println("{}", str);
+		v = *value;
+	}
+
+	void set(int* v) { value = v; };
+
+	int get() const { return value == nullptr ? -1 : *value; }
+};
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -845,6 +862,17 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
+	int    value = 123;
+	reffer ref;
+	ref.set(&value);
+
+	int newvalue = 0;
+	dbg::println("nv 1 {}", newvalue);
+	ref.call("first", newvalue);
+
+	dbg::println("nv 2 {}", newvalue);
+
+	_ = 0;
 
 	// ########################################################################
 
