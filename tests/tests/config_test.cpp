@@ -19,9 +19,7 @@ key01 = value01 # kv comment
 # just comment
 )");
 
-		config::config cfg(c);
 
-	dbg::println("re-string: {}", cfg.to_string());
 		_       = 0;
 
 	}

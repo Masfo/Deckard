@@ -6,7 +6,7 @@ import std;
 
 namespace deckard::utils::base64
 {
-	constexpr u8 INVALID_SYMBOL= 0x64;
+	constexpr u8 INVALID_SYMBOL = 0x64;
 
 	static constexpr std::array<byte, 64> encode_table{
 	  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -24,40 +24,6 @@ namespace deckard::utils::base64
 
 		return table;
 	}();
-
-	constexpr auto encode_three(const std::span<const u8> input) -> std::array<byte, 4>
-	{
-		u32 combined = 0;
-		for (size_t i = 0; i < 3; ++i)
-			combined = (combined << 8) | input[i];
-
-		const byte c1 = encode_table[(combined >> 18) & 0x3F];
-		const byte c2 = encode_table[(combined >> 12) & 0x3F];
-		const byte c3 = encode_table[(combined >> 6) & 0x3F];
-		const byte c4 = encode_table[combined & 0x3F];
-		return {c1, c2, c3, c4};
-	}
-
-	constexpr std::array<byte, 4> encode_three(u8 a, u8 b, u8 c)
-	{
-		const u32 combined = (a << 16) | (b << 8) | c;
-		
-		const byte c1 = encode_table[(combined >> 18) & 0x3F];
-		const byte c2 = encode_table[(combined >> 12) & 0x3F];
-		const byte c3 = encode_table[(combined >> 6) & 0x3F];
-		const byte c4 = encode_table[combined & 0x3F];
-		return {c1, c2, c3, c4};
-	}
-
-	constexpr std::array<u8, 3> decode_four(byte a, byte b, byte c, byte d)
-	{
-		const u32 bytes = (decode_table[a] << 18) | (decode_table[b] << 12) | (decode_table[c] << 6) | decode_table[d];
-
-		const byte b1 = (bytes >> 16) & 0xFF;
-		const byte b2 = (bytes >> 8) & 0xFF;
-		const byte b3 = bytes & 0xFF;
-		return {b1, b2, b3};
-	}
 
 	bool is_valid_base64_char(byte c) { return decode_table[c] != INVALID_SYMBOL; }
 
@@ -82,52 +48,55 @@ namespace deckard::utils::base64
 		if (input.empty())
 			return {};
 
-		const auto size   = input.size();
-		const auto blocks = size / 3ULL;
 
-		std::string output;
+		std::string  encoded;
+		const size_t input_size = input.size();
+		encoded.reserve(((input_size + 2) / 3) * 4);
 
-		size_t reserve_size = 4uz * as<size_t>(std::ceil(input.size_bytes() / 3.0f));
-		output.reserve(reserve_size);
+		std::uint32_t value = 0;
+		std::size_t   bits  = 0;
 
-		for (u64 i = 0; i < blocks; ++i)
+		std::size_t i = 0;
+		while (i < input_size)
 		{
-			const auto bytes = encode_three(input.subspan(i * 3, 3));
-			output.append(bytes.begin(), bytes.end());
-		}
+			value = (value << 8) | input[i++];
+			bits += 8;
 
-
-		if (const auto remaining = size - blocks * 3; remaining == 2)
-		{
-			const auto last         = input.last(2);
-			const auto base64_chars = encode_three(last[0], last[1], 0);
-			output.push_back(base64_chars[0]);
-			output.push_back(base64_chars[1]);
-			output.push_back(base64_chars[2]);
-			if (add_padding == padding::yes)
+			while (bits >= 6)
 			{
-				output.push_back('=');
+				bits -= 6;
+				encoded += encode_table[(value >> bits) & 0x3F];
 			}
-		}
-		else if (remaining == 1)
-		{
-			const auto base64_chars = encode_three(input.back(), 0, 0);
-			output.push_back(base64_chars[0]);
-			output.push_back(base64_chars[1]);
-			if (add_padding == padding::yes)
-			{
-				output.push_back('=');
-				output.push_back('=');
-			}
-		}
-		output.shrink_to_fit();
 
-		return output;
+			if (bits > 0)
+				value &= ((1u << bits) - 1);
+		}
+
+		if (bits > 0)
+			encoded += encode_table[(value << (6 - bits)) & 0x3F];
+
+		while (add_padding == padding::yes and encoded.size() % 4 != 0)
+			encoded += '=';
+
+		return encoded;
 	}
 
 	export std::string encode_str(std::string_view input, padding add_padding = padding::yes)
 	{
 		return encode({std::bit_cast<u8*>(input.data()), input.size()}, add_padding);
+	}
+
+	// ########################################################################
+	// Decode
+
+	constexpr std::array<u8, 3> decode_four(byte a, byte b, byte c, byte d)
+	{
+		const u32 bytes = (decode_table[a] << 18) | (decode_table[b] << 12) | (decode_table[c] << 6) | decode_table[d];
+
+		const byte b1 = (bytes >> 16) & 0xFF;
+		const byte b2 = (bytes >> 8) & 0xFF;
+		const byte b3 = bytes & 0xFF;
+		return {b1, b2, b3};
 	}
 
 	export std::optional<std::vector<u8>> decode(std::string_view encoded_input)
@@ -143,7 +112,7 @@ namespace deckard::utils::base64
 		const auto remainder      = unpadded_input.size() % 4;
 
 		std::vector<u8> output;
-		size_t          reserve_size =  as<size_t>(std::floor(unpadded_input.size() * 3uz) / 4uz);
+		size_t          reserve_size = as<size_t>(std::floor(unpadded_input.size() * 3uz) / 4uz);
 		output.reserve(reserve_size);
 
 		for (u64 i = 0; i < blocks; ++i)

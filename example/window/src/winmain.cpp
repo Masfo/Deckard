@@ -854,6 +854,52 @@ public:
 	int get() const { return value == nullptr ? -1 : *value; }
 };
 
+std::string base64Encode(std::span<const std::byte> data)
+{
+	static constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+	std::string  encoded;
+	const size_t input_size = data.size();
+	encoded.reserve(((input_size + 2) / 3) * 4);
+
+	std::uint32_t value = 0; // rolling 24-bit buffer
+	std::size_t   bits  = 0; // number of valid bits currently in 'value'
+
+	std::size_t i = 0;
+	while (i < input_size)
+	{
+		// Accumulate 8 bits
+		value = (value << 8) | static_cast<std::uint8_t>(data[i++]);
+		bits += 8;
+
+		// Emit as many 6-bit chunks as we can
+		while (bits >= 6)
+		{
+			bits -= 6;
+			encoded += base64_chars[(value >> bits) & 0x3F];
+		}
+
+		// Keep only the remaining (bits) LSBs; avoid value growing unbounded.
+		if (bits > 0)
+			value &= ((1u << bits) - 1);
+	}
+
+	// Flush remaining bits (0 < bits < 6)
+	if (bits > 0)
+	{
+		encoded += base64_chars[(value << (6 - bits)) & 0x3F];
+	}
+
+	// Pad to multiple of 4
+	while (encoded.size() % 4 != 0)
+	{
+		encoded += '=';
+	}
+
+	return encoded;
+}
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -875,7 +921,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	_ = 0;
 
 	// ########################################################################
+	std::vector<std::byte> vg;
+	vg.push_back(0x41_byte);
+	vg.push_back(0x42_byte);
+	vg.push_back(0x43_byte);
+	vg.push_back(0x44_byte);
 
+
+	auto vgstr = base64Encode(vg);
 
 
 	test_cmdliner();
