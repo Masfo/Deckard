@@ -863,7 +863,7 @@ namespace deckard::utf8
 			if (start >= size())
 			{
 			}
-			assert::check(start < size(), "Indexing out-of-bounds");
+			assert::check(start <= size(), "Indexing out-of-bounds");
 
 			if (empty())
 				return std::span<u8>{};
@@ -1236,10 +1236,10 @@ namespace deckard::utf8
 			return npos;
 		}
 
-		void trim_right()
+		auto trim_right()
 		{
 			if (empty())
-				return;
+				return *this;
 
 			auto it       = end();
 			auto begin_it = begin();
@@ -1254,12 +1254,15 @@ namespace deckard::utf8
 			}
 
 			erase(it, end());
+
+			return *this;
 		}
 
-		void trim_left()
+		auto trim_left()
 		{
 			if (empty())
-				return;
+				return *this;
+
 			auto it     = begin();
 			auto end_it = end();
 
@@ -1270,14 +1273,20 @@ namespace deckard::utf8
 				++it;
 			}
 			erase(begin(), it);
+
+			return *this;
 		}
 
-		void trim()
+		auto trim()
 		{
 			trim_left();
 			trim_right();
+			return *this;
 		}
 	};
+
+
+
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
