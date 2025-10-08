@@ -226,6 +226,10 @@ namespace deckard
 
 		cli.add_flag("d", "debug", "Debug output");
 		cli.add_flag("v", "verbose", "Verbose output");
+		cli.add_flag("r", "", "Rest");
+		cli.add_flag("", "east", "east");
+
+
 
 
 		while (cli.peek().has_value())
