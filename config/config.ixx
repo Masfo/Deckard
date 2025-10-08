@@ -1,4 +1,4 @@
-﻿export module deckard.config;
+export module deckard.config;
 
 import deckard.utf8;
 import deckard.types;
@@ -27,11 +27,26 @@ namespace deckard::config
 	// Section and keys ascii-only.
 	// strings utf8
 
+	// section .dot. key
+	// token_index_map = map<section.key, token_index>		
+
+
+	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
+	//							
+
+	using Value = std::variant<std::monostate, bool, i64, u64, f64, utf8::string>;
+
+	struct TokenIndexValuePair
+	{
+		Value v;
+		u32 token_index;		
+	};
+
 	export struct Token
 	{
 		TokenType  type{};
 		
-		utf8::view value;
+		utf8::string value;
 
 		bool operator==(const Token& other) const
 		{
@@ -60,11 +75,26 @@ namespace deckard::config
 		}
 	};
 
+	export class config2
+	{
+	private:
+		std::string data;
+		std::vector<Token> tokens;
+	public:
+
+	};
+
+
+
 	export class config
 	{
 	private:
 		utf8::string       data;
 		std::vector<Token> tokens;
+
+		//std::unordered_map<
+
+
 
 		ConsumeResult consume_ascii_until(consume_predicate auto&& predicate, utf8::iterator start)
 		{
@@ -137,12 +167,12 @@ namespace deckard::config
 				{
 					if (start + 1 != end && *(start + 1) == '\n')
 					{
-						tokens.push_back({TokenType::NEWLINE_POSIX, {}});
+						tokens.push_back({.type = TokenType::NEWLINE_POSIX, .value = ""});
 						start += 2;
 					}
 					else
 					{
-						tokens.push_back({TokenType::NEWLINE_WINDOWS, {}});
+						tokens.push_back({.type = TokenType::NEWLINE_WINDOWS, .value = ""});
 						start += 1;
 					}
 				}
@@ -156,7 +186,7 @@ namespace deckard::config
 					// TODO: consume_section should return how many characters it consumed
 					auto section = consume_section(start);
 					if (section.has_value())
-						tokens.push_back({TokenType::SECTION, section.value()});
+						tokens.push_back({.type = TokenType::SECTION, .value = utf8::string(section.value())});
 
 					start += section.has_value() ? section.value().size() + 2ull : 0;
 					continue;
@@ -165,7 +195,7 @@ namespace deckard::config
 				{
 					auto comment = consume_comment(start);
 					if (comment.has_value())
-						tokens.push_back({TokenType::COMMENT, comment.value()});
+						tokens.push_back({.type = TokenType::COMMENT, .value = utf8::string(comment.value())});
 
 					// TODO: consume_comment should return how many characters it consumed
 					// +2 here is wrong,
@@ -180,16 +210,22 @@ namespace deckard::config
 					auto key_start = start;
 					while (start != end && *start != '=' && *start != '\n' && *start != '\r')
 						++start;
-					// auto key = utf8::view(key_start, start);
+					auto key = utf8::string{key_start, start};
+
+					
+					tokens.push_back({ TokenType::KEY, key.trim()});
+					dbg::println("key '{}'", key);
+					
 					if (start != end && *start == '=')
 					{
 						++start; // consume '='
 						auto value_start = start;
-						while (start != end && *start != '\n' && *start != '\r')
+						while (start != end && *start != '\n' && *start != '\r' && *start != '#')
 							++start;
-						// auto value = utf8::view(value_start, start-value_start);
-						// tokens.push_back({TokenType::KEY, key});
-						// tokens.push_back({TokenType::VALUE, value});
+						auto value = utf8::string{value_start, start};
+						_ = 0;
+						 tokens.push_back({TokenType::VALUE, value.trim()});
+						dbg::println("value: '{}'", value);
 					}
 				}
 			}
@@ -227,11 +263,19 @@ namespace deckard::config
 						break;
 					case TokenType::KEY:
 						result.append(token.value);
-						result.append("=");
+						result.append(" = ");
+						dbg::println("key token value '{} /#'", token.value);
+
 						break;
-					case TokenType::VALUE: result.append(token.value); break;
+					case TokenType::VALUE:
+					{
+
+						result.append(token.value);
+						dbg::println("value token value'{}' /#", token.value);
+						break;
+					}
 					case TokenType::COMMENT:
-						result.append("#");
+						result.append(" # ");
 						result.append(token.value);
 						break;
 					default: dbg::panic("no handler for this token type: {}", static_cast<u8>(token.type));
