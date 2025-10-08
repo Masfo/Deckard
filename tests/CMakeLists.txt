@@ -42,6 +42,9 @@ target_sources(tests PUBLIC
     # Graphs
     tests/graph_tests.cpp
 
+    # Config
+    tests/config_test.cpp
+
     # Helpers
     tests/helper_test.cpp
     
