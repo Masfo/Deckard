@@ -307,6 +307,7 @@ set(DECKARD_SRCS
 		types/helpertypes.ixx
 		types/types.ixx
 		types/uint128.ixx
+		types/allocator.ixx
 
 
 		# External helpers

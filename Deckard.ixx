@@ -18,6 +18,8 @@ export import deckard.log;
 export import deckard.types;
 export import deckard.uuid;
 
+export import deckard.allocator;
+
 // File
 export import deckard.config;
 export import deckard.file;
