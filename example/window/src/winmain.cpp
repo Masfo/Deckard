@@ -1,7 +1,6 @@
 #include <windows.h>
 #include <Commctrl.h>
 #include <intrin.h>
-#include <shellapi.h>
 #include <time.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -835,70 +834,33 @@ struct STUNHeader
 	u16 method_bits() const { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); }
 };
 
-class reffer final
+// Frequency map
+template<typename T>
+std::unordered_map<T, int> freqMap(const std::vector<T>& v)
 {
-private:
-	int* value{nullptr};
-
-public:
-	reffer() = default;
-
-	void call(std::string_view str, int& v)
-	{
-		dbg::println("{}", str);
-		v = *value;
-	}
-
-	void set(int* v) { value = v; };
-
-	int get() const { return value == nullptr ? -1 : *value; }
-};
-
-std::string base64Encode(std::span<const std::byte> data)
-{
-	static constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-	std::string  encoded;
-	const size_t input_size = data.size();
-	encoded.reserve(((input_size + 2) / 3) * 4);
-
-	std::uint32_t value = 0; // rolling 24-bit buffer
-	std::size_t   bits  = 0; // number of valid bits currently in 'value'
-
-	std::size_t i = 0;
-	while (i < input_size)
-	{
-		// Accumulate 8 bits
-		value = (value << 8) | static_cast<std::uint8_t>(data[i++]);
-		bits += 8;
-
-		// Emit as many 6-bit chunks as we can
-		while (bits >= 6)
-		{
-			bits -= 6;
-			encoded += base64_chars[(value >> bits) & 0x3F];
-		}
-
-		// Keep only the remaining (bits) LSBs; avoid value growing unbounded.
-		if (bits > 0)
-			value &= ((1u << bits) - 1);
-	}
-
-	// Flush remaining bits (0 < bits < 6)
-	if (bits > 0)
-	{
-		encoded += base64_chars[(value << (6 - bits)) & 0x3F];
-	}
-
-	// Pad to multiple of 4
-	while (encoded.size() % 4 != 0)
-	{
-		encoded += '=';
-	}
-
-	return encoded;
+	std::unordered_map<T, int> freq;
+	for (auto& x : v)
+		freq[x]++;
+	return freq;
 }
 
+struct XA
+{
+	int type;
+	int age;
+};
+
+struct XB
+{
+	int type;
+	int age;
+};
+
+struct XC
+{
+	int type;
+	int age;
+};
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -908,28 +870,42 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	int    value = 123;
-	reffer ref;
-	ref.set(&value);
-
-	int newvalue = 0;
-	dbg::println("nv 1 {}", newvalue);
-	ref.call("first", newvalue);
-
-	dbg::println("nv 2 {}", newvalue);
-
-	_ = 0;
-
-	// ########################################################################
-	std::vector<std::byte> vg;
-	vg.push_back(0x41_byte);
-	vg.push_back(0x42_byte);
-	vg.push_back(0x43_byte);
-	vg.push_back(0x44_byte);
 
 
-	auto vgstr = base64Encode(vg);
+	using Something = std::variant<std::monostate, XA, XB, XC>;
+	Something something;
 
+	dbg::println("{}", sizeof("::") - 1);
+
+
+	auto visire = [&]
+	{
+		std::visit(
+		  overloads{//
+					[](std::monostate) { dbg::println("monostate"); },
+					[](XA a) { dbg::println("{} is age {} of type {}", "a", a.age, a.type); },
+					[](XB a) { dbg::println("{} is age {} of type {}", "b", a.age, a.type); },
+					[](XC a) { dbg::println("{} is age {} of type {}", "c", a.age, a.type); }},
+		  something);
+	};
+
+	dbg::println("sizeof(Variant) = {} - {} - {}", sizeof(Something), sizeof(XA), sizeof(std::monostate));
+
+	visire();
+	something = XA{.type = 1, .age = 122};
+	visire();
+
+	something = XB{.type = 2, .age = 10};
+	visire();
+
+	something = XC{.type = 3, .age = 45};
+	visire();
+
+	something = {};
+	visire();
+
+	something = XA{.type = 10, .age = 5};
+	visire();
 
 	test_cmdliner();
 
@@ -946,13 +922,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
-// ########################################################################
-#if 0
-	using namespace deckard::monocypher;
+	// ########################################################################
 
-	publickey  my_publickey;
+	using namespace deckard::monocypher;
+	
+	publickey my_publickey;
 	privatekey my_privatekey;
-	sharedkey  my_sharedkey;
+	sharedkey my_sharedkey;
 
 	publickey  their_publickey;
 	privatekey their_privatekey;
@@ -975,24 +951,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	create_session_key(my_sharedkey, my_privatekey, their_publickey);
-#endif
 
-	auto normalize = [](std::string& input) -> std::string
-	{
-		if (input.starts_with("--"))
-			input.erase(0, 2);
-		else if (input.starts_with("-"))
-			input.erase(0, 1);
-		return input;
-	};
 
-	std::string str_in("--verbose");
 
-	dbg::println("1. {}", str_in);
 
-	normalize(str_in);
 
-	dbg::println("2. {}", str_in);
 
 
 	_ = 0;

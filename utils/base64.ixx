@@ -92,7 +92,10 @@ namespace deckard::utils::base64
 	export std::optional<std::vector<u8>> decode(std::string_view encoded_input)
 	{
 		if (encoded_input.empty())
-			return std::nullopt;
+			return {};
+
+		if (not is_valid_base64_str(encoded_input))
+			return {};
 
 		std::vector<u8> out;
 		out.reserve((encoded_input.size() / 4) * 3);
