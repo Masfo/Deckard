@@ -1121,7 +1121,13 @@ export namespace deckard
 			exp /= 2;
 		}
 
-		return (std::abs<T>(num) / divisor) % 10;
+		if constexpr (std::is_unsigned_v<T>)
+			return (num / divisor) % 10;
+		else
+		{
+			T abs_num = num > 0 ? num : -num;
+			return (abs_num / divisor) % 10;
+		}
 	}
 
 #ifdef _DEBUG

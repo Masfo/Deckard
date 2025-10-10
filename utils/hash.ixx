@@ -19,48 +19,49 @@ namespace deckard::utils
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
 	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
 
-	template<typename T>
-	constexpr T simple_xorshift(const T& n, int i)
+	constexpr u64 distribute(u64 x)
 	{
-		return n ^ (n >> i);
-	}
-
-	constexpr u32 distribute(const u32& n)
-	{
-		constexpr u32 p = 0x5555'5555ul;
-		constexpr u32 c = 0xCC0F'8E27ul;
-		return c * simple_xorshift(p * simple_xorshift(n, 16), 16);
-	}
-
-	constexpr u64 distribute(const u64& n)
-	{
-		constexpr u64 p = 0x5555'5555'5555'5555ull;
-		constexpr u64 c = 0xF04E'EA49'71D6'05C7ull;
-
-		return c * simple_xorshift(p * simple_xorshift(n, 32), 32);
+		if constexpr (sizeof(u64) == 8)
+		{
+			x ^= x >> 12;
+			x ^= x << 25;
+			x ^= x >> 27;
+			return x * 0x2545'F491'4F6C'DD1DULL;
+		}
+		else
+		{
+			x ^= x >> 13;
+			x ^= x << 17;
+			x ^= x >> 5;
+			return x * 0x85eb'ca6bU;
+		}
 	}
 
 	export template<typename T, typename... Rest>
-	constexpr void hash_combine(std::size_t& seed, const T& v, Rest... rest)
+	constexpr auto hash_combine(u64 seed, const T& v, Rest... rest)
 	{
-		seed = std::rotl(seed, std::numeric_limits<size_t>::digits / 3) ^ distribute(std::hash<T>{}(v));
-		(hash_combine(seed, rest), ...);
+		seed = std::rotl(seed, std::numeric_limits<std::size_t>::digits / 3) ^ distribute(std::hash<T>{}(v));
+		if constexpr (sizeof...(rest) > 0)
+		{
+			return hash_combine(seed, rest...);
+		}
+		return seed;
 	}
 
-	export constexpr u32 constant_seed = distribute(constant_seed_1);
+	export constexpr u64 constant_seed = distribute(constant_seed_1);
 
 	export template<typename... Types>
-	constexpr std::size_t hash_values(const Types&... args)
+	constexpr u64 hash_values(const Types&... args)
 	{
-		std::size_t seed = constant_seed;
+		u64 seed = constant_seed;
 		hash_combine(seed, args...);
 		return seed;
 	}
 
 	export template<typename T>
-	constexpr size_t hash_values(const std::span<T>& args)
+	constexpr u64 hash_values(const std::span<T>& args)
 	{
-		std::size_t seed = constant_seed;
+		u64 seed = constant_seed;
 		for (const auto& arg : args)
 			hash_combine(seed, arg);
 
@@ -145,7 +146,7 @@ namespace deckard::utils
 	constexpr u64 val_64_const   = 0xcbf2'9ce4'8422'2325;
 	constexpr u64 prime_64_const = 0x100'0000'01b3;
 
-	export constexpr u32 fnv1a_32(char const* buffer, size_t count)
+	export u32 fnv1a_32(char const* buffer, size_t count)
 	{
 		uint32_t hash  = val_32_const;
 		uint32_t prime = prime_32_const;
@@ -160,20 +161,7 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export constexpr u64 fnv1a_64(const std::span<u8> buffer)
-	{
-		u64 hash = val_64_const;
-
-		for (int i = 0; i < buffer.size(); ++i)
-		{
-			hash = hash ^ buffer[i];
-			hash *= prime_64_const;
-		}
-
-		return hash;
-	}
-
-	export constexpr u32 fnv1a_32(const std::span<u8> buffer)
+	export u32 fnv1a_32(const std::span<u8> buffer)
 	{
 		u32 hash = val_32_const;
 
@@ -186,9 +174,22 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32({str.data(), str.length()}); }
+	export u64 fnv1a_64(const std::span<u8> buffer)
+	{
+		u64 hash = val_64_const;
 
-	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64({str.data(), str.length()}); }
+		for (int i = 0; i < buffer.size(); ++i)
+		{
+			hash = hash ^ buffer[i];
+			hash *= prime_64_const;
+		}
+
+		return hash;
+	}
+
+	export u32 fnv1a_32(std::string_view str) { return fnv1a_32(to_span(str)); }
+
+	export u64 fnv1a_64(std::string_view str) { return fnv1a_64(to_span(str)); }
 
 	export u32 operator""_fnv32(char const* s, size_t count) { return fnv1a_32({s, count}); }
 
