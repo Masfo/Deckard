@@ -19,20 +19,18 @@ namespace deckard
 	export template<typename T>
 	constexpr std::unique_ptr<T[]> allocate_raw_array(size_t size, std::initializer_list<T> list)
 	{
-		auto pointers = std::make_unique<T[]>(size);
-
-		auto current = list.begin();
+		auto pointers = allocate_raw_array<T>(size);
 
 		size = std::min(size, list.size());
 
 		size_t i{0};
+		auto current = list.begin();
 		while (i < size)
 		{
 			pointers[i] = *current;
 			current += 1;
 			i += 1;
 		}
-
 
 		return pointers;
 	}
