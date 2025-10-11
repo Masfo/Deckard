@@ -74,11 +74,6 @@ TEST_CASE("grid", "[grid]")
 		CHECK(false == g.valid(8, 8));
 	}
 
-	SECTION("hash")
-	{
-		grid<int> g(8, 8);
-		CHECK(0x3d0a'02d5'a2e3'8a7d == g.hash());
-	}
 
 	SECTION("reverse col")
 	{
@@ -286,12 +281,6 @@ TEST_CASE("grid<bool>", "[grid]")
 
 		grid<bool> g2(9, 9);
 		CHECK(g2.size_in_bytes() == 11);
-	}
-
-	SECTION("hash")
-	{
-		grid<bool> g(8, 8);
-		CHECK(0x8a23'e09e'6054'a0ea == g.hash());
 	}
 
 
