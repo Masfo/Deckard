@@ -54,7 +54,7 @@ namespace deckard::utils
 	constexpr u64 hash_values(const Types&... args)
 	{
 		u64 seed = constant_seed;
-		hash_combine(seed, args...);
+		seed = hash_combine(seed, args...);
 		return seed;
 	}
 
@@ -63,7 +63,7 @@ namespace deckard::utils
 	{
 		u64 seed = constant_seed;
 		for (const auto& arg : args)
-			hash_combine(seed, arg);
+			seed = hash_combine(seed, arg);
 
 		return seed;
 	}
