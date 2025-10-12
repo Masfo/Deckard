@@ -218,7 +218,7 @@ struct Tree
 #endif
 
 
-template<typename T>
+template<typename T=u32>
 struct Noisy
 {
 	Noisy() { dbg::println("{default-ctor}"); }
@@ -870,6 +870,37 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
+	std::chrono::year_month_day ymd = 2025y / 1 / 15;
+	std::chrono::sys_days       sd{ymd};
+
+	sd += std::chrono::days{1};
+
+	{
+		auto string = allocate_raw<std::string>("new string");
+		dbg::println("allocate raw: {}", *string);
+	}
+
+	{
+		u32  count = 5;
+		auto names = allocate_raw_array<std::string>(count, {"hello", "world", "is", "fun"});
+
+		for (u32 i = 0; i < count; ++i)
+			dbg::println("init {}. names: {}", i, names[i]);
+		_ = 0;
+	}
+
+	{
+
+		auto names = allocate_raw_array<std::string>(2);
+
+		for (int i = 0; i < 2; ++i)
+			dbg::println("no-init {}. names: {}", i, names[i]);
+	}
+
+
+	_ = 0;
+
+	// ########################################################################
 
 
 	using Something = std::variant<std::monostate, XA, XB, XC>;
@@ -925,10 +956,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 	using namespace deckard::monocypher;
-	
-	publickey my_publickey;
+
+	publickey  my_publickey;
 	privatekey my_privatekey;
-	sharedkey my_sharedkey;
+	sharedkey  my_sharedkey;
 
 	publickey  their_publickey;
 	privatekey their_privatekey;
@@ -951,11 +982,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	create_session_key(my_sharedkey, my_privatekey, their_publickey);
-
-
-
-
-
 
 
 	_ = 0;

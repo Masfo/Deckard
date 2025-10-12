@@ -1,12 +1,23 @@
-﻿export module deckard.taskpool;
+export module deckard.taskpool;
 
 import std;
 import deckard.function_ref;
 import deckard.threadutil;
 import deckard.debug;
 
-namespace deckard
+namespace deckard::taskpool
 {
+
+	// Taskpool job counter for simple coordination
+	// 
+	// auto job_id = pool.createjob("frequency_map", 50); // this task has 50 parts
+	// Divide buffers into threads, each thread
+	//
+	// each run decrements task, then another task just checks if "frequency_map" job == 0, and merges results
+	// if we dont know how many tasks there going to be in a job but we know the end task
+	// we can just set "job" = 1 when done, and some merge task can just check if "job" == 1
+	//
+	// std::unordered_map<std::string, std::atomic_int> job_counters;
 
 	export class threadpool
 	{
