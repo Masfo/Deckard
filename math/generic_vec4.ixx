@@ -1,4 +1,4 @@
-﻿export module deckard.vec:vec4;
+export module deckard.vec:vec4;
 import :vec3;
 
 import std;
@@ -284,6 +284,12 @@ namespace deckard::math
 			result += w * w;
 
 			return std::sqrt(result);
+		}
+
+		[[nodiscard("Use the length2 value")]] constexpr T length2() const
+		requires(std::is_floating_point_v<T>)
+		{
+			return dot(*this);
 		}
 
 		constexpr void normalize()
