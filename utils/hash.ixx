@@ -15,6 +15,8 @@ import std;
 
 namespace deckard::utils
 {
+
+
 	constexpr u32 constant_seed_1 =
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
 	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
@@ -54,7 +56,7 @@ namespace deckard::utils
 	constexpr u64 hash_values(const Types&... args)
 	{
 		u64 seed = constant_seed;
-		seed = hash_combine(seed, args...);
+		seed     = hash_combine(seed, args...);
 		return seed;
 	}
 
@@ -146,7 +148,7 @@ namespace deckard::utils
 	constexpr u64 val_64_const   = 0xcbf2'9ce4'8422'2325;
 	constexpr u64 prime_64_const = 0x100'0000'01b3;
 
-	export u32 fnv1a_32(char const* buffer, size_t count)
+	export constexpr u32 fnv1a_32(char const* buffer, size_t count)
 	{
 		uint32_t hash  = val_32_const;
 		uint32_t prime = prime_32_const;
@@ -161,7 +163,7 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export u32 fnv1a_32(const std::span<u8> buffer)
+	export constexpr u32 fnv1a_32(const std::span<u8> buffer)
 	{
 		u32 hash = val_32_const;
 
@@ -174,7 +176,7 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export u64 fnv1a_64(const std::span<u8> buffer)
+	export constexpr u64 fnv1a_64(const std::span<u8> buffer)
 	{
 		u64 hash = val_64_const;
 
@@ -187,13 +189,13 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export u32 fnv1a_32(std::string_view str) { return fnv1a_32(to_span(str)); }
+	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32(to_span(str)); }
 
-	export u64 fnv1a_64(std::string_view str) { return fnv1a_64(to_span(str)); }
+	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64(to_span(str)); }
 
-	export u32 operator""_fnv32(char const* s, size_t count) { return fnv1a_32({s, count}); }
+	export constexpr u32 operator""_fnv32(char const* s, size_t count) { return fnv1a_32({s, count}); }
 
-	export u64 operator""_fnv64(char const* s, size_t count) { return fnv1a_64({s, count}); }
+	export constexpr u64 operator""_fnv64(char const* s, size_t count) { return fnv1a_64({s, count}); }
 
 	//
 	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
@@ -365,6 +367,11 @@ namespace deckard::utils
 	export u64 chibihash64(std::string_view buffer) { return chibihash64({as<u8*>(buffer.data()), buffer.size()}); }
 
 	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
+
+	// ########################################################
+
+
+	export constexpr u64 stringhash(std::string_view str) { return fnv1a_64(str); }
 
 
 } // namespace deckard::utils

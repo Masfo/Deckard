@@ -218,7 +218,7 @@ struct Tree
 #endif
 
 
-template<typename T=u32>
+template<typename T = u32>
 struct Noisy
 {
 	Noisy() { dbg::println("{default-ctor}"); }
@@ -2088,8 +2088,8 @@ dbg::println();
 	// ########################################################################
 	if constexpr (false)
 	{
-		auto       tpool_start = clock_now();
-		threadpool tpool;
+		auto               tpool_start = clock_now();
+		taskpool::taskpool tpool;
 
 		clock_delta("threadpool init", tpool_start);
 
@@ -2230,6 +2230,12 @@ dbg::println();
 
 	// ###############################################
 
+	std::unordered_map<u64, u64> histog;
+
+	auto calc = [&](std::string_view str) { histog[utils::stringhash(str)]++; };
+
+	calc("hello"sv);
+	_ = 0;
 
 	// ###############################################
 

@@ -90,8 +90,17 @@ if(MSVC)
 
 	# Enable Hot Reload for MSVC compilers if supported.
 
+	target_compile_options(deckard PRIVATE 
+	$<$<CONFIG:DEBUG>:/DEBUG>
+	$<$<CONFIG:Release>:/RELEASE>
+	)
 
+		target_compile_options(deckard PRIVATE 
+	$<$<CONFIG:DEBUG>:
+		/JMC /Od /RTC1 /GS /INCREMENTAL /Zi>
 
+	$<$<CONFIG:Release>:/RELEASE>
+	)
 	 # Debug
 	if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	
@@ -111,7 +120,6 @@ if(MSVC)
 
 		target_compile_options(deckard PRIVATE /JMC)    # Just my debugging
 		target_compile_options(deckard PRIVATE /Od)
-		target_compile_options(deckard PRIVATE /DEBUG)
 
 		target_compile_options(deckard PRIVATE /RTC1)
 		target_compile_options(deckard PRIVATE /GS)
@@ -141,7 +149,6 @@ if(MSVC)
 
 
 		
-		target_link_options(deckard PRIVATE /RELEASE )
 		target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
 
 
