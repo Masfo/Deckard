@@ -601,6 +601,12 @@ namespace deckard::math
 		return rhs.length();
 	}
 
+	export template<arithmetic T>
+	[[nodiscard("Use the length2 value")]] constexpr T length2(const generic_vec4<T>& rhs)
+	{
+		return rhs.length2();
+	}
+
 	export template<std::floating_point T>
 	[[nodiscard("Use the projected vector")]] constexpr generic_vec4<T> project(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{

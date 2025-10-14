@@ -1,4 +1,4 @@
-﻿export module deckard.math:primitives;
+export module deckard.math:primitives;
 
 
 import deckard.types;
@@ -108,19 +108,48 @@ namespace deckard::math
 
 	export struct sphere
 	{
-		f32  radius{0.0f};
 		vec3 center{0.0f, 0.0f, 0.0f};
+		f32  radius{0.0f};
 		sphere() = default;
 
-		sphere(float r, const vec3& c)
-			: radius(r)
-			, center(c)
+		sphere( const vec3& c, f32 r)
+			: center(c)
+			, radius(r)
 		{
 		}
 
 		sphere(const vec3& c)
 			: center(c)
 		{
+		}
+
+		bool intersect(const sphere& s) const
+		{
+			f32 d = (center - s.center).length2();
+			f32 r = (radius + s.radius);
+			return d < r * r;
+		}
+
+		 bool intersect(const vec3& ray_position, const vec3& ray_direction, f32& t) const
+		{
+			vec3  v = ray_position - center;
+			f32 h = -v.dot(ray_direction);
+			f32 d = h * h + radius * radius - v.length2();
+
+			if (d > 0.0f)
+			{
+				d          = std::sqrtf(d);
+				f32 tMin = h - d;
+				f32 tMax = h + d;
+				if (tMax > 0.0f)
+				{
+					if (tMin < 0.0f)
+						tMin = 0.0f;
+					t = tMin;
+					return true;
+				}
+			}
+			return false;
 		}
 	};
 

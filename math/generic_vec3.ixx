@@ -226,7 +226,7 @@ namespace deckard::math
 		requires(std::is_floating_point_v<T>)
 		{
 			T result{0};
-			
+
 			result += x * x;
 			result += y * y;
 			result += z * z;
@@ -583,6 +583,12 @@ namespace deckard::math
 	[[nodiscard("Use the length value")]] constexpr T length(const generic_vec3<T>& rhs)
 	{
 		return rhs.length();
+	}
+
+	export template<arithmetic T>
+	[[nodiscard("Use the length2 value")]] constexpr T length2(const generic_vec3<T>& rhs)
+	{
+		return rhs.length2();
 	}
 
 	export template<std::floating_point T>
