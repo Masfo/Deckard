@@ -317,21 +317,21 @@ namespace deckard::math
 
 		const float half     = radians * 0.5f;
 		quat        rotation = quat(std::cos(half), std::sin(half), 0.0f, 0.0f);
-		return rotation * q;
+		return q * rotation;
 	}
 
 	export quat rotate_y(const quat& q, f32 radians)
 	{
 		const float half     = radians * 0.5f;
 		quat        rotation = quat(std::cos(half), 0, std::sin(half), 0);
-		return rotation * q;
+		return q * rotation;
 	}
 
 	export quat rotate_z(const quat& q, f32 radians)
 	{
 		const float half     = radians * 0.5f;
 		quat        rotation = quat(std::cos(half), 0.0f, 0.0f, std::sin(half));
-		return rotation * q;
+		return q * rotation;
 	}
 
 	f32 mix(f32 x, f32 y, f32 t) { return (x * (1.0f - t) + y * t); }
