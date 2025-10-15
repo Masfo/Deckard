@@ -4,6 +4,7 @@ import deckard.utf8;
 import deckard.types;
 import deckard.file;
 import deckard.debug;
+import deckard.helpers;
 
 namespace fs = std::filesystem;
 
@@ -22,30 +23,45 @@ namespace deckard::config
 		END_OF_FILE = 0xFF,
 	};
 
+	// Newline means LF (0x0A) or CRLF (0x0D 0x0A).
+	//
 	// if [, consume_section, until ], if \n or EOF fail error
 
 	// Section and keys ascii-only.
 	// strings utf8
 
 	// section .dot. key
-	// token_index_map = map<section.key, token_index>		
+	// token_index_map = map<section.key, token_index>
 
 
 	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
-	//							
+	// std::vector<ConfigToken> 
 
-	using Value = std::variant<std::monostate, bool, i64, u64, f64, utf8::string>;
+	struct ConfigToken
+	{
+		TokenType type;
+		std::string value;
+	};
+
+
+	struct SectionKey
+	{
+		std::string section;
+		std::string key;
+	};
+
+	using Value = std::variant<std::monostate, bool, i64, u64, f64, std::string, utf8::string>;
 
 	struct TokenIndexValuePair
 	{
 		Value v;
-		u32 token_index;		
+		u32   token_index;
 	};
 
 	export struct Token
 	{
-		TokenType  type{};
-		
+		TokenType type{};
+
 		utf8::string value;
 
 		bool operator==(const Token& other) const
@@ -78,13 +94,26 @@ namespace deckard::config
 	export class config2
 	{
 	private:
-		std::string data;
+		std::string        data;
 		std::vector<Token> tokens;
+
+		void parse(std::span<u8> buffer)
+		{
+			//
+		}
+
 	public:
 
+		config2(std::span<u8> input) 
+		{ 
+			parse(input);
+		}
+
+		config2(std::string_view input)
+			: config2(to_span(input))
+		{
+		}
 	};
-
-
 
 	export class config
 	{
@@ -92,8 +121,7 @@ namespace deckard::config
 		utf8::string       data;
 		std::vector<Token> tokens;
 
-		//std::unordered_map<
-
+		// std::unordered_map<
 
 
 		ConsumeResult consume_ascii_until(consume_predicate auto&& predicate, utf8::iterator start)
@@ -212,10 +240,10 @@ namespace deckard::config
 						++start;
 					auto key = utf8::string{key_start, start};
 
-					
-					tokens.push_back({ TokenType::KEY, key.trim()});
+
+					tokens.push_back({TokenType::KEY, key.trim()});
 					dbg::println("key '{}'", key);
-					
+
 					if (start != end && *start == '=')
 					{
 						++start; // consume '='
@@ -223,8 +251,8 @@ namespace deckard::config
 						while (start != end && *start != '\n' && *start != '\r' && *start != '#')
 							++start;
 						auto value = utf8::string{value_start, start};
-						_ = 0;
-						 tokens.push_back({TokenType::VALUE, value.trim()});
+						_          = 0;
+						tokens.push_back({TokenType::VALUE, value.trim()});
 						dbg::println("value: '{}'", value);
 					}
 				}
@@ -294,14 +322,30 @@ export namespace std
 	{
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const deckard::config::config& v, std::format_context& ctx) const 
+		auto format(const deckard::config::config& v, std::format_context& ctx) const
 		{
-			return std::format_to(ctx.out(), "{}", v.to_string()); 
+			return std::format_to(ctx.out(), "{}", v.to_string());
 		}
 
 		int  parsed_base = 10;
 		bool uppercase   = false;
 	};
 
+	template<>
+	struct formatter<deckard::config::SectionKey>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::config::SectionKey& v, std::format_context& ctx) const
+		{
+			if (v.section.empty())
+				return std::format_to(ctx.out(), "{}", v.key);
+			else
+				return std::format_to(ctx.out(), "{}.{}", v.section, v.key);
+		}
+
+		int  parsed_base = 10;
+		bool uppercase   = false;
+	};
 
 } // namespace std
