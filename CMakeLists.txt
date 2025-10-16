@@ -174,7 +174,12 @@ endif()
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_include_directories(deckard PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(deckard INTERFACE Vulkan::Vulkan)
+target_link_libraries(deckard PRIVATE Vulkan::Vulkan)
+
+find_program(GLSLC_EXECUTABLE glslc HINTS $ENV{VULKAN_SDK}/Bin)
+if(NOT GLSLC_EXECUTABLE)
+    message(FATAL_ERROR "glslc not found! Please install the Vulkan SDK or set GLSLC_EXECUTABLE manually.")
+endif()
 
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> <DEFINES>  -wall -w-reloc-abs-dword -w-reloc-rel-dword -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -o <OBJECT> <SOURCE>")
 
@@ -305,6 +310,7 @@ set(DECKARD_SRCS
 		app/vulkan/surface.ixx
 		app/vulkan/swapchain.ixx
 		app/vulkan/texture.ixx
+		app/vulkan/shaders.ixx
 
 
 		# Types

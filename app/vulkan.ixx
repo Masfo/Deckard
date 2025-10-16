@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <windows.h>
 
 #include <vulkan/vk_enum_string_helper.h>
@@ -20,6 +20,7 @@ export import :fence;
 export import :images;
 export import :core;
 export import :texture;
+export import :shaders;
 
 /*
 module;
@@ -155,6 +156,16 @@ namespace deckard::vulkan
 
 		record_commands();
 
+		// Test shader
+		shader vert;
+		shader frag;
+
+		if (auto result = vert.load(m_device, "data01/vertv.spv"); not result)
+			dbg::println(result.error());
+
+		if (auto result = frag.load(m_device, "data01/fragv.spv"); not result)
+			dbg::println(result.error());
+
 		return is_initialized;
 	}
 
@@ -181,6 +192,8 @@ namespace deckard::vulkan
 		m_debug.deinitialize(m_instance);
 #endif
 		m_instance.deinitialize();
+
+
 		is_initialized = false;
 	}
 
@@ -279,7 +292,7 @@ namespace deckard::vulkan
 			  nullptr,
 			  0,
 			  nullptr,
-			  1,                    // imageMemoryBarrierCount
+			  1,                        // imageMemoryBarrierCount
 			  &top_image_memory_barrier // pImageMemoryBarriers
 			);
 
@@ -316,20 +329,20 @@ namespace deckard::vulkan
 			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
 
 			VkImageMemoryBarrier bottom_image_memory_barrier{
-			  .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			  .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-			  .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			  .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
+			  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			  .srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			  .oldLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			  .newLayout           = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			  .image            = m_images.image(i),
-			  .subresourceRange = {
-				.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel   = 0,
-				.levelCount     = 1,
-				.baseArrayLayer = 0,
-				.layerCount     = 1,
-			  }};
+			  .image               = m_images.image(i),
+			  .subresourceRange    = {
+				   .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+				   .baseMipLevel   = 0,
+				   .levelCount     = 1,
+				   .baseArrayLayer = 0,
+				   .layerCount     = 1,
+              }};
 
 			vkCmdPipelineBarrier(
 			  m_command_buffer[i],
@@ -340,7 +353,7 @@ namespace deckard::vulkan
 			  nullptr,
 			  0,
 			  nullptr,
-			  1,                        // imageMemoryBarrierCount
+			  1,                           // imageMemoryBarrierCount
 			  &bottom_image_memory_barrier // pImageMemoryBarriers
 			);
 
@@ -358,8 +371,8 @@ namespace deckard::vulkan
 	{
 
 		in_flight.wait(m_device);
-		bool     resized{false};
-		u32      image_index{0};
+		bool resized{false};
+		u32  image_index{0};
 
 		// image_available multiple?
 		VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, image_available, nullptr, &image_index);
