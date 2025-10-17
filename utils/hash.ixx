@@ -47,7 +47,10 @@ namespace deckard::utils
 		{
 			return hash_combine(seed, rest...);
 		}
-		return seed;
+		else
+		{
+			return seed;
+		}
 	}
 
 	export constexpr u64 constant_seed = distribute(constant_seed_1);
