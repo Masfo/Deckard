@@ -162,6 +162,8 @@ export namespace deckard
 
 	// ###########################################################################
 	// ###########################################################################
+	
+	// static_assert(requires(A a, A b) { a + b; }, "elements must be addable");
 
 	// using Kilo = StrongType<double, struct Kilo_>;
 

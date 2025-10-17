@@ -332,7 +332,7 @@ export namespace deckard
 	template<arithmetic A, arithmetic... Args>
 	constexpr A sum(A a, A b, Args... args)
 	{
-		static_assert(can_subtract_v<A, A>, "Cannot sum types");
+		static_assert(can_sum_v<A, A>, "Cannot sum types");
 
 
 		if constexpr (sizeof...(args) == 0)

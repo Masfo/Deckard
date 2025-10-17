@@ -870,73 +870,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	std::chrono::year_month_day ymd = 2025y / 1 / 15;
-	std::chrono::sys_days       sd{ymd};
-
-	sd += std::chrono::days{1};
-
-	{
-		auto string = allocate_raw<std::string>("new string");
-		dbg::println("allocate raw: {}", *string);
-	}
-
-	{
-		u32  count = 5;
-		auto names = allocate_raw_array<std::string>(count, {"hello", "world", "is", "fun"});
-
-		for (u32 i = 0; i < count; ++i)
-			dbg::println("init {}. names: {}", i, names[i]);
-		_ = 0;
-	}
-
-	{
-
-		auto names = allocate_raw_array<std::string>(2);
-
-		for (int i = 0; i < 2; ++i)
-			dbg::println("no-init {}. names: {}", i, names[i]);
-	}
-
-
-	_ = 0;
-
 	// ########################################################################
 
 
-	using Something = std::variant<std::monostate, XA, XB, XC>;
-	Something something;
-
-	dbg::println("{}", sizeof("::") - 1);
-
-
-	auto visire = [&]
-	{
-		std::visit(
-		  overloads{//
-					[](std::monostate) { dbg::println("monostate"); },
-					[](XA a) { dbg::println("{} is age {} of type {}", "a", a.age, a.type); },
-					[](XB a) { dbg::println("{} is age {} of type {}", "b", a.age, a.type); },
-					[](XC a) { dbg::println("{} is age {} of type {}", "c", a.age, a.type); }},
-		  something);
-	};
-
-	dbg::println("sizeof(Variant) = {} - {} - {}", sizeof(Something), sizeof(XA), sizeof(std::monostate));
-
-	visire();
-	something = XA{.type = 1, .age = 122};
-	visire();
-
-	something = XB{.type = 2, .age = 10};
-	visire();
-
-	something = XC{.type = 3, .age = 45};
-	visire();
-
-	something = {};
-	visire();
-
-	something = XA{.type = 10, .age = 5};
-	visire();
 
 	test_cmdliner();
 
@@ -954,35 +890,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
 	// ########################################################################
-
-	using namespace deckard::monocypher;
-
-	publickey  my_publickey;
-	privatekey my_privatekey;
-	sharedkey  my_sharedkey;
-
-	publickey  their_publickey;
-	privatekey their_privatekey;
-	sharedkey  their_sharedkey;
-
-	create_private_and_public_keys(my_publickey, my_privatekey);
-	create_private_and_public_keys(their_publickey, their_privatekey);
-
-	dbg::println("My Pub     : {}", my_publickey.key);
-	dbg::println("My Priv    : {}", my_privatekey.key);
-
-	dbg::println("Their Pub  : {}", their_publickey.key);
-	dbg::println("Their Priv : {}", their_privatekey.key);
-
-	create_shared_key(my_sharedkey, my_privatekey, their_publickey);
-	create_shared_key(their_sharedkey, their_privatekey, my_publickey);
-
-	dbg::println("My shared    : {}", my_sharedkey.key);
-	dbg::println("Their shared : {}", their_sharedkey.key);
-
-
-	create_session_key(my_sharedkey, my_privatekey, their_publickey);
-
 
 	_ = 0;
 
@@ -1787,117 +1694,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	/*
-	 *  vector<vector<InterfaceComponent>> components
-	 *
-	 *  class Transform: InterfaceComponent
-	 *  class Velocity: InterfaceComponentsd
-	 *
-	 *  enum: Transform = 0, Velocity = 1
-	 *
-	 *  auto all_transforms = &components[Transform];
-	 *  auto all_velocity = &components[Velocity];
-	 *
-	 */
-
-	{
-		ECS<Components> ecs;
-		ecs.insert<Velocity>(Components::Velocity, 1.0f, 1.0f, 6.0f);
-		ecs.insert<Velocity>(Components::Velocity, 1.0f, 2.0f, 7.0f);
-		ecs.insert<Velocity>(Components::Velocity, 1.0f, 3.0f, 8.0f);
-		ecs.insert<Velocity>(Components::Velocity, 1.0f, 4.0f, 0.0f);
-
-
-		ecs.insert<Name>(Components::Name, "P1");
-		ecs.insert<Name>(Components::Name, "P2");
-		ecs.insert<Name>(Components::Name, "P3");
-		ecs.insert<Name>(Components::Name, "P4");
-
-		ecs.insert<Health>(Components::Health, 1.0f);
-		ecs.insert<Health>(Components::Health, 0.5f);
-		ecs.insert<Health>(Components::Health, 0.2f);
-		ecs.insert<Health>(Components::Health, 0.0f);
-
-		// entity X
-
-
-		_ = 0;
-
-
-		// components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player1"));
-		// components[std::to_underlying(Components::Name)].push_back(std::make_unique<Name>("Player2"));
-		//
-		//
-		// Name* p1name = reinterpret_cast<Name*>(components[std::to_underlying(Components::Name)][0].get());
-		//
-		//
-		// auto p1copy = p1name->clone();
-		//
-		// p1name->name.assign("New Player 2");
-		// Name p2copy = p1name->copy();
-		//
-		// p2copy.name = "extend";
-		//
-		//
-		// for (const auto& name : components[std::to_underlying(Components::Name)])
-		//{
-		//
-		//	Name& ptr = *reinterpret_cast<Name*>(name.get());
-		//	dbg::println("player {}", ptr.name);
-		// }
-		//
-		// for (const auto& name : components[std::to_underlying(Components::Velocity)])
-		//{
-		//
-		//	Velocity& ptr = *reinterpret_cast<Velocity*>(name.get());
-		//
-		//	dbg::println("velocity {} {} {}", ptr.x, ptr.y, ptr.z);
-		// }
-	}
-
-	_ = 0;
-
-	// ########################################################################
-
-	std::array<u8, 1024> buffer{};
-
-	// auto rpass = random::password(32);
-	// std::ranges::copy(rpass, buffer.begin());
-	std::string npass;
-	npass.resize(32);
-	std::string_view spass{npass};
-
-	random::digit(spass, 32);
-
-	auto ret = file::write("test_file.txt", spass, true);
-
-	buffer.fill(0);
-
-	std::string smallbuf;
-	smallbuf.resize(16);
-	std::string_view smallbufv{smallbuf};
-
-	ret = file::read("test_file.txt", smallbuf, 16);
-
-	dbg::println("before thread");
-
-	std::atomic<u64> log_index{0};
-	std::vector<u8>  log_buffer(3_MiB);
-	std::ranges::fill(log_buffer, '\n');
-
-	constexpr u32 message_count = 10000;
-
-
-	atomic_ringbuffer<u32, 8> arb;
-
-	for (int i = 0; i < 16; ++i)
-		arb.try_push(i);
-
-
-	auto arb_pop = arb.try_pop();
-	arb_pop      = arb.try_pop();
-
-
 	_ = 0;
 
 	auto pthread = std::thread(
@@ -2230,11 +2026,6 @@ dbg::println();
 
 	// ###############################################
 
-	std::unordered_map<u64, u64> histog;
-
-	auto calc = [&](std::string_view str) { histog[utils::stringhash(str)]++; };
-
-	calc("hello"sv);
 	_ = 0;
 
 	// ###############################################
