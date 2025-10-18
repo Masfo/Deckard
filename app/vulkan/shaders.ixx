@@ -17,7 +17,8 @@ namespace deckard::vulkan
 {
 #define SPV_SPIRV_VERSION_WORD(MAJOR, MINOR) ((uint32_t(uint8_t(MAJOR)) << 16) | (uint32_t(uint8_t(MINOR)) << 8))
 
-	constexpr u32 SPIRV_MAGIC_HEADER = 0x072'3020;
+	constexpr u32 SPIRV_MAGIC_HEADER = 0x0723'0203;
+
 	class shader
 	{
 	private:
@@ -46,8 +47,7 @@ namespace deckard::vulkan
 				return std::unexpected(content.error());
 
 
-			auto vr = SPV_SPIRV_VERSION_WORD(1, 0);
-
+			//
 			std::vector<u32> spirv;
 			spirv.reserve(size / 4);
 
@@ -62,12 +62,13 @@ namespace deckard::vulkan
 			if (spirv[0] != SPIRV_MAGIC_HEADER)
 				return std::unexpected(std::format("Shader '{}' header is invalid", shader_file.string()));
 
-			dbg::println("SPIR-V version: 0x{:X}", spirv[1]);
+			u8 major = (spirv[1] >> 16) & 0xFF;
+			u8 minor = (spirv[1] >> 8) & 0xFF;
+
+			dbg::println("SPIR-V version: v{}.{}", major, minor);
 			dbg::println("SPIR-V generator: 0x{:X}", spirv[2]);
 			dbg::println("SPIR-V bound: 0x{:X}", spirv[3]);
 			dbg::println("SPIR-V schema: 0x{:X}", spirv[4]);
-
-
 
 
 			VkShaderModuleCreateInfo createInfo = {};

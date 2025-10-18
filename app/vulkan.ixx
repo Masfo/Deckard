@@ -160,10 +160,10 @@ namespace deckard::vulkan
 		shader vert;
 		shader frag;
 
-		if (auto result = vert.load(m_device, "data01/vertv.spv"); not result)
+		if (auto result = vert.load(m_device, "data01/vert.spv"); not result)
 			dbg::println(result.error());
 
-		if (auto result = frag.load(m_device, "data01/fragv.spv"); not result)
+		if (auto result = frag.load(m_device, "data01/frag.spv"); not result)
 			dbg::println(result.error());
 
 		return is_initialized;
