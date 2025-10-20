@@ -1,5 +1,5 @@
 
-cmake_minimum_required (VERSION 3.29.0)
+cmake_minimum_required (VERSION 3.32.0)
 
 
 project(deckard LANGUAGES CXX)
@@ -84,7 +84,7 @@ if(MSVC)
 
 	#target_compile_options(deckard PRIVATE /arch:AVX2)
 
-	#set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
+	set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 	#set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
@@ -92,15 +92,30 @@ if(MSVC)
 
 	target_compile_options(deckard PRIVATE 
 	$<$<CONFIG:DEBUG>:/DEBUG>
-	$<$<CONFIG:Release>:/RELEASE>
+	#$<$<CONFIG:Release>:/RELEASE>
 	)
+
+    Target_link_options(deckard PRIVATE /RELEASE)
+
 
 		target_compile_options(deckard PRIVATE 
-	$<$<CONFIG:DEBUG>:
-		/JMC /Od /RTC1 /GS /INCREMENTAL /Zi>
+	$<$<CONFIG:DEBUG>: /JMC /Od /RTC1 /GS /INCREMENTAL /Zi>
 
-	$<$<CONFIG:Release>:/RELEASE>
-	)
+		$<$<CONFIG:Release>: 
+		/O2         # Maximum optimization
+		/Ob2        # Inline any suitable function
+		/Oi         # Enable intrinsic functions
+		#/Ot         # Favor fast code
+		/GL         # Whole program optimization  
+		/Gy         # Function-level linking
+		/GF         # String pooling
+		/GT         # Fiber-safe optimizations
+		/fp:fast    # Fast floating point model
+		/Qpar       # Auto-parallelize loops
+	>
+		)
+
+
 	 # Debug
 	if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	
@@ -133,7 +148,7 @@ if(MSVC)
 	endif()
 	
 	# Release
-	if (${CMAKE_BUILD_TYPE} MATCHES "Release" OR ${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
+	if (${CMAKE_BUILD_TYPE} MATCHES "Release")
 	
 		set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
 		set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -145,7 +160,7 @@ if(MSVC)
 		target_compile_options(deckard PRIVATE /GS-)
 		target_compile_options(deckard PRIVATE /Gw /MP)
 		target_compile_options(deckard PRIVATE /EHsc)
-		target_compile_options(deckard PRIVATE /GF)
+		#target_compile_options(deckard PRIVATE /GF /RELEASE)
 
 
 		

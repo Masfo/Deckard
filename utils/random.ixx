@@ -15,6 +15,45 @@ namespace deckard::random
 {
 
 
+	// pcg
+	struct pcg32_random_t
+	{
+		u64 state;
+		u64 inc;
+	};
+
+	u32 pcg32_random_r(pcg32_random_t* rng)
+	{
+		u64 oldstate = rng->state;
+		rng->state = oldstate * 6'364'136'223'846'793'005ULL + (rng->inc | 1);
+		u32 xorshifted = u32(((oldstate >> 18u) ^ oldstate) >> 27u);
+		u32 rot        = oldstate >> 59u;
+		return (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31));
+	}
+
+
+	#ifdef _DEBUG
+	pcg32_random_t pcg_state = {0x853c'49e6'748f'ea9bULL, 0xda3e'39cb'94b9'5bdbULL};
+	#else
+	pcg32_random_t pcg_state = {deckard_build::build::random_seed, deckard_build::build::version};
+	#endif
+
+	namespace pcg
+	{
+		export f64 rand01() { return pcg32_random_r(&pcg_state) / f64(1ull << 32); }
+
+		export f32 rand01f() { return pcg32_random_r(&pcg_state) / f32(1ull << 32); }
+
+		export u32 rand32() { return pcg32_random_r(&pcg_state); }
+		export u64 rand64()
+		{
+			u64 high = as<u64>(pcg32_random_r(&pcg_state));
+			u64 low  = as<u64>(pcg32_random_r(&pcg_state));
+			return (high << 32) | low;
+		}
+
+	} // namespace pcg
+
 	export class splitmix64
 	{
 	private:

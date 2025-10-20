@@ -96,7 +96,7 @@ namespace deckard::monocypher
 
 	export void create_session_key(sharedkey &sharedkey, const privatekey &your_private_key, const publickey &their_public_key)
 	{
-		sessionkey         shared_key;
+		//sessionkey         shared_key;
 
 		std::array<u8, 64> shared_keys;
 

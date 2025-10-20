@@ -157,7 +157,7 @@ if(MSVC)
         target_compile_options(tests  PRIVATE /O2  /Os)
         target_compile_options(tests  PRIVATE /GS-)
 
-        target_link_options(tests PRIVATE /Release)
+        #target_link_options(tests PRIVATE /RELEASE)
 
 
         target_link_options(tests PRIVATE /OPT:REF /OPT:ICF)
