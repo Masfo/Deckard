@@ -286,22 +286,29 @@ namespace deckard::math
 				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x};
 	}
 
-	export quat normalize(quat q)
+	export quat normalize(const quat q)
 	{
-		f32 len = length(q);
+		f32 x = q.data.x;
+		f32 y = q.data.y;
+		f32 z = q.data.z;
+		f32 w = q.data.w;
 
-		if (math::is_close_enough_zero(len))
-			return q;
+		f32 d = q.data.w * q.data.w + q.data.x * q.data.x + q.data.y * q.data.y + q.data.z * q.data.z;
 
-		f32 over = 1.0f / len;
+		if (math::is_close_enough_zero(d))
+			w = 1.0f;
 
-		q.data.w *= over;
+		d = 1.0f / std::sqrt(d);
 
-		q.data.x *= over;
-		q.data.y *= over;
-		q.data.z *= over;
 
-		return q;
+		if (d > f32(1.0e-8))
+		{
+			w *= d;
+			x *= d;
+			y *= d;
+			z *= d;
+		}
+		return quat(w, x, y, z);
 	}
 
 	export quat rotate(const quat& q, const f32 radians, const vec3& v)

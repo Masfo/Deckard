@@ -17,6 +17,7 @@ struct sink_t final
 	}
 };
 
+
 export inline constexpr sink_t _;
 
 export namespace deckard
