@@ -79,6 +79,24 @@ export namespace deckard::utf8
 		return decode_result{REPLACEMENT_CHARACTER, 0};
 	}
 
+	std::generator<char32> yield_codepoints(const std::span<u8> buffer)
+	{
+		size_t i = 0;
+		while (i < buffer.size())
+		{
+			auto result = decode(buffer, i);
+			if (result)
+			{
+				co_yield result.value().codepoint;
+				i += result.value().bytes_consumed;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
 
 	size_t graphemes(const std::span<u8> buffer)
 	{

@@ -1,4 +1,4 @@
-﻿#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -439,6 +439,32 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(*it++ == correct[1]);
 		CHECK(*it++ == correct[2]);
 		CHECK(*it++ == correct[3]);
+	}
+
+	SECTION("generator yield")
+	{
+		std::array<u8, 10> data = {
+		  // A       U+0041
+		  0x41,
+		  // Ä       U+00C4
+		  0xC3,
+		  0x84,
+		  // ↥       U+21A5
+		  0xE2,
+		  0x86,
+		  0xA5,
+		  // 🌍      U+1F30D
+		  0xF0,
+		  0x9F,
+		  0x8C,
+		  0x8D};
+
+		std::array<u32, 4> correct{0x41, 0xC4, 0x21A5, 0x1'F30D};
+		static size_t index = 0;
+		for (const auto& codepoint : yield_codepoints(data))
+		{
+			CHECK(codepoint == correct[index++]);
+		}
 	}
 
 	SECTION("starts_with")
@@ -911,7 +937,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string str("🌍hello❌ world🌍");
 		utf8::string w("🌍❌helord ");
 
-		auto         found = str.find_last_not_of(w);
+		auto found = str.find_last_not_of(w);
 		CHECK(found == 8);
 
 		found = str.find_last_not_of("hello world"sv);
@@ -920,7 +946,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		char32 q = 0x1'f30d; // 🌍
 		found    = str.find_last_not_of(q);
 		CHECK(found == 12);
-
 	}
 
 	SECTION("rfind")
