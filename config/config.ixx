@@ -35,14 +35,13 @@ namespace deckard::config
 
 
 	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
-	// std::vector<ConfigToken> 
+	// std::vector<ConfigToken>
 
 	struct ConfigToken
 	{
-		TokenType type;
+		TokenType   type;
 		std::string value;
 	};
-
 
 	struct SectionKey
 	{
@@ -50,7 +49,7 @@ namespace deckard::config
 		std::string key;
 	};
 
-	using Value = std::variant<std::monostate, bool, i64, u64, f64, std::string, utf8::string>;
+	using Value = std::variant<std::monostate, bool, i64, u64, f64, utf8::string>;
 
 	struct TokenIndexValuePair
 	{
@@ -62,13 +61,18 @@ namespace deckard::config
 	{
 		TokenType type{};
 
-		utf8::string value;
+		std::vector<u8> data;
+
+		Token(TokenType t)
+			: type(t)
+		{
+		}
 
 		bool operator==(const Token& other) const
 		{
 			if (type != other.type)
 				return false;
-			if (value != other.value)
+			if (data != other.data)
 				return false;
 			return true;
 		}
@@ -94,27 +98,76 @@ namespace deckard::config
 	export class config2
 	{
 	private:
+		friend auto format(const deckard::config::config2& v, std::format_context& ctx);
+
+	private:
 		std::string        data;
 		std::vector<Token> tokens;
 
 		void parse(std::span<u8> buffer)
 		{
-			//
+			using namespace utf8::basic_characters;
+
+
+			for (size_t index = 0; index < buffer.size_bytes(); index++)
+			{
+				u8 c = buffer[index];
+
+				if (c == LINE_FEED) // posix
+				{
+					tokens.push_back(TokenType::NEWLINE_POSIX);
+					continue;
+				}
+			}
 		}
+
 
 	public:
-
-		config2(std::span<u8> input) 
-		{ 
-			parse(input);
-		}
+		config2(std::span<u8> input) { parse(input); }
 
 		config2(std::string_view input)
 			: config2(to_span(input))
 		{
 		}
+
+		utf8::string to_string() const
+		{
+			utf8::string result;
+			for (const auto& token : tokens)
+			{
+				switch (token.type)
+				{
+					case TokenType::NEWLINE: [[fallthrough]];
+					case TokenType::NEWLINE_POSIX: result.append("\n"); break;
+					case TokenType::NEWLINE_WINDOWS: result.append("\r\n"); break;
+					case TokenType::SECTION:
+						result.append("[");
+						//result.append(token.value);
+						result.append("]");
+						break;
+					case TokenType::KEY:
+						//result.append(token.value);
+						result.append(" = ");
+
+						break;
+					case TokenType::VALUE:
+					{
+
+						//result.append(token.value);
+						break;
+					}
+					case TokenType::COMMENT:
+						result.append(" # ");
+						//result.append(token.value);
+						break;
+					default: dbg::panic("no handler for this token type: {}", static_cast<u8>(token.type));
+				}
+			}
+			return result;
+		}
 	};
 
+#if 0
 	export class config
 	{
 	private:
@@ -312,23 +365,32 @@ namespace deckard::config
 			return result;
 		}
 	};
-
+#endif
 } // namespace deckard::config
 
 export namespace std
 {
+
 	template<>
-	struct formatter<deckard::config::config>
+	struct formatter<deckard::config::Token>
 	{
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const deckard::config::config& v, std::format_context& ctx) const
+		auto format(const deckard::config::Token& v, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", "");
+		}
+	};
+
+	template<>
+	struct formatter<deckard::config::config2>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::config::config2& v, std::format_context& ctx) const
 		{
 			return std::format_to(ctx.out(), "{}", v.to_string());
 		}
-
-		int  parsed_base = 10;
-		bool uppercase   = false;
 	};
 
 	template<>

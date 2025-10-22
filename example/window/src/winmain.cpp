@@ -870,8 +870,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
+	std::vector<u8> vx{0x0D, 0x0A, 0x41, 0x42, 0xf0, 0x9f, 0x8c, 0x8d};
 
+	std::string vxstr(vx.begin(), vx.end());
+	utf8::string vxstr2(vx);
+	dbg::println("{} : 🌍 ", vxstr2);
 
+	_ = 0;
 
 	// ########################################################################
 

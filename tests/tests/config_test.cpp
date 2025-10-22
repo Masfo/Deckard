@@ -8,16 +8,17 @@ import deckard.debug;
 
 TEST_CASE("config", "[config]")
 {
-	using namespace deckard;
-	SECTION("")
+	using namespace deckard::config;
+	SECTION("key and value no section")
 	{
 		//
 		std::string c(R"(
-[section] # section comment
 key01 = value01 # kv comment
-
 # just comment
 )");
+
+		config2 cfg(c);
+
 
 
 		_       = 0;

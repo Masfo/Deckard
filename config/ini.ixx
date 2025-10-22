@@ -1,4 +1,4 @@
-﻿export module deckard.ini;
+export module deckard.ini;
 
 
 import std;
