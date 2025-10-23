@@ -1,4 +1,4 @@
-﻿export module deckard.utf8:codepoints;
+export module deckard.utf8:codepoints;
 import :xid;
 
 import std;
@@ -39,7 +39,7 @@ namespace deckard::utf8
 		);
 	}
 
-	export constexpr u32 codepoint_width(u8 codepoint_byte)
+	export constexpr u32 sequence_width(u8 codepoint_byte)
 	{
 		if (codepoint_byte < 0x80)
 			return 1;

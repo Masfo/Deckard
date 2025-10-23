@@ -89,14 +89,11 @@ export namespace deckard::utf8
 			{
 				co_yield result.value().codepoint;
 				i += result.value().bytes_consumed;
+				continue;
 			}
-			else
-			{
-				break;
-			}
+			break;
 		}
 	}
-
 
 	size_t graphemes(const std::span<u8> buffer)
 	{
@@ -109,7 +106,7 @@ export namespace deckard::utf8
 		while (i < buffer.size())
 		{
 			auto result = decode(buffer, i);
-			if(result and not utf8::is_combining_codepoint(result.value().codepoint))
+			if (result and not utf8::is_combining_codepoint(result.value().codepoint))
 				count += 1;
 
 

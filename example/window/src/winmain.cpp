@@ -14,6 +14,7 @@ using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
 // using namespace std::string_literals;
+namespace fs = std::filesystem;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
@@ -862,6 +863,9 @@ struct XC
 	int age;
 };
 
+
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -870,16 +874,22 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	std::vector<u8> vx{0x0D, 0x0A, 0x41, 0x42, 0xf0, 0x9f, 0x8c, 0x8d};
+	 char  fullPath[MAX_PATH];
+	char* filePart;
 
-	std::string vxstr(vx.begin(), vx.end());
-	utf8::string vxstr2(vx);
-	dbg::println("{} : 🌍 ", vxstr2);
+	DWORD result_search = SearchPathA(
+	  NULL,          // Search in PATH
+	  "glslc.exe", // File to find
+	  NULL,          // Extension (already included)
+	  MAX_PATH,      // Buffer size
+	  fullPath,      // Buffer for full path
+	  &filePart      // Pointer to filename part
+	);
 
 	_ = 0;
 
-	// ########################################################################
 
+	// ########################################################################
 
 
 	test_cmdliner();
@@ -1523,12 +1533,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		const char* service = "123"; // NTP uses UDP port 123
 
 									 // ----------------------- Resolve host ---------------------------------
-		addrinfo hints{}, *result = nullptr;
+		addrinfo hints{}, *addr_result = nullptr;
 		hints.ai_family   = AF_UNSPEC;  // IPv4 or IPv6
 		hints.ai_socktype = SOCK_DGRAM; // UDP
 		hints.ai_protocol = IPPROTO_UDP;
 
-		int rc = getaddrinfo(hostname.data(), service, &hints, &result);
+		int rc = getaddrinfo(hostname.data(), service, &hints, &addr_result);
 		if (rc != 0)
 		{
 			dbg::println("getaddrinfo: {}", gai_strerrorA(rc));
@@ -1537,7 +1547,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		// ip
 		std::string resolved_ip;
 		char        ip_str[INET6_ADDRSTRLEN]; // Buffer for IPv4 or IPv6
-		auto        addr = result->ai_addr;
+		auto        addr = addr_result->ai_addr;
 
 		if (addr->sa_family == AF_INET)
 		{
@@ -1561,11 +1571,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 		// ----------------------- Create socket ---------------------------------
-		SOCKET sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+		SOCKET sock = socket(addr_result->ai_family, addr_result->ai_socktype, addr_result->ai_protocol);
 		if (sock == INVALID_SOCKET)
 		{
 			dbg::println("socket() failed: {}", WSAGetLastError());
-			freeaddrinfo(result);
+			freeaddrinfo(addr_result);
 		}
 
 		DWORD timeoutMs = 5000;
@@ -1626,14 +1636,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		  reinterpret_cast<const char*>(packet.data()),
 		  static_cast<int>(packet.size()),
 		  0,
-		  result->ai_addr,
-		  static_cast<int>(result->ai_addrlen));
+		  addr_result->ai_addr,
+		  static_cast<int>(addr_result->ai_addrlen));
 
 		if (sent == SOCKET_ERROR)
 		{
 			dbg::println("sendto() failed: {}", WSAGetLastError());
 			closesocket(sock);
-			freeaddrinfo(result);
+			freeaddrinfo(addr_result);
 			WSACleanup();
 			return 1;
 		}
@@ -1649,7 +1659,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		{
 			dbg::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
 			closesocket(sock);
-			freeaddrinfo(result);
+			freeaddrinfo(addr_result);
 			WSACleanup();
 		}
 
@@ -1657,8 +1667,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		{
 			dbg::println("Received packet too short ({}) bytes", recvLen);
 			closesocket(sock);
-			if (not result)
-				freeaddrinfo(result);
+			if (not addr_result)
+				freeaddrinfo(addr_result);
 		}
 
 		if (recvLen == NTP_PACKET_SIZE)
@@ -1696,7 +1706,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 		closesocket(sock);
-		freeaddrinfo(result);
+		freeaddrinfo(addr_result);
 	}
 
 
