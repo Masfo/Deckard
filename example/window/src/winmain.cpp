@@ -888,6 +888,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	_ = 0;
 
+	 logger("hello {}", "world");
+
+
 
 	// ########################################################################
 

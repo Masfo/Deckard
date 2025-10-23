@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 
 
@@ -108,6 +108,7 @@ export namespace deckard::dbg
 	{
 #if __cpp_lib_debugging && __has_include(<debugging>)
 #error "Debugging (C++26) is supported, use it"
+		std::breakpoint_if_debugging();
 #endif
 
 		if (IsDebuggerPresent())
