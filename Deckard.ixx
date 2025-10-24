@@ -54,6 +54,7 @@ export import deckard.threadutil;
 export import deckard.timers;
 export import deckard.utils.hash;
 export import deckard.uuid;
+export import deckard.logger;
 
 export import deckard.monocypher;
 

@@ -276,6 +276,7 @@ set(DECKARD_SRCS
 		utils/threadutils.ixx
 		utils/timers.ixx
 		utils/uuid.ixx
+		utils/logger.ixx
 
 		# Unicode
 		unicode/utf8.ixx
