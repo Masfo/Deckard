@@ -39,7 +39,7 @@ namespace deckard::utf8
 		);
 	}
 
-	export constexpr u32 sequence_width(u8 codepoint_byte)
+	export constexpr u32 codepoint_width(u8 codepoint_byte)
 	{
 		if (codepoint_byte < 0x80)
 			return 1;
@@ -60,19 +60,6 @@ namespace deckard::utf8
 		return 0;
 	}
 
-	export constexpr u32 codepoint_width(char32 codepoint)
-	{
-		if (codepoint < 0x80)
-			return 1;
-		else if (codepoint < 0x800)
-			return 2;
-		else if (codepoint < 0x1'0000)
-			return 3;
-		else if (codepoint < 0x11'0000)
-			return 4;
-
-		return 0;
-	}
 
 	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
