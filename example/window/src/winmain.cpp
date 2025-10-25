@@ -886,11 +886,19 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	  &filePart      // Pointer to filename part
 	);
 
+
+	for(int i=0; i<1024*128; ++i)
+		logger("hello {}", logger.remaining());
+
+	auto logv = logger.view();
+	dbg::println("{}", logger.view());
+	dbg::println("lc: {}", logger.line_count());
+
+
+	dbg::println("remai size: {}", logger.remaining());
+	dbg::println("total size: {}", logv.size());
+
 	_ = 0;
-
-	 logger("hello {}", "world");
-
-
 
 	// ########################################################################
 
