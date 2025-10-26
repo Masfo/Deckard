@@ -21,19 +21,9 @@ namespace deckard
 
 	constexpr u32 QOI_HEADER_SIZE = 14;
 
-	// static_assert(14 == sizeof(qoi_header));
-
-	export class qoi
+	std::vector<u8> test_qoi()
 	{
-	private:
-		std::array<u8, 64> running_window{0};
-
-		u8 index_position(u8 r, u8 g, u8 b, u8 a) { return (r * 3 + g * 5 + b * 7 + a * 11) % 64; }
-
-	public:
-		std::vector<u8> test_qoi()
-		{
-			// clang-format off
+		// clang-format off
 			std::vector<u8> test = make_vector<u8>(
 			  0x71, 0x6F, 0x69, 0x66, // magic "qoif"
 			  0x00, 0x00, 0x00, 0x03, // width: 3
@@ -57,25 +47,37 @@ namespace deckard
 			  0x00, 0x00, 0x00, 0x00,
 			  0x00, 0x00, 0x00, 0x01
 			);
-			// clang-format on
-			return test;
-		}
+		// clang-format on
+		return test;
+	}
 
+	// static_assert(14 == sizeof(qoi_header));
+
+	export class qoi
+	{
+	private:
+		qoi_header         header{};
+		std::array<u8, 64> running_window{0};
+
+		u8 index_position(u8 r, u8 g, u8 b, u8 a) { return (r * 3 + g * 5 + b * 7 + a * 11) % 64; }
+
+	public:
 		void read_header(const std::span<u8> buffer)
 		{
 			if (buffer.size() < QOI_HEADER_SIZE)
 				return;
-			qoi_header header{};
+
+			if (not std::ranges::equal(buffer.subspan(0, 4), std::array{'q', 'o', 'i', 'f'}))
+				return;
 
 			std::memcpy(&header, buffer.data(), QOI_HEADER_SIZE);
-			if (header.magic[0] != 'q' || header.magic[1] != 'o' || header.magic[2] != 'i' || header.magic[3] != 'f')
-				return;
+
 
 			header.width      = std::byteswap(header.width);
 			header.height     = std::byteswap(header.height);
 			header.channels   = std::byteswap(header.channels);
 			header.colorspace = std::byteswap(header.colorspace);
-			_              = 0;
+			_                 = 0;
 		}
 
 		void test()
