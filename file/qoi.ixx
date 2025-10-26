@@ -1,13 +1,15 @@
-﻿export module deckard.qoi;
+export module deckard.qoi;
 
 import deckard.file;
 import deckard.types;
 import deckard.enums;
+import deckard.helpers;
 import std;
 
 namespace deckard
 {
-	struct alignas(8) qoi_header
+	// #pragma pack(1)
+	struct qoi_header
 	{
 		u8  magic[4];   // magic bytes "qoif"
 		u32 width;      // image width in pixels (BE)
@@ -17,51 +19,71 @@ namespace deckard
 						// 1 = all channels linear
 	};
 
-	static_assert(16 == sizeof(qoi_header));
+	constexpr u32 QOI_HEADER_SIZE = 14;
 
-	constexpr auto qoi_size = sizeof(qoi_header);
-
-	// Quite Ok Modified: QOM
-
-	enum class QOMFlags : u8
-	{
-		RGB  = BIT(0),
-		RGBA = BIT(1),
-
-		UNUSED1 = BIT(2),
-		UNUSED2 = BIT(3),
-		UNUSED3 = BIT(4),
-		UNUSED4 = BIT(5),
-		UNUSED5 = BIT(6),
-		UNUSED6 = BIT(7),
-
-	};
-	consteval void enable_bitmask_operations(QOMFlags);
-
-	struct alignas(8) qom_header
-	{
-		u8       magic[3]; // QOM
-		QOMFlags flags[1]; //
-
-		u16 width;         // 16384 max
-		u16 height;
-	};
-
-	static_assert(8 == sizeof(qom_header));
-	constexpr auto qom_size = sizeof(qom_header);
-
-	// TODO: modified QOI,
-	//	* combine magic with flags
-	//		QOI[f] - f for 8-bit flag
-	//
-	//  * only sRGB
-	//  * u16 extent (16384 max resolution)
-
+	// static_assert(14 == sizeof(qoi_header));
 
 	export class qoi
 	{
 	private:
+		std::array<u8, 64> running_window{0};
+
+		u8 index_position(u8 r, u8 g, u8 b, u8 a) { return (r * 3 + g * 5 + b * 7 + a * 11) % 64; }
+
 	public:
+		std::vector<u8> test_qoi()
+		{
+			// clang-format off
+			std::vector<u8> test = make_vector<u8>(
+			  0x71, 0x6F, 0x69, 0x66, // magic "qoif"
+			  0x00, 0x00, 0x00, 0x03, // width: 3
+			  0x00, 0x00, 0x00, 0x03, // height: 3
+			  0x04,                   // channels: 4 (RGBA)
+			  0x00,                   // colorspace: 0 (sRGB with linear alpha)
+
+			  0xff, 0x00, 0x00, 0xff,  // QOI_OP_RGBA: Red   (255,   0,   0, 255)
+			  0x00, 0xff, 0x00, 0xff,  // QOI_OP_RGBA: Green (  0, 255,   0, 255)
+			  0x00, 0x00, 0xff, 0xff,  // QOI_OP_RGBA: Blue  (  0,   0, 255, 255)
+  
+			  0xff, 0xff, 0x00, 0xff,  // QOI_OP_RGBA: Yellow  (255,255,0,255)
+			  0xff, 0x00, 0xff, 0xff,  // QOI_OP_RGBA: Magenta (255,0,255,255)
+			  0x00, 0xff, 0xff, 0xff,  // QOI_OP_RGBA: Cyan    (0,255,255,255)
+  			  
+			  0xff, 0xff, 0xff, 0xff,  // QOI_OP_RGBA: White (255,255,255,255)
+			  0x80, 0x80, 0x80, 0xff,  // QOI_OP_RGBA: Gray (128,128,128,255)
+			  0x00, 0x00, 0x00, 0xff,  // QOI_OP_RGBA: Black (0,0,0,255)
+  			  
+			  // End marker (8 bytes)
+			  0x00, 0x00, 0x00, 0x00,
+			  0x00, 0x00, 0x00, 0x01
+			);
+			// clang-format on
+			return test;
+		}
+
+		void read_header(const std::span<u8> buffer)
+		{
+			if (buffer.size() < QOI_HEADER_SIZE)
+				return;
+			qoi_header header{};
+
+			std::memcpy(&header, buffer.data(), QOI_HEADER_SIZE);
+			if (header.magic[0] != 'q' || header.magic[1] != 'o' || header.magic[2] != 'i' || header.magic[3] != 'f')
+				return;
+
+			header.width      = std::byteswap(header.width);
+			header.height     = std::byteswap(header.height);
+			header.channels   = std::byteswap(header.channels);
+			header.colorspace = std::byteswap(header.colorspace);
+			_              = 0;
+		}
+
+		void test()
+		{
+			auto header = test_qoi();
+			read_header(to_span(header));
+			//
+		}
 	};
 
 	// pgm to qoi

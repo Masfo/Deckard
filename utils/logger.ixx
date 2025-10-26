@@ -8,23 +8,22 @@ import deckard.debug;
 namespace deckard
 {
 
+	constexpr u64 BUFFER_LEN = 2_MiB;
 
 	class logger final
 	{
 	private:
-		constexpr static u64 BUFFER_LEN = 2_MiB;
 		std::vector<u8>  buffer;
 		std::atomic<u64> index;
 
 		std::atomic<u64> linecount;
-
 
 		void push(std::string_view str)
 		{
 			u64 needed = str.size() + 1;
 			u64 idx    = index.fetch_add(needed, std::memory_order_acq_rel);
 
-			if (index + needed > buffer.size() )
+			if (index + needed > buffer.size())
 				return;
 
 			std::memcpy(buffer.data() + idx, str.data(), str.size());
@@ -61,7 +60,6 @@ namespace deckard
 			push(str);
 		}
 
-
 		u64 line_count() const { return linecount.load(std::memory_order_acquire); }
 
 		std::string_view view() const
@@ -71,6 +69,10 @@ namespace deckard
 				n = buffer.size();
 			return std::string_view(as<const char*>(buffer.data()), n);
 		}
+		
+		// TODO
+		// std::generator<std::string_view> getline() 
+
 	};
 
 	export logger logger;

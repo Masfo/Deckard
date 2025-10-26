@@ -254,6 +254,10 @@ export namespace deckard
 	std::span<u8> to_span(std::string_view sv) { return {(u8*)sv.data(), sv.size()}; }
 
 	template<typename T>
+	std::span<u8> to_span(const std::vector<T> &sv) { return {(u8*)sv.data(), sv.size()}; }
+
+
+	template<typename T>
 	auto as_span_bytes(const T& array) -> std::span<const u8>
 	{
 		if constexpr (requires { array.data() and array.size(); })

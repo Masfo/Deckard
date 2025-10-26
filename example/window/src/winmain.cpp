@@ -863,9 +863,6 @@ struct XC
 	int age;
 };
 
-
-
-
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -874,24 +871,57 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	 char  fullPath[MAX_PATH];
+	char  fullPath[MAX_PATH];
 	char* filePart;
 
 	DWORD result_search = SearchPathA(
-	  NULL,          // Search in PATH
+	  NULL,        // Search in PATH
 	  "glslc.exe", // File to find
-	  NULL,          // Extension (already included)
-	  MAX_PATH,      // Buffer size
-	  fullPath,      // Buffer for full path
-	  &filePart      // Pointer to filename part
+	  NULL,        // Extension (already included)
+	  MAX_PATH,    // Buffer size
+	  fullPath,    // Buffer for full path
+	  &filePart    // Pointer to filename part
 	);
 
+	auto logme = []()
+	{
+		auto id = std::this_thread::get_id();
 
-	for(int i=0; i<1024*128; ++i)
-		logger("hello {}", logger.remaining());
+		logger("thread started {}", id);
+
+
+		for (int i = 0; i < 1024; ++i)
+		{
+			logger("{}: {}", id, random::password(randu8(24, 128)));
+		}
+	};
+
+	constexpr u32             THREAD_COUNT = 8;
+
+	ScopeTimer lt("Log timer");
+
+	lt.start();
+
+	std::vector<std::jthread> threads;
+	threads.reserve(THREAD_COUNT);
+
+	lt.now("threads reserved");
+
+
+	for (const auto& i : range(0, THREAD_COUNT))
+		threads.push_back(std::jthread(logme));
+	lt.now("threads pushed");
+
+
+
+	lt.start();
+	for (auto& t : threads)
+		t.join();
+	lt.now("joined");
+
 
 	auto logv = logger.view();
-	dbg::println("{}", logger.view());
+	//dbg::println("{}", logger.view());
 	dbg::println("lc: {}", logger.line_count());
 
 
@@ -901,7 +931,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	_ = 0;
 
 	// ########################################################################
+	qoi qoitest;
 
+	qoitest.test();
 
 	test_cmdliner();
 

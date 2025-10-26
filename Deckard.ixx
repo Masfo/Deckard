@@ -26,6 +26,9 @@ export import deckard.file;
 export import deckard.filemonitor;
 export import deckard.ini;
 
+// Formats
+export import deckard.qoi;
+
 
 // Math
 export import deckard.math;
