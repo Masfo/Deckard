@@ -66,6 +66,7 @@ target_sources(tests PUBLIC
     tests/sbo_test.cpp
     tests/commandline_test.cpp
     tests/utils_test.cpp
+    tests/colors_test.cpp
 
     # Monocyperh
     tests/monocypher_test.cpp

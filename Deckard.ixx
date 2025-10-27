@@ -17,6 +17,7 @@ export import deckard.helpertypes;
 export import deckard.log;
 export import deckard.types;
 export import deckard.uuid;
+export import deckard.image;
 
 export import deckard.allocator;
 

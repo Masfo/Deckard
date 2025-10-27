@@ -277,6 +277,7 @@ set(DECKARD_SRCS
 		utils/timers.ixx
 		utils/uuid.ixx
 		utils/logger.ixx
+		utils/colors.ixx
 
 		# Unicode
 		unicode/utf8.ixx
@@ -337,6 +338,7 @@ set(DECKARD_SRCS
 		types/types.ixx
 		types/uint128.ixx
 		types/allocator.ixx
+		types/image.ixx
 
 
 		# External helpers
