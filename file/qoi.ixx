@@ -21,6 +21,16 @@ namespace deckard
 
 	constexpr u32 QOI_HEADER_SIZE = 14;
 
+	enum class chunk_tag : u32
+	{
+		index = 0b0000'0000u,
+		diff  = 0b0100'0000u,
+		luma  = 0b1000'0000u,
+		run   = 0b1100'0000u,
+		rgb   = 0b1111'1110u,
+		rgba  = 0b1111'1111u,
+	};
+
 	std::vector<u8> test_qoi()
 	{
 		// clang-format off
@@ -53,6 +63,24 @@ namespace deckard
 
 	// static_assert(14 == sizeof(qoi_header));
 
+	struct rgba
+	{
+		u8 r = 0, g = 0, b = 0, a = 255;
+
+		rgba()
+			: r(0)
+			, g(0)
+			, b(0)
+			, a(255)
+		{
+		}
+
+	};
+
+	struct image
+	{
+	};
+
 	export class qoi
 	{
 	private:
@@ -62,28 +90,28 @@ namespace deckard
 		u8 index_position(u8 r, u8 g, u8 b, u8 a) { return (r * 3 + g * 5 + b * 7 + a * 11) % 64; }
 
 	public:
-		void read_header(const std::span<u8> buffer)
+		std::expected<bool, std::string> read(const std::span<u8> buffer)
 		{
 			if (buffer.size() < QOI_HEADER_SIZE)
-				return;
+				return std::unexpected("Invalid QOI");
 
 			if (not std::ranges::equal(buffer.subspan(0, 4), std::array{'q', 'o', 'i', 'f'}))
-				return;
+				return std::unexpected("Invalid QOI");
 
 			std::memcpy(&header, buffer.data(), QOI_HEADER_SIZE);
 
 
 			header.width      = std::byteswap(header.width);
 			header.height     = std::byteswap(header.height);
-			header.channels   = std::byteswap(header.channels);
-			header.colorspace = std::byteswap(header.colorspace);
+			header.channels   = header.channels;
+			header.colorspace = header.colorspace;
 			_                 = 0;
 		}
 
 		void test()
 		{
 			auto header = test_qoi();
-			read_header(to_span(header));
+			read(to_span(header));
 			//
 		}
 	};
