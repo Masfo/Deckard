@@ -863,6 +863,16 @@ struct XC
 	int age;
 };
 
+	using Input3 = std::array<u8, 3>;
+
+void test_span_intake(const Input3 input) 
+{
+	//
+	dbg::println("{}", input);
+}
+
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -927,6 +937,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	dbg::println("remai size: {}", logger.remaining());
 	dbg::println("total size: {}", logv.size());
+
+	// ########################################################################
+
+
+	Input3 v3;
+	std::array<u8, 2> v2;
+	test_span_intake(v2);
 
 
 
