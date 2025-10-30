@@ -179,12 +179,12 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("ortho")
 	{
-		auto orthopers = ortho(0, 400, 0, 400, -1, 1);
+		auto orthopers = ortho(0, 400, 400, 0, -1, 1);
 
 		CHECK(orthopers[0] == vec4{0.00500f, 0.0f, 0.0f, 0.0f});
-		CHECK(orthopers[1] == vec4{0.0f, 0.00500f, 0.0f, 0.0f});
+		CHECK(orthopers[1] == vec4{0.0f, -0.00500f, 0.0f, 0.0f});
 		CHECK(orthopers[2] == vec4{0.0f, 0.0f, -1.0f, 0.0f});
-		CHECK(orthopers[3] == vec4{-1.0f, -1.0f, -0.0f, 1.0f});
+		CHECK(orthopers[3] == vec4{-1.0f, 1.0f, -0.0f, 1.0f});
 	}
 
 	SECTION("ortho(w/h)")
@@ -192,9 +192,9 @@ TEST_CASE("matrix generic", "[matrix]")
 		auto orthopers = ortho(400.0f, 400.0f);
 
 		CHECK(orthopers[0] == vec4{0.00500f, 0.0f, 0.0f, 0.0f});
-		CHECK(orthopers[1] == vec4{0.0f, 0.00500f, 0.0f, 0.0f});
+		CHECK(orthopers[1] == vec4{0.0f, -0.00500f, 0.0f, 0.0f});
 		CHECK(orthopers[2] == vec4{0.0f, 0.0f, -1.0f, 0.0f});
-		CHECK(orthopers[3] == vec4{-1.0f, -1.0f, -0.0f, 1.0f});
+		CHECK(orthopers[3] == vec4{-1.0f, 1.0f, -0.0f, 1.0f});
 	}
 
 
