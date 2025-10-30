@@ -1,4 +1,4 @@
-﻿
+
 export module deckard.matrix;
 
 import std;
@@ -88,7 +88,6 @@ namespace deckard::math
 			assert::check(x < 4 and y < 4, "mat4: indexing out-of-bounds");
 			return mat[y][x];
 		}
-
 
 		mat4_generic operator*(const f32 scalar) const
 		{
@@ -371,10 +370,12 @@ namespace deckard::math
 	{
 		return mat4_generic(
 		  vec4(2 / (right - left), 0.0f, 0.0f, 0.0f),
-		  vec4(0.0f, 2 / (top - bottom), 0.0f, 0.0f),
-		  vec4(0.0f, 0.0f, -(2 / (far - near)), 0.0f),
+		  vec4(0.0f, 2.0f / (top - bottom), 0.0f, 0.0f),
+		  vec4(0.0f, 0.0f, -2.0f / (far - near), 0.0f),
 		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
+
+	export mat4_generic ortho(f32 width, f32 height) { return ortho(0.0f, width, 0.0f, height, -1.0f, 1.0f); }
 
 	export mat4_generic inverse(const mat4_generic& mat) { return mat.inverse(); }
 
