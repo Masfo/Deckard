@@ -375,10 +375,16 @@ namespace deckard::math
 		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
 
-	export mat4_generic ortho(f32 width, f32 height) 
+	export mat4_generic ortho(f32 width, f32 height, f32 near = -1.0f, f32 far = 1.0f)
 	{
+#if 1
 		// y grows down
-		return ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f); 
+		return ortho(0.0f, width, height, 0.0f, near, far);
+#else
+		return ortho(0.0f, width, 0.0f, height, near, far);
+		// y grows up
+		//
+#endif
 	}
 
 	export mat4_generic inverse(const mat4_generic& mat) { return mat.inverse(); }
