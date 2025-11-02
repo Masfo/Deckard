@@ -1,10 +1,10 @@
-github.com/AlDanial/cloc v 1.98  T=0.11 s (1009.3 files/s, 290048.1 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.12 s (943.7 files/s, 264596.0 lines/s)
 -----------------------------------------------------------------------------------------
 File                                                  blank        comment           code
 -----------------------------------------------------------------------------------------
-.\example\window\src\winmain.cpp                        466            259           1330
+.\example\window\src\winmain.cpp                        487            262           1364
 .\types\bigint.ixx                                      280             32           1146
-.\utils\helpers.ixx                                     273             62           1051
+.\utils\helpers.ixx                                     275             62           1053
 .\app\app.ixx                                           344            179           1041
 .\unicode\utf8string.ixx                                298             17           1016
 .\scripting\lexer\lexer.ixx                             261             52            973
@@ -20,8 +20,8 @@ File                                                  blank        comment      
 .\utils\grid.ixx                                        120             15            389
 .\graphs\avltree.ixx                                     94             10            384
 .\archive\db.ixx                                         85             23            367
+.\math\matrix.ixx                                       106             29            355
 .\app\vulkan\instance.ixx                                88             13            348
-.\math\matrix.ixx                                       106             26            347
 .\config\config.ixx                                      72             17            324
 .\graphs\binarytree.ixx                                  82             12            324
 .\math\quaternion.ixx                                    94              0            314
@@ -46,9 +46,9 @@ File                                                  blank        comment      
 .\app\inputs.ixx                                         36              4            178
 .\win32\win32.ixx                                        56              3            172
 .\types\types.ixx                                        78             51            170
+.\Deckard.ixx                                            68             22            156
 .\debug\debug.ixx                                        54             36            156
 .\utils\commandline.ixx                                  47             52            156
-.\Deckard.ixx                                            67             21            154
 .\file\filemonitor.ixx                                   38              7            154
 .\math\ease_functions.ixx                                28              7            148
 .\utils\base32.ixx                                       44              0            136
@@ -70,6 +70,7 @@ File                                                  blank        comment      
 .\graphs\graph.ixx                                       17              5             92
 .\utils\timers.ixx                                       22              4             91
 .\app\vulkan\core.ixx                                    28              8             89
+.\file\qoi.ixx                                           24              9             89
 .\math\generic_vec.ixx                                   25             18             87
 .\utils\hmac.ixx                                         28              3             87
 .\types\enum_flags.ixx                                   28             41             77
@@ -78,13 +79,14 @@ File                                                  blank        comment      
 .\monocypher\monocypher.ixx                              31             25             65
 .\utils\threadutils.ixx                                  14              0             64
 .\app\vulkan\shaders.ixx                                 25              4             58
+.\utils\logger.ixx                                       20              2             58
 .\app\vulkan\surface.ixx                                 18              1             54
 .\compress\zstd.ixx                                      16              0             53
 .\utils\scope_exit.ixx                                   12              0             52
 .\app\vulkan\fence.ixx                                   13              0             51
-.\file\qoi.ixx                                           16             10             44
+.\utils\hsv.ixx                                          14              7             47
+.\utils\rgba.ixx                                         19             37             44
 .\unicode\utf8_ascii.ixx                                 14              0             42
-.\utils\logger.ixx                                       14              1             42
 .\types\HelperTypes.ixx                                  15              5             39
 .\app\vulkan\semaphore.ixx                               11              0             36
 .\debug\log.ixx                                          11              0             35
@@ -106,6 +108,7 @@ File                                                  blank        comment      
 .\app\vulkan\helpers.ixx                                  4              1             10
 .\debug\log_null.ixx                                      4              0             10
 .\unicode\utf8.ixx                                        1              0             10
+.\utils\colors.ixx                                       10              0             10
 .\debug\assert_null.ixx                                   6              0              9
 .\net\client.ixx                                          5              0              9
 .\example\threader\src\winmain.cpp                        9              0              8
@@ -113,6 +116,7 @@ File                                                  blank        comment      
 .\app\vulkan\texture.ixx                                  2              0              6
 .\math\curves.ixx                                         5              0              5
 .\scripting\parser\parser.ixx                            11             16              4
+.\types\image.ixx                                         3              0              4
 -----------------------------------------------------------------------------------------
-SUM:                                                   6715           1746          23437
+SUM:                                                   6799           1797          23649
 -----------------------------------------------------------------------------------------

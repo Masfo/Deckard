@@ -863,15 +863,13 @@ struct XC
 	int age;
 };
 
-	using Input3 = std::array<u8, 3>;
+using Input3 = std::array<u8, 3>;
 
-void test_span_intake(const Input3 input) 
+void test_span_intake(const Input3 input)
 {
 	//
 	dbg::println("{}", input);
 }
-
-
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -906,7 +904,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		}
 	};
 
-	constexpr u32             THREAD_COUNT = 8;
+	constexpr u32 THREAD_COUNT = 8;
 
 	ScopeTimer lt("Log timer");
 
@@ -923,7 +921,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	lt.now("threads pushed");
 
 
-
 	lt.start();
 	for (auto& t : threads)
 		t.join();
@@ -931,7 +928,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	auto logv = logger.view();
-	//dbg::println("{}", logger.view());
+	// dbg::println("{}", logger.view());
 	dbg::println("lc: {}", logger.line_count());
 
 
@@ -941,10 +938,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 
-	Input3 v3;
-	std::array<u8, 2> v2;
+	Input3            v3;
+	std::array<u8, 3> v2;
 	test_span_intake(v2);
-
 
 
 	_ = 0;
