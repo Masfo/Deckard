@@ -1,4 +1,4 @@
-﻿export module deckard.math:easing;
+export module deckard.math:easing;
 
 import deckard.types;
 import deckard.as;
@@ -10,6 +10,18 @@ export namespace deckard::math
 
 	// lerp
 	template<arithmetic T>
+	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha)
+	{
+		return T{A + Alpha * (B - A)};
+	}
+
+		template<arithmetic T>
+	[[nodiscard]] constexpr T lerp(T A, T B, f32 Alpha)
+	{
+		return T{A + Alpha * (B - A)};
+	}
+
+	template<std::floating_point T>
 	[[nodiscard]] constexpr T lerp(T A, T B, T Alpha)
 	{
 		return T{A + Alpha * (B - A)};
