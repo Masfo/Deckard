@@ -44,6 +44,11 @@ TEST_CASE("colors", "[colors][rgba][rgb]")
 		CHECK(b * a == rgba(100, 150, 50, 255));
 	}
 
+	SECTION("div")
+	{
+		//
+	}
+
 	SECTION("add")
 	{
 		rgba a(64, 0, 0, 0);
@@ -83,5 +88,10 @@ TEST_CASE("colors", "[colors][rgba][rgb]")
 		rgba b(196, 128, 0, 0);
 		CHECK(a - b == rgba(0, 0, 0, 0));
 		CHECK(b - a == rgba(0, 128, 0, 0));
+	}
+
+	SECTION("format")
+	{
+		//
 	}
 }

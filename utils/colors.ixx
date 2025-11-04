@@ -4,6 +4,8 @@ export module deckard.colors;
 import std;
 import deckard.types;
 import deckard.math.utils;
+import deckard.math;
+import deckard.utils.hash;
 
 namespace deckard
 {
@@ -11,6 +13,79 @@ namespace deckard
 #error "Use constexpr round";
 #endif
 
+	export constexpr u8 clamp_rgb(f32 color) { return static_cast<u8>((std::clamp(color, 0.0f, 1.0f) * 255.0f) + 0.5f); }
+
+	export constexpr u8 clamp_rgb(i32 color) { return static_cast<u8>(std::clamp(color, 0, 255)); }
+
+	export std::array<u8, 3> to_rgb(f32 h, f32 s, f32 v)
+	{
+		f32 hh = h;
+
+		if (s == 0.0)
+		{
+			auto vt = clamp_rgb(v);
+			return {vt, vt, vt};
+		}
+		else
+		{
+			hh = fmod(hh, 360.0f);
+			hh /= 60.0f;
+			int i = static_cast<int>(std::floor(hh));
+			f32 f = hh - i;
+			f32 p = v * (1.0f - s);
+			f32 q = v * (1.0f - s * f);
+			f32 t = v * (1.0f - s * (1.0f - f));
+
+			switch (i)
+			{
+				case 0: return {clamp_rgb(v), clamp_rgb(t), clamp_rgb(p)}; break;
+				case 1: return {clamp_rgb(q), clamp_rgb(v), clamp_rgb(p)}; break;
+				case 2: return {clamp_rgb(p), clamp_rgb(v), clamp_rgb(t)}; break;
+				case 3: return {clamp_rgb(p), clamp_rgb(q), clamp_rgb(v)}; break;
+				case 4: return {clamp_rgb(t), clamp_rgb(p), clamp_rgb(v)}; break;
+				default: return {clamp_rgb(v), clamp_rgb(p), clamp_rgb(q)}; break;
+			}
+		}
+	}
+
+	export auto to_rgb(const std::array<f32, 3>& hsv) { return to_rgb(hsv[0], hsv[1], hsv[2]); }
+
+	export std::array<u32, 4> to_rgba(const std::array<f32, 3>& hsv)
+	{
+		auto to = to_rgb(hsv);
+		return {to[0], to[1], to[2], 255_u8};
+	}
+
+	export std::array<f32, 3> to_hsv(u8 r, u8 g, u8 b)
+	{
+		f32 rr = r;
+		f32 gg = g;
+		f32 bb = b;
+
+		f32 cmax  = std::max({rr, gg, bb});
+		f32 cmin  = std::min({rr, gg, bb});
+		f32 delta = cmax - cmin;
+
+		f32 h = 0.0;
+
+		if (delta == 0)
+			h = 0;
+		else if (cmax == rr)
+			h = fmod(((gg - bb) / delta), 6.0f);
+		else if (cmax == gg)
+			h = ((bb - rr) / delta) + 2.0f;
+		else
+			h = ((rr - gg) / delta) + 4.0f;
+
+		h *= 60.0f;
+		if (h < 0)
+			h += 360.0f;
+
+		f32 s = (cmax == 0) ? 0 : (delta / cmax);
+		f32 v = cmax;
+
+		return {h, s, v};
+	}
 
 	constexpr u8 mul_clamp(u8 x, u8 y)
 	{
@@ -39,10 +114,6 @@ namespace deckard
 		return static_cast<u8>(std::max(diff, 0));
 	}
 
-	export constexpr u8 clamp_rgb(f32 color) { return static_cast<u8>((std::clamp(color, 0.0f, 1.0f) * 255.0f) + 0.5f); }
-
-	export constexpr u8 clamp_rgb(i32 color) { return static_cast<u8>(std::clamp(color, 0, 255)); }
-
 	export struct hsv
 	{
 		f32 h = 0.0f, s = 0.0f, v = 0.0f;
@@ -54,11 +125,9 @@ namespace deckard
 		{
 		}
 
-		hsv(u8 red, u8 green, u8 blue)
-		{ 
-			auto to = to_hsv({red, green, blue });
+		hsv(u8 red, u8 green, u8 blue) { auto to = to_hsv(red, green, blue); }
 
-		}
+		std::array<f32, 3> data() const { return {h, s, v}; }
 
 		// RGB(0,0,0)		-> HSV(0,0,0)
 		// RGB(255,0,0)		-> HSV(0,100,100)
@@ -88,6 +157,14 @@ namespace deckard
 		u8 r = 0, g = 0, b = 0, a = 255;
 
 		rgba() = default;
+
+		rgba(std::array<u8, 3>& color, u8 alpha)
+			: r(color[0])
+			, g(color[1])
+			, b(color[2])
+			, a(alpha)
+		{
+		}
 
 		rgba(rgb color, u8 alpha)
 			: r(color.r)
@@ -129,7 +206,7 @@ namespace deckard
 		{
 		}
 
-		rgba operator*(const rgba& rhs) const 
+		rgba operator*(const rgba& rhs) const
 		{
 			rgba ret;
 			ret.r = mul_clamp(r, rhs.r);
@@ -140,7 +217,7 @@ namespace deckard
 			return ret;
 		}
 
-		rgba operator*(const rgba& rhs) const
+		rgba operator/(const rgba& rhs) const
 		{
 			rgba ret;
 			ret.r = div_clamp(r, rhs.r);
@@ -164,85 +241,87 @@ namespace deckard
 		bool operator==(const rgba& rhs) const { return r == rhs.r and g == rhs.g and b == rhs.b and a == rhs.a; }
 	};
 
-	export rgb to_rgb(const hsv& hsv)
+	u8 mix(u8 a, u8 b, f32 t)
 	{
-		f32 hh = hsv.h;
-
-		if (hsv.s == 0.0)
-		{
-			auto vt = clamp_rgb(hsv.v);
-			return {vt, vt, vt};
-		}
-		else
-		{
-			hh = fmod(hh, 360.0f);
-			hh /= 60.0f;
-			int i = static_cast<int>(std::floor(hh));
-			f32 f = hh - i;
-			f32 p = hsv.v * (1.0f - hsv.s);
-			f32 q = hsv.v * (1.0f - hsv.s * f);
-			f32 t = hsv.v * (1.0f - hsv.s * (1.0f - f));
-
-			switch (i)
-			{
-				case 0: return {clamp_rgb(hsv.v), clamp_rgb(t), clamp_rgb(p)}; break;
-				case 1: return {clamp_rgb(q), clamp_rgb(hsv.v), clamp_rgb(p)}; break;
-				case 2: return {clamp_rgb(p), clamp_rgb(hsv.v), clamp_rgb(t)}; break;
-				case 3: return {clamp_rgb(p), clamp_rgb(q), clamp_rgb(hsv.v)}; break;
-				case 4: return {clamp_rgb(t), clamp_rgb(p), clamp_rgb(hsv.v)}; break;
-				default: return {clamp_rgb(hsv.v), clamp_rgb(p), clamp_rgb(q)}; break;
-			}
-		}
+		//
+		return static_cast<u8>(a + t * (b - a));
+		// return static_cast<u8>((std::round(1.0f - t) * a + t * b));
 	}
 
-	export rgba to_rgba(const hsv& hsv) { return rgba(to_rgb(hsv), 255_u8); }
-
-	export hsv to_hsv(const rgb& rgb)
+	export rgba lerp(const rgba& a, const rgba& b, f32 t)
 	{
-		f32 rr = rgb.r;
-		f32 gg = rgb.g;
-		f32 bb = rgb.b;
-
-		f32 cmax  = std::max({rr, gg, bb});
-		f32 cmin  = std::min({rr, gg, bb});
-		f32 delta = cmax - cmin;
-
-		f32 h = 0.0;
-
-		if (delta == 0)
-			h = 0;
-		else if (cmax == rr)
-			h = fmod(((gg - bb) / delta), 6.0f);
-		else if (cmax == gg)
-			h = ((bb - rr) / delta) + 2.0f;
-		else
-			h = ((rr - gg) / delta) + 4.0f;
-
-		h *= 60.0f;
-		if (h < 0)
-			h += 360.0f;
-
-		f32 s = (cmax == 0) ? 0 : (delta / cmax);
-		f32 v = cmax;
-
-		return {h, s, v};
+		t = std::clamp(t, 0.0f, 1.0f);
+		return {mix(a.r, b.r, t), mix(a.g, b.g, t), mix(a.b, b.b, t), mix(a.a, b.a, t)};
 	}
 
 	bool equal(const hsv& lhs, const rgb& rhs)
 	{
-		const rgb c = to_rgb(lhs);
-		return rhs.b == c.b and rhs.g == c.g and rhs.r == c.r;
+		const auto c = to_rgb(lhs.data());
+		return rhs.r == c[0] and rhs.g == c[1] and rhs.b == c[2];
 	}
 
 	export bool operator==(const hsv& lhs, const rgb& rhs) { return equal(lhs, rhs); }
 
 	bool equal(const hsv& lhs, const rgba& rhs)
 	{
-		const rgba c = to_rgba(lhs);
-		return rhs.b == c.b and rhs.g == c.g and rhs.r == c.r;
+		const auto c = to_rgba(lhs.data());
+		return rhs.r == c[0] and rhs.g == c[1] and rhs.b == c[2] and rhs.a == c[3];
 	}
 
 	export bool operator==(const hsv& lhs, const rgba& rhs) { return equal(lhs, rhs); }
 
 
 }; // namespace deckard
+
+export namespace std
+{
+	using namespace deckard;
+
+	template<>
+	struct hash<rgb>
+	{
+		size_t operator()(const rgb& value) const { return deckard::utils::hash_values(value.r, value.g, value.b); }
+	};
+
+	template<>
+	struct hash<rgba>
+	{
+		size_t operator()(const rgba& value) const { return deckard::utils::hash_values(value.r, value.g, value.b, value.a); }
+	};
+
+	template<>
+	struct hash<hsv>
+	{
+		size_t operator()(const hsv& value) const { return deckard::utils::hash_values(value.h, value.s, value.v); }
+	};
+
+	template<>
+	struct formatter<rgb>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const rgb& v, std::format_context& ctx) const { return std::format_to(ctx.out(), "rgb({}, {}, {})", v.r, v.g, v.b); }
+	};
+
+	template<>
+	struct formatter<rgba>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const rgba& v, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "rgba({}, {}, {}, {})", v.r, v.g, v.b, v.a);
+		}
+	};
+
+	template<>
+	struct formatter<hsv>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const hsv& v, std::format_context& ctx) const { return std::format_to(ctx.out(), "hsv({}, {}, {})", v.h, v.s, v.v); }
+	};
+} // namespace std
