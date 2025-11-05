@@ -4,6 +4,7 @@
 import std;
 import deckard.colors;
 using namespace deckard;
+using namespace std::literals::string_literals;;
 
 TEST_CASE("colors", "[colors][rgba][rgb]")
 {
@@ -91,7 +92,8 @@ TEST_CASE("colors", "[colors][rgba][rgb]")
 	}
 
 	SECTION("format")
-	{
-		//
+	{ 
+		rgba a(196, 0, 0);
+		CHECK(std::format("{}", a) == "rgba(196, 0, 0, 255)"s);
 	}
 }
