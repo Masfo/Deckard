@@ -260,13 +260,15 @@ namespace deckard
 		return rhs.r == c[0] and rhs.g == c[1] and rhs.b == c[2];
 	}
 
-	export bool operator==(const hsv& lhs, const rgb& rhs) { return equal(lhs, rhs); }
-
 	bool equal(const hsv& lhs, const rgba& rhs)
 	{
 		const auto c = to_rgba(lhs.data());
 		return rhs.r == c[0] and rhs.g == c[1] and rhs.b == c[2] and rhs.a == c[3];
 	}
+
+	//
+
+	export bool operator==(const hsv& lhs, const rgb& rhs) { return equal(lhs, rhs); }
 
 	export bool operator==(const hsv& lhs, const rgba& rhs) { return equal(lhs, rhs); }
 
