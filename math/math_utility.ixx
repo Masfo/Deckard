@@ -1,4 +1,4 @@
-﻿module;
+module;
 // #include <algorithm>
 // #include <functional>
 #include <immintrin.h>
@@ -113,6 +113,12 @@ export namespace deckard::math
 	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T epsilon = T{1e-5})
 	{
 		return is_close_enough(A, T{0}, epsilon);
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] constexpr bool is_close_enough_one(const T& A, const T epsilon = T{1e-5})
+	{
+		return is_close_enough(A, T{1}, epsilon);
 	}
 
 	template<std::integral T>
