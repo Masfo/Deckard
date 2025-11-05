@@ -309,11 +309,84 @@ export namespace std
 	template<>
 	struct formatter<rgba>
 	{
-		// TODO: Parse width
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		bool show_as_float = false;
+		bool show_as_hex   = false;
+		bool show_upper    = false;
+
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto pos = ctx.begin();
+
+			while (pos != ctx.end() and *pos != '}')
+			{
+				if (*pos == 'f' or *pos == 'F')
+					show_as_float = true;
+				else if (*pos == 'x')
+					show_as_hex = true;
+				else if (*pos == 'X')
+				{
+					show_as_hex = true;
+					show_upper  = true;
+				}
+
+				pos++;
+			}
+
+			if (pos != ctx.end() and *pos != '}')
+				throw std::format_error("Invalid format");
+
+
+			return pos;
+		}
 
 		auto format(const rgba& v, std::format_context& ctx) const
 		{
+			if (show_as_float)
+			{
+				std::format_to(ctx.out(), "rgba(");
+
+				f32 r = v.r / 255.0f;
+				f32 g = v.g / 255.0f;
+				f32 b = v.b / 255.0f;
+				f32 a = v.a / 255.0f;
+
+
+				// r
+				if (math::is_close_enough_zero(r) or math::is_close_enough_one(r))
+					std::format_to(ctx.out(), "{:.1f}, ", r);
+				else
+					std::format_to(ctx.out(), "{:.3f}, ", r);
+
+				// g
+				if (math::is_close_enough_zero(g) or math::is_close_enough_one(g))
+					std::format_to(ctx.out(), "{:.1f}, ", g);
+				else
+					std::format_to(ctx.out(), "{:.3f}, ", g);
+
+				// b
+				if (math::is_close_enough_zero(b) or math::is_close_enough_one(b))
+					std::format_to(ctx.out(), "{:.1f}, ", b);
+				else
+					std::format_to(ctx.out(), "{:.3f}, ", b);
+
+				// a
+				if (math::is_close_enough_zero(a) or math::is_close_enough_one(a))
+					std::format_to(ctx.out(), "{:.1f}", a);
+				else
+					std::format_to(ctx.out(), "{:.3f}", a);
+
+				return std::format_to(ctx.out(), ")");
+			}
+
+			if (show_as_hex)
+			{
+				if (show_upper)
+					return std::format_to(ctx.out(), "rgba(#{:02X}{:02X}{:02X}{:02X})", v.r, v.g, v.b, v.a);
+
+				return std::format_to(ctx.out(), "rgba(#{:02x}{:02x}{:02x}{:02x})", v.r, v.g, v.b, v.a);
+			}
+
+
 			return std::format_to(ctx.out(), "rgba({}, {}, {}, {})", v.r, v.g, v.b, v.a);
 		}
 	};
