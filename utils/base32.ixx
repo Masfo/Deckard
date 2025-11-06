@@ -9,7 +9,7 @@ namespace deckard::utils::base32
 {
 	constexpr u8 INVALID_SYMBOL = 0x64;
 
-	static constexpr std::array<byte, 32> encode_table{
+	static constexpr std::array<u8, 32> encode_table{
 	  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '2', '3', '4', '5', '6', '7'};
 
@@ -24,19 +24,19 @@ namespace deckard::utils::base32
 		return table;
 	}();
 
-	constexpr std::array<byte, 8> encode_five(const std::span<const u8> input)
+	constexpr std::array<u8, 8> encode_five(const std::span<const u8> input)
 	{
 
 		const u64 combined = (u64(input[0]) << 32) | (u64(input[1]) << 24) | (u64(input[2]) << 16) | (u64(input[3]) << 8) | u64(input[4]);
 
-		const byte b1 = encode_table[(combined >> 35) & 0x1F];
-		const byte b2 = encode_table[(combined >> 30) & 0x1F];
-		const byte b3 = encode_table[(combined >> 25) & 0x1F];
-		const byte b4 = encode_table[(combined >> 20) & 0x1F];
-		const byte b5 = encode_table[(combined >> 15) & 0x1F];
-		const byte b6 = encode_table[(combined >> 10) & 0x1F];
-		const byte b7 = encode_table[(combined >> 5) & 0x1F];
-		const byte b8 = encode_table[combined & 0x1F];
+		const u8 b1 = encode_table[(combined >> 35) & 0x1F];
+		const u8 b2 = encode_table[(combined >> 30) & 0x1F];
+		const u8 b3 = encode_table[(combined >> 25) & 0x1F];
+		const u8 b4 = encode_table[(combined >> 20) & 0x1F];
+		const u8 b5 = encode_table[(combined >> 15) & 0x1F];
+		const u8 b6 = encode_table[(combined >> 10) & 0x1F];
+		const u8 b7 = encode_table[(combined >> 5) & 0x1F];
+		const u8 b8 = encode_table[combined & 0x1F];
 
 		return {b1, b2, b3, b4, b5, b6, b7, b8};
 	}
@@ -54,13 +54,13 @@ namespace deckard::utils::base32
 				as<u8>(combined & 0xFF)};
 	}
 
-	bool is_valid_base32_char(byte c) { return decode_table[c] != INVALID_SYMBOL; }
+	bool is_valid_base32_char(u8 c) { return decode_table[c] != INVALID_SYMBOL; }
 
 	bool is_valid_base32_str(std::string_view encoded_string)
 	{
 		if ((encoded_string.size() % 4) == 1)
 			return false;
-		if (!std::all_of(std::begin(encoded_string), std::end(encoded_string) - 2, [](byte c) { return is_valid_base32_char(c); }))
+		if (!std::all_of(std::begin(encoded_string), std::end(encoded_string) - 2, [](u8 c) { return is_valid_base32_char(c); }))
 			return false;
 
 		const auto last = std::rbegin(encoded_string);
@@ -141,7 +141,7 @@ namespace deckard::utils::base32
 
 		for (size_t i = 0; i < blocks; ++i)
 		{
-			std::array<byte, 8> block{};
+			std::array<u8, 8> block{};
 			std::copy_n(unpadded_input.begin() + (i * 8), 8, block.begin());
 			const auto bytes = decode_five(block);
 			output.insert(output.end(), bytes.begin(), bytes.end());
@@ -149,7 +149,7 @@ namespace deckard::utils::base32
 
 		if (remainder > 0)
 		{
-			std::array<byte, 8> buffer{};
+			std::array<u8, 8> buffer{};
 			buffer.fill('A');
 
 			for (size_t i = 0; i < remainder; ++i)
