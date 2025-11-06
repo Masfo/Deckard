@@ -21,6 +21,17 @@ namespace deckard
 
 	constexpr u32 QOI_HEADER_SIZE = 14;
 
+	using qoi_rgba_t = union
+	{
+		struct
+		{
+			unsigned char r, g, b, a;
+		} rgba;
+
+		unsigned int v;
+	};
+
+
 	enum class chunk_tag : u32
 	{
 		index = 0b0000'0000u,
@@ -63,19 +74,6 @@ namespace deckard
 
 	// static_assert(14 == sizeof(qoi_header));
 
-	struct rgba
-	{
-		u8 r = 0, g = 0, b = 0, a = 255;
-
-		rgba()
-			: r(0)
-			, g(0)
-			, b(0)
-			, a(255)
-		{
-		}
-
-	};
 
 	struct image
 	{
@@ -106,12 +104,22 @@ namespace deckard
 			header.channels   = header.channels;
 			header.colorspace = header.colorspace;
 			_                 = 0;
+
+
+			return {};
 		}
 
 		void test()
 		{
 			auto header = test_qoi();
 			read(to_span(header));
+
+
+			qoi_rgba_t r;
+
+			_ = 0;
+
+
 			//
 		}
 	};
