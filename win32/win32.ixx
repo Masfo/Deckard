@@ -23,7 +23,6 @@ namespace deckard::system
 {
 	using namespace std::string_view_literals;
 
-	export std::string get_windows_error(DWORD error = GetLastError());
 
 	
 
@@ -46,7 +45,7 @@ namespace deckard::system
 		dwError = RegQueryValueExA(hKey, value.data(), nullptr, &Type, nullptr, &cb);
 		if (dwError != ERROR_SUCCESS)
 		{
-			dbg::println("Registry query failed: {}", get_windows_error());
+			dbg::println("Registry query failed: {}", platform::get_error_string());
 			return "";
 		}
 
@@ -152,13 +151,6 @@ namespace deckard::system
 
 
 
-	export std::string get_windows_error(DWORD error)
-	{
-		char err[256]{0};
-		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)
-			return std::format("Failed to get error from code {:X}", error);
-		return std::string{err};
-	}
 
 	// in bytes
 	export size_t process_ram_usage()

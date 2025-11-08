@@ -20,7 +20,9 @@ import deckard.as;
 import deckard.platform;
 import deckard.types;
 import deckard.vulkan;
+import deckard.platform;
 import deckard.win32;
+
 import deckard.debug;
 import deckard.assert;
 import deckard.enums;
@@ -693,7 +695,7 @@ namespace deckard::app
 			//
 			if (RegisterClassEx(&wc) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
 			{
-				dbg::println("RegisterClassEx failed: {}", system::get_windows_error());
+				dbg::println("RegisterClassEx failed: {}", platform::get_error_string());
 				destroy();
 				return;
 			}
@@ -717,7 +719,7 @@ namespace deckard::app
 			  this);
 			if (!handle)
 			{
-				dbg::println("CreateWindowEx failed: {}", system::get_windows_error());
+				dbg::println("CreateWindowEx failed: {}", platform::get_error_string());
 				destroy();
 				return;
 			}
