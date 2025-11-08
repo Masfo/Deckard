@@ -1,4 +1,4 @@
-﻿
+
 module;
 #include <Windows.h>
 #include <Xinput.h>
@@ -17,7 +17,7 @@ import std;
 using namespace std::chrono_literals;
 
 import deckard.as;
-import deckard.system;
+import deckard.platform;
 import deckard.types;
 import deckard.vulkan;
 import deckard.win32;
@@ -624,12 +624,12 @@ namespace deckard::app
 		void create()
 		{
 			dbg::println("CPU: {}", system::GetCPUIDString());
-			dbg::println("RAM: {}", system::GetRAMString());
+			dbg::println("RAM: {}", platform::get_ram_string());
 			dbg::println("OS:  {}", system::GetOSVersionString());
 
 			if (IsWindows7OrGreater())
 			{
-				DwmSetWindowAttribute = system::get_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
+				DwmSetWindowAttribute = platform::get_dynamic_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
 				// DwmExtendFrameIntoClientArea = system::get_address<DwmExtendFrameIntoClientAreaPtr*>("dwmapi.dll",
 				// "DwmExtendFrameIntoClientArea");
 				//
@@ -641,7 +641,7 @@ namespace deckard::app
 			if (IsWindows8Point1OrGreater())
 			{
 				using SetProcessDpiAwarenessFunc = HRESULT(PROCESS_DPI_AWARENESS);
-				auto SetProcessDpiAwareness      = system::get_address<SetProcessDpiAwarenessFunc*>("Shcore.dll", "SetProcessDpiAwareness");
+				auto SetProcessDpiAwareness      = platform::get_dynamic_address<SetProcessDpiAwarenessFunc*>("Shcore.dll", "SetProcessDpiAwareness");
 
 				if (SetProcessDpiAwareness)
 					SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);

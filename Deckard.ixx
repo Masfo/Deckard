@@ -53,7 +53,7 @@ export import deckard.scope_exit;
 export import deckard.serializer;
 export import deckard.sha;
 export import deckard.stringhelper;
-export import deckard.system;
+export import deckard.platform;
 export import deckard.threadutil;
 export import deckard.timers;
 export import deckard.utils.hash;
@@ -210,8 +210,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
 	using CoUninitializePtr = void(void);
-	auto CoInitializeEx     = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
-	auto CoUninitialize     = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
+	auto CoInitializeEx     = platform::get_dynamic_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
+	auto CoUninitialize     = platform::get_dynamic_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
 
 	// InitCommonControls();
 

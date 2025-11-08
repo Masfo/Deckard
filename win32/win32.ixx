@@ -15,10 +15,9 @@ import deckard.types;
 import deckard.debug;
 import deckard.helpers;
 import deckard.scope_exit;
-import deckard.system;
+import deckard.platform;
 import deckard.cpuid;
 
-namespace fs = std::filesystem;
 
 namespace deckard::system
 {
@@ -173,16 +172,7 @@ namespace deckard::system
 		return {major, minor, build};
 	}
 
-	export template<typename SizeType = gibi>
-	u64 GetRAM()
-	{
-		MEMORYSTATUSEX status{.dwLength = sizeof(status)};
-		GlobalMemoryStatusEx(&status);
 
-		return as<u64>(status.ullTotalPhys) / SizeType::num;
-	}
-
-	export std::string GetRAMString() { return human_readable_bytes(GetRAM<bytes>()); }
 
 	export std::string get_windows_error(DWORD error)
 	{
@@ -206,26 +196,6 @@ namespace deckard::system
 		return id.as_string();
 	}
 
-	fs::path GetKnownFolderPath(const KNOWNFOLDERID& id)
-	{
-		wchar_t* buffer{0};
-
-		if (S_OK == SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, 0, &buffer))
-			return fs::path(buffer);
-
-		return {};
-	}
-
-	// known folder paths
-	export fs::path get_local_appdata_path() { return GetKnownFolderPath(FOLDERID_LocalAppData); }
-
-	export fs::path get_roaming_appdata_path() { return GetKnownFolderPath(FOLDERID_RoamingAppData); }
-
-	export fs::path get_profile_path() { return GetKnownFolderPath(FOLDERID_Profile); }
-
-	export fs::path get_savegame_path() { return GetKnownFolderPath(FOLDERID_SavedGames); }
-
-	export fs::path current_path() { return fs::current_path(); }
 
 
 } // namespace deckard::system
