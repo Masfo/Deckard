@@ -10,7 +10,7 @@ import std;
 import deckard.debug;
 import deckard.types;
 import deckard.utf8;
-import deckard.win32;
+import deckard.platform;
 import deckard.as;
 
 using namespace std::literals::string_view_literals;
@@ -29,7 +29,7 @@ namespace deckard
 		ret.reserve(wargc);
 
 		for (int i = 1; i < wargc; ++i)
-			ret.emplace_back(system::from_wide(wargv[i]));
+			ret.emplace_back(platform::string_from_wide(wargv[i]));
 #else
 		std::vector<std::string> args(argv, argv + argc);
 		return args | std::views::drop(1) | std::ranges::to<std::vector>();

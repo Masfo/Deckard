@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -12,11 +12,10 @@ import deckard.scope_exit;
 import deckard.types;
 import deckard.as;
 import deckard.debug;
-import deckard.win32;
+import deckard.platform;
 
 namespace deckard::net
 {
-	using namespace deckard::system;
 
 
 
@@ -81,7 +80,7 @@ namespace deckard::net
 				dbg::println("raw: {:d}.{:d}.{:d}.{:d}", i.s_b1, i.s_b2, i.s_b3, i.s_b4);
 
 
-				return system::from_wide(buffer);
+				return platform::string_from_wide(buffer);
 			}
 
 			if (ret == 0 and ptr->ai_family == AF_INET6 and version == protocol::v6)
@@ -94,7 +93,7 @@ namespace deckard::net
 				dbg::println();
 
 
-				return system::from_wide(buffer);
+				return platform::string_from_wide(buffer);
 			}
 		}
 		return {};

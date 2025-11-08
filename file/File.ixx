@@ -9,7 +9,7 @@ import deckard.as;
 import deckard.types;
 import deckard.assert;
 import deckard.helpers;
-import deckard.win32;
+import deckard.platform;
 import deckard.helpers;
 import deckard.stringhelper;
 
@@ -58,25 +58,25 @@ namespace deckard::file
 				if (GetLastError() == ERROR_FILE_EXISTS)
 				{
 					return std::unexpected(std::format(
-					  "write_file: file '{}' already exists. Maybe add overwrite flag?", system::from_wide(file.wstring()).c_str()));
+					  "write_file: file '{}' already exists. Maybe add overwrite flag?", platform::string_from_wide(file.wstring()).c_str()));
 				}
 
 
 				return std::unexpected(
-				  std::format("write_file: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str()));
+				  std::format("write_file: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
 			{
 				CloseHandle(handle);
-				return std::unexpected(std::format("write_file: could not write to file '{}'", system::from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format("write_file: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			CloseHandle(handle);
 
 			if (bytes_written < content_size)
 				return std::unexpected(std::format(
-				  "write_file: wrote partial {}/{} to file '{}'", bytes_written, content_size, system::from_wide(file.wstring()).c_str()));
+				  "write_file: wrote partial {}/{} to file '{}'", bytes_written, content_size, platform::string_from_wide(file.wstring()).c_str()));
 
 
 			return bytes_written;
@@ -96,11 +96,11 @@ namespace deckard::file
 
 
 			if (not fs::exists(file))
-				return std::unexpected(std::format("read_file: file '{}' does not exist", system::from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format("read_file: file '{}' does not exist", platform::string_from_wide(file.wstring()).c_str()));
 
 			auto file_size = fs::file_size(file);
 			if (file_size == 0)
-				return std::unexpected(std::format("read_file: file '{}' is empty", system::from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format("read_file: file '{}' is empty", platform::string_from_wide(file.wstring()).c_str()));
 
 			if (buffer_size == 0)
 				buffer_size = file_size;
@@ -109,18 +109,18 @@ namespace deckard::file
 
 			if (buffer_size == 0)
 				return std::unexpected(
-				  std::format("read_file: buffer size is zero for file '{}'", system::from_wide(file.wstring()).c_str()));
+				  std::format("read_file: buffer size is zero for file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
 			DWORD  read{0};
 			HANDLE handle =
 			  CreateFileW(file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (handle == INVALID_HANDLE_VALUE)
-				return std::unexpected(std::format("read_file: could not open file '{}'", system::from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format("read_file: could not open file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
 			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
 			{
 				CloseHandle(handle);
-				return std::unexpected(std::format("read_file: could not read from file '{}'", system::from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format("read_file: could not read from file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			CloseHandle(handle);
@@ -277,7 +277,7 @@ namespace deckard::file
 				  0);
 				if (h == INVALID_HANDLE_VALUE)
 				{
-					dbg::eprintln("open('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
+					dbg::eprintln("open('{}'): {}", platform::string_from_wide(path.generic_wstring()), platform::get_error_string());
 					handle.reset(nullptr);
 					return false;
 				}
@@ -291,7 +291,7 @@ namespace deckard::file
 				WIN32_FILE_ATTRIBUTE_DATA fad{};
 				if (0 == GetFileAttributesExW(path.generic_wstring().data(), GetFileExInfoStandard, &fad))
 				{
-					dbg::eprintln("size('{}'): {}", system::from_wide(path.generic_wstring()), system::get_windows_error());
+					dbg::eprintln("size('{}'): {}", platform::string_from_wide(path.generic_wstring()), platform::get_error_string());
 					return 0;
 				}
 
@@ -413,7 +413,7 @@ namespace deckard::file
 				{
 					close();
 
-					dbg::println("Could not open file '{}'", system::from_wide(filepath.wstring()).c_str());
+					dbg::println("Could not open file '{}'", platform::string_from_wide(filepath.wstring()).c_str());
 					return {};
 				}
 
@@ -429,7 +429,7 @@ namespace deckard::file
 					close();
 
 					dbg::println("Could not create mapping for file '{}' ({})",
-								 system::from_wide(filepath.wstring()).c_str(),
+								 platform::string_from_wide(filepath.wstring()).c_str(),
 								 human_readable_bytes(filesize));
 					return {};
 				}
@@ -442,7 +442,7 @@ namespace deckard::file
 				{
 					close();
 
-					dbg::println("Could not map file '{}'", system::from_wide(filepath.wstring()).c_str());
+					dbg::println("Could not map file '{}'", platform::string_from_wide(filepath.wstring()).c_str());
 					return {};
 				}
 
@@ -495,7 +495,7 @@ namespace deckard::file
 
 				if (not content.has_value())
 				{
-					dbg::println("write: empty content for file '{}'", system::from_wide(file.wstring()).c_str());
+					dbg::println("write: empty content for file '{}'", platform::string_from_wide(file.wstring()).c_str());
 					return bytes_written;
 				}
 
@@ -514,9 +514,9 @@ namespace deckard::file
 				{
 					CloseHandle(handle);
 					if (GetLastError() == ERROR_ALREADY_EXISTS)
-						dbg::println("write: file '{}' already exists", system::from_wide(file.wstring()).c_str());
+						dbg::println("write: file '{}' already exists", platform::string_from_wide(file.wstring()).c_str());
 					else
-						dbg::println("write: could not open file '{}' for writing", system::from_wide(file.wstring()).c_str());
+						dbg::println("write: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str());
 
 					return bytes_written;
 				}

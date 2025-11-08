@@ -25,29 +25,7 @@ namespace deckard::system
 
 	export std::string get_windows_error(DWORD error = GetLastError());
 
-	export std::wstring to_wide(std::string_view in)
-	{
-		std::wstring wret;
-		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
-		wret.resize(static_cast<size_t>(size));
-		if (size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, wret.data(), size); size == 0)
-			return {};
-		return wret;
-	}
-
-	export std::string from_wide(std::wstring_view wstr)
-	{
-		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), -1, nullptr, 0, nullptr, nullptr);
-		std::string str;
-		if (num_chars > 0)
-		{
-			str.resize(static_cast<size_t>(num_chars));
-			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), str.data(), num_chars, nullptr, nullptr);
-			return str;
-
-		}
-		return str;
-	}
+	
 
 	std::string GetRegistryValue(HKEY computer, std::string_view key, std::string_view value)
 	{

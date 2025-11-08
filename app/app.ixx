@@ -1387,7 +1387,7 @@ namespace deckard::app
 				GetLocaleInfoEx(localeName, LOCALE_SISO639LANGNAME2, lang, sizeof(lang));
 
 
-				dbg::trace("Input language changed to '{}'", system::from_wide(localeName));
+				dbg::trace("Input language changed to '{}'", platform::string_from_wide(localeName));
 
 				return 1;
 			}

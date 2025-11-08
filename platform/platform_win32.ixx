@@ -287,4 +287,44 @@ namespace deckard::platform
 
 	export fs::path current_path() { return fs::current_path(); }
 
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+
+
+	export std::wstring string_to_wide(std::string_view in)
+	{
+		std::wstring wret;
+		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
+		wret.resize(static_cast<size_t>(size));
+		if (size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, wret.data(), size); size == 0)
+			return {};
+		return wret;
+	}
+
+	export std::string string_from_wide(std::wstring_view wstr)
+	{
+		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), -1, nullptr, 0, nullptr, nullptr);
+		std::string str;
+		if (num_chars > 0)
+		{
+			str.resize(static_cast<size_t>(num_chars));
+			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), str.data(), num_chars, nullptr, nullptr);
+			return str;
+		}
+		return str;
+	}
+
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+
+	export std::string get_error_string(u32 error=GetLastError())
+	{
+		char err[256]{0};
+		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)
+			return std::format("Failed to get error from code {:X}", error);
+		return std::string{err};
+	}
+
 }; // namespace deckard::platform
