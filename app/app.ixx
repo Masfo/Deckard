@@ -693,7 +693,7 @@ namespace deckard::app
 			};
 
 			//
-			if (RegisterClassEx(&wc) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+			if (RegisterClassEx(&wc) == 0 && platform::get_error() != ERROR_CLASS_ALREADY_EXISTS)
 			{
 				dbg::println("RegisterClassEx failed: {}", platform::get_error_string());
 				destroy();

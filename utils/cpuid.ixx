@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 #include <intrin.h>
 
@@ -8,6 +8,7 @@ import std;
 import deckard.types;
 import deckard.helpers;
 import deckard.as;
+import deckard.platform;
 
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
@@ -301,7 +302,7 @@ namespace deckard::cpuid
 
 				if (GetLogicalProcessorInformation(buffer, &retlen) == FALSE)
 				{
-					if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+					if (platform::get_error() == ERROR_INSUFFICIENT_BUFFER)
 					{
 						std::free(buffer);
 						buffer = static_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(std::malloc(((u64)retlen)));

@@ -20,6 +20,11 @@ namespace deckard::platform
 	// ########################################################################
 	// ########################################################################
 	// ########################################################################
+	export u32 get_error();
+
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
 
 
 	export template<typename T>
@@ -84,7 +89,7 @@ namespace deckard::platform
 
 		if (not CreatePipe(&readpipe, &writepipe, &sa, TEMP_BUFFER_SIZE))
 		{
-			result.error     = std::format("CreatePipe failed: {}", GetLastError());
+			result.error     = std::format("CreatePipe failed: {}", platform::get_error());
 			result.exit_code = exit_code_enum::createpipe_fail;
 			return result;
 		}
@@ -131,7 +136,7 @@ namespace deckard::platform
 				  &si,
 				  &pi))
 			{
-				result.error     = std::format("CreateProcess('{}') failed: {}", command, GetLastError());
+				result.error     = std::format("CreateProcess('{}') failed: {}", command, platform::get_error());
 				result.exit_code = exit_code_enum::createprocess_fail;
 				CloseHandle(readpipe);
 				CloseHandle(writepipe);
@@ -187,7 +192,7 @@ namespace deckard::platform
 
 				if (not peek_result or bytes_read == 0)
 				{
-					result.error     = std::format("ReadFile failed or no data available: {}", GetLastError());
+					result.error     = std::format("ReadFile failed or no data available: {}", platform::get_error());
 					result.exit_code = exit_code_enum::readfile_fail;
 
 					result.output = std::string(output_buffer.begin(), output_buffer.end());
@@ -229,7 +234,7 @@ namespace deckard::platform
 		}
 		else if (waitresult == WAIT_FAILED)
 		{
-			result.error     = std::format("WaitForSingleObject failed: {}", GetLastError());
+			result.error     = std::format("WaitForSingleObject failed: {}", get_error());
 			result.exit_code = exit_code_enum::wait_fail;
 		}
 		else
@@ -320,7 +325,6 @@ namespace deckard::platform
 	// ########################################################################
 
 	export u32 get_error() { return GetLastError(); }
-
 
 	export std::string get_error_string(u32 error = get_error())
 	{

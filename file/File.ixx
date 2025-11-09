@@ -55,7 +55,7 @@ namespace deckard::file
 
 			if (handle == INVALID_HANDLE_VALUE)
 			{
-				if (GetLastError() == ERROR_FILE_EXISTS)
+				if (platform::get_error() == ERROR_FILE_EXISTS)
 				{
 					return std::unexpected(std::format(
 					  "write_file: file '{}' already exists. Maybe add overwrite flag?", platform::string_from_wide(file.wstring()).c_str()));
@@ -513,7 +513,7 @@ namespace deckard::file
 				if (handle == INVALID_HANDLE_VALUE)
 				{
 					CloseHandle(handle);
-					if (GetLastError() == ERROR_ALREADY_EXISTS)
+					if (platform::get_error() == ERROR_ALREADY_EXISTS)
 						dbg::println("write: file '{}' already exists", platform::string_from_wide(file.wstring()).c_str());
 					else
 						dbg::println("write: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str());
