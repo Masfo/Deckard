@@ -319,7 +319,10 @@ namespace deckard::platform
 	// ########################################################################
 	// ########################################################################
 
-	export std::string get_error_string(u32 error=GetLastError())
+	export u32 get_error() { return GetLastError(); }
+
+
+	export std::string get_error_string(u32 error = get_error())
 	{
 		char err[256]{0};
 		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)
