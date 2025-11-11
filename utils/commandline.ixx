@@ -19,22 +19,8 @@ namespace deckard
 {
 	export std::vector<std::string> get_arguments([[maybe_unused]] int argc, [[maybe_unused]] const char* argv[])
 	{
-		std::vector<std::string> ret;
-#if defined(_WIN32)
-		int     wargc = 0;
-		LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
-		if (not wargv)
-			return {};
-
-		ret.reserve(wargc);
-
-		for (int i = 1; i < wargc; ++i)
-			ret.emplace_back(platform::string_from_wide(wargv[i]));
-#else
-		std::vector<std::string> args(argv, argv + argc);
-		return args | std::views::drop(1) | std::ranges::to<std::vector>();
-#endif
-		return ret;
+		std::vector<std::string> args(std::next(argv, 1), std::next(argv, static_cast<std::ptrdiff_t>(argc)));
+		return args;
 	}
 
 	export std::string join_arguments(int argc, const char* argv[])
@@ -185,6 +171,12 @@ namespace deckard
 		{
 		}
 
+		template<typename T>
+		void add_argument(std::string_view shortname, std::string_view longname, std::string_view description)
+		{
+			//
+		}
+
 		void add_option(const std::string_view shortname, std::string_view longname, std::string_view description, option o)
 		{
 			//
@@ -223,6 +215,11 @@ namespace deckard
 
 	export void test_cmdliner()
 	{
+		int         argc   = 3;
+		const char* argv[] = {"program", "-d", "-v"};
+
+		cli cliv(argc, argv);
+
 		//
 		std::string input(R"(-d -v -dv)");
 
