@@ -143,6 +143,7 @@ namespace deckard
 
 		std::unordered_map<std::string, option>      options;
 		std::unordered_map<std::string, std::string> alias;
+		std::unordered_map<std::string, std::string> descriptions;
 
 
 	public:
@@ -184,13 +185,16 @@ namespace deckard
 		{
 		}
 
-		void add_option(const std::string_view shortname, std::string_view longname, option o)
+		void add_option(const std::string_view shortname, std::string_view longname, std::string_view description, option o)
 		{
 			//
-			alias[std::string{longname}]  = shortname;
-			alias[std::string{shortname}] = longname;
+			std::string ln{longname};
+			alias[ln]                     = shortname;
+			alias[std::string{shortname}] = ln;
 
-			options[std::string{longname}] = o;
+			options[ln] = o;
+
+			descriptions[ln] = description;
 		}
 
 		void add_flag(const std::string& shortname, const std::string& longname, const std::string& description)
@@ -228,8 +232,6 @@ namespace deckard
 		cli.add_flag("v", "verbose", "Verbose output");
 		cli.add_flag("r", "", "Rest");
 		cli.add_flag("", "east", "east");
-
-
 
 
 		while (cli.peek().has_value())
