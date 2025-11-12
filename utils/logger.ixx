@@ -4,6 +4,7 @@ import std;
 import deckard.types;
 import deckard.as;
 import deckard.debug;
+import deckard.file;
 
 namespace deckard
 {
@@ -69,12 +70,27 @@ namespace deckard
 				n = buffer.size();
 			return std::string_view(as<const char*>(buffer.data()), n);
 		}
-		
-		// TODO
-		// std::generator<std::string_view> getline() 
 
+		// TODO
+		// std::generator<std::string_view> getline()
 	};
 
 	export logger logger;
+
+	export template<typename... Args>
+	void info(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("INFO: {}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("INFO: {}", fmt);
+	}
+
+
+	export void dump_logger()
+	{
+		//
+		file::write("log.txt", logger.view(), true);
+	}
 
 } // namespace deckard
