@@ -32,6 +32,14 @@ namespace deckard
 			linecount.fetch_add(1);
 		}
 
+			// Save log_timestamp.txt, keep last 10
+
+		void save()
+		{
+			//
+			file::write("log.txt", view(), true);
+		}
+
 	public:
 		logger()
 			: logger(BUFFER_LEN)
@@ -42,6 +50,12 @@ namespace deckard
 		{
 			index = 0;
 			buffer.resize(len);
+		}
+
+		~logger()
+		{ 
+			//
+			save();
 		}
 
 		u64 remaining() const
@@ -87,10 +101,5 @@ namespace deckard
 	}
 
 
-	export void dump_logger()
-	{
-		//
-		file::write("log.txt", logger.view(), true);
-	}
 
 } // namespace deckard
