@@ -16,13 +16,10 @@ namespace deckard::net
 	static constexpr u8 MAX_IPV4_ADDRESS_STR_LEN = 15;
 	static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
 
-	export enum class IPVersion : u32
-	{
+	export enum class IPVersion : u32 {
 		IPV4 = 4,
 		IPV6 = 6,
 	};
-
-
 
 	export struct IPAddressResult
 	{
@@ -74,10 +71,8 @@ namespace deckard::net
 		return addresses;
 	}
 
-
-
 	// api.ipify.org
-	// 
+	//
 	// https://api64.ipify.org
 	// https://api.ipify.org
 	// https://api6.ipify.org
@@ -115,8 +110,6 @@ namespace deckard::net
 			u8  colon_count = 0;
 			u8  dot_count   = 0;
 			u8  pos         = 0;
-
-	
 
 
 			if (input.size() >= 4 and (input[1] == '.' or input[2] == '.' or input[3] == '.'))
@@ -279,20 +272,9 @@ namespace std
 	template<>
 	struct formatter<ip>
 	{
-		constexpr auto parse(std::format_parse_context& ctx)
-		{
-			auto pos = ctx.begin();
-			//	while (pos != ctx.end() && *pos != '}')
-			//	{
-			//		uppercase_hex = *pos == 'X';
-			//		++pos;
-			//	}
-			return pos;
-		}
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 		auto format(const ip& address, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", address.to_string()); }
-
-		// bool uppercase_hex{false};
 	};
 
 } // namespace std

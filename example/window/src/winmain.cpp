@@ -941,6 +941,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	rgba[127, 127];
 
+	info("heloo");
 
 	_ = 0;
 

@@ -1,4 +1,4 @@
-﻿export module deckard.as;
+export module deckard.as;
 
 import std;
 import deckard.debug;

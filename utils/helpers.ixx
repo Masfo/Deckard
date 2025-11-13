@@ -254,8 +254,10 @@ export namespace deckard
 	std::span<u8> to_span(std::string_view sv) { return {(u8*)sv.data(), sv.size()}; }
 
 	template<typename T>
-	std::span<u8> to_span(const std::vector<T> &sv) { return {(u8*)sv.data(), sv.size()}; }
-
+	std::span<u8> to_span(const std::vector<T>& sv)
+	{
+		return {(u8*)sv.data(), sv.size()};
+	}
 
 	template<typename T>
 	auto as_span_bytes(const T& array) -> std::span<const u8>
@@ -286,6 +288,19 @@ export namespace deckard
 		const auto zone     = std::chrono::current_zone()->get_info(std::chrono::system_clock::now());
 		const auto zonename = std::chrono::current_zone()->name();
 		return std::format("{} {}", zone.abbrev, zonename);
+	}
+
+	std::string day_month_year(std::string_view separator = ".")
+	{
+		auto time = std::chrono::system_clock::now();
+		return std::format("{0:%d}{1}{0:%m}{1}{0:%Y}", std::chrono::current_zone()->to_local(time), separator);
+	}
+
+	std::string hour_minute_second(std::string_view separator = ":")
+	{
+
+		auto time = std::chrono::system_clock::now();
+		return std::format("{0:%H}{1}{0:%M}{1}{0:%OS}", std::chrono::current_zone()->to_local(time), separator);
 	}
 
 	std::string current_time_as_string()
@@ -624,7 +639,6 @@ export namespace deckard
 
 		return strings;
 	}
-
 
 	// combinations
 	template<typename T>
