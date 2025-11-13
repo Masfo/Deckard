@@ -5,6 +5,8 @@ import deckard.types;
 import deckard.as;
 import deckard.debug;
 import deckard.file;
+import deckard.helpers;
+namespace fs = std::filesystem;
 
 namespace deckard
 {
@@ -19,6 +21,44 @@ namespace deckard
 
 		std::atomic<u64> linecount;
 
+		void clean_older_logfiles(u32 count = 4)
+		{
+			fs::path                                             currentpath = fs::current_path();
+			std::vector<std::pair<fs::path, fs::file_time_type>> logfiles;
+			logfiles.reserve(count*2);
+
+			for (const auto& file : fs::directory_iterator(currentpath))
+			{
+				if (not file.is_regular_file() and file.path().extension() != "txt")
+					continue;
+
+				std::string filename = file.path().stem().string();
+
+				if (filename.starts_with("log."))
+				{
+					logfiles.emplace_back(file, fs::last_write_time(file.path()));
+				}
+			}
+
+			if (logfiles.size() <= count)
+				return;
+
+			std::ranges::sort(logfiles, [](const auto& a, const auto& b) { return a.second > b.second; });
+
+			for (const auto& [path, time] : logfiles | std::views::drop(count))
+				fs::remove(path);
+		}
+
+		void save()
+		{
+			push("\n\n");
+			push("Deckard Log closing at {} {}", day_month_year(), hour_minute_second());
+
+			std::string new_logfile = std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
+
+			(void)file::write(new_logfile, view());
+		}
+
 		void push(std::string_view str)
 		{
 			u64 needed = str.size() + 1;
@@ -32,13 +72,18 @@ namespace deckard
 			linecount.fetch_add(1);
 		}
 
-			// Save log_timestamp.txt, keep last 10
-
-		void save()
+		template<typename... Args>
+		void push(std::string_view fmt, Args&&... args)
 		{
-			//
-			file::write("log.txt", view(), true);
+			push(std::vformat(fmt, std::make_format_args(args...)));
 		}
+
+		void initialize()
+		{
+			push("Deckard Log initialized at {} {}", day_month_year(), hour_minute_second());
+			push("\n\n");
+		}
+
 
 	public:
 		logger()
@@ -50,10 +95,13 @@ namespace deckard
 		{
 			index = 0;
 			buffer.resize(len);
+
+			clean_older_logfiles();
+			initialize();
 		}
 
 		~logger()
-		{ 
+		{
 			//
 			save();
 		}
@@ -70,9 +118,7 @@ namespace deckard
 		template<typename... Args>
 		void operator()(std::string_view fmt, Args&&... args)
 		{
-			auto str = std::vformat(fmt, std::make_format_args(args...));
-
-			push(str);
+			push(fmt, args...);
 		}
 
 		u64 line_count() const { return linecount.load(std::memory_order_acquire); }
@@ -99,7 +145,6 @@ namespace deckard
 		else
 			logger("INFO: {}", fmt);
 	}
-
 
 
 } // namespace deckard
