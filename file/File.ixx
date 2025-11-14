@@ -34,31 +34,54 @@ namespace deckard::file
 	// read file to buffer
 	// expected on errors
 
+	enum class writemode
+	{
+		createnew,
+		append,
+		overwrite,
+	};
+
 	namespace impl
 	{
+		// write impl
 		template<typename T>
-		std::expected<u32, std::string> write_impl(fs::path file, const std::span<T> content, size_t content_size, bool overwrite = false)
+		std::expected<u32, std::string>
+		write_impl2(fs::path file, const std::span<T> content, size_t content_size, writemode writemode = writemode::createnew)
 		{
 			DWORD bytes_written{0};
-			DWORD mode = CREATE_ALWAYS;
+			DWORD mode   = CREATE_ALWAYS;
+			DWORD access = GENERIC_WRITE;
 
-			file = std::filesystem::absolute(file);
-
-
+			file         = std::filesystem::absolute(file);
 			content_size = std::min(content_size, content.size_bytes());
 
-			if (not overwrite)
+			if (writemode == writemode::createnew)
+			{
 				mode = CREATE_NEW;
+			}
+			else if (writemode == writemode::append)
+			{
+				if (not fs::exists(file))
+					mode = CREATE_NEW;
+				else
+					mode = OPEN_ALWAYS;
 
-			HANDLE handle =
-			  CreateFileW(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
+				access = FILE_APPEND_DATA;
+			}
+			else if (writemode == writemode::overwrite)
+			{
+				mode = CREATE_ALWAYS;
+			}
+
+
+			HANDLE handle = CreateFileW(file.wstring().c_str(), access, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (handle == INVALID_HANDLE_VALUE)
 			{
 				if (platform::get_error() == ERROR_FILE_EXISTS)
 				{
-					return std::unexpected(std::format(
-					  "write_file: file '{}' already exists. Maybe add overwrite flag?", platform::string_from_wide(file.wstring()).c_str()));
+					return std::unexpected(std::format("write_file: file '{}' already exists. Maybe add overwrite flag?",
+													   platform::string_from_wide(file.wstring()).c_str()));
 				}
 
 
@@ -69,14 +92,71 @@ namespace deckard::file
 			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
 			{
 				CloseHandle(handle);
-				return std::unexpected(std::format("write_file: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(
+				  std::format("write_file: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			CloseHandle(handle);
 
 			if (bytes_written < content_size)
 				return std::unexpected(std::format(
-				  "write_file: wrote partial {}/{} to file '{}'", bytes_written, content_size, platform::string_from_wide(file.wstring()).c_str()));
+				  "write_file: wrote partial {}/{} to file '{}'",
+				  bytes_written,
+				  content_size,
+				  platform::string_from_wide(file.wstring()).c_str()));
+
+
+			return bytes_written;
+		}
+
+		// write impl
+		template<typename T>
+		std::expected<u32, std::string> write_impl(fs::path file, const std::span<T> content, size_t content_size, bool overwrite = false)
+		{
+			DWORD bytes_written{0};
+			DWORD mode = CREATE_ALWAYS;
+
+
+			file = std::filesystem::absolute(file);
+
+
+			content_size = std::min(content_size, content.size_bytes());
+
+			if (not overwrite)
+				mode = CREATE_NEW;
+
+
+			HANDLE handle =
+			  CreateFileW(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				if (platform::get_error() == ERROR_FILE_EXISTS)
+				{
+					return std::unexpected(std::format("write_file: file '{}' already exists. Maybe add overwrite flag?",
+													   platform::string_from_wide(file.wstring()).c_str()));
+				}
+
+
+				return std::unexpected(
+				  std::format("write_file: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str()));
+			}
+
+			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
+			{
+				CloseHandle(handle);
+				return std::unexpected(
+				  std::format("write_file: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+			}
+
+			CloseHandle(handle);
+
+			if (bytes_written < content_size)
+				return std::unexpected(std::format(
+				  "write_file: wrote partial {}/{} to file '{}'",
+				  bytes_written,
+				  content_size,
+				  platform::string_from_wide(file.wstring()).c_str()));
 
 
 			return bytes_written;
@@ -88,7 +168,56 @@ namespace deckard::file
 			return write_impl(file, content, content.size_bytes(), overwrite);
 		}
 
-		// read
+		// append impl
+		template<typename T>
+		std::expected<u32, std::string> append_impl(fs::path file, const std::span<T> content, size_t content_size)
+		{
+			DWORD bytes_written{0};
+
+			if (fs::exists(file) == false)
+				return std::unexpected(std::format("append: file '{}' does not exist", platform::string_from_wide(file.wstring()).c_str()));
+
+			file         = std::filesystem::absolute(file);
+			content_size = std::min(content_size, content.size_bytes());
+
+
+			HANDLE handle =
+			  CreateFileW(file.wstring().c_str(), FILE_APPEND_DATA, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+			if (handle == INVALID_HANDLE_VALUE)
+			{
+				return std::unexpected(
+				  std::format("append: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str()));
+			}
+
+
+			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
+			{
+				CloseHandle(handle);
+				return std::unexpected(
+				  std::format("append: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+			}
+
+			CloseHandle(handle);
+
+			if (bytes_written < content_size)
+				return std::unexpected(std::format(
+				  "append: wrote partial {}/{} to file '{}'",
+				  bytes_written,
+				  content_size,
+				  platform::string_from_wide(file.wstring()).c_str()));
+
+
+			return bytes_written;
+		}
+
+		template<typename T>
+		std::expected<u32, std::string> append_impl(fs::path file, const std::span<T> content)
+		{
+			return append_impl(file, content, content.size_bytes());
+		}
+
+		// read impl
 		template<typename T>
 		std::expected<u32, std::string> read_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
 		{
@@ -96,7 +225,8 @@ namespace deckard::file
 
 
 			if (not fs::exists(file))
-				return std::unexpected(std::format("read_file: file '{}' does not exist", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(
+				  std::format("read_file: file '{}' does not exist", platform::string_from_wide(file.wstring()).c_str()));
 
 			auto file_size = fs::file_size(file);
 			if (file_size == 0)
@@ -115,12 +245,14 @@ namespace deckard::file
 			HANDLE handle =
 			  CreateFileW(file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (handle == INVALID_HANDLE_VALUE)
-				return std::unexpected(std::format("read_file: could not open file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(
+				  std::format("read_file: could not open file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
 			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
 			{
 				CloseHandle(handle);
-				return std::unexpected(std::format("read_file: could not read from file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(
+				  std::format("read_file: could not read from file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			CloseHandle(handle);
@@ -155,6 +287,22 @@ namespace deckard::file
 	export std::expected<u32, std::string> write(fs::path file, const std::string_view content, bool overwrite = false)
 	{
 		return impl::write_impl(file, std::span<char>(as<char*>(content.data()), content.size()), overwrite);
+	}
+
+	// append
+	export std::expected<u32, std::string> append(fs::path file, const std::span<u8> content, size_t content_size)
+	{
+		return impl::append_impl<u8>(file, content, content_size);
+	}
+
+	export std::expected<u32, std::string> append(fs::path file, const std::span<u8> content)
+	{
+		return impl::append_impl<u8>(file, content, content.size_bytes());
+	}
+
+	export std::expected<u32, std::string> append(fs::path file, const std::string_view content)
+	{
+		return impl::append_impl(file, std::span<char>(as<char*>(content.data()), content.size()));
 	}
 
 	// read
