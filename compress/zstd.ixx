@@ -10,12 +10,12 @@ import std;
 namespace deckard::zstd
 {
 
-	export size_t bound(const std::span<u8> input) { return ZSTD_compressBound(input.size()); }
+	export u64 bound(const std::span<u8> input) { return ZSTD_compressBound(input.size()); }
 
-	export std::optional<size_t> uncompressed_size(const std::span<u8> compressed_input)
+	export std::optional<u64> uncompressed_size(const std::span<u8> compressed_input)
 	{
 
-		size_t result = ZSTD_getFrameContentSize(compressed_input.data(), compressed_input.size());
+		u64 result = ZSTD_getFrameContentSize(compressed_input.data(), compressed_input.size());
 		if (result == ZSTD_CONTENTSIZE_UNKNOWN or result == ZSTD_CONTENTSIZE_ERROR)
 		{
 			return {};
@@ -23,7 +23,7 @@ namespace deckard::zstd
 		return result;
 	}
 
-	export [[nodiscard]] std::optional<size_t> compress(const std::span<u8> input, std::span<u8> output)
+	export [[nodiscard]] std::optional<u64> compress(const std::span<u8> input, std::span<u8> output)
 	{
 		if (output.size() < bound(input))
 		{
@@ -33,14 +33,14 @@ namespace deckard::zstd
 
 		const int level = ZSTD_maxCLevel();
 
-		size_t r = ZSTD_compress(output.data(), output.size(), input.data(), input.size(), level);
+		u64 r = ZSTD_compress(output.data(), output.size(), input.data(), input.size(), level);
 		if (ZSTD_isError(r))
 			return {};
 
 		return r;
 	}
 
-	export [[nodiscard]] std::optional<size_t> uncompress(const std::span<u8> input, std::span<u8> output)
+	export [[nodiscard]] std::optional<u64> uncompress(const std::span<u8> input, std::span<u8> output)
 	{
 		auto content_size = uncompressed_size(input);
 
@@ -56,7 +56,7 @@ namespace deckard::zstd
 			return {};
 		}
 
-		size_t r = r = ZSTD_decompress(output.data(), output.size(), input.data(), input.size());
+		u64 r = r = ZSTD_decompress(output.data(), output.size(), input.data(), input.size());
 		if (ZSTD_isError(r))
 		{
 			dbg::println("ZSTD_decompress failed to decompress");
