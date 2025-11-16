@@ -278,6 +278,7 @@ set(DECKARD_SRCS
 		utils/uuid.ixx
 		utils/logger.ixx
 		utils/colors.ixx
+		utils/circular_buffer.ixx
 
 		# Unicode
 		unicode/utf8.ixx

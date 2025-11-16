@@ -21,11 +21,13 @@ namespace deckard
 
 		std::atomic<u64> linecount;
 
+		fs::path logfile;
+
 		void clean_older_logfiles(u32 count = 4)
 		{
 			fs::path                                             currentpath = fs::current_path();
 			std::vector<std::pair<fs::path, fs::file_time_type>> logfiles;
-			logfiles.reserve(count*2);
+			logfiles.reserve(count * 2);
 
 			for (const auto& file : fs::directory_iterator(currentpath))
 			{
@@ -54,15 +56,15 @@ namespace deckard
 			push("\n\n");
 			push("Deckard Log closing at {} {}", day_month_year(), hour_minute_second());
 
-			std::string new_logfile = std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
 
-			(void)file::write(new_logfile, view());
+			(void)file::write(logfile, view());
 		}
 
 		void push(std::string_view str)
 		{
 			u64 needed = str.size() + 1;
 			u64 idx    = index.fetch_add(needed, std::memory_order_acq_rel);
+
 
 			if (index + needed > buffer.size())
 				return;
@@ -95,6 +97,9 @@ namespace deckard
 		{
 			index = 0;
 			buffer.resize(len);
+
+
+			logfile = fs::current_path() / std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
 
 			clean_older_logfiles();
 			initialize();
