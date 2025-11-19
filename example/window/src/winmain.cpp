@@ -871,7 +871,6 @@ void test_span_intake(const Input3 input)
 	dbg::println("{}", input);
 }
 
-
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -930,7 +929,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	auto logv = logger.view();
 	// dbg::println("{}", logger.view());
-	dbg::println("lc: {}", logger.line_count());
 
 
 	dbg::println("remai size: {}", logger.remaining());
@@ -944,18 +942,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	info("heloo");
 
-	file::write("appendtest.txt", "data 123\n", true);
-	file::append("appendtest.txt", "data 456\n");
-
-
-
-
-	_ = 0;
-
-
 
 	// ########################################################################
-
 
 
 	// ########################################################################
