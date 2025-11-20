@@ -16,12 +16,12 @@ namespace deckard
 	class logger final
 	{
 	private:
-		std::vector<u8> active_buffer;
-		std::vector<u8> flush_buffer;
-
+		std::vector<u8>  buffer;
 		std::atomic<u64> index;
+		std::mutex       flush_mutex;
+		std::mutex       push_mutex;
 
-		std::mutex write_lock;
+		std::atomic<u64> total_buffer_size;
 
 		fs::path logfile;
 
@@ -53,35 +53,57 @@ namespace deckard
 				fs::remove(path);
 		}
 
+		void flush()
+		{
+			std::lock_guard l(flush_mutex);
+
+			u64 current_size = index.exchange(0, std::memory_order_acquire);
+
+			if (current_size == 0)
+				return;
+
+			(void)file::append(logfile, std::string_view(as<const char*>(buffer.data()), current_size));
+		}
+
 		void save()
 		{
-			push("\n\n");
-			push("Deckard Log closing at {} {}", day_month_year(), hour_minute_second());
+			push("\n\nDeckard Log closing at {} {}", day_month_year(), hour_minute_second());
 
-
-			(void)file::append(logfile, view());
+			flush();
 		}
 
 		void push(std::string_view str)
 		{
-			u64 needed = str.size() + 1;
-			u64 idx    = index.fetch_add(needed, std::memory_order_acq_rel);
+			std::lock_guard l(push_mutex);
+
+			u64 needed    = str.size() + 1;
+			u64 old_index = index.fetch_add(needed, std::memory_order_relaxed);
+
+			u64 new_index = old_index + needed;
 
 
-			if (idx + needed <= BUFFER_LEN)
+			if (new_index > BUFFER_LEN)
 			{
-				std::memcpy(active_buffer.data() + idx, str.data(), str.size());
-				active_buffer[idx + str.size()] = '\n';
-				return;
+				index.fetch_sub(needed, std::memory_order_relaxed);
+				flush();
+
+				old_index = index.fetch_add(needed, std::memory_order_relaxed);
+
+				new_index = old_index + needed;
+
+				if (new_index > BUFFER_LEN)
+				{
+					index.fetch_sub(needed, std::memory_order_relaxed);
+					return;
+				}
 			}
 
-			{
-				std::scoped_lock lock(write_lock);
-				std::swap(active_buffer, flush_buffer);
-				std::fill(flush_buffer.begin(), flush_buffer.end(), 0);
-				save();
-				index.store(0);
-			}
+
+			std::memcpy(&buffer[old_index], str.data(), str.size());
+			old_index += str.size();
+			buffer[old_index] = '\n';
+
+			total_buffer_size += needed;
 		}
 
 		template<typename... Args>
@@ -90,11 +112,7 @@ namespace deckard
 			push(std::vformat(fmt, std::make_format_args(args...)));
 		}
 
-		void initialize()
-		{
-			push("Deckard Log initialized at {} {}", day_month_year(), hour_minute_second());
-			push("\n\n");
-		}
+		void initialize() { push("Deckard Log initialized at {} {}\n\n", day_month_year(), hour_minute_second()); }
 
 
 	public:
@@ -106,9 +124,7 @@ namespace deckard
 		logger(u64 len)
 		{
 			index = 0;
-			active_buffer.resize(len);
-			flush_buffer.resize(len);
-
+			buffer.resize(len);
 
 			logfile = fs::current_path() / std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
 
@@ -122,28 +138,13 @@ namespace deckard
 			save();
 		}
 
-		u64 remaining() const
-		{
-			u64 total = active_buffer.size();
-			u64 used  = index.load(std::memory_order_acquire);
-			return used >= total ? 0 : total - used;
-		}
-
-		u64 size() const { return active_buffer.size(); }
-
 		template<typename... Args>
 		void operator()(std::string_view fmt, Args&&... args)
 		{
 			push(fmt, args...);
 		}
 
-		std::string_view view() const
-		{
-			size_t n = index.load(std::memory_order_acquire);
-			if (n > active_buffer.size())
-				n = active_buffer.size();
-			return std::string_view(as<const char*>(active_buffer.data()), n);
-		}
+		u64 size() const { return total_buffer_size.load(); }
 
 		// TODO
 		// std::generator<std::string_view> getline()
