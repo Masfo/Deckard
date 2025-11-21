@@ -871,6 +871,8 @@ void test_span_intake(const Input3 input)
 	dbg::println("{}", input);
 }
 
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -881,6 +883,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	char  fullPath[MAX_PATH];
 	char* filePart;
+
 
 	DWORD result_search = SearchPathA(
 	  NULL,        // Search in PATH
@@ -895,14 +898,15 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		auto id = std::this_thread::get_id();
 
-		logger("thread started {}", id);
+		info("thread started {}", id);
 
 
-		for (int i = 0; i < 1024; ++i)
+		for (int i = 0; i < 100; ++i)
 		{
 			logger("{}: {}", id, random::password(randu8(24, 128)));
 		}
 	};
+	// 8*100*100
 
 	constexpr u32 THREAD_COUNT = 8;
 
@@ -927,12 +931,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	lt.now("joined");
 
 
-	auto logv = logger.view();
-	// dbg::println("{}", logger.view());
-
-
-	dbg::println("remai size: {}", logger.remaining());
-	dbg::println("total size: {}", logv.size());
 
 	// ########################################################################
 

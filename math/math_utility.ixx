@@ -63,6 +63,17 @@ export namespace deckard::math
 		return x;
 	}
 
+	// normalize
+
+	template<arithmetic T>
+	T normalize(T value, T start, T end)
+	{
+		assert::check(is_close_enough_zero(end - start), "Lets not divide by zero");
+
+		T result = (value - start) / (end - start);
+		return result;
+	}
+
 	// remap
 	template<arithmetic T>
 	T remap(const T& X, const T& minimum, const T& maximum, const T& newminimum, const T& newmaximum)
