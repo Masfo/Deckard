@@ -55,7 +55,7 @@ namespace deckard
 
 		void flush()
 		{
-			std::lock_guard l(flush_mutex);
+			std::scoped_lock l(flush_mutex);
 
 			u64 current_size = index.exchange(0, std::memory_order_acquire);
 
@@ -74,7 +74,7 @@ namespace deckard
 
 		void push(std::string_view str)
 		{
-			std::lock_guard l(push_mutex);
+			std::scoped_lock l(push_mutex);
 
 			u64 needed    = str.size() + 1;
 			u64 old_index = index.fetch_add(needed, std::memory_order_relaxed);
