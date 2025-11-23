@@ -21,9 +21,10 @@ namespace deckard::utils
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
 	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
 
-	constexpr u64 distribute(u64 x)
+	template<std::unsigned_integral T>
+	constexpr T distribute(T x)
 	{
-		if constexpr (sizeof(u64) == 8)
+		if constexpr (sizeof(T) == 8)
 		{
 			x ^= x >> 12;
 			x ^= x << 25;
@@ -53,7 +54,7 @@ namespace deckard::utils
 		}
 	}
 
-	export constexpr u64 constant_seed = distribute(constant_seed_1);
+	export constexpr u64 constant_seed = distribute<u64>(constant_seed_1);
 
 	export template<typename... Types>
 	constexpr u64 hash_values(const Types&... args)
