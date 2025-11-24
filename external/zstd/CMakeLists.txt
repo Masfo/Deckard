@@ -1,4 +1,6 @@
-﻿cmake_minimum_required (VERSION 3.23)
+﻿# https://github.com/facebook/zstd/
+
+cmake_minimum_required (VERSION 3.23)
 
 set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.zip)
 set(ZSTD_ZIP_NAME_NOEXT zstd-1.5.7)

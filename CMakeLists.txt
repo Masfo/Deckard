@@ -253,6 +253,8 @@ set(DECKARD_SRCS
 		# threadpool
 		threadpool/threadpool.ixx
 
+		# memorypool
+		memory/memorypool.ixx
 
 
 		# Utils

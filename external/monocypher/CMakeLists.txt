@@ -1,4 +1,6 @@
-﻿cmake_minimum_required (VERSION 3.23)
+# https://github.com/LoupVaillant/Monocypher/
+
+cmake_minimum_required (VERSION 3.23)
 
 set(MONOCYPHER_ZIP_URL https://github.com/LoupVaillant/Monocypher/archive/refs/tags/4.0.2.zip)
 set(MONOCYPHER_ZIP_NAME_NO_EXT Monocypher-4.0.2)
