@@ -37,6 +37,8 @@ namespace deckard::config
 	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
 	// std::vector<ConfigToken>
 
+#pragma region !Old config stuff
+#if 0
 	struct ConfigToken
 	{
 		TokenType   type;
@@ -409,5 +411,6 @@ export namespace std
 		int  parsed_base = 10;
 		bool uppercase   = false;
 	};
-
+#endif
+#pragma endregion
 } // namespace std
