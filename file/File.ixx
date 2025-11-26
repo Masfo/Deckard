@@ -629,16 +629,20 @@ namespace deckard::file
 		return ret;
 	}
 
-	export std::string read_text_file(fs::path path)
+	export auto read_text_file(fs::path path) -> std::vector<u8>
 	{
 		auto v = read_file(path);
-
-		if (v.empty())
-			return "";
 
 		// remove bom
 		if (v.size() >= 3 and v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)
 			v.erase(v.begin(), v.begin() + 3);
+
+		return v;
+	}
+
+	export std::string read_text_file_as_string(fs::path path)
+	{
+		auto v = read_text_file(path);
 
 		return std::string(v.begin(), v.end());
 	}
@@ -648,7 +652,7 @@ namespace deckard::file
 		using namespace deckard::string;
 
 
-		auto s   = read_text_file(path);
+		auto s   = read_text_file_as_string(path);
 		auto ret = split_exact(s, delimiter, include_empty_lines);
 
 		return ret;
@@ -662,7 +666,7 @@ namespace deckard::file
 
 		if (include_empty_lines == false)
 		{
-			auto f = read_text_file(path);
+			auto f = read_text_file_as_string(path);
 			if (f.empty())
 				return {};
 			ret = split<std::string>(f, delimiter);
