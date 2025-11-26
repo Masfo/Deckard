@@ -5,11 +5,77 @@ import deckard.types;
 import deckard.file;
 import deckard.debug;
 import deckard.helpers;
+import deckard.utils.hash;
 
 namespace fs = std::filesystem;
 
 namespace deckard::config
 {
+
+
+	// Newline means LF (0x0A) or CRLF (0x0D 0x0A).
+	//
+	// if [, consume_section, until ], if \n or EOF fail error
+
+	// Section and keys ascii-only.
+	// strings utf8
+
+	// section .dot. key
+	// token_index_map = map<section.key, token_index>
+
+	// no duplicate keys
+
+	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
+	// std::vector<ConfigToken>
+	//
+	//
+	// vector<token> tokens
+	// keys = map<keys_hash, token_index>;
+
+
+	// Example 1:
+	//
+	// [section]
+	// key = "value"
+	// count = 1
+
+	// tokens:			token saved as index to data? or just as raw bytes?
+	//  0: section = "section"		# missing newline tokens
+	//  1: key = "section.key"
+	//  2: value = "value"
+	//  3: key = "section.count"
+	//  4: value = "1"
+	//  5: EOF
+
+	// get value:
+	// get("section", "count")
+	//  map["section.count"] -> 4 ; index to token
+	//  tokens[4] = "1" ; convert to whatever
+
+	// new value:
+	// set("section", "count", 2)
+	//  map["section", "count"] -> value at index 4
+	// tokens[4] = "2"
+
+
+	// Example 2:
+	// globalcount = 1
+	//
+	// [section]
+	// count = 2
+
+	// tokens:
+	// 0: key = "globalcount"
+	// 1: value = "1"
+	// 2: section: "section"
+	// 3: key = "section.count"
+	// 4: value = "2"
+
+	// map["globalcount") -> 0
+	// tokens[0] -> tokens[0+1] -> value = "1"
+	// key token is followed by value
+	// [section]
+	//  = 3.14		# not allowed, no key
 	export enum struct TokenType : u8 {
 		NEWLINE = 0x00,
 		NEWLINE_POSIX,
@@ -23,19 +89,26 @@ namespace deckard::config
 		END_OF_FILE = 0xFF,
 	};
 
-	// Newline means LF (0x0A) or CRLF (0x0D 0x0A).
-	//
-	// if [, consume_section, until ], if \n or EOF fail error
+	class config3
+	{
+	private:
+		std::vector<u8>              data;
+		std::vector<TokenType>       tokens;
+		std::unordered_map<u64, u64> key_hash_to_token_index; // use _siphash
 
-	// Section and keys ascii-only.
-	// strings utf8
+		void parse() 
+		{
+			//
+		}
 
-	// section .dot. key
-	// token_index_map = map<section.key, token_index>
+	public:
+		explicit config3(fs::path file)
+			: data(file::read_text_file(file))
+		{
+		}
 
-
-	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
-	// std::vector<ConfigToken>
+		explicit config3(std::string_view input) { }
+	};
 
 #pragma region !Old config stuff
 #if 0
@@ -100,7 +173,6 @@ namespace deckard::config
 	export class config2
 	{
 	private:
-		friend auto format(const deckard::config::config2& v, std::format_context& ctx);
 
 	private:
 		std::string        data;
@@ -413,4 +485,4 @@ export namespace std
 	};
 #endif
 #pragma endregion
-} // namespace std
+} // namespace deckard::config
