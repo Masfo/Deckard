@@ -871,8 +871,6 @@ void test_span_intake(const Input3 input)
 	dbg::println("{}", input);
 }
 
-
-
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -930,7 +928,29 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		t.join();
 	lt.now("joined");
 
+	// ########################################################################
 
+	// check siphash collisions
+	std::unordered_set<u64>              colls;
+	std::unordered_map<std::string, u64> hashcol;
+
+	auto words = file::read_lines("words.txt");
+
+	for (auto& w : words)
+	{
+//		w                   = "hello";
+		u64 h = utils::siphash(w);
+		hashcol[w] = h;
+
+		auto [it, inserted] = colls.insert(h);
+		if (not inserted)
+		{
+			dbg::println("collision with: {}", w);
+			break;
+		}
+	}
+
+	_ = 0;
 
 	// ########################################################################
 

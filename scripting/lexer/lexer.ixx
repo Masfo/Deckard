@@ -1,4 +1,4 @@
-﻿export module deckard.lexer;
+export module deckard.lexer;
 import std;
 import deckard.utf8;
 import deckard.as;
