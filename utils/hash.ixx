@@ -74,15 +74,18 @@ namespace deckard::utils
 		return seed;
 	}
 
-	static u64 U8TO64_LE(const unsigned char* p) { return *(const u64*)p; }
+	// ########################################################################
+	// Siphash
 
-	export u64 siphash(const unsigned char key[16], std::span<u8> m)
+
+	export u64 siphash(const std::span<u8, 16> key, const std::span<u8> m)
 	{
 		u64    mi{0};
 		size_t i{0}, blocks{0};
 
-		u64 k0 = U8TO64_LE(key + 0);
-		u64 k1 = U8TO64_LE(key + 8);
+		u64 k0 = as<u64>(key.subspan(0, 8));
+		u64 k1 = as<u64>(key.subspan(8, 8));
+
 		u64 v0 = k0 ^ 0x736f'6d65'7073'6575ull;
 		u64 v1 = k1 ^ 0x646f'7261'6e64'6f6dull;
 		u64 v2 = k0 ^ 0x6c79'6765'6e65'7261ull;
@@ -108,7 +111,7 @@ namespace deckard::utils
 
 		for (i = 0, blocks = (m.size() & ~7); i < blocks; i += 8)
 		{
-			mi = U8TO64_LE(m.data() + i);
+			mi = as<u64>(m.subspan(i));
 			v3 ^= mi;
 			sipcompress() sipcompress() v0 ^= mi;
 		}
@@ -132,20 +135,23 @@ namespace deckard::utils
 #undef sipcompress
 	}
 
-	export u64 siphash(std::string_view str)
+	export u64 siphash(std::span<u8> buffer)
 	{
 #ifdef _DEBUG
 		// key from random.org
-		const unsigned char key[16] = {0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
-		return siphash(key, to_span(str));
+		std::array<u8, 16> key = {0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
+		return siphash(std::span<u8, 16>{key.data(), key.size()}, buffer);
 
 #else
-		return siphash(deckard_build::build::rng_buffer, to_span(str));
+		return siphash(std::span<u8, 16>{(u8*)deckard_build::build::rng_buffer, 16}, buffer);
 #endif
 	}
 
+	export u64 siphash(std::string_view str) { return siphash(to_span(str)); }
+
 	export u64 operator""_siphash(char const* s, size_t count) { return siphash({s, count}); }
 
+	// ########################################################################
 	// fnv
 	constexpr u32 val_32_const   = 0x811c'9dc5;
 	constexpr u32 prime_32_const = 0x100'0193;
@@ -201,7 +207,9 @@ namespace deckard::utils
 
 	export constexpr u64 operator""_fnv64(char const* s, size_t count) { return fnv1a_64({s, count}); }
 
-	//
+	// ########################################################################
+	// rapiphash
+
 	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
 
 	constexpr u64 rapid_secret[3] = {0x2d35'8dcc'aa6c'78a5ull, 0x8bb8'4b93'962e'acc9ull, 0x4b33'a62e'd433'd4a3ull};
@@ -289,6 +297,7 @@ namespace deckard::utils
 
 	export u64 rapidhash(std::span<u8> buffer) { return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED); }
 
+	// ########################################################################
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
 	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
 
