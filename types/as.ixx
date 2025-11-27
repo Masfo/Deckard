@@ -4,6 +4,7 @@ import std;
 import deckard.debug;
 import deckard.types;
 import deckard.math.utils;
+import deckard.assert;
 
 namespace deckard
 {
@@ -17,6 +18,8 @@ namespace deckard
 
 
 		T casted = static_cast<T>(value);
+
+
 
 		if constexpr (std::is_floating_point_v<U>)
 		{
@@ -182,6 +185,17 @@ namespace deckard
 #endif
 			dbg::panic("Could not convert input to string");
 		}
+		else if constexpr (std::is_same_v<std::span<u8>, U> and std::is_arithmetic_v<Ret>)
+			{
+				assert::check(value.size() >= sizeof(Ret), std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
+
+				Ret temp{};
+
+				std::memcpy(&temp, u.data(), sizeof(temp));
+				return temp;
+				;
+			}
+
 		else
 		{
 #ifdef _DEBUG
