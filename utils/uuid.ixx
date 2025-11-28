@@ -100,7 +100,7 @@ namespace std
 			auto pos = ctx.begin();
 			while (pos != ctx.end() && *pos != '}')
 			{
-				uppercase_hex = (*pos == 'X' or *pos == 'x');
+				uppercase_hex = (*pos == 'X');
 				++pos;
 			}
 			return pos;
@@ -122,7 +122,7 @@ namespace std
 			auto pos = ctx.begin();
 			while (pos != ctx.end() && *pos != '}')
 			{
-				uppercase_hex = (*pos == 'X' or *pos == 'x');
+				uppercase_hex = (*pos == 'X');
 				++pos;
 			}
 			return pos;
