@@ -19,6 +19,16 @@ export namespace deckard::utf8
 		return ((codepoint >= 'A') and (codepoint <= 'Z')) or ((codepoint >= 'a') and (codepoint <= 'z'));
 	}
 
+	constexpr bool is_ascii_hex_digit_lower(char32 codepoint)
+	{
+		return is_ascii_digit(codepoint) or ((codepoint >= 'a') and (codepoint <= 'f'));
+	}
+
+	constexpr bool is_ascii_hex_digit_upper(char32 codepoint)
+	{
+		return is_ascii_digit(codepoint) or ((codepoint >= 'A') and (codepoint <= 'F'));
+	}
+
 	constexpr bool is_ascii_hex_digit(char32 codepoint)
 	{
 		return is_ascii_digit(codepoint) or ((codepoint >= 'A') and (codepoint <= 'F')) or ((codepoint >= 'a') and (codepoint <= 'f'));
