@@ -8,6 +8,15 @@ using namespace deckard;
 using namespace deckard::utf8;
 using namespace std::string_view_literals;
 
+TEST_CASE("utf8::ascii", "[utf8]")
+{
+	//
+	SECTION("ascii")
+	{
+		//
+	}
+}
+
 TEST_CASE("utf8::string", "[utf8]")
 {
 
