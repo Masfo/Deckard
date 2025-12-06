@@ -110,6 +110,8 @@ namespace deckard
 			return result;
 		}
 
+		grid<T> subgrid(const ivec2 pos, const u32 w, const u32 h) const { return subgrid(pos.x, pos.y, w, h); }
+
 		T operator[](const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
