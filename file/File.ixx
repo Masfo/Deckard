@@ -637,6 +637,41 @@ namespace deckard::file
 		if (v.size() >= 3 and v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)
 			v.erase(v.begin(), v.begin() + 3);
 
+			export auto read_text_file(fs::path path) -> std::vector<u8>
+		{
+			auto v = read_file(path);
+
+			// remove bom
+			if (v.size() >= 3 and v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)
+				v.erase(v.begin(), v.begin() + 3);
+
+			if (v.empty())
+				return v;
+
+			std::vector<u8> out;
+			out.reserve(v.size());
+
+			// normalize newlines
+			for (size_t i = 0; i < v.size(); ++i)
+			{
+				u8 c = v[i];
+				if (c == '\r')
+				{
+					if (i + 1 < v.size() and v[i + 1] == '\n')
+						continue;
+
+					out.push_back('\n');
+				}
+				else
+				{
+					out.push_back(c);
+				}
+			}
+
+			out.shrink_to_fit();
+			return out;
+		}
+
 		return v;
 	}
 
