@@ -40,11 +40,11 @@ namespace deckard
 	const ivec2 south_west{south + west};
 	const ivec2 north_west{north + west};
 
-	export template<typename T = u8, typename BufferType = array2d<T>>
+	export template<typename T = u8>
 	class grid
 	{
 	private:
-		BufferType data;
+		array2d<T> data;
 
 	public:
 		using FunctionOp = const std::function<void(const ivec2, const T)>;
@@ -83,12 +83,31 @@ namespace deckard
 			}
 		}
 
-
 		// TODO: subgrid
-		grid<T, array2d<T>> subgrid(const u32 x, const u32 y, const u32 width, const u32 height) const
+		grid<T> subgrid(const u32 x, const u32 y, const u32 w, const u32 h) const
 		{
-			//
-			return {};
+			grid<T> result{};
+
+			if (w == 0 or h == 0)
+				return result;
+
+			if (x >= width() or y >= height())
+				return result;
+
+			u32 clamped_w = std::min(w, width() - x);
+			u32 clamped_h = std::min(h, height() - y);
+
+			result.resize(clamped_w, clamped_h);
+
+			for (u32 yy = 0; yy < clamped_h; ++yy)
+			{
+				for (u32 xx = 0; xx < clamped_w; ++xx)
+				{
+					result.set(xx, yy, this->get(x + xx, y + yy));
+				}
+			}
+
+			return result;
 		}
 
 		T operator[](const ivec2 pos) const { return data.get(pos.x, pos.y); }
@@ -485,6 +504,21 @@ namespace deckard
 			reverse_columns();
 		}
 
+		std::string print() const
+		{
+			std::string ret;
+			for (u32 y = 0; y < height(); ++y)
+			{
+				for (u32 x = 0; x < width(); ++x)
+				{
+					ret.push_back(get(x, y));
+				}
+				ret.push_back('\n');
+			}
+
+			return ret;
+		}
+
 		// TODO: serialize to/from disk
 		// TODO: non-member export
 		bool export_ppm(std::filesystem::path path)
@@ -526,8 +560,8 @@ namespace deckard
 // Provide std::formatter specialization for deckard::grid
 export namespace std
 {
-	template<typename T, typename BufferType>
-	struct formatter<deckard::grid<T, BufferType>>
+	template<>
+	struct formatter<deckard::grid<char>>
 	{
 		constexpr auto parse(std::format_parse_context& ctx) -> decltype(ctx.begin())
 		{
@@ -535,28 +569,9 @@ export namespace std
 			return ctx.begin();
 		}
 
-		template<typename FormatContext>
-		auto format(deckard::grid<T, BufferType> const& g, FormatContext& ctx) -> decltype(ctx.out())
+		auto format(deckard::grid<char> const& g, std::format_context& ctx) const -> decltype(ctx.out())
 		{
-			auto out = ctx.out();
-
-			const auto w = g.width();
-			const auto h = g.height();
-
-			for (u32 y = 0; y < h; ++y)
-			{
-				for (u32 x = 0; x < w; ++x)
-				{
-					// Use the formatter for T to format each element.
-					std::format_to(out, "{}", g.get(x, y));
-					if (x + 1 < w)
-						std::format_to(out, " ");
-				}
-				if (y + 1 < h)
-					std::format_to(out, "\n");
-			}
-
-			return out;
+			return std::format_to(ctx.out(), "{}", g.print());
 		}
 	};
-}
+} // namespace std
