@@ -18,10 +18,28 @@ export namespace deckard
 	inline constexpr auto upto_from = []<std::integral I>(I s, I n) { return std::views::iota(s, n); };
 
 	//  for(const auto &i: range(0,100,5))
-	inline constexpr auto range = []<std::integral I, std::integral U>(I begin, U end, I stepsize = 1)
+	inline constexpr auto range = []<std::integral I, std::integral U>(I begin, U end, std::make_unsigned_t<I> stepsize = 0)
 	{
-		const auto boundary = [end](U i) { return i < end; };
-		return std::ranges::views::iota(begin) | std::ranges::views::stride(stepsize) | std::ranges::views::take_while(boundary);
+		const bool descending = begin > end;
+
+		if (stepsize == 0)
+			stepsize = 1;
+
+		I start, finish;
+		if (descending)
+		{
+			const I steps = (begin - end) / stepsize;
+			start         = begin - steps * stepsize;
+			finish        = begin;
+		}
+		else
+		{
+			start  = begin;
+			finish = end;
+		}
+
+		return std::ranges::views::iota(start, finish) | std::ranges::views::stride(stepsize) |
+			   std::ranges::views::transform([begin, start, descending](auto i) { return descending ? (begin - (i - start)) : i; });
 	};
 
 	// loop (n, n+1, n+..)
