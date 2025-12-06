@@ -30,7 +30,7 @@ export namespace deckard
 		{
 			const I steps = (begin - end) / stepsize;
 			start         = begin - steps * stepsize;
-			finish        = begin;
+			finish        = begin + 1;
 		}
 		else
 		{
