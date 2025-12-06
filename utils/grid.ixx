@@ -522,3 +522,41 @@ namespace deckard
 		// dump<T>(buffer.data);
 	}
 } // namespace deckard
+
+// Provide std::formatter specialization for deckard::grid
+export namespace std
+{
+	template<typename T, typename BufferType>
+	struct formatter<deckard::grid<T, BufferType>>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) -> decltype(ctx.begin())
+		{
+			// No custom format options supported; return iterator unchanged.
+			return ctx.begin();
+		}
+
+		template<typename FormatContext>
+		auto format(deckard::grid<T, BufferType> const& g, FormatContext& ctx) -> decltype(ctx.out())
+		{
+			auto out = ctx.out();
+
+			const auto w = g.width();
+			const auto h = g.height();
+
+			for (u32 y = 0; y < h; ++y)
+			{
+				for (u32 x = 0; x < w; ++x)
+				{
+					// Use the formatter for T to format each element.
+					std::format_to(out, "{}", g.get(x, y));
+					if (x + 1 < w)
+						std::format_to(out, " ");
+				}
+				if (y + 1 < h)
+					std::format_to(out, "\n");
+			}
+
+			return out;
+		}
+	};
+}
