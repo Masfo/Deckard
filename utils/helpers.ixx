@@ -1010,7 +1010,7 @@ export namespace deckard
 		return container[0];
 	}
 
-	// tail, from index
+	// tail, from end
 	template<ContainerResize T>
 	auto tail(const T& container, size_t count = 1)
 	{
@@ -1021,8 +1021,8 @@ export namespace deckard
 			return container;
 
 		T result{};
-		result.resize(container.size() - count);
-		std::ranges::copy_n(container.begin() + count, result.size(), result.begin());
+		result.resize(count);
+		std::ranges::copy_n(container.begin() + container.size() - count, result.size(), result.begin());
 		return result;
 	}
 
@@ -1031,10 +1031,8 @@ export namespace deckard
 	auto tail(const std::array<T, S>& container)
 	{
 		static_assert(I <= S, "Can't tail longer than container");
-
-
-		std::array<T, S - I> result{};
-		std::ranges::copy_n(container.begin() + I, S - I, result.begin());
+		std::array<T, I> result{};
+		std::ranges::copy_n(container.begin() + S - I, I, result.begin());
 		return result;
 	}
 

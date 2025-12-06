@@ -281,7 +281,7 @@ TEST_CASE("helpers", "[helpers]")
 		std::vector<u32> input{10, 20, 30, 40, 50, 60, 70, 80};
 		std::vector<u32> real{40, 50, 60, 70, 80};
 
-		auto first = tail(input, 3);
+		auto first = tail(input, 5);
 		CHECK(first.size() == real.size());
 		CHECK(first == real);
 
@@ -304,7 +304,7 @@ TEST_CASE("helpers", "[helpers]")
 		std::array<u32, 8> input{10, 20, 30, 40, 50, 60, 70, 80};
 		std::array<u32, 5> real{40, 50, 60, 70, 80};
 
-		auto first = tail<3>(input);
+		auto first = tail<5>(input);
 		CHECK(first.size() == real.size());
 		CHECK(first == real);
 	}
