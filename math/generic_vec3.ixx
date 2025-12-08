@@ -184,9 +184,15 @@ namespace deckard::math
 		{
 			T result{};
 
-			result = abs_diff(x, other.x);
-			result += abs_diff(y, other.y);
-			result += abs_diff(z, other.z);
+			auto T = abs_diff(x, other.x);
+
+			result = T * T;
+			T      = abs_diff(y, other.y);
+
+			result += T * T;
+
+			T = abs_diff(z, other.z);
+			result += T * T;
 
 			return result;
 		}
@@ -656,7 +662,8 @@ export namespace std
 		auto format(const generic_vec3<T>& v, std::format_context& ctx) const
 		requires(std::is_integral_v<T>)
 		{
-			return std::format_to(ctx.out(), "vec3({}, {}, {}, {})", v.x, v.y, v.z);
+			return std::format_to(ctx.out(), "vec3({}, {}, {})", v.x, v.y, v.z);
 		}
 	};
+
 } // namespace std
