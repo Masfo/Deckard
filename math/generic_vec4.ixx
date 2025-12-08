@@ -231,10 +231,17 @@ namespace deckard::math
 		{
 			T result{};
 
-			result = abs_diff(x, other.x);
-			result += abs_diff(y, other.y);
-			result += abs_diff(z, other.z);
-			result += abs_diff(w, other.w);
+			auto T = abs_diff(x, other.x);
+			result = T * T;
+
+			T = abs_diff(y, other.y);
+			result += T * T;
+
+			T = abs_diff(z, other.z);
+			result += T * T;
+
+			T = abs_diff(w, other.w);
+			result += T * T;
 
 			return result;
 		}

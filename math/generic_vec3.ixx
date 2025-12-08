@@ -185,10 +185,9 @@ namespace deckard::math
 			T result{};
 
 			auto T = abs_diff(x, other.x);
-
 			result = T * T;
+			
 			T      = abs_diff(y, other.y);
-
 			result += T * T;
 
 			T = abs_diff(z, other.z);

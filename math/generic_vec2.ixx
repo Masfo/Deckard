@@ -169,8 +169,11 @@ namespace deckard::math
 		{
 			T result{};
 
-			result = abs_diff(x, other.x);
-			result += abs_diff(y, other.y);
+			auto T = abs_diff(x, other.x);
+			result = T * T;
+			
+			T = abs_diff(y, other.y);
+			result += T * T;
 
 			return result;
 		}
