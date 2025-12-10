@@ -21,24 +21,20 @@ namespace deckard
 
 	// TODO: non-member drawings
 
-	const ivec2 north{0, -1};
-	const ivec2 east{1, 0};
-	const ivec2 south{0, 1};
-	const ivec2 west{-1, 0};
-
-	const ivec2 up{north};
-	const ivec2 left{west};
-	const ivec2 down{south};
-	const ivec2 right{east};
-
-
-	const ivec2 vertical(0, 1);
-	const ivec2 horizontal(1, 0);
-
-	const ivec2 north_east{north + east};
-	const ivec2 south_east{south + east};
-	const ivec2 south_west{south + west};
-	const ivec2 north_west{north + west};
+	export const ivec2 north{0, -1};
+	export const ivec2 east{1, 0};
+	export const ivec2 south{0, 1};
+	export const ivec2 west{-1, 0};
+	export const ivec2 up{north};
+	export const ivec2 left{west};
+	export const ivec2 down{south};
+	export const ivec2 right{east};
+	export const ivec2 vertical(0, 1);
+	export const ivec2 horizontal(1, 0);
+	export const ivec2 north_east{north + east};
+	export const ivec2 south_east{south + east};
+	export const ivec2 south_west{south + west};
+	export const ivec2 north_west{north + west};
 
 	export template<typename T = u8>
 	class grid
@@ -410,12 +406,12 @@ namespace deckard
 		{
 			std::vector<ivec2> points;
 
-			for (u32 y = 0; y < height(); ++y)
+			for (auto y = 0; y < height(); ++y)
 			{
-				for (u32 x = 0; x < width(); ++x)
+				for (auto x = 0; x < width(); ++x)
 				{
 					if (data.get(x, y) == to_find)
-						points.emplace_back(ivec2{x, y});
+						points.emplace_back(ivec2{as<i32>(x), as<i32>(y)});
 				}
 			}
 
