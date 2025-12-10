@@ -406,9 +406,9 @@ namespace deckard
 		{
 			std::vector<ivec2> points;
 
-			for (auto y = 0; y < height(); ++y)
+			for (auto y = 0u; y < height(); ++y)
 			{
-				for (auto x = 0; x < width(); ++x)
+				for (auto x = 0u; x < width(); ++x)
 				{
 					if (data.get(x, y) == to_find)
 						points.emplace_back(ivec2{as<i32>(x), as<i32>(y)});

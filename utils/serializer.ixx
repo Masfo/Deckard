@@ -96,7 +96,6 @@ namespace deckard
 		padding         pad{padding::no};
 
 
-
 	private:
 		u64 byte_index(u64 offset) const { return offset / 8u; }
 
@@ -230,7 +229,7 @@ namespace deckard
 		}
 
 		template<typename T>
-		void write(std::span<T> input, u32 size = 0)
+		void write(std::span<T> input, [[maybe_unused]] u32 size = 0)
 		{
 			for (const u8 c : input)
 				write_byte(c);
@@ -276,7 +275,7 @@ namespace deckard
 
 		void write(std::string_view input)
 		{
-			write<u32>(input.size());
+			write<u32>(as<u32>(input.size()));
 			write(std::span{input});
 		}
 
@@ -369,7 +368,6 @@ namespace deckard
 
 
 			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
-
 
 
 			if constexpr (std::is_same_v<T, bool>)
@@ -497,11 +495,7 @@ namespace deckard
 			rewind();
 		}
 
-		void rewind()
-		{
-			readpos = 0;
-
-		}
+		void rewind() { readpos = 0; }
 
 		void reserve(size_t size) { buffer.reserve(size); }
 
