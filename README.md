@@ -1,5 +1,8 @@
 ﻿# Deckard - Utility Modules
 
+ ![logo_ai_gen](https://github.com/user-attachments/assets/0dd8ff7c-cc2c-4f5e-be24-5bca713821e1)
+
+
 1. in your CMakelists.txt add:
 ```
 include(FetchContent)
@@ -215,3 +218,4 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	std::format("{:b2}", rnd);    // base 2
 	std::format("{:B36}", rnd);   // base 36
 	```
+
