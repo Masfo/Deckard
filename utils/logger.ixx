@@ -114,6 +114,10 @@ namespace deckard
 
 		void initialize() { push("Deckard Log initialized at {} {}\n\n", day_month_year(), hour_minute_second()); }
 
+		auto gen_log_filename() const
+		{
+			return fs::current_path() / std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
+		}
 
 	public:
 		logger()
@@ -126,7 +130,7 @@ namespace deckard
 			index = 0;
 			buffer.resize(len);
 
-			logfile = fs::current_path() / std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
+			logfile = gen_log_filename();
 
 			clean_older_logfiles();
 			initialize();
