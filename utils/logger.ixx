@@ -157,6 +157,16 @@ namespace deckard
 	export logger logger;
 
 	export template<typename... Args>
+	void log(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("{}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("{}", fmt);
+	}
+
+
+	export template<typename... Args>
 	void info(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(args) > 0)
