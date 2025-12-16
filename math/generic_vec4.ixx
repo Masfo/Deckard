@@ -225,8 +225,7 @@ namespace deckard::math
 			return vec_type(std::abs(x), std::abs(y), std::abs(z), std::abs(w));
 		}
 
-		// manhattan distance
-		[[nodiscard("Use the distance value")]] constexpr T distance(const vec_type& other) const
+		[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(const vec_type& other) const
 		requires(std::is_integral_v<T>)
 		{
 			T result{};
@@ -244,6 +243,47 @@ namespace deckard::math
 			result += T * T;
 
 			return result;
+		}
+
+		[[nodiscard("Use the distance value")]] constexpr T squared_distance(const vec_type& other) const
+		requires(std::is_floating_point_v<T>)
+		{
+			T result{};
+
+			T tmp = as<T>(abs_diff(x, other.x));
+			result += tmp * tmp;
+
+			tmp = as<T>(abs_diff(y, other.y));
+			result += tmp * tmp;
+
+			tmp = as<T>(abs_diff(z, other.z));
+			result += tmp * tmp;
+
+			tmp = as<T>(abs_diff(w, other.w));
+			result += tmp * tmp;
+
+			return result;
+		}
+
+		// distance
+		[[nodiscard("Use the distance value")]] constexpr T distance(const vec_type& other) const
+		requires(std::is_integral_v<T>)
+		{
+			T result{};
+
+			auto T = abs_diff(x, other.x);
+			result = T * T;
+
+			T = abs_diff(y, other.y);
+			result += T * T;
+
+			T = abs_diff(z, other.z);
+			result += T * T;
+
+			T = abs_diff(w, other.w);
+			result += T * T;
+
+			return std::sqrt(result);
 		}
 
 		[[nodiscard("Use the distance value")]] constexpr T distance(const vec_type& other) const
@@ -264,6 +304,47 @@ namespace deckard::math
 			result += tmp * tmp;
 
 			return std::sqrt(result);
+		}
+
+		// manhattan distance
+		[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(const vec_type& other) const
+		requires(std::is_floating_point_v<T>)
+		{
+			T result{};
+
+
+			T tmp = as<T>(abs_diff(x, other.x));
+			result += tmp;
+
+			tmp = as<T>(abs_diff(y, other.y));
+			result += tmp;
+
+			tmp = as<T>(abs_diff(z, other.z));
+			result += tmp;
+
+			tmp = as<T>(abs_diff(w, other.w));
+			result += tmp;
+
+			return result;
+		}
+
+		[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(const vec_type& other) const
+		requires(std::is_integral_v<T>)
+		{
+			T result{};
+
+			auto tmp = abs_diff(x, other.x);
+			result += tmp;
+
+			tmp = abs_diff(y, other.y);
+			result += tmp;
+
+			tmp = abs_diff(z, other.z);
+			result += tmp;
+
+			tmp = as<T>(abs_diff(w, other.w));
+			result += tmp;
+			return result;
 		}
 
 		template<std::integral U = T>
@@ -579,9 +660,21 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
+	[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		return lhs.squared_distance(rhs);
+	}
+
+	export template<arithmetic T>
 	[[nodiscard("Use the distance value")]] constexpr T distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.distance(rhs);
+	}
+
+		export template<arithmetic T>
+	[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	{
+		return lhs.manhattan_distance(rhs);
 	}
 
 	export template<arithmetic T, arithmetic U, arithmetic R>
