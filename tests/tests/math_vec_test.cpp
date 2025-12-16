@@ -139,7 +139,13 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		CHECK(true == absolute.equals({9, 1}));
 
 		const auto dist = distance(v1, v2);
-		CHECK(dist == 10);
+		CHECK(dist == 7);
+
+		const auto sdist = squared_distance(v1, v2);
+		CHECK(sdist == 58);
+
+		const auto m_dist = manhattan_distance(v1, v2);
+		CHECK(m_dist == 10);
 
 		const ivec2 clamped = clamp(v2, 7, 5);
 		CHECK(true == clamped.equals(ivec2{7, 5}));
@@ -370,7 +376,13 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		CHECK(true == absolute.equals({9.0f, 1.0f}));
 
 		const auto dist = distance(v1, v2);
-		CHECK_THAT(dist, WithinAbs(7.6157732f, 0.000001));
+		CHECK_THAT(dist, WithinAbs(7.615773f, 0.000001));
+
+		const auto sdist = squared_distance(v1, v2);
+		CHECK_THAT(sdist, WithinAbs(58.0f, 0.000001));
+
+		const auto mdist = manhattan_distance(v1, v2);
+		CHECK_THAT(mdist, WithinAbs(10.0f, 0.000001));
 
 		const vec2 clamped = clamp(v2, 2.0f, 3.0f);
 		CHECK(true == clamped.equals(vec2{3.0f, 2.0f}));
@@ -598,6 +610,12 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		const auto dist = distance(v1, v2);
 		CHECK_THAT(dist, WithinAbs(7.8740077f, 0.0000001));
 
+		const auto sdist = squared_distance(v1, v2);
+		CHECK_THAT(sdist, WithinAbs(62.0f, 0.0000001));
+
+		const auto mdist = manhattan_distance(v1, v2);
+		CHECK_THAT(mdist, WithinAbs(14.0f, 0.0000001));
+
 		const vec3 clamped = clamp(v2, 2.0f, 3.0f);
 		CHECK(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
 	}
@@ -822,6 +840,13 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 
 		const auto dist = distance(v1, v2);
 		CHECK_THAT(dist, WithinAbs(11.958261f, 0.000001));
+
+		
+		const auto sdist = squared_distance(v1, v2);
+		CHECK_THAT(sdist, WithinAbs(143.0f, 0.000001));
+
+		const auto mdist = manhattan_distance(v1, v2);
+		CHECK_THAT(mdist, WithinAbs(21.0f, 0.000001));
 
 		const vec4 clamped = clamp(v2, 2.0f, 3.0f);
 		CHECK(true == clamped.equals(vec4{3.0f, 2.0f, 3.0f, 2.0f}));
