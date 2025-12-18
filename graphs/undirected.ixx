@@ -21,6 +21,20 @@ namespace deckard::graph
 
 		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
 
+		 void dfsVisit(std::size_t u, std::unordered_set<std::size_t>& visited, std::vector<T>& traversal) const
+		{
+			visited.insert(u);
+			traversal.push_back(reverse_index[u]);
+
+			for (auto v : adjacent_list[u])
+			{
+				if (!visited.contains(v))
+				{
+					dfsVisit(v, visited, traversal);
+				}
+			}
+		}
+
 	public:
 		undirected_graph() = default;
 
@@ -82,48 +96,53 @@ namespace deckard::graph
 		// count connected nodes (islands)
 
 
-
-		 std::vector<T> bfs(const T& start_node)
+		std::vector<T> bfs(const T& start)
 		{
-			std::vector<T>                  traversal_result;
-			std::unordered_set<std::size_t> visited;
+			std::vector<T>        traversal;
+			std::queue<T>         q;
+			std::unordered_set<T> visited;
 
-			// Get the starting node index
-			auto start_it = index_map.find(start_node);
+			q.push(start);
+			visited.insert(start);
 
-			if (start_it == index_map.end())
+			while (!q.empty())
 			{
-				dbg::println("Start node not found");
-				return traversal_result;
-			}
+				T current = q.front();
+				q.pop();
 
-			std::size_t start_index = start_it->second;
-			visited.insert(start_index);
+				traversal.push_back(current);
 
-			std::queue<std::size_t> queue;
-			queue.push(start_index);
-
-			while (!queue.empty())
-			{
-				std::size_t current_index = queue.front();
-				queue.pop();
-
-				// Retrieve the current node and add it to the result
-				traversal_result.push_back(reverse_index[current_index]);
-
-				// Get neighbors and add them to the queue
-				for (const auto& neighbor_index : adjacent_list[current_index])
+				for (const auto& neighbor : neighbors(current))
 				{
-					if (visited.find(neighbor_index) == visited.end())
+					if (!visited.contains(neighbor))
 					{
-						visited.insert(neighbor_index);
-						queue.push(neighbor_index);
+						visited.insert(neighbor);
+						q.push(neighbor);
 					}
 				}
 			}
 
-			return traversal_result;
+			return traversal;
 		}
+
+
+		   std::vector<T> dfs(const T& start) const
+		{
+			auto it = index_map.find(start);
+			if (it == index_map.end())
+			{
+				dbg::println("Start node not found");
+				return {};
+			}
+
+			std::vector<T>               traversal;
+			std::unordered_set<std::size_t> visited;
+
+			dfsVisit(it->second, visited, traversal);
+			return traversal;
+		}
+
+
 
 		void dump() const
 		{
@@ -158,6 +177,8 @@ namespace deckard::graph
 		}
 	};
 
+
+	
 	
 
 } // namespace deckard::graph

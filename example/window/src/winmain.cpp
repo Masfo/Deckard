@@ -16,6 +16,7 @@ using namespace deckard::random;
 // using namespace std::string_literals;
 namespace fs = std::filesystem;
 using namespace std::string_view_literals;
+using namespace std::string_literals;
 using namespace std::chrono_literals;
 
 
@@ -918,7 +919,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	lt.now("threads reserved");
 
 
-	for (const auto& i : range(0, THREAD_COUNT))
+	for (const auto& i : range(0u, THREAD_COUNT))
 		threads.push_back(std::jthread(logme));
 	lt.now("threads pushed");
 
@@ -930,10 +931,42 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	graph::undirected_graph<std::string> gr;
+
+	gr.connect("A", "B");
+	gr.connect("A", "C");
+	gr.connect("A", "D");
+	gr.connect("A", "E");
+
+	gr.connect("B", "F");
+	gr.connect("E", "F");
+	gr.connect("Q", "Z");
+
+	dbg::println("A-B : {}", gr.has_edge("A", "B"));
+	dbg::println("A-F : {}", gr.has_edge("A", "F"));
+
+
+	dbg::print("Neighbours of 'A': ");
+	for (const auto& n : gr.neighbors("A"))
+		dbg::print("{} ", n);
+	dbg::println();
+
+	dbg::println("BFS:");
+	for (const auto& p : gr.bfs("A"))
+		dbg::print("{} ", p);
+	dbg::println();
+
+
+	dbg::println("DFS:");
+	for (const auto& p : gr.dfs("A"))
+		dbg::print("{} ", p);
+	dbg::println();
+
+	gr.dump();
 
 	_ = 0;
-	
-	
+
+
 	// ########################################################################
 
 	image_rgba rgba(128, 128);
