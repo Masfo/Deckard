@@ -919,7 +919,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	lt.now("threads reserved");
 
 
-	for (const auto& i : range(0u, THREAD_COUNT))
+	for (const auto& _ : range(0u, THREAD_COUNT))
 		threads.push_back(std::jthread(logme));
 	lt.now("threads pushed");
 
@@ -940,10 +940,20 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	gr.connect("B", "F");
 	gr.connect("E", "F");
-	gr.connect("Q", "Z");
+	gr.add("Q");
+	gr.add("Z");
 
 	dbg::println("A-B : {}", gr.has_edge("A", "B"));
 	dbg::println("A-F : {}", gr.has_edge("A", "F"));
+
+
+	dbg::print("Unconnected: ");
+	for (const auto& n : gr.unconnected())
+	{
+		dbg::print("{} ", n);
+
+	}
+	dbg::println();
 
 
 	dbg::print("Neighbours of 'A': ");
