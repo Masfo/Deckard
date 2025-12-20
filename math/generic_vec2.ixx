@@ -691,4 +691,6 @@ export namespace std
 			return std::format_to(ctx.out(), "vec2({}, {})", v.x, v.y);
 		}
 	};
+
+
 } // namespace std

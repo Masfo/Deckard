@@ -1,4 +1,4 @@
-﻿export module deckard.vec;
+export module deckard.vec;
 
 export import :vec2;
 export import :vec3;
@@ -72,15 +72,14 @@ export namespace deckard::math
 		ret.x = (ret.x | (ret.x << S[1])) & B[1];
 		ret.x = (ret.x | (ret.x << S[0])) & B[0];
 
-		ret.y = (ret.y | (ret.y << S[3])) & B[3];
-		ret.y = (ret.y | (ret.y << S[2])) & B[2];
-		ret.y = (ret.y | (ret.y << S[1])) & B[1];
-		ret.y = (ret.y | (ret.y << S[0])) & B[0];
-		T index =  ret.x | (ret.y << 1);
+		ret.y   = (ret.y | (ret.y << S[3])) & B[3];
+		ret.y   = (ret.y | (ret.y << S[2])) & B[2];
+		ret.y   = (ret.y | (ret.y << S[1])) & B[1];
+		ret.y   = (ret.y | (ret.y << S[0])) & B[0];
+		T index = ret.x | (ret.y << 1);
 		return from_index_to_2d(index, width);
 	}
 
-	
 	template<std::unsigned_integral T>
 	constexpr T to_zorder(const generic_vec2<T>& v)
 	{
@@ -95,27 +94,28 @@ export namespace deckard::math
 		x = (x | (x << S[1])) & B[1];
 		x = (x | (x << S[0])) & B[0];
 
-		y   = (y | (y << S[3])) & B[3];
-		y   = (y | (y << S[2])) & B[2];
-		y   = (y | (y << S[1])) & B[1];
-		y   = (y | (y << S[0])) & B[0];
+		y = (y | (y << S[3])) & B[3];
+		y = (y | (y << S[2])) & B[2];
+		y = (y | (y << S[1])) & B[1];
+		y = (y | (y << S[0])) & B[0];
 		return x | (y << 1);
 	}
 
 	template<std::unsigned_integral T>
-	constexpr T to_zorder(const T x, const T y)                                                                        
+	constexpr T to_zorder(const T x, const T y)
 	{
 		return to_zorder(generic_vec2<T>{x, y});
 	}
+
 	/*
-		00 01 04 05 16 17 20 21 
-		02 03 06 07 18 19 22 23 
-		08 09 12 13 24 25 28 29 
-		10 11 14 15 26 27 30 31 
-		32 33 36 37 48 49 52 53 
-		34 35 38 39 50 51 54 55 
-		40 41 44 45 56 57 60 61 
-		42 43 46 47 58 59 62 63 
+		00 01 04 05 16 17 20 21
+		02 03 06 07 18 19 22 23
+		08 09 12 13 24 25 28 29
+		10 11 14 15 26 27 30 31
+		32 33 36 37 48 49 52 53
+		34 35 38 39 50 51 54 55
+		40 41 44 45 56 57 60 61
+		42 43 46 47 58 59 62 63
 
 		for (const u32& y : upto(8))
 		{
@@ -128,3 +128,25 @@ export namespace deckard::math
 	*/
 
 } // namespace deckard::math
+
+export namespace std
+{
+
+	template<>
+	struct std::hash<ivec2>
+	{
+		auto operator()(const ivec2& a) const { return utils::hash_values(a.x, a.y); }
+	};
+
+	template<>
+	struct std::hash<ivec3>
+	{
+		auto operator()(const ivec3& a) const { return utils::hash_values(a.x, a.y, a.z); }
+	};
+
+	template<>
+	struct std::hash<ivec4>
+	{
+		auto operator()(const ivec4& a) const { return utils::hash_values(a.x, a.y, a.z, a.w); }
+	};
+} // namespace std
