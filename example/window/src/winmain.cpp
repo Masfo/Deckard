@@ -931,6 +931,23 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	graph::undirected_graph<math::ivec2> igraph;
+
+	igraph.add({1, 1});
+	igraph.add({5, 5});
+	igraph.add({12, 12});
+
+	igraph.connect({1, 1}, {5, 5});
+	igraph.connect({1, 1}, {12, 12});
+
+
+	igraph.dump_list();
+	_=0;
+
+
+	// ########################################################################
+
+
 	graph::undirected_graph<std::string> gr;
 
 	gr.connect("A", "B");
@@ -951,7 +968,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	for (const auto& n : gr.unconnected())
 	{
 		dbg::print("{} ", n);
-
 	}
 	dbg::println();
 

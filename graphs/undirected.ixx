@@ -19,10 +19,9 @@ namespace deckard::graph
 		std::unordered_map<T, u64>           index_map{};
 		std::vector<T>                       reverse_index{};
 
-
 		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
 
-		 void dfsVisit(std::size_t u, std::unordered_set<std::size_t>& visited, std::vector<T>& traversal) const
+		void dfsVisit(std::size_t u, std::unordered_set<std::size_t>& visited, std::vector<T>& traversal) const
 		{
 			visited.insert(u);
 			traversal.push_back(reverse_index[u]);
@@ -126,8 +125,7 @@ namespace deckard::graph
 			return traversal;
 		}
 
-
-		   std::vector<T> dfs(const T& start) const
+		std::vector<T> dfs(const T& start) const
 		{
 			auto it = index_map.find(start);
 			if (it == index_map.end())
@@ -136,7 +134,7 @@ namespace deckard::graph
 				return {};
 			}
 
-			std::vector<T>               traversal;
+			std::vector<T>                  traversal;
 			std::unordered_set<std::size_t> visited;
 
 			dfsVisit(it->second, visited, traversal);
@@ -157,8 +155,6 @@ namespace deckard::graph
 
 			co_return;
 		}
-
-
 
 		void dump() const
 		{
@@ -191,10 +187,24 @@ namespace deckard::graph
 				dbg::println();
 			}
 		}
+
+		void dump_list() const
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+
+			for (u64 i = 0; i < adjacent_list.size(); ++i)
+			{
+				dbg::print("{} :", reverse_index[i]);
+
+				for (const auto& nbr : adjacent_list[i])
+				{
+					dbg::print(" {}", reverse_index[nbr]);
+				}
+
+				dbg::println();
+			}
+		}
 	};
 
-
-	
-	
 
 } // namespace deckard::graph
