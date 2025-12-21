@@ -931,6 +931,20 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	std::array<u8, 128> buf128{};
+	for (const auto& [i, c] : buf128 | std::views::enumerate)
+		c = (char)i;
+
+	file::write("bin128.dat", buf128, file::writemode::overwrite);
+
+	std::array<u8, 64> buf64{};
+	file::read("bin128.dat", buf64, buf64.size(), 64);
+
+	_ = 0;
+
+	// ########################################################################
+
+
 	graph::undirected_graph<math::ivec2> igraph;
 
 	igraph.add({1, 1});
@@ -942,7 +956,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	igraph.dump_list();
-	_=0;
+	_ = 0;
 
 
 	// ########################################################################

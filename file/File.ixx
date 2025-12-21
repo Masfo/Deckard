@@ -29,11 +29,6 @@ namespace deckard::file
 	// membuf[index]
 
 
-	// TODO: simple read/write api
-	// write buffer to file
-	// read file to buffer
-	// expected on errors
-
 	export enum class writemode {
 		createnew,
 		append,
@@ -131,10 +126,9 @@ namespace deckard::file
 
 		// read impl
 		template<typename T>
-		return_type read_impl(fs::path file, std::span<T> buffer, size_t buffer_size = 0)
+		return_type read_impl(fs::path file, std::span<T> buffer, size_t buffer_size, size_t offset = 0)
 		{
 			file = std::filesystem::absolute(file);
-
 
 			if (not fs::exists(file))
 				return std::unexpected(
@@ -144,10 +138,24 @@ namespace deckard::file
 			if (file_size == 0)
 				return std::unexpected(std::format("read_file: file '{}' is empty", platform::string_from_wide(file.wstring()).c_str()));
 
-			if (buffer_size == 0)
-				buffer_size = file_size;
+			// Validate offset
+			if (static_cast<u64>(offset) > file_size)
+				return std::unexpected(std::format(
+				  "read_file: offset {} is beyond end of file '{}' (size {})",
+				  offset,
+				  platform::string_from_wide(file.wstring()).c_str(),
+				  file_size));
 
+			// Default buffer_size: read until end from offset
+			if (buffer_size == 0)
+				buffer_size = static_cast<size_t>(file_size - static_cast<u64>(offset));
+
+			// Clip to buffer capacity
 			buffer_size = std::min(buffer_size, buffer.size_bytes());
+
+			// Also clip to remaining bytes in file from offset
+			auto remaining = static_cast<size_t>(file_size - static_cast<u64>(offset));
+			buffer_size    = std::min(buffer_size, remaining);
 
 			if (buffer_size == 0)
 				return std::unexpected(
@@ -160,6 +168,20 @@ namespace deckard::file
 				return std::unexpected(
 				  std::format("read_file: could not open file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
+			// Seek to the requested offset for synchronous read
+			if (offset != 0)
+			{
+				LARGE_INTEGER li{};
+				li.QuadPart = static_cast<LONGLONG>(offset);
+				if (0 == SetFilePointerEx(handle, li, nullptr, FILE_BEGIN))
+				{
+					CloseHandle(handle);
+					return std::unexpected(std::format(
+					  "read_file: could not seek to offset {} in file '{}'", offset, platform::string_from_wide(file.wstring()).c_str()));
+				}
+			}
+
+			// Perform synchronous read (no OVERLAPPED)
 			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
 			{
 				CloseHandle(handle);
@@ -215,20 +237,23 @@ namespace deckard::file
 	}
 
 	// read
-	export auto read(fs::path file, std::span<u8> buffer, size_t buffer_size = 0) { return impl::read_impl<u8>(file, buffer, buffer_size); }
-
-	export auto read(fs::path file, std::string_view buffer, size_t buffer_size = 0)
+	export auto read(fs::path file, std::span<u8> buffer, size_t buffer_size = 0, size_t offset = 0)
 	{
-		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
+		return impl::read_impl<u8>(file, buffer, buffer_size, offset);
 	}
 
-	export auto read(fs::path file, std::string& buffer, size_t buffer_size = 0)
+	export auto read(fs::path file, std::string_view buffer, size_t buffer_size = 0, size_t offset = 0)
+	{
+		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size, offset);
+	}
+
+	export auto read(fs::path file, std::string& buffer, size_t buffer_size = 0, size_t offset = 0)
 	{
 		if (buffer_size == 0)
 			buffer_size = fs::file_size(file);
 		if (buffer.size() < buffer_size)
 			buffer.resize(buffer_size);
-		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size);
+		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size, offset);
 	}
 
 	export std::vector<u8> read(fs::path file)
@@ -247,6 +272,10 @@ namespace deckard::file
 		}
 		return {};
 	}
+
+	// ##################################################################################################################
+	// ##################################################################################################################
+	// ##################################################################################################################
 
 	export class file
 	{
