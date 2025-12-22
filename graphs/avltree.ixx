@@ -434,36 +434,36 @@ namespace deckard::graph::avl
 			node->height = std::max(height(node->left), height(node->right)) + 1;
 		}
 
-		void rotate_left(nodeptr& root)
+		void rotate_left(nodeptr& k2)
 		{
-			auto newroot    = std::move(root->left);
-			root->left      = std::move(newroot->right);
-			root->height    = std::max(height(root->left), height(root->right)) + 1;
-			newroot->height = std::max(height(newroot->left), root->height) + 1;
-			newroot->right  = std::move(root);
-			root            = std::move(newroot);
+			auto k1    = std::move(k2->left);
+			k2->left   = std::move(k1->right);
+			k2->height = std::max(height(k2->left), height(k2->right)) + 1;
+			k1->height = std::max(height(k1->left), k2->height) + 1;
+			k1->right  = std::move(k2);
+			k2         = std::move(k1);
 		}
 
-		void rotate_right(nodeptr& root)
+		void rotate_right(nodeptr& k1)
 		{
-			auto newroot    = std::move(root->right);
-			root->right     = std::move(newroot->left);
-			root->height    = std::max(height(root->left), height(root->right)) + 1;
-			newroot->height = std::max(height(newroot->right), root->height) + 1;
-			newroot->left   = std::move(root);
-			root            = std::move(newroot);
+			auto k2    = std::move(k1->right);
+			k1->right  = std::move(k2->left);
+			k1->height = std::max(height(k1->left), height(k1->right)) + 1;
+			k2->height = std::max(height(k2->right), k1->height) + 1;
+			k2->left   = std::move(k1);
+			k1         = std::move(k2);
 		}
 
-		void double_left(nodeptr& root)
+		void double_left(nodeptr& k3)
 		{
-			rotate_right(root->left);
-			rotate_left(root);
+			rotate_right(k3->left);
+			rotate_left(k3);
 		}
 
-		void double_right(nodeptr& root)
+		void double_right(nodeptr& k1)
 		{
-			rotate_left(root->right);
-			rotate_right(root);
+			rotate_left(k1->right);
+			rotate_right(k1);
 		}
 
 		void print(const nodeptr& node) { print("", node, false); }
