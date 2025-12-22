@@ -938,7 +938,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	file::write("bin128.dat", buf128, file::writemode::overwrite);
 
 	std::array<u8, 64> buf64{};
-	file::read("bin128.dat", buf64, buf64.size(), 64);
+	file::read("bin128.dat", buf64, buf64.size(), 128);
 
 	_ = 0;
 

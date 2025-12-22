@@ -42,7 +42,7 @@ namespace deckard::file
 
 		// write impl
 		template<typename T>
-		return_type write_impl(fs::path file, const std::span<T> content, size_t content_size, writemode writemode)
+		return_type write_impl(fs::path file, const std::span<T> content, u64 content_size, writemode writemode)
 		{
 			DWORD bytes_written{0};
 			DWORD mode   = CREATE_ALWAYS;
@@ -113,7 +113,7 @@ namespace deckard::file
 
 		// append impl
 		template<typename T>
-		return_type append_impl(fs::path file, const std::span<T> content, size_t content_size)
+		return_type append_impl(fs::path file, const std::span<T> content, u64 content_size)
 		{
 			return write_impl(file, content, content_size, writemode::append);
 		}
@@ -126,7 +126,7 @@ namespace deckard::file
 
 		// read impl
 		template<typename T>
-		return_type read_impl(fs::path file, std::span<T> buffer, size_t buffer_size, size_t offset = 0)
+		return_type read_impl(fs::path file, std::span<T> buffer, u64 buffer_size, u64 offset = 0)
 		{
 			file = std::filesystem::absolute(file);
 
@@ -138,23 +138,19 @@ namespace deckard::file
 			if (file_size == 0)
 				return std::unexpected(std::format("read_file: file '{}' is empty", platform::string_from_wide(file.wstring()).c_str()));
 
-			// Validate offset
-			if (static_cast<u64>(offset) > file_size)
+			if (offset >= file_size)
 				return std::unexpected(std::format(
 				  "read_file: offset {} is beyond end of file '{}' (size {})",
 				  offset,
 				  platform::string_from_wide(file.wstring()).c_str(),
 				  file_size));
 
-			// Default buffer_size: read until end from offset
 			if (buffer_size == 0)
-				buffer_size = static_cast<size_t>(file_size - static_cast<u64>(offset));
+				buffer_size = file_size - offset;
 
-			// Clip to buffer capacity
 			buffer_size = std::min(buffer_size, buffer.size_bytes());
 
-			// Also clip to remaining bytes in file from offset
-			auto remaining = static_cast<size_t>(file_size - static_cast<u64>(offset));
+			auto remaining = file_size - offset;
 			buffer_size    = std::min(buffer_size, remaining);
 
 			if (buffer_size == 0)
@@ -168,7 +164,6 @@ namespace deckard::file
 				return std::unexpected(
 				  std::format("read_file: could not open file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
-			// Seek to the requested offset for synchronous read
 			if (offset != 0)
 			{
 				LARGE_INTEGER li{};
@@ -181,7 +176,6 @@ namespace deckard::file
 				}
 			}
 
-			// Perform synchronous read (no OVERLAPPED)
 			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
 			{
 				CloseHandle(handle);
@@ -208,7 +202,7 @@ namespace deckard::file
 	}
 
 	// write
-	export auto write(fs::path file, const std::span<u8> content, size_t content_size, writemode mode = writemode::createnew)
+	export auto write(fs::path file, const std::span<u8> content, u64 content_size, writemode mode = writemode::createnew)
 	{
 		return impl::write_impl<u8>(file, content, content_size, mode);
 	}
@@ -224,7 +218,7 @@ namespace deckard::file
 	}
 
 	// append
-	export auto append(fs::path file, const std::span<u8> content, size_t content_size)
+	export auto append(fs::path file, const std::span<u8> content, u64 content_size)
 	{
 		return impl::append_impl<u8>(file, content, content_size);
 	}
@@ -237,17 +231,17 @@ namespace deckard::file
 	}
 
 	// read
-	export auto read(fs::path file, std::span<u8> buffer, size_t buffer_size = 0, size_t offset = 0)
+	export auto read(fs::path file, std::span<u8> buffer, u64 buffer_size = 0, u64 offset = 0)
 	{
 		return impl::read_impl<u8>(file, buffer, buffer_size, offset);
 	}
 
-	export auto read(fs::path file, std::string_view buffer, size_t buffer_size = 0, size_t offset = 0)
+	export auto read(fs::path file, std::string_view buffer, u64 buffer_size = 0, u64 offset = 0)
 	{
 		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size, offset);
 	}
 
-	export auto read(fs::path file, std::string& buffer, size_t buffer_size = 0, size_t offset = 0)
+	export auto read(fs::path file, std::string& buffer, u64 buffer_size = 0, u64 offset = 0)
 	{
 		if (buffer_size == 0)
 			buffer_size = fs::file_size(file);
@@ -283,7 +277,7 @@ namespace deckard::file
 	public:
 		void resize() { }
 
-		std::span<u8> operator[](size_t start, size_t end) const
+		std::span<u8> operator[](u64 start, u64 end) const
 		{
 			//
 			start;
@@ -398,7 +392,7 @@ namespace deckard::file
 				return offset;
 			}
 
-			u64 seek_write(const std::span<u8> buffer, size_t size, i64 offset) const
+			u64 seek_write(const std::span<u8> buffer, u64 size, i64 offset) const
 			{
 				i64 old_offset = seek(offset);
 				u64 written    = write(buffer, size);
@@ -408,7 +402,7 @@ namespace deckard::file
 
 			// TODO: writing advances offset automatically
 
-			u64 write(const std::span<u8> buffer, size_t size = 0) const
+			u64 write(const std::span<u8> buffer, u64 size = 0) const
 			{
 				DWORD written{};
 
@@ -672,7 +666,7 @@ namespace deckard::file
 		out.reserve(v.size());
 
 		// normalize newlines
-		for (size_t i = 0; i < v.size(); ++i)
+		for (u64 i = 0; i < v.size(); ++i)
 		{
 			u8 c = v[i];
 			if (c == '\r')
