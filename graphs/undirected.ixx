@@ -148,12 +148,27 @@ namespace deckard::graph
 
 			for (u64 i = 0; i < adjacent_list.size(); ++i)
 			{
-				dbg::println("size {}", adjacent_list.size());
 				if (adjacent_list[i].empty())
 					co_yield reverse_index[i];
 			}
 
 			co_return;
+		}
+
+
+		std::vector<T> unconnected_as_vector() const
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+			
+			std::vector<T> ret;
+			ret.reserve(adjacent_list.size());
+
+			for (u64 i = 0; i < adjacent_list.size(); ++i)
+			{
+				if (adjacent_list[i].empty())
+					ret.emplace_back(reverse_index[i]);
+			}
+			return ret;
 		}
 
 		void dump() const
