@@ -297,9 +297,9 @@ set(DECKARD_SRCS
 		# Graph
 		graphs/avltree.ixx
 		graphs/binarytree.ixx
-		graphs/directed.ixx
+		
 		graphs/graph.ixx
-		graphs/undirected.ixx
+		
 
 
 
