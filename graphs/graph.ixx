@@ -32,9 +32,74 @@ namespace deckard::graph
 		std::vector<T>                            reverse_index{};
 		std::vector<std::unordered_map<u64, f64>> edge_weights{};
 
+		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
 	public:
 		graph() = default;
 			: graph(0)
+		u64 degree(const T& node) const
+		{
+			if (not index_map.contains(node))
+				return 0;
+			return adjacent_list[index_map.at(node)].size();
+		}
+
+		void clear() noexcept
+		{
+			adjacent_list.clear();
+			edge_weights.clear();
+			index_map.clear();
+			reverse_index.clear();
+		}
+
+		void remove_node(const T& node)
+		{
+			if (not index_map.contains(node))
+				return;
+
+			u64 node_index = index_map.at(node);
+			u64 last       = static_cast<u64>(reverse_index.size() - 1);
+
+			for (u64 nbr : adjacent_list[node_index])
+			{
+				adjacent_list[nbr].erase(node_index);
+				edge_weights[nbr].erase(node_index);
+			}
+
+			if (node_index != last)
+			{
+				T moved                   = std::move(reverse_index[last]);
+				adjacent_list[node_index] = std::move(adjacent_list[last]);
+				reverse_index[node_index] = std::move(reverse_index[last]);
+				edge_weights[node_index]  = std::move(edge_weights[last]);
+
+				for (u64 nbr : adjacent_list[node_index])
+				{
+					adjacent_list[nbr].erase(last);
+					adjacent_list[nbr].insert(node_index);
+					auto itw = edge_weights[nbr].find(last);
+					if (itw != edge_weights[nbr].end())
+					{
+						f64 w = itw->second;
+						edge_weights[nbr].erase(itw);
+						edge_weights[nbr].emplace(node_index, w);
+					}
+				}
+
+				index_map[moved] = node_index;
+			}
+
+			reverse_index.pop_back();
+			adjacent_list.pop_back();
+			edge_weights.pop_back();
+			index_map.erase(node);
+		}
+
+		void remove_nodes(const std::vector<T>& nodes)
+		{
+			for (const auto& node : nodes)
+				remove_node(node);
+		}
+
 		void add(const T& node)
 		{
 			if (not index_map.contains(node))
@@ -45,6 +110,21 @@ namespace deckard::graph
 				edge_weights.emplace_back();
 			}
 		}
+
+		bool has_edge(const T& u, const T& v) const
+		{
+
+			auto iu = index_map.find(u);
+			auto iv = index_map.find(v);
+			if (iu == index_map.end() or iv == index_map.end())
+				return false;
+
+			u64 first = iu->second;
+			u64 second = iv->second;
+
+			return adjacent_list[first].contains(second);
+		}
+
 		void connect(const T& a, const T& b) { connect(a, b, 1.0); }
 
 		void connect(const T& a, const T& b, f64 weight)
@@ -85,13 +165,24 @@ namespace deckard::graph
 				edge_weights[second].erase(first);
 			}
 		}
+
+		bool empty() const { return reverse_index.empty(); }
+
+		u64 node_count() const { return reverse_index.size(); }
+
+		u64 edge_count() const
 		{
+			u64 total = 0;
+			for (const auto& nbrs : adjacent_list)
+				total += nbrs.size();
+			return total / 2;
 		}
 
-		explicit graph(size_t vertices)
-			: num_vertices(vertices)
-			, adjacency_matrix(vertices * vertices, {})
-			, matrix_view(adjacency_matrix.data(), vertices, vertices)
+		bool contains(const T& node) const noexcept { return index_map.contains(node); }
+
+		bool contains(const T& a, const T& b) const noexcept { return has_edge(a, b); }
+
+		std::vector<T> neighbors(const T& node) const
 		{
 			for (size_t i = 0; i < num_vertices; i++)
 				matrix_view[i, i] = {};
