@@ -184,8 +184,18 @@ namespace deckard::graph
 
 		std::vector<T> neighbors(const T& node) const
 		{
-			for (size_t i = 0; i < num_vertices; i++)
-				matrix_view[i, i] = {};
+			auto it = index_map.find(node);
+			if (it == index_map.end())
+				return {};
+
+			const auto&    adjacent_indices = adjacent_list[it->second];
+			std::vector<T> result;
+			result.reserve(adjacent_indices.size());
+
+			for (const auto& node_index : adjacent_indices)
+				result.push_back(reverse_index[node_index]);
+
+			return result;
 		}
 
 		// Copy constructor
@@ -215,6 +225,83 @@ namespace deckard::graph
 			, matrix_view(adjacency_matrix.data(), num_vertices, num_vertices)
 		{
 			other.num_vertices = 0;
+		std::generator<const T&> nodes() const
+		{
+			for (const auto& node : reverse_index)
+				co_yield node;
+		}
+
+		std::generator<const weighted_edge&> edges() const
+		{
+			for (u64 u = 0; u < adjacent_list.size(); ++u)
+			{
+				for (u64 v : adjacent_list[u])
+				{
+					if (u < v)
+					{
+						weighted_edge e;
+						e.from   = reverse_index[u];
+						e.to     = reverse_index[v];
+						auto itw = edge_weights[u].find(v);
+						if (itw != edge_weights[u].end())
+							e.weight = itw->second;
+						co_yield e;
+					}
+				}
+			}
+			co_return;
+		}
+
+		std::vector<weighted_edge> edges_as_vector() const
+		{
+			std::vector<weighted_edge> ret;
+			for (u64 u = 0; u < adjacent_list.size(); ++u)
+			{
+				for (u64 v : adjacent_list[u])
+				{
+					if (u < v)
+					{
+						weighted_edge e;
+						e.from   = reverse_index[u];
+						e.to     = reverse_index[v];
+						auto itw = edge_weights[u].find(v);
+						if (itw != edge_weights[u].end())
+							e.weight = itw->second;
+						ret.push_back(e);
+					}
+				}
+			}
+			return ret;
+		}
+
+		std::generator<const T&> unconnected_components() const
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+
+
+			for (u64 i = 0; i < adjacent_list.size(); ++i)
+			{
+				if (adjacent_list[i].empty())
+					co_yield reverse_index[i];
+			}
+
+			co_return;
+		}
+
+		std::vector<T> unconnected_components_as_vector() const
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+
+			std::vector<T> ret;
+			ret.reserve(adjacent_list.size());
+
+			for (u64 i = 0; i < adjacent_list.size(); ++i)
+			{
+				if (adjacent_list[i].empty())
+					ret.emplace_back(reverse_index[i]);
+			}
+			return ret;
+		}
 		}
 
 		// Move assignment operator
