@@ -3,7 +3,7 @@ export module deckard.graph;
 
 export import :binarytree;
 export import :avltree;
-export import :undirected;
+
 import std;
 import deckard.types;
 import deckard.assert;
@@ -17,8 +17,6 @@ namespace deckard::graph
 	export template<typename T, bool Directed = false>
 	class graph
 	{
-	public:
-		static constexpr T INF = std::numeric_limits<T>::max();
 	private:
 		struct weighted_edge
 		{
@@ -33,9 +31,24 @@ namespace deckard::graph
 		std::vector<std::unordered_map<u64, f64>> edge_weights{};
 
 		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
+
+		void dfsVisit(std::size_t u, std::unordered_set<std::size_t>& visited, std::vector<T>& traversal) const
+		{
+			visited.insert(u);
+			traversal.push_back(reverse_index[u]);
+
+			for (auto v : adjacent_list[u])
+			{
+				if (!visited.contains(v))
+				{
+					dfsVisit(v, visited, traversal);
+				}
+			}
+		}
+
 	public:
 		graph() = default;
-			: graph(0)
+
 		u64 degree(const T& node) const
 		{
 			if (not index_map.contains(node))
@@ -198,33 +211,129 @@ namespace deckard::graph
 			return result;
 		}
 
-		// Copy constructor
-		graph(const graph& other)
-			: num_vertices(other.num_vertices)
-			, adjacency_matrix(other.adjacency_matrix)
-			, matrix_view(adjacency_matrix.data(), num_vertices, num_vertices)
+		// All-pairs shortest paths using Floyd-Warshall.
+		// Returns an unordered_map mapping each node to a map of reachable nodes and their distances.
+		auto all_pairs_shortest_paths() const -> std::unordered_map<T, std::unordered_map<T, f64>>
 		{
+			u64       n   = static_cast<u64>(reverse_index.size());
+			const f64 INF = std::numeric_limits<f64>::infinity();
+
+			std::vector<std::vector<f64>> dist(static_cast<size_t>(n), std::vector<f64>(static_cast<size_t>(n), INF));
+
+			for (u64 i = 0; i < n; ++i)
+			{
+				dist[i][i] = 0.0;
+				for (u64 j : adjacent_list[i])
+				{
+					auto itw = edge_weights[i].find(j);
+					f64  w   = 1.0;
+					if (itw != edge_weights[i].end())
+						w = itw->second;
+					dist[i][j] = w;
+				}
+			}
+
+			for (u64 k = 0; k < n; ++k)
+			{
+				for (u64 i = 0; i < n; ++i)
+				{
+					if (dist[i][k] == INF)
+						continue;
+					for (u64 j = 0; j < n; ++j)
+					{
+						if (dist[k][j] == INF)
+							continue;
+						f64 nd = dist[i][k] + dist[k][j];
+						if (nd < dist[i][j])
+						{
+							dist[i][j] = nd;
+						}
+					}
+				}
+			}
+
+
+			std::unordered_map<T, std::unordered_map<T, f64>> result;
+			result.reserve(n);
+			for (u64 i = 0; i < n; ++i)
+			{
+				T ti = reverse_index[i];
+				for (u64 j = 0; j < n; ++j)
+				{
+					if (dist[i][j] == INF)
+						continue;
+					T tj = reverse_index[j];
+					result[ti].emplace(tj, dist[i][j]);
+				}
+			}
+
+			return result;
 		}
 
-		// Copy assignment operator
-		graph& operator=(const graph& other)
+		// count connected nodes (islands)
+
+
+		std::vector<T> bfs(const T& start)
 		{
-			if (this == &other)
-				return *this;
-			num_vertices     = other.num_vertices;
-			adjacency_matrix = other.adjacency_matrix;
-			matrix_view       = std::mdspan<T, std::extents<std::size_t, std::dynamic_extent, std::dynamic_extent>>(
-              adjacency_matrix.data(), num_vertices, num_vertices);
-			return *this;
+			auto it = index_map.find(start);
+			if (it == index_map.end())
+				return {};
+
+			u64 s = it->second;
+			u64 n = static_cast<u64>(reverse_index.size());
+
+			const f64        INF = std::numeric_limits<f64>::infinity();
+			std::vector<f64> dist(n, INF);
+			using PQItem = std::pair<f64, u64>;
+			std::priority_queue<PQItem, std::vector<PQItem>, std::greater<PQItem>> pq;
+
+			dist[s] = 0.0;
+			pq.push({0.0, s});
+
+			std::vector<T> traversal;
+
+			while (!pq.empty())
+			{
+				auto [d, u] = pq.top();
+				pq.pop();
+				if (d > dist[u])
+					continue;
+				traversal.push_back(reverse_index[u]);
+
+				for (u64 v : adjacent_list[u])
+				{
+					f64  w   = 1.0;
+					auto itw = edge_weights[u].find(v);
+					if (itw != edge_weights[u].end())
+						w = itw->second;
+					f64 nd = d + w;
+					if (nd < dist[v])
+					{
+						dist[v] = nd;
+						pq.push({nd, v});
+					}
+				}
+			}
+
+			return traversal;
 		}
 
-		// Move constructor
-		graph(graph&& other) noexcept
-			: num_vertices(other.num_vertices)
-			, adjacency_matrix(std::move(other.adjacency_matrix))
-			, matrix_view(adjacency_matrix.data(), num_vertices, num_vertices)
+		std::vector<T> dfs(const T& start) const
 		{
-			other.num_vertices = 0;
+			auto it = index_map.find(start);
+			if (it == index_map.end())
+			{
+				dbg::println("Start node not found");
+				return {};
+			}
+
+			std::vector<T>                  traversal;
+			std::unordered_set<std::size_t> visited;
+
+			dfsVisit(it->second, visited, traversal);
+			return traversal;
+		}
+
 		std::generator<const T&> nodes() const
 		{
 			for (const auto& node : reverse_index)
@@ -302,55 +411,837 @@ namespace deckard::graph
 			}
 			return ret;
 		}
-		}
 
-		// Move assignment operator
-		graph& operator=(graph&& other) noexcept
+		// Return a maximum matching for bipartite graphs using Hopcroft-Karp.
+		// If the graph is not bipartite, fall back to a greedy maximal matching.
+		auto max_matching() const -> std::vector<std::pair<T, T>>
 		{
-			if (this == &other)
-				return *this;
-			num_vertices       = other.num_vertices;
-			adjacency_matrix   = std::move(other.adjacency_matrix);
-			matrix_view        = std::mdspan<T, std::extents<std::size_t, std::dynamic_extent, std::dynamic_extent>>(
-              adjacency_matrix.data(), num_vertices, num_vertices);
-			other.num_vertices = 0;
-			return *this;
-		}
+			u64 n = static_cast<u64>(reverse_index.size());
 
-		// Destructor
-		~graph() = default;
-
-		void add(size_t u, size_t v, T weight)
-		{
-			matrix_view[u, v] = weight;
-			matrix_view[v, u] = weight;
-		}
-
-		[[nodiscard]] auto getAdjacencyMatrix() const { return matrix_view; }
-
-		[[nodiscard]] size_t getNumVertices() const noexcept { return num_vertices; }
-	};
-
-	export template<typename T>
-	void print(const graph<T>& g)
-	{
-		size_t n      = g.getNumVertices();
-		auto   matrix = g.getAdjacencyMatrix();
-
-		std::print("Adjacency Matrix:\n");
-		for (size_t i = 0; i < n; i++)
-		{
-			for (size_t j = 0; j < n; j++)
+			// Attempt to 2-color the graph to see if it's bipartite
+			std::vector<int> color(n, -1);
+			bool             is_bipartite = true;
+			for (u64 i = 0; i < n && is_bipartite; ++i)
 			{
-				T weight = matrix[i, j];
-				if (weight == graph<T>::INF)
-					dbg::print("   ∞ ");
+				if (color[i] != -1)
+					continue;
+				std::deque<u64> q;
+				color[i] = 0;
+				q.push_back(i);
+				while (!q.empty() && is_bipartite)
+				{
+					u64 u = q.front();
+					q.pop_front();
+					for (u64 v : adjacent_list[u])
+					{
+						if (color[v] == -1)
+						{
+							color[v] = color[u] ^ 1;
+							q.push_back(v);
+						}
+						else if (color[v] == color[u])
+						{
+							is_bipartite = false;
+							break;
+						}
+					}
+				}
+			}
+
+			if (not is_bipartite)
+			{
+				std::vector<char>            matched(n, 0);
+				std::vector<std::pair<T, T>> result;
+				for (u64 u = 0; u < n; ++u)
+				{
+					if (matched[u])
+						continue;
+					for (u64 v : adjacent_list[u])
+					{
+						if (!matched[v])
+						{
+							matched[u] = matched[v] = 1;
+							result.emplace_back(reverse_index[u], reverse_index[v]);
+							break;
+						}
+					}
+				}
+				return result;
+			}
+
+			// Build left/right partitions
+			std::vector<int> left_id(n, -1), right_id(n, -1);
+			int              nl = 0, nr = 0;
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (color[i] == 0)
+					left_id[i] = nl++;
+				else if (color[i] == 1)
+					right_id[i] = nr++;
+			}
+
+			// adjacency from left indices to right indices
+			std::vector<std::vector<int>> adjL(static_cast<size_t>(nl));
+			for (u64 u = 0; u < n; ++u)
+			{
+				if (color[u] != 0)
+					continue;
+				int lu = left_id[u];
+				for (u64 v : adjacent_list[u])
+				{
+					if (color[v] != 1)
+						continue;
+					adjL[lu].push_back(right_id[v]);
+				}
+			}
+
+			// Hopcroft-Karp
+			const int        INF = std::numeric_limits<int>::max();
+			std::vector<i64> pairU(static_cast<i64>(nl), -1);
+			std::vector<i64> pairV(static_cast<i64>(nr), -1);
+			std::vector<i64> dist(static_cast<i64>(nl), 0);
+
+			auto bfs = [&]() -> bool
+			{
+				std::deque<int> q;
+				for (int u = 0; u < nl; ++u)
+				{
+					if (pairU[u] == -1)
+					{
+						dist[u] = 0;
+						q.push_back(u);
+					}
+					else
+						dist[u] = INF;
+				}
+				int dist_nil = INF;
+				while (!q.empty())
+				{
+					int u = q.front();
+					q.pop_front();
+					if (dist[u] >= dist_nil)
+						continue;
+					for (int v : adjL[u])
+					{
+						int pu = pairV[v];
+						if (pu == -1)
+						{
+							dist_nil = dist[u] + 1;
+						}
+						else if (dist[pu] == INF)
+						{
+							dist[pu] = dist[u] + 1;
+							q.push_back(pu);
+						}
+					}
+				}
+				return dist_nil != INF;
+			};
+
+			std::function<bool(int)> dfs = [&](int u) -> bool
+			{
+				for (int v : adjL[u])
+				{
+					int pu = pairV[v];
+					if (pu == -1 || (dist[pu] == dist[u] + 1 && dfs(pu)))
+					{
+						pairU[u] = v;
+						pairV[v] = u;
+						return true;
+					}
+				}
+				dist[u] = INF;
+				return false;
+			};
+
+			int matching = 0;
+			while (bfs())
+			{
+				for (int u = 0; u < nl; ++u)
+				{
+					if (pairU[u] == -1 && dfs(u))
+						++matching;
+				}
+			}
+
+			std::vector<std::pair<T, T>> result;
+			result.reserve(static_cast<size_t>(matching));
+			for (int u = 0; u < nl; ++u)
+			{
+				if (pairU[u] != -1)
+				{
+					// find original node ids
+					// left_id: node -> u, need inverse
+					// build inverse lazily
+				}
+			}
+
+			// build inverse maps
+			std::vector<u64> inv_left(static_cast<size_t>(nl));
+			std::vector<u64> inv_right(static_cast<size_t>(nr));
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (left_id[i] != -1)
+					inv_left[left_id[i]] = i;
+				if (right_id[i] != -1)
+					inv_right[right_id[i]] = i;
+			}
+
+			for (int u = 0; u < nl; ++u)
+			{
+				int v = pairU[u];
+				if (v != -1)
+				{
+					u64 orig_u = inv_left[u];
+					u64 orig_v = inv_right[v];
+					result.emplace_back(reverse_index[orig_u], reverse_index[orig_v]);
+				}
+			}
+
+			return result;
+		}
+
+		// return vector of nodes to remove to get an unconnected nodes
+		auto independent_set() const -> std::vector<T>
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+
+			u64               n = static_cast<u64>(reverse_index.size());
+			std::vector<char> blocked(n, 0);
+			std::vector<T>    result;
+
+			for (u64 u = 0; u < n; ++u)
+			{
+				if (blocked[u])
+					continue;
+				result.push_back(reverse_index[u]);
+				blocked[u] = 1;
+				for (u64 v : adjacent_list[u])
+					blocked[v] = 1;
+			}
+
+			return result;
+		}
+
+		std::vector<std::vector<T>> connected_components(u64 include_groups_larger_than = 1) const
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+
+
+			std::vector<std::vector<T>> comps;
+			std::vector<char>           seen(reverse_index.size(), 0);
+
+			for (u64 i = 0; i < reverse_index.size(); ++i)
+			{
+				if (seen[i])
+					continue;
+				std::vector<T>  comp;
+				std::stack<u64> st;
+				st.push(i);
+				seen[i] = 1;
+				while (!st.empty())
+				{
+					u64 u = st.top();
+					st.pop();
+					comp.push_back(reverse_index[u]);
+					for (u64 v : adjacent_list[u])
+					{
+						if (!seen[v])
+						{
+							seen[v] = 1;
+							st.push(v);
+						}
+					}
+				}
+				if (comp.size() > include_groups_larger_than)
+					comps.push_back(std::move(comp));
+			}
+			return comps;
+		}
+
+		std::vector<weighted_edge> shortest_path(const T& src, const T& dst) const
+		{
+			auto isrc = index_map.find(src);
+			auto idst = index_map.find(dst);
+			if (isrc == index_map.end() || idst == index_map.end())
+				return {};
+
+			u64 s = isrc->second;
+			u64 t = idst->second;
+			u64 n = static_cast<u64>(reverse_index.size());
+
+			const f64        INF = std::numeric_limits<f64>::infinity();
+			std::vector<f64> dist(n, INF);
+			std::vector<u64> prev(n, static_cast<u64>(-1));
+
+			using PQItem = std::pair<f64, u64>;
+			std::priority_queue<PQItem, std::vector<PQItem>, std::greater<PQItem>> pq;
+
+			dist[s] = 0.0;
+			prev[s] = s;
+			pq.push({0.0, s});
+
+			while (!pq.empty())
+			{
+				auto [d, u] = pq.top();
+				pq.pop();
+				if (d > dist[u])
+					continue;
+				if (u == t)
+					break;
+
+				for (u64 v : adjacent_list[u])
+				{
+					f64  w   = 1.0;
+					auto itw = edge_weights[u].find(v);
+					if (itw != edge_weights[u].end())
+						w = itw->second;
+					f64 nd = d + w;
+					if (nd < dist[v])
+					{
+						dist[v] = nd;
+						prev[v] = u;
+						pq.push({nd, v});
+					}
+				}
+			}
+
+			if (dist[t] == INF)
+				return {};
+
+			std::vector<weighted_edge> edges;
+			for (u64 cur = t;;)
+			{
+				if (prev[cur] == cur)
+					break;
+				u64  p   = prev[cur];
+				f64  w   = 1.0;
+				auto itw = edge_weights[p].find(cur);
+				if (itw != edge_weights[p].end())
+					w = itw->second;
+				edges.push_back({reverse_index[p], reverse_index[cur], w});
+				cur = p;
+			}
+
+			std::ranges::reverse(edges);
+			return edges;
+		}
+
+		// Bellman-Ford single-source shortest path (supports negative weights).
+		std::vector<weighted_edge> bellman_ford(const T& src, const T& dst) const
+		{
+			auto isrc = index_map.find(src);
+			auto idst = index_map.find(dst);
+			if (isrc == index_map.end() || idst == index_map.end())
+				return {};
+
+			u64 s = isrc->second;
+			u64 t = idst->second;
+			u64 n = static_cast<u64>(reverse_index.size());
+
+			std::vector<std::tuple<u64, u64, f64>> edges;
+			edges.reserve(static_cast<size_t>(edge_count() * 2));
+			for (u64 u = 0; u < n; ++u)
+			{
+				for (u64 v : adjacent_list[u])
+				{
+					auto itw = edge_weights[u].find(v);
+					f64  w   = 1.0;
+					if (itw != edge_weights[u].end())
+						w = itw->second;
+					edges.emplace_back(u, v, w);
+				}
+			}
+
+			const f64        INF = std::numeric_limits<f64>::infinity();
+			std::vector<f64> dist(n, INF);
+			std::vector<u64> prev(n, static_cast<u64>(-1));
+
+			dist[s] = 0.0;
+			prev[s] = s;
+
+			for (u64 i = 0; i + 1 < n; ++i)
+			{
+				bool changed = false;
+				for (const auto& e : edges)
+				{
+					u64 u;
+					u64 v;
+					f64 w;
+					std::tie(u, v, w) = e;
+					if (dist[u] != INF && dist[u] + w < dist[v])
+					{
+						dist[v] = dist[u] + w;
+						prev[v] = u;
+						changed = true;
+					}
+				}
+				if (!changed)
+					break;
+			}
+
+			for (const auto& e : edges)
+			{
+				u64 u;
+				u64 v;
+				f64 w;
+				std::tie(u, v, w) = e;
+				if (dist[u] != INF && dist[u] + w < dist[v])
+					return {};
+			}
+
+			if (dist[t] == INF)
+				return std::vector<weighted_edge>{};
+
+			std::vector<weighted_edge> path;
+			for (u64 cur = t;;)
+			{
+				if (prev[cur] == cur)
+					break;
+				u64  p   = prev[cur];
+				f64  w   = 1.0;
+				auto itw = edge_weights[p].find(cur);
+				if (itw != edge_weights[p].end())
+					w = itw->second;
+				path.push_back({reverse_index[p], reverse_index[cur], w});
+				cur = p;
+			}
+			std::ranges::reverse(path);
+			return path;
+		}
+
+		// Minimum spanning tree (Kruskal) using stored edge weights. Returns forest as list of weighted edges.
+		std::vector<weighted_edge> minimum_spanning_tree() const
+		{
+			u64                                    n = static_cast<u64>(reverse_index.size());
+			std::vector<std::tuple<f64, u64, u64>> edges;
+			edges.reserve(static_cast<size_t>(edge_count()));
+
+			for (u64 u = 0; u < n; ++u)
+			{
+				for (u64 v : adjacent_list[u])
+				{
+					if (v > u)
+					{
+						auto itw = edge_weights[u].find(v);
+						f64  w   = 1.0;
+						if (itw != edge_weights[u].end())
+							w = itw->second;
+						edges.emplace_back(w, u, v);
+					}
+				}
+			}
+
+			std::sort(edges.begin(), edges.end(), [](auto const& a, auto const& b) { return std::get<0>(a) < std::get<0>(b); });
+
+			// union-find
+			std::vector<u64> parent(n);
+			std::vector<u64> rankv(n, 0);
+			for (u64 i = 0; i < n; ++i)
+				parent[i] = i;
+
+			auto findp = [&](u64 x)
+			{
+				u64 r = x;
+				while (parent[r] != r)
+					r = parent[r];
+				// path compression
+				u64 cur = x;
+				while (parent[cur] != r)
+				{
+					u64 next    = parent[cur];
+					parent[cur] = r;
+					cur         = next;
+				}
+				return r;
+			};
+
+			auto unite = [&](u64 a, u64 b) -> bool
+			{
+				u64 pa = findp(a);
+				u64 pb = findp(b);
+				if (pa == pb)
+					return false;
+				if (rankv[pa] < rankv[pb])
+					parent[pa] = pb;
+				else if (rankv[pb] < rankv[pa])
+					parent[pb] = pa;
 				else
-					dbg::print(" {:3} ", weight);
+				{
+					parent[pb] = pa;
+					rankv[pa]++;
+				}
+				return true;
+			};
+
+			std::vector<weighted_edge> result;
+			result.reserve(n ? static_cast<size_t>(n - 1) : 0);
+
+			for (auto& e : edges)
+			{
+				f64 w = std::get<0>(e);
+				u64 u = std::get<1>(e);
+				u64 v = std::get<2>(e);
+				if (unite(u, v))
+					result.push_back({reverse_index[u], reverse_index[v], w});
+			}
+
+			return result;
+		}
+
+		auto bridges() const -> std::vector<std::pair<T, T>>
+		{
+			u64                          n = static_cast<u64>(reverse_index.size());
+			std::vector<int>             disc(n, -1);
+			std::vector<int>             low(n, -1);
+			std::vector<int>             parent(n, -1);
+			std::vector<std::pair<T, T>> result;
+
+			int timer = 0;
+
+			std::function<void(u64)> dfs = [&](u64 u)
+			{
+				disc[u] = low[u] = timer++;
+				for (u64 v : adjacent_list[u])
+				{
+					if (disc[v] == -1)
+					{
+						parent[v] = static_cast<int>(u);
+						dfs(v);
+						low[u] = std::min(low[u], low[v]);
+						if (low[v] > disc[u])
+						{
+							result.emplace_back(reverse_index[u], reverse_index[v]);
+						}
+					}
+					else if (static_cast<int>(v) != parent[u])
+					{
+						low[u] = std::min(low[u], disc[v]);
+					}
+				}
+			};
+
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (disc[i] == -1)
+					dfs(i);
+			}
+
+			return result;
+		}
+
+		std::vector<T> articulation_points() const
+		{
+			u64               n = static_cast<u64>(reverse_index.size());
+			std::vector<int>  disc(n, -1);
+			std::vector<int>  low(n, -1);
+			std::vector<int>  parent(n, -1);
+			std::vector<char> is_artic(n, 0);
+
+			int timer = 0;
+
+			std::function<void(u64)> dfs = [&](u64 u)
+			{
+				disc[u] = low[u] = timer++;
+				int children     = 0;
+				for (u64 v : adjacent_list[u])
+				{
+					if (disc[v] == -1)
+					{
+						children++;
+						parent[v] = static_cast<int>(u);
+						dfs(v);
+						low[u] = std::min(low[u], low[v]);
+						if (parent[u] != -1 && low[v] >= disc[u])
+							is_artic[u] = 1;
+					}
+					else if (static_cast<int>(v) != parent[u])
+					{
+						low[u] = std::min(low[u], disc[v]);
+					}
+				}
+				if (parent[u] == -1 && children > 1)
+					is_artic[u] = 1;
+			};
+
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (disc[i] == -1)
+					dfs(i);
+			}
+
+			std::vector<T> ret;
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (is_artic[i])
+					ret.push_back(reverse_index[i]);
+			}
+			return ret;
+		}
+
+		// Return true if graph contains any cycle (undirected)
+		auto has_cycle() const -> bool
+		{
+			u64               n = static_cast<u64>(reverse_index.size());
+			std::vector<char> visited(n, 0);
+			std::vector<int>  parent(n, -1);
+
+			std::function<bool(u64)> dfs = [&](u64 u) -> bool
+			{
+				visited[u] = 1;
+				for (u64 v : adjacent_list[u])
+				{
+					if (!visited[v])
+					{
+						parent[v] = static_cast<int>(u);
+						if (dfs(v))
+							return true;
+					}
+					else if (static_cast<int>(v) != parent[u])
+					{
+						// found a back edge -> cycle
+						return true;
+					}
+				}
+				return false;
+			};
+
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (!visited[i])
+				{
+					if (dfs(i))
+						return true;
+				}
+			}
+			return false;
+		}
+
+		// Return true if the graph is a tree: connected and acyclic.
+		auto is_tree() const -> bool
+		{
+			u64 n = static_cast<u64>(reverse_index.size());
+			if (n == 0)
+				return false;
+
+			// check connected
+			std::vector<char> seen(n, 0);
+			std::stack<u64>   st;
+			st.push(0);
+			seen[0]   = 1;
+			u64 count = 0;
+			while (!st.empty())
+			{
+				u64 u = st.top();
+				st.pop();
+				++count;
+				for (u64 v : adjacent_list[u])
+				{
+					if (!seen[v])
+					{
+						seen[v] = 1;
+						st.push(v);
+					}
+				}
+			}
+			if (count != n)
+				return false;
+
+			// no cycles
+			return !has_cycle();
+		}
+
+		// return cycles in the graph
+		auto cycles() const -> std::vector<std::vector<T>>
+		{
+			u64                             n = static_cast<u64>(reverse_index.size());
+			std::vector<char>               visited(n, 0);
+			std::vector<int>                parent(n, -1);
+			std::unordered_set<std::string> seen_cycles;
+			std::vector<std::vector<T>>     cycles;
+
+			auto make_key = [&](const std::vector<u64>& cyc)
+			{
+				if (cyc.empty())
+					return std::string();
+				u64              m    = cyc.size();
+				std::vector<u64> best = cyc;
+				for (u64 r = 0; r < m; ++r)
+				{
+					std::vector<u64> rot;
+					rot.reserve(m);
+					for (u64 i = 0; i < m; ++i)
+						rot.push_back(cyc[(r + i) % m]);
+					if (rot < best)
+						best = rot;
+				}
+				auto rev = best;
+				std::reverse(rev.begin(), rev.end());
+				if (rev < best)
+					best = rev;
+				std::string s;
+				for (size_t i = 0; i < best.size(); ++i)
+				{
+					if (i)
+						s.push_back(',');
+					s += std::to_string(best[i]);
+				}
+				return s;
+			};
+
+			std::function<void(u64)> dfs = [&](u64 u)
+			{
+				visited[u] = 1;
+				for (u64 v : adjacent_list[u])
+				{
+					if (!visited[v])
+					{
+						parent[v] = static_cast<int>(u);
+						dfs(v);
+					}
+					else if (static_cast<int>(v) != parent[u])
+					{
+						// reconstruct cycle from u back to v
+						std::vector<u64> path;
+						u64              cur = u;
+						path.push_back(v);
+						while (cur != static_cast<u64>(-1) && cur != v)
+						{
+							path.push_back(cur);
+							cur = static_cast<u64>(parent[cur]);
+						}
+						if (path.size() >= 3 && path.back() == v)
+						{
+							std::reverse(path.begin(), path.end());
+							std::string key = make_key(path);
+							if (!seen_cycles.contains(key))
+							{
+								seen_cycles.insert(key);
+								std::vector<T> cycle_nodes;
+								cycle_nodes.reserve(path.size());
+								for (u64 idx : path)
+									cycle_nodes.push_back(reverse_index[idx]);
+								cycles.push_back(std::move(cycle_nodes));
+							}
+						}
+					}
+				}
+			};
+
+			for (u64 i = 0; i < n; ++i)
+			{
+				if (!visited[i])
+					dfs(i);
+			}
+
+			return cycles;
+		}
+
+		// Graph radius: minimum eccentricity across all nodes.
+		auto radius() const -> std::optional<f64>
+		{
+			if (reverse_index.empty())
+				return std::nullopt;
+
+			auto               aps = all_pairs_shortest_paths();
+			std::optional<f64> best;
+			for (const auto& v : reverse_index)
+			{
+				auto it  = aps.find(v);
+				f64  ecc = 0.0;
+				if (it != aps.end())
+				{
+					for (const auto& p : it->second)
+					{
+						f64 d = p.second;
+						if (std::isnan(d))
+							continue;
+						if (!best.has_value() || d > ecc)
+							ecc = std::max(ecc, d);
+					}
+				}
+				if (!best.has_value() || ecc < *best)
+					best = ecc;
+			}
+			return best;
+		}
+
+		// Graph diameter: maximum eccentricity across all nodes.
+		auto diameter() const -> std::optional<f64>
+		{
+			if (reverse_index.empty())
+				return std::nullopt;
+
+			auto               aps = all_pairs_shortest_paths();
+			std::optional<f64> best;
+			for (const auto& v : reverse_index)
+			{
+				auto it  = aps.find(v);
+				f64  ecc = 0.0;
+				if (it != aps.end())
+				{
+					for (const auto& p : it->second)
+					{
+						f64 d = p.second;
+						if (std::isnan(d))
+							continue;
+						ecc = std::max(ecc, d);
+					}
+				}
+				if (!best.has_value() || ecc > *best)
+					best = ecc;
+			}
+			return best;
+		}
+
+		void dump_as_matrix() const
+		{
+			const u64 n = reverse_index.size();
+
+			dbg::print("    ");
+			for (u64 j = 0; j < n; ++j)
+			{
+				dbg::print("{}", reverse_index[j]);
+				if (j + 1 < n)
+					dbg::print(" ");
 			}
 			dbg::println();
+
+			for (u64 i = 0; i < n; ++i)
+			{
+				std::vector<bool> present(n, false);
+				const auto&       neighbors = adjacent_list[i];
+				for (const auto& nbr : neighbors)
+				{
+					if (nbr < n)
+						present[nbr] = true;
+				}
+
+				dbg::print("{} :", reverse_index[i]);
+
+				for (u64 j = 0; j < n; ++j)
+					dbg::print(" {}", present[j] ? "1" : "0");
+
+				dbg::println();
+			}
 		}
-	}
+
+		void dump_list() const
+		{
+			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+
+			for (u64 i = 0; i < adjacent_list.size(); ++i)
+			{
+				dbg::print("{} :", reverse_index[i]);
+
+				for (const auto& nbr : adjacent_list[i])
+				{
+					dbg::print(" {}", reverse_index[nbr]);
+				}
+
+				dbg::println();
+			}
+		}
 	};
 
 	export template<typename T>

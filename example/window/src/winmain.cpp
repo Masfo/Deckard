@@ -961,27 +961,162 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	
+	{
+		deckard::graph::undirected_graph<std::string> g;
+
+		// build a small graph:
+		g.connect("A", "B", 1.0);
+		g.connect("B", "C", 1.0);
+		g.connect("C", "D", 1.0);
+		g.connect("D", "A", 1.0); // 4-cycle
+		g.connect("C", "E", 1.0); // extra leaf
+
+		// compute
+		dbg::println("Radius: {}", g.radius().value_or(-1.0));
+		dbg::println("Diameter: {}", g.diameter().value_or(-1.0));
+		g.dump_list();
+		_ = 0;
+	}
 
 	graph::undirected_graph<std::string> gr;
 
-	gr.connect("A", "B");
-	gr.connect("A", "C");
-	gr.connect("A", "D");
-	gr.connect("A", "E");
+	gr.connect("A", "B", 1);
+	gr.connect("A", "C", 1);
+	gr.connect("A", "D", 5);
+	gr.connect("A", "E", 1);
 
-	gr.connect("B", "F");
-	gr.connect("E", "F");
+	gr.connect("B", "F", 1);
+	gr.connect("E", "F", 1);
+
+
 	gr.add("Q");
 	gr.add("Z");
+	gr.add("Y");
+	gr.connect("Q", "Z", 1);
+	gr.connect("Q", "Y", 1);
+	gr.connect("Y", "Z", 1);
+	//gr.connect("F", "Q", 0);
 
 	dbg::println("A-B : {}", gr.has_edge("A", "B"));
 	dbg::println("A-F : {}", gr.has_edge("A", "F"));
 
+		dbg::println("Is tree: {}", gr.is_tree() ? "yes" : "no");
+	dbg::println("Has cycle: {}", gr.has_cycle() ? "yes" : "no");
 
-	dbg::print("Unconnected: ");
-	for (const auto& n : gr.unconnected())
+	dbg::println("Radius: {}", gr.radius().value_or(-1.0));
+	dbg::println("Diameter: {}", gr.diameter().value_or(-1.0));
+
+
+
+
+	dbg::print("Shortest path: ");
+	for (const auto& [a, b, w] : gr.shortest_path("D", "B"))
+	{
+		dbg::print("[{}-{}, {}] ", a, b, w);
+	}
+	dbg::println();
+
+	dbg::print("Shortest path Bellman-Ford: ");
+	for (const auto& [a, b, w] : gr.bellman_ford("D", "B"))
+	{
+		dbg::print("[{}-{}, {}] ", a, b, w);
+	}
+	dbg::println();
+
+	dbg::print("Bridges: ");
+	for (const auto& [a, b] : gr.bridges())
+	{
+		dbg::print("[{}-{}] ", a, b);
+	}
+	dbg::println();
+
+	
+
+
+	for(const auto& cycle : gr.cycles())
+	{
+		dbg::print("Cycle: ");
+		for (const auto& n : cycle)
+		{
+			dbg::print("{} ", n);
+		}
+		dbg::println();
+	}
+
+	dbg::print("All pairs shortest paths:\n");
+	for (const auto& [src, m] : gr.all_pairs_shortest_paths())
+	{
+		dbg::print("{}:", src);
+		for (const auto& [dst, dist] : m)
+		{
+			dbg::print(" [{} -> {} = {}]", src, dst, dist);
+		}
+		dbg::println();
+	}
+	dbg::println();
+
+	dbg::print("Edges: ");
+	for (const auto& [a, b, w] : gr.edges())
+	{
+		dbg::print("[{}-{}, {}] ", a, b, w);
+	}
+	dbg::println();
+
+	dbg::print("Max matching: ");
+	for (const auto& [a, b] : gr.max_matching())
+	{
+		dbg::print("[{}-{}] ", a, b);
+	}
+	dbg::println();
+
+	dbg::print("Independent set: ");
+	for (const auto& n : gr.independent_set())
 	{
 		dbg::print("{} ", n);
+	}
+	dbg::println();
+
+	dbg::print("Articulation points: ");
+	for (const auto& n : gr.articulation_points())
+	{
+		dbg::print("{} ", n);
+	}
+	dbg::println();
+
+	dbg::println("Edge count: {}", gr.edge_count());
+
+
+	dbg::print("Degree: ");
+	for (const auto& n : gr.nodes())
+	{
+		dbg::println("'{}' {} ", n, gr.degree(n));
+	}
+	dbg::println();
+
+
+	dbg::print("Connected components: ");
+	for (const auto& n : gr.connected_components())
+	{
+		dbg::print("[ ");
+		for (const auto& n : n)
+			dbg::print("{} ", n);
+		dbg::print("] ");
+	}
+	dbg::println();
+
+	dbg::print("Unconnected: ");
+	for (const auto& n : gr.unconnected_components())
+	{
+		dbg::print("{} ", n);
+	}
+	dbg::println();
+
+
+	dbg::print("Kruskal: ");
+	for (const auto& [a, b, w] : gr.minimum_spanning_tree())
+	{
+		dbg::print("[{}-{}, {}] ", a, b, w);
 	}
 	dbg::println();
 
@@ -991,18 +1126,18 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		dbg::print("{} ", n);
 	dbg::println();
 
-	dbg::println("BFS:");
+	dbg::print("BFS: ");
 	for (const auto& p : gr.bfs("A"))
 		dbg::print("{} ", p);
 	dbg::println();
 
 
-	dbg::println("DFS:");
+	dbg::print("DFS: ");
 	for (const auto& p : gr.dfs("A"))
 		dbg::print("{} ", p);
 	dbg::println();
 
-	gr.dump();
+	gr.dump_list();
 
 	_ = 0;
 
