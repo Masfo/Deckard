@@ -8,6 +8,26 @@ import deckard.graph;
 using namespace deckard;
 using namespace deckard::graph;
 
+TEST_CASE("Graph/Undirected", "[graph][undirected]")
+{
+	SECTION("empty")
+	{
+		undirected<std::string> g;
+
+		CHECK(g.empty() == true);
+	}
+
+	SECTION("add nodes")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		CHECK(g.size() == 3);
+		CHECK(g.empty() == false);
+	}
+}
+
 TEST_CASE("Binary Tree", "[binarytree]")
 {
 	SECTION("empty")

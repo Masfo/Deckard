@@ -14,21 +14,22 @@ import deckard.arrays;
 namespace deckard::graph
 {
 
-	export template<typename T, bool Directed = false>
+	export template<typename T, typename Weight, bool Directed = false>
 	class graph
 	{
 	private:
+
 		struct weighted_edge
 		{
-			T   from;
-			T   to;
-			f64 weight{1.0};
-		};
+			T      from;
+			T      to;
+			Weight weight{Weight{1.0}};
 
-		std::vector<std::unordered_set<u64>>      adjacent_list{};
-		std::unordered_map<T, u64>                index_map{};
-		std::vector<T>                            reverse_index{};
-		std::vector<std::unordered_map<u64, f64>> edge_weights{};
+		};
+		std::vector<std::unordered_set<u64>>         adjacent_list{};
+		std::unordered_map<T, u64>                   index_map{};
+		std::vector<T>                               reverse_index{};
+		std::vector<std::unordered_map<u64, Weight>> edge_weights{};
 
 		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
 
@@ -92,7 +93,7 @@ namespace deckard::graph
 					auto itw = edge_weights[nbr].find(last);
 					if (itw != edge_weights[nbr].end())
 					{
-						f64 w = itw->second;
+						Weight w = itw->second;
 						edge_weights[nbr].erase(itw);
 						edge_weights[nbr].emplace(node_index, w);
 					}
@@ -106,6 +107,8 @@ namespace deckard::graph
 			edge_weights.pop_back();
 			index_map.erase(node);
 		}
+
+		u64 size() const { return reverse_index.size(); }
 
 		void remove_nodes(const std::vector<T>& nodes)
 		{
@@ -132,15 +135,32 @@ namespace deckard::graph
 			if (iu == index_map.end() or iv == index_map.end())
 				return false;
 
-			u64 first = iu->second;
+			u64 first  = iu->second;
 			u64 second = iv->second;
 
 			return adjacent_list[first].contains(second);
 		}
 
+		std::optional<Weight> weight(const T& a, const T& b) const
+		{
+			auto ia = index_map.find(a);
+			auto ib = index_map.find(b);
+			if (ia == index_map.end() or ib == index_map.end())
+				return {};
+
+			u64  first  = ia->second;
+			u64  second = ib->second;
+
+			auto itw    = edge_weights[first].find(second);
+			if (itw != edge_weights[first].end())
+				return itw->second;
+
+			return {};
+		}
+
 		void connect(const T& a, const T& b) { connect(a, b, 1.0); }
 
-		void connect(const T& a, const T& b, f64 weight)
+		void connect(const T& a, const T& b, Weight weight)
 		{
 
 			if (a == b)
@@ -213,20 +233,20 @@ namespace deckard::graph
 
 		// All-pairs shortest paths using Floyd-Warshall.
 		// Returns an unordered_map mapping each node to a map of reachable nodes and their distances.
-		auto all_pairs_shortest_paths() const -> std::unordered_map<T, std::unordered_map<T, f64>>
+		auto all_pairs_shortest_paths() const -> std::unordered_map<T, std::unordered_map<T, Weight>>
 		{
-			u64       n   = static_cast<u64>(reverse_index.size());
-			const f64 INF = std::numeric_limits<f64>::infinity();
+			u64          n   = static_cast<u64>(reverse_index.size());
+			const Weight INF = std::numeric_limits<Weight>::infinity();
 
-			std::vector<std::vector<f64>> dist(static_cast<size_t>(n), std::vector<f64>(static_cast<size_t>(n), INF));
+			std::vector<std::vector<Weight>> dist(static_cast<size_t>(n), std::vector<Weight>(static_cast<size_t>(n), INF));
 
 			for (u64 i = 0; i < n; ++i)
 			{
 				dist[i][i] = 0.0;
 				for (u64 j : adjacent_list[i])
 				{
-					auto itw = edge_weights[i].find(j);
-					f64  w   = 1.0;
+					auto   itw = edge_weights[i].find(j);
+					Weight w   = 1.0;
 					if (itw != edge_weights[i].end())
 						w = itw->second;
 					dist[i][j] = w;
@@ -243,7 +263,7 @@ namespace deckard::graph
 					{
 						if (dist[k][j] == INF)
 							continue;
-						f64 nd = dist[i][k] + dist[k][j];
+						Weight nd = dist[i][k] + dist[k][j];
 						if (nd < dist[i][j])
 						{
 							dist[i][j] = nd;
@@ -253,7 +273,7 @@ namespace deckard::graph
 			}
 
 
-			std::unordered_map<T, std::unordered_map<T, f64>> result;
+			std::unordered_map<T, std::unordered_map<T, Weight>> result;
 			result.reserve(n);
 			for (u64 i = 0; i < n; ++i)
 			{
@@ -282,13 +302,13 @@ namespace deckard::graph
 			u64 s = it->second;
 			u64 n = static_cast<u64>(reverse_index.size());
 
-			const f64        INF = std::numeric_limits<f64>::infinity();
-			std::vector<f64> dist(n, INF);
-			using PQItem = std::pair<f64, u64>;
+			const Weight        INF = std::numeric_limits<Weight>::infinity();
+			std::vector<Weight> dist(n, INF);
+			using PQItem = std::pair<Weight, u64>;
 			std::priority_queue<PQItem, std::vector<PQItem>, std::greater<PQItem>> pq;
 
-			dist[s] = 0.0;
-			pq.push({0.0, s});
+			dist[s] = Weight{0};
+			pq.push({Weight{0}, s});
 
 			std::vector<T> traversal;
 
@@ -302,11 +322,11 @@ namespace deckard::graph
 
 				for (u64 v : adjacent_list[u])
 				{
-					f64  w   = 1.0;
-					auto itw = edge_weights[u].find(v);
+					Weight w   = 1.0;
+					auto   itw = edge_weights[u].find(v);
 					if (itw != edge_weights[u].end())
 						w = itw->second;
-					f64 nd = d + w;
+					Weight nd = d + w;
 					if (nd < dist[v])
 					{
 						dist[v] = nd;
@@ -419,7 +439,7 @@ namespace deckard::graph
 			u64 n = static_cast<u64>(reverse_index.size());
 
 			// Attempt to 2-color the graph to see if it's bipartite
-			std::vector<int> color(n, -1);
+			std::vector<i64> color(n, -1);
 			bool             is_bipartite = true;
 			for (u64 i = 0; i < n && is_bipartite; ++i)
 			{
@@ -470,8 +490,8 @@ namespace deckard::graph
 			}
 
 			// Build left/right partitions
-			std::vector<int> left_id(n, -1), right_id(n, -1);
-			int              nl = 0, nr = 0;
+			std::vector<i64> left_id(n, -1), right_id(n, -1);
+			i64              nl = 0, nr = 0;
 			for (u64 i = 0; i < n; ++i)
 			{
 				if (color[i] == 0)
@@ -481,12 +501,12 @@ namespace deckard::graph
 			}
 
 			// adjacency from left indices to right indices
-			std::vector<std::vector<int>> adjL(static_cast<size_t>(nl));
+			std::vector<std::vector<i64>> adjL(static_cast<size_t>(nl));
 			for (u64 u = 0; u < n; ++u)
 			{
 				if (color[u] != 0)
 					continue;
-				int lu = left_id[u];
+				i64 lu = left_id[u];
 				for (u64 v : adjacent_list[u])
 				{
 					if (color[v] != 1)
@@ -503,8 +523,8 @@ namespace deckard::graph
 
 			auto bfs = [&]() -> bool
 			{
-				std::deque<int> q;
-				for (int u = 0; u < nl; ++u)
+				std::deque<i64> q;
+				for (i64 u = 0; u < nl; ++u)
 				{
 					if (pairU[u] == -1)
 					{
@@ -514,16 +534,16 @@ namespace deckard::graph
 					else
 						dist[u] = INF;
 				}
-				int dist_nil = INF;
+				i64 dist_nil = INF;
 				while (!q.empty())
 				{
-					int u = q.front();
+					i64 u = q.front();
 					q.pop_front();
 					if (dist[u] >= dist_nil)
 						continue;
-					for (int v : adjL[u])
+					for (i64 v : adjL[u])
 					{
-						int pu = pairV[v];
+						i64 pu = pairV[v];
 						if (pu == -1)
 						{
 							dist_nil = dist[u] + 1;
@@ -538,11 +558,11 @@ namespace deckard::graph
 				return dist_nil != INF;
 			};
 
-			std::function<bool(int)> dfs = [&](int u) -> bool
+			std::function<bool(i64)> dfs = [&](i64 u) -> bool
 			{
-				for (int v : adjL[u])
+				for (i64 v : adjL[u])
 				{
-					int pu = pairV[v];
+					i64 pu = pairV[v];
 					if (pu == -1 || (dist[pu] == dist[u] + 1 && dfs(pu)))
 					{
 						pairU[u] = v;
@@ -554,10 +574,10 @@ namespace deckard::graph
 				return false;
 			};
 
-			int matching = 0;
+			i64 matching = 0;
 			while (bfs())
 			{
-				for (int u = 0; u < nl; ++u)
+				for (i64 u = 0; u < nl; ++u)
 				{
 					if (pairU[u] == -1 && dfs(u))
 						++matching;
@@ -566,7 +586,7 @@ namespace deckard::graph
 
 			std::vector<std::pair<T, T>> result;
 			result.reserve(static_cast<size_t>(matching));
-			for (int u = 0; u < nl; ++u)
+			for (i64 u = 0; u < nl; ++u)
 			{
 				if (pairU[u] != -1)
 				{
@@ -587,9 +607,9 @@ namespace deckard::graph
 					inv_right[right_id[i]] = i;
 			}
 
-			for (int u = 0; u < nl; ++u)
+			for (i64 u = 0; u < nl; ++u)
 			{
-				int v = pairU[u];
+				i64 v = pairU[u];
 				if (v != -1)
 				{
 					u64 orig_u = inv_left[u];
@@ -670,16 +690,16 @@ namespace deckard::graph
 			u64 t = idst->second;
 			u64 n = static_cast<u64>(reverse_index.size());
 
-			const f64        INF = std::numeric_limits<f64>::infinity();
-			std::vector<f64> dist(n, INF);
-			std::vector<u64> prev(n, static_cast<u64>(-1));
+			const Weight        INF = std::numeric_limits<Weight>::infinity();
+			std::vector<Weight> dist(n, INF);
+			std::vector<u64>    prev(n, static_cast<u64>(-1));
 
-			using PQItem = std::pair<f64, u64>;
+			using PQItem = std::pair<Weight, u64>;
 			std::priority_queue<PQItem, std::vector<PQItem>, std::greater<PQItem>> pq;
 
 			dist[s] = 0.0;
 			prev[s] = s;
-			pq.push({0.0, s});
+			pq.push({Weight{0}, s});
 
 			while (!pq.empty())
 			{
@@ -692,11 +712,11 @@ namespace deckard::graph
 
 				for (u64 v : adjacent_list[u])
 				{
-					f64  w   = 1.0;
-					auto itw = edge_weights[u].find(v);
+					Weight w   = 1.0;
+					auto   itw = edge_weights[u].find(v);
 					if (itw != edge_weights[u].end())
 						w = itw->second;
-					f64 nd = d + w;
+					Weight nd = d + w;
 					if (nd < dist[v])
 					{
 						dist[v] = nd;
@@ -714,9 +734,9 @@ namespace deckard::graph
 			{
 				if (prev[cur] == cur)
 					break;
-				u64  p   = prev[cur];
-				f64  w   = 1.0;
-				auto itw = edge_weights[p].find(cur);
+				u64    p   = prev[cur];
+				Weight w   = 1.0;
+				auto   itw = edge_weights[p].find(cur);
 				if (itw != edge_weights[p].end())
 					w = itw->second;
 				edges.push_back({reverse_index[p], reverse_index[cur], w});
@@ -739,23 +759,23 @@ namespace deckard::graph
 			u64 t = idst->second;
 			u64 n = static_cast<u64>(reverse_index.size());
 
-			std::vector<std::tuple<u64, u64, f64>> edges;
+			std::vector<std::tuple<u64, u64, Weight>> edges;
 			edges.reserve(static_cast<size_t>(edge_count() * 2));
 			for (u64 u = 0; u < n; ++u)
 			{
 				for (u64 v : adjacent_list[u])
 				{
-					auto itw = edge_weights[u].find(v);
-					f64  w   = 1.0;
+					auto   itw = edge_weights[u].find(v);
+					Weight w   = 1.0;
 					if (itw != edge_weights[u].end())
 						w = itw->second;
 					edges.emplace_back(u, v, w);
 				}
 			}
 
-			const f64        INF = std::numeric_limits<f64>::infinity();
-			std::vector<f64> dist(n, INF);
-			std::vector<u64> prev(n, static_cast<u64>(-1));
+			const Weight        INF = std::numeric_limits<Weight>::infinity();
+			std::vector<Weight> dist(n, INF);
+			std::vector<u64>    prev(n, static_cast<u64>(-1));
 
 			dist[s] = 0.0;
 			prev[s] = s;
@@ -765,9 +785,9 @@ namespace deckard::graph
 				bool changed = false;
 				for (const auto& e : edges)
 				{
-					u64 u;
-					u64 v;
-					f64 w;
+					u64    u;
+					u64    v;
+					Weight w;
 					std::tie(u, v, w) = e;
 					if (dist[u] != INF && dist[u] + w < dist[v])
 					{
@@ -782,9 +802,9 @@ namespace deckard::graph
 
 			for (const auto& e : edges)
 			{
-				u64 u;
-				u64 v;
-				f64 w;
+				u64    u;
+				u64    v;
+				Weight w;
 				std::tie(u, v, w) = e;
 				if (dist[u] != INF && dist[u] + w < dist[v])
 					return {};
@@ -798,9 +818,9 @@ namespace deckard::graph
 			{
 				if (prev[cur] == cur)
 					break;
-				u64  p   = prev[cur];
-				f64  w   = 1.0;
-				auto itw = edge_weights[p].find(cur);
+				u64    p   = prev[cur];
+				Weight w   = 1.0;
+				auto   itw = edge_weights[p].find(cur);
 				if (itw != edge_weights[p].end())
 					w = itw->second;
 				path.push_back({reverse_index[p], reverse_index[cur], w});
@@ -813,8 +833,8 @@ namespace deckard::graph
 		// Minimum spanning tree (Kruskal) using stored edge weights. Returns forest as list of weighted edges.
 		std::vector<weighted_edge> minimum_spanning_tree() const
 		{
-			u64                                    n = static_cast<u64>(reverse_index.size());
-			std::vector<std::tuple<f64, u64, u64>> edges;
+			u64                                       n = static_cast<u64>(reverse_index.size());
+			std::vector<std::tuple<Weight, u64, u64>> edges;
 			edges.reserve(static_cast<size_t>(edge_count()));
 
 			for (u64 u = 0; u < n; ++u)
@@ -823,8 +843,8 @@ namespace deckard::graph
 				{
 					if (v > u)
 					{
-						auto itw = edge_weights[u].find(v);
-						f64  w   = 1.0;
+						auto   itw = edge_weights[u].find(v);
+						Weight w   = 1.0;
 						if (itw != edge_weights[u].end())
 							w = itw->second;
 						edges.emplace_back(w, u, v);
@@ -879,9 +899,9 @@ namespace deckard::graph
 
 			for (auto& e : edges)
 			{
-				f64 w = std::get<0>(e);
-				u64 u = std::get<1>(e);
-				u64 v = std::get<2>(e);
+				Weight w = std::get<0>(e);
+				u64    u = std::get<1>(e);
+				u64    v = std::get<2>(e);
 				if (unite(u, v))
 					result.push_back({reverse_index[u], reverse_index[v], w});
 			}
@@ -1138,22 +1158,22 @@ namespace deckard::graph
 		}
 
 		// Graph radius: minimum eccentricity across all nodes.
-		auto radius() const -> std::optional<f64>
+		auto radius() const -> std::optional<Weight>
 		{
 			if (reverse_index.empty())
 				return std::nullopt;
 
-			auto               aps = all_pairs_shortest_paths();
-			std::optional<f64> best;
+			auto                  aps = all_pairs_shortest_paths();
+			std::optional<Weight> best;
 			for (const auto& v : reverse_index)
 			{
-				auto it  = aps.find(v);
-				f64  ecc = 0.0;
+				auto   it  = aps.find(v);
+				Weight ecc = 0.0;
 				if (it != aps.end())
 				{
 					for (const auto& p : it->second)
 					{
-						f64 d = p.second;
+						Weight d = p.second;
 						if (std::isnan(d))
 							continue;
 						if (!best.has_value() || d > ecc)
@@ -1167,22 +1187,22 @@ namespace deckard::graph
 		}
 
 		// Graph diameter: maximum eccentricity across all nodes.
-		auto diameter() const -> std::optional<f64>
+		auto diameter() const -> std::optional<Weight>
 		{
 			if (reverse_index.empty())
 				return std::nullopt;
 
-			auto               aps = all_pairs_shortest_paths();
-			std::optional<f64> best;
+			auto                  aps = all_pairs_shortest_paths();
+			std::optional<Weight> best;
 			for (const auto& v : reverse_index)
 			{
-				auto it  = aps.find(v);
-				f64  ecc = 0.0;
+				auto   it  = aps.find(v);
+				Weight ecc = 0.0;
 				if (it != aps.end())
 				{
 					for (const auto& p : it->second)
 					{
-						f64 d = p.second;
+						Weight d = p.second;
 						if (std::isnan(d))
 							continue;
 						ecc = std::max(ecc, d);
@@ -1245,10 +1265,10 @@ namespace deckard::graph
 	};
 
 	export template<typename T>
-	using undirected_graph = graph<T, false>;
+	using undirected = graph<T, f32, false>;
 
 	export template<typename T>
-	using directed_graph = graph<T, true>;
+	using directed = graph<T, f32, true>;
 
 
 } // namespace deckard::graph
