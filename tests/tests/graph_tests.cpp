@@ -26,6 +26,136 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(g.size() == 3);
 		CHECK(g.empty() == false);
 	}
+
+	SECTION("connect nodes")
+	{
+		undirected<std::string> g;
+
+		g.add("A");
+		g.add("B");
+		g.add("C");
+
+		g.connect("A", "B");
+		g.connect("B", "C");
+
+		CHECK(g.size() == 3);
+		CHECK(g.degree("A") == 1);
+		CHECK(g.degree("B") == 2);
+		CHECK(g.degree("C") == 1);
+
+		CHECK(g.has_edge("A", "B") == true);
+		CHECK(g.has_edge("B", "C") == true);
+		CHECK(g.has_edge("A", "C") == false);
+	}
+
+	SECTION("clear")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.connect("A", "B");
+		CHECK(g.size() == 2);
+		CHECK(g.empty() == false);
+		CHECK(g.has_edge("A", "B") == true);
+
+		g.clear();
+		CHECK(g.size() == 0);
+		CHECK(g.empty() == true);
+	}
+
+	SECTION("clone")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.connect("A", "B");
+		auto g2 = g;
+		CHECK(g.size() == 2);
+		CHECK(g2.size() == 2);
+		CHECK(g.has_edge("A", "B") == true);
+		CHECK(g2.has_edge("A", "B") == true);
+	}
+
+	SECTION("remove node")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		g.connect("A", "B");
+		g.connect("B", "C");
+		CHECK(g.size() == 3);
+		CHECK(g.has_edge("A", "B") == true);
+		CHECK(g.has_edge("B", "C") == true);
+		g.remove_node("B");
+		CHECK(g.size() == 2);
+		CHECK(g.has_edge("A", "B") == false);
+		CHECK(g.has_edge("B", "C") == false);
+	}
+
+	SECTION("disconnect edge")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.connect("A", "B");
+		CHECK(g.size() == 2);
+		CHECK(g.has_edge("A", "B") == true);
+
+		g.disconnect("A", "B");
+
+		CHECK(g.size() == 2);
+		CHECK(g.has_edge("A", "B") == false);
+	}
+
+	SECTION("shortest path")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B
+		 *        |      |
+		 *        E ---- F
+		 */
+
+		// D-B shortest path: D-A-E-F-B
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+		//
+
+		CHECK(gr.size() == 6);
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("A", "C") == true);
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("A", "B") == true);
+
+		auto path = gr.shortest_path("D", "B");
+		CHECK(path.size() == 4);
+
+		CHECK(path[0].from == "D");
+		CHECK(path[0].to == "A");
+		CHECK(path[0].weight == 3);
+
+		CHECK(path[1].from == "A");
+		CHECK(path[1].to == "E");
+		CHECK(path[1].weight == 1);
+
+		CHECK(path[2].from == "E");
+		CHECK(path[2].to == "F");
+		CHECK(path[2].weight == 1);
+
+		CHECK(path[3].from == "F");
+		CHECK(path[3].to == "B");
+		CHECK(path[3].weight == 1);
+
+	}
 }
 
 TEST_CASE("Binary Tree", "[binarytree]")
