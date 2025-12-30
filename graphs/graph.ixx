@@ -14,18 +14,16 @@ import deckard.arrays;
 namespace deckard::graph
 {
 
+
+	export template<typename T, typename Weight = f32>
+	struct weighted_edge_t;
+
 	export template<typename T, typename Weight, bool Directed = false>
 	class graph
 	{
 	private:
+		using WeightedEdge = weighted_edge_t<T, Weight>;
 
-		struct weighted_edge
-		{
-			T      from;
-			T      to;
-			Weight weight{Weight{1.0}};
-
-		};
 		std::vector<std::unordered_set<u64>>         adjacent_list{};
 		std::unordered_map<T, u64>                   index_map{};
 		std::vector<T>                               reverse_index{};
@@ -65,42 +63,66 @@ namespace deckard::graph
 			reverse_index.clear();
 		}
 
+
 		void remove_node(const T& node)
 		{
+			
 			if (not index_map.contains(node))
 				return;
 
-			u64 node_index = index_map.at(node);
-			u64 last       = static_cast<u64>(reverse_index.size() - 1);
+		u64 node_index = index_map.at(node);
+		u64 last       = static_cast<u64>(reverse_index.size() - 1);
+
+		// Remove all edges pointing to this node (in-degree)
+		for (u64 i = 0; i < adjacent_list.size(); ++i)
+		{
+			if (adjacent_list[i].contains(node_index))
+			{
+				adjacent_list[i].erase(node_index);
+				edge_weights[i].erase(node_index);
+			}
+		}
+
+		// Remove all edges from this node (out-degree)
+		adjacent_list[node_index].clear();
+		edge_weights[node_index].clear();
+
+		if (node_index != last)
+		{
+			T moved                   = std::move(reverse_index[last]);
+			adjacent_list[node_index] = std::move(adjacent_list[last]);
+			reverse_index[node_index] = std::move(reverse_index[last]);
+			edge_weights[node_index]  = std::move(edge_weights[last]);
+
+			for (u64 i = 0; i < adjacent_list.size(); ++i)
+			{
+				if (adjacent_list[i].contains(last))
+				{
+					adjacent_list[i].erase(last);
+					adjacent_list[i].insert(node_index);
+					auto itw = edge_weights[i].find(last);
+					if (itw != edge_weights[i].end())
+					{
+						Weight w = itw->second;
+						edge_weights[i].erase(itw);
+						edge_weights[i].emplace(node_index, w);
+					}
+				}
+			}
 
 			for (u64 nbr : adjacent_list[node_index])
 			{
-				adjacent_list[nbr].erase(node_index);
-				edge_weights[nbr].erase(node_index);
-			}
-
-			if (node_index != last)
-			{
-				T moved                   = std::move(reverse_index[last]);
-				adjacent_list[node_index] = std::move(adjacent_list[last]);
-				reverse_index[node_index] = std::move(reverse_index[last]);
-				edge_weights[node_index]  = std::move(edge_weights[last]);
-
-				for (u64 nbr : adjacent_list[node_index])
+				auto itw = edge_weights[nbr].find(last);
+				if (itw != edge_weights[nbr].end())
 				{
-					adjacent_list[nbr].erase(last);
-					adjacent_list[nbr].insert(node_index);
-					auto itw = edge_weights[nbr].find(last);
-					if (itw != edge_weights[nbr].end())
-					{
-						Weight w = itw->second;
-						edge_weights[nbr].erase(itw);
-						edge_weights[nbr].emplace(node_index, w);
-					}
+					Weight w = itw->second;
+					edge_weights[nbr].erase(itw);
+					edge_weights[nbr].emplace(node_index, w);
 				}
-
-				index_map[moved] = node_index;
 			}
+
+			index_map[moved] = node_index;
+		}
 
 			reverse_index.pop_back();
 			adjacent_list.pop_back();
@@ -148,17 +170,17 @@ namespace deckard::graph
 			if (ia == index_map.end() or ib == index_map.end())
 				return {};
 
-			u64  first  = ia->second;
-			u64  second = ib->second;
+			u64 first  = ia->second;
+			u64 second = ib->second;
 
-			auto itw    = edge_weights[first].find(second);
+			auto itw = edge_weights[first].find(second);
 			if (itw != edge_weights[first].end())
 				return itw->second;
 
 			return {};
 		}
 
-		void connect(const T& a, const T& b) { connect(a, b, 1.0); }
+		void connect(const T& a, const T& b) { connect(a, b, Weight{1}); }
 
 		void connect(const T& a, const T& b, Weight weight)
 		{
@@ -360,7 +382,7 @@ namespace deckard::graph
 				co_yield node;
 		}
 
-		std::generator<const weighted_edge&> edges() const
+		std::generator<const WeightedEdge&> edges() const
 		{
 			for (u64 u = 0; u < adjacent_list.size(); ++u)
 			{
@@ -368,7 +390,7 @@ namespace deckard::graph
 				{
 					if (u < v)
 					{
-						weighted_edge e;
+						WeightedEdge e;
 						e.from   = reverse_index[u];
 						e.to     = reverse_index[v];
 						auto itw = edge_weights[u].find(v);
@@ -381,16 +403,16 @@ namespace deckard::graph
 			co_return;
 		}
 
-		std::vector<weighted_edge> edges_as_vector() const
+		std::vector<WeightedEdge> edges_as_vector() const
 		{
-			std::vector<weighted_edge> ret;
+			std::vector<WeightedEdge> ret;
 			for (u64 u = 0; u < adjacent_list.size(); ++u)
 			{
 				for (u64 v : adjacent_list[u])
 				{
 					if (u < v)
 					{
-						weighted_edge e;
+						WeightedEdge e;
 						e.from   = reverse_index[u];
 						e.to     = reverse_index[v];
 						auto itw = edge_weights[u].find(v);
@@ -679,7 +701,7 @@ namespace deckard::graph
 			return comps;
 		}
 
-		std::vector<weighted_edge> shortest_path(const T& src, const T& dst) const
+		std::vector<WeightedEdge> shortest_path(const T& src, const T& dst) const
 		{
 			auto isrc = index_map.find(src);
 			auto idst = index_map.find(dst);
@@ -729,7 +751,7 @@ namespace deckard::graph
 			if (dist[t] == INF)
 				return {};
 
-			std::vector<weighted_edge> edges;
+			std::vector<WeightedEdge> edges;
 			for (u64 cur = t;;)
 			{
 				if (prev[cur] == cur)
@@ -748,7 +770,7 @@ namespace deckard::graph
 		}
 
 		// Bellman-Ford single-source shortest path (supports negative weights).
-		std::vector<weighted_edge> bellman_ford(const T& src, const T& dst) const
+		std::vector<WeightedEdge> bellman_ford(const T& src, const T& dst) const
 		{
 			auto isrc = index_map.find(src);
 			auto idst = index_map.find(dst);
@@ -811,9 +833,9 @@ namespace deckard::graph
 			}
 
 			if (dist[t] == INF)
-				return std::vector<weighted_edge>{};
+				return std::vector<WeightedEdge>{};
 
-			std::vector<weighted_edge> path;
+			std::vector<WeightedEdge> path;
 			for (u64 cur = t;;)
 			{
 				if (prev[cur] == cur)
@@ -831,7 +853,7 @@ namespace deckard::graph
 		}
 
 		// Minimum spanning tree (Kruskal) using stored edge weights. Returns forest as list of weighted edges.
-		std::vector<weighted_edge> minimum_spanning_tree() const
+		std::vector<WeightedEdge> minimum_spanning_tree() const
 		{
 			u64                                       n = static_cast<u64>(reverse_index.size());
 			std::vector<std::tuple<Weight, u64, u64>> edges;
@@ -894,14 +916,11 @@ namespace deckard::graph
 				return true;
 			};
 
-			std::vector<weighted_edge> result;
+			std::vector<WeightedEdge> result;
 			result.reserve(n ? static_cast<size_t>(n - 1) : 0);
 
-			for (auto& e : edges)
+			for (const auto& [w,u,v] : edges)
 			{
-				Weight w = std::get<0>(e);
-				u64    u = std::get<1>(e);
-				u64    v = std::get<2>(e);
 				if (unite(u, v))
 					result.push_back({reverse_index[u], reverse_index[v], w});
 			}
@@ -1264,8 +1283,21 @@ namespace deckard::graph
 		}
 	};
 
+	export template<typename T, typename Weight>
+	struct weighted_edge_t
+	{
+		T      from;
+		T      to;
+		Weight weight{Weight{0}};
+
+		bool operator==(const weighted_edge_t& rhs) const { return from == rhs.from and to == rhs.to and weight == rhs.weight; }
+	};
+
 	export template<typename T>
 	using undirected = graph<T, f32, false>;
+
+	export template<typename T>
+	using weighted_edge = weighted_edge_t<T, f32>;
 
 	export template<typename T>
 	using directed = graph<T, f32, true>;
