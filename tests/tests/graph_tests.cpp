@@ -25,6 +25,9 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		g.add("C");
 		CHECK(g.size() == 3);
 		CHECK(g.empty() == false);
+
+		CHECK(g.node_count() == 3);
+		CHECK(g.edge_count() == 0);
 	}
 
 	SECTION("connect nodes")
@@ -46,6 +49,11 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(g.has_edge("A", "B") == true);
 		CHECK(g.has_edge("B", "C") == true);
 		CHECK(g.has_edge("A", "C") == false);
+
+		CHECK(g.edges_as_vector().size() == 2);
+		CHECK(g.edges_as_vector()[0] == weighted_edge<std::string>{"A", "B", 1});
+		CHECK(g.edges_as_vector()[1] == weighted_edge<std::string>{"B", "C", 1});
+
 	}
 
 	SECTION("clear")
@@ -61,6 +69,25 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		g.clear();
 		CHECK(g.size() == 0);
 		CHECK(g.empty() == true);
+	}
+
+	SECTION("contains")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.connect("A", "B");
+		CHECK(g.size() == 2);
+		CHECK(g.empty() == false);
+		CHECK(g.has_edge("A", "B") == true);
+
+		CHECK(g.contains("A") == true);
+		CHECK(g.contains("B") == true);
+		CHECK(g.contains("Z") == false);
+
+		CHECK(g.contains("A", "B") == true);
+		CHECK(g.contains("B", "A") == true);
+		CHECK(g.contains("Q", "C") == false);
 	}
 
 	SECTION("clone")
@@ -85,12 +112,21 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		g.connect("A", "B");
 		g.connect("B", "C");
 		CHECK(g.size() == 3);
+		CHECK(g.edge_count() == 2);
+
 		CHECK(g.has_edge("A", "B") == true);
 		CHECK(g.has_edge("B", "C") == true);
 		g.remove_node("B");
 		CHECK(g.size() == 2);
+		CHECK(g.edge_count() == 0);
 		CHECK(g.has_edge("A", "B") == false);
 		CHECK(g.has_edge("B", "C") == false);
+
+		g.connect("A", "C");
+		CHECK(g.size() == 2);
+		CHECK(g.edge_count() == 1);
+		CHECK(g.has_edge("A", "C") == true);
+
 	}
 
 	SECTION("disconnect edge")
@@ -100,11 +136,13 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		g.add("B");
 		g.connect("A", "B");
 		CHECK(g.size() == 2);
+		CHECK(g.edge_count() == 1);
 		CHECK(g.has_edge("A", "B") == true);
 
 		g.disconnect("A", "B");
 
 		CHECK(g.size() == 2);
+		CHECK(g.edge_count() == 0);
 		CHECK(g.has_edge("A", "B") == false);
 	}
 
@@ -130,6 +168,8 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		//
 
 		CHECK(gr.size() == 6);
+		CHECK(gr.edge_count() == 6);
+
 		CHECK(gr.has_edge("A", "B") == true);
 		CHECK(gr.has_edge("A", "C") == true);
 		CHECK(gr.has_edge("A", "B") == true);
@@ -137,19 +177,67 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.has_edge("A", "B") == true);
 
 		auto path = gr.shortest_path("D", "B");
+
 		CHECK(path.size() == 4);
+		CHECK(path[0] == weighted_edge<std::string>{"D", "A", 3});
+		CHECK(path[1] == weighted_edge<std::string>{"A", "E", 1});
+		CHECK(path[2] == weighted_edge<std::string>{"E", "F", 1});
+		CHECK(path[3] == weighted_edge<std::string>{"F", "B", 1});
+
+
+		gr.connect("A", "B", 1);
+		// D-B shortest path: D-A-B
+		path = gr.shortest_path("D", "B");
+
+		CHECK(path.size() == 2);
+		CHECK(path[0] == weighted_edge<std::string>{"D", "A", 3});
+		CHECK(path[1] == weighted_edge<std::string>{"A", "B", 1});
+	}
 
 		CHECK(path[0].from == "D");
 		CHECK(path[0].to == "A");
 		CHECK(path[0].weight == 3);
+	SECTION("minimum spanning tree")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B    Q -- Z
+		 *        |      |    |
+		 *        E ---- F    Y
+		 */
 
-		CHECK(path[1].from == "A");
-		CHECK(path[1].to == "E");
-		CHECK(path[1].weight == 1);
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
 
-		CHECK(path[2].from == "E");
-		CHECK(path[2].to == "F");
-		CHECK(path[2].weight == 1);
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 8);
+
+		auto mst = gr.minimum_spanning_tree();
+
+		/*		  C
+		 *		  |
+		 *  D --- A      B    Q -- Z
+		 *        |      |    |
+		 *        E ---- F    Y
+		 */
+
+		CHECK(mst.size() == 7);
+		CHECK(mst[0] == weighted_edge<std::string>{"A", "C", 1});
+		CHECK(mst[1] == weighted_edge<std::string>{"A", "E", 1});
+		CHECK(mst[2] == weighted_edge<std::string>{"B", "F", 1});
+		CHECK(mst[3] == weighted_edge<std::string>{"E", "F", 1});
+		CHECK(mst[4] == weighted_edge<std::string>{"Q", "Z", 1});
+		CHECK(mst[5] == weighted_edge<std::string>{"Q", "Y", 1});
+		CHECK(mst[6] == weighted_edge<std::string>{"A", "D", 3});
 
 		CHECK(path[3].from == "F");
 		CHECK(path[3].to == "B");
