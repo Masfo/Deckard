@@ -194,9 +194,158 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(path[1] == weighted_edge<std::string>{"A", "B", 1});
 	}
 
-		CHECK(path[0].from == "D");
-		CHECK(path[0].to == "A");
-		CHECK(path[0].weight == 3);
+
+	SECTION("all pairs")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B
+		 *        |      |
+		 *        E ---- F
+		 */
+
+		// D-B shortest path: D-A-E-F-B
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+		//
+
+		CHECK(gr.size() == 6);
+		CHECK(gr.edge_count() == 6);
+
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("A", "C") == true);
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("A", "B") == true);
+
+		auto allpairs = gr.all_pairs_shortest_paths();
+		CHECK(allpairs.size() == 6);
+		CHECK(allpairs["A"]["A"] == 0);
+		CHECK(allpairs["A"]["B"] == 3);
+		CHECK(allpairs["F"]["C"] == 3);
+	}
+
+	SECTION("max matching")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B    Q -- Z
+		 *        |      |    |    |
+		 *        E ---- F    Y ---|
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+	
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+		gr.connect("Y", "Z", 1);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 9);
+
+		auto matching = gr.max_matching();
+		
+		/* A-B, E-F, Q-Z */
+		CHECK(matching.size() == 3);
+		CHECK(matching[0] == std::pair{"A", "B"});
+		CHECK(matching[1] == std::pair{"E", "F"});
+		CHECK(matching[2] == std::pair{"Q", "Z"});
+	}
+
+	SECTION("connected components")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B    Q -- Z
+		 *        |      |    |    |
+		 *        E ---- F    Y ---|
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+		gr.connect("Y", "Z", 1);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 9);
+
+		auto connected = gr.connected_components();
+
+		CHECK(connected.size() == 2);
+		CHECK(connected[0].size() == 6); // AEFDCB
+		CHECK(connected[1].size() == 3); // QYZ
+	}
+
+	SECTION("Independent set")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B    Q -- Z
+		 *        |      |    |    
+		 *        E ---- F    Y
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 8);
+
+		auto iset = gr.independent_set();
+
+		/* A, F, Q
+		          C
+		 *		  
+		 *  D            B         Z
+		 *                   
+		 *        E           Y
+		 */
+
+		CHECK(iset.size() == 3);
+		CHECK(iset[0] == "A");
+		CHECK(iset[1] == "F");
+		CHECK(iset[2] == "Q");
+
+		gr.remove_nodes(iset);
+		CHECK(gr.size() == 6);
+		CHECK(gr.edge_count() == 0); 
+
+		CHECK(gr.connected_components(0).size() == 6);
+		CHECK(gr.unconnected_components_as_vector().size() == 6);
+		CHECK(gr.connected_components(1).size() == 0); // filter size > 1
+	}
+
 	SECTION("minimum spanning tree")
 	{
 		/*		  C
@@ -222,14 +371,14 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.edge_count() == 8);
 
 		auto mst = gr.minimum_spanning_tree();
-
+		
 		/*		  C
 		 *		  |
 		 *  D --- A      B    Q -- Z
 		 *        |      |    |
 		 *        E ---- F    Y
 		 */
-
+		
 		CHECK(mst.size() == 7);
 		CHECK(mst[0] == weighted_edge<std::string>{"A", "C", 1});
 		CHECK(mst[1] == weighted_edge<std::string>{"A", "E", 1});
@@ -239,9 +388,6 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(mst[5] == weighted_edge<std::string>{"Q", "Y", 1});
 		CHECK(mst[6] == weighted_edge<std::string>{"A", "D", 3});
 
-		CHECK(path[3].from == "F");
-		CHECK(path[3].to == "B");
-		CHECK(path[3].weight == 1);
 
 	}
 }

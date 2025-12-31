@@ -989,9 +989,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	*        E ---- F
 	* 
 	*/ 
-	gr.connect("A", "B", 1);
+	gr.connect("A", "B", 8);
 	gr.connect("A", "C", 1);
-	gr.connect("A", "D", 5);
+	gr.connect("A", "D", 3);
 	gr.connect("A", "E", 1);
 
 	gr.connect("B", "F", 1);
@@ -1003,7 +1003,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	gr.add("Y");
 	gr.connect("Q", "Z", 1);
 	gr.connect("Q", "Y", 1);
-	gr.connect("Y", "Z", 1);
+	//gr.connect("Y", "Z", 1);
 	//gr.connect("F", "Q", 0);
 
 	dbg::println("A-B : {}", gr.has_edge("A", "B"));
