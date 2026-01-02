@@ -63,71 +63,60 @@ namespace deckard::graph
 			reverse_index.clear();
 		}
 
-
 		void remove_node(const T& node)
 		{
-			
-			if (not index_map.contains(node))
+			auto it = index_map.find(node);
+			if (it == index_map.end())
 				return;
 
-		u64 node_index = index_map.at(node);
-		u64 last       = static_cast<u64>(reverse_index.size() - 1);
-
-		// Remove all edges pointing to this node (in-degree)
-		for (u64 i = 0; i < adjacent_list.size(); ++i)
-		{
-			if (adjacent_list[i].contains(node_index))
-			{
-				adjacent_list[i].erase(node_index);
-				edge_weights[i].erase(node_index);
-			}
-		}
-
-		// Remove all edges from this node (out-degree)
-		adjacent_list[node_index].clear();
-		edge_weights[node_index].clear();
-
-		if (node_index != last)
-		{
-			T moved                   = std::move(reverse_index[last]);
-			adjacent_list[node_index] = std::move(adjacent_list[last]);
-			reverse_index[node_index] = std::move(reverse_index[last]);
-			edge_weights[node_index]  = std::move(edge_weights[last]);
+			u64 node_index = it->second;
+			u64 old_last   = static_cast<u64>(reverse_index.size() - 1);
 
 			for (u64 i = 0; i < adjacent_list.size(); ++i)
 			{
-				if (adjacent_list[i].contains(last))
+				auto& nbrs    = adjacent_list[i];
+				auto& weights = edge_weights[i];
+
+				if (nbrs.erase(node_index) > 0)
+					weights.erase(node_index);
+			}
+
+			adjacent_list[node_index].clear();
+			edge_weights[node_index].clear();
+
+			if (node_index != old_last)
+			{
+				T moved                   = std::move(reverse_index[old_last]);
+				adjacent_list[node_index] = std::move(adjacent_list[old_last]);
+				edge_weights[node_index]  = std::move(edge_weights[old_last]);
+
+				index_map[moved]          = node_index;
+				reverse_index[node_index] = std::move(moved);
+
+				for (u64 i = 0; i < adjacent_list.size(); ++i)
 				{
-					adjacent_list[i].erase(last);
-					adjacent_list[i].insert(node_index);
-					auto itw = edge_weights[i].find(last);
-					if (itw != edge_weights[i].end())
+					auto& nbrs    = adjacent_list[i];
+					auto& weights = edge_weights[i];
+
+					if (nbrs.erase(old_last) > 0)
 					{
-						Weight w = itw->second;
-						edge_weights[i].erase(itw);
-						edge_weights[i].emplace(node_index, w);
+						nbrs.insert(node_index);
+
+						auto itw = weights.find(old_last);
+						if (itw != weights.end())
+						{
+							Weight w = itw->second;
+							weights.erase(itw);
+							weights.emplace(node_index, w);
+						}
 					}
 				}
 			}
 
-			for (u64 nbr : adjacent_list[node_index])
-			{
-				auto itw = edge_weights[nbr].find(last);
-				if (itw != edge_weights[nbr].end())
-				{
-					Weight w = itw->second;
-					edge_weights[nbr].erase(itw);
-					edge_weights[nbr].emplace(node_index, w);
-				}
-			}
-
-			index_map[moved] = node_index;
-		}
-
 			reverse_index.pop_back();
 			adjacent_list.pop_back();
 			edge_weights.pop_back();
-			index_map.erase(node);
+			index_map.erase(it);
 		}
 
 		u64 size() const { return reverse_index.size(); }
@@ -239,16 +228,15 @@ namespace deckard::graph
 
 		std::vector<T> neighbors(const T& node) const
 		{
-			auto it = index_map.find(node);
-			if (it == index_map.end())
+			if (not index_map.contains(node))
 				return {};
 
-			const auto&    adjacent_indices = adjacent_list[it->second];
+			const auto&    adjacent_indices = adjacent_list[index_map.at(node)];
 			std::vector<T> result;
 			result.reserve(adjacent_indices.size());
 
 			for (const auto& node_index : adjacent_indices)
-				result.push_back(reverse_index[node_index]);
+				result.emplace_back(reverse_index[node_index]);
 
 			return result;
 		}
@@ -919,7 +907,7 @@ namespace deckard::graph
 			std::vector<WeightedEdge> result;
 			result.reserve(n ? static_cast<size_t>(n - 1) : 0);
 
-			for (const auto& [w,u,v] : edges)
+			for (const auto& [w, u, v] : edges)
 			{
 				if (unite(u, v))
 					result.push_back({reverse_index[u], reverse_index[v], w});

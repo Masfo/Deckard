@@ -53,7 +53,6 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(g.edges_as_vector().size() == 2);
 		CHECK(g.edges_as_vector()[0] == weighted_edge<std::string>{"A", "B", 1});
 		CHECK(g.edges_as_vector()[1] == weighted_edge<std::string>{"B", "C", 1});
-
 	}
 
 	SECTION("clear")
@@ -126,8 +125,121 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(g.size() == 2);
 		CHECK(g.edge_count() == 1);
 		CHECK(g.has_edge("A", "C") == true);
-
 	}
+
+	SECTION("remove first node")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		g.connect("A", "B");
+		g.connect("B", "C");
+		CHECK(g.size() == 3);
+
+		g.remove_node("A");
+		CHECK(g.size() == 2);
+		CHECK(g.contains("A") == false);
+		CHECK(g.contains("B") == true);
+		CHECK(g.contains("C") == true);
+		CHECK(g.has_edge("A", "B") == false);
+		CHECK(g.has_edge("B", "C") == true);
+	}
+
+	SECTION("remove non-existent node")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.connect("A", "B");
+		CHECK(g.size() == 2);
+
+		g.remove_node("Z");
+		CHECK(g.size() == 2);
+		CHECK(g.has_edge("A", "B") == true);
+	}
+
+	SECTION("remove last node")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		g.connect("A", "B");
+		g.connect("B", "C");
+		CHECK(g.size() == 3);
+
+		g.remove_node("C");
+		CHECK(g.size() == 2);
+		CHECK(g.contains("A") == true);
+		CHECK(g.contains("B") == true);
+		CHECK(g.contains("C") == false);
+		CHECK(g.has_edge("A", "B") == true);
+		CHECK(g.has_edge("B", "C") == false);
+	}
+
+	SECTION("remove from single-node graph")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		CHECK(g.size() == 1);
+		CHECK(g.empty() == false);
+
+		g.remove_node("A");
+		CHECK(g.size() == 0);
+		CHECK(g.empty() == true);
+	}
+
+	SECTION("remove all nodes one by one")
+	{
+		undirected<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		g.add("D");
+		g.connect("A", "B");
+		g.connect("B", "C");
+		g.connect("C", "D");
+		g.connect("D", "A");
+		CHECK(g.size() == 4);
+		CHECK(g.edge_count() == 4);
+
+		g.remove_node("A");
+		CHECK(g.size() == 3);
+		CHECK(g.contains("A") == false);
+
+		g.remove_node("B");
+		CHECK(g.size() == 2);
+		CHECK(g.contains("B") == false);
+
+		g.remove_node("C");
+		CHECK(g.size() == 1);
+		CHECK(g.contains("C") == false);
+
+		g.remove_node("D");
+		CHECK(g.size() == 0);
+		CHECK(g.empty() == true);
+	}
+
+	SECTION("remove node preserves other edges")
+	{
+		undirected<std::string> g;
+		g.connect("A", "B");
+		g.connect("A", "C");
+		g.connect("B", "C");
+		g.connect("C", "D");
+		CHECK(g.size() == 4);
+		CHECK(g.edge_count() == 4);
+
+		g.remove_node("A");
+		CHECK(g.size() == 3);
+		CHECK(g.edge_count() == 2);
+		CHECK(g.has_edge("B", "C") == true);
+		CHECK(g.has_edge("C", "D") == true);
+		CHECK(g.has_edge("A", "B") == false);
+		CHECK(g.has_edge("A", "C") == false);
+	}
+
 
 	SECTION("disconnect edge")
 	{
@@ -144,6 +256,66 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(g.size() == 2);
 		CHECK(g.edge_count() == 0);
 		CHECK(g.has_edge("A", "B") == false);
+	}
+
+	SECTION("neighbors")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B
+		 *        |      |
+		 *        E ---- F
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		CHECK(gr.size() == 6);
+		CHECK(gr.edge_count() == 6);
+
+		auto n = gr.neighbors("A"); // B, C, D, E
+		CHECK(n.size() == 4);
+		CHECK(n[0] == "B");
+		CHECK(n[1] == "C");
+		CHECK(n[2] == "D");
+		CHECK(n[3] == "E");
+	}
+
+	SECTION("edges")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B
+		 *        |      |
+		 *        E ---- F
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		CHECK(gr.size() == 6);
+		CHECK(gr.edge_count() == 6);
+
+		auto edges = gr.edges_as_vector();
+		CHECK(edges.size() == 6);
+		CHECK(edges[0] == weighted_edge<std::string>{"A", "B", 8});
+		CHECK(edges[1] == weighted_edge<std::string>{"A", "C", 1});
+		CHECK(edges[2] == weighted_edge<std::string>{"A", "D", 3});
+		CHECK(edges[3] == weighted_edge<std::string>{"A", "E", 1});
+		CHECK(edges[4] == weighted_edge<std::string>{"B", "F", 1});
+		CHECK(edges[5] == weighted_edge<std::string>{"E", "F", 1});
 	}
 
 	SECTION("shortest path")
@@ -249,7 +421,7 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 
 		gr.connect("B", "F", 1);
 		gr.connect("E", "F", 1);
-	
+
 		gr.connect("Q", "Z", 1);
 		gr.connect("Q", "Y", 1);
 		gr.connect("Y", "Z", 1);
@@ -258,7 +430,7 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.edge_count() == 9);
 
 		auto matching = gr.max_matching();
-		
+
 		/* A-B, E-F, Q-Z */
 		CHECK(matching.size() == 3);
 		CHECK(matching[0] == std::pair{"A", "B"});
@@ -303,7 +475,7 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		/*		  C
 		 *		  |
 		 *  D --- A ---- B    Q -- Z
-		 *        |      |    |    
+		 *        |      |    |
 		 *        E ---- F    Y
 		 */
 
@@ -325,10 +497,10 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		auto iset = gr.independent_set();
 
 		/* A, F, Q
-		          C
-		 *		  
+				  C
+		 *
 		 *  D            B         Z
-		 *                   
+		 *
 		 *        E           Y
 		 */
 
@@ -339,7 +511,7 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 
 		gr.remove_nodes(iset);
 		CHECK(gr.size() == 6);
-		CHECK(gr.edge_count() == 0); 
+		CHECK(gr.edge_count() == 0);
 
 		CHECK(gr.connected_components(0).size() == 6);
 		CHECK(gr.unconnected_components_as_vector().size() == 6);
@@ -371,14 +543,14 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.edge_count() == 8);
 
 		auto mst = gr.minimum_spanning_tree();
-		
+
 		/*		  C
 		 *		  |
 		 *  D --- A      B    Q -- Z
 		 *        |      |    |
 		 *        E ---- F    Y
 		 */
-		
+
 		CHECK(mst.size() == 7);
 		CHECK(mst[0] == weighted_edge<std::string>{"A", "C", 1});
 		CHECK(mst[1] == weighted_edge<std::string>{"A", "E", 1});
@@ -387,8 +559,51 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(mst[4] == weighted_edge<std::string>{"Q", "Z", 1});
 		CHECK(mst[5] == weighted_edge<std::string>{"Q", "Y", 1});
 		CHECK(mst[6] == weighted_edge<std::string>{"A", "D", 3});
+	}
 
+	SECTION("articulation points")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B    Q -- Z
+		 *        |      |    |
+		 *        E ---- F    Y
+		 */
 
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 8);
+
+		auto ap = gr.articulation_points();
+
+		CHECK(ap.size() == 2);
+		CHECK(ap[0] == "A");
+		CHECK(ap[1] == "Q");
+
+		/* A, Q
+		 *        C
+		 *
+		 *  D            B         Z
+		 *               |
+		 *        E ---- F    Y
+		 */
+
+		gr.remove_nodes(ap);
+		auto cp = gr.connected_components(0);
+		CHECK(gr.size() == 7);
+		CHECK(gr.connected_components(0).size() == 5); // Sets: D, C, [B,F,E], Z, Y
+		CHECK(gr.connected_components(1).size() == 1); // Sets [B,F,E]
 	}
 }
 
