@@ -9,9 +9,9 @@ import deckard.math.utils;
 namespace deckard
 {
 	template<u64 Channels>
-	class image_type final
+	class image_channels final
 	{
-		static_assert(Channels == 3 or Channels == 4, "Channels must be either 3 (RGB) or 4 (RGBA)");
+		static_assert(Channels == 1 or Channels == 3 or Channels == 4, "Channels must be either 1(gray), 3 (RGB) or 4 (RGBA)");
 
 	private:
 		// conditional<Channels == 1, gray, std::conditional<Channels == 3, rgb, std::conditional<Channels == 4, rgba, ....>>
@@ -23,7 +23,7 @@ namespace deckard
 		u16                    height{0};
 
 	public:
-		explicit image_type(u16 w, i16 h)
+		explicit image_channels(u16 w, i16 h)
 			: width(w)
 			, height(h)
 		{
@@ -40,8 +40,9 @@ namespace deckard
 		}
 	};
 
-	export using image_rgb  = image_type<3>;
-	export using image_rgba = image_type<4>;
+	export using image_gray = image_channels<1>;
+	export using image_rgb  = image_channels<3>;
+	export using image_rgba = image_channels<4>;
 
 
 }; // namespace deckard
