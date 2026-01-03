@@ -174,6 +174,14 @@ namespace deckard
 		{
 		}
 
+		rgba(u8 red, u8 green, u8 blue, u8 alpha)
+			: r(red)
+			, g(green)
+			, b(blue)
+			, a(alpha)
+		{
+		}
+
 		rgba(i32 red, i32 green, i32 blue, i32 alpha)
 			: r(clamp_rgb(red))
 			, g(clamp_rgb(green))
