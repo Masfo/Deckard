@@ -19,14 +19,15 @@ namespace deckard
 
 
 		std::vector<ColorType> data;
-		u16                    width{0};
-		u16                    height{0};
+		u16                    width{1};
+		u16                    height{1};
 
 	public:
-		explicit image_channels(u16 w, i16 h)
-			: width(w)
-			, height(h)
+		explicit image_channels(u32 w, u32 h)
 		{
+			width  = std::clamp(w, 1u, static_cast<u32>(limits::min<u16>));
+			height = std::clamp(h, 1u, static_cast<u32>(limits::min<u16>));
+
 			data.resize(width * height);
 		}
 
