@@ -259,10 +259,11 @@ namespace deckard::file
 
 			auto result = read(file, vec, *size);
 
-			if (result)
-				return {};
 
-			return vec;
+			if (result)
+				return vec;
+
+			return {};
 		}
 		return {};
 	}
