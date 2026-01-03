@@ -95,6 +95,31 @@ namespace deckard
 		u64             readpos{0};
 		padding         pad{padding::no};
 
+	public:
+		template<std::integral T>
+		void write_le(T input)
+		{
+			align_to_byte_offset(writepos);
+			using U = std::make_unsigned_t<T>;
+			U v     = static_cast<U>(input);
+			for (size_t i = 0; i < sizeof(T); ++i)
+			{
+				write_byte(static_cast<u8>((v >> (i * 8)) & 0xFF));
+			}
+		}
+
+		template<std::integral T>
+		void write_be(T input)
+		{
+			align_to_byte_offset(writepos);
+			using U = std::make_unsigned_t<T>;
+			U v     = static_cast<U>(input);
+			for (size_t i = 0; i < sizeof(T); ++i)
+			{
+				write_byte(static_cast<u8>((v >> ((sizeof(T) - 1 - i) * 8)) & 0xFF));
+			}
+		}
+
 
 	private:
 		u64 byte_index(u64 offset) const { return offset / 8u; }
