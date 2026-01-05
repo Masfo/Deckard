@@ -240,6 +240,50 @@ TEST_CASE("serializer", "[serializer]")
 		CHECK(3.14f == s.read<f32>());
 		CHECK("Deckard" == s.read<std::string>());
 	}
+
+	SECTION("qoi encode header/end marker")
+	{
+		image_rgb img(1, 1);
+		img[0, 0] = rgb(10, 20, 30);
+
+		deckard::serializer ser(deckard::padding::yes);
+		// header
+		ser.write<u8>('q');
+		ser.write<u8>('o');
+		ser.write<u8>('i');
+		ser.write<u8>('f');
+		ser.write_be<u32>(1);
+		ser.write_be<u32>(1);
+		ser.write<u8>(3);
+		ser.write<u8>(0);
+		// simplest possible encoding for first pixel: QOI_OP_RGB + rgb
+		ser.write<u8>(0xFE);
+		ser.write<u8>(10);
+		ser.write<u8>(20);
+		ser.write<u8>(30);
+		// end marker
+		for (int i = 0; i < 7; ++i)
+			ser.write<u8>(0);
+		ser.write<u8>(1);
+
+		auto data = ser.data();
+		CHECK(data.size() == 14 + 4 + 8);
+		CHECK(data[0] == 'q');
+		CHECK(data[1] == 'o');
+		CHECK(data[2] == 'i');
+		CHECK(data[3] == 'f');
+		CHECK(data[4] == 0);
+		CHECK(data[5] == 0);
+		CHECK(data[6] == 0);
+		CHECK(data[7] == 1);
+		CHECK(data[8] == 0);
+		CHECK(data[9] == 0);
+		CHECK(data[10] == 0);
+		CHECK(data[11] == 1);
+		CHECK(data[12] == 3);
+		CHECK(data[13] == 0);
+		CHECK(data[data.size() - 1] == 1);
+	}
 }
 
 TEST_CASE("bitwriter", "[bitwriter][serializer]")

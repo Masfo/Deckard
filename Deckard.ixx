@@ -41,6 +41,7 @@ export import deckard.base32;
 export import deckard.base64;
 export import deckard.bigint;
 export import deckard.commandline;
+export import deckard.colors;
 export import deckard.cpuid;
 export import deckard.function_ref;
 export import deckard.grid;

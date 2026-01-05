@@ -946,9 +946,31 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	image_rgba rgba(128, 128);
+	image_rgb xortexture(1024, 1024);
 
-	rgba[127, 127];
+	for (int y = 0; y < xortexture.height(); ++y)
+	{
+		for (int x = 0; x < xortexture.width(); ++x)
+		{
+			const u8 v = static_cast<u8>((x ^ y) & 0xFF);
+
+			// xor texture
+			xortexture[x, y] = rgb(v, v, v);
+
+
+		}
+	}
+
+	auto xor2 = load_tga("xor2.tga");
+	save_qoi("xor2.qoi", *xor2);
+	save_tga("xor3.tga", *xor2);
+
+
+	save_bmp("xor_texture.bmp", xortexture);
+	save_tga("xor_texture.tga", xortexture);
+	save_qoi("xor_texture.qoi", xortexture);
+
+
 
 	info("heloo");
 
