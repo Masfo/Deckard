@@ -74,6 +74,10 @@ namespace deckard
 
 		void push(std::string_view str)
 		{
+			#ifdef _DEBUG
+			dbg::println("{}", str);
+			#endif
+
 			std::scoped_lock l(push_mutex);
 
 			u64 needed    = str.size() + 1;
@@ -169,10 +173,11 @@ namespace deckard
 	export template<typename... Args>
 	void info(std::string_view fmt, Args&&... args)
 	{
-		if constexpr (sizeof...(args) > 0)
+		if constexpr (sizeof...(args) > 0) 
 			logger("INFO: {}", std::vformat(fmt, std::make_format_args(args...)));
 		else
 			logger("INFO: {}", fmt);
+
 	}
 
 

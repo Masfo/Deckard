@@ -12,8 +12,10 @@ import deckard.helpers;
 import deckard.platform;
 import deckard.helpers;
 import deckard.stringhelper;
+import deckard.random;
 
 namespace fs = std::filesystem;
+using namespace std::string_literals;
 
 namespace deckard::file
 {
@@ -267,6 +269,26 @@ namespace deckard::file
 		}
 		return {};
 	}
+
+	// ##################################################################################################################
+	// ##################################################################################################################
+	// ##################################################################################################################
+
+	export fs::path get_temp_path()
+	{
+		return fs::temp_directory_path();
+	}
+
+	export fs::path get_temp_file(std::string_view prefix="")
+	{ 
+		auto     temp_path = get_temp_path();
+		fs::path temp_file = fs::path(std::string(prefix) + random::alphanum(12) + ".tmp"s);
+		while( fs::exists(temp_path / temp_file))
+			temp_file = fs::path(prefix) / fs::path(random::alphanum(12) + ".tmp"s);
+
+		return temp_path / temp_file;
+	}
+
 
 	// ##################################################################################################################
 	// ##################################################################################################################

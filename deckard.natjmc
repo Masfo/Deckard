@@ -19,6 +19,7 @@
 
 
 	<File Name="random.ixx"/>
+	<File Name="logger.ixx"/>
 
 
 
