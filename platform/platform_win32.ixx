@@ -270,6 +270,28 @@ namespace deckard::platform
 	// ########################################################################
 	// ########################################################################
 
+	export std::optional<fs::path> find_file(fs::path filename)
+	{
+		char  path_buffer[MAX_PATH]{0};
+
+		DWORD result = SearchPathA(
+		  nullptr,
+		  filename.string().c_str(),
+		  nullptr,
+		  MAX_PATH,
+		  path_buffer,nullptr);
+
+		if (result > 0 and result < MAX_PATH)
+			return fs::path(path_buffer);
+
+		return {};
+	}
+
+
+		// ########################################################################
+	// ########################################################################
+	// ########################################################################
+
 
 	fs::path GetKnownFolderPath(const KNOWNFOLDERID& id)
 	{
