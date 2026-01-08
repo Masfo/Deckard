@@ -13,6 +13,7 @@ import deckard.platform;
 import deckard.helpers;
 import deckard.stringhelper;
 import deckard.random;
+import deckard.utils.hash;
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -203,6 +204,7 @@ namespace deckard::file
 		return {};
 	}
 
+	// ##################################################################################################################
 	// write
 	export auto write(fs::path file, const std::span<u8> content, u64 content_size, writemode mode = writemode::createnew)
 	{
@@ -219,6 +221,7 @@ namespace deckard::file
 		return impl::write_impl(file, std::span<char>(as<char*>(content.data()), content.size()), mode);
 	}
 
+	// ##################################################################################################################
 	// append
 	export auto append(fs::path file, const std::span<u8> content, u64 content_size)
 	{
@@ -232,6 +235,7 @@ namespace deckard::file
 		return impl::append_impl(file, std::span<char>(as<char*>(content.data()), content.size()));
 	}
 
+	// ##################################################################################################################
 	// read
 	export auto read(fs::path file, std::span<u8> buffer, u64 buffer_size = 0, u64 offset = 0)
 	{
@@ -271,6 +275,33 @@ namespace deckard::file
 	}
 
 	// ##################################################################################################################
+	export std::generator<std::span<u8>> read_chunks(fs::path file, u64 chunk_size)
+	{
+		if (auto size = filesize(file); size)
+		{
+			std::vector<u8> buffer;
+			buffer.resize(chunk_size);
+			u64 offset = 0;
+			while (offset < *size)
+			{
+				u64 to_read = std::min(chunk_size, *size - offset);
+				auto res    = read(file, std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), to_read, offset);
+				if (res)
+				{
+					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
+					offset += *res;
+				}
+				else
+				{
+					dbg::eprintln("read_chunks('{}'): {}", file.string(), res.error());
+					co_return;
+				}
+			}
+		}
+		co_return;
+	}
+
+	// ##################################################################################################################
 	// ##################################################################################################################
 	// ##################################################################################################################
 
@@ -287,6 +318,18 @@ namespace deckard::file
 			temp_file = fs::path(prefix) / fs::path(random::alphanum(12) + ".tmp"s);
 
 		return temp_path / temp_file;
+	}
+
+		// ##################################################################################################################
+	// ##################################################################################################################
+	// ##################################################################################################################
+
+	export u64 hash_file_contents(fs::path file)
+	{
+		auto contents = read(file);
+		if (contents.size() == 0)
+			return 0;
+		return utils::siphash(contents);
 	}
 
 
