@@ -272,14 +272,9 @@ namespace deckard::platform
 
 	export std::optional<fs::path> find_file(fs::path filename)
 	{
-		char  path_buffer[MAX_PATH]{0};
+		char path_buffer[MAX_PATH]{0};
 
-		DWORD result = SearchPathA(
-		  nullptr,
-		  filename.string().c_str(),
-		  nullptr,
-		  MAX_PATH,
-		  path_buffer,nullptr);
+		DWORD result = SearchPathA(nullptr, filename.string().c_str(), nullptr, MAX_PATH, path_buffer, nullptr);
 
 		if (result > 0 and result < MAX_PATH)
 			return fs::path(path_buffer);
@@ -287,8 +282,7 @@ namespace deckard::platform
 		return {};
 	}
 
-
-		// ########################################################################
+	// ########################################################################
 	// ########################################################################
 	// ########################################################################
 
@@ -304,13 +298,13 @@ namespace deckard::platform
 	}
 
 	// known folder paths
-	export fs::path get_local_appdata_path() { return GetKnownFolderPath(FOLDERID_LocalAppData); }
+	export fs::path get_local_appdata_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_LocalAppData) / fold; }
 
-	export fs::path get_roaming_appdata_path() { return GetKnownFolderPath(FOLDERID_RoamingAppData); }
+	export fs::path get_roaming_appdata_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_RoamingAppData) / fold; }
 
-	export fs::path get_profile_path() { return GetKnownFolderPath(FOLDERID_Profile); }
+	export fs::path get_profile_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_Profile) / fold; }
 
-	export fs::path get_savegame_path() { return GetKnownFolderPath(FOLDERID_SavedGames); }
+	export fs::path get_savegame_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_SavedGames) / fold; }
 
 	export fs::path current_path() { return fs::current_path(); }
 
