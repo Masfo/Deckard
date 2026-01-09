@@ -22,6 +22,8 @@
 	<File Name="logger.ixx"/>
 
 
+	<File Name="platform_win32.ixx"/>
+
 
 
 	<File Name="base64.ixx"/>
@@ -29,7 +31,9 @@
 
 	<File Name="sha2.ixx"/>
 
-	<File Name="_file.ixx"/>
+	<File Name="file.ixx"/>
+	<File Name="hash.ixx"/>
+
 
 
 

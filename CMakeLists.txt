@@ -354,8 +354,9 @@ set(DECKARD_SRCS
 
 		# win32
 		$<$<PLATFORM_ID:Windows>:platform/platform_win32.ixx>
-		$<$<PLATFORM_ID:Windows>:win32/win32.ixx>
-		# win32/DTE.ixx
+		$<$<PLATFORM_ID:Windows>:platform/win32.ixx>
+		# $<$<PLATFORM_ID:Windows>:platform/DTE.ixx>
+
 
 		std.ixx
 )

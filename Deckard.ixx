@@ -105,30 +105,34 @@ export import deckard_build;
 
 void redirect_console(bool show)
 {
-
 	if (show)
 	{
 		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 		{
-			AllocConsole();
-			AttachConsole(GetCurrentProcessId());
+			if (AllocConsole() == 0)
+			{
+				return;
+			}
 		}
 
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
-		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
-		SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
 
-		freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
-		freopen_s(reinterpret_cast<FILE**>(stderr), "CONOUT$", "w", stderr);
-		freopen_s(reinterpret_cast<FILE**>(stdin), "CONIN$", "r", stdin);
+		constexpr DWORD output_mode = ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT;
+		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output_mode);
+		SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), output_mode);
+
+		FILE* dummy = nullptr;
+		freopen_s(&dummy, "CONOUT$", "w", stdout);
+		freopen_s(&dummy, "CONOUT$", "w", stderr);
+		freopen_s(&dummy, "CONIN$", "r", stdin);
+
+		std::ios::sync_with_stdio(true);
 	}
 	else
 	{
 		FreeConsole();
 	}
-#ifdef _DEBUG
-#endif
 }
 
 using namespace deckard;
