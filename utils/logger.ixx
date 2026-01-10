@@ -53,18 +53,6 @@ namespace deckard
 				fs::remove(path);
 		}
 
-		void flush()
-		{
-			std::scoped_lock l(flush_mutex);
-
-			u64 current_size = index.exchange(0, std::memory_order_acquire);
-
-			if (current_size == 0)
-				return;
-
-			(void)file::append(logfile, std::string_view(as<const char*>(buffer.data()), current_size));
-		}
-
 		void save()
 		{
 			push("\n\nDeckard Log closing at {} {}", day_month_year(), hour_minute_second());
@@ -74,35 +62,43 @@ namespace deckard
 
 		void push(std::string_view str)
 		{
-			#ifdef _DEBUG
-			dbg::println("{}", str);
-			#endif
 
+#ifdef _DEBUG
+			dbg::println("{}", str);
+#endif
 			std::scoped_lock l(push_mutex);
 
-			u64 needed    = str.size() + 1;
+			u64 needed    = str.size() + 1; // message + newline
+
 			u64 old_index = index.fetch_add(needed, std::memory_order_relaxed);
-
 			u64 new_index = old_index + needed;
-
 
 			if (new_index > BUFFER_LEN)
 			{
 				index.fetch_sub(needed, std::memory_order_relaxed);
-				flush();
+
+				flush_internal();
 
 				old_index = index.fetch_add(needed, std::memory_order_relaxed);
-
 				new_index = old_index + needed;
 
 				if (new_index > BUFFER_LEN)
 				{
 					index.fetch_sub(needed, std::memory_order_relaxed);
+
+					// Message too large - truncate to fit buffer
+					u64 available = BUFFER_LEN - 1; // Reserve 1 byte for newline
+					std::memcpy(&buffer[0], str.data(), available);
+					buffer[available] = '\n';
+					index.store(available + 1, std::memory_order_release);
+					total_buffer_size += available + 1;
+
+					flush_internal();
 					return;
 				}
 			}
 
-
+			// Write message + newline to buffer
 			std::memcpy(&buffer[old_index], str.data(), str.size());
 			old_index += str.size();
 			buffer[old_index] = '\n';
@@ -140,10 +136,22 @@ namespace deckard
 			initialize();
 		}
 
-		~logger()
+		~logger() { save(); }
+
+		void flush()
 		{
-			//
-			save();
+			std::scoped_lock l(flush_mutex);
+			flush_internal();
+		}
+
+		void flush_internal()
+		{
+			u64 current_size = index.exchange(0, std::memory_order_acquire);
+
+			if (current_size == 0)
+				return;
+
+			(void)file::append(logfile, std::string_view(as<const char*>(buffer.data()), current_size));
 		}
 
 		template<typename... Args>
@@ -153,6 +161,7 @@ namespace deckard
 		}
 
 		u64 size() const { return total_buffer_size.load(); }
+
 
 		// TODO
 		// std::generator<std::string_view> getline()
@@ -169,16 +178,67 @@ namespace deckard
 			logger("{}", fmt);
 	}
 
-
 	export template<typename... Args>
 	void info(std::string_view fmt, Args&&... args)
 	{
-		if constexpr (sizeof...(args) > 0) 
+		if constexpr (sizeof...(args) > 0)
 			logger("INFO: {}", std::vformat(fmt, std::make_format_args(args...)));
 		else
 			logger("INFO: {}", fmt);
-
 	}
+
+	export template<typename... Args>
+	void debug(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("DEBUG: {}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("DEBUG: {}", fmt);
+	}
+
+	export template<typename... Args>
+	void warn(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("WARN: {}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("WARN: {}", fmt);
+	}
+
+	export template<typename... Args>
+	void warning(std::string_view fmt, Args&&... args)
+	{
+		warn(fmt, std::forward<Args>(args)...);
+	}
+
+	export template<typename... Args>
+	void error(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("ERROR: {}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("ERROR: {}", fmt);
+	}
+
+	export template<typename... Args>
+	void fatal(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("FATAL: {}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("FATAL: {}", fmt);
+	}
+
+	export template<typename... Args>
+	void trace(std::string_view fmt, Args&&... args)
+	{
+		if constexpr (sizeof...(args) > 0)
+			logger("TRACE: {}", std::vformat(fmt, std::make_format_args(args...)));
+		else
+			logger("TRACE: {}", fmt);
+	}
+
+	export void flush() { logger.flush(); }
 
 
 } // namespace deckard
