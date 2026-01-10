@@ -230,7 +230,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// Unified file operations options
 
-	export struct file_options
+	export struct options
 	{
 		fs::path      file;
 		std::span<u8> data;                       // Data span for read/write/append operations
@@ -243,7 +243,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// write
 
-	export auto write(const file_options& options)
+	export auto write(const options& options)
 	{
 		return impl::write_impl<u8>(
 		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset, options.mode);
@@ -252,7 +252,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// append
 
-	export auto append(const file_options& options)
+	export auto append(const options& options)
 	{
 		return impl::append_impl<u8>(options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size);
 	}
@@ -260,7 +260,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// read
 
-	export auto read(const file_options& options)
+	export auto read(const options& options)
 	{
 		return impl::read_impl<u8>(
 		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset);
@@ -286,7 +286,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// read_chunks
 
-	export std::generator<std::span<u8>> read_chunks(const file_options& options)
+	export std::generator<std::span<u8>> read_chunks(const options& options)
 	{
 		if (auto size = filesize(options.file); size)
 		{
