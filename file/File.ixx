@@ -62,8 +62,8 @@ namespace deckard::file
 					  offset,
 					  platform::string_from_wide(file.wstring()).c_str()));
 
-				mode   = OPEN_EXISTING;                
-				access = GENERIC_READ | GENERIC_WRITE; 
+				mode   = OPEN_EXISTING;
+				access = GENERIC_READ | GENERIC_WRITE;
 			}
 			else
 			{
@@ -228,18 +228,22 @@ namespace deckard::file
 	}
 
 	// ##################################################################################################################
-	// write
+	// Unified file operations options
 
-	export struct write_options
+	export struct file_options
 	{
 		fs::path      file;
-		std::span<u8> data;
-		u64           size{0};
-		u64           offset{0};
-		writemode     mode{writemode::createnew};
+		std::span<u8> data;                       // Data span for read/write/append operations
+		u64           size{0};                    // 0 = auto-detect from data
+		u64           offset{0};                  // Byte offset for operations
+		u64           chunk_size{4096};           // For read_chunks
+		writemode     mode{writemode::createnew}; // For write operations
 	};
 
-	export auto write(const write_options& options)
+	// ##################################################################################################################
+	// write
+
+	export auto write(const file_options& options)
 	{
 		return impl::write_impl<u8>(
 		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset, options.mode);
@@ -248,14 +252,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// append
 
-	export struct append_options
-	{
-		fs::path      file;
-		std::span<u8> data;
-		u64           size{0};
-	};
-
-	export auto append(const append_options& options)
+	export auto append(const file_options& options)
 	{
 		return impl::append_impl<u8>(options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size);
 	}
@@ -263,18 +260,10 @@ namespace deckard::file
 	// ##################################################################################################################
 	// read
 
-	export struct read_options
+	export auto read(const file_options& options)
 	{
-		fs::path      file;
-		std::span<u8> buffer;
-		u64           size{0};
-		u64           chunk_size{4096};
-		u64           offset{0};
-	};
-
-	export auto read(const read_options& options)
-	{
-		return impl::read_impl<u8>(options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
+		return impl::read_impl<u8>(
+		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset);
 	}
 
 	export std::vector<u8> read(fs::path file)
@@ -284,7 +273,7 @@ namespace deckard::file
 			std::vector<u8> vec;
 			vec.resize(*size);
 
-			auto result = read({.file = file, .buffer = vec, .size = *size});
+			auto result = read({.file = file, .data = vec, .size = *size});
 
 			if (result)
 				return vec;
@@ -295,46 +284,13 @@ namespace deckard::file
 	}
 
 	// ##################################################################################################################
-	export std::generator<std::span<u8>> read_chunks(fs::path file, u64 chunk_size, u64 start_offset = 0)
-	{
-		if (auto size = filesize(file); size)
-		{
-			assert::check(
-			  start_offset < *size, std::format("read_chunks: start_offset ({}) is beyond file size ({})", start_offset, *size));
-
-			std::vector<u8> buffer;
-			buffer.resize(chunk_size);
-			u64 offset = start_offset;
-
-			while (offset < *size)
-			{
-			u64  to_read = std::min(chunk_size, *size - offset);
-			auto res     = read({.file = file, .buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
-				if (res)
-				{
-					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
-					offset += *res;
-				}
-				else
-				{
-					dbg::eprintln("read_chunks('{}'): {}", file.string(), res.error());
-					co_return;
-				}
-			}
-		}
-		co_return;
-	}
-
-	// ##################################################################################################################
 	// read_chunks
 
-	export std::generator<std::span<u8>> read_chunks(const read_options& options)
+	export std::generator<std::span<u8>> read_chunks(const file_options& options)
 	{
 		if (auto size = filesize(options.file); size)
 		{
-			assert::check(
-			  options.offset < *size,
-			  std::format("read_chunks: offset ({}) is beyond file size ({})", options.offset, *size));
+			assert::check(options.offset < *size, std::format("read_chunks: offset ({}) is beyond file size ({})", options.offset, *size));
 
 			std::vector<u8> buffer;
 			buffer.resize(options.chunk_size);
@@ -342,13 +298,12 @@ namespace deckard::file
 
 			while (offset < *size)
 			{
-				u64 to_read = std::min(options.chunk_size, *size - offset);
-				auto res = read({
-					.file   = options.file,
-					.buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
-					.size   = to_read,
-					.offset = offset
-				});
+				u64  to_read = std::min(options.chunk_size, *size - offset);
+				auto res =
+			  read({.file   = options.file,
+					.data   = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
+						.size   = to_read,
+						.offset = offset});
 
 				if (res)
 				{
@@ -380,7 +335,8 @@ namespace deckard::file
 			while (offset < *size)
 			{
 			u64  to_read = std::min(N, *size - offset);
-			auto res     = read({.file = file, .buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
+			auto res     = read(
+                  {.file = file, .data = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
 				if (res)
 				{
 					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
