@@ -268,6 +268,7 @@ namespace deckard::file
 		fs::path      file;
 		std::span<u8> buffer;
 		u64           size{0};
+		u64           chunk_size{4096};
 		u64           offset{0};
 	};
 
@@ -276,7 +277,6 @@ namespace deckard::file
 		return impl::read_impl<u8>(options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
 	}
 
-	// Convenience function for reading entire file into vector
 	export std::vector<u8> read(fs::path file)
 	{
 		if (auto size = filesize(file); size)
@@ -318,6 +318,46 @@ namespace deckard::file
 				else
 				{
 					dbg::eprintln("read_chunks('{}'): {}", file.string(), res.error());
+					co_return;
+				}
+			}
+		}
+		co_return;
+	}
+
+	// ##################################################################################################################
+	// read_chunks
+
+	export std::generator<std::span<u8>> read_chunks(const read_options& options)
+	{
+		if (auto size = filesize(options.file); size)
+		{
+			assert::check(
+			  options.offset < *size,
+			  std::format("read_chunks: offset ({}) is beyond file size ({})", options.offset, *size));
+
+			std::vector<u8> buffer;
+			buffer.resize(options.chunk_size);
+			u64 offset = options.offset;
+
+			while (offset < *size)
+			{
+				u64 to_read = std::min(options.chunk_size, *size - offset);
+				auto res = read({
+					.file   = options.file,
+					.buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
+					.size   = to_read,
+					.offset = offset
+				});
+
+				if (res)
+				{
+					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
+					offset += *res;
+				}
+				else
+				{
+					dbg::eprintln("read_chunks('{}'): {}", options.file.string(), res.error());
 					co_return;
 				}
 			}
