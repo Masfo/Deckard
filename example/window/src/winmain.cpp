@@ -803,8 +803,8 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 
 				Figure 3: Format of STUN Message Type Field
 
-   Here the bits in the message type field are shown as most significant
-   (M11) through least significant (M0).  M11 through M0 represent a 12-
+   Here the bits in the message type field are shown as most significant (M11)
+   through least significant (M0).  M11 through M0 represent a 12-
    bit encoding of the method.  C1 and C0 represent a 2-bit encoding of
    the class.  A class of 0b00 is a request, a class of 0b01 is an
    indication, a class of 0b10 is a success response, and a class of
@@ -880,54 +880,53 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	char  fullPath[MAX_PATH];
-	char* filePart;
-
-
-	DWORD result_search = SearchPathA(
-	  NULL,        // Search in PATH
-	  "glslc.exe", // File to find
-	  NULL,        // Extension (already included)
-	  MAX_PATH,    // Buffer size
-	  fullPath,    // Buffer for full path
-	  &filePart    // Pointer to filename part
-	);
-
-	auto logme = []()
+	for (const auto& chunk : file::read_chunks<64, 0>("260.bin"))
 	{
-		auto id = std::this_thread::get_id();
+		info("chunk ({:>4} bytes): {}", chunk.size(), to_hex_string(chunk, {.delimiter = ","}));
+	}
 
-		info("thread started {}", id);
+	// ########################################################################
+
+	std::array<u8, 256> data_buffer{};
+	std::ranges::iota(data_buffer, 0);
+
+	std::array<u8, 64> patch_buffer{};
+	std::ranges::fill(patch_buffer, 0x78);
+
+	// Normal write (offset = 0, implicit)
+	file::write({.file = "data2.bin", .data = data_buffer, .mode = file::writemode::overwrite});
+
+	// Write starting at byte 1024 (requires existing file)
+	file::write({.file = "data2.bin", .data = patch_buffer, .size = patch_buffer.size(), .offset = 64, .mode = file::writemode::overwrite});
+
+	// Replace bytes 100-200 in existing file
+	std::array<u8, 64> replacement{0xFF};
+	std::ranges::fill(replacement, 0xFF);
+
+	file::write({.file = "data2.bin", .data = replacement, .size = replacement.size(), .offset = 512, .mode = file::writemode::overwrite});
+
+	// Write string at offset
+	std::span<u8> patched_span(as<u8*>("PATCHED"), 7);
+	file::write({.file = "data2.bin", .data = patched_span, .offset = 50, .mode = file::writemode::overwrite});
+
+	file::write({
+	  .file     = "data2.bin",
+	  .data     = replacement,
+	  .offset   = 2048,
+	});
 
 
-		for (int i = 0; i < 100; ++i)
-		{
-			logger("{}: {}", id, random::password(randu8(24, 128)));
-		}
-	};
-	// 8*100*100
+	// ########################################################################
 
-	constexpr u32 THREAD_COUNT = 8;
-
-	ScopeTimer lt("Log timer");
-
-	lt.start();
-
-	std::vector<std::jthread> threads;
-	threads.reserve(THREAD_COUNT);
-
-	lt.now("threads reserved");
+	auto frag = vulkan::compile_spirv13("data//example.frag");
+	auto vert = vulkan::compile_spirv13("data//example.vert");
 
 
-	for (const auto& _ : range(0u, THREAD_COUNT))
-		threads.push_back(std::jthread(logme));
-	lt.now("threads pushed");
+	auto glslc_path = platform::find_file("glslc.exe");
+	if (glslc_path)
+		info("found glslc at: {}", glslc_path.value().string());
+	_ = 0;
 
-
-	lt.start();
-	for (auto& t : threads)
-		t.join();
-	lt.now("joined");
 
 	// ########################################################################
 
@@ -935,10 +934,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	for (const auto& [i, c] : buf128 | std::views::enumerate)
 		c = (char)i;
 
-	file::write("bin128.dat", buf128, file::writemode::overwrite);
+	file::write({.file = "bin128.dat", .data = buf128, .mode = file::writemode::overwrite});
 
 	std::array<u8, 64> buf64{};
-	file::read("bin128.dat", buf64, buf64.size(), 128);
+	file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
 	_ = 0;
 
@@ -956,8 +955,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			// xor texture
 			xortexture[x, y] = rgb(v, v, v);
-
-
 		}
 	}
 
@@ -971,13 +968,31 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	save_qoi("xor_texture.qoi", xortexture);
 
 
-
 	info("heloo");
 
 
 	// ########################################################################
 
+	char tempPath[MAX_PATH]{};
+	char tempFile[MAX_PATH]{};
 
+	if (GetTempPathA(MAX_PATH, tempPath) == 0)
+	{
+		info("Failed to get temp path");
+	}
+	info("{}", tempPath);
+	info("{}", file::get_temp_path().string());
+	info("{}", file::get_temp_file("spv").string());
+
+
+	if (GetTempFileNameA(tempPath, "spv", 0, tempFile) == 0)
+	{
+		info("Failed to get temp file name");
+	}
+	info("{}", tempFile);
+
+
+	_ = 0;
 	// ########################################################################
 	qoi qoitest;
 
@@ -1469,7 +1484,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				packet.push_back((0x0008 >> 8) & 0xFF);
 				packet.push_back(0x0008 & 0xFF);
 
-				u16 hmaclen = static_cast<uint16_t>(hmac.data().size());
+				u16 hmaclen = static_cast<u16>(hmac.data().size());
 				packet.push_back((hmaclen >> 8) & 0xFF);
 				packet.push_back(hmaclen & 0xFF);
 

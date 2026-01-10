@@ -43,9 +43,9 @@ namespace deckard::file
 
 		using return_type = std::expected<u32, std::string>;
 
-		// write impl
+		// write impl with offset
 		template<typename T>
-		return_type write_impl(fs::path file, const std::span<T> content, u64 content_size, writemode writemode)
+		return_type write_impl(fs::path file, const std::span<T> content, u64 content_size, u64 offset, writemode writemode)
 		{
 			DWORD bytes_written{0};
 			DWORD mode   = CREATE_ALWAYS;
@@ -54,24 +54,37 @@ namespace deckard::file
 			file         = std::filesystem::absolute(file);
 			content_size = std::min(content_size, content.size_bytes());
 
-			if (writemode == writemode::createnew)
-			{
-				mode = CREATE_NEW;
-			}
-			else if (writemode == writemode::append)
+			if (offset > 0)
 			{
 				if (not fs::exists(file))
-					mode = CREATE_NEW;
-				else
-					mode = OPEN_ALWAYS;
+					return std::unexpected(std::format(
+					  "write_file: cannot write at offset {} to non-existent file '{}'",
+					  offset,
+					  platform::string_from_wide(file.wstring()).c_str()));
 
-				access = FILE_APPEND_DATA;
+				mode   = OPEN_EXISTING;                
+				access = GENERIC_READ | GENERIC_WRITE; 
 			}
-			else if (writemode == writemode::overwrite)
+			else
 			{
-				mode = CREATE_ALWAYS;
-			}
+				if (writemode == writemode::createnew)
+				{
+					mode = CREATE_NEW;
+				}
+				else if (writemode == writemode::append)
+				{
+					if (not fs::exists(file))
+						mode = CREATE_NEW;
+					else
+						mode = OPEN_ALWAYS;
 
+					access = FILE_APPEND_DATA;
+				}
+				else if (writemode == writemode::overwrite)
+				{
+					mode = CREATE_ALWAYS;
+				}
+			}
 
 			HANDLE handle = CreateFileW(file.wstring().c_str(), access, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
 
@@ -83,9 +96,20 @@ namespace deckard::file
 													   platform::string_from_wide(file.wstring()).c_str()));
 				}
 
-
 				return std::unexpected(
 				  std::format("write_file: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str()));
+			}
+
+			if (offset > 0)
+			{
+				LARGE_INTEGER li{};
+				li.QuadPart = static_cast<LONGLONG>(offset);
+				if (0 == SetFilePointerEx(handle, li, nullptr, FILE_BEGIN))
+				{
+					CloseHandle(handle);
+					return std::unexpected(std::format(
+					  "write_file: could not seek to offset {} in file '{}'", offset, platform::string_from_wide(file.wstring()).c_str()));
+				}
 			}
 
 			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
@@ -104,27 +128,26 @@ namespace deckard::file
 				  content_size,
 				  platform::string_from_wide(file.wstring()).c_str()));
 
-
 			return bytes_written;
 		}
 
 		template<typename T>
 		return_type write_impl(fs::path file, const std::span<T> content, writemode mode)
 		{
-			return write_impl(file, content, content.size_bytes(), mode);
+			return write_impl(file, content, content.size_bytes(), 0, mode);
 		}
 
 		// append impl
 		template<typename T>
 		return_type append_impl(fs::path file, const std::span<T> content, u64 content_size)
 		{
-			return write_impl(file, content, content_size, writemode::append);
+			return write_impl(file, content, content_size, 0, writemode::append);
 		}
 
 		template<typename T>
 		return_type append_impl(fs::path file, const std::span<T> content)
 		{
-			return write_impl(file, content, content.size_bytes(), writemode::append);
+			return write_impl(file, content, content.size_bytes(), 0, writemode::append);
 		}
 
 		// read impl
@@ -206,56 +229,54 @@ namespace deckard::file
 
 	// ##################################################################################################################
 	// write
-	export auto write(fs::path file, const std::span<u8> content, u64 content_size, writemode mode = writemode::createnew)
-	{
-		return impl::write_impl<u8>(file, content, content_size, mode);
-	}
 
-	export auto write(fs::path file, const std::span<u8> content, writemode mode = writemode::createnew)
+	export struct write_options
 	{
-		return impl::write_impl<u8>(file, content, content.size_bytes(), mode);
-	}
+		fs::path      file;
+		std::span<u8> data;
+		u64           size{0};
+		u64           offset{0};
+		writemode     mode{writemode::createnew};
+	};
 
-	export auto write(fs::path file, const std::string_view content, writemode mode = writemode::createnew)
+	export auto write(const write_options& options)
 	{
-		return impl::write_impl(file, std::span<char>(as<char*>(content.data()), content.size()), mode);
+		return impl::write_impl<u8>(
+		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset, options.mode);
 	}
 
 	// ##################################################################################################################
 	// append
-	export auto append(fs::path file, const std::span<u8> content, u64 content_size)
-	{
-		return impl::append_impl<u8>(file, content, content_size);
-	}
 
-	export auto append(fs::path file, const std::span<u8> content) { return impl::append_impl<u8>(file, content, content.size_bytes()); }
-
-	export auto append(fs::path file, const std::string_view content)
+	export struct append_options
 	{
-		return impl::append_impl(file, std::span<char>(as<char*>(content.data()), content.size()));
+		fs::path      file;
+		std::span<u8> data;
+		u64           size{0};
+	};
+
+	export auto append(const append_options& options)
+	{
+		return impl::append_impl<u8>(options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size);
 	}
 
 	// ##################################################################################################################
 	// read
-	export auto read(fs::path file, std::span<u8> buffer, u64 buffer_size = 0, u64 offset = 0)
+
+	export struct read_options
 	{
-		return impl::read_impl<u8>(file, buffer, buffer_size, offset);
+		fs::path      file;
+		std::span<u8> buffer;
+		u64           size{0};
+		u64           offset{0};
+	};
+
+	export auto read(const read_options& options)
+	{
+		return impl::read_impl<u8>(options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
 	}
 
-	export auto read(fs::path file, std::string_view buffer, u64 buffer_size = 0, u64 offset = 0)
-	{
-		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size, offset);
-	}
-
-	export auto read(fs::path file, std::string& buffer, u64 buffer_size = 0, u64 offset = 0)
-	{
-		if (buffer_size == 0)
-			buffer_size = fs::file_size(file);
-		if (buffer.size() < buffer_size)
-			buffer.resize(buffer_size);
-		return impl::read_impl<char>(file, std::span<char>(as<char*>(buffer.data()), buffer.size()), buffer_size, offset);
-	}
-
+	// Convenience function for reading entire file into vector
 	export std::vector<u8> read(fs::path file)
 	{
 		if (auto size = filesize(file); size)
@@ -263,8 +284,7 @@ namespace deckard::file
 			std::vector<u8> vec;
 			vec.resize(*size);
 
-			auto result = read(file, vec, *size);
-
+			auto result = read({.file = file, .buffer = vec, .size = *size});
 
 			if (result)
 				return vec;
@@ -275,17 +295,52 @@ namespace deckard::file
 	}
 
 	// ##################################################################################################################
-	export std::generator<std::span<u8>> read_chunks(fs::path file, u64 chunk_size)
+	export std::generator<std::span<u8>> read_chunks(fs::path file, u64 chunk_size, u64 start_offset = 0)
 	{
 		if (auto size = filesize(file); size)
 		{
+			assert::check(
+			  start_offset < *size, std::format("read_chunks: start_offset ({}) is beyond file size ({})", start_offset, *size));
+
 			std::vector<u8> buffer;
 			buffer.resize(chunk_size);
-			u64 offset = 0;
+			u64 offset = start_offset;
+
 			while (offset < *size)
 			{
-				u64 to_read = std::min(chunk_size, *size - offset);
-				auto res    = read(file, std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), to_read, offset);
+			u64  to_read = std::min(chunk_size, *size - offset);
+			auto res     = read({.file = file, .buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
+				if (res)
+				{
+					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
+					offset += *res;
+				}
+				else
+				{
+					dbg::eprintln("read_chunks('{}'): {}", file.string(), res.error());
+					co_return;
+				}
+			}
+		}
+		co_return;
+	}
+
+	export template<u64 N, u64 start_offset = 0>
+	std::generator<std::span<u8>> read_chunks(fs::path file)
+	{
+		static_assert(N <= 8192, "read_chunks: N must be less than or equal to 8192 bytes");
+
+		if (auto size = filesize(file); size)
+		{
+			assert::check(
+			  start_offset < *size, std::format("read_chunks: start_offset ({}) is beyond file size ({})", start_offset, *size));
+
+			std::array<u8, N> buffer;
+			u64               offset = start_offset;
+			while (offset < *size)
+			{
+			u64  to_read = std::min(N, *size - offset);
+			auto res     = read({.file = file, .buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
 				if (res)
 				{
 					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
@@ -305,22 +360,19 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 
-	export fs::path get_temp_path()
-	{
-		return fs::temp_directory_path();
-	}
+	export fs::path get_temp_path() { return fs::temp_directory_path(); }
 
-	export fs::path get_temp_file(std::string_view prefix="")
-	{ 
+	export fs::path get_temp_file(std::string_view prefix = "")
+	{
 		auto     temp_path = get_temp_path();
 		fs::path temp_file = fs::path(std::string(prefix) + random::alphanum(12) + ".tmp"s);
-		while( fs::exists(temp_path / temp_file))
+		while (fs::exists(temp_path / temp_file))
 			temp_file = fs::path(prefix) / fs::path(random::alphanum(12) + ".tmp"s);
 
 		return temp_path / temp_file;
 	}
 
-		// ##################################################################################################################
+	// ##################################################################################################################
 	// ##################################################################################################################
 	// ##################################################################################################################
 
@@ -329,9 +381,8 @@ namespace deckard::file
 		auto contents = read(file);
 		if (contents.size() == 0)
 			return 0;
-		return utils::siphash(contents);
+		return utils::chibihash64(contents);
 	}
-
 
 	// ##################################################################################################################
 	// ##################################################################################################################
