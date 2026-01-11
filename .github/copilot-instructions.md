@@ -7,8 +7,7 @@
 
 ## Coding style
 - Follow existing naming and formatting in the surrounding files (tabs/indentation, brace style).
-- Prefer `std::expected<T, std::string>` for fallible operations in new code.
-- Keep APIs minimal and consistent with existing `deckard::*` modules.
+- Keep APIs minimal and consistent with existing modules.
 - Use `std::span` for array/buffer parameters instead of raw pointers and sizes.
 - Favor `constexpr` and `consteval` for compile-time computations.
 - Use `auto` for type deduction when the type is obvious from the right-hand side.
