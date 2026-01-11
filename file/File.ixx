@@ -32,11 +32,25 @@ namespace deckard::file
 	// membuf[index]
 
 
-	export enum class writemode {
+	export enum class filemode {
 		createnew,
 		append,
 		overwrite,
+		readonly,  // map
+		readwrite, // map
 	};
+
+	export struct options
+	{
+		fs::path      file;
+		std::span<u8> buffer;
+		u64           size{0};
+		u64           offset{0};
+		u64           chunk_size{4096}; // For read_chunks
+		filemode      mode{filemode::overwrite};
+	};
+
+	// ##################################################################################################################
 
 	namespace impl
 	{
@@ -45,11 +59,11 @@ namespace deckard::file
 
 		// write impl with offset
 		template<typename T>
-		return_type write_impl(fs::path file, const std::span<T> content, u64 content_size, u64 offset, writemode writemode)
+		return_type write_impl(fs::path file, const std::span<T> content, u64 content_size, u64 offset, filemode filemode)
 		{
 			DWORD bytes_written{0};
-			DWORD mode   = CREATE_ALWAYS;
-			DWORD access = GENERIC_WRITE;
+			DWORD creation = CREATE_ALWAYS;
+			DWORD access   = GENERIC_WRITE;
 
 			file         = std::filesystem::absolute(file);
 			content_size = std::min(content_size, content.size_bytes());
@@ -62,31 +76,31 @@ namespace deckard::file
 					  offset,
 					  platform::string_from_wide(file.wstring()).c_str()));
 
-				mode   = OPEN_EXISTING;
-				access = GENERIC_READ | GENERIC_WRITE;
+				creation = OPEN_EXISTING;
+				access   = GENERIC_READ | GENERIC_WRITE;
 			}
 			else
 			{
-				if (writemode == writemode::createnew)
+				if (filemode == filemode::createnew)
 				{
-					mode = CREATE_NEW;
+					creation = CREATE_NEW;
 				}
-				else if (writemode == writemode::append)
+				else if (filemode == filemode::append)
 				{
 					if (not fs::exists(file))
-						mode = CREATE_NEW;
+						creation = CREATE_NEW;
 					else
-						mode = OPEN_ALWAYS;
+						creation = OPEN_ALWAYS;
 
 					access = FILE_APPEND_DATA;
 				}
-				else if (writemode == writemode::overwrite)
+				else if (filemode == filemode::overwrite)
 				{
-					mode = CREATE_ALWAYS;
+					creation = CREATE_ALWAYS;
 				}
 			}
 
-			HANDLE handle = CreateFileW(file.wstring().c_str(), access, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
+			HANDLE handle = CreateFileW(file.wstring().c_str(), access, FILE_SHARE_READ, nullptr, creation, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (handle == INVALID_HANDLE_VALUE)
 			{
@@ -132,22 +146,22 @@ namespace deckard::file
 		}
 
 		template<typename T>
-		return_type write_impl(fs::path file, const std::span<T> content, writemode mode)
+		return_type write_impl(fs::path file, const std::span<T> content, filemode filemode)
 		{
-			return write_impl(file, content, content.size_bytes(), 0, mode);
+			return write_impl(file, content, content.size_bytes(), 0, filemode);
 		}
 
 		// append impl
 		template<typename T>
 		return_type append_impl(fs::path file, const std::span<T> content, u64 content_size)
 		{
-			return write_impl(file, content, content_size, 0, writemode::append);
+			return write_impl(file, content, content_size, 0, filemode::append);
 		}
 
 		template<typename T>
 		return_type append_impl(fs::path file, const std::span<T> content)
 		{
-			return write_impl(file, content, content.size_bytes(), 0, writemode::append);
+			return write_impl(file, content, content.size_bytes(), 0, filemode::append);
 		}
 
 		// read impl
@@ -228,25 +242,12 @@ namespace deckard::file
 	}
 
 	// ##################################################################################################################
-	// Unified file operations options
-
-	export struct options
-	{
-		fs::path      file;
-		std::span<u8> data;                       // Data span for read/write/append operations
-		u64           size{0};                    // 0 = auto-detect from data
-		u64           offset{0};                  // Byte offset for operations
-		u64           chunk_size{4096};           // For read_chunks
-		writemode     mode{writemode::createnew}; // For write operations
-	};
-
-	// ##################################################################################################################
 	// write
 
 	export auto write(const options& options)
 	{
 		return impl::write_impl<u8>(
-		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset, options.mode);
+		  options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset, options.mode);
 	}
 
 	// ##################################################################################################################
@@ -254,7 +255,7 @@ namespace deckard::file
 
 	export auto append(const options& options)
 	{
-		return impl::append_impl<u8>(options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size);
+		return impl::append_impl<u8>(options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
 	}
 
 	// ##################################################################################################################
@@ -263,7 +264,7 @@ namespace deckard::file
 	export auto read(const options& options)
 	{
 		return impl::read_impl<u8>(
-		  options.file, options.data, options.size == 0 ? options.data.size_bytes() : options.size, options.offset);
+		  options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
 	}
 
 	export std::vector<u8> read(fs::path file)
@@ -273,7 +274,7 @@ namespace deckard::file
 			std::vector<u8> vec;
 			vec.resize(*size);
 
-			auto result = read({.file = file, .data = vec, .size = *size});
+			auto result = read({.file = file, .buffer = vec, .size = *size});
 
 			if (result)
 				return vec;
@@ -300,8 +301,8 @@ namespace deckard::file
 			{
 				u64  to_read = std::min(options.chunk_size, *size - offset);
 				auto res =
-			  read({.file   = options.file,
-					.data   = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
+				  read({.file   = options.file,
+						.buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
 						.size   = to_read,
 						.offset = offset});
 
@@ -334,9 +335,9 @@ namespace deckard::file
 			u64               offset = start_offset;
 			while (offset < *size)
 			{
-			u64  to_read = std::min(N, *size - offset);
-			auto res     = read(
-                  {.file = file, .data = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
+				u64  to_read = std::min(N, *size - offset);
+				auto res     = read(
+                  {.file = file, .buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
 				if (res)
 				{
 					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
@@ -349,6 +350,46 @@ namespace deckard::file
 				}
 			}
 		}
+		co_return;
+	}
+
+	// ##################################################################################################################
+	// ##################################################################################################################
+	// ##################################################################################################################
+
+	export struct mapped_options
+	{
+		int pos{0};
+		int size{0};
+	};
+
+	struct view_map
+	{
+		u64             offset{0};
+		std::span<u8>   data{};
+		mapped_options& option; // std::optional<mapped_options&> option;
+		bool stop_{false};
+
+		void stop() { stop_ = true; }
+	};
+
+	export std::generator<view_map&> filemap(mapped_options& option)
+	{
+		std::array<u8, 64> buffer{};
+		view_map         chunk{.data = std::span<u8>(buffer.data(), buffer.size()), .option = option};
+
+		std::ranges::fill(buffer, as<u8>(chunk.option.pos & 0xFF));
+
+		while (1)
+		{
+			co_yield chunk;
+
+			if (chunk.stop_)
+				break;
+
+			std::ranges::fill(chunk.data, as<u8>(chunk.option.pos & 0xFF));
+		}
+
 		co_return;
 	}
 
@@ -384,175 +425,9 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 
-	export class file
-	{
-	private:
-	public:
-		void resize() { }
-
-		std::span<u8> operator[](u64 start, u64 end) const
-		{
-			//
-			start;
-			end;
-
-			return {};
-		}
-	};
-
 	namespace v1
 	{
-		export class file
-		{
-		private:
-			struct handle_deleter
-			{
-				void operator()(HANDLE h) const
-				{
-					FlushFileBuffers(h);
-					CloseHandle(h);
-				}
-			};
 
-			using handle_ptr = std::unique_ptr<std::remove_pointer_t<HANDLE>, handle_deleter>;
-			handle_ptr handle{nullptr};
-
-			fs::path path;
-
-		public:
-			enum class access : u8
-			{
-				read,
-				readwrite,
-			};
-
-			file() = default;
-
-			explicit file(const fs::path& p)
-				: path(p)
-			{
-				open(p);
-			}
-
-			file(file&&)      = delete;
-			file(const file&) = delete;
-
-			file& operator=(const file&) = delete;
-			file& operator=(file&&)      = delete;
-
-			~file() = default;
-
-			operator bool() const { return is_open(); }
-
-			bool is_open() const { return handle && handle.get() != INVALID_HANDLE_VALUE; }
-
-			bool open(const fs::path& p)
-			{
-				path = p;
-
-#ifdef _DEBUG
-				constexpr u32 sharemode = FILE_SHARE_READ | FILE_SHARE_WRITE;
-#else
-				constexpr u32 sharemode = 0;
-#endif
-
-				HANDLE h = CreateFileW(
-				  path.generic_wstring().data(),
-				  GENERIC_READ | GENERIC_WRITE,
-				  sharemode,
-				  0,
-				  OPEN_ALWAYS,
-				  FILE_ATTRIBUTE_NORMAL | FILE_READ_ATTRIBUTES,
-				  0);
-				if (h == INVALID_HANDLE_VALUE)
-				{
-					dbg::eprintln("open('{}'): {}", platform::string_from_wide(path.generic_wstring()), platform::get_error_string());
-					handle.reset(nullptr);
-					return false;
-				}
-
-				handle.reset(h);
-				return true;
-			}
-
-			u64 size() const
-			{
-				WIN32_FILE_ATTRIBUTE_DATA fad{};
-				if (0 == GetFileAttributesExW(path.generic_wstring().data(), GetFileExInfoStandard, &fad))
-				{
-					dbg::eprintln("size('{}'): {}", platform::string_from_wide(path.generic_wstring()), platform::get_error_string());
-					return 0;
-				}
-
-				LARGE_INTEGER size{};
-				size.HighPart = fad.nFileSizeHigh;
-				size.LowPart  = fad.nFileSizeLow;
-				return size.QuadPart;
-			}
-
-			void flush() const
-			{
-				if (is_open())
-					FlushFileBuffers(handle.get());
-			}
-
-			void close() { handle.reset(nullptr); }
-
-			i64 seek(i64 offset) const
-			{
-				LARGE_INTEGER pos{.QuadPart = offset};
-				SetFilePointerEx(handle.get(), pos, nullptr, FILE_BEGIN);
-				return offset;
-			}
-
-			u64 seek_write(const std::span<u8> buffer, u64 size, i64 offset) const
-			{
-				i64 old_offset = seek(offset);
-				u64 written    = write(buffer, size);
-				seek(old_offset);
-				return written;
-			}
-
-			// TODO: writing advances offset automatically
-
-			u64 write(const std::span<u8> buffer, u64 size = 0) const
-			{
-				DWORD written{};
-
-				if (size == 0 or size > buffer.size())
-					size = buffer.size();
-
-				if (0 == WriteFile(handle.get(), buffer.data(), as<DWORD>(size), &written, nullptr))
-					return 0;
-
-				flush();
-				return written;
-			}
-
-			u64 seek_read(std::span<u8> buffer, u32 size, i64 offset)
-			{
-				i64 old_offset = seek(offset);
-				u64 readcount  = read(buffer, size);
-				seek(old_offset);
-				return readcount;
-			}
-
-			u64 read(std::span<u8> buffer, u64 size = 0)
-			{
-				if (size == 0 or size > buffer.size_bytes())
-					size = buffer.size_bytes();
-
-				DWORD read{0};
-
-				ReadFile(handle.get(), buffer.data(), as<DWORD>(size), &read, nullptr);
-
-				return read;
-			}
-		};
-
-		// 1. open, no view to
-		// 2. get slice
-		// 3. close
 
 		export class filemap
 		{
@@ -738,42 +613,33 @@ namespace deckard::file
 
 	export std::vector<u8> read_file(fs::path path)
 	{
-		v1::file f(path);
-		if (not f)
-		{
-			dbg::eprintln("read_text_file: could not open '{}'", path.generic_string());
-			return {};
-		}
-
-		if (f.size() == 0)
-		{
-			dbg::eprintln("read_file: file '{}' is empty", path.generic_string());
-			return {};
-		}
-
 		std::vector<u8> ret;
-		ret.resize(f.size());
 
-		auto read_size = f.read({as<u8*>(ret.data()), ret.size()});
-		if (read_size < ret.size())
+		auto size = filesize(path);
+		if (size)
 		{
-			dbg::eprintln("read_text_file: read partial {}/{}", read_size, ret.size());
+			ret.resize(*size);
+			auto r = file::read({.file = path, .buffer = ret, .size = *size});
+			if (not r)
+			{
+				dbg::eprintln("read_file: could not read file '{}': {}", path.generic_string(), r.error());
+				return {};
+			}
+			return ret;
 		}
-		ret.shrink_to_fit();
-
-		return ret;
+		return {};
 	}
 
 	export auto read_text_file(fs::path path) -> std::vector<u8>
 	{
-		auto v = read_file(path);
+		std::vector<u8> v = read_file(path);
+
+		if (v.empty())
+			return v;
 
 		// remove bom
 		if (v.size() >= 3 and v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)
 			v.erase(v.begin(), v.begin() + 3);
-
-		if (v.empty())
-			return v;
 
 		std::vector<u8> out;
 		out.reserve(v.size());
