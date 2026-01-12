@@ -357,37 +357,141 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 
-	export struct mapped_options
-	{
-		int pos{0};
-		int size{0};
-	};
 
 	struct view_map
 	{
-		u64             offset{0};
-		std::span<u8>   data{};
-		mapped_options& option; // std::optional<mapped_options&> option;
-		bool stop_{false};
+		u64           offset{0};
+		u64           chunk_size{0};
+		std::span<u8> chunk_buffer{};
 
-		void stop() { stop_ = true; }
+		bool m_stop{false};
+
+		void stop() { m_stop = true; }
 	};
 
-	export std::generator<view_map&> filemap(mapped_options& option)
+	// NOTE: Mapping lifetime must be tied to the generator frame.
+	// We use a local std::unique_ptr with a lambda deleter inside map() for RAII.
+
+	/*
+		for (auto& i : file::map({.file = "260.bin", .chunk_size=32}))
 	{
-		std::array<u8, 64> buffer{};
-		view_map         chunk{.data = std::span<u8>(buffer.data(), buffer.size()), .option = option};
 
-		std::ranges::fill(buffer, as<u8>(chunk.option.pos & 0xFF));
+		info("map {}, offset {}, {}", i.chunk_buffer.size(), i.offset, to_hex_string(i.chunk_buffer));
 
-		while (1)
+		//i.offset += i.chunk_size;
+		i.chunk_size = (i.chunk_size == 64) ? 32 : 64;
+
+		if (i.offset >= 128)
+			i.stop();
+
+	}
+	*/
+	export [[nodiscard]] std::generator<view_map&> map(const options option)
+	{
+		if (not fs::exists(option.file))
 		{
+			dbg::println("filemap: file '{}' does not exist", platform::string_from_wide(option.file.wstring()).c_str());
+			co_return;
+		}
+
+		DWORD rw          = GENERIC_READ;
+		DWORD page        = PAGE_READONLY;
+		DWORD filemapping = FILE_MAP_READ;
+
+		if (option.mode == filemode::readwrite)
+		{
+			rw |= GENERIC_WRITE;
+			page = PAGE_READWRITE;
+			filemapping |= FILE_MAP_WRITE;
+		}
+
+		HANDLE handle =
+		  CreateFileW(option.file.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (handle == INVALID_HANDLE_VALUE)
+		{
+			dbg::println("filemap: could not open file '{}'", platform::string_from_wide(option.file.wstring()).c_str());
+			co_return;
+		}
+
+		u64 size = filesize(option.file).value_or(0);
+		if (size == 0)
+		{
+			CloseHandle(handle);
+			dbg::println("filemap: file '{}' is empty", platform::string_from_wide(option.file.wstring()).c_str());
+			co_return;
+		}
+
+		if (option.offset >= size)
+		{
+			CloseHandle(handle);
+			dbg::println("filemap: offset {} is beyond end of file '{}' (size {})",
+						 option.offset,
+						 platform::string_from_wide(option.file.wstring()).c_str(),
+						 size);
+			co_return;
+		}
+
+
+		HANDLE mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
+		if (mapping == nullptr)
+		{
+			CloseHandle(handle);
+			dbg::println("filemap: could not create mapping for file '{}'", platform::string_from_wide(option.file.wstring()).c_str());
+			co_return;
+		}
+
+		CloseHandle(handle);
+		handle = nullptr;
+
+		u8* raw_address = as<u8*>(MapViewOfFile(mapping, filemapping, 0, 0, 0));
+		if (raw_address == nullptr)
+		{
+			CloseHandle(mapping);
+			dbg::println("filemap: could not map file '{}'", platform::string_from_wide(option.file.wstring()).c_str());
+			co_return;
+		}
+		CloseHandle(mapping);
+		mapping = nullptr;
+
+		std::span<u8> view{raw_address, static_cast<size_t>(size)};
+
+		const auto unmap = [&option](u8* address)
+		{
+			if (address)
+			{
+				if (option.mode == filemode::readwrite)
+					FlushViewOfFile(address, 0);
+				UnmapViewOfFile(address);
+				address = nullptr;
+			}
+		};
+		std::unique_ptr<u8, decltype(unmap)> view_guard(raw_address, unmap);
+
+		u64 current_offset     = option.offset;
+		u64 desired_chunk_size = option.chunk_size;
+		if (desired_chunk_size == 0)
+			desired_chunk_size = size - current_offset;
+
+		while (current_offset < size)
+		{
+			auto remaining       = size - current_offset;
+			u64  chunk_size      = std::min<u64>(desired_chunk_size, remaining);
+			u64  original_offset = current_offset;
+			u64  original_size   = chunk_size;
+			auto chunk_span      = view.subspan(static_cast<size_t>(current_offset), static_cast<size_t>(chunk_size));
+
+			view_map chunk{.offset = current_offset, .chunk_size = chunk_size, .chunk_buffer = chunk_span};
+
 			co_yield chunk;
 
-			if (chunk.stop_)
+			if (chunk.m_stop or chunk.chunk_size == 0)
 				break;
 
-			std::ranges::fill(chunk.data, as<u8>(chunk.option.pos & 0xFF));
+			if (option.mode == filemode::readwrite)
+				FlushViewOfFile(chunk.chunk_buffer.data(), chunk.chunk_size);
+
+			current_offset     = (chunk.offset != original_offset) ? (chunk.offset + chunk.chunk_size) : (original_offset + original_size);
+			desired_chunk_size = chunk.chunk_size;
 		}
 
 		co_return;
