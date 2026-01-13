@@ -332,7 +332,7 @@ namespace deckard::random
 
 	// password ########################################################################################################
 
-	export std::string password(u32 len) { return generate_with_dictionary(len, dict_alphanum_special); }
+	export std::string password(u32 len=12) { return generate_with_dictionary(len, dict_alphanum_special); }
 
 	export void password(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_alphanum_special); }
 

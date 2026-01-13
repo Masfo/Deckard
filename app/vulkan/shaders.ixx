@@ -9,9 +9,11 @@ import :device;
 
 import deckard.types;
 import deckard.file;
+import deckard.platform;
 
 import std;
 namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 
 namespace deckard::vulkan
 {
@@ -36,15 +38,15 @@ namespace deckard::vulkan
 			if (fsize and *fsize % sizeof(u32) != 0)
 				return std::unexpected(std::format("Shader '{}' module size not a multiple of {}", shader_file.string(), sizeof(u32)));
 
-			u64 size = *fsize;
+		u64 size = *fsize;
 
-			//
-			std::vector<u8> bytes;
-			bytes.resize(size);
+		//
+		std::vector<u8> bytes;
+		bytes.resize(size);
 
-			auto content = file::read(shader_file, bytes, size);
-			if (not content)
-				return std::unexpected(content.error());
+		auto content = file::read({.file = shader_file, .buffer = bytes, .size = size});
+		if (not content)
+			return std::unexpected(content.error());
 
 
 			//
@@ -84,4 +86,95 @@ namespace deckard::vulkan
 
 		operator VkShaderModule() const { return shader_module; }
 	};
+
+	// cache compiled to
+
+	struct shader_cache_entry
+	{
+		fs::path                                           source_file;
+		std::vector<u8>                                    spirv_data;
+		std::chrono::time_point<std::chrono::system_clock> last_modified;
+	};
+
+	// Global cache for compiled shaders
+	// TODO: implement
+
+	export std::vector<u8> compile_spirv13(fs::path source_file)
+	{
+		static const auto glslc = platform::find_file("glslc.exe");
+
+		if (glslc)
+		{
+
+			static const auto cache_dir = platform::get_local_appdata_path(fs::path("deckard\\shader_cache"));
+			if (not fs::exists(cache_dir))
+				fs::create_directories(cache_dir);
+
+
+			source_file = std::filesystem::absolute(source_file);
+
+			fs::path cache_file =
+			  cache_dir / fs::path(std::format("{}_{}.spv", source_file.filename().string(), file::hash_file_contents(source_file)));
+
+			if (fs::exists(cache_file))
+			{
+				dbg::println("Using cached shader: {}", cache_file.string());
+				return file::read(cache_file);
+			}
+
+			std::string commandline =
+			  std::format("-Werror -O --target-env=vulkan1.3 \"{}\" -o \"{}\"", source_file.string(), cache_file.string());
+
+			auto result = platform::execute_process(*glslc, commandline, 5s, fs::current_path());
+
+			if (result.exit_code == platform::exit_code_enum::timeout)
+			{
+				dbg::eprintln("Shader compilation timed out:\n{}", result.error);
+				return {};
+			}
+			else if (result.exit_code != platform::exit_code_enum::ok)
+			{
+				dbg::eprintln("Shader compilation failed:\n{}", result.output);
+				return {};
+			}
+
+			dbg::println("Compiled shader '{}' ({}) to '{}'", source_file.string(), result.elapsed_time, cache_file.string());
+
+
+			auto spirv_data = file::read(cache_file);
+
+			// delete 24 hour old cache files
+			auto now = std::chrono::system_clock::now();
+			for (const auto& entry : fs::directory_iterator(cache_dir))
+			{
+				auto ftime = fs::last_write_time(entry.path());
+				auto sctp  = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                  ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+
+
+				if (not entry.path().filename().string().starts_with(source_file.filename().string() + "_"))
+					continue;
+
+
+				auto age = now - sctp;
+				if (age > 24h)
+				{
+					dbg::println("remove old shader: {} (age: {}s)",
+								 entry.path().string(),
+								 std::chrono::duration_cast<std::chrono::seconds>(age).count());
+					fs::remove(entry.path());
+				}
+			}
+
+			return spirv_data;
+		}
+		dbg::eprintln("glslc.exe not found in PATH, cannot compile shader '{}'", source_file.string());
+
+		return {};
+	}
+
+	export std::optional<std::vector<u8>> read_spirv_shader_from_cache(fs::path spirv_binary) { return {}; }
+
+
 } // namespace deckard::vulkan
+

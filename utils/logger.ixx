@@ -148,11 +148,12 @@ namespace deckard
 		{
 			u64 current_size = index.exchange(0, std::memory_order_acquire);
 
-			if (current_size == 0)
-				return;
+		if (current_size == 0)
+			return;
 
-			(void)file::append(logfile, std::string_view(as<const char*>(buffer.data()), current_size));
-		}
+		std::span<u8> log_span(as<u8*>(buffer.data()), current_size);
+		(void)file::append({.file = logfile, .buffer = log_span});
+	}
 
 		template<typename... Args>
 		void operator()(std::string_view fmt, Args&&... args)
@@ -242,3 +243,4 @@ namespace deckard
 
 
 } // namespace deckard
+
