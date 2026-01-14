@@ -61,10 +61,15 @@ export import deckard.utils.hash;
 export import deckard.uuid;
 export import deckard.logger;
 
+#ifdef __cpp_lib_optional_ref
+#error ("use optional ref instead");
+#endif
+
+
 export import deckard.monocypher;
 
 #ifdef __cpp_pp_embed
-#error("Use embed on something");
+#error ("Use embed on something");
 #endif
 
 // UTF8
@@ -177,8 +182,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
 
-
-
 	// clang-format off
 	#if 0
 		
@@ -227,7 +230,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 	deckard::random::initialize();
 	net::initialize();
-	 dbg::println("Initialized");
+	dbg::println("Initialized");
 
 
 	// main
@@ -239,7 +242,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 
 
 	//
-	 dbg::println("Deinitializing");
+	dbg::println("Deinitializing");
 
 	if (CoUninitialize)
 		CoUninitialize();

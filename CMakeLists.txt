@@ -343,7 +343,6 @@ set(DECKARD_SRCS
 		types/allocator.ixx
 		types/image.ixx
 
-
 		# External helpers
 		compress/zstd.ixx
 		monocypher/monocypher.ixx

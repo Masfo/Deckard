@@ -880,40 +880,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	for (const auto& chunk : file::read_chunks<64, 0>("260.bin"))
+	for (const auto& chunk : file::read_chunks({.file = "260.bin", .chunk_size = 64}))
 	{
 		info("chunk ({:>4} bytes): {}", chunk.size(), to_hex_string(chunk, {.delimiter = ","}));
 	}
 
 	// ########################################################################
-
-	std::array<u8, 256> data_buffer{};
-	std::ranges::iota(data_buffer, 0);
-
-	std::array<u8, 64> patch_buffer{};
-	std::ranges::fill(patch_buffer, 0x78);
-
-	// Normal write (offset = 0, implicit)
-	file::write({.file = "data2.bin", .data = data_buffer, .mode = file::writemode::overwrite});
-
-	// Write starting at byte 1024 (requires existing file)
-	file::write({.file = "data2.bin", .data = patch_buffer, .size = patch_buffer.size(), .offset = 64, .mode = file::writemode::overwrite});
-
-	// Replace bytes 100-200 in existing file
-	std::array<u8, 64> replacement{0xFF};
-	std::ranges::fill(replacement, 0xFF);
-
-	file::write({.file = "data2.bin", .data = replacement, .size = replacement.size(), .offset = 512, .mode = file::writemode::overwrite});
-
-	// Write string at offset
-	std::span<u8> patched_span(as<u8*>("PATCHED"), 7);
-	file::write({.file = "data2.bin", .data = patched_span, .offset = 50, .mode = file::writemode::overwrite});
-
-	file::write({
-	  .file     = "data2.bin",
-	  .data     = replacement,
-	  .offset   = 2048,
-	});
 
 
 	// ########################################################################
@@ -934,14 +906,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	for (const auto& [i, c] : buf128 | std::views::enumerate)
 		c = (char)i;
 
-	file::write({.file = "bin128.dat", .data = buf128, .mode = file::writemode::overwrite});
+	file::write({.file = "bin128.dat", .buffer = buf128});
 
 	std::array<u8, 64> buf64{};
 	file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
+
+
+
 	_ = 0;
 
-	// ########################################################################
 
 	// ########################################################################
 
@@ -2013,6 +1987,30 @@ dbg::println();
 
 	// ########################################################################
 
+	auto fviwe = file::map({
+	  .file       = "256.bin",
+	  .offset     = 64,
+	  .chunk_size = 64,
+	});
+	for (const auto& [offset, chunk_size, chunk, stop] : fviwe)
+	{
+		info("{}", to_hex_string(chunk));
+	}
+
+	_ = 0;
+
+	for (auto& i : file::map({.file = "260.bin", .chunk_size = 32}))
+	{
+
+		info("map {}, offset {}, {}", i.chunk_buffer.size(), i.offset, to_hex_string(i.chunk_buffer));
+
+		// i.offset += i.chunk_size;
+		i.chunk_size = (i.chunk_size == 64) ? 32 : 64;
+
+		if (i.offset >= 128)
+			i.stop();
+	}
+	_ = 0;
 
 	// ########################################################################
 
