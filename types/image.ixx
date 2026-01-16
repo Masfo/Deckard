@@ -13,7 +13,7 @@ namespace deckard
 	template<u64 Channels>
 	class image_channels final
 	{
-		static_assert(Channels == 1 or Channels == 3 or Channels == 4, "Channels must be either 1(gray), 3 (RGB) or 4 (RGBA)");
+		static_assert(Channels == 3 or Channels == 4, "Channels must be either 3 (RGB) or 4 (RGBA)");
 
 	public:
 		using color_type = std::conditional_t<Channels == 4, rgba, rgb>;
@@ -143,5 +143,54 @@ namespace deckard
 	auto result   = file::write({.file = path, .buffer = out_span});
 	return result.has_value() && *result == out_span.size();
 }
+
+	export bool save_tga(std::filesystem::path path, const image_rgba& img)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 || height == 0)
+			return false;
+
+		constexpr u8  bytes_per_pixel = 4;
+		constexpr u32 header_bytes    = 18;
+		const u32     pixel_bytes     = width * height * bytes_per_pixel;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(file_bytes);
+
+		// TGA header (18 bytes)
+		ser.write<u8>(0);                 // id length
+		ser.write<u8>(0);                 // color map type (none)
+		ser.write<u8>(2);                 // image type (2 = uncompressed true-color)
+		ser.write_le<u16>(0);             // color map first entry index
+		ser.write_le<u16>(0);             // color map length
+		ser.write<u8>(0);                 // color map entry size
+		ser.write_le<u16>(0);             // x-origin
+		ser.write_le<u16>(0);             // y-origin
+		ser.write_le<u16>(static_cast<u16>(width));
+		ser.write_le<u16>(static_cast<u16>(height));
+		ser.write<u8>(32);                // pixel depth
+		ser.write<u8>(0b0000'1000);       // image descriptor (origin bottom-left, 8 alpha bits)
+
+		// Pixel data (BGRA), bottom-left origin => write bottom-up rows
+		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+							const image_rgba::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				ser.write<u8>(static_cast<u8>(c.b));
+				ser.write<u8>(static_cast<u8>(c.g));
+				ser.write<u8>(static_cast<u8>(c.r));
+				ser.write<u8>(static_cast<u8>(c.a));
+			}
+		}
+
+		auto out_span = ser.data();
+		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
+		return result.has_value() && *result == out_span.size();
+	}
+
+
 
 }; // namespace deckard
