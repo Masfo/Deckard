@@ -144,6 +144,95 @@ namespace deckard
 	return result.has_value() && *result == out_span.size();
 }
 
+
+
+	// Load a 24-bit uncompressed BMP (BI_RGB).
+	// Supports bottom-up DIBs with 4-byte-aligned rows (as produced by `save_bmp`).
+	// Returns empty optional on failure.
+	export std::optional<image_rgb> load_bmp(const std::filesystem::path& path)
+	{
+		const auto bytes = file::read(path);
+		if (bytes.empty())
+			return {};
+		if (bytes.size() < 14u + 40u)
+			return {};
+
+		auto u16_le = [&](size_t off) -> u16
+		{
+			return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8));
+		};
+		auto u32_le = [&](size_t off) -> u32
+		{
+			return static_cast<u32>(static_cast<u32>(bytes[off + 0]) | (static_cast<u32>(bytes[off + 1]) << 8)
+			                       | (static_cast<u32>(bytes[off + 2]) << 16) | (static_cast<u32>(bytes[off + 3]) << 24));
+		};
+		auto i32_le = [&](size_t off) -> i32 { return static_cast<i32>(u32_le(off)); };
+
+		// BITMAPFILEHEADER
+		if (bytes[0] != static_cast<u8>('B') || bytes[1] != static_cast<u8>('M'))
+			return {};
+		const u32 file_size = u32_le(2);
+		if (file_size != 0 && file_size > bytes.size())
+			return {};
+		const u32 pixel_offset = u32_le(10);
+		if (pixel_offset >= bytes.size())
+			return {};
+
+		// BITMAPINFOHEADER
+		const u32 dib_size = u32_le(14);
+		if (dib_size < 40u)
+			return {};
+
+		const i32 width_i  = i32_le(18);
+		const i32 height_i = i32_le(22);
+		if (width_i <= 0 || height_i == 0)
+			return {};
+
+		const bool top_down = height_i < 0;
+		const u32  width    = static_cast<u32>(width_i);
+		const u32  height   = static_cast<u32>(top_down ? -height_i : height_i);
+
+		const u16 planes    = u16_le(26);
+		const u16 bpp       = u16_le(28);
+		const u32 compress  = u32_le(30);
+		if (planes != 1u)
+			return {};
+		if (bpp != 24u)
+			return {};
+		if (compress != 0u) // BI_RGB
+			return {};
+
+		constexpr u32 bytes_per_pixel = 3;
+		const u32     row_stride      = width * bytes_per_pixel;
+		const u32     row_padding     = (4u - (row_stride % 4u)) % 4u;
+		const u32     row_bytes       = row_stride + row_padding;
+		const u64     needed          = static_cast<u64>(pixel_offset) + static_cast<u64>(row_bytes) * height;
+		if (needed > bytes.size())
+			return {};
+
+		image_rgb img(width, height);
+		for (u32 y = 0; y < height; ++y)
+		{
+			const u32 src_y = top_down ? y : (height - 1 - y);
+			const size_t row_off = static_cast<size_t>(pixel_offset) + static_cast<size_t>(src_y) * row_bytes;
+			for (u32 x = 0; x < width; ++x)
+			{
+				const size_t p = row_off + static_cast<size_t>(x) * bytes_per_pixel;
+				rgb c;
+				c.b = bytes[p + 0];
+				c.g = bytes[p + 1];
+				c.r = bytes[p + 2];
+				img[static_cast<u16>(x), static_cast<u16>(y)] = c;
+			}
+		}
+
+		return img;
+	}
+	auto out_span = ser.data();
+	auto result   = file::write({.file = path, .buffer = out_span});
+	return result.has_value() && *result == out_span.size();
+}
+
 	export bool save_tga(std::filesystem::path path, const image_rgba& img)
 	{
 		const u32 width  = img.width();
