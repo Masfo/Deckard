@@ -228,6 +228,105 @@ namespace deckard
 
 		return img;
 	}
+
+	// Load an uncompressed true-color TGA (type 2), 24bpp (BGR) or 32bpp (BGRA).
+	// Returns empty optional on failure.
+	// Note: TGA origin is controlled by descriptor bit 5 (top-left if set, bottom-left if clear).
+	export std::optional<image_rgb> load_tga(const std::filesystem::path& path)
+	{
+		const auto bytes = file::read(path);
+		if (bytes.empty())
+			return {};
+		if (bytes.size() < 18u)
+			return {};
+
+		auto u16_le = [&](size_t off) -> u16
+		{
+			return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8));
+		};
+
+		const u8  id_length      = bytes[0];
+		const u8  color_map_type = bytes[1];
+		const u8  image_type     = bytes[2];
+		const u16 cmap_length    = u16_le(5);
+		const u8  cmap_depth     = bytes[7];
+		const u16 width          = u16_le(12);
+		const u16 height         = u16_le(14);
+		const u8  pixel_depth    = bytes[16];
+		const u8  descriptor     = bytes[17];
+
+		if (width == 0 || height == 0)
+			return {};
+		if (color_map_type != 0)
+			return {};
+		if (cmap_length != 0 || cmap_depth != 0)
+			return {};
+		if (image_type != 2)
+			return {};
+		if (pixel_depth != 24 && pixel_depth != 32)
+			return {};
+
+		const bool origin_top = (descriptor & 0b0010'0000) != 0;
+		const u8   alpha_bits = descriptor & 0b0000'1111;
+		if (pixel_depth == 32 && alpha_bits != 8)
+		{
+			// tolerate but for our writer we expect 8
+		}
+
+		const size_t header_bytes = 18u + static_cast<size_t>(id_length);
+		if (bytes.size() < header_bytes)
+			return {};
+
+		const size_t bytes_per_pixel = static_cast<size_t>(pixel_depth / 8);
+		const size_t pixel_bytes     = static_cast<size_t>(width) * static_cast<size_t>(height) * bytes_per_pixel;
+		if (bytes.size() < header_bytes + pixel_bytes)
+			return {};
+
+		auto pixel_at = [&](u16 x, u16 y) -> const u8*
+		{
+			const u16 src_y = origin_top ? y : static_cast<u16>((height - 1) - y);
+			const size_t idx = (static_cast<size_t>(src_y) * width + x) * bytes_per_pixel;
+			return &bytes[header_bytes + idx];
+		};
+
+		if (pixel_depth == 24)
+		{
+			image_rgb img(width, height);
+			for (u16 y = 0; y < height; ++y)
+			{
+				for (u16 x = 0; x < width; ++x)
+				{
+					const u8* p = pixel_at(x, y);
+					rgb c;
+					c.b = p[0];
+					c.g = p[1];
+					c.r = p[2];
+					img.at(x, y) = c;
+				}
+			}
+			return image_rgb{std::move(img)};
+		}
+
+		if (pixel_depth == 32)
+		{
+			image_rgb img(width, height);
+			for (u16 y = 0; y < height; ++y)
+			{
+				for (u16 x = 0; x < width; ++x)
+				{
+					const u8* p = pixel_at(x, y);
+					rgb c;
+					c.b = p[0];
+					c.g = p[1];
+					c.r = p[2];
+					img[x, y] = c;
+				}
+			}
+			return image_rgb{std::move(img)};
+		}
+
+		return {};
+	}
 	auto out_span = ser.data();
 	auto result   = file::write({.file = path, .buffer = out_span});
 	return result.has_value() && *result == out_span.size();
