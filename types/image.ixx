@@ -327,10 +327,228 @@ namespace deckard
 
 		return {};
 	}
+
+	namespace detail
+	{
+		struct qoi_px
+		{
+			u8 r{0}, g{0}, b{0}, a{255};
+			constexpr bool operator==(const qoi_px&) const = default;
+		};
+
+		constexpr u8 qoi_hash(const qoi_px& p) { return (p.r * 3u + p.g * 5u + p.b * 7u + p.a * 11u) % 64u; }
+
+		constexpr u8 qoi_op_index = 0x00; // 00xxxxxx
+		constexpr u8 qoi_op_diff  = 0x40; // 01xxxxxx
+		constexpr u8 qoi_op_luma  = 0x80; // 10xxxxxx
+		constexpr u8 qoi_op_run   = 0xC0; // 11xxxxxx
+		constexpr u8 qoi_op_rgb   = 0xFE;
+		constexpr u8 qoi_op_rgba  = 0xFF;
+
+		inline void qoi_write_header(deckard::serializer& ser, u32 width, u32 height, u8 channels, u8 colorspace)
+		{
+			ser.write<u8>('q');
+			ser.write<u8>('o');
+			ser.write<u8>('i');
+			ser.write<u8>('f');
+			ser.write_be<u32>(width);  // QOI stores width/height as big-endian
+			ser.write_be<u32>(height);
+			ser.write<u8>(channels);
+			ser.write<u8>(colorspace);
+		}
+
+		inline void qoi_write_end(deckard::serializer& ser)
+		{
+			// 7x 0x00 + 0x01
+			for (int i = 0; i < 7; ++i)
+				ser.write<u8>(0);
+			ser.write<u8>(1);
+		}
+
+		inline void qoi_encode_pixels(deckard::serializer& ser, std::span<const qoi_px> pixels)
+		{
+			std::array<qoi_px, 64> index{};
+			qoi_px prev{0, 0, 0, 255};
+			u8     run = 0;
+
+			for (size_t i = 0; i < pixels.size(); ++i)
+			{
+				const qoi_px px = pixels[i];
+
+				if (px == prev)
+				{
+					if (++run == 62 || i == pixels.size() - 1)
+					{
+						ser.write<u8>(static_cast<u8>(qoi_op_run | (run - 1)));
+						run = 0;
+					}
+					continue;
+				}
+
+				if (run > 0)
+				{
+					ser.write<u8>(static_cast<u8>(qoi_op_run | (run - 1)));
+					run = 0;
+				}
+
+				const u8 idx = qoi_hash(px);
+				if (index[idx] == px)
+				{
+					ser.write<u8>(static_cast<u8>(qoi_op_index | idx));
+					prev = px;
+					continue;
+				}
+				index[idx] = px;
+
+				if (px.a == prev.a)
+				{
+					const i32 dr = static_cast<i32>(px.r) - static_cast<i32>(prev.r);
+					const i32 dg = static_cast<i32>(px.g) - static_cast<i32>(prev.g);
+					const i32 db = static_cast<i32>(px.b) - static_cast<i32>(prev.b);
+
+					if (dr > -3 && dr < 2 && dg > -3 && dg < 2 && db > -3 && db < 2)
+					{
+						ser.write<u8>(static_cast<u8>(qoi_op_diff | ((dr + 2) << 4) | ((dg + 2) << 2) | (db + 2)));
+						prev = px;
+						continue;
+					}
+
+					const i32 dg_l = dg;
+					const i32 dr_dg = dr - dg_l;
+					const i32 db_dg = db - dg_l;
+					if (dg_l > -33 && dg_l < 32 && dr_dg > -9 && dr_dg < 8 && db_dg > -9 && db_dg < 8)
+					{
+						ser.write<u8>(static_cast<u8>(qoi_op_luma | (dg_l + 32)));
+						ser.write<u8>(static_cast<u8>(((dr_dg + 8) << 4) | (db_dg + 8)));
+						prev = px;
+						continue;
+					}
+
+					ser.write<u8>(qoi_op_rgb);
+					ser.write<u8>(px.r);
+					ser.write<u8>(px.g);
+					ser.write<u8>(px.b);
+					prev = px;
+					continue;
+				}
+
+				ser.write<u8>(qoi_op_rgba);
+				ser.write<u8>(px.r);
+				ser.write<u8>(px.g);
+				ser.write<u8>(px.b);
+				ser.write<u8>(px.a);
+				prev = px;
+			}
+		}
+	}
+
+	// Save as QOI (Quite OK Image) per https://qoiformat.org.
+	export bool save_qoi(std::filesystem::path path, const image_rgb& img)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 || height == 0)
+			return false;
+
+		std::vector<detail::qoi_px> pixels;
+		pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
+		for (u32 y = 0; y < height; ++y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+						const auto& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, 255};
+			}
+		}
+
+	deckard::serializer ser(deckard::padding::yes);
+	ser.reserve(14 + pixels.size() * 5 + 8);
+	detail::qoi_write_header(ser, width, height, 3, 0);
+	detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
+	detail::qoi_write_end(ser);
+
 	auto out_span = ser.data();
 	auto result   = file::write({.file = path, .buffer = out_span});
 	return result.has_value() && *result == out_span.size();
 }
+
+	export bool save_qoi(std::filesystem::path path, const image_rgba& img)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 || height == 0)
+			return false;
+
+		std::vector<detail::qoi_px> pixels;
+		pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
+		for (u32 y = 0; y < height; ++y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+						const auto& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, c.a};
+			}
+		}
+
+
+	deckard::serializer ser(deckard::padding::yes);
+	ser.reserve(14 + pixels.size() * 5 + 8);
+	detail::qoi_write_header(ser, width, height, 4, 0);
+	detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
+	detail::qoi_write_end(ser);
+
+	auto out_span = ser.data();
+	auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
+	return result.has_value() && *result == out_span.size();
+	}
+
+	// Save as uncompressed TGA (type 2).
+	// Note: TGA stores pixels as BGR(A). This writer uses bottom-left origin (descriptor bit 5 = 0).
+	export bool save_tga(std::filesystem::path path, const image_rgb& img)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 || height == 0)
+			return false;
+
+		constexpr u8  bytes_per_pixel = 3;
+		constexpr u32 header_bytes    = 18;
+		const u32     pixel_bytes     = width * height * bytes_per_pixel;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(file_bytes);
+
+		// TGA header (18 bytes)
+		ser.write<u8>(0);                 // id length
+		ser.write<u8>(0);                 // color map type (none)
+		ser.write<u8>(2);                 // image type (2 = uncompressed true-color)
+		ser.write_le<u16>(0);             // color map first entry index
+		ser.write_le<u16>(0);             // color map length
+		ser.write<u8>(0);                 // color map entry size
+		ser.write_le<u16>(0);             // x-origin
+		ser.write_le<u16>(0);             // y-origin
+		ser.write_le<u16>(static_cast<u16>(width));
+		ser.write_le<u16>(static_cast<u16>(height));
+		ser.write<u8>(24);                // pixel depth
+		ser.write<u8>(0b0000'0000);       // image descriptor (origin bottom-left, no alpha)
+
+		// Pixel data (BGR), bottom-left origin => write bottom-up rows
+		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+							const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				ser.write<u8>(static_cast<u8>(c.b));
+				ser.write<u8>(static_cast<u8>(c.g));
+				ser.write<u8>(static_cast<u8>(c.r));
+			}
+		}
+
+		auto out_span = ser.data();
+		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
+		return result.has_value() && *result == out_span.size();
+	}
 
 	export bool save_tga(std::filesystem::path path, const image_rgba& img)
 	{
