@@ -20,7 +20,6 @@ namespace deckard
 
 	private:
 		// conditional<Channels == 1, gray, std::conditional<Channels == 3, rgb, std::conditional<Channels == 4, rgba, ....>>
-		using ColorType = std::conditional<Channels == 4, rgba, rgb>;
 
 
 		std::vector<color_type> m_data;
@@ -57,7 +56,7 @@ namespace deckard
 		}
 
 		color_type& at(u16 x, u16 y)
-		{ 
+		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
 
@@ -67,7 +66,7 @@ namespace deckard
 		}
 
 		const color_type& at(u16 x, u16 y) const
-		{ 
+		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
 
@@ -81,7 +80,6 @@ namespace deckard
 		const color_type& operator[](u16 x, u16 y) const { return at(x, y); }
 	};
 
-	export using image_gray = image_channels<1>;
 	export using image_rgb  = image_channels<3>;
 	export using image_rgba = image_channels<4>;
 
@@ -129,22 +127,20 @@ namespace deckard
 		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
 		{
 			for (u32 x = 0; x < width; ++x)
-		{
-			const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-			ser.write<u8>(static_cast<u8>(c.b));
-			ser.write<u8>(static_cast<u8>(c.g));
-			ser.write<u8>(static_cast<u8>(c.r));
+			{
+				const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				ser.write<u8>(static_cast<u8>(c.b));
+				ser.write<u8>(static_cast<u8>(c.g));
+				ser.write<u8>(static_cast<u8>(c.r));
+			}
+			for (u32 k = 0; k < row_padding; ++k)
+				ser.write<u8>(pad[0]);
 		}
-		for (u32 k = 0; k < row_padding; ++k)
-			ser.write<u8>(pad[0]);
+
+		auto out_span = ser.data();
+		auto result   = file::write({.file = path, .buffer = out_span});
+		return result.has_value() && *result == out_span.size();
 	}
-
-	auto out_span = ser.data();
-	auto result   = file::write({.file = path, .buffer = out_span});
-	return result.has_value() && *result == out_span.size();
-}
-
-
 
 	// Load a 24-bit uncompressed BMP (BI_RGB).
 	// Supports bottom-up DIBs with 4-byte-aligned rows (as produced by `save_bmp`).
@@ -158,13 +154,11 @@ namespace deckard
 			return {};
 
 		auto u16_le = [&](size_t off) -> u16
-		{
-			return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8));
-		};
+		{ return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8)); };
 		auto u32_le = [&](size_t off) -> u32
 		{
-			return static_cast<u32>(static_cast<u32>(bytes[off + 0]) | (static_cast<u32>(bytes[off + 1]) << 8)
-			                       | (static_cast<u32>(bytes[off + 2]) << 16) | (static_cast<u32>(bytes[off + 3]) << 24));
+			return static_cast<u32>(static_cast<u32>(bytes[off + 0]) | (static_cast<u32>(bytes[off + 1]) << 8) |
+									(static_cast<u32>(bytes[off + 2]) << 16) | (static_cast<u32>(bytes[off + 3]) << 24));
 		};
 		auto i32_le = [&](size_t off) -> i32 { return static_cast<i32>(u32_le(off)); };
 
@@ -192,9 +186,9 @@ namespace deckard
 		const u32  width    = static_cast<u32>(width_i);
 		const u32  height   = static_cast<u32>(top_down ? -height_i : height_i);
 
-		const u16 planes    = u16_le(26);
-		const u16 bpp       = u16_le(28);
-		const u32 compress  = u32_le(30);
+		const u16 planes   = u16_le(26);
+		const u16 bpp      = u16_le(28);
+		const u32 compress = u32_le(30);
 		if (planes != 1u)
 			return {};
 		if (bpp != 24u)
@@ -213,15 +207,15 @@ namespace deckard
 		image_rgb img(width, height);
 		for (u32 y = 0; y < height; ++y)
 		{
-			const u32 src_y = top_down ? y : (height - 1 - y);
+			const u32    src_y   = top_down ? y : (height - 1 - y);
 			const size_t row_off = static_cast<size_t>(pixel_offset) + static_cast<size_t>(src_y) * row_bytes;
 			for (u32 x = 0; x < width; ++x)
 			{
 				const size_t p = row_off + static_cast<size_t>(x) * bytes_per_pixel;
-				rgb c;
-				c.b = bytes[p + 0];
-				c.g = bytes[p + 1];
-				c.r = bytes[p + 2];
+				rgb          c;
+				c.b                                           = bytes[p + 0];
+				c.g                                           = bytes[p + 1];
+				c.r                                           = bytes[p + 2];
 				img[static_cast<u16>(x), static_cast<u16>(y)] = c;
 			}
 		}
@@ -241,9 +235,7 @@ namespace deckard
 			return {};
 
 		auto u16_le = [&](size_t off) -> u16
-		{
-			return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8));
-		};
+		{ return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8)); };
 
 		const u8  id_length      = bytes[0];
 		const u8  color_map_type = bytes[1];
@@ -284,8 +276,8 @@ namespace deckard
 
 		auto pixel_at = [&](u16 x, u16 y) -> const u8*
 		{
-			const u16 src_y = origin_top ? y : static_cast<u16>((height - 1) - y);
-			const size_t idx = (static_cast<size_t>(src_y) * width + x) * bytes_per_pixel;
+			const u16    src_y = origin_top ? y : static_cast<u16>((height - 1) - y);
+			const size_t idx   = (static_cast<size_t>(src_y) * width + x) * bytes_per_pixel;
 			return &bytes[header_bytes + idx];
 		};
 
@@ -297,10 +289,10 @@ namespace deckard
 				for (u16 x = 0; x < width; ++x)
 				{
 					const u8* p = pixel_at(x, y);
-					rgb c;
-					c.b = p[0];
-					c.g = p[1];
-					c.r = p[2];
+					rgb       c;
+					c.b          = p[0];
+					c.g          = p[1];
+					c.r          = p[2];
 					img.at(x, y) = c;
 				}
 			}
@@ -315,10 +307,10 @@ namespace deckard
 				for (u16 x = 0; x < width; ++x)
 				{
 					const u8* p = pixel_at(x, y);
-					rgb c;
-					c.b = p[0];
-					c.g = p[1];
-					c.r = p[2];
+					rgb       c;
+					c.b       = p[0];
+					c.g       = p[1];
+					c.r       = p[2];
 					img[x, y] = c;
 				}
 			}
@@ -332,7 +324,7 @@ namespace deckard
 	{
 		struct qoi_px
 		{
-			u8 r{0}, g{0}, b{0}, a{255};
+			u8             r{0}, g{0}, b{0}, a{255};
 			constexpr bool operator==(const qoi_px&) const = default;
 		};
 
@@ -351,7 +343,7 @@ namespace deckard
 			ser.write<u8>('o');
 			ser.write<u8>('i');
 			ser.write<u8>('f');
-			ser.write_be<u32>(width);  // QOI stores width/height as big-endian
+			ser.write_be<u32>(width); // QOI stores width/height as big-endian
 			ser.write_be<u32>(height);
 			ser.write<u8>(channels);
 			ser.write<u8>(colorspace);
@@ -368,8 +360,8 @@ namespace deckard
 		inline void qoi_encode_pixels(deckard::serializer& ser, std::span<const qoi_px> pixels)
 		{
 			std::array<qoi_px, 64> index{};
-			qoi_px prev{0, 0, 0, 255};
-			u8     run = 0;
+			qoi_px                 prev{0, 0, 0, 255};
+			u8                     run = 0;
 
 			for (size_t i = 0; i < pixels.size(); ++i)
 			{
@@ -413,7 +405,7 @@ namespace deckard
 						continue;
 					}
 
-					const i32 dg_l = dg;
+					const i32 dg_l  = dg;
 					const i32 dr_dg = dr - dg_l;
 					const i32 db_dg = db - dg_l;
 					if (dg_l > -33 && dg_l < 32 && dr_dg > -9 && dr_dg < 8 && db_dg > -9 && db_dg < 8)
@@ -440,7 +432,7 @@ namespace deckard
 				prev = px;
 			}
 		}
-	}
+	} // namespace detail
 
 	// Save as QOI (Quite OK Image) per https://qoiformat.org.
 	export bool save_qoi(std::filesystem::path path, const image_rgb& img)
@@ -456,21 +448,21 @@ namespace deckard
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-						const auto& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				const auto& c                              = img[static_cast<u16>(x), static_cast<u16>(y)];
 				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, 255};
 			}
 		}
 
-	deckard::serializer ser(deckard::padding::yes);
-	ser.reserve(14 + pixels.size() * 5 + 8);
-	detail::qoi_write_header(ser, width, height, 3, 0);
-	detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
-	detail::qoi_write_end(ser);
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(14 + pixels.size() * 5 + 8);
+		detail::qoi_write_header(ser, width, height, 3, 0);
+		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
+		detail::qoi_write_end(ser);
 
-	auto out_span = ser.data();
-	auto result   = file::write({.file = path, .buffer = out_span});
-	return result.has_value() && *result == out_span.size();
-}
+		auto out_span = ser.data();
+		auto result   = file::write({.file = path, .buffer = out_span});
+		return result.has_value() && *result == out_span.size();
+	}
 
 	export bool save_qoi(std::filesystem::path path, const image_rgba& img)
 	{
@@ -485,21 +477,21 @@ namespace deckard
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-						const auto& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				const auto& c                              = img[static_cast<u16>(x), static_cast<u16>(y)];
 				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, c.a};
 			}
 		}
 
 
-	deckard::serializer ser(deckard::padding::yes);
-	ser.reserve(14 + pixels.size() * 5 + 8);
-	detail::qoi_write_header(ser, width, height, 4, 0);
-	detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
-	detail::qoi_write_end(ser);
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(14 + pixels.size() * 5 + 8);
+		detail::qoi_write_header(ser, width, height, 4, 0);
+		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
+		detail::qoi_write_end(ser);
 
-	auto out_span = ser.data();
-	auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
-	return result.has_value() && *result == out_span.size();
+		auto out_span = ser.data();
+		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
+		return result.has_value() && *result == out_span.size();
 	}
 
 	// Save as uncompressed TGA (type 2).
@@ -520,25 +512,25 @@ namespace deckard
 		ser.reserve(file_bytes);
 
 		// TGA header (18 bytes)
-		ser.write<u8>(0);                 // id length
-		ser.write<u8>(0);                 // color map type (none)
-		ser.write<u8>(2);                 // image type (2 = uncompressed true-color)
-		ser.write_le<u16>(0);             // color map first entry index
-		ser.write_le<u16>(0);             // color map length
-		ser.write<u8>(0);                 // color map entry size
-		ser.write_le<u16>(0);             // x-origin
-		ser.write_le<u16>(0);             // y-origin
+		ser.write<u8>(0);           // id length
+		ser.write<u8>(0);           // color map type (none)
+		ser.write<u8>(2);           // image type (2 = uncompressed true-color)
+		ser.write_le<u16>(0);       // color map first entry index
+		ser.write_le<u16>(0);       // color map length
+		ser.write<u8>(0);           // color map entry size
+		ser.write_le<u16>(0);       // x-origin
+		ser.write_le<u16>(0);       // y-origin
 		ser.write_le<u16>(static_cast<u16>(width));
 		ser.write_le<u16>(static_cast<u16>(height));
-		ser.write<u8>(24);                // pixel depth
-		ser.write<u8>(0b0000'0000);       // image descriptor (origin bottom-left, no alpha)
+		ser.write<u8>(24);          // pixel depth
+		ser.write<u8>(0b0000'0000); // image descriptor (origin bottom-left, no alpha)
 
 		// Pixel data (BGR), bottom-left origin => write bottom-up rows
 		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-							const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
 				ser.write<u8>(static_cast<u8>(c.b));
 				ser.write<u8>(static_cast<u8>(c.g));
 				ser.write<u8>(static_cast<u8>(c.r));
@@ -566,25 +558,25 @@ namespace deckard
 		ser.reserve(file_bytes);
 
 		// TGA header (18 bytes)
-		ser.write<u8>(0);                 // id length
-		ser.write<u8>(0);                 // color map type (none)
-		ser.write<u8>(2);                 // image type (2 = uncompressed true-color)
-		ser.write_le<u16>(0);             // color map first entry index
-		ser.write_le<u16>(0);             // color map length
-		ser.write<u8>(0);                 // color map entry size
-		ser.write_le<u16>(0);             // x-origin
-		ser.write_le<u16>(0);             // y-origin
+		ser.write<u8>(0);           // id length
+		ser.write<u8>(0);           // color map type (none)
+		ser.write<u8>(2);           // image type (2 = uncompressed true-color)
+		ser.write_le<u16>(0);       // color map first entry index
+		ser.write_le<u16>(0);       // color map length
+		ser.write<u8>(0);           // color map entry size
+		ser.write_le<u16>(0);       // x-origin
+		ser.write_le<u16>(0);       // y-origin
 		ser.write_le<u16>(static_cast<u16>(width));
 		ser.write_le<u16>(static_cast<u16>(height));
-		ser.write<u8>(32);                // pixel depth
-		ser.write<u8>(0b0000'1000);       // image descriptor (origin bottom-left, 8 alpha bits)
+		ser.write<u8>(32);          // pixel depth
+		ser.write<u8>(0b0000'1000); // image descriptor (origin bottom-left, 8 alpha bits)
 
 		// Pixel data (BGRA), bottom-left origin => write bottom-up rows
 		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-							const image_rgba::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				const image_rgba::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
 				ser.write<u8>(static_cast<u8>(c.b));
 				ser.write<u8>(static_cast<u8>(c.g));
 				ser.write<u8>(static_cast<u8>(c.r));
@@ -596,7 +588,6 @@ namespace deckard
 		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
 		return result.has_value() && *result == out_span.size();
 	}
-
 
 
 }; // namespace deckard

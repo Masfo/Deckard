@@ -150,6 +150,8 @@ namespace deckard
 			, b(blue)
 		{
 		}
+
+		bool operator==(const rgb& rhs) const { return r == rhs.r and g == rhs.g and b == rhs.b; }
 	};
 
 	export struct rgba

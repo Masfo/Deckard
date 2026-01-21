@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.1)
 
 
 
@@ -10,6 +10,9 @@ add_executable(tests)
 
 set_target_properties(tests PROPERTIES
     CXX_STANDARD 23
+    #CXX_MODULE_STD 1
+    CXX_SCAN_FOR_MODULES ON
+
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     # COMPILE_WARNING_AS_ERROR ON
@@ -67,6 +70,9 @@ target_sources(tests PUBLIC
     tests/commandline_test.cpp
     tests/utils_test.cpp
     tests/colors_test.cpp
+
+    # Image
+    tests/image_test.cpp
 
     # Monocyperh
     tests/monocypher_test.cpp
