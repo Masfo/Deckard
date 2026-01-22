@@ -83,9 +83,69 @@ namespace deckard
 	export using image_rgb  = image_channels<3>;
 	export using image_rgba = image_channels<4>;
 
+	export std::expected<bool, std::string> encode_bmp(const image_rgb& img, std::span<u8> buffer)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 || height == 0)
+			return std::unexpected("encode_bmp: image has zero dimensions");
+
+		constexpr u32 bytes_per_pixel = 3;
+		const u32     row_stride      = width * bytes_per_pixel;
+		const u32     row_padding     = (4u - (row_stride % 4u)) % 4u;
+		const u32     pixel_bytes     = (row_stride + row_padding) * height;
+		const u32     header_bytes    = 14u + 40u;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		if (buffer.size() < file_bytes)
+			return std::unexpected(std::format("encode_bmp: buffer too small (need {}, got {})", file_bytes, buffer.size()));
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(file_bytes);
+
+		ser.write<u8>(static_cast<u8>('B'));
+		ser.write<u8>(static_cast<u8>('M'));
+		ser.write_le<u32>(file_bytes);
+		ser.write_le<u16>(0);
+		ser.write_le<u16>(0);
+		ser.write_le<u32>(header_bytes);
+
+		// DIB header
+		ser.write_le<u32>(40u);
+		ser.write_le<i32>(static_cast<i32>(width));
+		ser.write_le<i32>(static_cast<i32>(height));
+		ser.write_le<u16>(1);
+		ser.write_le<u16>(24); // BPP
+		ser.write_le<u32>(0);  // No compression (BI_RGB)
+		ser.write_le<u32>(pixel_bytes);
+		ser.write_le<i32>(2835);  // Print res. horizontal
+		ser.write_le<i32>(2835);  // Print res. vertical
+		ser.write_le<u32>(0);
+		ser.write_le<u32>(0);
+
+		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+				const auto& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				ser.write<u8>(static_cast<u8>(c.b));
+				ser.write<u8>(static_cast<u8>(c.g));
+				ser.write<u8>(static_cast<u8>(c.r));
+			}
+			for (u32 k = 0; k < row_padding; ++k)
+				ser.write<u8>(0);
+		}
+
+		auto out_span = ser.data();
+		if (out_span.size() != file_bytes)
+			return std::unexpected(std::format("encode_bmp: internal size mismatch (expected {}, got {})", file_bytes, out_span.size()));
+
+		std::memcpy(buffer.data(), out_span.data(), file_bytes);
+		return true;
+	}
+
 	export bool save_bmp(std::filesystem::path path, const image_rgb& img)
 	{
-		using byte       = std::uint8_t;
 		const u32 width  = img.width();
 		const u32 height = img.height();
 		if (width == 0 || height == 0)
@@ -98,49 +158,17 @@ namespace deckard
 		const u32     header_bytes    = 14u + 40u;
 		const u32     file_bytes      = header_bytes + pixel_bytes;
 
-		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(file_bytes);
+		std::vector<u8> out;
+		out.resize(file_bytes);
+		auto encoded = encode_bmp(img, out);
+		if (not encoded)
+			return false;
 
-		// BITMAPFILEHEADER (14 bytes)
-		ser.write<u8>(static_cast<u8>('B'));
-		ser.write<u8>(static_cast<u8>('M'));
-		ser.write_le<u32>(file_bytes);
-		ser.write_le<u16>(0);
-		ser.write_le<u16>(0);
-		ser.write_le<u32>(header_bytes);
-
-		// BITMAPINFOHEADER (40 bytes)
-		ser.write_le<u32>(40u);
-		ser.write_le<i32>(static_cast<i32>(width));
-		ser.write_le<i32>(static_cast<i32>(height));
-		ser.write_le<u16>(1);
-		ser.write_le<u16>(24);
-		ser.write_le<u32>(0);
-		ser.write_le<u32>(pixel_bytes);
-		ser.write_le<i32>(2835);
-		ser.write_le<i32>(2835);
-		ser.write_le<u32>(0);
-		ser.write_le<u32>(0);
-
-		// pixel data: bottom-up, BGR
-		constexpr std::uint8_t pad[3] = {0, 0, 0};
-		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
-		{
-			for (u32 x = 0; x < width; ++x)
-			{
-				const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-				ser.write<u8>(static_cast<u8>(c.b));
-				ser.write<u8>(static_cast<u8>(c.g));
-				ser.write<u8>(static_cast<u8>(c.r));
-			}
-			for (u32 k = 0; k < row_padding; ++k)
-				ser.write<u8>(pad[0]);
-		}
-
-		auto out_span = ser.data();
-		auto result   = file::write({.file = path, .buffer = out_span});
-		return result.has_value() && *result == out_span.size();
+		auto result = file::write({.file = path, .buffer = out});
+		return result.has_value() and *result == out.size();
 	}
+
+	// save_bmp_to_memory -> save_bmp from span to disk
 
 	// Load a 24-bit uncompressed BMP (BI_RGB).
 	// Supports bottom-up DIBs with 4-byte-aligned rows (as produced by `save_bmp`).

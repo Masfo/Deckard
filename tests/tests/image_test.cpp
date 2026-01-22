@@ -39,6 +39,50 @@ TEST_CASE("image", "[image]")
 		CHECK(img[0, 1] == deckard::rgba{0, 0, 255, 128});
 		CHECK(img[1, 1] == deckard::rgba{255, 255, 0, 255});
 	}
+
+	SECTION("encode_bmp_2x2")
+	{
+		deckard::image_rgb img(2, 2);
+		img[0, 0] = {1, 2, 3};
+		img[1, 0] = {4, 5, 6};
+		img[0, 1] = {7, 8, 9};
+		img[1, 1] = {10, 11, 12};
+
+		constexpr size_t header_bytes = 14u + 40u;
+		constexpr size_t pixel_offset = header_bytes;
+		constexpr size_t row_stride   = 2u * 3u;
+		constexpr size_t row_padding  = (4u - (row_stride % 4u)) % 4u;
+		constexpr size_t row_bytes    = row_stride + row_padding;
+		constexpr size_t pixel_bytes  = row_bytes * 2u;
+		constexpr size_t file_bytes   = header_bytes + pixel_bytes;
+
+		std::vector<deckard::u8> out;
+		out.resize(file_bytes);
+		auto res = deckard::encode_bmp(img, out);
+		CHECK(res.has_value());
+		CHECK(*res == true);
+
+		CHECK(out[0] == static_cast<deckard::u8>('B'));
+		CHECK(out[1] == static_cast<deckard::u8>('M'));
+		CHECK(out[10] == static_cast<deckard::u8>(pixel_offset & 0xFFu));
+		CHECK(out[11] == static_cast<deckard::u8>((pixel_offset >> 8) & 0xFFu));
+		CHECK(out[28] == 24); // 
+
+		CHECK(out[pixel_offset + 0] == 9);  
+		CHECK(out[pixel_offset + 1] == 8);  
+		CHECK(out[pixel_offset + 2] == 7);  
+		CHECK(out[pixel_offset + 3] == 12); 
+		CHECK(out[pixel_offset + 4] == 11);
+		CHECK(out[pixel_offset + 5] == 10);
+
+		const size_t row0 = pixel_offset + row_bytes;
+		CHECK(out[row0 + 0] == 3);
+		CHECK(out[row0 + 1] == 2);
+		CHECK(out[row0 + 2] == 1);
+		CHECK(out[row0 + 3] == 6);
+		CHECK(out[row0 + 4] == 5);
+		CHECK(out[row0 + 5] == 4);
+	}
 	SECTION("rgb")
 	{
 		deckard::image_rgb img(4, 3);
