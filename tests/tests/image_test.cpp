@@ -82,6 +82,15 @@ TEST_CASE("image", "[image]")
 		CHECK(out[row0 + 3] == 6);
 		CHECK(out[row0 + 4] == 5);
 		CHECK(out[row0 + 5] == 4);
+
+		auto decoded = deckard::decode_bmp(out);
+		REQUIRE(decoded.has_value());
+		CHECK(decoded->width() == 2);
+		CHECK(decoded->height() == 2);
+		CHECK((*decoded)[0, 0] == deckard::rgb{1, 2, 3});
+		CHECK((*decoded)[1, 0] == deckard::rgb{4, 5, 6});
+		CHECK((*decoded)[0, 1] == deckard::rgb{7, 8, 9});
+		CHECK((*decoded)[1, 1] == deckard::rgb{10, 11, 12});
 	}
 	SECTION("rgb")
 	{

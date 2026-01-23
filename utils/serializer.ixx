@@ -120,6 +120,28 @@ namespace deckard
 			}
 		}
 
+		template<std::integral T>
+		T read_le()
+		{
+			align_to_byte_offset(readpos);
+			assert::check(byte_index(readpos) + sizeof(T) <= buffer.size(), "Buffer has no more data");
+
+			using U = std::make_unsigned_t<T>;
+			U v{};
+			for (size_t i = 0; i < sizeof(T); ++i)
+			{
+				v |= static_cast<U>(buffer[byte_index(readpos)]) << (i * 8);
+				readpos += 8;
+			}
+			return static_cast<T>(v);
+		}
+
+		template<std::integral T>
+		T read_be()
+		{
+			return read<T>();
+		}
+
 
 	private:
 		u64 byte_index(u64 offset) const { return offset / 8u; }
