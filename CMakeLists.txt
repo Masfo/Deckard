@@ -1,11 +1,10 @@
 
-cmake_minimum_required (VERSION 3.32.0)
+cmake_minimum_required (VERSION 4.1)
 
 
 project(deckard LANGUAGES CXX)
 
 add_library(deckard STATIC)
-
 
 option(DECKARD_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
@@ -23,6 +22,7 @@ option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 set_target_properties(deckard PROPERTIES
 	CXX_STANDARD 23
 	CXX_STANDARD_REQUIRED ON
+	#CXX_MODULE_STD 1
 	CXX_EXTENSIONS OFF
 	CXX_SCAN_FOR_MODULES ON
 	# COMPILE_WARNING_AS_ERROR ON

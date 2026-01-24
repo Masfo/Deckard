@@ -912,6 +912,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
 
+	// BMP, per row padding bytes,end of every row aligned to 4 bytes
 
 
 	_ = 0;

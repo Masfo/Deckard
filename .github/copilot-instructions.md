@@ -13,14 +13,15 @@
 - Use `auto` for type deduction when the type is obvious from the right-hand side.
 - Prefer range-based for loops over traditional for loops when iterating collections.
 - Use `std::string_view` for read-only string parameters.
-- use keywords "not", "and", "or" for boolean operations instead of "!", "&&", "||"; Not for bitwise operations.
+- Use keywords "not", "and", "or" for boolean operations instead of "!", "&&", "||"; Not for bitwise operations.
 - Use `nullptr` instead of `NULL` or `0` for null pointers.
 - Prefer `enum class` over traditional `enum` for better type safety.
-- Favor `std::unique_ptr`for dynamic memory management instead of raw pointers.
+- Favor `std::unique_ptr` for dynamic memory management instead of raw pointers.
 - Use `override` and `final` keywords for virtual functions to improve code clarity.
 - Use `std::optional` for parameters that may or may not have a value.
 - Prefer `std::array` or `std::vector` over C-style arrays for better safety and functionality.
 - Use `std::move` to indicate ownership transfer of resources.
+- Use two-parameter `operator[]` for 2D indexing (e.g., `img[x, y]`) in this codebase; call sites should use that style.
 
 ## Modules
 - Use C++ modules (`export module ...;`, `import ...;`) consistently.
