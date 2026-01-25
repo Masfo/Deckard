@@ -933,15 +933,20 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		}
 	}
 
-	auto xor2 = load_tga("xor2.tga");
-	save_qoi("xor2.qoi", *xor2);
-	save_tga("xor3.tga", *xor2);
-
-
 	save_bmp("xor_texture.bmp", xortexture);
-	save_tga("xor_texture.tga", xortexture);
-	save_qoi("xor_texture.qoi", xortexture);
 
+	auto loaded_xor = load_bmp("xor_texture.bmp");
+
+	if (loaded_xor == xortexture)
+	{
+		info("xor texture bmp save/load successful");
+	}
+	else
+	{
+		info("xor texture bmp save/load failed");
+	}
+
+	save_bmp("xor_texture_copy.bmp", *loaded_xor);
 
 	info("heloo");
 

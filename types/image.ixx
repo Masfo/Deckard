@@ -78,6 +78,13 @@ namespace deckard
 		color_type& operator[](u16 x, u16 y) { return at(x, y); }
 
 		const color_type& operator[](u16 x, u16 y) const { return at(x, y); }
+
+		bool operator==(const image_channels& other) const
+		{
+			if (m_width != other.m_width or m_height != other.m_height)
+				return false;
+			return std::ranges::equal(m_data, other.m_data);
+		}
 	};
 
 	export using image_rgb  = image_channels<3>;
