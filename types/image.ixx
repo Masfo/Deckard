@@ -269,62 +269,62 @@ namespace deckard
 		return decode_bmp(bytes);
 	}
 
-	// Load an uncompressed true-color TGA (type 2), 24bpp (BGR) or 32bpp (BGRA).
-	// Returns empty optional on failure.
-	// Note: TGA origin is controlled by descriptor bit 5 (top-left if set, bottom-left if clear).
-	export std::optional<image_rgb> load_tga(const std::filesystem::path& path)
+	// ###############################################################################################
+	// TGA ###########################################################################################
+
+
+	export std::optional<image_rgb> decode_tga(std::span<const u8> buffer)
 	{
-		const auto bytes = file::read(path);
-		if (bytes.empty())
+		if (buffer.empty())
 			return {};
-		if (bytes.size() < 18u)
+		if (buffer.size() < 18u)
 			return {};
 
 		auto u16_le = [&](size_t off) -> u16
-		{ return static_cast<u16>(static_cast<u16>(bytes[off + 0]) | (static_cast<u16>(bytes[off + 1]) << 8)); };
+		{ return static_cast<u16>(static_cast<u16>(buffer[off + 0]) | (static_cast<u16>(buffer[off + 1]) << 8)); };
 
-		const u8  id_length      = bytes[0];
-		const u8  color_map_type = bytes[1];
-		const u8  image_type     = bytes[2];
+		const u8  id_length      = buffer[0];
+		const u8  color_map_type = buffer[1];
+		const u8  image_type     = buffer[2];
 		const u16 cmap_length    = u16_le(5);
-		const u8  cmap_depth     = bytes[7];
+		const u8  cmap_depth     = buffer[7];
 		const u16 width          = u16_le(12);
 		const u16 height         = u16_le(14);
-		const u8  pixel_depth    = bytes[16];
-		const u8  descriptor     = bytes[17];
+		const u8  pixel_depth    = buffer[16];
+		const u8  descriptor     = buffer[17];
 
-		if (width == 0 || height == 0)
+		if (width == 0 or height == 0)
 			return {};
 		if (color_map_type != 0)
 			return {};
-		if (cmap_length != 0 || cmap_depth != 0)
+		if (cmap_length != 0 or cmap_depth != 0)
 			return {};
 		if (image_type != 2)
 			return {};
-		if (pixel_depth != 24 && pixel_depth != 32)
+		if (pixel_depth != 24 and pixel_depth != 32)
 			return {};
 
 		const bool origin_top = (descriptor & 0b0010'0000) != 0;
 		const u8   alpha_bits = descriptor & 0b0000'1111;
-		if (pixel_depth == 32 && alpha_bits != 8)
+		if (pixel_depth == 32 and alpha_bits != 8)
 		{
 			// tolerate but for our writer we expect 8
 		}
 
 		const size_t header_bytes = 18u + static_cast<size_t>(id_length);
-		if (bytes.size() < header_bytes)
+		if (buffer.size() < header_bytes)
 			return {};
 
 		const size_t bytes_per_pixel = static_cast<size_t>(pixel_depth / 8);
 		const size_t pixel_bytes     = static_cast<size_t>(width) * static_cast<size_t>(height) * bytes_per_pixel;
-		if (bytes.size() < header_bytes + pixel_bytes)
+		if (buffer.size() < header_bytes + pixel_bytes)
 			return {};
 
 		auto pixel_at = [&](u16 x, u16 y) -> const u8*
 		{
 			const u16    src_y = origin_top ? y : static_cast<u16>((height - 1) - y);
 			const size_t idx   = (static_cast<size_t>(src_y) * width + x) * bytes_per_pixel;
-			return &bytes[header_bytes + idx];
+			return &buffer[header_bytes + idx];
 		};
 
 		if (pixel_depth == 24)
@@ -365,6 +365,164 @@ namespace deckard
 
 		return {};
 	}
+
+	export std::optional<image_rgb> load_tga(const std::filesystem::path& path)
+	{
+		const auto bytes = file::read(path);
+		return decode_tga(bytes);
+	}
+
+	export std::expected<bool, std::string> encode_tga(const image_rgb& img, std::span<u8> buffer)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 or height == 0)
+			return std::unexpected("encode_tga: image has zero dimensions");
+
+		constexpr u8  bytes_per_pixel = 3;
+		constexpr u32 header_bytes    = 18;
+		const u32     pixel_bytes     = width * height * bytes_per_pixel;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		if (buffer.size() < file_bytes)
+			return std::unexpected(std::format("encode_tga: buffer too small (need {}, got {})", file_bytes, buffer.size()));
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(file_bytes);
+
+		// TGA header (18 bytes)
+		ser.write<u8>(0);           // id length
+		ser.write<u8>(0);           // color map type (none)
+		ser.write<u8>(2);           // image type (2 = uncompressed true-color)
+		ser.write_le<u16>(0);       // color map first entry index
+		ser.write_le<u16>(0);       // color map length
+		ser.write<u8>(0);           // color map entry size
+		ser.write_le<u16>(0);       // x-origin
+		ser.write_le<u16>(0);       // y-origin
+		ser.write_le<u16>(static_cast<u16>(width));
+		ser.write_le<u16>(static_cast<u16>(height));
+		ser.write<u8>(24);          // pixel depth
+		ser.write<u8>(0b0000'0000); // image descriptor (origin bottom-left, no alpha)
+
+		// Pixel data (BGR), bottom-left origin => write bottom-up rows
+		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+				const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				ser.write<u8>(static_cast<u8>(c.b));
+				ser.write<u8>(static_cast<u8>(c.g));
+				ser.write<u8>(static_cast<u8>(c.r));
+			}
+		}
+
+		auto out_span = ser.data();
+		if (out_span.size() != file_bytes)
+			return std::unexpected(std::format("encode_tga: internal size mismatch (expected {}, got {})", file_bytes, out_span.size()));
+
+		std::memcpy(buffer.data(), out_span.data(), file_bytes);
+		return true;
+	}
+
+	export std::expected<bool, std::string> encode_tga(const image_rgba& img, std::span<u8> buffer)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 or height == 0)
+			return std::unexpected("encode_tga: image has zero dimensions");
+
+		constexpr u8  bytes_per_pixel = 4;
+		constexpr u32 header_bytes    = 18;
+		const u32     pixel_bytes     = width * height * bytes_per_pixel;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		if (buffer.size() < file_bytes)
+			return std::unexpected(std::format("encode_tga: buffer too small (need {}, got {})", file_bytes, buffer.size()));
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(file_bytes);
+
+		// TGA header (18 bytes)
+		ser.write<u8>(0);           // id length
+		ser.write<u8>(0);           // color map type (none)
+		ser.write<u8>(2);           // image type (2 = uncompressed true-color)
+		ser.write_le<u16>(0);       // color map first entry index
+		ser.write_le<u16>(0);       // color map length
+		ser.write<u8>(0);           // color map entry size
+		ser.write_le<u16>(0);       // x-origin
+		ser.write_le<u16>(0);       // y-origin
+		ser.write_le<u16>(static_cast<u16>(width));
+		ser.write_le<u16>(static_cast<u16>(height));
+		ser.write<u8>(32);          // pixel depth
+		ser.write<u8>(0b0000'1000); // image descriptor (origin bottom-left, 8 alpha bits)
+
+		// Pixel data (BGRA), bottom-left origin => write bottom-up rows
+		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
+		{
+			for (u32 x = 0; x < width; ++x)
+			{
+				const image_rgba::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
+				ser.write<u8>(static_cast<u8>(c.b));
+				ser.write<u8>(static_cast<u8>(c.g));
+				ser.write<u8>(static_cast<u8>(c.r));
+				ser.write<u8>(static_cast<u8>(c.a));
+			}
+		}
+
+		auto out_span = ser.data();
+		if (out_span.size() != file_bytes)
+			return std::unexpected(std::format("encode_tga: internal size mismatch (expected {}, got {})", file_bytes, out_span.size()));
+
+		std::memcpy(buffer.data(), out_span.data(), file_bytes);
+		return true;
+	}
+
+	export bool save_tga(std::filesystem::path path, const image_rgb& img)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 or height == 0)
+			return false;
+
+		constexpr u8  bytes_per_pixel = 3;
+		constexpr u32 header_bytes    = 18;
+		const u32     pixel_bytes     = width * height * bytes_per_pixel;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		std::vector<u8> out;
+		out.resize(file_bytes);
+		auto encoded = encode_tga(img, out);
+		if (not encoded)
+			return false;
+
+		auto result = file::write({.file = path, .buffer = out, .mode = file::filemode::overwrite});
+		return result.has_value() and *result == out.size();
+	}
+
+	export bool save_tga(std::filesystem::path path, const image_rgba& img)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 or height == 0)
+			return false;
+
+		constexpr u8  bytes_per_pixel = 4;
+		constexpr u32 header_bytes    = 18;
+		const u32     pixel_bytes     = width * height * bytes_per_pixel;
+		const u32     file_bytes      = header_bytes + pixel_bytes;
+
+		std::vector<u8> out;
+		out.resize(file_bytes);
+		auto encoded = encode_tga(img, out);
+		if (not encoded)
+			return false;
+
+		auto result = file::write({.file = path, .buffer = out, .mode = file::filemode::overwrite});
+		return result.has_value() and *result == out.size();
+	}
+
+	// ###############################################################################################
+	// QOI ###########################################################################################
 
 	namespace detail
 	{
