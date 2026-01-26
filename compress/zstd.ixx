@@ -10,9 +10,11 @@ import std;
 namespace deckard::zstd
 {
 
-	export u64 bound(const std::span<u8> input) { return ZSTD_compressBound(input.size()); }
+	export u64 bound(const u64 input_size) { return ZSTD_compressBound(input_size); }
 
-	export std::optional<u64> uncompressed_size(const std::span<u8> compressed_input)
+	export u64 bound(const std::span<const u8> input) { return ZSTD_compressBound(input.size()); }
+
+	export std::optional<u64> decompressed_size(const std::span<const u8> compressed_input)
 	{
 
 		u64 result = ZSTD_getFrameContentSize(compressed_input.data(), compressed_input.size());
@@ -30,6 +32,9 @@ namespace deckard::zstd
 			dbg::println("ZSTD: output size too small({}), should be atleast {}", output.size(), bound(input));
 			return {};
 		}
+		i32 level = ZSTD_maxCLevel();
+		if (compression_level > 0)
+			level = std::clamp(compression_level, ZSTD_minCLevel(), ZSTD_maxCLevel());
 
 		const int level = ZSTD_maxCLevel();
 
