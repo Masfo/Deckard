@@ -531,6 +531,16 @@ namespace deckard
 		// remaining
 		size_t remaining() const { return buffer.size() - byte_index(readpos); }
 
+		// Read all remaining bytes as a span
+		std::span<const u8> read_remaining()
+		{
+			align_to_byte_offset(readpos);
+			const size_t start = byte_index(readpos);
+			const size_t count = remaining();
+			readpos = buffer.size() * 8; // Move read position to end
+			return std::span<const u8>{buffer.data() + start, count};
+		}
+
 		// size in bytes
 		size_t size() const { return buffer.size(); }
 

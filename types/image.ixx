@@ -7,6 +7,9 @@ import deckard.assert;
 import deckard.math.utils;
 import deckard.file;
 import deckard.serializer;
+import deckard.zstd;
+
+
 
 namespace deckard
 {
@@ -49,13 +52,20 @@ namespace deckard
 
 		std::span<const color_type> data() const { return m_data; }
 
+		std::span<const u8> raw_data() const
+		{
+			return std::span<const u8>{reinterpret_cast<const u8*>(m_data.data()), m_data.size() * sizeof(color_type)};
+		}
+
+		u64 size_in_bytes() const { return raw_data().size_bytes(); }
+
 		void assign(std::span<const color_type> pixels)
 		{
 			assert::check(pixels.size() == m_data.size(), "pixel span size must match width*height");
 			std::ranges::copy(pixels, m_data.begin());
 		}
 
-		color_type& at(u16 x, u16 y)
+		color_type& at(u64 x, u64 y)
 		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
@@ -65,7 +75,7 @@ namespace deckard
 			return m_data[idx];
 		}
 
-		const color_type& at(u16 x, u16 y) const
+		const color_type& at(u64 x, u64 y) const
 		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
@@ -75,9 +85,9 @@ namespace deckard
 			return m_data[idx];
 		}
 
-		color_type& operator[](u16 x, u16 y) { return at(x, y); }
+		color_type& operator[](u64 x, u64 y) { return at(x, y); }
 
-		const color_type& operator[](u16 x, u16 y) const { return at(x, y); }
+		const color_type& operator[](u64 x, u64 y) const { return at(x, y); }
 
 		bool operator==(const image_channels& other) const
 		{
@@ -89,6 +99,18 @@ namespace deckard
 
 	export using image_rgb  = image_channels<3>;
 	export using image_rgba = image_channels<4>;
+
+	// ###############################################################################################
+	// PNG - Based on uPNG ###########################################################################
+
+
+
+
+
+
+	// ###############################################################################################
+	// BMP ###########################################################################################
+
 
 	export std::expected<bool, std::string> encode_bmp(const image_rgb& img, std::span<u8> buffer)
 	{
@@ -108,7 +130,7 @@ namespace deckard
 			return std::unexpected(std::format("encode_bmp: buffer too small (need {}, got {})", file_bytes, buffer.size()));
 
 		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(file_bytes);
+		ser.reserve(header_bytes);
 
 		ser.write<u8>(static_cast<u8>('B'));
 		ser.write<u8>(static_cast<u8>('M'));
@@ -122,25 +144,32 @@ namespace deckard
 		ser.write_le<i32>(static_cast<i32>(width));
 		ser.write_le<i32>(static_cast<i32>(height));
 		ser.write_le<u16>(1);
-		ser.write_le<u16>(24); // BPP
-		ser.write_le<u32>(0);  // No compression (BI_RGB)
+		ser.write_le<u16>(24);   // BPP
+		ser.write_le<u32>(0);    // No compression (BI_RGB)
 		ser.write_le<u32>(pixel_bytes);
-		ser.write_le<i32>(2835);  // Print res. horizontal
-		ser.write_le<i32>(2835);  // Print res. vertical
+		ser.write_le<i32>(2835); // Print res. horizontal
+		ser.write_le<i32>(2835); // Print res. vertical
 		ser.write_le<u32>(0);
 		ser.write_le<u32>(0);
 
+		// Write header to buffer
+		auto header_span = ser.data();
+		std::memcpy(buffer.data(), header_span.data(), header_bytes);
+
+		// Write pixels directly to buffer
+		u8* pixel_ptr = buffer.data() + header_bytes;
 		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-				const auto& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-				ser.write<u8>(static_cast<u8>(c.b));
-				ser.write<u8>(static_cast<u8>(c.g));
-				ser.write<u8>(static_cast<u8>(c.r));
+				const auto& c = img.at(static_cast<u16>(x), static_cast<u16>(y));
+				*pixel_ptr++  = static_cast<u8>(c.b);
+				*pixel_ptr++  = static_cast<u8>(c.g);
+				*pixel_ptr++  = static_cast<u8>(c.r);
 			}
+			// Row padding
 			for (u32 k = 0; k < row_padding; ++k)
-				ser.write<u8>(0);
+				*pixel_ptr++ = 0;
 		}
 
 		auto out_span = ser.data();
@@ -243,26 +272,21 @@ namespace deckard
 		{
 			const u32    src_y   = top_down ? y : (height - 1 - y);
 			const size_t row_off = static_cast<size_t>(pixel_offset) + static_cast<size_t>(src_y) * row_bytes;
-			deckard::serializer row(std::span<const u8>{buffer.data() + row_off, row_stride});
+			const u8*    row_ptr = buffer.data() + row_off;
+
 			for (u32 x = 0; x < width; ++x)
 			{
-				rgb c;
-				c.b = row.read<u8>();
-				c.g = row.read<u8>();
-				c.r = row.read<u8>();
-				img.at(static_cast<u16>(x), static_cast<u16>(y)) = c;
+				const size_t pixel_off = x * bytes_per_pixel;
+				rgb&         pixel     = img.at(static_cast<u16>(x), static_cast<u16>(y));
+				pixel.b                = row_ptr[pixel_off + 0];
+				pixel.g                = row_ptr[pixel_off + 1];
+				pixel.r                = row_ptr[pixel_off + 2];
 			}
 		}
 
 		return img;
 	}
 
-
-	// save_bmp_to_memory -> save_bmp from span to disk
-
-	// Load a 24-bit uncompressed BMP (BI_RGB).
-	// Supports bottom-up DIBs with 4-byte-aligned rows (as produced by `save_bmp`).
-	// Returns empty optional on failure.
 	export std::optional<image_rgb> load_bmp(const std::filesystem::path& path)
 	{
 		const auto bytes = file::read(path);
@@ -334,12 +358,11 @@ namespace deckard
 			{
 				for (u16 x = 0; x < width; ++x)
 				{
-					const u8* p = pixel_at(x, y);
-					rgb       c;
-					c.b          = p[0];
-					c.g          = p[1];
-					c.r          = p[2];
-					img.at(x, y) = c;
+					const u8* p  = pixel_at(x, y);
+					rgb&      px = img.at(x, y);
+					px.b         = p[0];
+					px.g         = p[1];
+					px.r         = p[2];
 				}
 			}
 			return image_rgb{std::move(img)};
@@ -352,12 +375,12 @@ namespace deckard
 			{
 				for (u16 x = 0; x < width; ++x)
 				{
-					const u8* p = pixel_at(x, y);
-					rgb       c;
-					c.b       = p[0];
-					c.g       = p[1];
-					c.r       = p[2];
-					img[x, y] = c;
+					const u8* p  = pixel_at(x, y);
+					rgb&      px = img.at(x, y);
+					px.b         = p[0];
+					px.g         = p[1];
+					px.r         = p[2];
+					// Ignore alpha channel
 				}
 			}
 			return image_rgb{std::move(img)};
@@ -388,7 +411,7 @@ namespace deckard
 			return std::unexpected(std::format("encode_tga: buffer too small (need {}, got {})", file_bytes, buffer.size()));
 
 		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(file_bytes);
+		ser.reserve(header_bytes);
 
 		// TGA header (18 bytes)
 		ser.write<u8>(0);           // id length
@@ -404,23 +427,23 @@ namespace deckard
 		ser.write<u8>(24);          // pixel depth
 		ser.write<u8>(0b0000'0000); // image descriptor (origin bottom-left, no alpha)
 
-		// Pixel data (BGR), bottom-left origin => write bottom-up rows
+		// Write header to buffer
+		auto header_span = ser.data();
+		std::memcpy(buffer.data(), header_span.data(), header_bytes);
+
+		// Write pixels directly to buffer (BGR), bottom-left origin => write bottom-up rows
+		u8* pixel_ptr = buffer.data() + header_bytes;
 		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-				const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-				ser.write<u8>(static_cast<u8>(c.b));
-				ser.write<u8>(static_cast<u8>(c.g));
-				ser.write<u8>(static_cast<u8>(c.r));
+				const auto& c = img.at(static_cast<u16>(x), static_cast<u16>(y));
+				*pixel_ptr++  = static_cast<u8>(c.b);
+				*pixel_ptr++  = static_cast<u8>(c.g);
+				*pixel_ptr++  = static_cast<u8>(c.r);
 			}
 		}
 
-		auto out_span = ser.data();
-		if (out_span.size() != file_bytes)
-			return std::unexpected(std::format("encode_tga: internal size mismatch (expected {}, got {})", file_bytes, out_span.size()));
-
-		std::memcpy(buffer.data(), out_span.data(), file_bytes);
 		return true;
 	}
 
@@ -440,7 +463,7 @@ namespace deckard
 			return std::unexpected(std::format("encode_tga: buffer too small (need {}, got {})", file_bytes, buffer.size()));
 
 		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(file_bytes);
+		ser.reserve(header_bytes);
 
 		// TGA header (18 bytes)
 		ser.write<u8>(0);           // id length
@@ -456,16 +479,21 @@ namespace deckard
 		ser.write<u8>(32);          // pixel depth
 		ser.write<u8>(0b0000'1000); // image descriptor (origin bottom-left, 8 alpha bits)
 
-		// Pixel data (BGRA), bottom-left origin => write bottom-up rows
+		// Write header to buffer
+		auto header_span = ser.data();
+		std::memcpy(buffer.data(), header_span.data(), header_bytes);
+
+		// Write pixels directly to buffer (BGRA), bottom-left origin => write bottom-up rows
+		u8* pixel_ptr = buffer.data() + header_bytes;
 		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
 		{
 			for (u32 x = 0; x < width; ++x)
 			{
-				const image_rgba::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-				ser.write<u8>(static_cast<u8>(c.b));
-				ser.write<u8>(static_cast<u8>(c.g));
-				ser.write<u8>(static_cast<u8>(c.r));
-				ser.write<u8>(static_cast<u8>(c.a));
+				const auto& c = img.at(static_cast<u16>(x), static_cast<u16>(y));
+				*pixel_ptr++  = static_cast<u8>(c.b);
+				*pixel_ptr++  = static_cast<u8>(c.g);
+				*pixel_ptr++  = static_cast<u8>(c.r);
+				*pixel_ptr++  = static_cast<u8>(c.a);
 			}
 		}
 
@@ -499,6 +527,13 @@ namespace deckard
 		return result.has_value() and *result == out.size();
 	}
 
+	export bool save_tga(fs::path path, std::optional<image_rgb> img)
+	{
+		if (not img.has_value())
+			return false;
+		return save_tga(path, *img);
+	}
+
 	export bool save_tga(std::filesystem::path path, const image_rgba& img)
 	{
 		const u32 width  = img.width();
@@ -519,6 +554,13 @@ namespace deckard
 
 		auto result = file::write({.file = path, .buffer = out, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
+	}
+
+	export bool save_tga(fs::path path, std::optional<image_rgba> img)
+	{
+		if (not img.has_value())
+			return false;
+		return save_tga(path, *img);
 	}
 
 	// ###############################################################################################
