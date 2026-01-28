@@ -615,7 +615,7 @@ namespace deckard
 
 				if (px == prev)
 				{
-					if (++run == 62 || i == pixels.size() - 1)
+					if (++run == 62 or i == pixels.size() - 1)
 					{
 						ser.write<u8>(static_cast<u8>(qoi_op_run | (run - 1)));
 						run = 0;
@@ -644,7 +644,7 @@ namespace deckard
 					const i32 dg = static_cast<i32>(px.g) - static_cast<i32>(prev.g);
 					const i32 db = static_cast<i32>(px.b) - static_cast<i32>(prev.b);
 
-					if (dr > -3 && dr < 2 && dg > -3 && dg < 2 && db > -3 && db < 2)
+					if (dr > -3 and dr < 2 and dg > -3 and dg < 2 and db > -3 and db < 2)
 					{
 						ser.write<u8>(static_cast<u8>(qoi_op_diff | ((dr + 2) << 4) | ((dg + 2) << 2) | (db + 2)));
 						prev = px;
@@ -654,7 +654,7 @@ namespace deckard
 					const i32 dg_l  = dg;
 					const i32 dr_dg = dr - dg_l;
 					const i32 db_dg = db - dg_l;
-					if (dg_l > -33 && dg_l < 32 && dr_dg > -9 && dr_dg < 8 && db_dg > -9 && db_dg < 8)
+					if (dg_l > -33 and dg_l < 32 and dr_dg > -9 and dr_dg < 8 and db_dg > -9 and db_dg < 8)
 					{
 						ser.write<u8>(static_cast<u8>(qoi_op_luma | (dg_l + 32)));
 						ser.write<u8>(static_cast<u8>(((dr_dg + 8) << 4) | (db_dg + 8)));
@@ -678,7 +678,217 @@ namespace deckard
 				prev = px;
 			}
 		}
+
+		inline std::optional<std::pair<u32, u32>> qoi_read_header(deckard::serializer& ser, u8& channels)
+		{
+			if (ser.remaining() < 14u)
+				return {};
+
+			if (ser.read<u8>() != 'q' or ser.read<u8>() != 'o' or ser.read<u8>() != 'i' or ser.read<u8>() != 'f')
+				return {};
+
+			const u32 width  = ser.read_be<u32>();
+			const u32 height = ser.read_be<u32>();
+			channels         = ser.read<u8>();
+
+			if (width == 0 or height == 0)
+				return {};
+
+			const u8 colorspace = ser.read<u8>();
+			if (colorspace > 1)
+				return {};
+
+			return std::make_pair(width, height);
+		}
+
+		inline std::optional<std::vector<qoi_px>> qoi_decode_pixels(deckard::serializer& ser, u32 width, u32 height, u8 channels)
+		{
+			std::vector<qoi_px>    pixels;
+			std::array<qoi_px, 64> index{};
+			qoi_px                 prev{0, 0, 0, 255};
+
+			pixels.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
+
+			const u64 pixel_count = static_cast<u64>(width) * static_cast<u64>(height);
+
+			for (u64 i = 0; i < pixel_count; ++i)
+			{
+				if (ser.remaining() < 1)
+					return {};
+
+				const u8 byte = ser.read<u8>();
+
+				if (byte == qoi_op_rgba)
+				{
+					if (ser.remaining() < 4)
+						return {};
+					prev.r = ser.read<u8>();
+					prev.g = ser.read<u8>();
+					prev.b = ser.read<u8>();
+					prev.a = ser.read<u8>();
+				}
+				else if (byte == qoi_op_rgb)
+				{
+					if (ser.remaining() < 3)
+						return {};
+					prev.r = ser.read<u8>();
+					prev.g = ser.read<u8>();
+					prev.b = ser.read<u8>();
+				}
+				else if ((byte & 0xC0) == 0xC0)
+				{
+					// QOI_OP_RUN
+					const u8 run = (byte & 0x3F) + 1;
+					for (u8 j = 1; j < run; ++j)
+					{
+						pixels.push_back(prev);
+						if (++i >= pixel_count)
+							break;
+					}
+				}
+				else if ((byte & 0xC0) == 0x80)
+				{
+					// QOI_OP_LUMA
+					if (ser.remaining() < 1)
+						return {};
+					const u8  byte2 = ser.read<u8>();
+					const i32 dg    = (byte & 0x3F) - 32;
+					const i32 drg   = ((byte2 >> 4) & 0x0F) - 8;
+					const i32 dbg   = (byte2 & 0x0F) - 8;
+
+					prev.r = static_cast<u8>(prev.r + drg + dg);
+					prev.g = static_cast<u8>(prev.g + dg);
+					prev.b = static_cast<u8>(prev.b + dbg + dg);
+				}
+				else if ((byte & 0xC0) == 0x40)
+				{
+					// QOI_OP_DIFF
+					const i32 dr = ((byte >> 4) & 0x03) - 2;
+					const i32 dg = ((byte >> 2) & 0x03) - 2;
+					const i32 db = (byte & 0x03) - 2;
+
+					prev.r = static_cast<u8>(prev.r + dr);
+					prev.g = static_cast<u8>(prev.g + dg);
+					prev.b = static_cast<u8>(prev.b + db);
+				}
+				else
+				{
+					// QOI_OP_INDEX
+					prev = index[byte & 0x3F];
+				}
+
+				pixels.push_back(prev);
+				index[qoi_hash(prev)] = prev;
+			}
+
+			return pixels;
+		}
 	} // namespace detail
+
+	// Encode as QOI (Quite OK Image) per https://qoiformat.org.
+	export std::expected<bool, std::string> encode_qoi(const image_rgb& img, std::span<u8> buffer)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 or height == 0)
+			return std::unexpected("encode_qoi: image has zero dimensions");
+
+		// Convert rgb to qoi_px format in-place
+		std::vector<detail::qoi_px> pixels;
+		pixels.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
+
+		auto img_data = img.data();
+		for (const auto& c : img_data)
+		{
+			pixels.push_back(detail::qoi_px{c.r, c.g, c.b, 255});
+		}
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(14 + pixels.size() * 5 + 8);
+		detail::qoi_write_header(ser, width, height, 3, 0);
+		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
+		detail::qoi_write_end(ser);
+
+		auto out_span = ser.data();
+		if (out_span.size() > buffer.size())
+			return std::unexpected(std::format("encode_qoi: buffer too small (need {}, got {})", out_span.size(), buffer.size()));
+
+		std::memcpy(buffer.data(), out_span.data(), out_span.size());
+		return true;
+	}
+
+	export std::expected<bool, std::string> encode_qoi(const image_rgba& img, std::span<u8> buffer)
+	{
+		const u32 width  = img.width();
+		const u32 height = img.height();
+		if (width == 0 or height == 0)
+			return std::unexpected("encode_qoi: image has zero dimensions");
+
+		// Convert rgba to qoi_px format in-place
+		std::vector<detail::qoi_px> pixels;
+		pixels.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
+
+		auto img_data = img.data();
+		for (const auto& c : img_data)
+		{
+			pixels.push_back(detail::qoi_px{c.r, c.g, c.b, c.a});
+		}
+
+		deckard::serializer ser(deckard::padding::yes);
+		ser.reserve(14 + pixels.size() * 5 + 8);
+		detail::qoi_write_header(ser, width, height, 4, 0);
+		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
+		detail::qoi_write_end(ser);
+
+		auto out_span = ser.data();
+		if (out_span.size() > buffer.size())
+			return std::unexpected(std::format("encode_qoi: buffer too small (need {}, got {})", out_span.size(), buffer.size()));
+
+		std::memcpy(buffer.data(), out_span.data(), out_span.size());
+		return true;
+	}
+
+	// Decode QOI (Quite OK Image) per https://qoiformat.org.
+	export std::optional<image_rgb> decode_qoi(std::span<const u8> buffer)
+	{
+		if (buffer.size() < 14u + 8u)
+			return {};
+
+		deckard::serializer ser(buffer);
+		u8                  channels{0};
+
+		auto dims = detail::qoi_read_header(ser, channels);
+		if (not dims)
+			return {};
+
+		auto [width, height] = dims.value();
+
+		auto pixels = detail::qoi_decode_pixels(ser, width, height, channels);
+		if (not pixels)
+			return {};
+
+		image_rgb img(width, height);
+		for (u16 y = 0; y < height; ++y)
+		{
+			for (u16 x = 0; x < width; ++x)
+			{
+				const auto& qoi_px = pixels.value()[static_cast<size_t>(y) * width + x];
+				rgb&        px     = img.at(x, y);
+				px.r               = qoi_px.r;
+				px.g               = qoi_px.g;
+				px.b               = qoi_px.b;
+			}
+		}
+
+		return img;
+	}
+
+	// Load QOI (Quite OK Image) from file per https://qoiformat.org.
+	export std::optional<image_rgb> load_qoi(const std::filesystem::path& path)
+	{
+		const auto bytes = file::read(path);
+		return decode_qoi(bytes);
+	}
 
 	// Save as QOI (Quite OK Image) per https://qoiformat.org.
 	export bool save_qoi(std::filesystem::path path, const image_rgb& img)
@@ -688,6 +898,16 @@ namespace deckard
 		if (width == 0 || height == 0)
 			return false;
 
+		// Estimate max size: header (14) + pixels (worst case ~5 bytes each) + end (8)
+		std::vector<u8> out;
+		out.resize(14 + (width * height * 5) + 8);
+
+		auto encoded = encode_qoi(img, out);
+		if (not encoded)
+			return false;
+
+		// Find actual size by re-encoding to get the data span
+		deckard::serializer         ser(deckard::padding::yes);
 		std::vector<detail::qoi_px> pixels;
 		pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
 		for (u32 y = 0; y < height; ++y)
@@ -710,6 +930,13 @@ namespace deckard
 		return result.has_value() && *result == out_span.size();
 	}
 
+	export bool save_qoi(fs::path path, std::optional<image_rgb> img)
+	{
+		if (not img.has_value())
+			return false;
+		return save_qoi(path, *img);
+	}
+
 	export bool save_qoi(std::filesystem::path path, const image_rgba& img)
 	{
 		const u32 width  = img.width();
@@ -717,6 +944,16 @@ namespace deckard
 		if (width == 0 || height == 0)
 			return false;
 
+		// Estimate max size: header (14) + pixels (worst case ~5 bytes each) + end (8)
+		std::vector<u8> out;
+		out.resize(14 + (width * height * 5) + 8);
+
+		auto encoded = encode_qoi(img, out);
+		if (not encoded)
+			return false;
+
+		// Find actual size by re-encoding to get the data span
+		deckard::serializer         ser(deckard::padding::yes);
 		std::vector<detail::qoi_px> pixels;
 		pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
 		for (u32 y = 0; y < height; ++y)
@@ -736,8 +973,16 @@ namespace deckard
 		detail::qoi_write_end(ser);
 
 		auto out_span = ser.data();
-		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
-		return result.has_value() && *result == out_span.size();
+		auto result   = file::write({.file = path, .buffer = out_span});
+		return result.has_value() and *result == out_span.size();
+	}
+
+	export bool save_qoi(fs::path path, std::optional<image_rgba> img)
+	{
+		if (not img.has_value())
+			return false;
+		return save_qoi(path, *img);
+	}
 	}
 
 	// Save as uncompressed TGA (type 2).
