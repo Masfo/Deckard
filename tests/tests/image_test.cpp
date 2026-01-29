@@ -3,6 +3,7 @@
 
 import std;
 import deckard.image;
+import deckard.zstd;
 
 TEST_CASE("image", "[image]")
 {
@@ -92,6 +93,172 @@ TEST_CASE("image", "[image]")
 		CHECK((*decoded)[0, 1] == deckard::rgb{7, 8, 9});
 		CHECK((*decoded)[1, 1] == deckard::rgb{10, 11, 12});
 	}
+
+	SECTION("dif encode/decode")
+	{
+		SECTION("rgb_2x2")
+		{
+			// Create a simple 2x2 RGB image
+			deckard::image_rgb img(2, 2);
+			img.at(0, 0) = {10, 20, 30};
+			img.at(1, 0) = {40, 50, 60};
+			img.at(0, 1) = {70, 80, 90};
+			img.at(1, 1) = {100, 110, 120};
+
+			// Allocate buffer for encoding
+			std::vector<deckard::u8> buffer;
+			buffer.resize(1024); // More than enough for 2x2
+
+			// Encode
+			auto encoded = deckard::encode_dif_rgb(img, std::span{buffer.data(), buffer.size()});
+			REQUIRE(encoded.has_value());
+			CHECK(encoded.value() > 10); // Should be at least header size
+
+			// Check DIF header
+			CHECK(buffer[0] == 'D');
+			CHECK(buffer[1] == 'I');
+			CHECK(buffer[2] == 'F');
+			CHECK(buffer[3] == '1');
+			
+			// Check width/height (little-endian)
+			CHECK(buffer[4] == 2); // width low byte
+			CHECK(buffer[5] == 0); // width high byte
+			CHECK(buffer[6] == 2); // height low byte
+			CHECK(buffer[7] == 0); // height high byte
+			CHECK(buffer[8] == 3); // channels (RGB)
+
+			// Decode
+			auto decoded = deckard::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			REQUIRE(decoded.has_value());
+			CHECK(decoded->width() == 2);
+			CHECK(decoded->height() == 2);
+
+			// Verify pixel data matches
+			CHECK(decoded->at(0, 0) == deckard::rgb{10, 20, 30});
+			CHECK(decoded->at(1, 0) == deckard::rgb{40, 50, 60});
+			CHECK(decoded->at(0, 1) == deckard::rgb{70, 80, 90});
+			CHECK(decoded->at(1, 1) == deckard::rgb{100, 110, 120});
+		}
+
+		SECTION("rgba_2x2")
+		{
+			// Create a simple 2x2 RGBA image
+			deckard::image_rgba img(2, 2);
+			img.at(0, 0) = {10, 20, 30, 255};
+			img.at(1, 0) = {40, 50, 60, 200};
+			img.at(0, 1) = {70, 80, 90, 150};
+			img.at(1, 1) = {100, 110, 120, 100};
+
+			// Allocate buffer for encoding
+			std::vector<deckard::u8> buffer;
+			buffer.resize(1024);
+
+			// Encode
+			auto encoded = deckard::encode_dif_rgba(img, std::span{buffer.data(), buffer.size()});
+			REQUIRE(encoded.has_value());
+			CHECK(encoded.value() > 10);
+
+			// Check DIF header
+			CHECK(buffer[0] == 'D');
+			CHECK(buffer[1] == 'I');
+			CHECK(buffer[2] == 'F');
+			CHECK(buffer[3] == '1');
+			CHECK(buffer[8] == 4); // channels (RGBA)
+
+			// Decode
+			auto decoded = deckard::decode_dif_rgba(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			REQUIRE(decoded.has_value());
+			CHECK(decoded->width() == 2);
+			CHECK(decoded->height() == 2);
+
+			// Verify pixel data matches including alpha
+			CHECK(decoded->at(0, 0) == deckard::rgba{10, 20, 30, 255});
+			CHECK(decoded->at(1, 0) == deckard::rgba{40, 50, 60, 200});
+			CHECK(decoded->at(0, 1) == deckard::rgba{70, 80, 90, 150});
+			CHECK(decoded->at(1, 1) == deckard::rgba{100, 110, 120, 100});
+		}
+
+		SECTION("rgb_larger_image")
+		{
+			// Test with a larger image to verify compression
+			deckard::image_rgb img(64, 64);
+			for (deckard::u16 y = 0; y < 64; ++y)
+			{
+				for (deckard::u16 x = 0; x < 64; ++x)
+				{
+					img.at(x, y) = deckard::rgb{
+						static_cast<deckard::u8>(x * 4),
+						static_cast<deckard::u8>(y * 4),
+						static_cast<deckard::u8>((x + y) * 2)
+					};
+				}
+			}
+
+			// Encode
+			const deckard::u32 uncompressed_size = 64 * 64 * 3;
+			std::vector<deckard::u8> buffer;
+			buffer.resize(10 + deckard::zstd::bound(uncompressed_size));
+			
+			auto encoded = deckard::encode_dif_rgb(img, std::span{buffer.data(), buffer.size()});
+			REQUIRE(encoded.has_value());
+			
+			// Compressed size should be less than uncompressed (with header)
+			CHECK(encoded.value() < (10 + uncompressed_size));
+
+			// Decode and verify
+			auto decoded = deckard::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			REQUIRE(decoded.has_value());
+			CHECK(decoded->width() == 64);
+			CHECK(decoded->height() == 64);
+
+			// Spot check a few pixels
+			CHECK(decoded->at(0, 0) == deckard::rgb{0, 0, 0});
+			CHECK(decoded->at(32, 32) == deckard::rgb{128, 128, 128});
+			CHECK(decoded->at(63, 63) == deckard::rgb{252, 252, 252});
+		}
+
+		SECTION("buffer_too_small")
+		{
+			deckard::image_rgb img(2, 2);
+			img.at(0, 0) = {1, 2, 3};
+			
+			// Try with a buffer that's too small
+			std::vector<deckard::u8> small_buffer(5);
+			auto result = deckard::encode_dif_rgb(img, std::span{small_buffer.data(), small_buffer.size()});
+			
+			REQUIRE(not result.has_value());
+			CHECK(result.error().find("buffer too small") != std::string::npos);
+		}
+
+		SECTION("decode_invalid_magic")
+		{
+			std::vector<deckard::u8> buffer(20, 0);
+			buffer[0] = 'X'; // Wrong magic
+			buffer[1] = 'Y';
+			buffer[2] = 'Z';
+			buffer[3] = '1';
+			
+			auto result = deckard::decode_dif_rgb(std::span{buffer.data(), buffer.size()});
+			CHECK(not result.has_value());
+		}
+
+		SECTION("decode_wrong_channels")
+		{
+			// Create valid RGBA DIF file
+			deckard::image_rgba rgba_img(2, 2);
+			rgba_img.at(0, 0) = {1, 2, 3, 4};
+			
+			std::vector<deckard::u8> buffer(1024);
+			auto encoded = deckard::encode_dif_rgba(rgba_img, std::span{buffer.data(), buffer.size()});
+			REQUIRE(encoded.has_value());
+			
+			// Try to decode as RGB (should fail - wrong channel count)
+			auto result = deckard::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			CHECK(not result.has_value());
+		}
+	}
+
+
 	SECTION("rgb")
 	{
 		deckard::image_rgb img(4, 3);

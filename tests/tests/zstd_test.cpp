@@ -22,19 +22,19 @@ TEST_CASE("zstd", "[zstd]")
 
 
 		// Uncompressed size
-		auto uncompressed_size = zstd::uncompressed_size(comp);
+		auto uncompressed_size = zstd::decompressed_size(comp);
 		CHECK(uncompressed_size != std::nullopt);
 		CHECK(*uncompressed_size == buffer.size());
 
 		// Uncompress
 		std::vector<u8> uncompressed;
-		if (auto s = zstd::uncompressed_size(comp); s)
+		if (auto s = zstd::decompressed_size(comp); s)
 			uncompressed.resize(*s);
 		else
 			CHECK(s != std::nullopt);
 
 
-		result = zstd::uncompress(comp, uncompressed);
+		result = zstd::decompress(comp, uncompressed);
 
 		CHECK(result != std::nullopt);
 		CHECK(*result == buffer.size());

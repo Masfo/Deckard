@@ -9,7 +9,7 @@ import deckard.file;
 import deckard.serializer;
 import deckard.zstd;
 
-
+namespace fs = std::filesystem;
 
 namespace deckard
 {
@@ -101,7 +101,7 @@ namespace deckard
 	export using image_rgba = image_channels<4>;
 
 	// ###############################################################################################
-	// PNG - Based on uPNG ###########################################################################
+	// PNG - Based on uPNG/lodepng ###################################################################
 
 
 
@@ -172,11 +172,6 @@ namespace deckard
 				*pixel_ptr++ = 0;
 		}
 
-		auto out_span = ser.data();
-		if (out_span.size() != file_bytes)
-			return std::unexpected(std::format("encode_bmp: internal size mismatch (expected {}, got {})", file_bytes, out_span.size()));
-
-		std::memcpy(buffer.data(), out_span.data(), file_bytes);
 		return true;
 	}
 
@@ -203,7 +198,6 @@ namespace deckard
 		auto result = file::write({.file = path, .buffer = out});
 		return result.has_value() and *result == out.size();
 	}
-
 
 	export std::optional<image_rgb> decode_bmp(std::span<const u8> buffer)
 	{
@@ -497,11 +491,6 @@ namespace deckard
 			}
 		}
 
-		auto out_span = ser.data();
-		if (out_span.size() != file_bytes)
-			return std::unexpected(std::format("encode_tga: internal size mismatch (expected {}, got {})", file_bytes, out_span.size()));
-
-		std::memcpy(buffer.data(), out_span.data(), file_bytes);
 		return true;
 	}
 
@@ -918,8 +907,6 @@ namespace deckard
 				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, 255};
 			}
 		}
-
-		deckard::serializer ser(deckard::padding::yes);
 		ser.reserve(14 + pixels.size() * 5 + 8);
 		detail::qoi_write_header(ser, width, height, 3, 0);
 		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
@@ -927,7 +914,7 @@ namespace deckard
 
 		auto out_span = ser.data();
 		auto result   = file::write({.file = path, .buffer = out_span});
-		return result.has_value() && *result == out_span.size();
+		return result.has_value() and *result == out_span.size();
 	}
 
 	export bool save_qoi(fs::path path, std::optional<image_rgb> img)
@@ -964,9 +951,6 @@ namespace deckard
 				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, c.a};
 			}
 		}
-
-
-		deckard::serializer ser(deckard::padding::yes);
 		ser.reserve(14 + pixels.size() * 5 + 8);
 		detail::qoi_write_header(ser, width, height, 4, 0);
 		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
@@ -983,102 +967,269 @@ namespace deckard
 			return false;
 		return save_qoi(path, *img);
 	}
+
+	// ###############################################################################################
+	// DIF - Deckard Image Format ####################################################################
+
+	struct DIF_Header
+	{
+		std::array<u8, 4> magic{'D', 'I', 'F', '0'};
+		u16               width{0};
+		u16               height{0};
+		u8                channels{3};
+		u8                reserved{0};
+	};
+
+	constexpr u32 DIF_HEADER_SIZE = sizeof(DIF_Header);
+
+	export std::expected<u64, std::string> encode_dif_rgb(const image_rgb& img, std::span<u8> buffer)
+	{
+		const u16 width  = img.width();
+		const u16 height = img.height();
+		if (width == 0 || height == 0)
+			return std::unexpected("encode_dif: image has zero dimensions");
+
+		const u32 pixel_bytes  = width * height * 3u;
+		const u32 header_bytes = DIF_HEADER_SIZE;
+
+		// Compress image using deckard::zstd
+		std::vector<u8> compressed_data;
+		compressed_data.resize(zstd::bound(pixel_bytes));
+		auto compressed_size = zstd::compress(img.raw_data(), std::span{compressed_data.data(), compressed_data.size()}, 5);
+		if (not compressed_size)
+			return std::unexpected("encode_dif: compression failed");
+
+		compressed_data.resize(*compressed_size);
+
+		const u32 file_bytes = header_bytes + static_cast<u32>(compressed_data.size());
+		if (buffer.size() < file_bytes)
+			return std::unexpected(std::format("encode_dif: buffer too small (need {}, got {})", file_bytes, buffer.size()));
+
+		// Create and write DIF header directly
+		DIF_Header header;
+		header.magic    = {'D', 'I', 'F', '1'};
+		header.width    = width;
+		header.height   = height;
+		header.channels = 3;
+		header.reserved = 0;
+
+		// Write header to buffer (assumes little-endian platform or uses std::bit_cast if needed)
+		std::memcpy(buffer.data(), &header, header_bytes);
+
+		// Write compressed data directly to buffer
+		std::memcpy(buffer.data() + header_bytes, compressed_data.data(), compressed_data.size());
+
+		return file_bytes;
 	}
 
-	// Save as uncompressed TGA (type 2).
-	// Note: TGA stores pixels as BGR(A). This writer uses bottom-left origin (descriptor bit 5 = 0).
-	export bool save_tga(std::filesystem::path path, const image_rgb& img)
+	export std::optional<image_rgb> decode_dif_rgb(std::span<const u8> buffer)
+	{
+		if (buffer.size() < DIF_HEADER_SIZE)
+			return {};
+
+		// Read header directly from buffer
+		const DIF_Header* header = reinterpret_cast<const DIF_Header*>(buffer.data());
+
+		// Validate magic
+		if (header->magic[0] != 'D' or header->magic[1] != 'I' or header->magic[2] != 'F' or header->magic[3] != '1')
+			return {};
+
+		const u16 width    = header->width;
+		const u16 height   = header->height;
+		const u8  channels = header->channels;
+
+		if (width == 0 || height == 0)
+			return {};
+		if (channels != 3u)
+			return {};
+
+		// Compressed data starts after header
+		const u8*       compressed_ptr  = buffer.data() + DIF_HEADER_SIZE;
+		const size_t    compressed_size = buffer.size() - DIF_HEADER_SIZE;
+		std::vector<u8> compressed_data(compressed_ptr, compressed_ptr + compressed_size);
+
+		const u64       expected_size = static_cast<u64>(width) * static_cast<u64>(height) * 3u;
+		std::vector<u8> decompressed(expected_size);
+		auto            result =
+		  zstd::decompress(std::span{compressed_data.data(), compressed_data.size()}, std::span{decompressed.data(), decompressed.size()});
+		if (not result)
+			return {};
+		if (*result != expected_size)
+			return {};
+
+		image_rgb img(width, height);
+		std::memcpy(const_cast<u8*>(img.raw_data().data()), decompressed.data(), expected_size);
+		return img;
+	}
+
+	export bool save_dif_rgb(std::filesystem::path path, const image_rgb& img)
 	{
 		const u32 width  = img.width();
 		const u32 height = img.height();
 		if (width == 0 || height == 0)
 			return false;
-
-		constexpr u8  bytes_per_pixel = 3;
-		constexpr u32 header_bytes    = 18;
-		const u32     pixel_bytes     = width * height * bytes_per_pixel;
-		const u32     file_bytes      = header_bytes + pixel_bytes;
-
-		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(file_bytes);
-
-		// TGA header (18 bytes)
-		ser.write<u8>(0);           // id length
-		ser.write<u8>(0);           // color map type (none)
-		ser.write<u8>(2);           // image type (2 = uncompressed true-color)
-		ser.write_le<u16>(0);       // color map first entry index
-		ser.write_le<u16>(0);       // color map length
-		ser.write<u8>(0);           // color map entry size
-		ser.write_le<u16>(0);       // x-origin
-		ser.write_le<u16>(0);       // y-origin
-		ser.write_le<u16>(static_cast<u16>(width));
-		ser.write_le<u16>(static_cast<u16>(height));
-		ser.write<u8>(24);          // pixel depth
-		ser.write<u8>(0b0000'0000); // image descriptor (origin bottom-left, no alpha)
-
-		// Pixel data (BGR), bottom-left origin => write bottom-up rows
-		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
-		{
-			for (u32 x = 0; x < width; ++x)
-			{
-				const image_rgb::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-				ser.write<u8>(static_cast<u8>(c.b));
-				ser.write<u8>(static_cast<u8>(c.g));
-				ser.write<u8>(static_cast<u8>(c.r));
-			}
-		}
-
-		auto out_span = ser.data();
-		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
-		return result.has_value() && *result == out_span.size();
+		// Estimate max size: header (10) + compressed data (zstd bound)
+		std::vector<u8> out;
+		out.resize(DIF_HEADER_SIZE + zstd::bound(width * height * 3u));
+		auto encoded = encode_dif_rgb(img, std::span{out.data(), out.size()});
+		if (not encoded)
+			return false;
+		out.resize(*encoded);
+		auto result = file::write({.file = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
+		return result.has_value() and *result == out.size();
 	}
 
-	export bool save_tga(std::filesystem::path path, const image_rgba& img)
+	export std::expected<u64, std::string> encode_dif_rgba(const image_rgba& img, std::span<u8> buffer)
+	{
+		const u16 width  = img.width();
+		const u16 height = img.height();
+		if (width == 0 || height == 0)
+			return std::unexpected("encode_dif: image has zero dimensions");
+
+		const u32 pixel_bytes  = width * height * 4u;
+		const u32 header_bytes = DIF_HEADER_SIZE;
+
+		// Compress image using deckard::zstd
+		std::vector<u8> compressed_data;
+		compressed_data.resize(zstd::bound(pixel_bytes));
+		auto compressed_size = zstd::compress(img.raw_data(), std::span{compressed_data.data(), compressed_data.size()}, 5);
+		if (not compressed_size)
+			return std::unexpected("encode_dif: compression failed");
+
+		compressed_data.resize(*compressed_size);
+
+		const u32 file_bytes = header_bytes + static_cast<u32>(compressed_data.size());
+		if (buffer.size() < file_bytes)
+			return std::unexpected(std::format("encode_dif: buffer too small (need {}, got {})", file_bytes, buffer.size()));
+
+		// Create and write DIF header directly
+		DIF_Header header;
+		header.magic    = {'D', 'I', 'F', '1'};
+		header.width    = width;
+		header.height   = height;
+		header.channels = 4;
+		header.reserved = 0;
+
+		// Write header to buffer
+		std::memcpy(buffer.data(), &header, header_bytes);
+
+		// Write compressed data directly to buffer
+		std::memcpy(buffer.data() + header_bytes, compressed_data.data(), compressed_data.size());
+
+		return file_bytes;
+	}
+
+	export std::optional<image_rgba> decode_dif_rgba(std::span<const u8> buffer)
+	{
+		if (buffer.size() < DIF_HEADER_SIZE)
+			return {};
+
+		// Read header directly from buffer
+		const DIF_Header* header = reinterpret_cast<const DIF_Header*>(buffer.data());
+
+		// Validate magic
+		if (header->magic[0] != 'D' or header->magic[1] != 'I' or header->magic[2] != 'F' or header->magic[3] != '1')
+			return {};
+
+		const u16 width    = header->width;
+		const u16 height   = header->height;
+		const u8  channels = header->channels;
+
+		if (width == 0 || height == 0)
+			return {};
+		if (channels != 4u)
+			return {};
+
+		// Compressed data starts after header
+		const u8*       compressed_ptr  = buffer.data() + DIF_HEADER_SIZE;
+		const size_t    compressed_size = buffer.size() - DIF_HEADER_SIZE;
+		std::vector<u8> compressed_data(compressed_ptr, compressed_ptr + compressed_size);
+
+		const u64       expected_size = static_cast<u64>(width) * static_cast<u64>(height) * 4u;
+		std::vector<u8> decompressed(expected_size);
+		auto            result =
+		  zstd::decompress(std::span{compressed_data.data(), compressed_data.size()}, std::span{decompressed.data(), decompressed.size()});
+		if (not result)
+			return {};
+		if (*result != expected_size)
+			return {};
+
+		image_rgba img(width, height);
+		std::memcpy(const_cast<u8*>(img.raw_data().data()), decompressed.data(), expected_size);
+		return img;
+	}
+
+	export bool save_dif_rgba(std::filesystem::path path, const image_rgba& img)
 	{
 		const u32 width  = img.width();
 		const u32 height = img.height();
 		if (width == 0 || height == 0)
 			return false;
-
-		constexpr u8  bytes_per_pixel = 4;
-		constexpr u32 header_bytes    = 18;
-		const u32     pixel_bytes     = width * height * bytes_per_pixel;
-		const u32     file_bytes      = header_bytes + pixel_bytes;
-
-		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(file_bytes);
-
-		// TGA header (18 bytes)
-		ser.write<u8>(0);           // id length
-		ser.write<u8>(0);           // color map type (none)
-		ser.write<u8>(2);           // image type (2 = uncompressed true-color)
-		ser.write_le<u16>(0);       // color map first entry index
-		ser.write_le<u16>(0);       // color map length
-		ser.write<u8>(0);           // color map entry size
-		ser.write_le<u16>(0);       // x-origin
-		ser.write_le<u16>(0);       // y-origin
-		ser.write_le<u16>(static_cast<u16>(width));
-		ser.write_le<u16>(static_cast<u16>(height));
-		ser.write<u8>(32);          // pixel depth
-		ser.write<u8>(0b0000'1000); // image descriptor (origin bottom-left, 8 alpha bits)
-
-		// Pixel data (BGRA), bottom-left origin => write bottom-up rows
-		for (i32 y = static_cast<i32>(height) - 1; y >= 0; --y)
-		{
-			for (u32 x = 0; x < width; ++x)
-			{
-				const image_rgba::color_type& c = img[static_cast<u16>(x), static_cast<u16>(y)];
-				ser.write<u8>(static_cast<u8>(c.b));
-				ser.write<u8>(static_cast<u8>(c.g));
-				ser.write<u8>(static_cast<u8>(c.r));
-				ser.write<u8>(static_cast<u8>(c.a));
-			}
-		}
-
-		auto out_span = ser.data();
-		auto result   = file::write({.file = path, .buffer = out_span, .mode = file::filemode::overwrite});
-		return result.has_value() && *result == out_span.size();
+		// Estimate max size: header (10) + compressed data (zstd bound)
+		std::vector<u8> out;
+		out.resize(DIF_HEADER_SIZE + zstd::bound(width * height * 4u));
+		auto encoded = encode_dif_rgba(img, std::span{out.data(), out.size()});
+		if (not encoded)
+			return false;
+		out.resize(*encoded);
+		auto result = file::write({.file = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
+		return result.has_value() and *result == out.size();
 	}
 
+	export std::optional<image_rgb> load_dif_rgb(const std::filesystem::path& path)
+	{
+		const auto bytes = file::read(path);
+		return decode_dif_rgb(std::span<const u8>{bytes.data(), bytes.size()});
+	}
+
+	export std::optional<image_rgba> load_dif_rgba(const std::filesystem::path& path)
+	{
+		const auto bytes = file::read(path);
+		return decode_dif_rgba(std::span<const u8>{bytes.data(), bytes.size()});
+	}
+
+	export template<typename T = image_rgb>
+	auto load_dif(const std::filesystem::path& path) -> std::optional<T>
+	{
+		if constexpr (std::is_same_v<T, image_rgb>)
+		{
+			return load_dif_rgb(path);
+		}
+		else if constexpr (std::is_same_v<T, image_rgba>)
+		{
+			return load_dif_rgba(path);
+		}
+		else
+		{
+			static_assert(false, "Unsupported type for load_dif");
+		}
+	}
+
+	export template<typename T = image_rgb>
+	auto save_dif(std::filesystem::path path, const T& img) -> bool
+	{
+
+		if constexpr (std::is_same_v<T, image_rgb>)
+		{
+			return save_dif_rgb(path, img);
+		}
+		else if constexpr (std::is_same_v<T, image_rgba>)
+		{
+			return save_dif_rgba(path, img);
+		}
+		else
+		{
+			static_assert(false, "Unsupported type for save_dif");
+		}
+	}
+
+	export template<typename T = image_rgb>
+	auto save_dif(std::filesystem::path path, const std::optional<T> img) -> bool
+	{
+		if (not img.has_value())
+			return false;
+
+		return save_dif<T>(path, *img);
+	}
 
 }; // namespace deckard
