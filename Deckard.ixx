@@ -112,18 +112,21 @@ void redirect_console(bool show)
 {
 	if (show)
 	{
-		if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
+		if (GetConsoleWindow() == nullptr)
 		{
-			if (AllocConsole() == 0)
+			if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
 			{
-				return;
+				if (AllocConsole() == 0)
+				{
+					return;
+				}
 			}
 		}
 
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
 
-		constexpr DWORD output_mode = ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT;
+		constexpr DWORD output_mode = ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output_mode);
 		SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), output_mode);
 
@@ -133,8 +136,15 @@ void redirect_console(bool show)
 		freopen_s(&dummy, "CONIN$", "r", stdin);
 
 		std::ios::sync_with_stdio(true);
+
+		std::cout.clear();
+		std::cerr.clear();
+		std::cin.clear();
+		std::wcout.clear();
+		std::wcerr.clear();
+		std::wcin.clear();
 	}
-	else
+	else if (GetConsoleWindow() != nullptr)
 	{
 		FreeConsole();
 	}
