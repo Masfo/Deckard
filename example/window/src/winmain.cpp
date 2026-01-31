@@ -906,10 +906,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	for (const auto& [i, c] : buf128 | std::views::enumerate)
 		c = (char)i;
 
-	file::write({.file = "bin128.dat", .buffer = buf128});
+	(void)file::write({.file = "bin128.dat", .buffer = buf128});
 
 	std::array<u8, 64> buf64{};
-	file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
+	(void)file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
 
 	// BMP, per row padding bytes,end of every row aligned to 4 bytes
@@ -920,22 +920,33 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	image_rgb xortexture(1024, 1024);
+	image_rgb  xortexture(1920, 1080);
+	ScopeTimer timer("timer");
 
+	timer.start();
 	for (int y = 0; y < xortexture.height(); ++y)
 	{
 		for (int x = 0; x < xortexture.width(); ++x)
 		{
-			const u8 v = static_cast<u8>((x ^ y) & 0xFF);
+			// Create a colorful XOR-based pattern with bit shifts and rotations
+			const u8 r = static_cast<u8>((x ^ y) & 0xFF);
+			const u8 g = static_cast<u8>(((x >> 2) ^ (y << 1)) & 0xFF);
+			const u8 b = static_cast<u8>(((x << 1) ^ (y >> 2)) & 0xFF);
 
-			// xor texture
-			xortexture[x, y] = rgb(v, v, v);
+			xortexture[x, y] = rgb(r, g, b);
 		}
 	}
+	timer.stop("xor texture generation");
 
+// time save/load bmp
+#if 0
+	timer.start();
 	save_bmp("xor_texture.bmp", xortexture);
+	timer.stop("bmp save");
 
+	timer.start();
 	auto loaded_xor = load_bmp("xor_texture.bmp");
+	timer.stop("bmp load");
 
 	if (loaded_xor == xortexture)
 	{
@@ -948,9 +959,106 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	save_bmp("xor_texture_copy.bmp", *loaded_xor);
 
+
+	timer.start();
+	save_tga("xor_texture.tga", xortexture);
+	timer.stop("tga save");
+
+	timer.start();
+	auto loaded_tga = load_tga("xor_texture.tga");
+	timer.stop("tga load");
+
+	if (loaded_tga == xortexture)
+	{
+		info("xor texture tga save/load successful");
+	}
+	else
+	{
+		info("xor texture tga save/load failed");
+	}
+
+	save_tga("xor_texture_copy.tga", *loaded_tga);
+
+
+	// qoi
+
+	timer.start();
+	save_qoi("xor_texture.qoi", xortexture);
+	timer.stop("qoi save");
+
+	timer.start();
+	auto loaded_qoi = load_qoi("xor_texture.qoi");
+	timer.stop("qoi load");
+
+	if (loaded_qoi == xortexture)
+	{
+		info("xor texture qoi save/load successful");
+	}
+	else
+	{
+		info("xor texture qoi save/load failed");
+	}
+
+	save_qoi("xor_texture_copy.qoi", *loaded_qoi);
+
+	
+	timer.start();
+	save_dif("xor_texture.dif0", xortexture);
+	timer.stop("dif save");
+	timer.start();
+	auto loaded_dif = load_dif("xor_texture.dif0");
+	timer.stop("dif load");
+	if (loaded_dif == xortexture)
+	{
+		info("xor texture dif save/load successful");
+	}
+	else
+	{
+		info("xor texture dif save/load failed");
+	}
+
+	save_bmp("xor_texture_copy_from_dif.bmp", *loaded_dif);
+#endif
+	//
+
+	timer.start();
+
+	auto viking_bmp = load_bmp("data/viking_room.bmp");
+	timer.stop("load viking bmp");
+
+	timer.start();
+	save_dif("viking.dif1", viking_bmp);
+	timer.stop("save viking dif");
+
+	timer.start();
+	auto loaded_viking_dif = load_dif("viking.dif1");
+	timer.stop("load viking dif");
+
+	if (loaded_viking_dif == viking_bmp)
+	{
+		info("viking dif save/load successful");
+	}
+	else
+	{
+		info("viking dif save/load failed");
+	}
+
+	timer.start();
+	save_tga("convert_viking_dif_tga.tga", loaded_viking_dif);
+	timer.stop("save viking dif to tga");
+
+	timer.start();
+	save_qoi("convert_viking_dif_tga.qoi", loaded_viking_dif);
+	timer.stop("save viking dif to qoi");
+
+	timer.start();
+	zstd::compress_file_to("convert_viking_dif_tga.qoi", "vikingqoi_recompressed.dat");
+	timer.stop("recompress qoi");
+
+	// read back
+
+
 	info("heloo");
-
-
 	// ########################################################################
 
 	char tempPath[MAX_PATH]{};
@@ -965,18 +1073,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	info("{}", file::get_temp_file("spv").string());
 
 
-	if (GetTempFileNameA(tempPath, "spv", 0, tempFile) == 0)
-	{
-		info("Failed to get temp file name");
-	}
-	info("{}", tempFile);
-
-
 	_ = 0;
 	// ########################################################################
-	qoi qoitest;
-
-	qoitest.test();
 
 	test_cmdliner();
 
