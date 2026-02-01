@@ -16,3 +16,4 @@ std.ixx
 scratch.txt
 
 *.lnk
+/Testing/Temporary
