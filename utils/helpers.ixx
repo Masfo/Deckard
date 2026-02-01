@@ -133,6 +133,26 @@ export namespace deckard
 
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
+	export template<std::integral T>
+	constexpr void write_le(std::span<u8> buffer, size_t offset, T value)
+	{
+		assert::check(offset + sizeof(T) <= buffer.size(), "write_le: out of bounds");
+		using U = std::make_unsigned_t<T>;
+		U v     = static_cast<U>(value);
+		for (size_t i = 0; i < sizeof(T); ++i)
+			buffer[offset + i] = static_cast<u8>((v >> (i * 8)) & 0xFFu);
+	}
+
+	export template<std::integral T>
+	constexpr void write_be(std::span<u8> buffer, size_t offset, T value)
+	{
+		assert::check(offset + sizeof(T) <= buffer.size(), "write_be: out of bounds");
+		using U = std::make_unsigned_t<T>;
+		U v     = static_cast<U>(value);
+		for (size_t i = 0; i < sizeof(T); ++i)
+			buffer[offset + i] = static_cast<u8>((v >> ((sizeof(T) - 1 - i) * 8)) & 0xFFu);
+	}
+
 	auto clock_now() { return std::chrono::steady_clock::now(); }
 
 	template<typename TimeType = std::chrono::milliseconds>
