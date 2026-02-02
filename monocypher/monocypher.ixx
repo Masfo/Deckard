@@ -6,6 +6,7 @@ export module deckard.monocypher;
 import std;
 import deckard.types;
 import deckard.random;
+import deckard.helpers;
 
 // const uint8_t their_pk[32]{};    /* Their public key          */
 // uint8_t your_sk[32]{};       /* Your secret key           */
@@ -38,6 +39,7 @@ namespace deckard::monocypher
 		std::array<u8, 32> key{};
 
 		bool operator==(const publickey& rhs) const { return crypto_verify32(key.data(), rhs.key.data()) == 0; }
+		auto operator<=>(const publickey& rhs) const { return std::memcmp(key.data(), rhs.key.data(), key.size()); }
 	};
 
 	export struct privatekey
@@ -50,35 +52,30 @@ namespace deckard::monocypher
 
 	export struct sharedkey
 	{
-		std::array<u8, 32> key;
+		std::array<u8, 32> key{};
 
 		bool operator==(const sharedkey& rhs) const { return crypto_verify32(key.data(), rhs.key.data()) == 0; }
 	};
 
 	export struct sessionkey
 	{
-		std::array<u8, 32> key;
+		std::array<u8, 32> key{};
 
 		bool operator==(const sessionkey& rhs) const { return crypto_verify32(key.data(), rhs.key.data()) == 0; }
 	};
 
 	void initialize_privatekey(privatekey& privkey) { random::cryptographic_random_bytes(privkey.key); }
 
-		template<typename T>
+	export template<typename T>
 	concept KeyType =
 	  std::is_same_v<std::remove_cvref_t<T>, privatekey> or std::is_same_v<std::remove_cvref_t<T>, sharedkey> or
 	  std::is_same_v<std::remove_cvref_t<T>, publickey> or std::is_same_v<std::remove_cvref_t<T>, sessionkey>;
 
-
-	template<KeyType T>
-	void wipe_key(T& key) 
+	export template<KeyType T>
+	void wipe_key(T& key)
 	{
-		crypto_wipe(key.key.data(), key.key.size()); 
+		crypto_wipe(key.key.data(), key.key.size());
 	}
-
-
-	void wipe_key(sharedkey& key) { crypto_wipe(key.key.data(), key.key.size()); }
-
 
 	export void create_private_and_public_keys(publickey& pubkey, privatekey& privkey)
 	{
@@ -94,27 +91,35 @@ namespace deckard::monocypher
 		wipe_key(your_private_key);
 	}
 
-	export void create_session_key(sharedkey &sharedkey, const privatekey &your_private_key, const publickey &their_public_key)
+	export [[nodiscard]] sessionkey create_session_key(const sharedkey& shared_key, const publickey& your_public_key, const publickey& their_public_key, u32 counter)
 	{
-		//sessionkey         shared_key;
+		std::array<u8, 32> out;
+		std::array<u8, 4>  ctr{};
+		write_le(std::span<u8>{ctr}, 0, counter);
 
-		std::array<u8, 64> shared_keys;
+		// Sort public keys to ensure both parties derive the same key for the same counter
+		const publickey* p1 = &your_public_key;
+		const publickey* p2 = &their_public_key;
+		if (*p1 > *p2)
+		{
+			std::swap(p1, p2);
+		}
 
 		crypto_blake2b_ctx ctx;
-		crypto_blake2b_init(&ctx, 64);
-		crypto_blake2b_update(&ctx, sharedkey.key.data(), sharedkey.key.size());
-		crypto_blake2b_update(&ctx, your_private_key.key.data(), your_private_key.key.size());
-		crypto_blake2b_update(&ctx, their_public_key.key.data(), their_public_key.key.size());
-		crypto_blake2b_final(&ctx, shared_keys.data());
-		sessionkey     session_key_1, session_key_2;
+		crypto_blake2b_init(&ctx, out.size());
+		crypto_blake2b_update(&ctx, shared_key.key.data(), shared_key.key.size());
+		crypto_blake2b_update(&ctx, p1->key.data(), p1->key.size());
+		crypto_blake2b_update(&ctx, p2->key.data(), p2->key.size());
+		crypto_blake2b_update(&ctx, ctr.data(), ctr.size());
+		crypto_blake2b_final(&ctx, out.data());
 
+		sessionkey key;
+		std::ranges::copy(out, key.key.begin());
 
-		std::ranges::copy_n(shared_keys.data(), 32, session_key_1.key.data());
-		std::ranges::copy_n(shared_keys.data() + 32, 32, session_key_2.key.data());
+		crypto_wipe(out.data(), out.size());
+		crypto_wipe(ctr.data(), ctr.size());
 
-		wipe_key(sharedkey);
-
-		// TODO: key ratchet
+		return key;
 	}
 
 
