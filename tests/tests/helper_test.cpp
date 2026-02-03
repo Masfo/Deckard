@@ -45,6 +45,60 @@ TEST_CASE("as", "[as]")
 
 TEST_CASE("helpers", "[helpers]")
 {
+	SECTION("write_le/write_be")
+	{
+		std::array<u8, 32> buf{};
+		std::fill(buf.begin(), buf.end(), 0_u8);
+
+		write_le<u16>(buf, 0, 0x1234_u16);
+		CHECK(buf[0] == 0x34_u8);
+		CHECK(buf[1] == 0x12_u8);
+
+		write_be<u16>(buf, 2, 0x1234_u16);
+		CHECK(buf[2] == 0x12_u8);
+		CHECK(buf[3] == 0x34_u8);
+
+		write_le<u32>(buf, 4, 0x11223344_u32);
+		CHECK(buf[4] == 0x44_u8);
+		CHECK(buf[5] == 0x33_u8);
+		CHECK(buf[6] == 0x22_u8);
+		CHECK(buf[7] == 0x11_u8);
+
+		write_be<u32>(buf, 8, 0x11223344_u32);
+		CHECK(buf[8] == 0x11_u8);
+		CHECK(buf[9] == 0x22_u8);
+		CHECK(buf[10] == 0x33_u8);
+		CHECK(buf[11] == 0x44_u8);
+
+		write_le<u64>(buf, 16, 0x1122334455667788_u64);
+		CHECK(buf[16] == 0x88_u8);
+		CHECK(buf[17] == 0x77_u8);
+		CHECK(buf[18] == 0x66_u8);
+		CHECK(buf[19] == 0x55_u8);
+		CHECK(buf[20] == 0x44_u8);
+		CHECK(buf[21] == 0x33_u8);
+		CHECK(buf[22] == 0x22_u8);
+		CHECK(buf[23] == 0x11_u8);
+
+		write_be<u64>(buf, 24, 0x1122334455667788_u64);
+		CHECK(buf[24] == 0x11_u8);
+		CHECK(buf[25] == 0x22_u8);
+		CHECK(buf[26] == 0x33_u8);
+		CHECK(buf[27] == 0x44_u8);
+		CHECK(buf[28] == 0x55_u8);
+		CHECK(buf[29] == 0x66_u8);
+		CHECK(buf[30] == 0x77_u8);
+		CHECK(buf[31] == 0x88_u8);
+
+		write_le<i16>(buf, 12, static_cast<i16>(-2));
+		CHECK(buf[12] == 0xFE_u8);
+		CHECK(buf[13] == 0xFF_u8);
+
+		write_be<i16>(buf, 14, static_cast<i16>(-2));
+		CHECK(buf[14] == 0xFF_u8);
+		CHECK(buf[15] == 0xFE_u8);
+	}
+
 	SECTION("replace")
 	{
 		std::string input("hello|world");
