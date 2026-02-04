@@ -106,8 +106,6 @@ namespace deckard::math
 			return result;
 		}
 
-		void operator*=(const mat4_generic& rhs) { *this = *this * rhs; }
-
 		mat4_generic operator+(const mat4_generic& rhs) const
 		{
 			mat4_generic result;
@@ -134,10 +132,7 @@ namespace deckard::math
 
 		mat4_generic operator-() const
 		{
-			mat4_generic m(*this);
-
-			m *= mat4_generic(-1.0f);
-			return m;
+			return *this * -1.0f;
 		}
 
 		mat4_generic operator+() const { return *this; }
