@@ -17,6 +17,9 @@ key01 = value01 # kv comment
 # just comment
 )");
 
+		config3 cfg(c);
+
+
 
 
 
