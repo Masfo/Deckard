@@ -1,7 +1,7 @@
 {
   "name": "deckard",
   "version": "1.0.0",
-  "builtin-baseline": "edffab1bcd2cb5b8c17d6ba34d5651ea0bf82979",
+  "builtin-baseline": "7c11b72a6f810293d0ce234de126b99e9ab6fa7a",
   "dependencies": [
     "catch2"
   ]
