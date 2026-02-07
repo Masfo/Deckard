@@ -1,5 +1,6 @@
 export module deckard.utf8:codepoints;
 import :xid;
+import :ascii;
 
 import std;
 import deckard.as;

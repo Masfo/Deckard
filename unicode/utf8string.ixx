@@ -278,7 +278,7 @@ namespace deckard::utf8
 			return count;
 		}
 
-		bool empty() const { return ptr->empty(); }
+		bool empty() const { return ptr == nullptr or ptr->empty(); }
 
 		unit operator[](difference_type n) const
 		{
@@ -304,7 +304,7 @@ namespace deckard::utf8
 
 		codepoint_type codepoint() const { return decode_current_codepoint(); }
 
-		explicit operator bool() const { return current_index < as<difference_type>(ptr->size()) and ptr != nullptr; }
+		explicit operator bool() const { return ptr != nullptr and current_index < as<difference_type>(ptr->size()); }
 	};
 
 	// #########################
@@ -359,6 +359,7 @@ namespace deckard::utf8
 		{
 			assert::check(index < size(), "Index out of bounds");
 
+// TODO: bounds check
 			auto it = begin();
 			while (index--)
 				it++;
@@ -524,26 +525,19 @@ namespace deckard::utf8
 
 		string& erase(size_t pos, size_t count = std::string::npos)
 		{
-			if (empty() || pos + count - 1 >= size())
+			if (empty() or pos >= size() or count == 0)
 				return *this;
 
-			auto first = begin();
-			for (size_t i = 0; i < pos && first != end(); ++i)
-				++first;
+			auto first = begin() + pos;
 
-			if (pos + count >= size())
+			if (count == npos or pos + count >= size())
 			{
-				erase(first, end() + 1);
+				erase(first, end());
+				return *this;
 			}
-			else
-			{
-				auto last = first;
-				for (size_t i = 0; i < count && last != end(); ++i)
-					++last;
 
-
-				erase(first, last);
-			}
+			auto last = first + count;
+			erase(first, last);
 
 			return *this;
 		}
@@ -702,7 +696,7 @@ namespace deckard::utf8
 
 			for (size_t i = 0; i < input.size(); i++)
 			{
-				if (buffer[i] != buffer[i])
+				if (buffer[i] != input[i])
 					return false;
 			}
 
@@ -800,7 +794,11 @@ namespace deckard::utf8
 
 		size_t length() const
 		{
-			if (empty() or valid().has_value() == false)
+			if (empty())
+				return 0;
+
+			auto status = valid();
+			if (not status or not *status)
 				return 0;
 
 			auto len = utf8::length(buffer.data());
@@ -809,9 +807,11 @@ namespace deckard::utf8
 
 		size_t graphemes() const
 		{
+			if (empty())
+				return 0;
 
-
-			if (empty() or valid().has_value() == false)
+			auto status = valid();
+			if (not status or not *status)
 				return 0;
 
 			return utf8::graphemes(buffer.data());
@@ -860,10 +860,10 @@ namespace deckard::utf8
 		// returns raw bytes of the string
 		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<u8>
 		{
-			if (start >= size())
-			{
-			}
-			assert::check(start <= size(), "Indexing out-of-bounds");
+			if (start == size())
+				return {};
+
+			assert::check(start < size(), "Indexing out-of-bounds");
 
 			if (empty())
 				return std::span<u8>{};
@@ -922,7 +922,11 @@ namespace deckard::utf8
 
 		auto c_str() const { return as<const char*>(buffer.data().data()); }
 
-		std::string to_string() const { return std::string(c_str()); }
+		std::string to_string() const
+		{
+			std::string_view view{as<const char*>(buffer.data().data()), buffer.size()};
+			return std::string(view);
+		}
 
 		size_t find_first_of(const string& str, size_t pos = 0) const
 		{
@@ -1319,7 +1323,8 @@ export namespace std
 
 		auto format(const utf8::string& v, std::format_context& ctx) const
 		{
-			std::string_view view{v.c_str()};
+			const auto bytes = v.data();
+			std::string_view view{as<const char*>(bytes.data()), bytes.size()};
 			return std::format_to(ctx.out(), "{}", view);
 		}
 
