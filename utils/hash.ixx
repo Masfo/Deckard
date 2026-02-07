@@ -139,7 +139,8 @@ namespace deckard::utils
 	{
 #ifdef _DEBUG
 		// key from random.org
-		constexpr static std::array<u8, 16> key = {0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
+		constexpr static std::array<u8, 16> key = {
+		  0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
 		return siphash(std::span<u8, 16>{(u8*)key.data(), key.size()}, buffer);
 #else
 		return siphash(std::span<u8, 16>{(u8*)deckard_build::build::rng_buffer, 16}, buffer);
@@ -306,7 +307,7 @@ namespace deckard::utils
 
 	constexpr u64 chibihash64__rotl(u64 x, int n) { return (x << n) | (x >> (-n & 63)); }
 
-	export constexpr u64 chibihash64(const void* keyIn, size_t len, u64 seed)
+	export constexpr u64 chibihash64(const void* keyIn, size_t len, u64 seed = CHIBI_SEED)
 	{
 		// https://github.com/N-R-K/ChibiHash/blob/master/chibihash64.h
 
@@ -372,18 +373,53 @@ namespace deckard::utils
 		return x;
 	}
 
-	export u64 chibihash64(const void* buffer, size_t len) { return chibihash64(buffer, len, CHIBI_SEED); }
+	export u64 constexpr chibihash64(std::span<u8> buffer, const u64 seed = CHIBI_SEED)
+	{
+		return chibihash64(buffer.data(), buffer.size_bytes(), seed);
+	}
 
-	export u64 chibihash64(std::span<u8> buffer) { return chibihash64(buffer.data(), buffer.size_bytes(), CHIBI_SEED); }
-
-	export u64 chibihash64(std::string_view buffer) { return chibihash64({as<u8*>(buffer.data()), buffer.size()}); }
+	export u64 constexpr chibihash64(std::string_view buffer, const u64 seed = CHIBI_SEED)
+	{
+		return chibihash64({as<u8*>(buffer.data()), buffer.size()}, seed);
+	}
 
 	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
 
 	// ########################################################
 
 
-	export constexpr u64 stringhash(std::string_view str) { return fnv1a_64(str); }
+	export constexpr u64 stringhash(std::string_view str) { return chibihash64(str); }
+
+	export template<typename... Views>
+	constexpr u64 stringhash(std::string_view first, Views... rest)
+	{
+		size_t total_size = first.size();
+		((total_size += rest.size()), ...);
+
+		constexpr u32 stack_limit = sizeof...(rest) < 256u ? 256u : 0u;
+		if constexpr (stack_limit > 0u)
+		{
+			if (total_size <= stack_limit)
+			{
+				std::array<char, stack_limit> buffer{};
+				auto*                         out    = buffer.data();
+				auto                          append = [&](std::string_view view)
+				{
+					std::memcpy(out, view.data(), view.size());
+					out += view.size();
+				};
+				append(first);
+				(append(rest), ...);
+				return chibihash64(std::string_view{buffer.data(), total_size});
+			}
+		}
+
+		std::string combined;
+		combined.reserve(total_size);
+		combined.append(first);
+		(combined.append(rest), ...);
+		return chibihash64(std::string_view{combined});
+	}
 
 
 } // namespace deckard::utils

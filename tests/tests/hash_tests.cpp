@@ -1,4 +1,4 @@
-﻿
+
 #include <catch2/catch_test_macros.hpp>
 
 import deckard;
@@ -14,6 +14,34 @@ using namespace deckard::utils;
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
+
+TEST_CASE("stringhash", "[hash]")
+{
+	SECTION("stringhash")
+	{
+		CHECK(stringhash("") == 0x26da'4862'ea31'653e);
+		CHECK(stringhash("Hello, World!") == 0x1384'c4b3'6032'91f0);
+		CHECK(stringhash("The quick brown fox jumps over the lazy dog") == 0xd105'1fac'aaee'14ca);
+	}
+
+	SECTION("stringhash with multiple views")
+	{
+		std::string_view part1 = "The quick brown fox ";
+		std::string_view part2 = "jumps over the lazy dog";
+		CHECK(stringhash(part1, part2) == 0xd105'1fac'aaee'14ca);
+
+
+		CHECK(stringhash("The quick brown fox jumps over the lazy dog"sv,
+						 "The quick brown fox jumps over the lazy dog"sv,
+						 "The quick brown fox jumps over the lazy dog"sv,
+						 "The quick brown fox jumps over the lazy dog"sv,
+						 "The quick brown fox jumps over the lazy dog"sv,
+						 "The quick brown fox jumps over the lazy dog"sv) ==
+			  stringhash("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
+						 "over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
+						 "over the lazy dogThe quick brown fox jumps over the lazy dog"));
+	}
+}
 
 TEST_CASE("HMAC-SHA1 digests", "[hmac][sha1][hash]")
 {
@@ -303,8 +331,9 @@ TEST_CASE("SHA1/SHA256/SHA512 digest formatting", "[sha1][sha256][sha512][hash]"
 
 	SECTION("sha512 digest")
 	{
-		sha512::digest correct_abc_digest{"ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
-										  "454d4423643ce80e2a9ac94fa54ca49f"};
+		sha512::digest correct_abc_digest{
+		  "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
+		  "454d4423643ce80e2a9ac94fa54ca49f"};
 
 		sha512::hasher h;
 		h.update("abc"sv);
