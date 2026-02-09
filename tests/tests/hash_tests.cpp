@@ -17,18 +17,13 @@ using namespace std::string_view_literals;
 
 TEST_CASE("stringhash", "[hash]")
 {
-	SECTION("stringhash")
-	{
-		CHECK(stringhash("") == 0x26da'4862'ea31'653e);
-		CHECK(stringhash("Hello, World!") == 0x1384'c4b3'6032'91f0);
-		CHECK(stringhash("The quick brown fox jumps over the lazy dog") == 0xd105'1fac'aaee'14ca);
-	}
 
 	SECTION("stringhash with multiple views")
 	{
 		std::string_view part1 = "The quick brown fox ";
 		std::string_view part2 = "jumps over the lazy dog";
-		CHECK(stringhash(part1, part2) == 0xd105'1fac'aaee'14ca);
+
+		CHECK(stringhash(part1, part2) == stringhash("The quick brown fox jumps over the lazy dog"));
 
 
 		CHECK(stringhash("The quick brown fox jumps over the lazy dog"sv,
@@ -40,6 +35,17 @@ TEST_CASE("stringhash", "[hash]")
 			  stringhash("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
 						 "over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
 						 "over the lazy dogThe quick brown fox jumps over the lazy dog"));
+	}
+}
+
+TEST_CASE("xxhasher", "[hash][xxhash]")
+{
+	SECTION("xxhasher")
+	{
+		std::string_view part1 = "The quick brown fox ";
+		std::string_view part2 = "jumps over the lazy dog";
+
+		CHECK(xxhash64(part1, part2) == xxhash64("The quick brown fox jumps over the lazy dog"));
 	}
 }
 

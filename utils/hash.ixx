@@ -386,39 +386,197 @@ namespace deckard::utils
 	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
 
 	// ########################################################
-
-
-	export constexpr u64 stringhash(std::string_view str) { return chibihash64(str); }
-
-	export template<typename... Views>
-	constexpr u64 stringhash(std::string_view first, Views... rest)
+	class xxhash64_hasher
 	{
-		size_t total_size = first.size();
-		((total_size += rest.size()), ...);
+		static constexpr u64 prime1 = 11'400'714'785'074'694'791ULL;
+		static constexpr u64 prime2 = 14'029'467'366'897'019'727ULL;
+		static constexpr u64 prime3 = 1'609'587'929'392'839'161ULL;
+		static constexpr u64 prime4 = 9'650'029'242'287'828'579ULL;
+		static constexpr u64 prime5 = 2'870'177'450'012'600'261ULL;
 
-		constexpr u32 stack_limit = sizeof...(rest) < 256u ? 256u : 0u;
-		if constexpr (stack_limit > 0u)
+		std::array<u64, 4> state_{prime1 + prime2, prime2, 0, static_cast<u64>(-static_cast<i64>(prime1))};
+		std::array<u8, 32> buffer_{};
+		u64                buffer_size_ = 0;
+		u64                total_len_   = 0;
+
+	public:
+		xxhash64_hasher() = default;
+
+	
+
+		void update(std::span<const u8> data) noexcept
 		{
-			if (total_size <= stack_limit)
+			auto ptr = data.data();
+			u64  len = data.size();
+			total_len_ += len;
+
+			// Fill buffer if we have leftover data
+			if (buffer_size_ > 0)
 			{
-				std::array<char, stack_limit> buffer{};
-				auto*                         out    = buffer.data();
-				auto                          append = [&](std::string_view view)
+				u64 to_copy = std::min(32 - buffer_size_, len);
+				std::memcpy(buffer_.data() + buffer_size_, ptr, to_copy);
+				buffer_size_ += to_copy;
+				ptr += to_copy;
+				len -= to_copy;
+
+				if (buffer_size_ == 32)
 				{
-					std::memcpy(out, view.data(), view.size());
-					out += view.size();
-				};
-				append(first);
-				(append(rest), ...);
-				return chibihash64(std::string_view{buffer.data(), total_size});
+					process_block(buffer_.data());
+					buffer_size_ = 0;
+				}
+			}
+
+			// Process full 32-byte blocks
+			while (len >= 32)
+			{
+				process_block(ptr);
+				ptr += 32;
+				len -= 32;
+			}
+
+			// Store remaining bytes in buffer
+			if (len > 0)
+			{
+				std::memcpy(buffer_.data(), ptr, len);
+				buffer_size_ = len;
 			}
 		}
 
-		std::string combined;
-		combined.reserve(total_size);
-		combined.append(first);
-		(combined.append(rest), ...);
-		return chibihash64(std::string_view{combined});
+		void update(std::span<u8> data) noexcept { update(std::span<const u8>{data.data(), data.size()}); }
+
+		void update(std::string_view data) noexcept
+		{
+			update(std::span<const u8>{as<const u8*>(data.data()), data.size()});
+		}
+
+		[[nodiscard]] u64 digest() const noexcept
+		{
+			u64 hash{};
+
+			if (total_len_ >= 32)
+			{
+				hash = std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
+
+				for (u64 acc : state_)
+				{
+					acc *= prime2;
+					acc = std::rotl(acc, 31);
+					acc *= prime1;
+					hash ^= acc;
+					hash = hash * prime1 + prime4;
+				}
+			}
+			else
+			{
+				hash = state_[2] + prime5;
+			}
+
+			hash += total_len_;
+
+			// Process remaining bytes
+			u64       remaining = buffer_size_;
+			const u8* ptr       = buffer_.data();
+
+			while (remaining >= 8)
+			{
+				u64 k1{};
+				std::memcpy(&k1, ptr, 8);
+				k1 *= prime2;
+				k1 = std::rotl(k1, 31);
+				k1 *= prime1;
+				hash ^= k1;
+				hash = std::rotl(hash, 27) * prime1 + prime4;
+				ptr += 8;
+				remaining -= 8;
+			}
+
+			if (remaining >= 4)
+			{
+				u32 k1{};
+				std::memcpy(&k1, ptr, 4);
+				hash ^= static_cast<u64>(k1) * prime1;
+				hash = std::rotl(hash, 23) * prime2 + prime3;
+				ptr += 4;
+				remaining -= 4;
+			}
+
+			while (remaining > 0)
+			{
+				hash ^= (*ptr) * prime5;
+				hash = std::rotl(hash, 11) * prime1;
+				++ptr;
+				--remaining;
+			}
+
+			// Finalization mix
+			hash ^= hash >> 33;
+			hash *= prime2;
+			hash ^= hash >> 29;
+			hash *= prime3;
+			hash ^= hash >> 32;
+
+			return hash;
+		}
+
+		void reset() noexcept
+		{
+			state_       = {prime1 + prime2, prime2, 0, static_cast<u64>(-static_cast<i64>(prime1))};
+			buffer_size_ = 0;
+			total_len_   = 0;
+		}
+
+	private:
+		void process_block(const u8* block) noexcept
+		{
+			for (u64 i = 0; i < 4; ++i)
+			{
+				u64 lane;
+				std::memcpy(&lane, block + i * 8, 8);
+				state_[i] += lane * prime2;
+				state_[i] = std::rotl(state_[i], 31);
+				state_[i] *= prime1;
+			}
+		}
+	};
+
+	// ########################################################
+
+
+	export u64 xxhash64(std::string_view str)
+	{
+		xxhash64_hasher hasher;
+		hasher.update(str);
+		return hasher.digest();
+	}
+
+	export template<typename... Views>
+	u64 xxhash64(std::string_view first, Views... rest)
+	{
+		xxhash64_hasher hasher;
+		hasher.update(first);
+		(hasher.update(rest), ...);
+		return hasher.digest();
+	}
+
+	export u64 xxhash64(std::span<const u8> buffer)
+	{
+		xxhash64_hasher hasher;
+		hasher.update(buffer);
+		return hasher.digest();
+	}
+
+
+
+
+	export u64 stringhash(std::string_view str) { return xxhash64(str); }
+
+	export template<typename... Views>
+	u64 stringhash(std::string_view first, Views... rest)
+	{
+		xxhash64_hasher hasher;
+		hasher.update(first);
+		(hasher.update(rest), ...);
+		return hasher.digest();
 	}
 
 
