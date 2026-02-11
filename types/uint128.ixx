@@ -2,8 +2,9 @@ export module deckard.uint128;
 
 import std;
 import deckard.types;
+import deckard.assert;
 
-namespace deckard::uint128
+namespace deckard
 {
 	export class uint128
 	{
@@ -63,8 +64,40 @@ namespace deckard::uint128
 
 		explicit constexpr operator bool() const { return high != 0 or low != 0; }
 
-		constexpr bool operator==(const uint128& other) const  = default;
-		constexpr auto operator<=>(const uint128& other) const = default;
+
+		explicit constexpr operator f64() const noexcept
+		{
+			constexpr f64 two_pow_64 = 18446744073709551616.0;
+			return static_cast<f64>(high) * two_pow_64 + static_cast<f64>(low);
+		}
+
+		explicit constexpr operator f32() const noexcept
+		{
+			constexpr f32 two_pow_64 = 18446744073709551616.0f;
+			return static_cast<f32>(high) * two_pow_64 + static_cast<f32>(low);
+		}
+
+		constexpr bool operator==(std::integral auto value) const
+		{
+			if constexpr (std::is_signed_v<decltype(value)>)
+			{
+				if (value < 0)
+					return false;
+			}
+			return high == 0 && low == static_cast<u64>(value);
+		}
+
+
+
+		constexpr bool                 operator==(const uint128& other) const = default;
+		constexpr std::strong_ordering operator<=>(const uint128& rhs) const  = default;
+
+		// constexpr std::strong_ordering operator<=>(const uint128& rhs) const noexcept
+		//{
+		//	if (high != rhs.high)
+		//		return high <=> rhs.high;
+		//	return low <=> rhs.low;
+		// }
 
 		constexpr uint128 operator+(const uint128& other) const
 		{
@@ -124,6 +157,45 @@ namespace deckard::uint128
 			return *this + uint128(static_cast<u64>(value));
 		}
 
+		template<std::integral T>
+		constexpr uint128 operator-(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+					return *this + uint128(static_cast<u64>(-(value + 1))) + 1u;
+			}
+			return *this - uint128(static_cast<u64>(value));
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator*(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+				{
+					assert::check(false, "uint128 does not support multiply by negative values");
+					return uint128(0u);
+				}
+			}
+			return *this * uint128(static_cast<u64>(value));
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator/(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+				{
+					assert::check(false, "uint128 does not support divide by negative values");
+					return uint128(0u);
+				}
+			}
+			return *this / uint128(static_cast<u64>(value));
+		}
+
 		constexpr uint128& operator+=(const uint128& other) { return *this = *this + other; }
 
 		constexpr uint128& operator-=(const uint128& other) { return *this = *this - other; }
@@ -150,6 +222,17 @@ namespace deckard::uint128
 			return {(high << shift) | (low >> (64 - shift)), low << shift};
 		}
 
+		template<std::integral T>
+		constexpr uint128 operator<<(T shift) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (shift < 0)
+					return *this >> static_cast<u32>(-(shift + 1)) + 1u;
+			}
+			return *this << static_cast<u32>(shift);
+		}
+
 		constexpr uint128 operator>>(u32 shift) const
 		{
 			if (shift == 0)
@@ -161,15 +244,25 @@ namespace deckard::uint128
 			return {high >> shift, (low >> shift) | (high << (64 - shift))};
 		}
 
+		template<std::integral T>
+		constexpr uint128 operator>>(T shift) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (shift < 0)
+					return *this << static_cast<u32>(-(shift + 1)) + 1u;
+			}
+			return *this >> static_cast<u32>(shift);
+		}
+
 		constexpr uint128& operator<<=(u32 shift) { return *this = *this << shift; }
 
 		constexpr uint128& operator>>=(u32 shift) { return *this = *this >> shift; }
 
-		// Division and modulo
 		constexpr std::pair<uint128, uint128> div_mod(const uint128& divisor) const
 		{
-			if (divisor == 0u)
-				return {0u, 0u}; // Or throw/panic
+			if (divisor == uint128(0u))
+				return {0u, 0u};
 
 			if (*this < divisor)
 				return {0u, *this};
@@ -196,30 +289,45 @@ namespace deckard::uint128
 			return {quotient, remainder};
 		}
 
-		constexpr uint128 operator/(const uint128& other) const { return div_mod(other).first; }
+		constexpr uint128 operator/(const uint128& rhs) const { return div_mod(rhs).first; }
 
-		constexpr uint128 operator%(const uint128& other) const { return div_mod(other).second; }
+		constexpr uint128 operator%(const uint128& rhs) const { return div_mod(rhs).second; }
 
-		constexpr uint128& operator/=(const uint128& other) { return *this = *this / other; }
+		constexpr uint128& operator/=(const uint128& rhs) { return *this = *this / rhs; }
 
-		constexpr uint128& operator%=(const uint128& other) { return *this = *this % other; }
+		constexpr uint128& operator%=(const uint128& rhs) { return *this = *this % rhs; }
 
-		std::string to_string() const
+		std::string to_string(int base = 10) const
 		{
+			assert::check(base >= 2 and base <= 36, "Base must be between 2 and 36");
+
+			const char* prefix = "";
+			if (base == 16)
+				prefix = "0x";
+			else if (base == 2)
+				prefix = "0b";
+
 			if (*this == 0u)
-				return "0";
+				return std::string{prefix} + "0";
 
 			std::string   s;
 			uint128       temp = *this;
-			const uint128 ten(10);
+			const uint128 radix(static_cast<u64>(base));
+
 
 			while (temp != 0u)
 			{
-				auto [q, r] = temp.div_mod(ten);
-				s += static_cast<char>(r.low + '0');
+				auto [q, r]     = temp.div_mod(radix);
+				const u32 digit = static_cast<u32>(r.low);
+				if (digit < 10u)
+					s += static_cast<char>('0' + digit);
+				else
+					s += static_cast<char>('a' + (digit - 10u));
 				temp = q;
 			}
 			std::reverse(s.begin(), s.end());
+			if (*prefix != '\0')
+				s.insert(0, prefix);
 			return s;
 		}
 

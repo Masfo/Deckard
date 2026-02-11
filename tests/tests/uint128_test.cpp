@@ -1,9 +1,10 @@
+#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
 import std;
 import deckard.uint128;
-using namespace deckard::uint128;
+using namespace deckard;
 
 TEST_CASE("uint128", "[uint128]")
 {
@@ -61,6 +62,8 @@ TEST_CASE("uint128", "[uint128]")
 		CHECK(sum == uint128(2, 1));
 		uint128 dc(UINT64_MAX - 1, UINT64_MAX);
 		CHECK(dc + 1u == uint128(UINT64_MAX, 0));
+
+		CHECK(uint128(UINT64_MAX, UINT64_MAX) + 1 == uint128());
 	}
 
 	SECTION("sub")
@@ -78,8 +81,10 @@ TEST_CASE("uint128", "[uint128]")
 		sub = sub - one;
 		CHECK(sub == uint128(UINT64_MAX - 1, UINT64_MAX));
 
-		uint128 zero(0, 0);
+		uint128 zero(0);
 		CHECK(zero - one == uint128(UINT64_MAX, UINT64_MAX));
+
+		CHECK(zero - 1 == uint128(UINT64_MAX, UINT64_MAX));
 	}
 
 	SECTION("parse")
@@ -187,12 +192,33 @@ TEST_CASE("uint128", "[uint128]")
 		uint128 d("0xFFFFFFFFFFFFFFFF");
 		CHECK(c * d == uint128("340282366920938463426481119284349108225"));
 	}
+
+	SECTION("convert to floats")
+	{
+		CHECK_THAT(f64{uint128("123456789")}, Catch::Matchers::WithinAbs(123456789.0, 0.0001));
+
+		CHECK_THAT(f32{uint128("123456789")}, Catch::Matchers::WithinAbs(123456789.0f, 0.0001f));
+	}
+
 	SECTION("to_string")
 	{
 		CHECK(uint128(0).to_string() == "0");
 		CHECK(uint128(1, 0).to_string() == "18446744073709551616");
 		CHECK(uint128("123456789012345678901").to_string() == "123456789012345678901");
 
-		CHECK(uint128(0xFFFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF).to_string() == "340282366920938463463374607431768211455");
+		CHECK(uint128(UINT64_MAX, UINT64_MAX).to_string() == "340282366920938463463374607431768211455");
+		CHECK(uint128(UINT64_MAX, UINT64_MAX).to_string(16) == "0xffffffffffffffffffffffffffffffff");
+		CHECK(uint128(UINT64_MAX, UINT64_MAX).to_string(2) ==
+			  "0b11111111111111111111111111111111111111111111111111111111111111111111111111"
+			  "111111111111111111111111111111111111111111111111111111");
+
+		CHECK(uint128(0, 255).to_string(16) == "0xff");
+		CHECK(uint128(0, 255).to_string(2) == "0b11111111");
+		CHECK(uint128(0, 35).to_string(36) == "z");
+		CHECK(uint128(1, 0).to_string(16) == "0x10000000000000000");
+
+		CHECK(uint128(uint128(0, UINT64_MAX) * uint128(0, UINT64_MAX) - 1u).to_string(2) ==
+			  "0b111111111111111111111111111111111111111111111111111111111111111"
+			  "00000000000000000000000000000000000000000000000000000000000000000");
 	}
 }
