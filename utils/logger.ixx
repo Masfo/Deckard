@@ -10,8 +10,25 @@ namespace fs = std::filesystem;
 
 namespace deckard
 {
+	// Logger cannot be included in catch2 tests
 
 	constexpr u64 BUFFER_LEN = 2048;
+
+#ifndef _DEBUG
+	class logger final
+	{
+	public:
+		void flush() { }
+
+		template<typename... Args>
+		void operator()(std::string_view, Args&&...)
+		{
+		}
+
+		u64 size() const { return 0; }
+	};
+
+#else
 
 	class logger final
 	{
@@ -68,7 +85,7 @@ namespace deckard
 #endif
 			std::scoped_lock l(push_mutex);
 
-			u64 needed    = str.size() + 1; // message + newline
+			u64 needed = str.size() + 1; // message + newline
 
 			u64 old_index = index.fetch_add(needed, std::memory_order_relaxed);
 			u64 new_index = old_index + needed;
@@ -119,6 +136,17 @@ namespace deckard
 			return fs::current_path() / std::format("log.{}.{}.txt", day_month_year(), hour_minute_second("."));
 		}
 
+		void flush_internal()
+		{
+			u64 current_size = index.exchange(0, std::memory_order_acquire);
+
+			if (current_size == 0)
+				return;
+
+			std::span<u8> log_span(as<u8*>(buffer.data()), current_size);
+			(void)file::append({.file = logfile, .buffer = log_span});
+		}
+
 	public:
 		logger()
 			: logger(BUFFER_LEN)
@@ -144,16 +172,7 @@ namespace deckard
 			flush_internal();
 		}
 
-		void flush_internal()
-		{
-			u64 current_size = index.exchange(0, std::memory_order_acquire);
 
-		if (current_size == 0)
-			return;
-
-		std::span<u8> log_span(as<u8*>(buffer.data()), current_size);
-		(void)file::append({.file = logfile, .buffer = log_span});
-	}
 
 		template<typename... Args>
 		void operator()(std::string_view fmt, Args&&... args)
@@ -163,10 +182,10 @@ namespace deckard
 
 		u64 size() const { return total_buffer_size.load(); }
 
-
 		// TODO
 		// std::generator<std::string_view> getline()
 	};
+#endif
 
 	export logger logger;
 
@@ -243,4 +262,3 @@ namespace deckard
 
 
 } // namespace deckard
-

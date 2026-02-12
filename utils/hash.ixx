@@ -78,7 +78,7 @@ namespace deckard::utils
 	// Siphash
 
 
-	export u64 siphash(const std::span<u8, 16> key, const std::span<u8> m)
+	export u64 siphash(const std::span<const u8, 16> key, const std::span<u8> m)
 	{
 		u64    mi{0};
 		size_t i{0}, blocks{0};

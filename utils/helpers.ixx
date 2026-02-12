@@ -1358,53 +1358,8 @@ export namespace deckard
 
 	// ###############################
 
-	template<i32 S, i32 E, i32 STEP = 1>
-	struct ranger
-	{
-		struct iterator
-		{
-			using value_type = i32;
 
-			using iterator_category = std::forward_iterator_tag;
-			using difference_type   = std::ptrdiff_t;
-			using pointer           = value_type*;
-			using reference         = value_type&;
 
-			explicit iterator(value_type S, value_type E, value_type SS)
-				: current(S)
-				, end(E)
-				, step(SS)
-			{
-			}
-
-			reference operator*() { return current; }
-
-			pointer operator->() { return current; }
-
-			iterator& operator++()
-			{
-				current += step;
-				return *this;
-			}
-
-			friend bool operator==(const iterator& a, const iterator& b) { return a.current == b.end; }
-
-			value_type current{0};
-			value_type end{0};
-			value_type step{0};
-		};
-
-		auto begin() const { return iterator(S, 0, STEP); }
-
-		auto end() const { return iterator(S, E, STEP); }
-	};
-
-	/*
-		for (auto i : ranger<0, 10, 2>())
-		{
-			dbg::println("{}", i);
-		}
-	*/
 
 	// ###############################
 

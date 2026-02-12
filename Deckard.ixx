@@ -191,7 +191,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 {
 
-
 	// clang-format off
 	#if 0
 		
@@ -237,6 +236,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 	//	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
+	info("Initialized");
 
 	deckard::random::initialize();
 	net::initialize();
