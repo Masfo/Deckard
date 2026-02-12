@@ -222,7 +222,7 @@ set(DECKARD_SRCS
 		# File
 		file/file.ixx
 		file/fileMonitor.ixx
-		file/qoi.ixx
+		
 
 		# Config
 		config/ini.ixx
