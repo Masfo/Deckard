@@ -198,13 +198,14 @@ namespace deckard::math
 		{
 			T result{};
 
-			auto T = abs_diff(x, other.x);
-			result = T * T;
+			auto tmp = abs_diff(x, other.x);
+			result = tmp * tmp;
 
-			T = abs_diff(y, other.y);
-			result += T * T;
+			tmp = abs_diff(y, other.y);
+			result += tmp * tmp;
+			
 
-			return std::sqrt(result);
+			return as<T>(std::sqrt(result));
 		}
 
 		[[nodiscard("Use the distance value")]] constexpr T distance(const vec_type& other) const
