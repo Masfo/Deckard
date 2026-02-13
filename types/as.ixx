@@ -20,7 +20,6 @@ namespace deckard
 		T casted = static_cast<T>(value);
 
 
-
 		if constexpr (std::is_floating_point_v<U>)
 		{
 			dbg::println(
@@ -41,7 +40,7 @@ namespace deckard
 			  std::numeric_limits<T>::max(),
 			  casted);
 		}
-		#if 0
+#if 0
 		else if constexpr(std::is_signed_v<U>) // is signed
 		{
 			dbg::println(
@@ -51,7 +50,7 @@ namespace deckard
 			  std::numeric_limits<T>::max(),
 			  casted);
 		}
-		#endif
+#endif
 #endif
 	}
 
@@ -62,8 +61,6 @@ namespace deckard
 
 #pragma warning(push)
 #pragma warning(disable : 4172) // returning address of local
-
-
 
 
 	export template<typename Ret = void*, bool give_warning = true, typename U>
@@ -95,9 +92,9 @@ namespace deckard
 		else if constexpr (std::is_floating_point_v<U> and std::is_floating_point_v<Ret>)
 		{
 			// float to float
-			if constexpr(std::is_same_v<U, Ret>)
+			if constexpr (std::is_same_v<U, Ret>)
 				return static_cast<Ret>(u);
-			else if constexpr(std::is_same_v<U, f64> and std::is_same_v<Ret, f32>)
+			else if constexpr (std::is_same_v<U, f64> and std::is_same_v<Ret, f32>)
 			{
 				Ret new_value = static_cast<Ret>(u);
 
@@ -107,7 +104,7 @@ namespace deckard
 					return static_cast<Ret>(value);
 				}
 
-				if(std::isnan(new_value))
+				if (std::isnan(new_value))
 				{
 					dbg::println("Casting '{}'(f64) to f32 resulted in NaN. Consider using f64 instead", value);
 					return static_cast<Ret>(value);
@@ -123,12 +120,12 @@ namespace deckard
 				return static_cast<Ret>(u);
 			}
 		}
-		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
+		else if constexpr (std::is_enum_v<U> and std::is_integral_v<Ret>)
 		{
 			// Enum
 			return as<Ret>(std::to_underlying(u));
 		}
-		else if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
+		else if constexpr (std::is_integral_v<U> and std::is_integral_v<Ret>)
 		{
 			// integer -> integer
 #ifdef _DEBUG
@@ -140,13 +137,12 @@ namespace deckard
 #endif
 			return static_cast<Ret>(value);
 		}
-		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
+		else if constexpr (std::is_floating_point_v<U> and std::is_integral_v<Ret>)
 		{
 			// floating point -> integer
 			Ret t = static_cast<Ret>(value);
 
-			if(value >= std::numeric_limits<Ret>::min() and
-			   value <= std::numeric_limits<Ret>::max())
+			if (value >= std::numeric_limits<Ret>::min() and value <= std::numeric_limits<Ret>::max())
 			{
 				return t;
 			}
@@ -185,17 +181,16 @@ namespace deckard
 #endif
 			dbg::panic("Could not convert input to string");
 		}
-		else if constexpr (std::is_same_v<std::span<u8>, U> and std::is_arithmetic_v<Ret>)
-			{
-				assert::check(value.size() >= sizeof(Ret), std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
+		else if constexpr(std::is_same_v<std::span<const u8>, U> or std::is_same_v<std::span<u8>, U>)
+		{
+			assert::check(
+			  value.size() <= sizeof(Ret), std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
 
-				Ret temp{};
+			std::array<u8, sizeof(Ret)> buffer{};
+			std::ranges::copy_n(value.begin(), value.size(),buffer.begin());
+			return std::bit_cast<Ret>(buffer);
 
-				std::memcpy(&temp, u.data(), sizeof(temp));
-				return temp;
-				;
-			}
-
+		}
 		else
 		{
 #ifdef _DEBUG
