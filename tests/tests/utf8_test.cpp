@@ -17,6 +17,7 @@ TEST_CASE("utf8::ascii", "[utf8]")
 	}
 }
 
+// Additional sections for utf8::string tests
 TEST_CASE("utf8::string", "[utf8]")
 {
 
@@ -469,12 +470,71 @@ TEST_CASE("utf8::string", "[utf8]")
 		  0x8D};
 
 		std::array<u32, 4> correct{0x41, 0xC4, 0x21A5, 0x1'F30D};
-		static size_t index = 0;
-		for (const auto& codepoint : yield_codepoints(data))
+		static size_t      index = 0;
+		for (const auto& codepoint : yield_codepoints(utf8::as_ro_bytes(data)))
 		{
 			CHECK(codepoint == correct[index++]);
 		}
 	}
+
+	SECTION("generator yield invalid sequences")
+	{
+		// lone continuation byte then ASCII
+		std::array<u8, 2>  data1 = {0x80, 0x41};
+		std::array<u32, 2> correct1{0xFFFD, 0x41};
+		size_t             idx1 = 0;
+		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data1)))
+			CHECK(cp == correct1[idx1++]);
+		CHECK(idx1 == correct1.size());
+
+		// truncated multibyte sequence: 0xE2 0x82 (missing 3rd byte) then ASCII
+		std::array<u8, 3>  data2 = {0xE2, 0x82, 0x41};
+		std::array<u32, 3> correct2{0xFFFD, 0xFFFD, 0x41};
+		size_t             idx2 = 0;
+		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data2)))
+			CHECK(cp == correct2[idx2++]);
+		CHECK(idx2 == correct2.size());
+	}
+
+
+	SECTION("as_ro_bytes helpers")
+	{
+       std::array<u8, 4> a{'A', 'B', 'C', 'D'};
+		auto                       b1 = utf8::as_ro_bytes(a);
+		CHECK(b1.size() == a.size());
+
+		auto b3 = utf8::as_ro_bytes("ABCD"sv);
+		CHECK(b3.size() == 4);
+	}
+
+	SECTION("decode_codepoint smoke")
+	{
+      std::array<u8, 1> ascii{'A'};
+		CHECK(utf8::decode_codepoint(utf8::as_ro_bytes(ascii), 0) == U'A');
+
+       std::array<u8, 2> two_byte{0xC3, 0x84}; // Ä
+		CHECK(utf8::decode_codepoint(utf8::as_ro_bytes(two_byte), 0) == 0xC4);
+	}
+
+	SECTION("yield_codepoints forward progress")
+	{
+		// invalid leading byte then ASCII
+       std::array<u8, 2> data1{0xFF, 0x41};
+		std::array<u32, 2>         expect1{0xFFFD, 0x41};
+		size_t                     idx1 = 0;
+		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data1)))
+			CHECK(cp == expect1[idx1++]);
+		CHECK(idx1 == expect1.size());
+
+		// truncated 4-byte sequence: consume one byte per replacement then continue
+       std::array<u8, 4> data2{0xF0, 0x9F, 0x92, 0x41};
+		std::array<u32, 4>         expect2{0xFFFD, 0xFFFD, 0xFFFD, 0x41};
+		size_t                     idx2 = 0;
+		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data2)))
+			CHECK(cp == expect2[idx2++]);
+		CHECK(idx2 == expect2.size());
+	}
+
 
 	SECTION("starts_with")
 	{

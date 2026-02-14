@@ -2,6 +2,7 @@ export module deckard.utf8:string;
 import :codepoints;
 import :decode;
 import :view;
+import :utf8_span;
 
 import std;
 import deckard.types;
@@ -331,15 +332,15 @@ namespace deckard::utf8
 			buffer.assign(start.ptr->data().subspan(start_index, end_index - start_index));
 		}
 
-		string(std::span<u8> input) { buffer.assign(input); }
+      string(std::span<u8> input) { buffer.assign(input); }
 
-		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
+      string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
 		string(unit u) { assign(u); }
 
 		string& operator=(std::string_view input)
 		{
-			buffer.assign({as<u8*>(input.data()), input.size()});
+          buffer.assign({as<u8*>(input.data()), input.size()});
 			return *this;
 		}
 
@@ -369,7 +370,7 @@ namespace deckard::utf8
 
 		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const { return at(index); }
 
-		bool operator==(std::span<u8> other) const
+      bool operator==(std::span<u8> other) const
 		{
 			if (buffer.size() != other.size())
 				return false;
@@ -397,10 +398,10 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
+      bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
 		// insert
-		iterator insert(iterator pos, std::span<u8> input)
+      iterator insert(iterator pos, std::span<u8> input)
 		{
 			if (input.empty())
 				return pos;
@@ -413,22 +414,22 @@ namespace deckard::utf8
 			return iterator(&buffer, insert_pos);
 		}
 
-		iterator insert(iterator pos, char c) { return insert(pos, {as<u8*>(&c), 1}); }
+       iterator insert(iterator pos, char c) { return insert(pos, {as<u8*>(&c), 1}); }
 
 		iterator insert(iterator pos, char32 c)
 		{
 			auto decoded = encode_codepoint(c);
-			return insert(pos, {decoded.bytes.data(), decoded.count});
+         return insert(pos, {decoded.bytes.data(), decoded.count});
 		}
 
-		iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
+      iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
 
 		iterator insert(iterator pos, const string& str) { return insert(pos, str.data()); }
 
 		//
-		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
+       void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
 
-		void assign(const std::span<u8>& input) { buffer.assign(input); }
+     void assign(const std::span<u8>& input) { buffer.assign(input); }
 
 		void assign(unit u)
 		{
@@ -592,7 +593,7 @@ namespace deckard::utf8
 			return replace(first, end, str);
 		}
 
-		std::optional<codepoint_type> find(std::span<u8> input, size_t offset = 0) const
+      std::optional<codepoint_type> find(std::span<u8> input, size_t offset = 0) const
 		{
 			if (input.empty() || input.size() > buffer.size() - offset)
 				return {};
@@ -629,7 +630,7 @@ namespace deckard::utf8
 
 		auto find(std::string_view input, size_t offset = 0) const
 		{
-			return find(std::span<u8>{as<u8*>(input.data()), input.size()}, offset);
+           return find(std::span<u8>{as<u8*>(input.data()), input.size()}, offset);
 		}
 
 		std::optional<codepoint_type> find(string input, size_t offset = 0) const
@@ -667,7 +668,7 @@ namespace deckard::utf8
 			return {};
 		}
 
-		bool contains(std::span<u8> input) const
+      bool contains(std::span<u8> input) const
 		{
 			if (input.empty() || input.size() > buffer.size())
 				return false;
@@ -681,12 +682,12 @@ namespace deckard::utf8
 			return false;
 		}
 
-		bool contains(std::string_view str) const { return contains({as<u8*>(str.data()), str.size()}); }
+        bool contains(std::string_view str) const { return contains({as<u8*>(str.data()), str.size()}); }
 
 		bool contains(string str) const { return contains(str.data()); }
 
 		// starts with
-		bool starts_with(std::span<u8> input) const
+      bool starts_with(std::span<u8> input) const
 		{
 			if (input.empty())
 				return true;
@@ -703,7 +704,7 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool starts_with(std::string_view str) const { return starts_with({as<u8*>(str.data()), str.size()}); }
+        bool starts_with(std::string_view str) const { return starts_with({as<u8*>(str.data()), str.size()}); }
 
 		bool starts_with(const string& str) const
 		{
@@ -731,7 +732,7 @@ namespace deckard::utf8
 		}
 
 		// ends with
-		bool ends_with(std::span<u8> input) const
+      bool ends_with(std::span<u8> input) const
 		{
 			if (input.empty())
 				return true;
@@ -749,7 +750,7 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool ends_with(std::string_view str) const { return ends_with({as<u8*>(str.data()), str.size()}); }
+        bool ends_with(std::string_view str) const { return ends_with({as<u8*>(str.data()), str.size()}); }
 
 		bool ends_with(string str) const { return ends_with(str.data()); }
 
@@ -790,7 +791,7 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
-		std::expected<bool, std::string> valid() const { return utf8::valid(buffer.data()); }
+       std::expected<bool, std::string> valid() const { return utf8::valid(utf8::as_ro_bytes(buffer.data())); }
 
 		size_t length() const
 		{
@@ -801,7 +802,7 @@ namespace deckard::utf8
 			if (not status or not *status)
 				return 0;
 
-			auto len = utf8::length(buffer.data());
+         auto len = utf8::length(utf8::as_ro_bytes(buffer.data()));
 			return len ? *len : 0;
 		}
 
@@ -814,7 +815,7 @@ namespace deckard::utf8
 			if (not status or not *status)
 				return 0;
 
-			return utf8::graphemes(buffer.data());
+          return utf8::graphemes(utf8::as_ro_bytes(buffer.data()));
 		}
 
 		void resize(size_t count, char32 c)
@@ -858,7 +859,7 @@ namespace deckard::utf8
 
 		// start index of character, count of characters
 		// returns raw bytes of the string
-		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<u8>
+      auto subspan(size_t start = 0, size_t count = npos) const -> std::span<u8>
 		{
 			if (start == size())
 				return {};
@@ -866,7 +867,7 @@ namespace deckard::utf8
 			assert::check(start < size(), "Indexing out-of-bounds");
 
 			if (empty())
-				return std::span<u8>{};
+          return std::span<u8>{};
 
 			// Find byte index of start position
 			auto it = begin();
@@ -874,7 +875,7 @@ namespace deckard::utf8
 				++it;
 
 			if (it == end())
-				return std::span<u8>{};
+          return std::span<u8>{};
 
 			auto start_byte = it.byteindex();
 

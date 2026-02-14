@@ -1,4 +1,4 @@
-﻿export module deckard.utf8:view;
+export module deckard.utf8:view;
 
 import :codepoints;
 import :decode;
@@ -8,6 +8,7 @@ import deckard.types;
 import deckard.utils.hash;
 import deckard.assert;
 import deckard.as;
+import :utf8_span;
 
 namespace deckard::utf8
 {
@@ -18,7 +19,7 @@ namespace deckard::utf8
 	private:
 		using type = u8;
 
-		std::span<type> m_data;
+      std::span<type> m_data;
 		size_t          byte_index{0};
 
 		void advance_to_next_codepoint(size_t& idx) const
@@ -107,20 +108,20 @@ namespace deckard::utf8
 		{
 		}
 
-		view(const std::span<u8> data)
+		view(std::span<u8> data)
 			: m_data(data)
 			, byte_index(0uz)
 		{
 		}
 
-		view(std::string_view data)
-			: m_data(as<u8*>(data.data()), data.size())
+        view(std::string_view data)
+         : m_data(as<u8*>(data.data()), as<u8*>(data.data()) + data.size())
 			, byte_index(0uz)
 		{
 		}
 
-		view(const char* data, u32 len)
-			: m_data(as<u8*>(data), len)
+        view(const char* data, u32 len)
+            : m_data(as<u8*>(data), as<u8*>(data) + len)
 			, byte_index(0uz)
 		{
 		}
@@ -135,7 +136,7 @@ namespace deckard::utf8
 
 		size_t length() const
 		{
-			auto ret = utf8::length(m_data);
+            auto ret = utf8::length(utf8::as_ro_bytes(m_data));
 			return ret ? *ret : 0;
 		}
 
@@ -147,7 +148,7 @@ namespace deckard::utf8
 
 		bool is_valid() const
 		{
-			auto ret = utf8::length(m_data);
+            auto ret = utf8::length(utf8::as_ro_bytes(m_data));
 			return ret ? true : false;
 		}
 
@@ -256,9 +257,7 @@ namespace deckard::utf8
 			return view(m_data.subspan(start.byte_index, length));
 		}
 
-		auto span() const
-		{
-			return std::span<u8>(m_data.data(), m_data.size_bytes()); }
+        auto span() const { return utf8::as_ro_bytes(m_data); }
 	};
 
 } // namespace deckard::utf8

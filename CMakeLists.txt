@@ -298,6 +298,7 @@ set(DECKARD_SRCS
 		
 		unicode/utf8string.ixx
 		unicode/utf8view.ixx
+		unicode/utf8_span.ixx
 
 		# Graph
 		graphs/avltree.ixx
