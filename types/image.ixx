@@ -1,13 +1,16 @@
 export module deckard.image;
 
 import std;
+import deckard.as;
 import deckard.types;
 import deckard.colors;
 import deckard.assert;
 import deckard.math.utils;
 import deckard.file;
 import deckard.serializer;
+import deckard.helpers;
 import deckard.zstd;
+import deckard.debug;
 
 namespace fs = std::filesystem;
 
@@ -104,10 +107,6 @@ namespace deckard
 	// PNG - Based on uPNG/lodepng ###################################################################
 
 
-
-
-
-
 	// ###############################################################################################
 	// BMP ###########################################################################################
 
@@ -129,32 +128,26 @@ namespace deckard
 		if (buffer.size() < file_bytes)
 			return std::unexpected(std::format("encode_bmp: buffer too small (need {}, got {})", file_bytes, buffer.size()));
 
-		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(header_bytes);
+		// BMP file header (14 bytes)
+		buffer[0] = static_cast<u8>('B');
+		buffer[1] = static_cast<u8>('M');
+		write_le(buffer, 2, file_bytes);
+		write_le(buffer, 6, static_cast<u16>(0));
+		write_le(buffer, 8, static_cast<u16>(0));
+		write_le(buffer, 10, header_bytes); // pixel offset
 
-		ser.write<u8>(static_cast<u8>('B'));
-		ser.write<u8>(static_cast<u8>('M'));
-		ser.write_le<u32>(file_bytes);
-		ser.write_le<u16>(0);
-		ser.write_le<u16>(0);
-		ser.write_le<u32>(header_bytes);
-
-		// DIB header
-		ser.write_le<u32>(40u);
-		ser.write_le<i32>(static_cast<i32>(width));
-		ser.write_le<i32>(static_cast<i32>(height));
-		ser.write_le<u16>(1);
-		ser.write_le<u16>(24);   // BPP
-		ser.write_le<u32>(0);    // No compression (BI_RGB)
-		ser.write_le<u32>(pixel_bytes);
-		ser.write_le<i32>(2835); // Print res. horizontal
-		ser.write_le<i32>(2835); // Print res. vertical
-		ser.write_le<u32>(0);
-		ser.write_le<u32>(0);
-
-		// Write header to buffer
-		auto header_span = ser.data();
-		std::memcpy(buffer.data(), header_span.data(), header_bytes);
+		// DIB header (BITMAPINFOHEADER, 40 bytes)
+		write_le(buffer, 14, 40u);
+		write_le(buffer, 18, static_cast<i32>(width));
+		write_le(buffer, 22, static_cast<i32>(height));
+		write_le(buffer, 26, static_cast<u16>(1));
+		write_le(buffer, 28, static_cast<u16>(24)); // BPP
+		write_le(buffer, 30, 0u);                   // BI_RGB
+		write_le(buffer, 34, pixel_bytes);
+		write_le(buffer, 38, static_cast<i32>(2835));
+		write_le(buffer, 42, static_cast<i32>(2835));
+		write_le(buffer, 46, 0u);
+		write_le(buffer, 50, 0u);
 
 		// Write pixels directly to buffer
 		u8* pixel_ptr = buffer.data() + header_bytes;
@@ -690,7 +683,8 @@ namespace deckard
 			return std::make_pair(width, height);
 		}
 
-		inline std::optional<std::vector<qoi_px>> qoi_decode_pixels(deckard::serializer& ser, u32 width, u32 height, u8 channels)
+		inline std::optional<std::vector<qoi_px>>
+		qoi_decode_pixels(deckard::serializer& ser, u32 width, u32 height, [[maybe_unused]] u8 channels)
 		{
 			std::vector<qoi_px>    pixels;
 			std::array<qoi_px, 64> index{};
@@ -1231,5 +1225,72 @@ namespace deckard
 
 		return save_dif<T>(path, *img);
 	}
+
+	// ###############################################################################################
+	// PNG - #########################################################################################
+
+	export void read_png_info(fs::path file)
+	{
+		//
+		const auto data = file::read(file);
+
+		std::span<const u8> bytes{data.data(), data.size()};
+
+		if (bytes.empty())
+		{
+			dbg::println("read_png_info: file is empty");
+			return;
+		}
+
+		std::array<u8, 8> signature{137, 80, 78, 71, 13, 10, 26, 10};
+		std::span<const u8>     signature_span{signature.data(), signature.size()};
+
+
+		if (not std::ranges::equal(signature_span,bytes.subspan(0,8)))
+		{
+			dbg::println("read_png_info: file is not a valid PNG (invalid signature)");
+			return;
+		}
+
+
+		// print the first chunk type and length
+		if (bytes.size() < 33)
+		{
+			dbg::println("read_png_info: file is too small to contain a valid PNG chunk");
+			return;
+		}
+		u32         length = (bytes[8] << 24) | (bytes[9] << 16) | (bytes[10] << 8) | bytes[11];
+		std::string chunk_type(reinterpret_cast<const char*>(&bytes[12]), 4);
+		dbg::println("read_png_info: first chunk type = {}, length = {}", chunk_type, length);
+
+		if (chunk_type != "IHDR" or length < 13)
+		{
+			dbg::println("read_png_info: missing IHDR chunk");
+			return;
+		}
+
+		struct IHDR
+		{
+			u32 width_be;
+			u32 height_be;
+			u8  bit_depth;
+			u8  color_type;
+			u8  compression_method;
+			u8  filter_method;
+			u8  interlace_method;
+		};
+
+
+		IHDR ihdr = as<IHDR>(bytes.subspan(16, 13));
+
+		const u32 width  = std::byteswap(ihdr.width_be);
+		const u32 height = std::byteswap(ihdr.height_be);
+
+		dbg::println("width: {}, height: {}, bit depth: {}, color type: {}", width, height, ihdr.bit_depth, ihdr.color_type);
+		dbg::println("compression: {}, filter: {}, interlace: {}", ihdr.compression_method, ihdr.filter_method, ihdr.interlace_method);
+
+		_ = 0;
+	}
+
 
 }; // namespace deckard
