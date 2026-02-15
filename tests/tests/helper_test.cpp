@@ -45,10 +45,95 @@ TEST_CASE("as", "[as]")
 
 TEST_CASE("helpers", "[helpers]")
 {
+
+	SECTION("read_le/read_be")
+	{
+		std::array<u8, 8> buf{0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00};
+
+		CHECK(read_le<u8>(buf) == 0x77_u8);
+		CHECK(read_le<u16>(buf) == 0x6677_u16);
+		CHECK(read_le<u32>(buf) == 0x4455'6677_u32);
+		CHECK(read_le<u64>(buf) == 0x0011'2233'4455'6677_u64);
+
+		CHECK(read_be<u8>(buf) == 0x77_u8);
+		CHECK(read_be<u16>(buf) == 0x7766_u16);
+		CHECK(read_be<u32>(buf) == 0x7766'5544_u32);
+		CHECK(read_be<u64>(buf) == 0x7766'5544'3322'1100_u64);
+
+		// Signed
+		{
+			std::array<u8, 1> neg{0xFE_u8};
+			CHECK(read_le<i8>(neg) == static_cast<i8>(-2)); // 0xFE
+			CHECK(read_be<i8>(neg) == static_cast<i8>(-2)); // 0xFE
+		}
+		{
+			std::array<u8, 2> neg{0xFE_u8, 0xFF_u8};
+			CHECK(read_le<i16>(neg) == static_cast<i16>(-2));
+			CHECK(read_be<i16>(neg) == static_cast<i16>(0xFEFF)); // -257
+		}
+		{
+			std::array<u8, 2> neg_be{0xFF_u8, 0xFE_u8};
+			CHECK(read_be<i16>(neg_be) == static_cast<i16>(-2));
+			CHECK(read_le<i16>(neg_be) == static_cast<i16>(0xFEFF)); // -257
+		}
+		{
+			std::array<u8, 4> neg{0xFE_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8};
+			CHECK(read_le<i32>(neg) == static_cast<i32>(-2));
+			CHECK(read_be<i32>(neg) == static_cast<i32>(0xFEFF'FFFF)); // -16777217
+		}
+		{
+			std::array<u8, 4> neg_be{0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFE_u8};
+			CHECK(read_be<i32>(neg_be) == static_cast<i32>(-2));
+			CHECK(read_le<i32>(neg_be) == static_cast<i32>(0xFEFF'FFFF)); // -16777217
+		}
+		{
+			std::array<u8, 8> neg{0xFE_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8};
+			CHECK(read_le<i64>(neg) == static_cast<i64>(-2));
+			CHECK(read_be<i64>(neg) == static_cast<i64>(0xFEFF'FFFF'FFFF'FFFF)); // -72057594037927937
+		}
+		{
+			std::array<u8, 8> neg_be{0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFF_u8, 0xFE_u8};
+			CHECK(read_be<i64>(neg_be) == static_cast<i64>(-2));
+			CHECK(read_le<i64>(neg_be) == static_cast<i64>(0xFEFF'FFFF'FFFF'FFFF)); // -72057594037927937
+		}
+	}
+
+	SECTION("read_le/read_be offset")
+	{
+		std::array<u8, 10> buf{0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00};
+		CHECK(read_le<u8>(buf, 1) == 0x88_u8);
+		CHECK(read_le<u16>(buf, 2) == 0x6677_u16);
+		CHECK(read_le<u32>(buf, 3) == 0x3344'5566_u32);
+		CHECK(read_le<u64>(buf, 2) == 0x0011'2233'4455'6677_u64);
+
+		CHECK(read_be<u8>(buf, 1) == 0x88_u8);
+		CHECK(read_be<u16>(buf, 2) == 0x7766_u16);
+		CHECK(read_be<u32>(buf, 3) == 0x6655'4433_u32);
+		CHECK(read_be<u64>(buf, 2) == 0x7766'5544'3322'1100_u64);
+
+		// signed with offset
+		std::array<u8, 10> s{0xAA_u8, 0xFE_u8, 0xBB_u8, 0xCC_u8, 0xDD_u8, 0xEE_u8, 0xFF_u8, 0x11_u8, 0x22_u8, 0x33_u8};
+		CHECK(read_le<i8>(s, 1) == static_cast<i8>(0xFE));                    // -2
+		CHECK(read_le<i16>(s, 1) == static_cast<i16>(0xBBFE));                // -17410
+		CHECK(read_le<i32>(s, 1) == static_cast<i32>(0xDDCC'BBFE));           // -573785090
+		CHECK(read_le<i64>(s, 1) == static_cast<i64>(0x2211'FFEE'DDCC'BBFE)); // 2450205651927358462
+
+		CHECK(read_be<i8>(s, 1) == static_cast<i8>(0xFE));                    // -2
+		CHECK(read_be<i16>(s, 1) == static_cast<i16>(0xFEBB));                // -325
+		CHECK(read_be<i32>(s, 1) == static_cast<i32>(0xFEBB'CCDD));           // -21246947
+		CHECK(read_be<i64>(s, 1) == static_cast<i64>(0xFEBB'CCDD'EEFF'1122)); // -36242258794888862
+	}
+
 	SECTION("write_le/write_be")
 	{
 		std::array<u8, 32> buf{};
 		std::fill(buf.begin(), buf.end(), 0_u8);
+
+		write_le<u8>(buf, 0, 0x12_u8);
+		CHECK(buf[0] == 0x12_u8);
+
+		write_be<u8>(buf, 1, 0x34_u8);
+		CHECK(buf[1] == 0x34_u8);
 
 		write_le<u16>(buf, 0, 0x1234_u16);
 		CHECK(buf[0] == 0x34_u8);
@@ -58,19 +143,19 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(buf[2] == 0x12_u8);
 		CHECK(buf[3] == 0x34_u8);
 
-		write_le<u32>(buf, 4, 0x11223344_u32);
+		write_le<u32>(buf, 4, 0x1122'3344_u32);
 		CHECK(buf[4] == 0x44_u8);
 		CHECK(buf[5] == 0x33_u8);
 		CHECK(buf[6] == 0x22_u8);
 		CHECK(buf[7] == 0x11_u8);
 
-		write_be<u32>(buf, 8, 0x11223344_u32);
+		write_be<u32>(buf, 8, 0x1122'3344_u32);
 		CHECK(buf[8] == 0x11_u8);
 		CHECK(buf[9] == 0x22_u8);
 		CHECK(buf[10] == 0x33_u8);
 		CHECK(buf[11] == 0x44_u8);
 
-		write_le<u64>(buf, 16, 0x1122334455667788_u64);
+		write_le<u64>(buf, 16, 0x1122'3344'5566'7788_u64);
 		CHECK(buf[16] == 0x88_u8);
 		CHECK(buf[17] == 0x77_u8);
 		CHECK(buf[18] == 0x66_u8);
@@ -80,7 +165,7 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(buf[22] == 0x22_u8);
 		CHECK(buf[23] == 0x11_u8);
 
-		write_be<u64>(buf, 24, 0x1122334455667788_u64);
+		write_be<u64>(buf, 24, 0x1122'3344'5566'7788_u64);
 		CHECK(buf[24] == 0x11_u8);
 		CHECK(buf[25] == 0x22_u8);
 		CHECK(buf[26] == 0x33_u8);
@@ -132,10 +217,9 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted[2] == "cc");
 
 
-		input = "rrgwru, gwubwg, wgbbw, bwb, ugrgw, uwgguuw, wuggb, bgwb, ubrr, grruuub, rwbwgbub, wwwggg, uuw";
+		input    = "rrgwru, gwubwg, wgbbw, bwb, ugrgw, uwgguuw, wuggb, bgwb, ubrr, grruuub, rwbwgbub, wwwggg, uuw";
 		splitted = split(input, ", ");
 		CHECK(splitted.size() == 13);
-
 	}
 
 
@@ -221,8 +305,6 @@ TEST_CASE("helpers", "[helpers]")
 
 		i64 t1 = ints<1>("hello 123");
 		CHECK(t1 == 123);
-
-
 	}
 
 	SECTION("ints/dynamic")
@@ -248,8 +330,6 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(pcsv[6] == 7);
 		CHECK(pcsv[7] == 8);
 		CHECK(pcsv[8] == 9);
-
-
 	}
 
 
@@ -423,7 +503,7 @@ TEST_CASE("helpers", "[helpers]")
 	SECTION("slice")
 	{
 		std::vector<int> v = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-		std::span<int>  sp(v);
+		std::span<int>   sp(v);
 
 
 		auto s1 = slice(sp, 2, 5);   // {2, 3, 4}
@@ -456,13 +536,12 @@ TEST_CASE("helpers", "[helpers]")
 	}
 
 	SECTION("nth_digit")
-	{ 
+	{
 		CHECK(5 == nth_digit(12345, 1));
 		CHECK(4 == nth_digit(12345, 2));
 		CHECK(3 == nth_digit(12345, 3));
 		CHECK(2 == nth_digit(12345, 4));
 		CHECK(1 == nth_digit(12345, 5));
-
 	}
 
 	SECTION("count digits")
@@ -897,7 +976,7 @@ TEST_CASE("helpers", "[helpers]")
 			CHECK(result[3] == "012");
 		}
 
-				{
+		{
 			std::string input("turn off 123,456 through 789,012");
 			std::string expr("turn off ?,? through ?,?");
 
@@ -918,7 +997,6 @@ TEST_CASE("helpers", "[helpers]")
 
 			CHECK(what == 123);
 			CHECK(with == "String"s);
-
 		}
 
 		{
@@ -930,6 +1008,5 @@ TEST_CASE("helpers", "[helpers]")
 			CHECK(what == 123);
 			CHECK(with == "String"s);
 		}
-
 	}
 }

@@ -134,6 +134,22 @@ export namespace deckard
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
 	export template<std::integral T>
+	constexpr T read_le(std::span<const u8> buffer, u64 offset=0)
+	{
+		assert::check(sizeof(T) <= buffer.size(), "read_le: out of bounds");
+
+		auto bu = buffer.subspan(offset, sizeof(T));
+		return as<T>(buffer.subspan(offset, sizeof(T)));
+	
+	}
+
+	export template<std::integral T>
+	constexpr T read_be(std::span<const u8> buffer, size_t offset=0)
+	{
+		return std::byteswap(read_le<T>(buffer, offset));
+	}
+
+	export template<std::integral T>
 	constexpr void write_le(std::span<u8> buffer, size_t offset, T value)
 	{
 		assert::check(offset + sizeof(T) <= buffer.size(), "write_le: out of bounds");
@@ -147,10 +163,10 @@ export namespace deckard
 	constexpr void write_be(std::span<u8> buffer, size_t offset, T value)
 	{
 		assert::check(offset + sizeof(T) <= buffer.size(), "write_be: out of bounds");
-		using U = std::make_unsigned_t<T>;
-		U v     = static_cast<U>(value);
-		for (size_t i = 0; i < sizeof(T); ++i)
-			buffer[offset + i] = static_cast<u8>((v >> ((sizeof(T) - 1 - i) * 8)) & 0xFFu);
+		if constexpr (sizeof(T) == 1)
+			write_le<T>(buffer, offset, value);
+		else
+			write_le<T>(buffer, offset, std::byteswap(value));
 	}
 
 	auto clock_now() { return std::chrono::steady_clock::now(); }
@@ -281,20 +297,24 @@ export namespace deckard
 
 	std::string to_hex_string(const std::string_view input, const HexOption& options = {})
 	{
-		return to_hex_string(std::span{as<u8*>(input.data()), input.size()}, options);
+		return to_hex_string(
+		  std::span<const u8>{reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(input.size())}, options);
 	}
 
 	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
 	{
-		return to_hex_string(std::span{as<u8*>(input.data()), len}, options);
+		return to_hex_string(std::span<const u8>{reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(len)}, options);
 	}
 
-	std::span<u8> to_span(std::string_view sv) { return {(u8*)sv.data(), sv.size()}; }
+	std::span<u8> to_span(std::string_view sv)
+	{
+		return std::span<u8>{reinterpret_cast<u8*>(const_cast<char*>(sv.data())), static_cast<std::size_t>(sv.size())};
+	}
 
 	template<typename T>
 	std::span<u8> to_span(const std::vector<T>& sv)
 	{
-		return {(u8*)sv.data(), sv.size()};
+		return std::span<u8>{reinterpret_cast<u8*>(const_cast<T*>(sv.data())), static_cast<std::size_t>(sv.size() * sizeof(T))};
 	}
 
 	template<typename T>
@@ -641,7 +661,7 @@ export namespace deckard
 	auto permutations(std::string_view str, std::size_t count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = permutations(std::span{vec}, count);
+		auto              result = permutations(std::span<char>{vec.data(), vec.size()}, count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -668,7 +688,7 @@ export namespace deckard
 	auto unique_permutations(std::string_view str, u64 count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = unique_permutations(std::span{vec}, count);
+		auto              result = unique_permutations(std::span<char>{vec.data(), vec.size()}, count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -731,7 +751,7 @@ export namespace deckard
 	auto combinations(std::string_view str, u64 count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = combinations(std::span{vec}, count);
+		auto              result = combinations(std::span<char>{vec.data(), vec.size()}, count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -791,7 +811,7 @@ export namespace deckard
 
 	auto unique(std::string_view str) -> std::string
 	{
-		auto res = unique(std::span{(char*)str.data(), str.size()});
+		auto res = unique(std::span<char>{const_cast<char*>(str.data()), static_cast<std::size_t>(str.size())});
 		return std::string{res.begin(), res.end()};
 	}
 
@@ -1357,8 +1377,6 @@ export namespace deckard
 	}
 
 	// ###############################
-
-
 
 
 	// ###############################
