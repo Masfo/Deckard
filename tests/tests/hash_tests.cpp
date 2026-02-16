@@ -51,6 +51,12 @@ TEST_CASE("xxhasher", "[hash][xxhash]")
 
 TEST_CASE("HMAC-SHA1 digests", "[hmac][sha1][hash]")
 {
+	SECTION("null key")
+	{ 
+		auto digest = hmac::sha1::quickhash(""sv, ""sv);
+		CHECK(digest == "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d"s);
+	}
+
 	SECTION("Jefe key")
 	{
 		auto digest = hmac::sha1::quickhash("Jefe"sv, "what do ya want for nothing?"sv);
@@ -88,6 +94,11 @@ TEST_CASE("HMAC-SHA1 digests", "[hmac][sha1][hash]")
 
 TEST_CASE("HMAC-SHA256 digests", "[hmac][sha256][hash]")
 {
+	SECTION("null key")
+	{
+		auto digest = hmac::sha256::quickhash(""sv, ""sv);
+		CHECK(digest == "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad"sv);
+	}
 	SECTION("Jefe key")
 	{
 		auto digest = hmac::sha256::quickhash("Jefe"sv, "what do ya want for nothing?"sv);
@@ -126,6 +137,12 @@ TEST_CASE("HMAC-SHA256 digests", "[hmac][sha256][hash]")
 
 TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 {
+	SECTION("null key")
+	{
+		auto digest = hmac::sha512::quickhash(""sv, ""sv);
+		CHECK(digest == "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47"sv);
+	}
+
 	SECTION("Jefe key")
 	{
 		auto digest = hmac::sha512::quickhash("Jefe"sv, "what do ya want for nothing?"sv);
