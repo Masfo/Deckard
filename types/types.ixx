@@ -106,9 +106,9 @@ export namespace deckard
 		constexpr T min = std::numeric_limits<T>::min();
 
 		template<>
-		constexpr i32 min<bool> = 0;
+		constexpr i64 min<bool> = 0;
 		template<>
-		constexpr i32 max<bool> = 1;
+		constexpr i64 max<bool> = 1;
 
 		template<std::unsigned_integral T = u64>
 		constexpr T bits_to_unsigned_max(u32 n)
