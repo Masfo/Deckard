@@ -140,22 +140,18 @@ namespace deckard
 		else if constexpr (std::is_floating_point_v<U> and std::is_integral_v<Ret>)
 		{
 			// floating point -> integer
-			Ret t = static_cast<Ret>(value);
-
 			if (value >= std::numeric_limits<Ret>::min() and value <= std::numeric_limits<Ret>::max())
-			{
-				return t;
-			}
+				return static_cast<Ret>(value);
 
 #ifdef _DEBUG
 			if constexpr (give_warning)
 				warn_cast_limit<Ret>(value, loc);
 #endif
-
 			return static_cast<Ret>(u);
 		}
 		else if constexpr (string_like_container<U>)
 		{
+			// string -> integral
 			// TODO: try_to expected?
 			auto v = try_to_number<Ret>(value);
 			if (v)
@@ -170,6 +166,7 @@ namespace deckard
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
 		{
+			// integral -> string
 			auto v = try_to_string<U>(value, base);
 			if (v)
 				return *v;
