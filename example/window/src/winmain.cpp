@@ -887,6 +887,37 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	test_cmdliner();
+
+	// ##############################
+
+	std::array<u8, 16> data{};
+	for(int i=0; i < 16; ++i)
+		data[i] = static_cast<u8>(i);
+
+	std::array<u8, 16> cipher{};
+
+	using namespace monocypher;
+
+	key   key;
+	nonce mnonce;
+	mac   mac{};
+
+	if (mac == mac)
+	{
+	}
+
+
+	wipe(mac);
+
+	decrypt(key, mnonce, {}, mac, cipher, data);
+
+	if(const auto &result = decrypt(key, mnonce, {}, mac, cipher, data); not result)
+	{
+		dbg::println("decryption failed: {}", result.error());
+	}
+
+	_ = 0;
 
 	// ########################################################################
 
@@ -912,11 +943,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	(void)file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
 
-	// BMP, per row padding bytes,end of every row aligned to 4 bytes
+
 
 
 	_ = 0;
 
+	// ########################################################################
+
+		read_png_info("xor_texture.png");
 
 	// ########################################################################
 
@@ -937,6 +971,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		}
 	}
 	timer.stop("xor texture generation");
+
+	info("hash: {:#16X}", utils::xxhash64(xortexture.raw_data()));
+
+
+	_=0;
 
 // time save/load bmp
 #if 0
@@ -1052,23 +1091,20 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	timer.stop("save viking dif to qoi");
 
 	timer.start();
-	zstd::compress_file_to("convert_viking_dif_tga.qoi", "vikingqoi_recompressed.dat");
+	(void)zstd::compress_file_to("convert_viking_dif_tga.qoi", "vikingqoi_recompressed.dat");
 	timer.stop("recompress qoi");
 
 	// read back
 
 
+
+
+
 	info("heloo");
 	// ########################################################################
 
-	char tempPath[MAX_PATH]{};
-	char tempFile[MAX_PATH]{};
 
-	if (GetTempPathA(MAX_PATH, tempPath) == 0)
-	{
-		info("Failed to get temp path");
-	}
-	info("{}", tempPath);
+
 	info("{}", file::get_temp_path().string());
 	info("{}", file::get_temp_file("spv").string());
 
@@ -1076,15 +1112,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	_ = 0;
 	// ########################################################################
 
-	test_cmdliner();
 
-	// ########################################################################
-
-	std::string test_expr("turn off ?,? through ?,?");
-	std::string test_string("turn off 123,456 through 789,012 XXX"); // shouldn't read XXX
+	  std::string test_expr("turn off ?,? through ?,?");
+	std::string   test_string("turn off 123,456 through 789,012 XXX"); // shouldn't read XXX
 
 	std::string test_expr2("t ? y ?");
-	std::string test_string2("t 123 y DOOR XXX");                    // shouldn't read XXX
+	std::string test_string2("t 123 y DOOR XXX");                      // shouldn't read XXX
 
 	auto parse_result = string::simple_pattern_match(test_expr, test_string);
 

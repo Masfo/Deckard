@@ -2,9 +2,6 @@ module;
 #include <Windows.h>
 #include <commctrl.h>
 #include <cstdio>
-#include <fcntl.h>
-#include <io.h>
-#include <ios>
 #include <objbase.h>
 
 export module deckard;

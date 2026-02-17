@@ -1,4 +1,4 @@
-﻿export module deckard.utf8:basic_characters;
+export module deckard.utf8:basic_characters;
 import deckard.types;
 
 export namespace deckard::utf8::basic_characters
@@ -102,4 +102,4 @@ export namespace deckard::utf8::basic_characters
 	constexpr char32 RIGHT_CURLY_BRACKET    = U'\u007D'; // }
 	constexpr char32 TILDE                  = U'\u007E'; // ~
 
-} // namespace deckard::utf8::characters
+} // namespace deckard::utf8::basic_characters
