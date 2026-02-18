@@ -34,7 +34,48 @@ namespace deckard::monocypher
 {
 	// TODO: easy to use helpers
 
-	export struct publickey
+	export template<std::integral T>
+	constexpr bool crypto_verify(std::span<const T> a, const T value) noexcept
+	{
+		using Acc = std::make_unsigned_t<std::conditional_t<(sizeof(T) < 4), u32, T>>;
+		Acc diff  = 0;
+
+		for (size_t i = 0; i < a.size(); ++i)
+			diff |= static_cast<Acc>(a[i] ^ value);
+
+		return diff == 0;
+	}
+
+	export template<std::integral T, size_t N>
+	constexpr int crypto_verify(std::span<const T, N> a, std::span<const T, N> b) noexcept
+	{
+		using Acc = std::make_unsigned_t<std::conditional_t<(sizeof(T) < 4), u32, T>>;
+		Acc diff  = 0;
+
+		for (size_t i = 0; i < N; ++i)
+			diff |= static_cast<Acc>(a[i] ^ b[i]);
+
+		return static_cast<int>(diff != 0);
+	}
+
+	export template<size_t N>
+	constexpr int crypto_verify(std::span<const u8, N> a, std::span<const u8, N> b) noexcept
+	{
+		return crypto_verify<u8, N>(a, b);
+	}
+
+	export template<typename T = u8>
+	constexpr int crypto_verify(std::span<const T> a, std::span<const T> b) noexcept
+	{
+		assert::check(a.size() == b.size(), "crypto_verify: input spans must have the same size");
+		using Acc = std::make_unsigned_t<std::conditional_t<(sizeof(T) < 4), u32, T>>;
+
+		Acc diff = 0;
+		for (size_t i = 0; i < a.size(); ++i)
+			diff |= static_cast<Acc>(a[i] ^ b[i]);
+
+		return static_cast<int>(diff != 0);
+	}
 	{
 		std::array<u8, 32> key{};
 
