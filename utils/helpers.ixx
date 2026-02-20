@@ -331,7 +331,7 @@ export namespace deckard
 
 	// epoch
 	template<typename T = std::chrono::seconds>
-	auto epoch()
+	auto epoch() -> decltype(std::chrono::duration_cast<T>(std::chrono::system_clock::now().time_since_epoch()).count())
 	{
 		auto now = std::chrono::system_clock::now();
 
