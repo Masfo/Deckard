@@ -1280,7 +1280,7 @@ export namespace deckard
 		auto count = static_cast<f64>(bytes);
 		u64  suffix{0};
 
-		while (count >= static_cast<f64>(1_KiB) && suffix <= unit.size())
+       while (count >= static_cast<f64>(1_KiB) and suffix < unit.size() - 1)
 		{
 			suffix++;
 			count /= static_cast<f64>(1_KiB);

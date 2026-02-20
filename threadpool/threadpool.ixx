@@ -36,6 +36,8 @@ namespace deckard::taskpool
 
 			n = std::max(1ull, n);
 
+			workers.reserve(n);
+
 			for (size_t i = 0; i < n; ++i)
 			{
 				workers.emplace_back(

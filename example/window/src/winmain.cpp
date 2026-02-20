@@ -128,31 +128,6 @@ constexpr std::array<u32, 64> k_md5 = []
 }();
 
 
-template<typename T>
-std::vector<std::pair<u32, char>> compress_rle(const T input)
-{
-	// WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW
-	// 12W 1B 12W 3B 24W 1B 14W
-	std::vector<std::pair<u32, char>> ret;
-
-	ret.reserve(input.size() * 2);
-
-	for (size_t i = 0; i < input.size(); i++)
-	{
-		u32 run = 1;
-		while (i < input.size() - 1 and input[i] == input[i + 1])
-		{
-			i++;
-			run++;
-		}
-		ret.push_back({run, input[i]});
-	}
-
-	ret.shrink_to_fit();
-
-	return ret;
-}
-
 struct Coord
 {
 	int            x{};
@@ -199,7 +174,7 @@ private:
 	}
 };
 
-#if 0
+#if 1
 template<typename T>
 struct Tree
 {
@@ -219,370 +194,6 @@ struct Tree
 };
 #endif
 
-
-template<typename T = u32>
-struct Noisy
-{
-	Noisy() { dbg::println("{default-ctor}"); }
-
-	explicit Noisy(T t)
-		: value_{std::move(t)}
-	{
-		dbg::println("[default-ctor] {}", value_);
-	}
-
-	~Noisy() { dbg::println("[dtor] {}", value_); }
-
-	Noisy(const Noisy& other)
-		: value_{other.value_}
-	{
-
-		dbg::println("[copy-ctor] {}", other.value_);
-	}
-
-	Noisy(Noisy&& other) noexcept
-	{
-		dbg::println("[move-ctor] {} = {}", value_, other.value_);
-		std::swap(value_, other.value_);
-	}
-
-	Noisy& operator=(const Noisy& other)
-	{
-		dbg::println("[copy-assign] {} = {}", value_, other.value_);
-		value_ = other.value_;
-		return *this;
-	}
-
-	Noisy& operator=(Noisy&& other) noexcept
-	{
-		dbg::println("[move-assign] {} = {}", value_, other.value_);
-		value_ = std::move(other.value_);
-		return *this;
-	}
-
-	T value_{0};
-};
-
-u32 BinaryToGray(u32 num) { return num ^ (num >> 1); }
-
-std::generator<u32> gen()
-{
-	u32 num = 0;
-	while (true)
-	{
-		co_yield ++num;
-		if (num == 10)
-			break;
-	}
-}
-
-using m128 = __m128;
-
-union fvec4data
-{
-	struct xyz
-	{
-		f32 x, y, z, w;
-	} c;
-
-	f32 element[4]{0.0f};
-
-	m128 reg;
-};
-
-struct alignas(16) fvec4
-{
-private:
-	fvec4data data;
-
-public:
-	fvec4() { data.c.x = data.c.y = data.c.z = data.c.w = 0.0f; }
-
-	f32 operator[](i32 index) const
-	{
-		switch (index)
-		{
-			case 0: return data.c.x;
-			case 1: return data.c.y;
-			case 2: return data.c.z;
-			case 3: return data.c.w;
-		}
-	}
-};
-
-class Secret
-{
-private:
-	int secret_value{42};
-
-private:
-	friend int operator+(const Secret& lhs, const Secret& rhs);
-	friend int operator-(const Secret& lhs, const Secret& rhs);
-
-
-public:
-	Secret() = default;
-
-	Secret(int value)
-		: secret_value(value)
-	{
-	}
-
-	int get() const { return secret_value; }
-
-	void set(int value) { secret_value = value; }
-};
-
-auto operator+(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_value + rhs.secret_value; }
-
-auto operator-(const Secret& lhs, const Secret& rhs) -> int { return lhs.secret_value - rhs.secret_value; }
-
-int function_call(int input) { return input * 10; }
-
-struct boolflag
-{
-	boolflag(std::string_view name, bool b)
-		: name(name)
-		, flag(b)
-	{
-	}
-
-	std::string name;
-	bool        flag{false};
-};
-
-class clitest
-{
-private:
-	std::vector<boolflag> boolflags;
-
-public:
-	void add_flag(std::string_view str, bool& flag) { boolflags.push_back({str, flag}); }
-
-	void dump()
-	{
-		for (const auto& bf : boolflags)
-		{
-			dbg::println("{}: {}", bf.name, bf.flag ? "true" : "false");
-		}
-	}
-};
-
-struct CmdOptions
-{
-	std::unordered_map<std::string, std::string> options;    // --option=value or --option value
-	std::unordered_set<std::string>              flags;      // --flag or -f
-	std::vector<std::string>                     positional; // positional arguments
-};
-
-CmdOptions parse_command_line(std::string_view cmdl)
-{
-	CmdOptions               result;
-	std::vector<std::string> tokens;
-	std::string              current;
-	bool                     in_quotes = false;
-
-	// Tokenize, handling quotes
-	for (size_t i = 0; i < cmdl.size(); ++i)
-	{
-		char c = cmdl[i];
-		if (c == '"')
-		{
-			in_quotes = !in_quotes;
-		}
-		else if (std::isspace(static_cast<unsigned char>(c)) && !in_quotes)
-		{
-			if (!current.empty())
-			{
-				tokens.push_back(current);
-				current.clear();
-			}
-		}
-		else
-		{
-			current += c;
-		}
-	}
-	if (!current.empty())
-		tokens.push_back(current);
-
-	constexpr int min_level = 0;
-	constexpr int max_level = 3;
-
-	for (size_t i = 0; i < tokens.size(); ++i)
-	{
-		const std::string& token = tokens[i];
-		if (token.starts_with("--"))
-		{
-			auto eq = token.find('=');
-			if (eq != std::string::npos)
-			{
-				std::string key     = token.substr(2, eq - 2);
-				std::string value   = token.substr(eq + 1);
-				result.options[key] = value;
-			}
-			else
-			{
-				std::string key = token.substr(2);
-				// Check if next token is a value (not starting with -)
-				if (i + 1 < tokens.size() && !tokens[i + 1].starts_with('-'))
-				{
-					result.options[key] = tokens[i + 1];
-					++i;
-				}
-				else
-				{
-					result.flags.insert(key);
-				}
-			}
-		}
-		else if (token.starts_with('-') && token.size() > 1)
-		{
-			// Special case: -O2, -O3, etc. (optimization level)
-			if (token[1] == 'O' && token.size() > 2 && std::isdigit(token[2]))
-			{
-				int level           = token[2] - '0';
-				level               = std::clamp(level, min_level, max_level);
-				result.options["O"] = std::to_string(level);
-				continue;
-			}
-			// Short flags, possibly grouped: -abc
-			for (size_t j = 1; j < token.size(); ++j)
-			{
-				std::string key(1, token[j]);
-				result.flags.insert(key);
-			}
-		}
-		else
-		{
-			result.positional.push_back(token);
-		}
-	}
-	return result;
-}
-
-struct ComponentBase
-{
-	virtual std::unique_ptr<ComponentBase> clone() const = 0;
-
-	virtual ~ComponentBase() { }
-};
-
-struct Transform : public ComponentBase
-{
-	Transform() = default;
-	float x, y, z;
-
-	std::unique_ptr<ComponentBase> clone() const { return std::make_unique<Transform>(*this); }
-
-	Transform copy() const { return *static_cast<Transform*>(clone().get()); }
-};
-
-struct Velocity : public ComponentBase
-{
-	Velocity() = default;
-
-	Velocity(f32 x, f32 y, f32 z)
-		: x(x)
-		, y(y)
-		, z(z)
-	{
-	}
-
-	std::unique_ptr<ComponentBase> clone() const { return std::make_unique<Velocity>(*this); }
-
-	Velocity copy() const { return *static_cast<Velocity*>(clone().get()); }
-
-	float x, y, z;
-};
-
-struct Name : public ComponentBase
-{
-	Name() = default;
-
-	Name(std::string_view s)
-		: name(s)
-	{
-	}
-
-	std::string name;
-
-	std::unique_ptr<ComponentBase> clone() const override { return std::make_unique<Name>(*this); }
-
-	Name copy() const { return *static_cast<Name*>(clone().get()); }
-};
-
-struct Health : public ComponentBase
-{
-	Health() = default;
-
-	Health(f32 f)
-		: value(f)
-	{
-	}
-
-	f32 value{1.0f};
-
-	std::unique_ptr<ComponentBase> clone() const override { return std::make_unique<Health>(*this); }
-
-	Health copy() const { return *static_cast<Health*>(clone().get()); }
-};
-
-enum class Components : u8
-{
-	Transform,
-	Velocity,
-	Name,
-	Health,
-
-
-	Count,
-};
-
-
-template<typename T>
-concept ComponentHasCount = requires {
-	{ T::Count } -> std::convertible_to<T>;
-};
-
-template<typename T>
-class ECS
-{
-	static_assert(std::is_scoped_enum_v<T> and ComponentHasCount<T>, "ECS enum must have a count. T::Count");
-
-private:
-	std::array<std::vector<std::unique_ptr<ComponentBase>>, std::to_underlying(T::Count)> dense_components{};
-
-public:
-	template<typename R, typename... Args>
-	void insert(const T index, Args... args)
-	{
-		assert::check(std::to_underlying(index) < std::to_underlying(T::Count), "Index out-of-bounds");
-
-		dense_components[std::to_underlying(index)].emplace_back(std::make_unique<R>(args...));
-	}
-};
-
-class test_span_operator
-{
-private:
-	std::vector<u8> buffer;
-
-public:
-	test_span_operator(const std::vector<u8>& b)
-		: buffer(b)
-	{
-	}
-
-	std::expected<std::span<u8>, std::string> operator[](size_t index, size_t count) const
-	{
-
-		if (index + count > buffer.size())
-			return std::unexpected(std::format("cannot index to {}, only has {} items", index + count, buffer.size()));
-
-		return std::span<u8>{(u8*)buffer.data() + index, count};
-	};
-};
 
 struct NtpPacket
 {
@@ -622,11 +233,11 @@ std::chrono::system_clock::time_point ntp_to_chrono(u64 ntp_ts)
 	u32 fraction = static_cast<u32>(ntp_ts & 0xFFFF'FFFFULL);
 
 
-	f64  frac_seconds = static_cast<f64>(fraction) / 4294967296.0;
-	auto secs         = seconds - NTP_UNIX_OFFSET;
+  f64 frac_seconds = static_cast<f64>(fraction) / 4294967296.0;
+	i64 secs         = static_cast<i64>(seconds) - static_cast<i64>(NTP_UNIX_OFFSET);
 
-	auto ntp_time = std::chrono::system_clock::time_point{
-	  std::chrono::seconds(secs) + duration_cast<std::chrono::system_clock::duration>(duration<f64>(frac_seconds))};
+  auto ntp_time = std::chrono::system_clock::time_point{
+   std::chrono::seconds{secs} + duration_cast<std::chrono::system_clock::duration>(duration<f64>(frac_seconds))};
 
 	return ntp_time;
 }
@@ -641,7 +252,8 @@ u64 chrono_to_ntp(std::chrono::system_clock::time_point tp)
 	auto frac     = duration - seconds(secs);
 
 	u32 ntp_secs = static_cast<u32>(secs + NTP_UNIX_OFFSET);
-	u32 ntp_frac = static_cast<u32>((static_cast<f64>(frac.count()) / seconds(1).count()) * 4294967296.0);
+    auto frac_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(frac).count();
+	u32  ntp_frac     = static_cast<u32>(frac_seconds * 4294967296.0);
 
 	return (static_cast<u64>(ntp_secs) << 32) | ntp_frac;
 }
@@ -687,7 +299,7 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 
 	// Precision
 	i8  raw_precision     = raw[3];
-	f64 precision_seconds = 1.0 / (1ULL << (std::abs(raw_precision)));
+  f64 precision_seconds = std::pow(2.0, static_cast<int>(raw_precision));
 	pkt.precision         = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<f64>(precision_seconds));
 
 
@@ -891,33 +503,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ##############################
 
-	std::array<u8, 16> data{};
-	for(int i=0; i < 16; ++i)
-		data[i] = static_cast<u8>(i);
+#if 1
+	Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 
-	std::array<u8, 16> cipher{};
-
-	using namespace monocypher;
-
-	key   key;
-	nonce mnonce;
-	mac   mac{};
-
-	if (mac == mac)
-	{
-	}
-
-
-	wipe(mac);
-
-	decrypt(key, mnonce, {}, mac, cipher, data);
-
-	if(const auto &result = decrypt(key, mnonce, {}, mac, cipher, data); not result)
-	{
-		dbg::println("decryption failed: {}", result.error());
-	}
+	for (char x : tree->traverse_inorder())
+		dbg::print("{} ", x);
+	dbg::println();
 
 	_ = 0;
+#endif
+
 
 	// ########################################################################
 
@@ -943,16 +538,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	(void)file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
 
-
-
-
 	_ = 0;
 
 	// ########################################################################
 
-		read_png_info("xor_texture.png");
+	read_png_info("xor_texture.png");
 
 	// ########################################################################
+
+	#if 0
+
 
 	image_rgb  xortexture(1920, 1080);
 	ScopeTimer timer("timer");
@@ -975,7 +570,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	info("hash: {:#16X}", utils::xxhash64(xortexture.raw_data()));
 
 
-	_=0;
+	_ = 0;
 
 // time save/load bmp
 #if 0
@@ -1097,32 +692,15 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// read back
 
 
-
-
+	#endif
 
 	info("heloo");
 	// ########################################################################
 
 
-
 	info("{}", file::get_temp_path().string());
 	info("{}", file::get_temp_file("spv").string());
 
-
-	_ = 0;
-	// ########################################################################
-
-
-	  std::string test_expr("turn off ?,? through ?,?");
-	std::string   test_string("turn off 123,456 through 789,012 XXX"); // shouldn't read XXX
-
-	std::string test_expr2("t ? y ?");
-	std::string test_string2("t 123 y DOOR XXX");                      // shouldn't read XXX
-
-	auto parse_result = string::simple_pattern_match(test_expr, test_string);
-
-
-	const auto [x, y] = string::simple_pattern_match<u32, std::string>(test_expr2, test_string2);
 
 	// ########################################################################
 
@@ -1304,8 +882,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		stun_header.cookie = packetx.read<u32>();
 		packetx.read<u8, 12>(stun_header.transaction_id);
 
-		auto class_bits = [](u16 type) -> u8 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
-
+		auto class_bits  = [](u16 type) -> u8 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
 		auto method_bits = [](u16 type) -> u16 { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); };
 
 
@@ -1896,7 +1473,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			dbg::println("{:<20}: {}", "Leap", ntp.leapIndicator);
 
-
 			dbg::println("{:<20}: {}", "Precision", ntp.precision);
 			dbg::println("{:<20}: {}", "Root delay", ntp.root_delay);
 			dbg::println("{:<20}: {}", "Reference ID", ntp.ref_id_string);
@@ -1933,13 +1509,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 
-#if 0
-Tree<char> tree[]{{'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
-
-for (char x : tree->traverse_inorder())
-dbg::print("{} ", x);
-dbg::println();
-#endif
 	// ########################################################################
 	if constexpr (false)
 	{
@@ -2122,101 +1691,6 @@ dbg::println();
 
 	_;
 
-	// ########################################################################
-
-	auto fviwe = file::map({
-	  .file       = "256.bin",
-	  .offset     = 64,
-	  .chunk_size = 64,
-	});
-	for (const auto& [offset, chunk_size, chunk, stop] : fviwe)
-	{
-		info("{}", to_hex_string(chunk));
-	}
-
-	_ = 0;
-
-	for (auto& i : file::map({.file = "260.bin", .chunk_size = 32}))
-	{
-
-		info("map {}, offset {}, {}", i.chunk_buffer.size(), i.offset, to_hex_string(i.chunk_buffer));
-
-		// i.offset += i.chunk_size;
-		i.chunk_size = (i.chunk_size == 64) ? 32 : 64;
-
-		if (i.offset >= 128)
-			i.stop();
-	}
-	_ = 0;
-
-	// ########################################################################
-
-	struct argument_def
-	{
-		std::string short_name;
-		std::string long_name;
-		bool        is_flag{false};
-		bool        requires_value{false};
-		int         int_value{0};
-		std::string str_value{}; // utf8
-		f64         float_value{0.0};
-	};
-
-	std::unordered_map<std::string, bool> flags; // key is normalized from long or short name
-												 // verbose or v
-
-	flags["--verbose"] = true;
-	flags["-v"]        = true;
-
-	auto argparser = [&](std::string_view) { };
-
-	// add<int>("count", 'c', "Number of items", 42);				// long, short, description, default
-	// add<bool>("verbose", 'v', "Enable verbose output", false);
-	// add<std::string>("out", 'o', "Output file", "out.txt");
-
-	_;
-
-	// ########################################################################
-
-
-	std::string cmdl = "deckard --version --verbose -O2 --path=./test.txt -d";
-
-	auto opts = parse_command_line(cmdl);
-	dbg::println("Flags:");
-	for (const auto& f : opts.flags)
-		dbg::println("  {}", f);
-	dbg::println("Options:");
-	for (const auto& [k, v] : opts.options)
-		dbg::println("  {} = {}", k, v);
-	dbg::println("Positional:");
-	for (const auto& p : opts.positional)
-		dbg::println("  {}", p);
-
-
-	_ = 0;
-
-	// ###############################################
-
-
-	clitest ct;
-
-	bool flag1{false};
-	bool flag2{true};
-
-	ct.add_flag("flag1", flag1);
-	ct.add_flag("flag2", flag2);
-
-	ct.dump();
-
-	_ = 0;
-
-
-	// ###############################################
-
-	_ = 0;
-
-	// ###############################################
-
 
 	//
 	// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
@@ -2227,13 +1701,6 @@ dbg::println();
 	//  ::ffff:c0ab:0101
 	//
 	//  127.0.0.1 - ::ffff:7f00:1
-
-
-	// ###################
-
-	dbg::println("{}", string::match("*X*", "qH1") ? "match!" : "not found");
-
-	// ###################
 
 
 	// ########################################################################
