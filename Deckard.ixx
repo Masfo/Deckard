@@ -33,8 +33,7 @@ export import deckard.math;
 
 // Utils
 export import deckard.arrays;
-export import deckard.base32;
-export import deckard.base64;
+export import deckard.base_encoding;
 export import deckard.bigint;
 export import deckard.commandline;
 export import deckard.colors;

@@ -264,8 +264,7 @@ set(DECKARD_SRCS
 
 		# Utils
 		utils/arrays.ixx
-		utils/base32.ixx
-		utils/base64.ixx
+		utils/base_n.ixx
 		utils/commandline.ixx
 		utils/cpuid.ixx
 		utils/function_ref.ixx
