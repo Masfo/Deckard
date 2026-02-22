@@ -2,6 +2,7 @@ export module deckard.base_encoding;
 
 
 import deckard.types;
+import deckard.debug;
 import deckard.as;
 import deckard.assert;
 import std;
@@ -326,137 +327,166 @@ namespace deckard::utils::base64
 
 } // namespace deckard::utils::base64
 
-// Base85
+// Base85 - ZeroMQ
 namespace deckard::utils::base85
 {
-	static constexpr auto decoder_map = []() static constexpr
+	static constexpr char zeromq_charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
+	static constexpr auto decoder_map      = []() static constexpr
 	{
 		std::array<int, 256> map;
 		map.fill(-1);
-		const char* charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
 		for (int i = 0; i < 85; ++i)
-			map[static_cast<uint8_t>(charset[i])] = i;
+			map[static_cast<uint8_t>(zeromq_charset[i])] = i;
 		return map;
 	}();
 
 	export std::string encode(std::span<const u8> buffer)
 	{
+		u64 len         = buffer.size();
+		u64 full_blocks = len / 4;
+		u64 remainder   = len % 4;
 
-		static const char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
+		u64 out_size = full_blocks * 5;
+		if (remainder > 0)
+			out_size += remainder + 1;
 
 		std::string result;
-		u64         len         = buffer.size();
-		u64         full_blocks = len / 4;
-		u64         remainder   = len % 4;
+		result.resize(out_size);
 
-		result.reserve(((len + 3) / 4) * 5);
+		auto* out = result.data();
 
+		u64 out_pos = 0;
 		for (u64 i = 0; i < full_blocks * 4; i += 4)
 		{
+			u32 value = (static_cast<u32>(buffer[i + 0]) << 24) | (static_cast<u32>(buffer[i + 1]) << 16) |
+						(static_cast<u32>(buffer[i + 2]) << 8) | static_cast<u32>(buffer[i + 3]);
+
+			out[out_pos + 4] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 3] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 2] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 1] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 0] = zeromq_charset[value % 85];
+
+			out_pos += 5;
+		}
+
+		if (remainder > 0)
+		{
+			u64 start = full_blocks * 4;
 			u32 value = 0;
-			for (size_t j = 0; j < 4; ++j)
+			if (remainder >= 1)
+				value |= static_cast<u32>(buffer[start + 0]) << 24;
+			if (remainder >= 2)
+				value |= static_cast<u32>(buffer[start + 1]) << 16;
+			if (remainder >= 3)
+				value |= static_cast<u32>(buffer[start + 2]) << 8;
+
+			out[out_pos + 4] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 3] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 2] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 1] = zeromq_charset[value % 85];
+			value /= 85;
+			out[out_pos + 0] = zeromq_charset[value % 85];
+
+			out_pos += remainder + 1;
+		}
+
+		result.resize(out_pos);
+		return result;
+	}
+
+	export std::string encode(std::string_view input) { return encode({std::bit_cast<u8*>(input.data()), input.size()}); }
+
+	export std::expected<std::vector<u8>, std::string> decode(std::string_view input)
+	{
+		u64 full_blocks = input.size() / 5;
+		u64 remainder   = input.size() % 5;
+
+		if (remainder == 1)
+			return std::unexpected("Invalid tail length");
+
+		u64 out_size = full_blocks * 4;
+		if (remainder > 0)
+			out_size += remainder - 1;
+
+		std::vector<u8> decoded(out_size);
+		auto*           out = decoded.data();
+
+		u64 in_pos  = 0;
+		u64 out_pos = 0;
+
+		for (u64 block = 0; block < full_blocks; ++block)
+		{
+			u32 d[5]{};
+			for (u64 j = 0; j < 5; ++j)
 			{
-				value = (value << 8) | static_cast<u8>(buffer[i + j]);
+				u8  ch    = static_cast<u8>(input[in_pos + j]);
+				int digit = decoder_map[ch];
+				if (digit == -1)
+					return std::unexpected(
+					  std::format("Invalid character {:#02x} ('{}') at pos {}", ch, static_cast<char>(ch), in_pos + j));
+				d[j] = static_cast<u32>(digit);
 			}
-			char chunk[5];
-			for (int j = 4; j >= 0; --j)
-			{
-				chunk[j] = charset[value % 85];
-				value /= 85;
-			}
-			result.append(chunk, 5);
+
+			u32 value = 0;
+			value     = value * 85 + d[0];
+			value     = value * 85 + d[1];
+			value     = value * 85 + d[2];
+			value     = value * 85 + d[3];
+			value     = value * 85 + d[4];
+
+			out[out_pos + 0] = static_cast<u8>(value >> 24);
+			out[out_pos + 1] = static_cast<u8>(value >> 16);
+			out[out_pos + 2] = static_cast<u8>(value >> 8);
+			out[out_pos + 3] = static_cast<u8>(value);
+
+			in_pos += 5;
+			out_pos += 4;
 		}
 
 		if (remainder > 0)
 		{
 			u32 value = 0;
-			for (u64 i = 0; i < remainder; ++i)
-				value = (value << 8) | static_cast<u8>(buffer[full_blocks * 4 + i]);
-
-			for (u64 i = 0; i < (4 - remainder); ++i)
-				value <<= 8;
-
-			char chunk[5]{};
-			for (int j = 4; j >= 0; --j)
+			for (u64 j = 0; j < remainder; ++j)
 			{
-				chunk[j] = charset[value % 85];
-				value /= 85;
-			}
-			result.append(chunk, remainder + 1);
-		}
-
-		return result;
-	}
-
-	export std::string encode_str(std::string_view input) { return encode({std::bit_cast<u8*>(input.data()), input.size()}); }
-
-	export std::optional<std::vector<u8>> decode(std::string_view input)
-	{
-
-		std::vector<u8> decoded;
-		decoded.reserve((input.size() * 4) / 5);
-
-		size_t i = 0;
-		// 1. Process all full 5-character blocks
-		for (; i + 5 <= input.size(); i += 5)
-		{
-			u32 value = 0;
-			for (u64 j = 0; j < 5; ++j)
-			{
-				int digit = decoder_map[static_cast<uint8_t>(input[i + j])];
+				u8  ch    = static_cast<u8>(input[in_pos + j]);
+				int digit = decoder_map[ch];
 				if (digit == -1)
-					return {}; // invalid char
+					return std::unexpected(
+					  std::format("Invalid character {:#02x} ('{}') at pos {}", ch, static_cast<char>(ch), in_pos + j));
 
-				value = value * 85 + digit;
-			}
-			decoded.push_back(static_cast<u8>(value >> 24));
-			decoded.push_back(static_cast<u8>(value >> 16));
-			decoded.push_back(static_cast<u8>(value >> 8));
-			decoded.push_back(static_cast<u8>(value & 0xFF));
-		}
-
-		// 2. Handle the tail (the remainder)
-		u64 remaining_chars = input.size() - i;
-		if (remaining_chars > 0)
-		{
-			if (remaining_chars < 2)
-				return {}; // invalid tail length
-
-			u32 value = 0;
-			u64 j     = 0;
-			for (; j < remaining_chars; ++j)
-			{
-				int digit = decoder_map[static_cast<uint8_t>(input[i + j])];
-				value     = value * 85 + digit;
+				value = value * 85 + static_cast<u32>(digit);
 			}
 
-			for (; j < 5; ++j)
+			for (u64 j = remainder; j < 5; ++j)
 				value = value * 85 + 84;
 
-			size_t bytes_to_extract = remaining_chars - 1;
+			u64 bytes_to_extract = remainder - 1;
 			if (bytes_to_extract >= 1)
-				decoded.push_back(static_cast<u8>(value >> 24));
+				out[out_pos++] = static_cast<u8>(value >> 24);
 			if (bytes_to_extract >= 2)
-				decoded.push_back(static_cast<u8>(value >> 16));
+				out[out_pos++] = static_cast<u8>(value >> 16);
 			if (bytes_to_extract >= 3)
-				decoded.push_back(static_cast<u8>(value >> 8));
+				out[out_pos++] = static_cast<u8>(value >> 8);
 		}
 
+		decoded.resize(out_pos);
 		return decoded;
 	}
 
-	
-		export std::string decode_str(std::string_view encoded_input)
+	export std::string decode_as_str(std::string_view encoded_input)
 	{
-
-		if (auto result = decode(encoded_input); result)
-		{
-			std::string r;
-			r.reserve(result->size());
-			std::ranges::copy(*result, std::back_inserter(r));
-			return r;
-		}
-		return {};
+		if (auto result = decode(encoded_input); not result)
+			return {};
+		else
+			return std::string(result->begin(), result->end());
 	}
 
 } // namespace deckard::utils::base85

@@ -77,29 +77,44 @@ TEST_CASE("base95", "[base95]")
 {
 	SECTION("encode")
 	{
-		CHECK(base85::encode_str("a") == "ve"sv);
-		CHECK(base85::encode_str("ab") == "vpx"sv);
-		CHECK(base85::encode_str("abc") == "vpAZ"sv);
-		CHECK(base85::encode_str("abcd") == "vpA.S"sv);
-		CHECK(base85::encode_str("abcde") == "vpA.SwD"sv);
-		CHECK(base85::encode_str("abcdef") == "vpA.SwO7"sv);
-		CHECK(base85::encode_str("abcdefg") == "vpA.SwObM"sv);
-		CHECK(base85::encode_str("abcdefgh") == "vpA.SwObN*"sv);
+		CHECK(base85::encode("") == ""sv);
 
-		CHECK(base85::encode_str("Sphinx of black quartz, judge my vow") == "q/Dz:zG)pxw/$M0vpK6}ADLYgBB2FXyis61wGU&naA?WE"sv);
+		CHECK(base85::encode("a") == "ve"sv);
+		CHECK(base85::encode("ab") == "vpx"sv);
+		CHECK(base85::encode("abc") == "vpAZ"sv);
+		CHECK(base85::encode("abcd") == "vpA.S"sv);
+		CHECK(base85::encode("abcde") == "vpA.SwD"sv);
+		CHECK(base85::encode("abcdef") == "vpA.SwO7"sv);
+		CHECK(base85::encode("abcdefg") == "vpA.SwObM"sv);
+		CHECK(base85::encode("abcdefgh") == "vpA.SwObN*"sv);
+
+		CHECK(base85::encode("Sphinx of black quartz, judge my vow") == "q/Dz:zG)pxw/$M0vpK6}ADLYgBB2FXyis61wGU&naA?WE"sv);
 	}
 
 	SECTION("decode")
 	{
-		CHECK(base85::decode_str("ve") == "a"sv);
-		CHECK(base85::decode_str("vpx") == "ab"sv);
-		CHECK(base85::decode_str("vpAZ") == "abc"sv);
-		CHECK(base85::decode_str("vpA.S") == "abcd"sv);
-		CHECK(base85::decode_str("vpA.SwD") == "abcde"sv);
-		CHECK(base85::decode_str("vpA.SwO7") == "abcdef"sv);
-		CHECK(base85::decode_str("vpA.SwObM") == "abcdefg"sv);
-		CHECK(base85::decode_str("vpA.SwObN*") == "abcdefgh"sv);
+		CHECK(base85::decode_as_str("ve") == "a"sv);
+		CHECK(base85::decode_as_str("vpx") == "ab"sv);
+		CHECK(base85::decode_as_str("vpAZ") == "abc"sv);
+		CHECK(base85::decode_as_str("vpA.S") == "abcd"sv);
+		CHECK(base85::decode_as_str("vpA.SwD") == "abcde"sv);
+		CHECK(base85::decode_as_str("vpA.SwO7") == "abcdef"sv);
+		CHECK(base85::decode_as_str("vpA.SwObM") == "abcdefg"sv);
+		CHECK(base85::decode_as_str("vpA.SwObN*") == "abcdefgh"sv);
 
-		CHECK(base85::decode_str("q/Dz:zG)pxw/$M0vpK6}ADLYgBB2FXyis61wGU&naA?WE") == "Sphinx of black quartz, judge my vow"sv);
+		CHECK(base85::decode_as_str("q/Dz:zG)pxw/$M0vpK6}ADLYgBB2FXyis61wGU&naA?WE") == "Sphinx of black quartz, judge my vow"sv);
+	}
+
+	SECTION("decode invalid")
+	{
+		CHECK(base85::decode_as_str("").empty());
+		CHECK(not base85::decode("v~"sv).has_value());
+		CHECK(not base85::decode("v"sv).has_value());
+		CHECK(not base85::decode("BOu!rD]j7BEbo7~"sv).has_value());
+		CHECK(not base85::decode("vp~"sv).has_value());
+
+		// invalid tail length
+		CHECK(not base85::decode("0"sv).has_value());
+
 	}
 }
