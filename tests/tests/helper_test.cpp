@@ -41,6 +41,11 @@ TEST_CASE("as", "[as]")
 
 	SECTION("float to float") { }
 
+	SECTION("load_as/load_as_be")
+	{
+		
+	}
+
 } // namespace deckard::helpers
 
 TEST_CASE("helpers", "[helpers]")
@@ -527,6 +532,64 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(a.has_value() == true);
 		CHECK("-100" == *a);
 	}
+
+	SECTION("load_as/load_as_be")
+	{
+		const std::array<u8, 8> buf{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+
+		// u8
+		CHECK(load_as<u8>(buf, 0) == 0x01_u8);
+		CHECK(load_as<u8>(buf, 7) == 0x08_u8);
+
+		// u16
+		CHECK(load_as<u16>(buf, 0) == 0x0201_u16);
+		CHECK(load_as<u16>(buf, 2) == 0x0403_u16);
+
+		// u32
+		CHECK(load_as<u32>(buf, 0) == 0x04030201_u32);
+		CHECK(load_as<u32>(buf, 4) == 0x08070605_u32);
+
+		// u64
+		CHECK(load_as<u64>(buf, 0) == 0x0807060504030201_u64);
+
+		// out of bounds
+		CHECK(not load_as<u16>(buf, 7).has_value());
+		CHECK(not load_as<u32>(buf, 6).has_value());
+		CHECK(not load_as<u64>(buf, 1).has_value());
+
+		// load_as_be: reads LE then byteswaps to get BE interpretation
+		CHECK(load_as_be<u16>(buf, 0) == 0x0102_u16);
+		CHECK(load_as_be<u32>(buf, 0) == 0x01020304_u32);
+		CHECK(load_as_be<u64>(buf, 0) == 0x0102030405060708_u64);
+
+		// load_as_be out of bounds
+		CHECK(not load_as_be<u32>(buf, 6).has_value());
+	}
+
+	SECTION("load_as(From)")
+	{
+		const std::array<u8, 8> buf{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+
+		// from std::array (container branch)
+		CHECK(load_as<u8>(buf)  == 0x01_u8);
+		CHECK(load_as<u16>(buf) == 0x0201_u16);
+		CHECK(load_as<u32>(buf) == 0x04030201_u32);
+		CHECK(load_as<u64>(buf) == 0x0807060504030201_u64);
+
+		// from std::span (container branch)
+		std::span<const u8> sp{buf};
+		CHECK(load_as<u16>(sp) == 0x0201_u16);
+		CHECK(load_as<u32>(sp) == 0x04030201_u32);
+		CHECK(load_as<u64>(sp) == 0x0807060504030201_u64);
+
+		// from raw pointer (pointer branch)
+		CHECK(load_as<u16>(buf.data()) == 0x0201_u16);
+		CHECK(load_as<u32>(buf.data()) == 0x04030201_u32);
+		CHECK(load_as<u64>(buf.data()) == 0x0807060504030201_u64);
+	}
+
+
+
 
 	SECTION("concat/integer")
 	{

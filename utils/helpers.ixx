@@ -66,38 +66,24 @@ export namespace deckard
 	export template<typename To, typename From>
 	To load_as(const From from)
 	{
-		// TODO: Bitcast
-		To ret{};
+		std::array<u8, sizeof(To)> buf{};
 		if constexpr (requires { from.data(); })
-			std::memcpy(&ret, from.data(), sizeof(To));
+			std::memcpy(buf.data(), from.data(), sizeof(To));
 		else
-			std::memcpy(&ret, from, sizeof(To));
+			std::memcpy(buf.data(), from, sizeof(To));
 
-		return ret;
+		return std::bit_cast<To>(buf);
 	}
 
-	template<typename To>
+	export template<std::integral To>
 	std::optional<To> load_as(std::span<const u8> buf, std::size_t offset)
 	{
-		static_assert(std::is_integral_v<To>, "load_as only supports integral types");
-
 		if (offset + sizeof(To) > buf.size())
 			return {};
 
 		To tmp{};
 		std::memcpy(&tmp, buf.data() + offset, sizeof(To));
-
-		if constexpr (std::endian::native == std::endian::little)
-		{
-			if constexpr (sizeof(To) == 2)
-				return std::byteswap(tmp);
-			if constexpr (sizeof(To) == 4)
-				return std::byteswap(tmp);
-			if constexpr (sizeof(To) == 8)
-				return std::byteswap(tmp);
-		}
-
-		return tmp; // already correct on big-endian
+		return tmp;
 	}
 
 	export template<std::integral To>
@@ -298,17 +284,17 @@ export namespace deckard
 	std::string to_hex_string(const std::string_view input, const HexOption& options = {})
 	{
 		return to_hex_string(
-		  std::span<const u8>{reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(input.size())}, options);
+			  std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(input.size())), options);
 	}
 
 	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
 	{
-		return to_hex_string(std::span<const u8>{reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(len)}, options);
+		return to_hex_string(std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(len)), options);
 	}
 
 	std::span<u8> to_span(std::string_view sv)
 	{
-		return std::span<u8>{reinterpret_cast<u8*>(const_cast<char*>(sv.data())), static_cast<std::size_t>(sv.size())};
+		return std::span<u8>(reinterpret_cast<u8*>(const_cast<char*>(sv.data())), static_cast<std::size_t>(sv.size()));
 	}
 
 	template<typename T>
@@ -351,26 +337,26 @@ export namespace deckard
 	std::string day_month_year(std::string_view separator = ".")
 	{
 		auto time = std::chrono::system_clock::now();
-		return std::format("{0:%d}{1}{0:%m}{1}{0:%Y}", std::chrono::current_zone()->to_local(time), separator);
+		return std::format("{0:%d}{1}{0:%m}{1}{0:%Y}", std::chrono::zoned_time{std::chrono::current_zone(), time}, separator);
 	}
 
 	std::string hour_minute_second(std::string_view separator = ":")
 	{
 
 		auto time = std::chrono::system_clock::now();
-		return std::format("{0:%H}{1}{0:%M}{1}{0:%OS}", std::chrono::current_zone()->to_local(time), separator);
+		return std::format("{0:%H}{1}{0:%M}{1}{0:%OS}", std::chrono::zoned_time{std::chrono::current_zone(), time}, separator);
 	}
 
 	std::string current_time_as_string()
 	{
 		auto time = std::chrono::system_clock::now();
-		return std::format("{:%T}", std::chrono::current_zone()->to_local(time));
+		return std::format("{:%T}", std::chrono::zoned_time{std::chrono::current_zone(), time});
 	}
 
 	std::string current_date_as_string()
 	{
 		auto epoch = std::chrono::system_clock::now();
-		return std::format("{:%F}", std::chrono::current_zone()->to_local(epoch));
+		return std::format("{:%F}", std::chrono::zoned_time{std::chrono::current_zone(), epoch});
 	}
 
 	template<typename T, typename U>
@@ -661,7 +647,7 @@ export namespace deckard
 	auto permutations(std::string_view str, std::size_t count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = permutations(std::span<char>{vec.data(), vec.size()}, count);
+		auto              result = permutations(std::span<char>(vec.data(), vec.size()), count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -688,7 +674,7 @@ export namespace deckard
 	auto unique_permutations(std::string_view str, u64 count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = unique_permutations(std::span<char>{vec.data(), vec.size()}, count);
+		auto              result = unique_permutations(std::span<char>(vec.data(), vec.size()), count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -751,7 +737,7 @@ export namespace deckard
 	auto combinations(std::string_view str, u64 count = 0) -> std::vector<std::string>
 	{
 		std::vector<char> vec(str.begin(), str.end());
-		auto              result = combinations(std::span<char>{vec.data(), vec.size()}, count);
+		auto              result = combinations(std::span<char>(vec.data(), vec.size()), count);
 
 		std::vector<std::string> strings;
 		for (const auto& perm : result)
@@ -811,7 +797,7 @@ export namespace deckard
 
 	auto unique(std::string_view str) -> std::string
 	{
-		auto res = unique(std::span<char>{const_cast<char*>(str.data()), static_cast<std::size_t>(str.size())});
+		auto res = unique(std::span<char>(const_cast<char*>(str.data()), static_cast<std::size_t>(str.size())));
 		return std::string{res.begin(), res.end()};
 	}
 
@@ -1297,7 +1283,7 @@ export namespace deckard
 		std::string ret;
 		ret.reserve(64);
 
-		auto add_unit = [&bytes, &ret](u64 unit, std::string_view unitstr)
+		std::function<void(u64, std::string_view)> add_unit = [&bytes, &ret](u64 unit, std::string_view unitstr)
 		{
 			if (unit == 0)
 			{

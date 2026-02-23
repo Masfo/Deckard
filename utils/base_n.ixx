@@ -193,7 +193,7 @@ namespace deckard::utils::base64
 	  's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'};
 
 
-	static constexpr std::array<u8, 256> decode_table = []() constexpr
+	static constexpr std::array<u8, 256> decode_table = []() static constexpr
 	{
 		std::array<u8, 256> table{};
 		table.fill(INVALID_SYMBOL);
