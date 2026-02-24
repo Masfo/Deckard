@@ -42,6 +42,7 @@ export import deckard.function_ref;
 export import deckard.grid;
 export import deckard.helpers;
 export import deckard.hmac;
+export import deckard.lru;
 export import deckard.random;
 export import deckard.ringbuffer;
 export import deckard.sbo;

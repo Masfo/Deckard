@@ -17,7 +17,6 @@ struct sink_t final
 	}
 };
 
-
 export inline constexpr sink_t _;
 
 export namespace deckard
@@ -67,6 +66,21 @@ export namespace deckard
 		using Ts::operator()...;
 	};
 
+	template<typename T>
+	[[nodiscard]] constexpr T* ptr_to(T& val) noexcept
+	{
+		return std::addressof(val);
+	}
+
+#ifdef __cpp_deleted_function
+	// C++26: deleted functions can carry a diagnostic message
+	#error "Use this one"
+	template<typename T>
+	T* ptr_to(const T&&) = delete("ptr_to() requires an lvalue — taking a pointer to a temporary would dangle");
+#else
+	template<typename T>
+	T* ptr_to(const T&&) = delete;
+#endif
 	template<typename T>
 	concept arithmetic = std::is_arithmetic_v<T>;
 
@@ -162,7 +176,7 @@ export namespace deckard
 
 	// ###########################################################################
 	// ###########################################################################
-	
+
 	// static_assert(requires(A a, A b) { a + b; }, "elements must be addable");
 
 	// using Kilo = StrongType<double, struct Kilo_>;

@@ -233,11 +233,11 @@ std::chrono::system_clock::time_point ntp_to_chrono(u64 ntp_ts)
 	u32 fraction = static_cast<u32>(ntp_ts & 0xFFFF'FFFFULL);
 
 
-  f64 frac_seconds = static_cast<f64>(fraction) / 4294967296.0;
-	i64 secs         = static_cast<i64>(seconds) - static_cast<i64>(NTP_UNIX_OFFSET);
+	f64  frac_seconds = static_cast<f64>(fraction) / 4294967296.0;
+	auto secs         = seconds - NTP_UNIX_OFFSET;
 
-  auto ntp_time = std::chrono::system_clock::time_point{
-   std::chrono::seconds{secs} + duration_cast<std::chrono::system_clock::duration>(duration<f64>(frac_seconds))};
+	auto ntp_time = std::chrono::system_clock::time_point{
+	  std::chrono::seconds(secs) + duration_cast<std::chrono::system_clock::duration>(duration<f64>(frac_seconds))};
 
 	return ntp_time;
 }
@@ -252,8 +252,7 @@ u64 chrono_to_ntp(std::chrono::system_clock::time_point tp)
 	auto frac     = duration - seconds(secs);
 
 	u32 ntp_secs = static_cast<u32>(secs + NTP_UNIX_OFFSET);
-    auto frac_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(frac).count();
-	u32  ntp_frac     = static_cast<u32>(frac_seconds * 4294967296.0);
+	u32 ntp_frac = static_cast<u32>((static_cast<f64>(frac.count()) / seconds(1).count()) * 4294967296.0);
 
 	return (static_cast<u64>(ntp_secs) << 32) | ntp_frac;
 }
@@ -299,7 +298,7 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 
 	// Precision
 	i8  raw_precision     = raw[3];
-  f64 precision_seconds = std::pow(2.0, static_cast<int>(raw_precision));
+	f64 precision_seconds = 1.0 / (1ULL << (std::abs(raw_precision)));
 	pkt.precision         = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<f64>(precision_seconds));
 
 
@@ -500,6 +499,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 	test_cmdliner();
+
+	_;
 
 	// ##############################
 

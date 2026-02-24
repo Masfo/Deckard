@@ -1,4 +1,4 @@
-﻿export module deckard.hmac;
+export module deckard.hmac;
 
 import std;
 import deckard.types;

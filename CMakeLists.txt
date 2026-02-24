@@ -285,6 +285,8 @@ set(DECKARD_SRCS
 		utils/logger.ixx
 		utils/colors.ixx
 		utils/circular_buffer.ixx
+		utils/lru.ixx
+
 
 		# Unicode
 		unicode/utf8.ixx
