@@ -365,4 +365,21 @@ TEST_CASE("SHA1/SHA256/SHA512 digest formatting", "[sha1][sha256][sha512][hash]"
 		CHECK(abc_digest == correct_abc_digest);
 		CHECK(std::format("{}", abc_digest) == std::format("{}", correct_abc_digest));
 	}
+
+	SECTION("formatters") 
+	{ 
+		sha1::digest d1{"a9993e364706816aba3e25717850c26c9cd0d89d"};
+		CHECK(std::format("{}", d1) == "a9993e364706816aba3e25717850c26c9cd0d89d");
+
+		sha256::digest d2{"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"};
+		CHECK(std::format("{}", d2) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+
+		sha512::digest d3{
+		  "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
+						  "454d4423643ce80e2a9ac94fa54ca49f"};
+		CHECK(std::format("{}", d3) ==
+			  "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
+									   "454d4423643ce80e2a9ac94fa54ca49f");
+
+	}
 }

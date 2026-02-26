@@ -6,8 +6,11 @@ import deckard.helpers;
 
 namespace deckard::uuid
 {
-	static std::random_device                 rd;
-	static std::uniform_int_distribution<u64> dist(0);
+	namespace
+	{
+		std::random_device                 rd;
+		std::uniform_int_distribution<u64> dist(0);
+	}
 
 	using namespace std::string_view_literals;
 
@@ -20,7 +23,7 @@ namespace deckard::uuid
 			u64 cd{};
 		};
 
-		export uuid generate()
+		export [[nodiscard]] uuid generate()
 		{
 			return {(dist(rd) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'4000ULL,
 					(dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL};
@@ -56,16 +59,16 @@ namespace deckard::uuid
 			u64 cd{};
 		};
 
-		export uuid generate()
+		export [[nodiscard]] uuid generate()
 		{
 			u64 ab = ((deckard::epoch<std::chrono::milliseconds>() << 16) & 0xFFFF'FFFF'FFFF'0FFFULL) | 0x0000'0000'0000'7000ULL;
-			ab |= (dist(rd) & 0x0FFF | 0x7000);
+			ab |= (dist(rd) & 0x0FFF);
 			u64 cd = (dist(rd) & 0x3FFF'FFFF'FFFF'FFFFULL) | 0x8000'0000'0000'0000ULL;
 
 			return {ab, cd};
 		}
 
-		export std::string to_string(const uuid id, bool uppercase)
+		export std::string to_string(uuid id, bool uppercase)
 		{
 			if (uppercase)
 				return std::format(
@@ -88,7 +91,7 @@ namespace deckard::uuid
 
 } // namespace deckard::uuid
 
-namespace std
+export namespace std
 {
 	using namespace deckard::uuid;
 

@@ -500,8 +500,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	test_cmdliner();
 
-	_;
 
+
+	_;
 	// ##############################
 
 #if 1
@@ -547,7 +548,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	#if 0
+#if 0
 
 
 	image_rgb  xortexture(1920, 1080);
@@ -693,7 +694,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// read back
 
 
-	#endif
+#endif
 
 	info("heloo");
 	// ########################################################################

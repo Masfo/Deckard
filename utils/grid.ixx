@@ -563,7 +563,6 @@ export namespace std
 	{
 		constexpr auto parse(std::format_parse_context& ctx) -> decltype(ctx.begin())
 		{
-			// No custom format options supported; return iterator unchanged.
 			return ctx.begin();
 		}
 
