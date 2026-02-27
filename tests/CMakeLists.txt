@@ -99,6 +99,9 @@ target_sources(tests PUBLIC
 
     # uint128
     tests/uint128_test.cpp
+
+    # LRU
+    tests/lru_test.cpp
 )
 
 
