@@ -15,9 +15,9 @@ namespace deckard::zstd
 
 	export u64 bound(const u64 input_size) { return ZSTD_compressBound(input_size); }
 
-	export u64 bound(const std::span<const u8> input) { return ZSTD_compressBound(input.size()); }
+	export u64 bound(std::span<const u8> input) { return ZSTD_compressBound(input.size()); }
 
-	export std::optional<u64> decompressed_size(const std::span<const u8> compressed_input)
+	export std::optional<u64> decompressed_size(std::span<const u8> compressed_input)
 	{
 
 		u64 result = ZSTD_getFrameContentSize(compressed_input.data(), compressed_input.size());
@@ -28,7 +28,7 @@ namespace deckard::zstd
 		return result;
 	}
 
-	export [[nodiscard]] std::optional<u64> compress(const std::span<const u8> input, std::span<u8> output, i32 compression_level = -1)
+	export [[nodiscard]] std::optional<u64> compress(std::span<const u8> input, std::span<u8> output, i32 compression_level = -1)
 	{
 		if (output.size() < bound(input))
 		{
@@ -46,7 +46,7 @@ namespace deckard::zstd
 		return r;
 	}
 
-	export [[nodiscard]] std::optional<u64> decompress(const std::span<u8> input, std::span<u8> output)
+	export [[nodiscard]] std::optional<u64> decompress( std::span<const u8> input, std::span<u8> output)
 	{
 		auto content_size = decompressed_size(input);
 
