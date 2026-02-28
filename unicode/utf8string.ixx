@@ -58,25 +58,8 @@ namespace deckard::utf8
 			if (current_index >= as<difference_type>(ptr->size()))
 				return;
 
-			i64 next = current_index;
-			next++;
-
-			while (next < as<i64>(ptr->size()) and utf8::is_continuation_byte(ptr->at(next)))
-				next++;
-
-			while (next < as<i64>(ptr->size()))
-			{
-				u8 byte = ptr->at(next);
-
-				if (not utf8::is_single_byte(byte))
-					break;
-
-				if (not utf8::is_start_of_codepoint(byte))
-					break;
-
-				next++;
-			}
-			current_index = next;
+			auto [cp, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(ptr->data()), static_cast<size_t>(current_index));
+			current_index += static_cast<i64>(bytes);
 		}
 
 		void previous_codepoint()
@@ -184,7 +167,7 @@ namespace deckard::utf8
 		unit operator*() const
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
+			assert::check(current_index-1 < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
 			return static_cast<unit>(decode_current_codepoint());
 		}
 
@@ -400,8 +383,8 @@ namespace deckard::utf8
 
       bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
 
-		// insert
-      iterator insert(iterator pos, std::span<u8> input)
+        // insert
+		iterator insert(iterator pos, std::span<u8> input)
 		{
 			if (input.empty())
 				return pos;
@@ -409,20 +392,20 @@ namespace deckard::utf8
 
 			auto insert_pos = pos.byteindex();
 
-			buffer.insert(buffer.begin() + insert_pos, input);
+           buffer.insert(buffer.begin() + insert_pos, input);
 
 			return iterator(&buffer, insert_pos);
 		}
 
-       iterator insert(iterator pos, char c) { return insert(pos, {as<u8*>(&c), 1}); }
+      iterator insert(iterator pos, char c) { return insert(pos, {as<u8*>(&c), 1}); }
 
 		iterator insert(iterator pos, char32 c)
 		{
 			auto decoded = encode_codepoint(c);
-         return insert(pos, {decoded.bytes.data(), decoded.count});
+          return insert(pos, {decoded.bytes.data(), decoded.count});
 		}
 
-      iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
+     iterator insert(iterator pos, std::string_view input) { return insert(pos, {as<u8*>(input.data()), input.size()}); }
 
 		iterator insert(iterator pos, const string& str) { return insert(pos, str.data()); }
 
@@ -878,7 +861,6 @@ namespace deckard::utf8
           return std::span<u8>{};
 
 			auto start_byte = it.byteindex();
-
 			// Count N codepoints forward
 			size_t remaining = std::min(count, size() - start);
 			for (size_t i = 0; i < remaining && it != end(); ++i)
@@ -916,7 +898,8 @@ namespace deckard::utf8
 			auto start_index = start.byteindex();
 
 			auto end_index = (start + count).byteindex();
-			return subview(start_index, end_index - start_index);
+            auto v = view(buffer.data());
+			return v.subview_bytes(start_index, end_index - start_index);
 		}
 
 		auto data() const { return subspan(); }

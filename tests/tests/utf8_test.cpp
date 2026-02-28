@@ -4,6 +4,7 @@
 import std;
 import deckard.utf8;
 import deckard.as;
+import deckard.types;
 using namespace deckard;
 using namespace deckard::utf8;
 using namespace std::string_view_literals;
@@ -14,6 +15,29 @@ TEST_CASE("utf8::ascii", "[utf8]")
 	SECTION("ascii")
 	{
 		//
+	}
+
+	SECTION("yield_codepoints invalid/truncated")
+	{
+
+		{
+			std::array<std::byte, 3> buf{std::byte{0xF0}, std::byte{0x9F}, std::byte{0x98}}; // truncated 4-byte sequence
+			std::vector<char32>      cps;
+			for (auto cp : utf8::yield_codepoints(buf))
+				cps.push_back(cp);
+			REQUIRE(cps.size() == 1);
+			CHECK(cps[0] == utf8::REPLACEMENT_CHARACTER);
+		}
+
+		{
+			std::array<std::byte, 2> buf{std::byte{0x80}, std::byte{0x80}}; // two invalid standalone continuation bytes
+			std::vector<char32>      cps;
+			for (auto cp : utf8::yield_codepoints(buf))
+				cps.push_back(cp);
+			REQUIRE(cps.size() == 2);
+			CHECK(cps[0] == utf8::REPLACEMENT_CHARACTER);
+			CHECK(cps[1] == utf8::REPLACEMENT_CHARACTER);
+		}
 	}
 }
 
@@ -299,6 +323,22 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[5] == 'c');
 		CHECK(d[6] == heart[0]);
 		CHECK(d[7] == 'X');
+
+		// Minimal regression cases
+		utf8::string e("a");
+		e.insert(e.begin(), "b");
+		CHECK(e.size() == 2);
+		CHECK(e[0] == 'b');
+		CHECK(e[1] == 'a');
+
+		utf8::string f("a");
+		f.insert(f.begin(), "🌍");
+		CHECK(f.size() == 2);
+		CHECK(f[0] == 0x1'f30d);
+		CHECK(f[1] == 'a');
+		f.insert(f.end(), "🌍");
+		CHECK(f.size() == 3);
+		CHECK(f[2] == 0x1'f30d);
 	}
 
 	SECTION("prepend")
@@ -499,8 +539,8 @@ TEST_CASE("utf8::string", "[utf8]")
 
 	SECTION("as_ro_bytes helpers")
 	{
-       std::array<u8, 4> a{'A', 'B', 'C', 'D'};
-		auto                       b1 = utf8::as_ro_bytes(a);
+		std::array<u8, 4> a{'A', 'B', 'C', 'D'};
+		auto              b1 = utf8::as_ro_bytes(a);
 		CHECK(b1.size() == a.size());
 
 		auto b3 = utf8::as_ro_bytes("ABCD"sv);
@@ -509,27 +549,27 @@ TEST_CASE("utf8::string", "[utf8]")
 
 	SECTION("decode_codepoint smoke")
 	{
-      std::array<u8, 1> ascii{'A'};
+		std::array<u8, 1> ascii{'A'};
 		CHECK(utf8::decode_codepoint(utf8::as_ro_bytes(ascii), 0) == U'A');
 
-       std::array<u8, 2> two_byte{0xC3, 0x84}; // Ä
+		std::array<u8, 2> two_byte{0xC3, 0x84}; // Ä
 		CHECK(utf8::decode_codepoint(utf8::as_ro_bytes(two_byte), 0) == 0xC4);
 	}
 
 	SECTION("yield_codepoints forward progress")
 	{
 		// invalid leading byte then ASCII
-       std::array<u8, 2> data1{0xFF, 0x41};
-		std::array<u32, 2>         expect1{0xFFFD, 0x41};
-		size_t                     idx1 = 0;
+		std::array<u8, 2>  data1{0xFF, 0x41};
+		std::array<u32, 2> expect1{0xFFFD, 0x41};
+		size_t             idx1 = 0;
 		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data1)))
 			CHECK(cp == expect1[idx1++]);
 		CHECK(idx1 == expect1.size());
 
 		// truncated 4-byte sequence: consume one byte per replacement then continue
-       std::array<u8, 4> data2{0xF0, 0x9F, 0x92, 0x41};
-		std::array<u32, 4>         expect2{0xFFFD, 0xFFFD, 0xFFFD, 0x41};
-		size_t                     idx2 = 0;
+		std::array<u8, 4>  data2{0xF0, 0x9F, 0x92, 0x41};
+		std::array<u32, 4> expect2{0xFFFD, 0xFFFD, 0xFFFD, 0x41};
+		size_t             idx2 = 0;
 		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data2)))
 			CHECK(cp == expect2[idx2++]);
 		CHECK(idx2 == expect2.size());
@@ -1617,6 +1657,63 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(v[6] == 0x1'f30d);
 	}
 
+	SECTION("subview codepoints vs bytes")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		utf8::view start = w;
+		start += 1; // points at 'h'
+		auto v = w.subview(start, 5);
+		CHECK(v.size() == 5);
+		CHECK(v[0] == 'h');
+		CHECK(v[4] == 'o');
+
+		// Byte slicing: take the first 4 bytes from the beginning (one 4-byte codepoint)
+		auto b = w.subview_bytes(0, 4);
+		CHECK(b.size_in_bytes() == 4);
+		CHECK(b.size() == 1);
+		CHECK(b[0] == 0x1'f30d);
+	}
+
+	SECTION("decode invalid/truncated")
+	{
+		using namespace std;
+
+		{
+			array<byte, 1> buf{byte{0xC2}};
+			auto           r = utf8::decode(buf, 0);
+			REQUIRE(r.has_value());
+			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+			CHECK(r->bytes_consumed == 1);
+		}
+
+		{
+			array<byte, 2> buf{byte{0xE2}, byte{0x82}};
+			auto           r = utf8::decode(buf, 0);
+			REQUIRE(r.has_value());
+			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+			CHECK(r->bytes_consumed == 2);
+		}
+
+		{
+			array<byte, 3> buf{byte{0xF0}, byte{0x9F}, byte{0x98}};
+			auto           r = utf8::decode(buf, 0);
+			REQUIRE(r.has_value());
+			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+			CHECK(r->bytes_consumed == 3);
+		}
+
+		{
+			array<byte, 1> buf{byte{0x80}};
+			auto           r = utf8::decode(buf, 0);
+			REQUIRE(r.has_value());
+			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+			CHECK(r->bytes_consumed == 1);
+		}
+	}
+
 	SECTION("hash")
 	{
 		utf8::string str1("hello 🌍");
@@ -1630,5 +1727,62 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		CHECK(hasher(str1) == hasher(str2));
 		CHECK(hasher(str1) != hasher(str3));
+	}
+}
+
+TEST_CASE("utf8::decode", "[utf8][utf8decode]")
+{
+	SECTION("truncated sequences consume all available bytes")
+	{
+		const std::array<std::byte, 1> b2_trunc{std::byte{0xC2}};
+		auto                           r = utf8::decode(b2_trunc, 0);
+		REQUIRE(r.has_value());
+		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+		CHECK(r->bytes_consumed == 1);
+
+		const std::array<std::byte, 2> b3_trunc{std::byte{0xE2}, std::byte{0x82}};
+		r = utf8::decode(b3_trunc, 0);
+		REQUIRE(r.has_value());
+		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+		CHECK(r->bytes_consumed == 2);
+
+		const std::array<std::byte, 3> b4_trunc{std::byte{0xF0}, std::byte{0x9F}, std::byte{0x98}};
+		r = utf8::decode(b4_trunc, 0);
+		REQUIRE(r.has_value());
+		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+		CHECK(r->bytes_consumed == 3);
+	}
+
+	SECTION("standalone continuation byte")
+	{
+		const std::array<std::byte, 1> buf{std::byte{0x80}};
+		auto                           r = utf8::decode(buf, 0);
+		REQUIRE(r.has_value());
+		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
+		CHECK(r->bytes_consumed == 1);
+	}
+}
+
+TEST_CASE("utf8::yield_codepoints", "[utf8][utf8decode]")
+{
+	SECTION("one replacement per maximal subpart")
+	{
+		const std::array<std::byte, 3> buf{std::byte{0xF0}, std::byte{0x9F}, std::byte{0x98}};
+		std::vector<char32>            cps;
+		for (auto cp : utf8::yield_codepoints(buf))
+			cps.push_back(cp);
+		REQUIRE(cps.size() == 1);
+		CHECK(cps[0] == utf8::REPLACEMENT_CHARACTER);
+	}
+
+	SECTION("invalid bytes still advance")
+	{
+		const std::array<std::byte, 2> buf{std::byte{0x80}, std::byte{0x80}};
+		std::vector<char32>            cps;
+		for (auto cp : utf8::yield_codepoints(buf))
+			cps.push_back(cp);
+		REQUIRE(cps.size() == 2);
+		CHECK(cps[0] == utf8::REPLACEMENT_CHARACTER);
+		CHECK(cps[1] == utf8::REPLACEMENT_CHARACTER);
 	}
 }

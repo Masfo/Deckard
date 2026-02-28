@@ -5,20 +5,18 @@ import :ascii;
 import std;
 import deckard.as;
 import deckard.types;
-import deckard.assert;
-import deckard.debug;
 
 namespace deckard::utf8
 {
 	export constexpr bool is_single_byte(const u8 byte) { return (byte & 0x80) == 0; }
 
-	export constexpr bool is_start_byte(const u8 rune) { return ((rune & 0xc0) == 0xc0 or is_single_byte(rune)); }
-
 	export constexpr bool is_continuation_byte(const u8 byte) { return (byte & 0xC0) == 0x80; }
+
+	export constexpr bool is_start_byte(const u8 rune) { return not is_continuation_byte(rune); }
 
 	export constexpr bool is_start_of_codepoint(const u8 byte)
 	{
-		return (((byte & 0xE0) == 0xC0) or ((byte & 0xF0) == 0xE0) or ((byte & 0xF8) == 0xF0));
+		return is_single_byte(byte) or (((byte & 0xE0) == 0xC0) or ((byte & 0xF0) == 0xE0) or ((byte & 0xF8) == 0xF0));
 	}
 
 	export constexpr bool is_two_byte_codepoint(const u8 byte) { return ((byte >> 5) == 0x6); }
@@ -61,10 +59,9 @@ namespace deckard::utf8
 		return 0;
 	}
 
-
 	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
-	export constexpr bool start_with_bom(const std::span<u8> buffer)
+	export constexpr bool start_with_bom(const std::span<const u8> buffer)
 	{
 		return buffer.size() >= 3 and (buffer[0] == 0xEF and buffer[1] == 0xBB and buffer[2] == 0xBF);
 	}
@@ -83,17 +80,19 @@ namespace deckard::utf8
 
 		return (
 		  (codepoint == 0x0020) or                             // space										White_Space / Pattern_White_Space
-		  ((codepoint >= 0x0009) and (codepoint <= 0x000D)) or // control									White_Space / Pattern_White_Space
+		  ((codepoint >= 0x0009) and
+		   (codepoint <= 0x000D)) or                           // control									White_Space / Pattern_White_Space
 		  (codepoint == 0x0085) or                             // control									White_Space / Pattern_White_Space
-		  (codepoint == 0x00A0) or                             // no-break space							White_Space / 
-		  (codepoint == 0x1680) or                             // Ogham space mark							White_Space / 
-		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE						White_Space / 
-		  ((codepoint >= 0x200E) and (codepoint <= 0x200F)) or // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK                / Pattern_White_Space
-		  (codepoint == 0x2028) or                             // LINE SEPARATOR							White_Space / Pattern_White_Space
-		  (codepoint == 0x2029) or                             // PARAGRAPH SEPARATOR						White_Space / Pattern_White_Space
-		  (codepoint == 0x202F) or                             // NARROW NO-BREAK SPACE						White_Space / 
-		  (codepoint == 0x205F) or                             // Medium Mathematical Space.				White_Space / 
-		  (codepoint == 0x3000));                              // IDEOGRAPHIC SPACE							White_Space / 
+		  (codepoint == 0x00A0) or                             // no-break space							White_Space /
+		  (codepoint == 0x1680) or                             // Ogham space mark							White_Space /
+		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE						White_Space /
+		  ((codepoint >= 0x200E) and
+		   (codepoint <= 0x200F)) or // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK                / Pattern_White_Space
+		  (codepoint == 0x2028) or   // LINE SEPARATOR							White_Space / Pattern_White_Space
+		  (codepoint == 0x2029) or   // PARAGRAPH SEPARATOR						White_Space / Pattern_White_Space
+		  (codepoint == 0x202F) or   // NARROW NO-BREAK SPACE						White_Space /
+		  (codepoint == 0x205F) or   // Medium Mathematical Space.				White_Space /
+		  (codepoint == 0x3000));    // IDEOGRAPHIC SPACE							White_Space /
 	}
 
 	export constexpr bool is_digit(char32 codepoint)
@@ -122,6 +121,16 @@ namespace deckard::utf8
 	export EncodedCodepoint encode_codepoint(char32 cp)
 	{
 		EncodedCodepoint ecp;
+
+		// Surrogates (U+D800–U+DFFF) are not valid Unicode codepoints
+		if (cp >= 0xD800 and cp <= 0xDFFF)
+		{
+			ecp.bytes[0] = 0xEF;
+			ecp.bytes[1] = 0xBF;
+			ecp.bytes[2] = 0xBD;
+			ecp.count    = 3;
+			return ecp;
+		}
 
 		if (cp <= 0x7F)
 		{

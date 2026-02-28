@@ -17,37 +17,18 @@ namespace deckard::utf8
 	export class view
 	{
 	private:
-		using type = u8;
+      using type = u8;
 
-      std::span<type> m_data;
+		std::span<type> m_data;
 		size_t          byte_index{0};
 
 		void advance_to_next_codepoint(size_t& idx) const
 		{
-
 			if (idx >= m_data.size_bytes())
 				return;
 
-			auto next = idx;
-			next++;
-
-			while (next < m_data.size_bytes() and utf8::is_continuation_byte(m_data[next]))
-				next++;
-
-			while (next < m_data.size_bytes())
-			{
-				u8 byte = m_data[next];
-
-				if (not utf8::is_single_byte(byte))
-					break;
-
-				if (not utf8::is_start_of_codepoint(byte))
-					break;
-
-				next++;
-			}
-
-			idx = next;
+			auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
+			idx += bytes;
 		}
 
 		void reverse_to_last_codepoint(size_t& idx) const
@@ -68,25 +49,8 @@ namespace deckard::utf8
 		char32 decode_codepoint_at(size_t at) const
 		{
 			assert::check(at < m_data.size_bytes(), "Index out-of-bounds");
-
-			auto   current   = at;
-			u8     state     = 0;
-			char32 codepoint = 0;
-
-			for (; current < as<size_t>(m_data.size_bytes()); current++)
-			{
-				u8 byte = m_data[current];
-
-				const u8 type = utf8_table[byte];
-				codepoint     = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
-				state         = utf8_table[256 + state + type];
-
-				if (state == 0)
-					return codepoint;
-				else if (state == UTF8_REJECT)
-					return REPLACEMENT_CHARACTER;
-			}
-			return REPLACEMENT_CHARACTER;
+			auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), at);
+			return codepoint;
 		}
 
 		char32 decode_current_codepoint() const { return decode_codepoint_at(byte_index); }
@@ -102,26 +66,34 @@ namespace deckard::utf8
 		{
 		}
 
-		view(subspannable auto&& str)
+       view(subspannable auto&& str)
 			: m_data(str.subspan())
 			, byte_index(0uz)
 		{
 		}
 
-		view(std::span<u8> data)
+        view(std::span<u8> data)
 			: m_data(data)
 			, byte_index(0uz)
 		{
 		}
 
-        view(std::string_view data)
-         : m_data(as<u8*>(data.data()), as<u8*>(data.data()) + data.size())
+		template<size_t N>
+		view(std::array<u8, N>& data)
+			: m_data(data)
 			, byte_index(0uz)
 		{
 		}
 
-        view(const char* data, u32 len)
-            : m_data(as<u8*>(data), as<u8*>(data) + len)
+		template<size_t N>
+		view(const std::array<u8, N>& data)
+			: m_data(as<u8*>(data.data()), N)
+			, byte_index(0uz)
+		{
+		}
+
+     view(std::string_view data)
+         : m_data(as<u8*>(data.data()), data.size())
 			, byte_index(0uz)
 		{
 		}
@@ -231,9 +203,8 @@ namespace deckard::utf8
 			return decode_codepoint_at(tmp);
 		}
 
-		constexpr auto operator[](this auto&& self, size_t idx)
+		constexpr auto operator[](this const auto& self, size_t idx)
 		{
-
 			assert::check(idx < self.size(), "Index out-of-bounds");
 
 			size_t tmp = 0;
@@ -250,11 +221,29 @@ namespace deckard::utf8
 
 		auto data() const { return m_data; }
 
-		view subview(const view start, size_t length) const
+     view subview_bytes(size_t start_byte, size_t byte_length) const
+		{
+			assert::check(start_byte + byte_length <= m_data.size_bytes(), "Subview out-of-bounds");
+			return view(m_data.subspan(start_byte, byte_length));
+		}
+
+     view subview_bytes(const view start, size_t byte_length) const
 		{
 			assert::check(m_data.data() == start.m_data.data(), "Cannot create subview from different data");
-			assert::check(start.byte_index + length <= m_data.size_bytes(), "Subview out-of-bounds");
-			return view(m_data.subspan(start.byte_index, length));
+           assert::check(start.byte_index + byte_length <= m_data.size_bytes(), "Subview out-of-bounds");
+			return view(m_data.subspan(start.byte_index, byte_length));
+		}
+
+		view subview(const view start, size_t codepoints) const
+		{
+			assert::check(m_data.data() == start.m_data.data(), "Cannot create subview from different data");
+
+			size_t end_byte = start.byte_index;
+			for (size_t i = 0; i < codepoints and end_byte < m_data.size_bytes(); ++i)
+				advance_to_next_codepoint(end_byte);
+
+			assert::check(end_byte <= m_data.size_bytes(), "Subview out-of-bounds");
+			return view(m_data.subspan(start.byte_index, end_byte - start.byte_index));
 		}
 
         auto span() const { return utf8::as_ro_bytes(m_data); }
