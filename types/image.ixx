@@ -188,7 +188,7 @@ namespace deckard
 		if (not encoded)
 			return false;
 
-		auto result = file::write({.file = path, .buffer = out});
+		auto result = file::write({.filename = path, .buffer = out});
 		return result.has_value() and *result == out.size();
 	}
 
@@ -505,7 +505,7 @@ namespace deckard
 		if (not encoded)
 			return false;
 
-		auto result = file::write({.file = path, .buffer = out, .mode = file::filemode::overwrite});
+		auto result = file::write({.filename = path, .buffer = out, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
 	}
 
@@ -534,7 +534,7 @@ namespace deckard
 		if (not encoded)
 			return false;
 
-		auto result = file::write({.file = path, .buffer = out, .mode = file::filemode::overwrite});
+		auto result = file::write({.filename = path, .buffer = out, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
 	}
 
@@ -907,7 +907,7 @@ namespace deckard
 		detail::qoi_write_end(ser);
 
 		auto out_span = ser.data();
-		auto result   = file::write({.file = path, .buffer = out_span});
+		auto result   = file::write({.filename = path, .buffer = out_span});
 		return result.has_value() and *result == out_span.size();
 	}
 
@@ -951,7 +951,7 @@ namespace deckard
 		detail::qoi_write_end(ser);
 
 		auto out_span = ser.data();
-		auto result   = file::write({.file = path, .buffer = out_span});
+		auto result   = file::write({.filename = path, .buffer = out_span});
 		return result.has_value() and *result == out_span.size();
 	}
 
@@ -1069,7 +1069,7 @@ namespace deckard
 		if (not encoded)
 			return false;
 		out.resize(*encoded);
-		auto result = file::write({.file = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
+		auto result = file::write({.filename = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
 	}
 
@@ -1166,7 +1166,7 @@ namespace deckard
 		if (not encoded)
 			return false;
 		out.resize(*encoded);
-		auto result = file::write({.file = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
+		auto result = file::write({.filename = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
 	}
 

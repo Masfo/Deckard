@@ -144,7 +144,7 @@ namespace deckard
 				return;
 
 			std::span<u8> log_span(as<u8*>(buffer.data()), current_size);
-			(void)file::append({.file = logfile, .buffer = log_span});
+			(void)file::append({.filename = logfile, .buffer = log_span});
 		}
 
 	public:

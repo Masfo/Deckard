@@ -42,7 +42,7 @@ namespace deckard::file
 
 	export struct options
 	{
-		fs::path      file;
+		fs::path      filename;
 		std::span<u8> buffer;
 		u64           size{0};
 		u64           offset{0};
@@ -247,7 +247,7 @@ namespace deckard::file
 	export auto write(const options& options)
 	{
 		return impl::write_impl<u8>(
-		  options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset, options.mode);
+		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset, options.mode);
 	}
 
 	// ##################################################################################################################
@@ -255,7 +255,7 @@ namespace deckard::file
 
 	export auto append(const options& options)
 	{
-		return impl::append_impl<u8>(options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
+		return impl::append_impl<u8>(options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
 	}
 
 	// ##################################################################################################################
@@ -264,7 +264,7 @@ namespace deckard::file
 	export auto read(const options& options)
 	{
 		return impl::read_impl<u8>(
-		  options.file, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
+		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
 	}
 
 	export std::vector<u8> read(fs::path file)
@@ -274,7 +274,7 @@ namespace deckard::file
 			std::vector<u8> vec;
 			vec.resize(*size);
 
-			auto result = read({.file = file, .buffer = vec, .size = *size});
+			auto result = read({.filename = file, .buffer = vec, .size = *size});
 
 			if (result)
 				return vec;
@@ -289,7 +289,7 @@ namespace deckard::file
 
 	export std::generator<std::span<u8>> read_chunks(const options& options)
 	{
-		if (auto size = filesize(options.file); size)
+		if (auto size = filesize(options.filename); size)
 		{
 			assert::check(options.offset < *size, std::format("read_chunks: offset ({}) is beyond file size ({})", options.offset, *size));
 
@@ -301,7 +301,7 @@ namespace deckard::file
 			{
 				u64  to_read = std::min(options.chunk_size, *size - offset);
 				auto res =
-				  read({.file   = options.file,
+				  read({.filename   = options.filename,
 						.buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
 						.size   = to_read,
 						.offset = offset});
@@ -313,7 +313,7 @@ namespace deckard::file
 				}
 				else
 				{
-					dbg::eprintln("read_chunks('{}'): {}", options.file.string(), res.error());
+					dbg::eprintln("read_chunks('{}'): {}", options.filename.string(), res.error());
 					co_return;
 				}
 			}
@@ -388,9 +388,9 @@ namespace deckard::file
 	*/
 	export [[nodiscard]] std::generator<view_map&> map(const options option)
 	{
-		if (not fs::exists(option.file))
+		if (not fs::exists(option.filename))
 		{
-			dbg::println("filemap: file '{}' does not exist", platform::string_from_wide(option.file.wstring()).c_str());
+			dbg::println("filemap: file '{}' does not exist", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
@@ -406,18 +406,18 @@ namespace deckard::file
 		}
 
 		HANDLE handle =
-		  CreateFileW(option.file.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		  CreateFileW(option.filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (handle == INVALID_HANDLE_VALUE)
 		{
-			dbg::println("filemap: could not open file '{}'", platform::string_from_wide(option.file.wstring()).c_str());
+			dbg::println("filemap: could not open file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
-		u64 size = filesize(option.file).value_or(0);
+		u64 size = filesize(option.filename).value_or(0);
 		if (size == 0)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: file '{}' is empty", platform::string_from_wide(option.file.wstring()).c_str());
+			dbg::println("filemap: file '{}' is empty", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
@@ -426,7 +426,7 @@ namespace deckard::file
 			CloseHandle(handle);
 			dbg::println("filemap: offset {} is beyond end of file '{}' (size {})",
 						 option.offset,
-						 platform::string_from_wide(option.file.wstring()).c_str(),
+						 platform::string_from_wide(option.filename.wstring()).c_str(),
 						 size);
 			co_return;
 		}
@@ -436,7 +436,7 @@ namespace deckard::file
 		if (mapping == nullptr)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: could not create mapping for file '{}'", platform::string_from_wide(option.file.wstring()).c_str());
+			dbg::println("filemap: could not create mapping for file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
@@ -447,7 +447,7 @@ namespace deckard::file
 		if (raw_address == nullptr)
 		{
 			CloseHandle(mapping);
-			dbg::println("filemap: could not map file '{}'", platform::string_from_wide(option.file.wstring()).c_str());
+			dbg::println("filemap: could not map file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 		CloseHandle(mapping);
@@ -723,7 +723,7 @@ namespace deckard::file
 		if (size)
 		{
 			ret.resize(*size);
-			auto r = file::read({.file = path, .buffer = ret, .size = *size});
+			auto r = file::read({.filename = path, .buffer = ret, .size = *size});
 			if (not r)
 			{
 				dbg::eprintln("read_file: could not read file '{}': {}", path.generic_string(), r.error());

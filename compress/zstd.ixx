@@ -90,7 +90,7 @@ namespace deckard::zstd
 			return {};
 		}
 		compressed_data.resize(*compressed_size);
-		auto write_result = file::write({.file = path2, .buffer = std::span{compressed_data.data(), compressed_data.size()}});
+		auto write_result = file::write({.filename = path2, .buffer = std::span{compressed_data.data(), compressed_data.size()}});
 		if (!write_result || *write_result != compressed_data.size())
 		{
 			dbg::println("recompress_file: could not write compressed data to file '{}'", path2.string());
