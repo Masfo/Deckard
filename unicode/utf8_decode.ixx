@@ -5,7 +5,6 @@ import :codepoints;
 import std;
 import deckard.types;
 import deckard.as;
-import deckard.assert;
 import :utf8_span;
 
 export namespace deckard::utf8
@@ -45,7 +44,7 @@ export namespace deckard::utf8
 	  12, 24, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12,
 	  36, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12, 36, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
 	};
-	// constexpr u32 UTF8_ACCEPT{0};
+	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REJECT{12};
 
 	constexpr char32 REPLACEMENT_CHARACTER{0xFFFD}; // U+FFFD,  0xEF 0xBF 0xBD,  (239, 191, 189) REPLACEMENT CHARACTER
@@ -56,9 +55,8 @@ export namespace deckard::utf8
 		u32    bytes_consumed{};
 	};
 
-    auto decode(std::span<const std::byte> buffer, size_t index) -> std::optional<decode_result>
+	auto decode(std::span<const std::byte> buffer, size_t index) -> std::optional<decode_result>
 	{
-      assert::check(index < buffer.size(), "Index out-of-bounds");
 		if (index >= buffer.size())
 			return std::nullopt;
 
@@ -71,17 +69,18 @@ export namespace deckard::utf8
 			bytes_consumed += 1;
 			const u32 type = utf8_table[byte];
 			codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
+			assert::check(256 + state + type < utf8_table.size(), "UTF-8 decoding table index out of bounds");
 			state          = utf8_table[256 + state + type];
-			if (state == 0)
-             return decode_result{codepoint, bytes_consumed};
+			if (state == UTF8_ACCEPT)
+			 return decode_result{codepoint, bytes_consumed};
 			else if (state == UTF8_REJECT)
              return decode_result{REPLACEMENT_CHARACTER, 1};
 		}
-     // Truncated sequence: consume one byte so callers always make forward progress.
-		return decode_result{REPLACEMENT_CHARACTER, 1};
+
+		return decode_result{REPLACEMENT_CHARACTER, bytes_consumed};
 	}
 
-    std::generator<char32> yield_codepoints(std::span<const std::byte> buffer)
+	std::generator<char32> yield_codepoints(std::span<const std::byte> buffer)
 	{
 		size_t i = 0;
 		while (i < buffer.size())
