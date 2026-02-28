@@ -1,6 +1,7 @@
 export module deckard.utf8:codepoints;
 import :xid;
 import :ascii;
+import :basic_characters;
 
 import std;
 import deckard.as;
@@ -68,8 +69,9 @@ namespace deckard::utf8
 
 	export constexpr bool is_newline(char32 codepoint)
 	{
-		return (codepoint == 0x000A) or // LF
-			   (codepoint == 0x000D);   // CR
+		using namespace utf8::basic_characters;
+		return (codepoint == LINE_FEED) or     // LF \n
+			   (codepoint == CARRIAGE_RETURN); // RF \r
 	}
 
 	export constexpr bool is_whitespace(char32 codepoint)

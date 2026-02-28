@@ -17,7 +17,7 @@ namespace deckard::utf8
 	export class view
 	{
 	private:
-      using type = u8;
+		using type = u8;
 
 		std::span<type> m_data;
 		size_t          byte_index{0};
@@ -66,13 +66,13 @@ namespace deckard::utf8
 		{
 		}
 
-       view(subspannable auto&& str)
+		view(subspannable auto&& str)
 			: m_data(str.subspan())
 			, byte_index(0uz)
 		{
 		}
 
-        view(std::span<u8> data)
+		view(std::span<u8> data)
 			: m_data(data)
 			, byte_index(0uz)
 		{
@@ -92,8 +92,8 @@ namespace deckard::utf8
 		{
 		}
 
-     view(std::string_view data)
-         : m_data(as<u8*>(data.data()), data.size())
+		view(std::string_view data)
+			: m_data(as<u8*>(data.data()), data.size())
 			, byte_index(0uz)
 		{
 		}
@@ -104,11 +104,25 @@ namespace deckard::utf8
 			return byte_index - other.byte_index;
 		}
 
+		size_t index() const
+		{
+			size_t count{};
+
+			size_t new_byte_index = 0;
+			while(new_byte_index < byte_index)
+			{
+				advance_to_next_codepoint(new_byte_index);
+				count++;
+			}
+
+			return count;
+		}
+
 		size_t size_in_bytes() const { return m_data.size_bytes(); }
 
 		size_t length() const
 		{
-            auto ret = utf8::length(utf8::as_ro_bytes(m_data));
+			auto ret = utf8::length(utf8::as_ro_bytes(m_data));
 			return ret ? *ret : 0;
 		}
 
@@ -120,9 +134,11 @@ namespace deckard::utf8
 
 		bool is_valid() const
 		{
-            auto ret = utf8::length(utf8::as_ro_bytes(m_data));
+			auto ret = utf8::length(utf8::as_ro_bytes(m_data));
 			return ret ? true : false;
 		}
+
+		explicit operator bool() const { return has_next(); }
 
 		bool operator==(const view& other) const
 		{
@@ -145,6 +161,31 @@ namespace deckard::utf8
 				byte_index = input.byte_index;
 			}
 			return *this;
+		}
+
+		bool has_next() const { return byte_index < m_data.size_bytes(); }
+
+		u32 count_until_end() const
+		{
+			u32    count = 0;
+			size_t idx   = byte_index;
+			while (idx < m_data.size_bytes())
+			{
+				advance_to_next_codepoint(idx);
+				count++;
+			}
+			return count;
+		}
+
+		std::optional<char32> peek(u32 offset = 1) const
+		{
+
+			size_t idx = byte_index;
+			for (u32 i = 0; i < offset; ++i)
+				advance_to_next_codepoint(idx);
+			if (idx >= m_data.size_bytes())
+				return std::nullopt;
+			return decode_codepoint_at(idx);
 		}
 
 		auto operator*() const { return decode_current_codepoint(); }
@@ -221,16 +262,16 @@ namespace deckard::utf8
 
 		auto data() const { return m_data; }
 
-     view subview_bytes(size_t start_byte, size_t byte_length) const
+		view subview_bytes(size_t start_byte, size_t byte_length) const
 		{
 			assert::check(start_byte + byte_length <= m_data.size_bytes(), "Subview out-of-bounds");
 			return view(m_data.subspan(start_byte, byte_length));
 		}
 
-     view subview_bytes(const view start, size_t byte_length) const
+		view subview_bytes(const view start, size_t byte_length) const
 		{
 			assert::check(m_data.data() == start.m_data.data(), "Cannot create subview from different data");
-           assert::check(start.byte_index + byte_length <= m_data.size_bytes(), "Subview out-of-bounds");
+			assert::check(start.byte_index + byte_length <= m_data.size_bytes(), "Subview out-of-bounds");
 			return view(m_data.subspan(start.byte_index, byte_length));
 		}
 
@@ -246,7 +287,27 @@ namespace deckard::utf8
 			return view(m_data.subspan(start.byte_index, end_byte - start.byte_index));
 		}
 
-        auto span() const { return utf8::as_ro_bytes(m_data); }
+		view subview(size_t codepoints) const
+		{
+			return subview(*this, codepoints);
+		}
+
+		view subview(size_t start_codepoint, size_t count) const
+		{
+			size_t start_byte = 0;
+			for (size_t i = 0; i < start_codepoint and start_byte < m_data.size_bytes(); ++i)
+				advance_to_next_codepoint(start_byte);
+
+			size_t end_byte = start_byte;
+			for (size_t i = 0; i < count and end_byte < m_data.size_bytes(); ++i)
+				advance_to_next_codepoint(end_byte);
+
+			assert::check(end_byte <= m_data.size_bytes(), "Subview out-of-bounds");
+			return view(m_data.subspan(start_byte, end_byte - start_byte));
+		}
+
+
+		auto span() const { return utf8::as_ro_bytes(m_data); }
 	};
 
 } // namespace deckard::utf8

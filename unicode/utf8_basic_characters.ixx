@@ -3,13 +3,14 @@ import deckard.types;
 
 export namespace deckard::utf8::basic_characters
 {
-	constexpr char32 CHARACTER_TABULATION   = U'\u0009';
-	constexpr char32 LINE_FEED              = U'\u000A';
-	constexpr char32 CARRIAGE_RETURN        = U'\u000D';
-	constexpr char32 SPACE                  = U'\u0020';
+	constexpr char32 CHARACTER_TABULATION   = U'\u0009'; // \t
+	constexpr char32 LINE_FEED              = U'\u000A'; // \n
+	constexpr char32 CARRIAGE_RETURN        = U'\u000D'; // \r
+	constexpr char32 SPACE                  = U'\u0020'; // (space)
 	constexpr char32 EXCLAMATION_MARK       = U'\u0021'; // !
 	constexpr char32 QUOTATION_MARK         = U'\u0022'; // "
 	constexpr char32 NUMBER_SIGN            = U'\u0023'; // #
+	constexpr char32 HASH                   = U'\u0023'; // #
 	constexpr char32 DOLLAR_SIGN            = U'\u0024'; // $
 	constexpr char32 PERCENT_SIGN           = U'\u0025'; // %
 	constexpr char32 AMPERSAND              = U'\u0026'; // &

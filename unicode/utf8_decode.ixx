@@ -58,7 +58,8 @@ export namespace deckard::utf8
 
 } // namespace deckard::utf8
 
-namespace deckard::utf8
+
+export namespace deckard::utf8
 {
 	// Caller must guarantee index < buffer.size()
 	decode_result decode_unchecked(std::span<const std::byte> buffer, size_t index)
@@ -84,10 +85,6 @@ namespace deckard::utf8
 		}
 		return {REPLACEMENT_CHARACTER, bytes_consumed};
 	}
-} // namespace deckard::utf8
-
-export namespace deckard::utf8
-{
 	auto decode(std::span<const std::byte> buffer, size_t index) -> std::optional<decode_result>
 	{
 		if (index >= buffer.size())

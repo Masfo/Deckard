@@ -66,6 +66,31 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size_in_bytes() == 18);
 	}
 
+	SECTION("initialize from array of bytes")
+	{ 
+		std::array<u8, 5> bytes = {'h', 'e', 'l', 'l', 'o'};
+		utf8::string      str(bytes);
+		CHECK(str.size() == 5);
+		CHECK(str.size_in_bytes() == 5);
+		CHECK(str.c_str() == std::string_view("hello"));
+
+
+		std::array<u8, 10> bytes2 = {'h', 'e', 'l', 'l', 'o', ' ', 0xF0, 0x9F, 0x8C, 0x8D}; // "hello 🌍"
+		utf8::string       str2(bytes2);
+		CHECK(str2.size() == 7);
+		CHECK(str2.size_in_bytes() == 10);
+
+		auto data = str2.span();
+		CHECK(data[0] == 'h');	
+		CHECK(data[5] == ' ');
+		CHECK(data[6] == 0xF0);
+		CHECK(data[7] == 0x9F);
+		CHECK(data[8] == 0x8C);
+		CHECK(data[9] == 0x8D);
+
+
+	}
+
 
 	SECTION("unicode c-tor")
 	{
@@ -471,374 +496,212 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str[4] == repl[0]);
 	}
 
-	SECTION("widths")
+	SECTION("replace going past end")
 	{
-		//             UTF32		UTF8
-		// 1 byte: A   0x41			0x41
-		// 2 byte: Ä   0xC4			0xC3 0x84
-		// 3 byte: ↥   0x21A5		0xE2 0x86 0xA5
-		// 4 byte: 🌍  0x1F30D		0xF0 0x9F 0x8C 0x8D
+		utf8::string str("hello 🌍");
+		str.replace(6, 99, "world");
+		CHECK(str == "hello world");
+		CHECK(str.size() == 11);
 
-		utf8::string a("AÄ↥🌍");
-
-		std::array<u32, 4> correct{0x41, 0xC4, 0x21A5, 0x1'F30D};
-
-		auto it = a.begin();
-
-		CHECK(*it++ == correct[0]);
-		CHECK(*it++ == correct[1]);
-		CHECK(*it++ == correct[2]);
-		CHECK(*it++ == correct[3]);
+		str = "hello 🌍";
+		utf8::string src("ABCDE");
+		utf8::view   src_view(src.data());
+		str.replace(6, 99, src_view.subview(src_view, 3));
+		CHECK(str == "hello ABC");
+		CHECK(str.size() == 9);
 	}
 
-	SECTION("generator yield")
+	SECTION("replace with another string 2")
 	{
-		std::array<u8, 10> data = {
-		  // A       U+0041
-		  0x41,
-		  // Ä       U+00C4
-		  0xC3,
-		  0x84,
-		  // ↥       U+21A5
-		  0xE2,
-		  0x86,
-		  0xA5,
-		  // 🌍      U+1F30D
-		  0xF0,
-		  0x9F,
-		  0x8C,
-		  0x8D};
+		utf8::string str("abc ascii 123");
+		utf8::string src("ABC");
 
-		std::array<u32, 4> correct{0x41, 0xC4, 0x21A5, 0x1'F30D};
-		static size_t      index = 0;
-		for (const auto& codepoint : yield_codepoints(utf8::as_ro_bytes(data)))
-		{
-			CHECK(codepoint == correct[index++]);
-		}
+		str.replace(4, 5, src);
+		CHECK(str.size() == 11);
+		CHECK(str == "abc ABC 123");
 	}
+}
 
-	SECTION("generator yield invalid sequences")
+TEST_CASE("utf8::view", "[utf8][utf8view]")
+{
+	SECTION("c-tors")
 	{
-		// lone continuation byte then ASCII
-		std::array<u8, 2>  data1 = {0x80, 0x41};
-		std::array<u32, 2> correct1{0xFFFD, 0x41};
-		size_t             idx1 = 0;
-		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data1)))
-			CHECK(cp == correct1[idx1++]);
-		CHECK(idx1 == correct1.size());
+		std::array<u8, 4> buffer{'A', 'B', 'C', 'D'};
 
-		// truncated multibyte sequence: 0xE2 0x82 (missing 3rd byte) then ASCII
-		std::array<u8, 3>  data2 = {0xE2, 0x82, 0x41};
-		std::array<u32, 3> correct2{0xFFFD, 0xFFFD, 0x41};
-		size_t             idx2 = 0;
-		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data2)))
-			CHECK(cp == correct2[idx2++]);
-		CHECK(idx2 == correct2.size());
-	}
+		utf8::view v(buffer);
+		CHECK(v.size() == 4);
 
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
 
-	SECTION("as_ro_bytes helpers")
-	{
-		std::array<u8, 4> a{'A', 'B', 'C', 'D'};
-		auto              b1 = utf8::as_ro_bytes(a);
-		CHECK(b1.size() == a.size());
-
-		auto b3 = utf8::as_ro_bytes("ABCD"sv);
-		CHECK(b3.size() == 4);
-	}
-
-	SECTION("decode_codepoint smoke")
-	{
-		std::array<u8, 1> ascii{'A'};
-		CHECK(utf8::decode_codepoint(utf8::as_ro_bytes(ascii), 0) == U'A');
-
-		std::array<u8, 2> two_byte{0xC3, 0x84}; // Ä
-		CHECK(utf8::decode_codepoint(utf8::as_ro_bytes(two_byte), 0) == 0xC4);
-	}
-
-	SECTION("yield_codepoints forward progress")
-	{
-		// invalid leading byte then ASCII
-		std::array<u8, 2>  data1{0xFF, 0x41};
-		std::array<u32, 2> expect1{0xFFFD, 0x41};
-		size_t             idx1 = 0;
-		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data1)))
-			CHECK(cp == expect1[idx1++]);
-		CHECK(idx1 == expect1.size());
-
-		// truncated 4-byte sequence: consume one byte per replacement then continue
-		std::array<u8, 4>  data2{0xF0, 0x9F, 0x92, 0x41};
-		std::array<u32, 4> expect2{0xFFFD, 0xFFFD, 0xFFFD, 0x41};
-		size_t             idx2 = 0;
-		for (const auto& cp : yield_codepoints(utf8::as_ro_bytes(data2)))
-			CHECK(cp == expect2[idx2++]);
-		CHECK(idx2 == expect2.size());
-	}
-
-
-	SECTION("starts_with")
-	{
 		//
-		utf8::string a("AÄ↥🌍");
-
-		CHECK(a.starts_with("AÄ") == true);
-		CHECK(a.starts_with("AÄ"sv) == true);
-
-
-		utf8::string b("AÄ");
-		CHECK(a.starts_with(b) == true);
-
-		b = "QW";
-		CHECK(a.starts_with(b) == false);
-
-		CHECK(a.starts_with('A') == true);
-
-		char32 q = 0x41; // 'A' U+0041
-		CHECK(a.starts_with(q) == true);
 	}
 
-	SECTION("ends_with")
+	SECTION("compare")
 	{
-		utf8::string a("AÄ↥🌍");
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
 
-		CHECK(a.ends_with("↥🌍") == true);
-		CHECK(a.ends_with("↥🌍"sv) == true);
 
+		utf8::view w2(str.data());
+		CHECK(w2.size() == 7);
 
-		utf8::string b("↥🌍");
-		CHECK(a.ends_with(b) == true);
-
-		b = "QW";
-		CHECK(a.ends_with(b) == false);
-
-		a = "ab🌍cd";
-
-		CHECK(a.ends_with("cd") == true);
-		CHECK(a.ends_with("ab") == false);
-		CHECK(a.ends_with("b🌍c") == false);
+		CHECK(w == w2);
 	}
 
-
-	SECTION("contains")
+	SECTION("subview(start_codepoint, count)")
 	{
-		utf8::string a("hello 🌍AÄ world ↥🌍");
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
 
-		CHECK(a.contains("🌍") == true);
-		CHECK(a.contains("🌍"sv) == true);
-		CHECK(a.contains("world"sv) == true);
-		CHECK(a.contains("xyz"sv) == false);
+		auto v = w.subview(1, 5);
+		CHECK(v.size() == 5);
+		CHECK(v[0] == 'h');
+		CHECK(v[1] == 'e');
+		CHECK(v[2] == 'l');
+		CHECK(v[3] == 'l');
+		CHECK(v[4] == 'o');
+
+		auto first = w.subview(0, 1);
+		CHECK(first.size() == 1);
+		CHECK(first[0] == 0x1'f30d);
+
+		auto last = w.subview(6, 1);
+		CHECK(last.size() == 1);
+		CHECK(last[0] == 0x1'f30d);
+
+		auto clamped = w.subview(6, 99);
+		CHECK(clamped.size() == 1);
+		CHECK(clamped[0] == 0x1'f30d);
+
+		auto empty = w.subview(7, 1);
+		CHECK(empty.size() == 0);
 	}
 
-	SECTION("find")
+	SECTION("subview(count) — from current position")
 	{
-		utf8::string a("hello 🌍AÄ world ↥🌍");
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
 
-		CHECK(a.find("🌍") == 6);
+		++w;
+		auto v = w.subview(5);
+		CHECK(v.size() == 5);
+		CHECK(v[0] == 'h');
+		CHECK(v[4] == 'o');
 
-		utf8::string b("world");
-		CHECK(a.find(b) == 10);
-
-
-		CHECK(a.find("🌍", 10) == 17);
+		utf8::view w2(str.data());
+		auto all = w2.subview(7);
+		CHECK(all.size() == 7);
+		CHECK(all[0] == 0x1'f30d);
+		CHECK(all[6] == 0x1'f30d);
 	}
 
-	SECTION("resize (smaller->larger)")
+	SECTION("subview(view start, count)")
 	{
-		utf8::string a("hello 🌍");
-		CHECK(a.size() == 7);
+		utf8::string str("🌍hello🌍");
+		utf8::view   root(str.data());
+		CHECK(root.size() == 7);
 
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
+		utf8::view cursor = root;
+		++cursor; 
+		auto v = root.subview(cursor, 5);
+		CHECK(v.size() == 5);
+		CHECK(v[0] == 'h');
+		CHECK(v[4] == 'o');
 
-		a.resize(10);
-		CHECK(a.size() == 10);
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
-		CHECK(a[7] == 0);
-		CHECK(a[8] == 0);
-		CHECK(a[9] == 0);
+		utf8::view cursor2 = root;
+		auto first3 = root.subview(cursor2, 3);
+		CHECK(first3.size() == 3);
+		CHECK(first3[0] == 0x1'f30d);
+		CHECK(first3[1] == 'h');
+		CHECK(first3[2] == 'e');
 	}
 
-	SECTION("resize (smaller->larger)")
+	SECTION("subview_bytes(start_byte, byte_length)")
 	{
-		utf8::string a("hello 🌍 hello");
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
 
-		CHECK(a.size() == 13);
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
-		CHECK(a[7] == ' ');
-		CHECK(a[8] == 'h');
-		CHECK(a[9] == 'e');
-		CHECK(a[10] == 'l');
-		CHECK(a[11] == 'l');
-		CHECK(a[12] == 'o');
+		auto earth = w.subview_bytes(0, 4);
+		CHECK(earth.size() == 1);
+		CHECK(earth[0] == 0x1'f30d);
 
-		a.resize(7);
+		auto hell = w.subview_bytes(4, 4);
+		CHECK(hell.size() == 4);
+		CHECK(hell[0] == 'h');
+		CHECK(hell[3] == 'l');
 
-		CHECK(a.size() == 7);
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
+		auto last = w.subview_bytes(9, 4);
+		CHECK(last.size() == 1);
+		CHECK(last[0] == 0x1'f30d);
 	}
 
-	SECTION("resize empty")
+	SECTION("subview_bytes(view start, byte_length)")
 	{
-		utf8::string a;
-		a.resize(7);
+		utf8::string str("🌍hello🌍");
+		utf8::view   root(str.data());
 
-		CHECK(a.size() == 7);
-		CHECK(a[0] == 0);
-		CHECK(a[1] == 0);
-		CHECK(a[2] == 0);
-		CHECK(a[3] == 0);
-		CHECK(a[4] == 0);
-		CHECK(a[5] == 0);
-		CHECK(a[6] == 0);
+		utf8::view cursor = root;
+		auto earth = root.subview_bytes(cursor, 4);
+		CHECK(earth.size() == 1);
+		CHECK(earth[0] == 0x1'f30d);
+
+		++cursor;
+		auto hello = root.subview_bytes(cursor, 5);
+		CHECK(hello.size() == 5);
+		CHECK(hello[0] == 'h');
+		CHECK(hello[4] == 'o');
 	}
 
-	SECTION("resize to empty")
+	SECTION("decode")
 	{
-		utf8::string a("hello 🌍");
-		CHECK(a.size() == 7);
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
 
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
+		CHECK(*w == 0x1'f30d);
 
-		a.resize(0);
-		CHECK(a.size() == 0);
+		w++;
+		CHECK(*w == 'h');
+		w++;
+		CHECK(*w == 'e');
+		w++;
+		CHECK(*w == 'l');
+		w++;
+		CHECK(*w == 'l');
+		w++;
+		CHECK(*w == 'o');
+
+		w++;
+		CHECK(*w == 0x1'f30d);
+
+		w--;
+		CHECK(*w == 'o');
+
+		w--;
+		w--;
+		w--;
+		w--;
+		CHECK(*w == 'h');
+
+
+		w += 5;
+		CHECK(*w == 0x1'f30d);
+
+		w -= 6;
+		CHECK(*w == 0x1'f30d);
+
+		w += 3;
+		CHECK(*w == 'l');
+		w -= 1;
+		CHECK(*w == 'e');
 	}
 
-	SECTION("resize same size")
+	SECTION("indexing")
 	{
-		utf8::string a("hello 🌍");
-
-		CHECK(a.size() == 7);
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
-
-		a.resize(a.size());
-
-		CHECK(a.size() == 7);
-		CHECK(a[0] == 'h');
-		CHECK(a[1] == 'e');
-		CHECK(a[2] == 'l');
-		CHECK(a[3] == 'l');
-		CHECK(a[4] == 'o');
-		CHECK(a[5] == ' ');
-		CHECK(a[6] == 0x1'f30d);
-	}
-
-
-	SECTION("erase")
-	{
-
-		utf8::string str("hello world");
-		str.erase(5, 1);
-		CHECK(str == "helloworld");
-		CHECK(str.size() == 10);
-
-		str = "hello world";
-		str.erase(0, 6);
-		CHECK(str == "world");
-		CHECK(str.size() == 5);
-
-		str = "hello world";
-		str.erase(5, 6);
-
-		CHECK(str == "hello"sv);
-		CHECK(str.size() == 5);
-
-		str = "hello 🌍 world";
-		str.erase(6, 1);
-		CHECK(str == "hello  world");
-		CHECK(str.size() == 12);
-
-		str = "AÄ↥🌍";
-		str.erase(1, 2);
-		CHECK(str == "A🌍");
-		CHECK(str.size() == 2);
-
-		str      = "hello world";
-		auto it1 = str.begin() + 5;
-		auto it2 = str.begin() + 6;
-		str.erase(it1, it2);
-		CHECK(str == "helloworld");
-		CHECK(str.size() == 10);
-
-		str = "hello🌍world";
-		str.erase(str.begin() + 5);
-		CHECK(str == "helloworld");
-		CHECK(str.size() == 10);
-
-		str = "🌍test🌍";
-		str.erase(0, 1);
-		CHECK(str == "test🌍");
-		CHECK(str.size() == 5);
-
-		str.erase(4, 1);
-		CHECK(str == "test");
-		CHECK(str.size() == 4);
-
-		str = "test";
-		str.erase(0, str.size());
-		CHECK(str.empty());
-		CHECK(str.size() == 0);
-	}
-
-	SECTION("iterator distance")
-	{
-		utf8::string str;
-		CHECK(str.end() - str.begin() == 0);
-		CHECK(std::distance(str.begin(), str.end()) == 0);
-
-		str = "hello world";
-		CHECK(str.end() - str.begin() == 11);
-		CHECK(std::distance(str.begin(), str.end()) == 11);
-
-		str = "hello 🌍 world";
-		CHECK(str.end() - str.begin() == 13);
-		CHECK(std::distance(str.begin(), str.end()) == 13);
-
-		str = "hello 🌍 world";
-		CHECK(str.end() - str.begin() == 13);
-
-		str = "AÄ↥🌍";
-		CHECK(str.end() - str.begin() == 4);
-		CHECK(std::distance(str.rbegin(), str.rend()) == 4);
-	}
-
-	SECTION("index operator")
-	{
-
 		utf8::string str("hello world");
 		CHECK(str.size() == 11);
 
@@ -1179,6 +1042,18 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(glyph.size() == 4);
 	}
 
+	SECTION("subview")
+	{
+		utf8::string str("hello 🌍 world");
+
+		CHECK(str.size() == 13);
+		CHECK(str.capacity() == 31);
+
+		utf8::view sub = str.subview(0, 7);
+		CHECK(sub.size() == 7);
+		
+	}
+
 
 	SECTION("valid")
 	{
@@ -1416,7 +1291,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(err.error().contains("index 0") == true);
 	}
 
-	SECTION("invalid, surrogate half")
+	SECTION("invalid, overlong 4-byte")
 	{
 		// clang-format off
 		std::array<u8, 5> overlong = {
@@ -1512,7 +1387,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(err.error().contains("index 3") == true);
 	}
 
-	SECTION("invalid, overlong")
+	SECTION("invalid, overlong 2-byte mixed")
 	{
 		// clang-format off
 		std::array<u8, 9> overlong = {
@@ -1532,257 +1407,5 @@ TEST_CASE("utf8::string", "[utf8]")
 		const auto err = str.valid();
 		CHECK(err.error().contains("Overlong 2-byte") == true);
 		CHECK(err.error().contains("index 1") == true);
-	}
-}
-
-// #####################################
-// #####################################
-// #####################################
-// #####################################
-
-
-TEST_CASE("utf8::view", "[utf8][utf8view]")
-{
-	SECTION("c-tors")
-	{
-		std::array<u8, 4> buffer{'A', 'B', 'C', 'D'};
-
-		utf8::view v(buffer);
-		CHECK(v.size() == 4);
-
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		//
-	}
-
-	SECTION("compare")
-	{
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-
-		utf8::view w2(str.data());
-		CHECK(w2.size() == 7);
-
-		CHECK(w == w2);
-	}
-
-	SECTION("decode")
-	{
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		CHECK(*w == 0x1'f30d);
-
-		w++;
-		CHECK(*w == 'h');
-		w++;
-		CHECK(*w == 'e');
-		w++;
-		CHECK(*w == 'l');
-		w++;
-		CHECK(*w == 'l');
-		w++;
-		CHECK(*w == 'o');
-
-		w++;
-		CHECK(*w == 0x1'f30d);
-
-		w--;
-		CHECK(*w == 'o');
-
-		w--;
-		w--;
-		w--;
-		w--;
-		CHECK(*w == 'h');
-
-
-		w += 5;
-		CHECK(*w == 0x1'f30d);
-
-		w -= 6;
-		CHECK(*w == 0x1'f30d);
-
-		w += 3;
-		CHECK(*w == 'l');
-		w -= 1;
-		CHECK(*w == 'e');
-	}
-
-	SECTION("indexing")
-	{
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.subspan());
-		CHECK(w.size() == 7);
-		CHECK(w[0] == 0x1'f30d);
-		CHECK(w[1] == 'h');
-		CHECK(w[2] == 'e');
-		CHECK(w[3] == 'l');
-		CHECK(w[4] == 'l');
-		CHECK(w[5] == 'o');
-		CHECK(w[6] == 0x1'f30d);
-	}
-
-
-	SECTION("subview")
-	{
-		utf8::string str("🌍hello🌍");
-
-		utf8::view v(str.subview(1, 5));
-		CHECK(v.size() == 5);
-		CHECK(v[0] == 'h');
-		CHECK(v[1] == 'e');
-		CHECK(v[2] == 'l');
-		CHECK(v[3] == 'l');
-		CHECK(v[4] == 'o');
-
-		v = str.subview(6, 1);
-		CHECK(v.size() == 1);
-		CHECK(v[0] == 0x1'f30d);
-
-
-		v = utf8::view(str);
-		CHECK(v.size() == 7);
-		CHECK(v[0] == 0x1'f30d);
-		CHECK(v[1] == 'h');
-		CHECK(v[2] == 'e');
-		CHECK(v[3] == 'l');
-		CHECK(v[4] == 'l');
-		CHECK(v[5] == 'o');
-		CHECK(v[6] == 0x1'f30d);
-	}
-
-	SECTION("subview codepoints vs bytes")
-	{
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		utf8::view start = w;
-		start += 1; // points at 'h'
-		auto v = w.subview(start, 5);
-		CHECK(v.size() == 5);
-		CHECK(v[0] == 'h');
-		CHECK(v[4] == 'o');
-
-		// Byte slicing: take the first 4 bytes from the beginning (one 4-byte codepoint)
-		auto b = w.subview_bytes(0, 4);
-		CHECK(b.size_in_bytes() == 4);
-		CHECK(b.size() == 1);
-		CHECK(b[0] == 0x1'f30d);
-	}
-
-	SECTION("decode invalid/truncated")
-	{
-		using namespace std;
-
-		{
-			array<byte, 1> buf{byte{0xC2}};
-			auto           r = utf8::decode(buf, 0);
-			REQUIRE(r.has_value());
-			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-			CHECK(r->bytes_consumed == 1);
-		}
-
-		{
-			array<byte, 2> buf{byte{0xE2}, byte{0x82}};
-			auto           r = utf8::decode(buf, 0);
-			REQUIRE(r.has_value());
-			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-			CHECK(r->bytes_consumed == 2);
-		}
-
-		{
-			array<byte, 3> buf{byte{0xF0}, byte{0x9F}, byte{0x98}};
-			auto           r = utf8::decode(buf, 0);
-			REQUIRE(r.has_value());
-			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-			CHECK(r->bytes_consumed == 3);
-		}
-
-		{
-			array<byte, 1> buf{byte{0x80}};
-			auto           r = utf8::decode(buf, 0);
-			REQUIRE(r.has_value());
-			CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-			CHECK(r->bytes_consumed == 1);
-		}
-	}
-
-	SECTION("hash")
-	{
-		utf8::string str1("hello 🌍");
-		utf8::string str2("hello 🌍");
-		utf8::string str3("different string");
-
-		std::hash<utf8::view> hashview;
-		CHECK(hashview(utf8::view(str1)) == hashview(utf8::view(str2)));
-
-		std::hash<utf8::string> hasher;
-
-		CHECK(hasher(str1) == hasher(str2));
-		CHECK(hasher(str1) != hasher(str3));
-	}
-}
-
-TEST_CASE("utf8::decode", "[utf8][utf8decode]")
-{
-	SECTION("truncated sequences consume all available bytes")
-	{
-		const std::array<std::byte, 1> b2_trunc{std::byte{0xC2}};
-		auto                           r = utf8::decode(b2_trunc, 0);
-		REQUIRE(r.has_value());
-		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-		CHECK(r->bytes_consumed == 1);
-
-		const std::array<std::byte, 2> b3_trunc{std::byte{0xE2}, std::byte{0x82}};
-		r = utf8::decode(b3_trunc, 0);
-		REQUIRE(r.has_value());
-		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-		CHECK(r->bytes_consumed == 2);
-
-		const std::array<std::byte, 3> b4_trunc{std::byte{0xF0}, std::byte{0x9F}, std::byte{0x98}};
-		r = utf8::decode(b4_trunc, 0);
-		REQUIRE(r.has_value());
-		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-		CHECK(r->bytes_consumed == 3);
-	}
-
-	SECTION("standalone continuation byte")
-	{
-		const std::array<std::byte, 1> buf{std::byte{0x80}};
-		auto                           r = utf8::decode(buf, 0);
-		REQUIRE(r.has_value());
-		CHECK(r->codepoint == utf8::REPLACEMENT_CHARACTER);
-		CHECK(r->bytes_consumed == 1);
-	}
-}
-
-TEST_CASE("utf8::yield_codepoints", "[utf8][utf8decode]")
-{
-	SECTION("one replacement per maximal subpart")
-	{
-		const std::array<std::byte, 3> buf{std::byte{0xF0}, std::byte{0x9F}, std::byte{0x98}};
-		std::vector<char32>            cps;
-		for (auto cp : utf8::yield_codepoints(buf))
-			cps.push_back(cp);
-		REQUIRE(cps.size() == 1);
-		CHECK(cps[0] == utf8::REPLACEMENT_CHARACTER);
-	}
-
-	SECTION("invalid bytes still advance")
-	{
-		const std::array<std::byte, 2> buf{std::byte{0x80}, std::byte{0x80}};
-		std::vector<char32>            cps;
-		for (auto cp : utf8::yield_codepoints(buf))
-			cps.push_back(cp);
-		REQUIRE(cps.size() == 2);
-		CHECK(cps[0] == utf8::REPLACEMENT_CHARACTER);
-		CHECK(cps[1] == utf8::REPLACEMENT_CHARACTER);
 	}
 }
