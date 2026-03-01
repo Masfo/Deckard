@@ -383,3 +383,34 @@ TEST_CASE("SHA1/SHA256/SHA512 digest formatting", "[sha1][sha256][sha512][hash]"
 
 	}
 }
+
+TEST_CASE("digest meets_target", "[sha][hash][meets_target]")
+{
+	SECTION("zero difficulty always meets target")
+	{
+		sha256::digest d{"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"};
+		CHECK(d.meets_target(0));
+	}
+
+	SECTION("digest with leading zero bytes meets target")
+	{
+		// 0000... has two leading zero bytes
+		sha256::digest d{"0000112233445566778899aabbccddeeff00112233445566778899aabbccddee"};
+		CHECK(d.meets_target(1));
+		CHECK(d.meets_target(2));
+		CHECK_FALSE(d.meets_target(3));
+	}
+
+	SECTION("digest without leading zero bytes does not meet target")
+	{
+		sha256::digest d{"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"};
+		CHECK_FALSE(d.meets_target(1));
+	}
+
+	SECTION("difficulty exceeding digest size always meets target")
+	{
+		sha256::digest d{"0000000000000000000000000000000000000000000000000000000000000000"};
+		CHECK(d.meets_target(32));
+		CHECK(d.meets_target(64)); // clamped to digest size
+	}
+}

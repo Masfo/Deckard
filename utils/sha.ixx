@@ -135,6 +135,16 @@ namespace deckard
 
 		bool operator==(const generic_sha_digest<Size>& that) const { return std::ranges::equal(binary, that.binary); }
 
+		[[nodiscard]] bool meets_target(u32 leading_zero_bytes) const
+		{
+			for (u32 i = 0; i < leading_zero_bytes and i < static_cast<u32>(binary.size()); ++i)
+			{
+				if (binary[i] != 0)
+					return false;
+			}
+			return true;
+		}
+
 	private:
 		std::array<u8, Size> binary{};
 	};

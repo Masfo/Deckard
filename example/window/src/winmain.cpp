@@ -1706,6 +1706,27 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	// ########################################################################
+	// proof-of-work: find a nonce such that sha256(block_data + nonce) meets target
+	{
+		const std::string block_data  = "Hello, blockchain!";
+		constexpr u32     difficulty  = 2; // leading zero bytes required
+		u64               nonce       = 0;
+		sha256::hasher    h;
+		sha256::digest    d;
+
+		do
+		{
+			h.reset();
+			h.update(block_data);
+			h.update(std::to_string(nonce++));
+			d = h.finalize();
+		} while (not d.meets_target(difficulty));
+
+		dbg::println("mining: nonce={}, hash={}", nonce - 1, d);
+	}
+	_;
+
+	// ########################################################################
 	// ✅ ❌
 
 
