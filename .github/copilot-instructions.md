@@ -23,6 +23,7 @@
 - Use `std::move` to indicate ownership transfer of resources.
 - Use two-parameter `operator[]` for 2D indexing (e.g., `img[x, y]`) in this codebase; call sites should use that style.
 - Use std namespace explicitly (e.g., `std::vector`, `std::string_view`) instead of `using namespace std;`.
+- Avoid using const_cast; prefer to design APIs that do not require it.
 
 ## Modules
 - Use C++ modules (`export module ...;`, `import ...;`) consistently.

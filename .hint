@@ -1,0 +1,97 @@
+// Catch2 v3 — Visual Studio IntelliSense hint file
+// Prevents false positives in the Error List (e.g. VCR102) caused by
+// Catch2 macros that the IntelliSense parser cannot expand on its own.
+#define  TEST_CASE
+#define TEST_CASE(...)         void CATCH2_TEST_FUNCTION()
+#define TEST_CASE_METHOD(...)  void CATCH2_TEST_FUNCTION()
+#define TEMPLATE_TEST_CASE(...)          void CATCH2_TEST_FUNCTION()
+#define TEMPLATE_TEST_CASE_METHOD(...)   void CATCH2_TEST_FUNCTION()
+#define TEMPLATE_PRODUCT_TEST_CASE(...)  void CATCH2_TEST_FUNCTION()
+
+#define SCENARIO(...)  void CATCH2_TEST_FUNCTION()
+#define GIVEN(...)
+#define WHEN(...)
+#define THEN(...)
+#define AND_GIVEN(...)
+#define AND_WHEN(...)
+#define AND_THEN(...)
+
+#define SECTION(...)
+
+#define CHECK(...)
+#define CHECK_FALSE(...)
+#define CHECK_THROWS(...)
+#define CHECK_THROWS_AS(...)
+#define CHECK_THROWS_WITH(...)
+#define CHECK_THROWS_MATCHES(...)
+#define CHECK_NOTHROW(...)
+#define CHECK_THAT(...)
+
+#define REQUIRE(...)
+#define REQUIRE_FALSE(...)
+#define REQUIRE_THROWS(...)
+#define REQUIRE_THROWS_AS(...)
+#define REQUIRE_THROWS_WITH(...)
+#define REQUIRE_THROWS_MATCHES(...)
+#define REQUIRE_NOTHROW(...)
+#define REQUIRE_THAT(...)
+
+#define STATIC_REQUIRE(...)
+#define STATIC_REQUIRE_FALSE(...)
+#define STATIC_CHECK(...)
+#define STATIC_CHECK_FALSE(...)
+
+#define CHECKED_IF(...)  if
+#define CHECKED_ELSE(...)  if
+
+#define INFO(...)
+#define WARN(...)
+#define CAPTURE(...)
+#define SUCCEED(...)
+#define FAIL(...)
+#define FAIL_CHECK(...)
+
+#define BENCHMARK(...)
+#define BENCHMARK_ADVANCED(...)
+
+// Windows API macros
+#define DECLARE_HANDLE(name) typedef struct name##__ { int unused; } *name
+#define DECLARE_HANDLE_32(name) typedef struct name##__ { int unused; } *name
+
+// SQLite API macros
+#define SQLITE_API
+#define SQLITE_EXTERN extern
+#define SQLITE_CDECL
+#define SQLITE_APICALL
+#define SQLITE_STDCALL
+#define SQLITE_CALLBACK
+#define SQLITE_SYSAPI
+#define SQLITE_DEPRECATED
+#define SQLITE_EXPERIMENTAL
+
+// RPC/COM macros
+#define __RPC_unique_pointer
+#define __RPC_string
+#define DECLSPEC_XFGVIRT(base, func)
+
+// SAL annotations
+#define _Null_terminated_
+#define _Field_z_
+#define _Return_type_success_(expr)
+#define _In_
+#define _Out_
+#define _Inout_
+#define _In_opt_
+#define _Out_opt_
+#define _Inout_opt_
+
+// Monocypher namespace handling
+#ifdef MONOCYPHER_CPP_NAMESPACE
+#undef MONOCYPHER_CPP_NAMESPACE
+#endif
+
+
+// c++20 modules
+#define export
+#define import
+#define module

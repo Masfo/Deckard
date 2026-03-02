@@ -45,7 +45,8 @@
 
 
 	<!-- UTF8 -->
-	<File Name="_utf8*.ixx"/>
+	<File Name="utf8*.ixx"/>
+
 
 
 

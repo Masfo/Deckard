@@ -22,7 +22,6 @@ export import deckard.allocator;
 export import deckard.config;
 export import deckard.file;
 export import deckard.filemonitor;
-export import deckard.ini;
 
 // Formats
 
@@ -57,8 +56,16 @@ export import deckard.utils.hash;
 export import deckard.uuid;
 export import deckard.logger;
 
+#ifdef __cpp_pack_indexing
+#error ("Use pack indexing on something");
+#endif
+
 #ifdef __cpp_lib_optional_ref
 #error ("use optional ref instead");
+#endif
+
+#ifdef __cpp_placeholder_variables
+#error ("Use placeholder variables on something");
 #endif
 
 

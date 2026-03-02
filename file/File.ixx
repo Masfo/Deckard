@@ -197,7 +197,7 @@ namespace deckard::file
 				return std::unexpected(
 				  std::format("read_file: buffer size is zero for file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
-			DWORD  read{0};
+			DWORD  bytes_read{0};
 			HANDLE handle =
 			  CreateFileW(file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (handle == INVALID_HANDLE_VALUE)
@@ -216,7 +216,7 @@ namespace deckard::file
 				}
 			}
 
-			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &read, nullptr))
+			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &bytes_read, nullptr))
 			{
 				CloseHandle(handle);
 				return std::unexpected(
@@ -225,7 +225,7 @@ namespace deckard::file
 
 			CloseHandle(handle);
 
-			return read;
+			return bytes_read;
 		}
 
 	} // namespace impl
@@ -244,6 +244,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// write
 
+	// return: bytes written
 	export auto write(const options& options)
 	{
 		return impl::write_impl<u8>(
@@ -253,6 +254,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// append
 
+	// return: bytes written
 	export auto append(const options& options)
 	{
 		return impl::append_impl<u8>(options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
@@ -261,6 +263,7 @@ namespace deckard::file
 	// ##################################################################################################################
 	// read
 
+	// return: bytes read
 	export auto read(const options& options)
 	{
 		return impl::read_impl<u8>(
