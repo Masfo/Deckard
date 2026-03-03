@@ -322,6 +322,14 @@ namespace deckard::utf8
 
 		string(unit u) { assign(u); }
 
+		template<size_t N>
+		string(std::array<u8, N>& input) { buffer.assign(std::span<u8>{input.data(), N}); }
+
+		template<size_t N>
+		string(const std::array<u8, N>& input) { buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), N}); }
+
+		string(const view& v) { *this = v; }
+
 		string& operator=(std::string_view input)
 		{
 			buffer.assign({as<u8*>(input.data()), input.size()});
@@ -335,7 +343,8 @@ namespace deckard::utf8
 				clear();
 				return *this;
 			}
-			buffer.assign(input.data());
+			auto raw = input.data();
+			buffer.assign(std::span<u8>{const_cast<u8*>(raw.data()), raw.size()});
 			return *this;
 		}
 
@@ -419,14 +428,14 @@ namespace deckard::utf8
 		}
 
 		//
-		void assign(const char* str) { buffer.assign({as<u8*>(str), std::strlen(str)}); }
+		void assign(const char* str) { buffer.assign(std::span<u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); }
 
-		void assign(const std::span<u8>& input) { buffer.assign(input); }
+		void assign(std::span<const u8> input) { buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), input.size()}); }
 
 		void assign(unit u)
 		{
 			auto encoded = encode_codepoint(u);
-			buffer.assign({encoded.bytes.data(), encoded.count});
+			buffer.assign(std::span<u8>{encoded.bytes.data(), encoded.count});
 		}
 
 		// append
@@ -444,7 +453,7 @@ namespace deckard::utf8
 			buffer.append({encoded.bytes.data(), encoded.count});
 		}
 
-		void append(const view v) { append(utf8::string(v)); };
+		void append(const view v) { string tmp; tmp = v; append(tmp); };
 
 		void prepend(const std::string_view str) { insert(begin(), str); }
 
@@ -460,7 +469,7 @@ namespace deckard::utf8
 			buffer.prepend({encoded.bytes.data(), encoded.count});
 		}
 
-		void prepend(const view v) { prepend(utf8::string(v)); }
+		void prepend(const view v) { string tmp; tmp = v; prepend(tmp); }
 
 		auto operator+(const std::string_view other) const
 		{
@@ -1025,7 +1034,7 @@ namespace deckard::utf8
 			auto it    = begin() + pos;
 			auto itend = end();
 
-			for (; it != itend; ++it)
+		for (; it != itend; ++it)
 			{
 				if (*it == (char32)c)
 					return std::distance(begin(), it);

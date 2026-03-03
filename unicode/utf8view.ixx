@@ -17,7 +17,7 @@ namespace deckard::utf8
 	export class view
 	{
 	private:
-		using type = u8;
+		using type = const u8;
 
 		std::span<type> m_data;
 		size_t          byte_index{0};
@@ -72,7 +72,7 @@ namespace deckard::utf8
 		{
 		}
 
-		view(std::span<u8> data)
+		view(std::span<const u8> data)
 			: m_data(data)
 			, byte_index(0uz)
 		{
@@ -87,13 +87,13 @@ namespace deckard::utf8
 
 		template<size_t N>
 		view(const std::array<u8, N>& data)
-			: m_data(as<u8*>(data.data()), N)
+			: m_data(data.data(), N)
 			, byte_index(0uz)
 		{
 		}
 
 		view(std::string_view data)
-			: m_data(as<u8*>(data.data()), data.size())
+			: m_data(reinterpret_cast<const u8*>(data.data()), data.size())
 			, byte_index(0uz)
 		{
 		}
@@ -118,12 +118,12 @@ namespace deckard::utf8
 			return count;
 		}
 
-		size_t size_in_bytes() const { return m_data.size_bytes(); }
+		size_t size_in_bytes() const { return as<size_t>(m_data.size_bytes()); }
 
 		size_t length() const
 		{
 			auto ret = utf8::length(utf8::as_ro_bytes(m_data));
-			return ret ? *ret : 0;
+			return ret ? as<size_t>(*ret) : 0;
 		}
 
 		auto c_str() const { return as<const char*>(m_data.data()); }
@@ -165,9 +165,9 @@ namespace deckard::utf8
 
 		bool has_next() const { return byte_index < m_data.size_bytes(); }
 
-		u32 count_until_end() const
+		size_t remaining() const
 		{
-			u32    count = 0;
+			size_t count = 0;
 			size_t idx   = byte_index;
 			while (idx < m_data.size_bytes())
 			{
@@ -177,11 +177,11 @@ namespace deckard::utf8
 			return count;
 		}
 
-		std::optional<char32> peek(u32 offset = 1) const
+		std::optional<char32> peek(size_t offset = 1) const
 		{
 
 			size_t idx = byte_index;
-			for (u32 i = 0; i < offset; ++i)
+			for (size_t i = 0; i < offset; ++i)
 				advance_to_next_codepoint(idx);
 			if (idx >= m_data.size_bytes())
 				return std::nullopt;
@@ -308,6 +308,26 @@ namespace deckard::utf8
 
 
 		auto span() const { return utf8::as_ro_bytes(m_data); }
+
+		auto trim_left() const
+		{
+			size_t idx = 0;
+			while (idx < m_data.size_bytes() and std::isspace(m_data[idx]))
+				idx++;
+			return subview_bytes(idx, m_data.size_bytes() - idx);
+		}
+
+		auto trim_right() const
+		{
+			size_t idx = m_data.size_bytes();
+			while (idx > 0 and std::isspace(m_data[idx - 1]))
+				idx--;
+			return subview_bytes(0, idx);
+		}
+
+		auto trim() const { return trim_left().trim_right(); }
+
+
 	};
 
 } // namespace deckard::utf8

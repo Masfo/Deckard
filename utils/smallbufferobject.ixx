@@ -1,4 +1,4 @@
-﻿export module deckard.sbo;
+export module deckard.sbo;
 
 import std;
 import deckard.types;
@@ -324,12 +324,12 @@ namespace deckard
 			other.reset();
 		}
 
-		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>( SCALE_FACTOR * size), ALIGNMENT); }
+		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT); }
 
 	public:
 		sbo() { reset(); }
 
-		sbo(std::span<value_type> buffer)
+       explicit sbo(std::span<value_type> buffer)
 		{
 			reset();
 			if (buffer.size() <= small_capacity())
@@ -416,7 +416,7 @@ namespace deckard
 		bool operator<=(const sbo&) = delete("Less-than compare doesn't make sense");
 		bool operator>(const sbo&)  = delete("Greater-than compare doesn't make sense");
 		bool operator>=(const sbo&) = delete("Greater-than compare doesn't make sense");
-		#else
+#else
 		bool operator<(const sbo&)  = delete;
 		bool operator<=(const sbo&) = delete;
 		bool operator>(const sbo&)  = delete;
@@ -448,18 +448,17 @@ namespace deckard
 			}
 		}
 
-		iterator insert(const_iterator pos, const std::span<value_type> buffer)
+     iterator insert(const_iterator pos, const std::span<const value_type> buffer)
 		{
 			if (buffer.empty())
-				return iterator(pos.ptr);
+               return iterator(rawptr() + std::distance(cbegin(), pos));
 
-			const auto pivot   = std::distance(begin(), pos);
+           const auto pivot   = std::distance(cbegin(), pos);
 			size_t     newsize = size() + buffer.size();
 			if (newsize > capacity())
 				resize(newsize);
 
 			const pointer ptr = rawptr();
-			pos               = cbegin() + pivot;
 
 			std::copy_backward(ptr + pivot, ptr + size(), ptr + newsize);
 			std::copy(buffer.data(), buffer.data() + buffer.size(), ptr + pivot);
@@ -478,12 +477,12 @@ namespace deckard
 
 			// TODO: self copy, input == buffer, resize deletes it
 			// small -> large destroys, create new large buffer then copy old to new
-			bool          self_insert = rawptr() == buffer.data();
+			bool self_insert = rawptr() == buffer.data();
 
 			if (self_insert)
 			{
 				// TODO: self insert check
-				//dbg::breakpoint();
+				// dbg::breakpoint();
 			}
 
 			const size_t pivot   = std::distance(begin(), pos);
@@ -505,15 +504,15 @@ namespace deckard
 
 		iterator insert(iterator pos, const value_type& v) { return insert(pos, std::span<value_type>{(pointer)&v, 1}); }
 
-		void assign(const std::span<value_type> buffer)
+     void assign(const std::span<const value_type> buffer)
 		{
 			clear();
-			insert(begin(), buffer);
+            insert(cbegin(), buffer);
 		}
 
 		void assign(const sbo<SIZE>& other) { assign(other.data()); }
 
-		void assign(const value_type& v) { assign(std::span<value_type>{(pointer)&v, 1}); }
+     void assign(const value_type& v) { assign(std::span<const value_type>{(pointer)&v, 1}); }
 
 		void assign(const std::initializer_list<value_type>& il)
 		{
@@ -620,8 +619,8 @@ namespace deckard
 
 		void fill(const value_type& v)
 		{
-			const pointer   ptr = rawptr();
-			const auto max = capacity();
+			const pointer ptr = rawptr();
+			const auto    max = capacity();
 
 			for (auto i = 0ull; i < max; ++i)
 				ptr[i] = v;
@@ -739,11 +738,7 @@ namespace deckard
 			}
 		}
 
-		[[nodiscard("Use the data span")]] std::span<value_type> data() const
-		{
-
-			return is_large() ? large_data() : small_data();
-		}
+		[[nodiscard("Use the data span")]] std::span<value_type> data() const { return is_large() ? large_data() : small_data(); }
 
 		// iterator
 
