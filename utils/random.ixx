@@ -6,16 +6,19 @@ import deckard_build;
 #endif
 
 import std;
+import deckard.timers;
 import deckard.types;
 import deckard.debug;
 import deckard.as;
 import deckard.assert;
 
+namespace fs = std::filesystem;
+
 namespace deckard::random
 {
 	export std::random_device random_device;
 
-	export template<std::integral T=u32>
+	export template<std::integral T = u32>
 	T seed()
 	{
 		if constexpr (sizeof(T) <= 4)
@@ -73,7 +76,7 @@ namespace deckard::random
 		u64 state{0xdead'beef'1234'5678ULL};
 #endif
 
-		void seed_from(u64 seed)
+		constexpr void seed_from(u64 seed)
 		{
 			state = seed;
 
@@ -88,11 +91,11 @@ namespace deckard::random
 		}
 
 	public:
-		splitmix64() { seed_from(0); }
+		constexpr splitmix64() { seed_from(0); }
 
-		splitmix64(u64 seed) { seed_from(seed); }
+		constexpr splitmix64(u64 seed) { seed_from(seed); }
 
-		u64 next()
+		constexpr u64 next()
 		{
 			u64 z = (state += 0x9e37'79b9'7f4a'7c15);
 			z     = (z ^ (z >> 30)) * 0xbf58'476d'1ce4'e5b9;
@@ -358,6 +361,14 @@ namespace deckard::random
 		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(random_device)); });
 	}
 
+	export std::vector<u8> bytes(size_t len)
+	{
+		std::vector<u8> ret(len);
+		cryptographic_random_bytes(ret);
+		return ret;
+	}
+
+
 	export template<std::integral T>
 	T cryptographic_random_integer(T min = limits::min<T>, T max = limits::max<T>)
 	{
@@ -418,7 +429,6 @@ namespace deckard::random
 
 	export void alphanum(std::span<char> buffer, u32 len)
 	{
-		assert::check(len <= buffer.size(), "buffer too small");
 		generate_with_dictionary<char>(buffer, len, dict_alphanumeric);
 	}
 
@@ -438,7 +448,6 @@ namespace deckard::random
 
 	export void password(std::span<char> buffer, u32 len)
 	{
-		assert::check(len <= buffer.size(), "buffer too small");
 		generate_with_dictionary<char>(buffer, len, dict_alphanum_special);
 	}
 
@@ -450,6 +459,15 @@ namespace deckard::random
 		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphanum_special);
 	}
 
+	// filename ########################################################################################################
+
+	export fs::path filename(u32 len = 12, std::string_view extension = "", std::string_view prefix = "")
+	{
+		std::string name(prefix);
+		name += alphanum(len);
+		return fs::path(name).replace_extension(extension);
+	}
+
 	// digit ########################################################################################################
 
 	export std::string digit(u32 len = 12) { return generate_with_dictionary(len, dict_digits); }
@@ -458,7 +476,6 @@ namespace deckard::random
 
 	export void digit(std::span<char> buffer, u32 len)
 	{
-		assert::check(len <= buffer.size(), "buffer too small");
 		generate_with_dictionary<char>(buffer, len, dict_digits);
 	}
 
@@ -479,6 +496,7 @@ namespace deckard::random
 		std::seed_seq seeds(std::begin(random_data), std::end(random_data));
 
 		detail::engine.seed(seeds);
+
 		detail::engine.discard(700'000);
 	}
 
