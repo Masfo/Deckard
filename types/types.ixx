@@ -73,14 +73,22 @@ export namespace deckard
 	}
 
 #ifdef __cpp_deleted_function
-	// C++26: deleted functions can carry a diagnostic message
-	#error "Use this one"
+// C++26: deleted functions can carry a diagnostic message
+#error "Use this one"
 	template<typename T>
 	T* ptr_to(const T&&) = delete("ptr_to() requires an lvalue — taking a pointer to a temporary would dangle");
 #else
 	template<typename T>
 	T* ptr_to(const T&&) = delete;
 #endif
+
+	template<typename T>
+	auto as_ro_bytes(std::span<T> data) -> std::span<const u8>
+	{
+		auto byte_ptr = reinterpret_cast<const u8*>(data.data());
+		return {byte_ptr, data.size() * sizeof(T)};
+	}
+
 	template<typename T>
 	concept arithmetic = std::is_arithmetic_v<T>;
 
@@ -175,6 +183,16 @@ export namespace deckard
 	constexpr u64 operator""_TiB(const u64 value) { return value * tebi::num; }
 
 	// ###########################################################################
+
+
+	export template<typename Range>
+	requires std::ranges::contiguous_range<Range> and std::is_trivially_copyable_v<std::ranges::range_value_t<Range>>
+	std::span<const u8> to_bytes(Range& r)
+	{
+		return std::span<const u8>{
+		  reinterpret_cast<const u8*>(std::ranges::data(r)), std::ranges::size(r) * sizeof(std::ranges::range_value_t<Range>)};
+	}
+
 	// ###########################################################################
 
 	// static_assert(requires(A a, A b) { a + b; }, "elements must be addable");
