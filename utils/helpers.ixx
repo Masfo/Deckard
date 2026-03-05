@@ -120,17 +120,16 @@ export namespace deckard
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
 	export template<std::integral T>
-	constexpr T read_le(std::span<const u8> buffer, u64 offset=0)
+	constexpr T read_le(std::span<const u8> buffer, u64 offset = 0)
 	{
 		assert::check(sizeof(T) <= buffer.size(), "read_le: out of bounds");
 
 		auto bu = buffer.subspan(offset, sizeof(T));
 		return as<T>(buffer.subspan(offset, sizeof(T)));
-	
 	}
 
 	export template<std::integral T>
-	constexpr T read_be(std::span<const u8> buffer, size_t offset=0)
+	constexpr T read_be(std::span<const u8> buffer, size_t offset = 0)
 	{
 		return std::byteswap(read_le<T>(buffer, offset));
 	}
@@ -284,7 +283,7 @@ export namespace deckard
 	std::string to_hex_string(const std::string_view input, const HexOption& options = {})
 	{
 		return to_hex_string(
-			  std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(input.size())), options);
+		  std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(input.size())), options);
 	}
 
 	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
@@ -1266,7 +1265,7 @@ export namespace deckard
 		auto count = static_cast<f64>(bytes);
 		u64  suffix{0};
 
-       while (count >= static_cast<f64>(1_KiB) and suffix < unit.size() - 1)
+		while (count >= static_cast<f64>(1_KiB) and suffix < unit.size() - 1)
 		{
 			suffix++;
 			count /= static_cast<f64>(1_KiB);
@@ -1393,6 +1392,110 @@ export namespace deckard
 			i        = delta + last;
 			last     = i;
 		}
+	}
+
+	// ####################################################################################
+	// █████    ██████    ████    ██████   ██████   █    █   ██████
+	// █    █     ██     █          ██     █         █  █      ██
+	// █████      ██     █  ███     ██     ████       ██       ██
+	// █    █     ██     █    █     ██     █         █  █      ██
+	// █████    ██████    ████      ██     ██████   █    █     ██
+	// ####################################################################################
+
+	struct Glyph
+	{
+		std::array<uint8_t, 5> rows;
+		int                    width = 6;
+	};
+
+	const std::unordered_map<char, Glyph> GLYPHS = {
+	  {'A', {{{0b01'1110, 0b10'0001, 0b11'1111, 0b10'0001, 0b10'0001}}}},
+	  {'B', {{{0b11'1110, 0b10'0001, 0b11'1110, 0b10'0001, 0b11'1110}}}},
+	  {'C', {{{0b01'1111, 0b10'0000, 0b10'0000, 0b10'0000, 0b01'1111}}}},
+	  {'D', {{{0b11'1110, 0b10'0001, 0b10'0001, 0b10'0001, 0b11'1110}}}},
+	  {'E', {{{0b11'1111, 0b10'0000, 0b11'1100, 0b10'0000, 0b11'1111}}}},
+	  {'F', {{{0b11'1111, 0b10'0000, 0b11'1100, 0b10'0000, 0b10'0000}}}},
+	  {'G', {{{0b01'1111, 0b10'0000, 0b10'0111, 0b10'0001, 0b01'1111}}}},
+	  {'H', {{{0b10'0001, 0b10'0001, 0b11'1111, 0b10'0001, 0b10'0001}}}},
+	  {'I', {{{0b11'1111, 0b00'1100, 0b00'1100, 0b00'1100, 0b11'1111}}}},
+	  {'J', {{{0b00'1111, 0b00'0001, 0b00'0001, 0b10'0001, 0b01'1110}}}},
+	  {'K', {{{0b10'0011, 0b10'0100, 0b11'1000, 0b10'0100, 0b10'0011}}}},
+	  {'L', {{{0b10'0000, 0b10'0000, 0b10'0000, 0b10'0000, 0b11'1111}}}},
+	  {'M', {{{0b10'0001, 0b11'0011, 0b10'1101, 0b10'0001, 0b10'0001}}}},
+	  {'N', {{{0b10'0001, 0b11'0001, 0b10'1001, 0b10'0101, 0b10'0011}}}},
+	  {'O', {{{0b01'1110, 0b10'0001, 0b10'0001, 0b10'0001, 0b01'1110}}}},
+	  {'P', {{{0b11'1110, 0b10'0001, 0b11'1110, 0b10'0000, 0b10'0000}}}},
+	  {'Q', {{{0b01'1110, 0b10'0001, 0b10'0001, 0b10'0011, 0b01'1111}}}},
+	  {'R', {{{0b11'1110, 0b10'0001, 0b11'1110, 0b10'0010, 0b10'0001}}}},
+	  {'S', {{{0b01'1111, 0b10'0000, 0b01'1110, 0b00'0001, 0b11'1110}}}},
+	  {'T', {{{0b11'1111, 0b00'1100, 0b00'1100, 0b00'1100, 0b00'1100}}}},
+	  {'U', {{{0b10'0001, 0b10'0001, 0b10'0001, 0b10'0001, 0b01'1110}}}},
+	  {'V', {{{0b10'0001, 0b10'0001, 0b10'0001, 0b01'0010, 0b00'1100}}}},
+	  {'W', {{{0b10'0001, 0b10'0001, 0b10'1101, 0b11'0011, 0b10'0001}}}},
+	  {'X', {{{0b10'0001, 0b01'0010, 0b00'1100, 0b01'0010, 0b10'0001}}}},
+	  {'Y', {{{0b10'0001, 0b01'0010, 0b00'1100, 0b00'1100, 0b00'1100}}}},
+	  {'Z', {{{0b11'1111, 0b00'0010, 0b00'0100, 0b00'1000, 0b11'1111}}}},
+	  {'0', {{{0b01'1110, 0b10'0011, 0b10'0101, 0b11'0001, 0b01'1110}}}},
+	  {'1', {{{0b00'1100, 0b01'1100, 0b00'1100, 0b00'1100, 0b11'1111}}}},
+	  {'2', {{{0b01'1110, 0b10'0001, 0b00'0110, 0b01'1000, 0b11'1111}}}},
+	  {'3', {{{0b11'1110, 0b00'0001, 0b01'1110, 0b00'0001, 0b11'1110}}}},
+	  {'4', {{{0b10'0001, 0b10'0001, 0b11'1111, 0b00'0001, 0b00'0001}}}},
+	  {'5', {{{0b11'1111, 0b10'0000, 0b11'1110, 0b00'0001, 0b11'1110}}}},
+	  {'6', {{{0b01'1111, 0b10'0000, 0b11'1110, 0b10'0001, 0b01'1110}}}},
+	  {'7', {{{0b11'1111, 0b00'0001, 0b00'0010, 0b00'0100, 0b00'0100}}}},
+	  {'8', {{{0b01'1110, 0b10'0001, 0b01'1110, 0b10'0001, 0b01'1110}}}},
+	  {'9', {{{0b01'1110, 0b10'0001, 0b01'1111, 0b00'0001, 0b11'1110}}}},
+	  {' ', {{{0b00'0000, 0b00'0000, 0b00'0000, 0b00'0000, 0b00'0000}}, 3}},
+	  {'?', {{{0b01'1110, 0b10'0001, 0b00'0110, 0b00'0000, 0b00'0100}}}},
+	  {'.', {{{0b00'0000, 0b00'0000, 0b00'0000, 0b00'0000, 0b00'1100}}}},
+	  {'-', {{{0b00'0000, 0b00'0000, 0b11'1110, 0b00'0000, 0b00'0000}}, 5}},
+	  {'!', {{{0b00'1100, 0b00'1100, 0b00'1100, 0b00'0000, 0b00'1100}}, 4}},
+	  {',', {{{0b0'0000, 0b0'0000, 0b0'0000, 0b0'0100, 0b0'1000}}}},
+	  {'.', {{{0b0'0000, 0b0'0000, 0b0'0000, 0b0'0100, 0b0'0100}}}},
+	  {':', {{{0b0'0000, 0b0'0100, 0b0'0000, 0b0'0100, 0b0'0000}}}},
+	  {';', {{{0b0'0000, 0b0'0100, 0b0'0000, 0b0'0100, 0b0'1000}}}},
+	  {'#', {{{0b0'1010, 0b1'1111, 0b0'1010, 0b1'1111, 0b0'1010}}}},
+	  {'%', {{{0b1'1001, 0b1'1010, 0b0'0100, 0b0'1011, 0b1'0011}}}},
+	  {'*', {{{0b0'0100, 0b1'0101, 0b0'1110, 0b1'0101, 0b0'0100}}}}
+
+	};
+
+	[[nodiscard]]
+	std::string big_text(std::string_view text)
+	{
+		constexpr int              ROWS   = 5;
+		constexpr std::string_view FILLED = "█";
+		constexpr std::string_view EMPTY  = " ";
+
+		std::array<std::string, ROWS> lines;
+
+		for (char c : text)
+		{
+			const char   upper = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+			const auto   it    = GLYPHS.find(upper);
+			const Glyph& g     = (it != GLYPHS.end()) ? it->second : GLYPHS.at('?');
+
+
+			for (int row = 0; row < ROWS; ++row)
+			{
+				for (int col = 0; col < g.width; ++col)
+				{
+					// MSB = leftmost: shift right by (width-1-col) to get current bit
+					const bool filled = (g.rows[row] >> (g.width - 1 - col)) & 1;
+					lines[row] += filled ? FILLED : EMPTY;
+				}
+				lines[row] += ' '; // letter spacing
+			}
+		}
+
+		std::string result;
+		result.reserve(ROWS * (text.size() * 8));
+		for (const auto& line : lines)
+		{
+			result += line;
+			result += '\n';
+		}
+		return result;
 	}
 
 
