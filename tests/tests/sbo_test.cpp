@@ -1,4 +1,4 @@
-﻿#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -383,7 +383,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 0);
 		CHECK(ss.capacity() == 31);
 
-		ss.push_back('A');
+	 ss.push_back('A');
 		ss.push_back('B');
 
 
@@ -1268,44 +1268,41 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[14] == 'C');
 		CHECK(ss[15] == 'D');
 
-		// TODO: self insert with data
-		// small -> large
-		// 
-		//ss.insert(ss.begin(), ss.data());
-		//CHECK(ss.size() == 32);
-		//CHECK(ss[0] == 'A');
-		//CHECK(ss[1] == 'B');
-		//CHECK(ss[2] == 'C');
-		//CHECK(ss[3] == 'D');
-		//CHECK(ss[4] == 'A');
-		//CHECK(ss[5] == 'B');
-		//CHECK(ss[6] == 'C');
-		//CHECK(ss[7] == 'D');
-		//CHECK(ss[8] == 'A');
-		//CHECK(ss[9] == 'B');
-		//CHECK(ss[10] == 'C');
-		//CHECK(ss[11] == 'D');
-		//CHECK(ss[12] == 'A');
-		//CHECK(ss[13] == 'B');
-		//CHECK(ss[14] == 'C');
-		//CHECK(ss[15] == 'D');
-		//CHECK(ss[16] == 'A');
-		//CHECK(ss[17] == 'B');
-		//CHECK(ss[18] == 'C');
-		//CHECK(ss[19] == 'D');
-		//CHECK(ss[20] == 'A');
-		//CHECK(ss[21] == 'B');
-		//CHECK(ss[22] == 'C');
-		//CHECK(ss[23] == 'D');
-		//CHECK(ss[24] == 'A');
-		//CHECK(ss[25] == 'B');
-		//CHECK(ss[26] == 'C');
-		//CHECK(ss[27] == 'D');
-		//CHECK(ss[28] == 'A');
-		//CHECK(ss[29] == 'B');
-		//CHECK(ss[30] == 'C');
-		//CHECK(ss[31] == 'D');
-
+		// self insert: small -> large (triggers resize)
+		ss.insert(ss.begin(), ss.data());
+		CHECK(ss.size() == 32);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'A');
+		CHECK(ss[5] == 'B');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
+		CHECK(ss[8] == 'A');
+		CHECK(ss[9] == 'B');
+		CHECK(ss[10] == 'C');
+		CHECK(ss[11] == 'D');
+		CHECK(ss[12] == 'A');
+		CHECK(ss[13] == 'B');
+		CHECK(ss[14] == 'C');
+		CHECK(ss[15] == 'D');
+		CHECK(ss[16] == 'A');
+		CHECK(ss[17] == 'B');
+		CHECK(ss[18] == 'C');
+		CHECK(ss[19] == 'D');
+		CHECK(ss[20] == 'A');
+		CHECK(ss[21] == 'B');
+		CHECK(ss[22] == 'C');
+		CHECK(ss[23] == 'D');
+		CHECK(ss[24] == 'A');
+		CHECK(ss[25] == 'B');
+		CHECK(ss[26] == 'C');
+		CHECK(ss[27] == 'D');
+		CHECK(ss[28] == 'A');
+		CHECK(ss[29] == 'B');
+		CHECK(ss[30] == 'C');
+		CHECK(ss[31] == 'D');
 	}
 
 
@@ -2372,5 +2369,145 @@ TEST_CASE("sbo", "[sbo]")
 
 		sbo<32> ss4 = ss.subsbo(1, 0);
 		CHECK(ss4.size() == 0);
+	}
+
+	SECTION("self assign (small)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+		CHECK(ss.size() == 6);
+		CHECK(ss.capacity() == 31);
+
+		ss.assign(ss);
+
+		CHECK(ss.size() == 6);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'E');
+		CHECK(ss[5] == 'F');
+	}
+
+	SECTION("self assign (large)")
+	{
+		sbo<32> ss;
+		for (u32 i = 0; i < 64; i++)
+			ss.push_back(as<u8>('A' + (i % 6)));
+
+		CHECK(ss.size() == 64);
+
+		ss.assign(ss);
+
+		CHECK(ss.size() == 64);
+		for (u32 i = 0; i < 64; i++)
+			CHECK(ss[i] == as<u8>('A' + (i % 6)));
+	}
+
+	SECTION("self append (small, no resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D'};
+		CHECK(ss.size() == 4);
+		CHECK(ss.capacity() == 31);
+
+		ss.append(ss);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'A');
+		CHECK(ss[5] == 'B');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
+	}
+
+	SECTION("self append (small -> large, resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+				   'Q', 'R', 'S', 'T'};
+		CHECK(ss.size() == 20);
+		CHECK(ss.capacity() == 31);
+
+		ss.append(ss);
+
+		CHECK(ss.size() == 40);
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[i] == as<u8>('A' + i));
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[20 + i] == as<u8>('A' + i));
+	}
+
+	SECTION("self append (large -> larger, resize)")
+	{
+		sbo<32> ss;
+		for (u32 i = 0; i < 64; i++)
+			ss.push_back(as<u8>('A' + (i % 26)));
+
+		CHECK(ss.size() == 64);
+
+		ss.append(ss);
+
+		CHECK(ss.size() == 128);
+		for (u32 i = 0; i < 64; i++)
+			CHECK(ss[i] == as<u8>('A' + (i % 26)));
+		for (u32 i = 0; i < 64; i++)
+			CHECK(ss[64 + i] == as<u8>('A' + (i % 26)));
+	}
+
+	SECTION("self prepend (small, no resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D'};
+		CHECK(ss.size() == 4);
+		CHECK(ss.capacity() == 31);
+
+		ss.prepend(ss);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'A');
+		CHECK(ss[5] == 'B');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
+	}
+
+	SECTION("self prepend (small -> large, resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+				   'Q', 'R', 'S', 'T'};
+		CHECK(ss.size() == 20);
+		CHECK(ss.capacity() == 31);
+
+		ss.prepend(ss);
+
+		CHECK(ss.size() == 40);
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[i] == as<u8>('A' + i));
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[20 + i] == as<u8>('A' + i));
+	}
+
+	SECTION("self insert middle (small, no resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D'};
+		CHECK(ss.size() == 4);
+		CHECK(ss.capacity() == 31);
+
+		ss.insert(ss.begin() + 2, ss.data());
+
+		CHECK(ss.size() == 8);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'A');
+		CHECK(ss[3] == 'B');
+		CHECK(ss[4] == 'C');
+		CHECK(ss[5] == 'D');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
 	}
 }

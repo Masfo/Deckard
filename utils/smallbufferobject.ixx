@@ -448,20 +448,31 @@ namespace deckard
 			}
 		}
 
-     iterator insert(const_iterator pos, const std::span<const value_type> buffer)
+	 iterator insert(const_iterator pos, const std::span<const value_type> buffer)
 		{
 			if (buffer.empty())
-               return iterator(rawptr() + std::distance(cbegin(), pos));
+			   return iterator(rawptr() + std::distance(cbegin(), pos));
 
-           const auto pivot   = std::distance(cbegin(), pos);
-			size_t     newsize = size() + buffer.size();
+		   const auto pivot      = std::distance(cbegin(), pos);
+		   const auto oldsize    = size();
+		   size_t     newsize    = oldsize + buffer.size();
+		   bool       self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+		   ptrdiff_t  self_offset = self_insert ? buffer.data() - rawptr() : 0;
+
 			if (newsize > capacity())
 				resize(newsize);
 
-			const pointer ptr = rawptr();
+			const pointer     ptr = rawptr();
+		   const value_type* src = self_insert
+			   ? ptr + self_offset + (self_offset >= pivot ? (ptrdiff_t)buffer.size() : 0)
+			   : buffer.data();
 
-			std::copy_backward(ptr + pivot, ptr + size(), ptr + newsize);
-			std::copy(buffer.data(), buffer.data() + buffer.size(), ptr + pivot);
+		   std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+
+		   if (self_insert)
+			   std::memmove(ptr + pivot, src, buffer.size());
+		   else
+			   std::copy(src, src + buffer.size(), ptr + pivot);
 
 			set_size(newsize);
 
@@ -475,27 +486,28 @@ namespace deckard
 			if (buffer.empty())
 				return pos;
 
-			// TODO: self copy, input == buffer, resize deletes it
-			// small -> large destroys, create new large buffer then copy old to new
-			bool self_insert = rawptr() == buffer.data();
+			const size_t pivot       = std::distance(begin(), pos);
+			const size_t oldsize     = size();
+			size_t       newsize     = oldsize + buffer.size();
+			bool         self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+			ptrdiff_t    self_offset = self_insert ? buffer.data() - rawptr() : 0;
 
-			if (self_insert)
-			{
-				// TODO: self insert check
-				// dbg::breakpoint();
-			}
-
-			const size_t pivot   = std::distance(begin(), pos);
-			size_t       newsize = size() + buffer.size();
 			if (newsize > capacity())
 				resize(newsize);
 
-			const pointer ptr   = rawptr();
-			size_t        width = size();
-			if (pos != end())
-				std::copy_backward(ptr + pivot, ptr + width, ptr + newsize);
+			const pointer ptr = rawptr();
 
-			std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
+			if (pivot < oldsize)
+				std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+
+			pointer src = self_insert
+				? ptr + self_offset + (self_offset >= (ptrdiff_t)pivot ? (ptrdiff_t)buffer.size() : 0)
+				: buffer.data();
+
+			if (self_insert)
+				std::memmove(ptr + pivot, src, buffer.size());
+			else
+				std::copy_n(src, buffer.size(), ptr + pivot);
 
 			set_size(newsize);
 
@@ -510,7 +522,11 @@ namespace deckard
             insert(cbegin(), buffer);
 		}
 
-		void assign(const sbo<SIZE>& other) { assign(other.data()); }
+		void assign(const sbo<SIZE>& other)
+		{
+			if (this != &other)
+				assign(other.data());
+		}
 
      void assign(const value_type& v) { assign(std::span<const value_type>{(pointer)&v, 1}); }
 
