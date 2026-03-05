@@ -671,3 +671,16 @@ export namespace deckard::string
 	}
 
 } // namespace deckard::string
+
+#ifdef __cpp_lib_format_path
+#error ("std::formatter<std::filesystem::path> is already provided by the standard library");
+#else
+template<>
+struct std::formatter<std::filesystem::path> : std::formatter<std::string_view>
+{
+	auto format(const std::filesystem::path& p, std::format_context& ctx) const
+	{
+		return std::formatter<std::string_view>::format(p.string(), ctx);
+	}
+};
+#endif
