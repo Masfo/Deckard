@@ -19,6 +19,7 @@ import deckard.debug;
 import deckard.types;
 import deckard.as;
 import deckard.assert;
+import deckard.helpers;
 
 namespace deckard::vulkan
 {
@@ -31,7 +32,7 @@ namespace deckard::vulkan
 		// Dynamic renderer
 		vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
 		vkCmdEndRenderingKHR   = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
-		if (vkCmdBeginRenderingKHR == nullptr || vkCmdEndRenderingKHR == nullptr)
+		if (vkCmdBeginRenderingKHR == nullptr or vkCmdEndRenderingKHR == nullptr)
 		{
 			dbg::println("Could not get dynamic rendering functions");
 			return false;
@@ -105,10 +106,15 @@ namespace deckard::vulkan
 			u32 api_minor          = VK_API_VERSION_MINOR(device_api_version);
 			u32 api_patch          = VK_API_VERSION_PATCH(device_api_version);
 
+
+			dbg::println("Max UBO size: {}", prop.limits.maxUniformBufferRange);
+			dbg::println("Max SSBO size: {}", prop.limits.maxStorageBufferRange);
+			dbg::println("Max push constant size: {}", prop.limits.maxPushConstantsSize);
+
 			dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
 
-			if (api_major < VK_API_VERSION_MAJOR(minimum_apiversion) ||
-				(api_major == VK_API_VERSION_MAJOR(minimum_apiversion) && api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
+			if (api_major < VK_API_VERSION_MAJOR(minimum_apiversion) or
+				(api_major == VK_API_VERSION_MAJOR(minimum_apiversion) and api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
 			{
 				dbg::println(
 				  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
@@ -244,7 +250,7 @@ namespace deckard::vulkan
 			// Dynamic renderer
 			vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
 			vkCmdEndRenderingKHR   = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
-			if (vkCmdBeginRenderingKHR == nullptr || vkCmdEndRenderingKHR == nullptr)
+			if (vkCmdBeginRenderingKHR == nullptr or vkCmdEndRenderingKHR == nullptr)
 			{
 				dbg::println("Could not get dynamic rendering functions");
 				return false;
@@ -308,6 +314,7 @@ namespace deckard::vulkan
 
 				vkGetPhysicalDeviceProperties(device, &device_properties[i]);
 
+
 				const auto& prop = device_properties[i];
 
 				u32 device_api_version = prop.apiVersion;
@@ -316,8 +323,8 @@ namespace deckard::vulkan
 				u32 api_patch          = VK_API_VERSION_PATCH(device_api_version);
 				dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
 
-				if (api_major < VK_API_VERSION_MAJOR(apiversion) ||
-					(api_major == VK_API_VERSION_MAJOR(apiversion) && api_minor < VK_API_VERSION_MINOR(apiversion)))
+				if (api_major < VK_API_VERSION_MAJOR(apiversion) or
+					(api_major == VK_API_VERSION_MAJOR(apiversion) and api_minor < VK_API_VERSION_MINOR(apiversion)))
 				{
 					dbg::println(
 					  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
@@ -330,6 +337,17 @@ namespace deckard::vulkan
 					  VK_API_VERSION_PATCH(apiversion));
 					continue;
 				}
+
+
+				
+				dbg::println("Max UBO size: {}",           human_readable_bytes(prop.limits.maxUniformBufferRange));
+				dbg::println("Max UBO alignment: {}", human_readable_bytes(prop.limits.minUniformBufferOffsetAlignment));
+
+				dbg::println("Max SSBO size: {}",          human_readable_bytes(prop.limits.maxStorageBufferRange));
+				dbg::println("Max SSBO alignment: {}", human_readable_bytes(prop.limits.minStorageBufferOffsetAlignment));
+
+				dbg::println("Max push constant size: {}", human_readable_bytes(prop.limits.maxPushConstantsSize));
+
 
 				if (prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 					discrete_gpus.push_back(i);

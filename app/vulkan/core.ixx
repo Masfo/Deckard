@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -11,6 +11,34 @@ export module deckard.vulkan:core;
 import std;
 import deckard.debug;
 import deckard.types;
+
+/*
+ *  PushContants: 128 bytes - 256 bytes
+ *		- maxPushConstantsSize
+ *			- AMD RX 5700 XT:		256
+			- Nvidia RTX 5060 Ti:	256
+			- Intel Arc A380:		256
+ *
+ *  Uniform buffer (UBO): 16KB -> 64KB (min guaranteed by spec) -> 256KB (max guaranteed by spec)
+		- AMD has max_uint size, nvidia typically 64KB, intel typically 16KB
+		- maxUniformBufferRange
+			- AMD RX 5700 XT:		4294967295
+			- Nvidia RTX 5060 Ti:	65536
+			- Intel Arc A380:		1073741824
+ *
+ *  Shader Storage Buffer (SSBO): 16KB -> 64KB (min guaranteed by spec) -> 256KB (max guaranteed by spec)
+ *			maxStorageBufferRange
+ *			- AMD RX 5700 XT:		4294967295
+			- Nvidia RTX 5060 Ti:	4294967295
+			- Intel Arc A380:		4294967295
+* 
+* 
+* 
+*	Vertex Pulling
+* 
+*/ 
+
+
 
 namespace deckard::vulkan
 {

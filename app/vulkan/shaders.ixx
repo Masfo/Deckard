@@ -44,7 +44,7 @@ namespace deckard::vulkan
 		std::vector<u8> bytes;
 		bytes.resize(size);
 
-		auto content = file::read({.file = shader_file, .buffer = bytes, .size = size});
+		auto content = file::read({.filename = shader_file, .buffer = bytes, .size = size});
 		if (not content)
 			return std::unexpected(content.error());
 
@@ -173,7 +173,7 @@ namespace deckard::vulkan
 		return {};
 	}
 
-	export std::optional<std::vector<u8>> read_spirv_shader_from_cache(fs::path spirv_binary) { return {}; }
+	export std::optional<std::vector<u8>> read_spirv_shader_from_cache(fs::path ) { return {}; }
 
 
 } // namespace deckard::vulkan
