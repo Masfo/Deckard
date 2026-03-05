@@ -1,4 +1,4 @@
-﻿export module deckard.sha;
+export module deckard.sha;
 
 import deckard.assert;
 import deckard.as;

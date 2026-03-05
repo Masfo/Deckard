@@ -9,8 +9,8 @@ namespace deckard::uuid
 	namespace
 	{
 		std::random_device                 rd;
-		std::uniform_int_distribution<u64> dist(0);
-	}
+		std::uniform_int_distribution<u64> dist{};
+	} // namespace
 
 	using namespace std::string_view_literals;
 
@@ -38,7 +38,7 @@ namespace deckard::uuid
 				  (id.ab >> 16) & 0xFFFF,
 				  (id.ab >> 00) & 0xFFFF,
 				  (id.cd >> 48) & 0xFFFF,
-				  (id.cd >> 00) & 0xFFFF'FFFF'FFFF);
+				  (id.cd >> 00) & 0x0000'FFFF'FFFF'FFFFull);
 
 			return std::format(
 			  "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}"sv,
@@ -46,7 +46,7 @@ namespace deckard::uuid
 			  (id.ab >> 16) & 0xFFFF,
 			  (id.ab >> 00) & 0xFFFF,
 			  (id.cd >> 48) & 0xFFFF,
-			  (id.cd >> 00) & 0xFFFF'FFFF'FFFF);
+			  (id.cd >> 00) & 0x0000'FFFF'FFFF'FFFFull);
 		}
 
 	} // namespace v4
