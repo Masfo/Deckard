@@ -1,488 +1,800 @@
 export module deckard.config;
 
+import deckard.assert;
 import deckard.utf8;
 import deckard.types;
 import deckard.file;
 import deckard.debug;
 import deckard.helpers;
+import deckard.as;
 import deckard.utils.hash;
 
 namespace fs = std::filesystem;
 
-namespace deckard::config
+namespace deckard
 {
-
-
-	// Newline means LF (0x0A) or CRLF (0x0D 0x0A).
-	//
-	// if [, consume_section, until ], if \n or EOF fail error
-
-	// Section and keys ascii-only.
-	// strings utf8
-
-	// section .dot. key
-	// token_index_map = map<section.key, token_index>
-
-	// no duplicate keys
-
-	// config["section.key"] = 123;		-> return index, tokens[index] = newvalue
-	// std::vector<ConfigToken>
-	//
-	//
-	// vector<token> tokens
-	// keys = map<keys_hash, token_index>;
-
-
-	// Example 1:
-	//
-	// [section]
-	// key = "value"
-	// count = 1
-
-	// tokens:			token saved as index to data? or just as raw bytes?
-	//  0: section = "section"		# missing newline tokens
-	//  1: key = "section.key"
-	//  2: value = "value"
-	//  3: key = "section.count"
-	//  4: value = "1"
-	//  5: EOF
-
-	// get value:
-	// get("section", "count")
-	//  map["section.count"] -> 4 ; index to token
-	//  tokens[4] = "1" ; convert to whatever
-
-	// new value:
-	// set("section", "count", 2)
-	//  map["section", "count"] -> value at index 4
-	// tokens[4] = "2"
-
-
-	// Example 2:
-	// globalcount = 1
-	//
-	// [section]
-	// count = 2
-
-	// tokens:
-	// 0: key = "globalcount"
-	// 1: value = "1"
-	// 2: section: "section"
-	// 3: key = "section.count"
-	// 4: value = "2"
-
-	// map["globalcount") -> 0
-	// tokens[0] -> tokens[0+1] -> value = "1"
-	// key token is followed by value
-	// [section]
-	//  = 3.14		# not allowed, no key
 	export enum struct TokenType : u8 {
-		NEWLINE = 0x00,
-		NEWLINE_POSIX,
-		NEWLINE_WINDOWS,
-
-		SECTION,
-		KEY,
-		VALUE,
-		COMMENT,
-
-		END_OF_FILE = 0xFF,
+		NEWLINE_POSIX,   // 0x0A \n
+		NEWLINE_WINDOWS, // 0x0D 0x0A \r\n
+		SECTION,         // [section]
+		COMMENT,         // # comment
+		KEY,             // key =
+		VALUE_STRING,    // "value" or bare identifier
+		VALUE_INTEGER,   // 123
+		VALUE_FLOAT,     // 3.14
+		VALUE_BOOL,      // true / false
 	};
 
-	class config3
-	{
-	private:
-		std::vector<u8>              data;
-		std::vector<TokenType>       tokens;
-		std::unordered_map<u64, u64> key_hash_to_token_index; // use _siphash
 
-		void parse() 
-		{
-			//
-		}
-
-	public:
-		explicit config3(fs::path file)
-			: data(file::read_text_file(file))
-		{
-		}
-
-		explicit config3(std::string_view input) { }
+#ifdef _DEBUG
+	constexpr std::array<std::string_view, 9> TokenStrings{
+	  "NEWLINE_POSIX",
+	  "NEWLINE_WINDOWS",
+	  "SECTION",
+	  "COMMENT",
+	  "KEY",
+	  "STRING",
+	  "INTEGER",
+	  "FLOAT",
+	  "BOOL",
 	};
 
-#pragma region !Old config stuff
-#if 0
-	struct ConfigToken
-	{
-		TokenType   type;
-		std::string value;
-	};
+	std::string_view token_type_to_string(TokenType type) { return TokenStrings[as<u8>(type)]; }
+#endif
 
-	struct SectionKey
-	{
-		std::string section;
-		std::string key;
-	};
-
-	using Value = std::variant<std::monostate, bool, i64, u64, f64, utf8::string>;
-
-	struct TokenIndexValuePair
-	{
-		Value v;
-		u32   token_index;
-	};
-
-	export struct Token
+	struct TokenValue
 	{
 		TokenType type{};
-
-		std::vector<u8> data;
-
-		Token(TokenType t)
-			: type(t)
-		{
-		}
-
-		bool operator==(const Token& other) const
-		{
-			if (type != other.type)
-				return false;
-			if (data != other.data)
-				return false;
-			return true;
-		}
+		u32       start{};
+		u32       length{};
 	};
 
-	template<typename T>
-	concept consume_predicate = requires(T&& v, char32 cp) {
-		{ v(cp) } -> std::same_as<bool>;
-	};
-
-	struct ConsumeResult
+	export struct parse_error
 	{
-		utf8::view view;
-		u64        consumed_chars;
-
-		ConsumeResult(utf8::view v, u64 chars)
-			: view(v)
-			, consumed_chars(chars)
-		{
-		}
+		std::string message;
 	};
 
-	export class config2
+	class config;
+
+	export struct value_proxy
 	{
-	private:
+		std::string_view key;
+		const config&    cfg;
 
-	private:
-		std::string        data;
-		std::vector<Token> tokens;
+		template<typename T>
+		T as() const;
 
-		void parse(std::span<u8> buffer)
-		{
-			using namespace utf8::basic_characters;
-
-
-			for (size_t index = 0; index < buffer.size_bytes(); index++)
-			{
-				u8 c = buffer[index];
-
-				if (c == LINE_FEED) // posix
-				{
-					tokens.push_back(TokenType::NEWLINE_POSIX);
-					continue;
-				}
-			}
-		}
-
-
-	public:
-		config2(std::span<u8> input) { parse(input); }
-
-		config2(std::string_view input)
-			: config2(to_span(input))
-		{
-		}
-
-		utf8::string to_string() const
-		{
-			utf8::string result;
-			for (const auto& token : tokens)
-			{
-				switch (token.type)
-				{
-					case TokenType::NEWLINE: [[fallthrough]];
-					case TokenType::NEWLINE_POSIX: result.append("\n"); break;
-					case TokenType::NEWLINE_WINDOWS: result.append("\r\n"); break;
-					case TokenType::SECTION:
-						result.append("[");
-						//result.append(token.value);
-						result.append("]");
-						break;
-					case TokenType::KEY:
-						//result.append(token.value);
-						result.append(" = ");
-
-						break;
-					case TokenType::VALUE:
-					{
-
-						//result.append(token.value);
-						break;
-					}
-					case TokenType::COMMENT:
-						result.append(" # ");
-						//result.append(token.value);
-						break;
-					default: dbg::panic("no handler for this token type: {}", static_cast<u8>(token.type));
-				}
-			}
-			return result;
-		}
+		operator bool() const;
+		explicit operator std::string() const;
+		explicit operator int() const;
+		explicit operator float() const;
+		explicit operator double() const;
 	};
 
-#if 0
+	export struct mutable_value_proxy
+	{
+		std::string_view key;
+		config&          cfg;
+
+		template<typename T>
+		T as() const;
+
+		template<typename T>
+		mutable_value_proxy& operator=(T value);
+
+		operator bool() const;
+		explicit operator std::string() const;
+		explicit operator int() const;
+		explicit operator float() const;
+		explicit operator double() const;
+	};
+
 	export class config
 	{
 	private:
-		utf8::string       data;
-		std::vector<Token> tokens;
+		utf8::string                 m_data;
+		std::vector<TokenValue>      tokens;
+		std::unordered_map<u64, u64> key_hash_to_token_index;
+		std::vector<parse_error>     m_errors;
+		fs::path                     filename;
 
-		// std::unordered_map<
-
-
-		ConsumeResult consume_ascii_until(consume_predicate auto&& predicate, utf8::iterator start)
+		void skip_until_newline(utf8::view& view)
 		{
-			auto end = data.end();
-			auto it  = start;
-			while (it != end && !predicate(*it))
-			{
-				if (utf8::is_whitespace(*it))
-					return {data.subview(start, it - start), it - start};
-				++it;
-			}
-			if (it == end)
-				return {data.subview(start, it - start), it - start};
-			return {data.subview(start, it - start), it - start + 1};
+			while (view and (not utf8::is_newline(*view)))
+				view++;
 		}
 
-		std::expected<utf8::view, std::string> consume_section(utf8::iterator start)
+		void skip_whitespace(utf8::view& view)
 		{
-			auto section_start = start + 1; // skip '['
-			auto end           = data.end();
+			using namespace utf8::basic_characters;
 
-			while (start != end && *start != ']')
-			{
-				if (utf8::is_whitespace(*start))
-					return std::unexpected("Invalid section header");
-				++start;
-			}
-			if (start == end)
-				return std::unexpected("Invalid section header");
-			auto section = data.subview(section_start, start - section_start);
-			return section;
+			while (view and (*view == SPACE or *view == CHARACTER_TABULATION))
+				view++;
 		}
 
-		std::expected<utf8::view, std::string> consume_comment(utf8::iterator start)
+		void trim_trailing_whitespace(utf8::view& end, u32& len)
 		{
-			start += 1; // skip #
+			using namespace utf8::basic_characters;
 
-			auto total_start   = start;
-			auto comment_start = start;
-			auto end           = data.end();
-
-			while (comment_start != end && utf8::is_whitespace(*comment_start))
-				++comment_start;
-
-			while (start != end && *start != '\n' && *start != '\r')
-				++start;
-
-			if (start == end)
-				return std::unexpected("Invalid comment header");
-
-			auto comment = data.subview(comment_start, start - comment_start);
-
-			size_t consumed_chars = comment_start - total_start;
-
-			return comment;
-		}
-
-		void tokenize()
-		{
-			if (data.empty())
-				return;
-
-			auto start = data.begin();
-			auto end   = data.end();
-			while (start != end)
+			while (len > 0)
 			{
-				auto current = *start;
-
-				if (*start == '\n' or *start == '\r')
+				auto tmp = end;
+				--tmp;
+				const char32 ch = *tmp;
+				if (ch == SPACE or ch == CHARACTER_TABULATION)
 				{
-					if (start + 1 != end && *(start + 1) == '\n')
-					{
-						tokens.push_back({.type = TokenType::NEWLINE_POSIX, .value = ""});
-						start += 2;
-					}
-					else
-					{
-						tokens.push_back({.type = TokenType::NEWLINE_WINDOWS, .value = ""});
-						start += 1;
-					}
-				}
-				else if (utf8::is_whitespace(*start))
-				{
-					start++;
-					continue;
-				}
-				else if (*start == '[')
-				{
-					// TODO: consume_section should return how many characters it consumed
-					auto section = consume_section(start);
-					if (section.has_value())
-						tokens.push_back({.type = TokenType::SECTION, .value = utf8::string(section.value())});
-
-					start += section.has_value() ? section.value().size() + 2ull : 0;
-					continue;
-				}
-				else if (*start == '#')
-				{
-					auto comment = consume_comment(start);
-					if (comment.has_value())
-						tokens.push_back({.type = TokenType::COMMENT, .value = utf8::string(comment.value())});
-
-					// TODO: consume_comment should return how many characters it consumed
-					// +2 here is wrong,
-
-					size_t len = comment.has_value() ? comment.value().size() + 2ull : 0;
-
-					start += len;
-					continue;
+					--end;
+					--len;
 				}
 				else
+					break;
+			}
+		}
+
+		void build_index()
+		{
+			std::string section;
+			utf8::view  view(m_data);
+
+			for (u64 i = 0; i < tokens.size(); ++i)
+			{
+				const auto& tok = tokens[i];
+
+				if (tok.type == TokenType::SECTION)
 				{
-					auto key_start = start;
-					while (start != end && *start != '=' && *start != '\n' && *start != '\r')
-						++start;
-					auto key = utf8::string{key_start, start};
+					auto sv = view.subview(tok.start, tok.length);
+					section.assign(sv.c_str(), sv.size_in_bytes());
+				}
+				else if (tok.type == TokenType::KEY and i + 1 < tokens.size())
+				{
+					auto key_sv  = view.subview(tok.start, tok.length);
+					auto key_str = std::string{key_sv.c_str(), key_sv.size_in_bytes()};
 
-
-					tokens.push_back({TokenType::KEY, key.trim()});
-					dbg::println("key '{}'", key);
-
-					if (start != end && *start == '=')
-					{
-						++start; // consume '='
-						auto value_start = start;
-						while (start != end && *start != '\n' && *start != '\r' && *start != '#')
-							++start;
-						auto value = utf8::string{value_start, start};
-						_          = 0;
-						tokens.push_back({TokenType::VALUE, value.trim()});
-						dbg::println("value: '{}'", value);
-					}
+					auto full_key = section.empty() ? key_str : section + '.' + key_str;
+					auto hash     = utils::stringhash(full_key);
+					if (not key_hash_to_token_index.contains(hash))
+						key_hash_to_token_index[hash] = i + 1;
 				}
 			}
 		}
 
+		static TokenType classify_value(std::string_view sv)
+		{
+			if (sv.empty())
+				return TokenType::VALUE_STRING;
+
+			if (sv == "true" or sv == "false")
+				return TokenType::VALUE_BOOL;
+
+			const char* p   = sv.data();
+			const char* end = p + sv.size();
+
+			// Optional leading sign
+			if (p != end and (*p == '+' or *p == '-'))
+				++p;
+
+			// Integer digits
+			const char* int_start = p;
+			while (p != end and *p >= '0' and *p <= '9')
+				++p;
+
+			if (p == int_start)
+				return TokenType::VALUE_STRING; // no digits
+
+			if (p == end)
+				return TokenType::VALUE_INTEGER;
+
+			// Decimal point separates integer from float
+			if (*p != '.')
+				return TokenType::VALUE_STRING;
+			++p;
+
+			// Fractional digits (required)
+			const char* frac_start = p;
+			while (p != end and *p >= '0' and *p <= '9')
+				++p;
+
+			if (p == frac_start)
+				return TokenType::VALUE_STRING; // bare "3." is not a float
+
+			// Optional exponent
+			if (p != end and (*p == 'e' or *p == 'E'))
+			{
+				++p;
+				if (p != end and (*p == '+' or *p == '-'))
+					++p;
+				const char* exp_start = p;
+				while (p != end and *p >= '0' and *p <= '9')
+					++p;
+				if (p == exp_start)
+					return TokenType::VALUE_STRING; // 'e' without digits
+			}
+
+			return (p == end) ? TokenType::VALUE_FLOAT : TokenType::VALUE_STRING;
+		}
+
+		void parse_key(utf8::view& view)
+		{
+			using namespace utf8::basic_characters;
+
+			skip_whitespace(view);
+
+			auto copyview = view;
+			u32  start    = as<u32>(copyview.index());
+			while (copyview and utf8::is_xid_continue(*copyview))
+				copyview++;
+			u32 len = as<u32>(copyview.index() - start);
+			trim_trailing_whitespace(copyview, len);
+			skip_whitespace(copyview);
+			if (not copyview or *copyview != EQUALS_SIGN)
+			{
+				skip_until_newline(view);
+				return;
+			}
+
+			view += len;
+			skip_whitespace(view);
+			tokens.push_back({TokenType::KEY, start, len});
+		}
+
+		void parse_value(utf8::view& view)
+		{
+			using namespace utf8::basic_characters;
+
+			skip_whitespace(view);
+			if (not view)
+				return;
+
+			// Quoted string — store content inside the quotes
+			if (*view == QUOTATION_MARK)
+			{
+				view++; // skip opening "
+				auto copyview = view;
+				u32  start    = as<u32>(copyview.index());
+				while (copyview and *copyview != QUOTATION_MARK and not utf8::is_newline(*copyview))
+					copyview++;
+				u32 len = as<u32>(copyview.index() - start);
+				view += len;
+				if (view and *view == QUOTATION_MARK)
+					view++; // skip closing "
+				tokens.push_back({TokenType::VALUE_STRING, start, len});
+				return;
+			}
+
+			// Unquoted value (booleans, numbers, bare identifiers)
+			auto copyview = view;
+			u32  start    = as<u32>(copyview.index());
+			while (copyview and not utf8::is_newline(*copyview))
+			{
+				if (*copyview == HASH)
+					break;
+				copyview++;
+			}
+			u32 len = as<u32>(copyview.index() - start);
+			trim_trailing_whitespace(copyview, len);
+
+			auto             val_sub = view.subview(start, len);
+			std::string_view sv{val_sub.c_str(), val_sub.size_in_bytes()};
+			view += len;
+			tokens.push_back({classify_value(sv), start, len});
+		}
+
+		void parse_comment(utf8::view& view)
+		{
+			using namespace utf8::basic_characters;
+
+			view++; // eat hash
+			skip_whitespace(view);
+
+			auto copyview = view;
+			u32  start    = as<u32>(copyview.index());
+
+			while (copyview and (not utf8::is_newline(*copyview)))
+				copyview++;
+
+			u32 len = as<u32>(copyview.index() - start);
+			trim_trailing_whitespace(copyview, len);
+
+			view += len;
+
+			tokens.push_back({TokenType::COMMENT, start, len});
+		}
+
+		void parse_section(utf8::view& view)
+		{
+			using namespace utf8::basic_characters;
+			view++; // eat left square bracket
+
+			u32 start = as<u32>(view.index());
+
+			while (view and *view != RIGHT_SQUARE_BRACKET and not utf8::is_newline(*view))
+				view++;
+			u32 len = as<u32>(view.index() - start);
+
+			// Trim on a copy so view stays positioned at ']'
+			auto copyview = view;
+			trim_trailing_whitespace(copyview, len);
+
+			const bool has_closing_bracket = view and *view == RIGHT_SQUARE_BRACKET;
+			if (has_closing_bracket)
+				view++; // eat right square bracket
+
+			if (len == 0)
+			{
+				m_errors.push_back({"empty section name"});
+				return;
+			}
+
+			if (not has_closing_bracket)
+			{
+				m_errors.push_back({"missing closing ']' for section"});
+				return;
+			}
+
+			tokens.push_back({TokenType::SECTION, start, len});
+		}
+
+		void parse()
+		{
+			using namespace utf8::basic_characters;
+			using namespace std::string_view_literals;
+
+
+			if (m_data.empty())
+				return;
+
+			utf8::view view(m_data);
+
+
+			while (view)
+			{
+				// New lines
+				if (*view == LINE_FEED) // \n
+				{
+					u32 current_index = as<u32>(view.index());
+					tokens.push_back({TokenType::NEWLINE_POSIX, current_index, 1});
+					view++;
+					continue;
+				}
+
+				if (*view == CARRIAGE_RETURN) // \r
+				{
+					u32 current_index = as<u32>(view.index());
+					view++;
+
+					if (view and *view == LINE_FEED) // \r\n
+					{
+						tokens.push_back({TokenType::NEWLINE_WINDOWS, current_index, 2});
+						view++;
+						continue;
+					}
+
+					tokens.push_back({TokenType::NEWLINE_POSIX, current_index, 1});
+					continue;
+				}
+
+				// section
+				if (*view == LEFT_SQUARE_BRACKET)
+				{
+					parse_section(view);
+					continue;
+				}
+
+				// whitespace before key is ignored
+				if (utf8::is_whitespace(*view))
+				{
+					view++;
+					continue;
+				}
+
+				// Comment
+				if (*view == HASH)
+				{
+					parse_comment(view);
+					continue;
+				}
+
+				// key
+				if (utf8::is_xid_start(*view))
+				{
+					parse_key(view);
+					continue;
+				}
+
+				// equals
+				if (*view == EQUALS_SIGN)
+				{
+					view++;
+					parse_value(view);
+					continue;
+				}
+
+				dbg::println("config: unrecognized token starting with '{}'", static_cast<char>(*view));
+				view++;
+			}
+
+			build_index();
+		}
 
 	public:
-		explicit config(utf8::view view)
-			: data(view)
+		config() = default;
+
+		explicit config(fs::path file)
 		{
-			data = view;
-			tokenize();
+			filename = file;
+			m_data.assign(file::read_text_file(file));
+			parse();
 		}
 
 		config(std::string_view input)
+			: m_data(input)
 		{
-			data = input;
-			tokenize();
+			parse();
 		}
 
-		utf8::string to_string() const
+		config(const utf8::string& input)
+			: m_data(input)
 		{
-			utf8::string result;
+			parse();
+		}
+
+#ifdef __cpp_deleted_function
+#error "Use this one"
+		config(const char* input) = delete("lets avoid old char*");
+#endif
+		config(const char* input) = delete;
+
+		~config() { (void)save(); }
+
+#ifdef _DEBUG
+		void dump() const
+		{
+			utf8::view view(m_data);
+
 			for (const auto& token : tokens)
 			{
-				switch (token.type)
+				dbg::println(
+				  "{}({}-{}): '{}'",
+				  token_type_to_string(token.type),
+				  token.start,
+				  token.length,
+				  view.subview(token.start, token.length).trim());
+			}
+		}
+
+		void dump_index() const
+		{
+			std::string section;
+			utf8::view  view(m_data);
+
+			for (u64 i = 0; i < tokens.size(); ++i)
+			{
+				const auto& tok = tokens[i];
+
+				if (tok.type == TokenType::SECTION)
 				{
-					case TokenType::NEWLINE: [[fallthrough]];
-					case TokenType::NEWLINE_POSIX: result.append("\n"); break;
-					case TokenType::NEWLINE_WINDOWS: result.append("\r\n"); break;
-					case TokenType::SECTION:
-						result.append("[");
-						result.append(token.value);
-						result.append("]");
-						break;
-					case TokenType::KEY:
-						result.append(token.value);
-						result.append(" = ");
-						dbg::println("key token value '{} /#'", token.value);
+					auto sv = view.subview(tok.start, tok.length);
+					section.assign(sv.c_str(), sv.size_in_bytes());
+				}
+				else if (tok.type == TokenType::KEY and i + 1 < tokens.size())
+				{
+					auto key_sv   = view.subview(tok.start, tok.length);
+					auto key_str  = std::string{key_sv.c_str(), key_sv.size_in_bytes()};
+					auto full_key = section.empty() ? key_str : section + '.' + key_str;
 
-						break;
-					case TokenType::VALUE:
-					{
+					const auto& val_tok = tokens[i + 1];
+					auto        val_sv  = view.subview(val_tok.start, val_tok.length);
 
-						result.append(token.value);
-						dbg::println("value token value'{}' /#", token.value);
-						break;
-					}
-					case TokenType::COMMENT:
-						result.append(" # ");
-						result.append(token.value);
-						break;
-					default: dbg::panic("no handler for this token type: {}", static_cast<u8>(token.type));
+					dbg::println("'{}' -> '{}'", full_key, val_sv);
 				}
 			}
-			return result;
 		}
-	};
 #endif
-} // namespace deckard::config
+		u32 size() const { return static_cast<u32>(tokens.size()); }
 
-export namespace std
-{
+		bool has_errors() const { return not m_errors.empty(); }
 
-	template<>
-	struct formatter<deckard::config::Token>
-	{
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		std::span<const parse_error> errors() const { return m_errors; }
 
-		auto format(const deckard::config::Token& v, std::format_context& ctx) const
+		template<typename T>
+		T get(std::string_view key) const
 		{
-			return std::format_to(ctx.out(), "{}", "");
-		}
-	};
+			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			if (it == key_hash_to_token_index.end())
+				return T{};
 
-	template<>
-	struct formatter<deckard::config::config2>
-	{
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+			const auto&      tok = tokens[it->second];
+			utf8::view       view(m_data);
+			auto             val_view = view.subview(tok.start, tok.length);
+			std::string_view sv{val_view.c_str(), val_view.size_in_bytes()};
 
-		auto format(const deckard::config::config2& v, std::format_context& ctx) const
-		{
-			return std::format_to(ctx.out(), "{}", v.to_string());
-		}
-	};
-
-	template<>
-	struct formatter<deckard::config::SectionKey>
-	{
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-
-		auto format(const deckard::config::SectionKey& v, std::format_context& ctx) const
-		{
-			if (v.section.empty())
-				return std::format_to(ctx.out(), "{}", v.key);
+			if constexpr (std::is_same_v<T, bool>)
+				return sv == "true";
+			else if constexpr (std::is_same_v<T, std::string>)
+				return std::string{sv};
+			else if constexpr (std::is_arithmetic_v<T>)
+			{
+				T result{};
+				std::from_chars(sv.data(), sv.data() + sv.size(), result);
+				return result;
+			}
 			else
-				return std::format_to(ctx.out(), "{}.{}", v.section, v.key);
+				return T{};
 		}
 
-		int  parsed_base = 10;
-		bool uppercase   = false;
+		template<typename T>
+		void set(std::string_view key, T value)
+		{
+			// Plain content (no quotes) — used for in-place token replacement
+			std::string content;
+			if constexpr (std::is_same_v<T, bool>)
+				content = value ? "true" : "false";
+			else if constexpr (std::is_convertible_v<T, std::string_view>)
+				content = std::string{std::string_view{value}};
+			else
+				content = std::format("{}", value);
+
+			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			if (it != key_hash_to_token_index.end())
+			{
+				// Update: replace the content only — surrounding quotes in m_data stay intact
+				auto& val_tok   = tokens[it->second];
+				u32   old_start = val_tok.start;
+				u32   old_len   = val_tok.length;
+				u32   new_len   = as<u32>(utf8::view{std::string_view{content}}.size());
+
+				m_data.replace(old_start, old_len, content);
+				val_tok.length = new_len;
+
+				i64 delta = as<i64>(new_len) - as<i64>(old_len);
+				if (delta != 0)
+				{
+					u64 val_idx = it->second;
+					for (u64 i = val_idx + 1; i < tokens.size(); ++i)
+					{
+						if (tokens[i].start >= old_start + old_len)
+							tokens[i].start = as<u32>(as<i64>(tokens[i].start) + delta);
+					}
+				}
+				return;
+			}
+
+			// Add: string values are written with double quotes; others bare
+			std::string written_value;
+			if constexpr (std::is_convertible_v<T, std::string_view>)
+				written_value = std::format("\"{}\"", content);
+			else
+				written_value = content;
+
+			auto dot = key.find('.');
+			if (dot != std::string_view::npos)
+			{
+				auto section_name = key.substr(0, dot);
+				auto key_name     = key.substr(dot + 1);
+
+				utf8::view view(m_data);
+				for (u64 i = 0; i < tokens.size(); ++i)
+				{
+					const auto& tok = tokens[i];
+					if (tok.type != TokenType::SECTION)
+						continue;
+
+					auto sv     = view.subview(tok.start, tok.length);
+					auto sv_str = std::string_view{sv.c_str(), sv.size_in_bytes()};
+					if (sv_str != section_name)
+						continue;
+
+					// Found matching section; locate last newline before next section or EOF
+					u32       last_nl_start  = 0;
+					u32       last_nl_length = 0;
+					TokenType last_nl_type   = TokenType::NEWLINE_POSIX;
+					bool      found_nl       = false;
+					for (u64 j = i + 1; j < tokens.size(); ++j)
+					{
+						if (tokens[j].type == TokenType::SECTION)
+							break;
+						if (tokens[j].type == TokenType::NEWLINE_POSIX or tokens[j].type == TokenType::NEWLINE_WINDOWS)
+						{
+							last_nl_start  = tokens[j].start;
+							last_nl_length = tokens[j].length;
+							last_nl_type   = tokens[j].type;
+							found_nl       = true;
+						}
+					}
+
+					std::string entry = std::format("\n{} = {}", key_name, written_value);
+					if (found_nl)
+					{
+						std::string_view nl_str = (last_nl_type == TokenType::NEWLINE_WINDOWS) ? "\r\n" : "\n";
+						m_data.replace(last_nl_start, last_nl_length, entry + std::string{nl_str});
+					}
+					else
+						m_data.append(entry);
+
+					tokens.clear();
+					key_hash_to_token_index.clear();
+					m_errors.clear();
+					parse();
+					return;
+				}
+			}
+
+			// Section not found or key has no section
+			if (dot != std::string_view::npos)
+			{
+				// New section block: append after existing content
+				std::string entry = std::format("\n[{}]\n{} = {}\n", key.substr(0, dot), key.substr(dot + 1), written_value);
+				m_data.append(entry);
+			}
+			else
+			{
+				// Global key: insert after existing globals, before first section
+				auto first_section = std::ranges::find_if(tokens, [](const TokenValue& t) { return t.type == TokenType::SECTION; });
+
+				if (first_section == tokens.end())
+				{
+					// No sections: append to end
+					m_data.append(std::format("\n{} = {}\n", key, written_value));
+				}
+				else
+				{
+					// Insert before '[', maintaining exactly one blank line before the section
+					u32         bracket_pos = first_section->start - 1;
+					const char* raw         = m_data.c_str();
+
+					// Count consecutive '\n' immediately before '['
+					u32 nl_count = 0;
+					while (nl_count < bracket_pos and raw[bracket_pos - 1 - nl_count] == '\n')
+						nl_count++;
+
+					std::string entry = std::format("\n{} = {}\n\n", key, written_value);
+
+					if (nl_count == 0)
+					{
+						// Nothing before '[': prepend with leading newline + blank line
+						m_data.insert(m_data.begin(), entry);
+					}
+					else
+					{
+						// Replace existing newlines with: separator + entry + blank line
+						u32 nl_start = bracket_pos - nl_count;
+						m_data.replace(nl_start, nl_count, entry);
+					}
+				}
+			}
+			tokens.clear();
+			key_hash_to_token_index.clear();
+			m_errors.clear();
+			parse();
+		}
+
+		void set_comment(std::string_view key, std::string_view comment)
+		{
+			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			if (it == key_hash_to_token_index.end())
+			{
+				dbg::println("set_comment: key '{}' not found, cannot set comment", key);
+				return;
+			}
+
+			u64        val_idx = it->second;
+			auto&      val_tok = tokens[val_idx];
+			utf8::view view(m_data);
+
+			// Check if there's a COMMENT token immediately after the VALUE
+			u64 comment_idx = val_idx + 1;
+			while (comment_idx < tokens.size() and
+				   (tokens[comment_idx].type == TokenType::NEWLINE_POSIX or tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
+				comment_idx++;
+
+			if (comment_idx < tokens.size() and tokens[comment_idx].type == TokenType::COMMENT)
+			{
+				// Replace existing comment
+				auto& comment_tok = tokens[comment_idx];
+				m_data.replace(comment_tok.start, comment_tok.length, comment);
+
+				// Update token positions after current comment
+				i64 delta          = as<i64>(comment.size()) - as<i64>(comment_tok.length);
+				comment_tok.length = as<u32>(comment.size());
+				if (delta != 0)
+				{
+					for (u64 i = comment_idx + 1; i < tokens.size(); ++i)
+						tokens[i].start = as<u32>(as<i64>(tokens[i].start) + delta);
+				}
+			}
+			else
+			{
+				// Insert new comment after value token
+				u32         insert_pos = val_tok.start + val_tok.length;
+				std::string entry      = std::format(" # {}", comment);
+				m_data.insert(m_data.begin() + insert_pos, entry);
+
+				// Reparse to update all token positions
+				tokens.clear();
+				key_hash_to_token_index.clear();
+				m_errors.clear();
+				parse();
+			}
+		}
+
+		value_proxy         operator[](std::string_view key) const;
+		mutable_value_proxy operator[](std::string_view key);
+
+		auto operator[](u32 index) const
+		{
+			assert::check(index < tokens.size(), "token index out of bounds");
+			return tokens[index];
+		}
+
+		auto begin() const { return tokens.begin(); }
+
+		auto end() const { return tokens.end(); }
+
+		auto cbegin() const { return tokens.cbegin(); }
+
+		auto cend() const { return tokens.cend(); }
+
+		utf8::string to_string() const { return m_data; }
+
+		std::span<u8> data() { return m_data.data(); }
+
+		std::span<const u8> data() const { return m_data.data(); }
+
+		auto save(fs::path file = "") -> std::expected<u32, std::string>
+		{
+			if (file.empty())
+				file = filename;
+			if (file.empty())
+			{
+				return std::unexpected("no filename specified");
+			}
+			return file::write({.filename = file, .buffer = data()});
+		}
 	};
-#endif
-#pragma endregion
-} // namespace deckard::config
+
+	// ###############################################################################################
+
+	template<typename T>
+	T value_proxy::as() const
+	{
+		return cfg.get<T>(key);
+	}
+
+	inline value_proxy::operator bool() const { return as<bool>(); }
+
+	inline value_proxy::operator std::string() const { return as<std::string>(); }
+
+	inline value_proxy::operator int() const { return as<int>(); }
+
+	inline value_proxy::operator float() const { return as<float>(); }
+
+	inline value_proxy::operator double() const { return as<double>(); }
+
+	inline value_proxy config::operator[](std::string_view key) const { return {key, *this}; }
+
+	template<typename T>
+	T mutable_value_proxy::as() const
+	{
+		return cfg.get<T>(key);
+	}
+
+	template<typename T>
+	mutable_value_proxy& mutable_value_proxy::operator=(T value)
+	{
+		cfg.set(key, value);
+		return *this;
+	}
+
+	inline mutable_value_proxy::operator bool() const { return as<bool>(); }
+
+	inline mutable_value_proxy::operator std::string() const { return as<std::string>(); }
+
+	inline mutable_value_proxy::operator int() const { return as<int>(); }
+
+	inline mutable_value_proxy::operator float() const { return as<float>(); }
+
+	inline mutable_value_proxy::operator double() const { return as<double>(); }
+
+	inline mutable_value_proxy config::operator[](std::string_view key) { return {key, *this}; }
+} // namespace deckard
+
