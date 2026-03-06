@@ -720,6 +720,33 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(str[10] == (u32)'d');
 	}
 
+	SECTION("peek ascii") 
+	{ 
+		utf8::string str("hello world");
+		utf8::view   v(str.data());
+		CHECK(str.size() == 11);
+
+		CHECK(v.peek(0) == 'h');
+		CHECK(v.peek(1) == 'e');
+		CHECK(v.peek(10) =='d');
+		CHECK(v.peek(11) == std::nullopt);
+
+	}
+
+	SECTION("peek utf8")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   v(str.data());
+		CHECK(str.size() == 7);
+		CHECK(v.peek(0) == 0x1'f30d);
+		CHECK(v.peek(1) == 'h');
+		CHECK(v.peek(5) == 'o');
+		CHECK(v.peek(6) == 0x1'f30d);
+
+		CHECK(v.peek(7) == std::nullopt);
+	}
+
+
 	SECTION("pre/post iterator ascii")
 	{
 		utf8::string str("hello world");
@@ -999,6 +1026,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(str.size() == 91);
 		CHECK(str.capacity() == 256);
 	}
+
 
 	SECTION("capacity")
 	{
