@@ -1,6 +1,6 @@
 
 
-cmake_minimum_required (VERSION 3.30)
+cmake_minimum_required (VERSION 4.2)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -51,7 +51,8 @@ if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /std:c++latest)
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus)
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
-
+    
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 
     target_compile_options(${PROJECT_NAME} PRIVATE /fp:precise)
     target_compile_options(${PROJECT_NAME} PRIVATE /diagnostics:caret)
@@ -71,16 +72,13 @@ if(MSVC)
 
         set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
 
-
         target_compile_definitions(${PROJECT_NAME} PRIVATE -DDEBUG)
-        target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 
         target_compile_options(${PROJECT_NAME} PRIVATE /JMC)    # Just my debugging
         target_compile_options(${PROJECT_NAME} PRIVATE /Od)
         target_compile_options(${PROJECT_NAME} PRIVATE /RTC1)
         target_compile_options(${PROJECT_NAME} PRIVATE /GS)
         target_compile_options(${PROJECT_NAME} PRIVATE /Zi)     # /ZI edit/continue
-
 
         target_link_options(${PROJECT_NAME} PRIVATE /DEBUG)
         target_link_options(${PROJECT_NAME} PRIVATE /INCREMENTAL)
@@ -95,7 +93,7 @@ if(MSVC)
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE -DNDEBUG)
 
-        target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+
         target_compile_options(${PROJECT_NAME} PRIVATE /O2 /Os)
         target_compile_options(${PROJECT_NAME} PRIVATE /GS-)
         target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
@@ -142,6 +140,8 @@ if(MSVC)
 
 
 endif()
+
+
 
 
 # Modules

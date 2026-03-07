@@ -1,18 +1,19 @@
-github.com/AlDanial/cloc v 1.98  T=0.12 s (914.5 files/s, 294803.4 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.21 s (534.5 files/s, 175250.9 lines/s)
 -----------------------------------------------------------------------------------------
 File                                                  blank        comment           code
 -----------------------------------------------------------------------------------------
+.\utils\helpers.ixx                                     279             63           1160
 .\types\bigint.ixx                                      280             32           1146
-.\example\window\src\winmain.cpp                        406            252           1105
+.\example\window\src\winmain.cpp                        428            259           1128
 .\graphs\graph.ixx                                      176             27           1091
-.\utils\helpers.ixx                                     270             55           1074
 .\app\app.ixx                                           345            179           1042
 .\unicode\utf8string.ixx                                296             19           1036
 .\types\image.ixx                                       222             58           1016
 .\scripting\lexer\lexer.ixx                             261             52            973
-.\utils\smallbufferobject.ixx                           218             37            723
+.\utils\smallbufferobject.ixx                           220             33            736
 .\utils\sha.ixx                                         154              4            655
-.\file\file.ixx                                         190             52            654
+.\file\File.ixx                                         190             52            654
+.\config\config.ixx                                     145             32            623
 .\math\generic_vec4.ixx                                 146             11            620
 .\math\generic_vec3.ixx                                 148             13            590
 .\app\vulkan\device.ixx                                 195             34            546
@@ -32,13 +33,12 @@ File                                                  blank        comment      
 .\math\quaternion.ixx                                    94              0            314
 .\utils\colors.ixx                                       83             16            313
 .\utils\cpuid.ixx                                       105             13            313
-.\config\ini.ixx                                         86             39            308
 .\app\gl\opengl.ixx                                      58              7            289
+.\unicode\utf8view.ixx                                   84              0            275
 .\utils\arrays.ixx                                      112              2            273
 .\math\vec4_sse.ixx                                      98             12            270
 .\unicode\utf8_xid_tables.ixx                             8              4            267
 .\app\vulkan.ixx                                        101             48            264
-.\unicode\utf8view.ixx                                   79              0            260
 .\platform\platform_win32.ixx                            82             26            245
 .\types\as.ixx                                           40             19            235
 .\math\math_utility.ixx                                  64             15            234
@@ -47,12 +47,11 @@ File                                                  blank        comment      
 .\net\ip.ixx                                             46             28            206
 .\utils\logger.ixx                                       60              5            199
 .\monocypher\monocypher.ixx                              79              6            195
+.\types\types.ixx                                        83             52            195
 .\unicode\utf8_decode.ixx                                46             20            194
-.\types\types.ixx                                        78             52            182
 .\threadpool\threadpool.ixx                              33             10            180
 .\app\inputs.ixx                                         36              4            178
-.\Deckard.ixx                                            71             22            175
-.\config\config.ixx                                      58             54            166
+.\Deckard.ixx                                            71             22            174
 .\math\ease_functions.ixx                                30              7            158
 .\debug\debug.ixx                                        54             36            156
 .\file\filemonitor.ixx                                   38              7            154
@@ -74,7 +73,7 @@ File                                                  blank        comment      
 .\debug\debug_null.ixx                                   33              4             94
 .\app\vulkan\command_buffer.ixx                          33              3             93
 .\utils\timers.ixx                                       22              4             91
-.\app\vulkan\core.ixx                                    31             33             89
+.\app\vulkan\core.ixx                                    32             33             89
 .\utils\hmac.ixx                                         28              3             87
 .\compress\zstd.ixx                                      17              1             84
 .\utils\lru.ixx                                          21              1             82
@@ -116,5 +115,5 @@ File                                                  blank        comment      
 .\utils\system_win32.ixx                                  6              0              5
 .\scripting\parser\parser.ixx                            11             16              4
 -----------------------------------------------------------------------------------------
-SUM:                                                   7489           1869          27070
+SUM:                                                   7534           1819          27368
 -----------------------------------------------------------------------------------------

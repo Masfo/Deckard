@@ -6,6 +6,7 @@ module;
 #include <vulkan/vulkan_win32.h>
 
 
+
 export module deckard.vulkan:core;
 
 import std;

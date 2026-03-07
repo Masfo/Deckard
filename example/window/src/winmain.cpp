@@ -274,10 +274,10 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 
 	NtpPacket pkt{};
 
-	uint8_t li_vn_mode = raw[0];
-	pkt.leapIndicator  = (li_vn_mode >> 6) & 0x03;
-	pkt.version        = (li_vn_mode >> 3) & 0x07;
-	pkt.mode           = li_vn_mode & 0x07;
+	u8 li_vn_mode     = raw[0];
+	pkt.leapIndicator = (li_vn_mode >> 6) & 0x03;
+	pkt.version       = (li_vn_mode >> 3) & 0x07;
+	pkt.mode          = li_vn_mode & 0x07;
 
 	pkt.stratum = raw[1];
 
@@ -477,29 +477,50 @@ struct XC
 
 using Input3 = std::array<u8, 3>;
 
-void test_span_intake(const Input3 input)
-{
-	//
-	dbg::println("{}", input);
-}
-
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
+	std::print("{} {}", big_text("DECKARD"), big_text(deckard_build::build::version_string));
 #endif
 	// ########################################################################
 
-	for (const auto& chunk : file::read_chunks({.file = "260.bin", .chunk_size = 64}))
+	for (const auto& chunk : file::read_chunks({.filename = "260.bin", .chunk_size = 64}))
 	{
 		info("chunk ({:>4} bytes): {}", chunk.size(), to_hex_string(chunk, {.delimiter = ","}));
 	}
 
 	// ########################################################################
 
-	test_cmdliner();
 
+
+	std::array<u8, 32> hashdata{};
+
+	constexpr auto hex_char = [](char c) -> u8
+	{
+		if (c >= '0' && c <= '9')
+			return c - '0';
+		if (c >= 'a' && c <= 'f')
+			return c - 'a' + 10;
+		if (c >= 'A' && c <= 'F')
+			return c - 'A' + 10;
+	};
+
+	std::string hex = "00e3a7f2c18b4d9e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3";
+
+	for (size_t i = 0; i < 32; ++i)
+		hashdata[i] = (hex_char(hex[i * 2]) << 4) | hex_char(hex[i * 2 + 1]);
+
+
+	for (const auto& i : hashdata)
+		dbg::print("{:08b}", i);
+	dbg::println();
+
+
+	//
+
+	test_cmdliner();
 
 
 	_;
@@ -518,6 +539,39 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
+	config cfg(fs::path{"config.txt"});
+
+	dbg::println("Version: {}", cfg["version"].as<std::string>());
+	dbg::println("width: {}", cfg["window.width"].as<u32>());
+	dbg::println("height: {}", cfg["window.height"].as<u32>());
+	dbg::println("fullscreen: {}", cfg["window.fullscreen"].as<bool>());
+
+
+	cfg["window.fullscreen"] = not cfg["window.fullscreen"].as<bool>();
+
+	cfg["version"] = random::id(6);
+
+	cfg.set_comment("version", "This is a comment for the config file. It will be preserved when saving.");
+
+	cfg.set_comment("window.width", "new comment for window.width");
+
+
+	// cfg[std::format("new_{}", random::id(3))] = "hello world";
+
+	auto k = cfg.save();
+
+
+	// file::write(
+	//   {.filename = "config.txt",
+	//    .buffer   = cfg.data()}); // complete rewrite, should be identical to original config.txt except for the modified fullscreen
+	//    value
+	//
+
+
+	_ = 0;
+	// ########################################################################
+
+
 	auto frag = vulkan::compile_spirv13("data//example.frag");
 	auto vert = vulkan::compile_spirv13("data//example.vert");
 
@@ -525,19 +579,19 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	auto glslc_path = platform::find_file("glslc.exe");
 	if (glslc_path)
 		info("found glslc at: {}", glslc_path.value().string());
+
+
 	_ = 0;
-
-
 	// ########################################################################
 
 	std::array<u8, 128> buf128{};
 	for (const auto& [i, c] : buf128 | std::views::enumerate)
 		c = (char)i;
 
-	(void)file::write({.file = "bin128.dat", .buffer = buf128});
+	(void)file::write({.filename = "bin128.dat", .buffer = buf128});
 
 	std::array<u8, 64> buf64{};
-	(void)file::read({.file = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
+	(void)file::read({.filename = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
 
 	_ = 0;

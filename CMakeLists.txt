@@ -18,8 +18,14 @@ option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 
 # find_program(CCACHE_PROGRAM ccache)
 # if(CCACHE_PROGRAM)
-#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+#    set_property(GLOBAL PROPERTY   "${CCACHE_PROGRAM}")
 # endif()
+
+# find_program(CCACHE_PROGRAM ccache)
+# if (CCACHE_PROGRAM)
+#     set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+#     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+# endif ()
 
 
 
