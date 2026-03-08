@@ -1,9 +1,9 @@
 # https://www.sqlite.org
 
-cmake_minimum_required (VERSION 3.23)
+cmake_minimum_required (VERSION 4.2)
 
 
-set(SQLITE_ZIP_URL https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip)
+set(SQLITE_ZIP_URL https://www.sqlite.org/2026/sqlite-amalgamation-3520000.zip)
 get_filename_component(SQLITE_ZIP_NAME ${SQLITE_ZIP_URL} NAME)
 get_filename_component(SQLITE_ZIP_NAME_NOEXT ${SQLITE_ZIP_URL} NAME_WLE)
 
@@ -36,6 +36,11 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME})
 
         # Remove temp
     file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME_NOEXT})
+
+    # remove all zips except the latest one
+    file(GLOB ZIP_FILES "${CMAKE_CURRENT_LIST_DIR}/*.zip")
+    list(REMOVE_ITEM ZIP_FILES ${CMAKE_CURRENT_LIST_DIR}/${SQLITE_ZIP_NAME})
+    file(REMOVE ZIP_FILES ${ZIP_FILES})
 
 endif()
 

@@ -1,4 +1,4 @@
-﻿# https://github.com/facebook/zstd/
+# https://github.com/facebook/zstd/
 
 cmake_minimum_required (VERSION 3.23)
 
@@ -105,6 +105,11 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
 
     # Remove temp
    file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME_NOEXT})
+
+       # remove all zips except the latest one
+    file(GLOB ZIP_FILES "${CMAKE_CURRENT_LIST_DIR}/*.zip")
+    list(REMOVE_ITEM ZIP_FILES ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
+    file(REMOVE ZIP_FILES ${ZIP_FILES})
 
 endif()
 
