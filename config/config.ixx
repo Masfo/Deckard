@@ -408,7 +408,6 @@ namespace deckard
 					parse_value(view);
 					continue;
 				}
-
 				dbg::println("config: unrecognized token starting with '{}'", static_cast<char>(*view));
 				view++;
 			}
@@ -797,4 +796,3 @@ namespace deckard
 
 	inline mutable_value_proxy config::operator[](std::string_view key) { return {key, *this}; }
 } // namespace deckard
-

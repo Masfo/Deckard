@@ -764,12 +764,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	if (auto ip_result = net::get_ip_addresses("api.taboobuilder.com"); ip_result)
+	if (auto ip_result = net::get_ip_addresses("fakeaddress"); ip_result)
 	{
 		for (const auto& ip : *ip_result)
 		{
-			dbg::println("{}:{}", ip.ip, ip.version == net::IPVersion::IPV4 ? "ipv4" : "ipv6");
+         dbg::println("{}: {}", ip.version == net::IPVersion::IPV4 ? "ipv4" : "ipv6", ip.address);
 		}
+	}
+	else
+	{
+		dbg::println("Failed to get IP addresses: {}", ip_result.error());
 	}
 	_ = 0;
 

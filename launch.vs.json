@@ -19,6 +19,15 @@
       "args": [
         "hello \uD83D\uDC31"
       ]
+    },
+    {
+      "type": "debug",
+      "project": "CMakeLists.txt",
+      "projectTarget": "threader.exe (D:\\projektit\\Deckard\\bin\\threader.exe)",
+      "name": "threader utf8",
+      "args": [
+        "hello \uD83D\uDC31"
+      ]
     }
   ]
 }

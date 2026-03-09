@@ -13,63 +13,9 @@ import std;
 
 namespace deckard::net
 {
-	static constexpr u8 MAX_IPV4_ADDRESS_STR_LEN = 15;
-	static constexpr u8 MAX_IPV6_ADDRESS_STR_LEN = 39;
-
-	export enum class IPVersion : u32 {
-		IPV4 = 4,
-		IPV6 = 6,
-	};
-
-	export struct IPAddressResult
-	{
-		std::string ip;
-		IPVersion   version{IPVersion::IPV4};
-	};
-
-	export std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const std::string_view domain) noexcept
-	{
-		struct addrinfo  hints{};
-		struct addrinfo* result = nullptr;
-
-		hints.ai_family   = AF_UNSPEC;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_flags    = 0;
-		hints.ai_protocol = 0;
-
-		int status = getaddrinfo(domain.data(), nullptr, &hints, &result);
-		if (status != 0)
-			return std::unexpected(std::format("getaddrinfo: {} ({})", domain, WSAGetLastError()));
-
-		std::vector<IPAddressResult> addresses;
-
-		for (struct addrinfo* p = result; p != nullptr; p = p->ai_next)
-		{
-			char ip_str[INET6_ADDRSTRLEN] = {0};
-
-			if (p->ai_family == AF_INET)
-			{
-				// IPv4
-				struct sockaddr_in* addr_in = reinterpret_cast<struct sockaddr_in*>(p->ai_addr);
-				if (inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, sizeof(ip_str)))
-				{
-					addresses.push_back({std::string(ip_str), IPVersion::IPV4});
-				}
-			}
-			else if (p->ai_family == AF_INET6)
-			{
-				// IPv6
-				struct sockaddr_in6* addr_in6 = reinterpret_cast<struct sockaddr_in6*>(p->ai_addr);
-				if (inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, sizeof(ip_str)))
-				{
-					addresses.push_back({std::string(ip_str), IPVersion::IPV6});
-				}
-			}
-		}
-
-		freeaddrinfo(result);
-		return addresses;
-	}
+	static constexpr u8          MAX_IPV4_ADDRESS_STR_LEN = 15;
+	static constexpr u8          MAX_IPV6_ADDRESS_STR_LEN = 39;
+	constexpr std::array<u8, 12> ipv4_mapped_prefix       = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF};
 
 	// api.ipify.org
 	//
@@ -80,125 +26,114 @@ namespace deckard::net
 	export class ip
 	{
 	private:
-		std::array<u8, 16> address;
+		std::array<u8, 16> address{0};
 
-		void read_address(std::string_view input)
+		std::expected<void, std::string> validate_plain_ipv4(std::string_view v) const
+		{
+			u8     dot_count     = 0;
+			size_t segment_start = 0;
+
+			for (size_t i = 0; i <= v.size(); ++i)
+			{
+				if (i != v.size() and v[i] != '.')
+					continue;
+
+				const auto segment_len = i - segment_start;
+				if (segment_len == 0)
+					return std::unexpected(std::format("Empty octet in ipv4 address: {}", v));
+
+				if (segment_len > 1 and v[segment_start] == '0')
+					return std::unexpected(std::format("Leading zero in ipv4 address: {}", v));
+
+				u16 value = 0;
+				for (size_t j = segment_start; j < i; ++j)
+				{
+					if (not utf8::is_ascii_digit(v[j]))
+						return std::unexpected(std::format("Invalid character in ipv4 address: {}", v));
+
+					value *= 10;
+					value += as<u16>(v[j] - '0');
+					if (value > 255)
+						return std::unexpected(std::format("IP octet too large: {}", v));
+				}
+
+				if (i != v.size())
+					dot_count += 1;
+
+				segment_start = i + 1;
+			}
+
+			if (dot_count != 3)
+				return std::unexpected(std::format("Malformed ipv4 address: {}", v));
+
+			return {};
+		}
+
+		std::expected<void, std::string> read_address(std::string_view input)
 		{
 			address.fill(0u);
 			if (input.empty())
-				return;
-
-			// https://www.rfc-editor.org/rfc/rfc4291
-			// https://www.rfc-editor.org/rfc/rfc8200
-			// https://www.rfc-editor.org/rfc/rfc5952
-			//
-			//  0:0:0:0:0:0:13.1.68.3
-			//  0:0:0:0:0:FFFF:129.144.52.38
-			//
-			//	or in compressed form:
-			//
-			//  ::13.1.68.3
-			//  ::FFFF:129.144.52.38
-			//
-			// 0123 if dot in 1|2|3 then ipv4
-			// 1.1.1.1
-			// 12.1.1.1
-			// 123.1.1.1
-			// 192.168.1.9
-
-			u16 accumulator = 0;
-			u8  colon_count = 0;
-			u8  dot_count   = 0;
-			u8  pos         = 0;
+				return std::unexpected("Empty input");
 
 
-			if (input.size() >= 4 and (input[1] == '.' or input[2] == '.' or input[3] == '.'))
+			if (input.find(':') == std::string_view::npos)
 			{
-				// assume ipv4 address
-				address[10] = address[11] = 0xFF;
-				pos                       = 12;
+				auto check = validate_plain_ipv4(input);
+				if (not check)
+					return std::unexpected(check.error());
 
-				for (u8 i = 0; i < input.size(); i++)
-				{
-					if (input[i] == '.')
-					{
-						dot_count += 1;
-						assert::check(dot_count <= 3, "Too many dots in ipv4 address");
-						// TODO: actual check instead of assert
+				in_addr addr4{};
+				if (::inet_pton(AF_INET, input.data(), &addr4) != 1)
+					return std::unexpected(std::format("Invalid ipv4 address: {}", input));
 
-						address[pos] = as<u8>(accumulator);
-						accumulator  = 0;
-						pos += 1;
-					}
-					else
-					{
-						accumulator *= 10;
-						accumulator += as<u16>(utf8::ascii_hex_to_int(input[i]));
-						assert::check(accumulator <= 255, "IP octet too large");
-						// TODO: return expected
-					}
-				}
-				address[pos] += as<u8>(accumulator);
-				return;
+				address[10] = 0xFF;
+				address[11] = 0xFF;
+				std::memcpy(address.data() + 12, &addr4, 4);
+				return {};
 			}
-			else
-			{
-				// Assume ipv6 address
 
-				for (u8 i = 1; i < input.size(); i++)
-				{
-					if (input[i] == ':')
-					{
-						if (input[i - 1] == ':')
-							colon_count = 14;
-						else if (colon_count)
-							colon_count -= 2;
-					}
-				}
+			in6_addr addr6{};
+			if (::inet_pton(AF_INET6, input.data(), &addr6) != 1)
+				return std::unexpected(std::format("Invalid ipv6 address: {}", input));
 
-				for (u8 i = 0; i < input.size() && pos < 16; i++)
-				{
-
-					if (input[i] == ':')
-					{
-						address[pos + 0] = as<u8>((accumulator >> 8) & 0xFF);
-						address[pos + 1] = as<u8>((accumulator >> 0) & 0xFF);
-						accumulator      = 0;
-
-						if (colon_count && i && input[i - 1] == ':')
-							pos = colon_count;
-						else
-							pos += 2;
-					}
-					else
-					{
-						accumulator <<= 4;
-						accumulator |= utf8::ascii_hex_to_int(input[i]);
-					}
-				}
-
-				address[pos + 0] = as<u8>((accumulator >> 8) & 0xFF);
-				address[pos + 1] = as<u8>((accumulator >> 0) & 0xFF);
-			}
+			std::memcpy(address.data(), &addr6, 16);
+			return {};
 		}
 
+		int classify_address() const
+		{
+
+			if (std::ranges::all_of(address, [](auto b) { return b == 0; }))
+				return -1;
+
+			const bool ipv4_mapped = std::ranges::equal(std::span{address}.first<12>(), ipv4_mapped_prefix);
+
+			if (ipv4_mapped)
+			{
+				const auto last_4_bytes = std::span{address}.last<4>();
+				return std::ranges::any_of(last_4_bytes, [](auto b) { return b != 0; }) ? 4 : -1;
+			}
+
+			return 6;
+		}
 
 	public:
 		ip() { address.fill(0); }
 
-		ip(std::string_view input) { read_address(input); }
-
-		bool is_ipv4() const
+		ip(std::string_view input)
 		{
-			for (size_t i = 0; i < 10; ++i)
+			if (const auto v = read_address(input); not v)
 			{
-				if (address[i] != 0)
-					return false;
+				dbg::eprintln("Invalid IP address '{}': {}", input, v.error());
+				address.fill(0);
 			}
-			return address[10] == 0xFF && address[11] == 0xFF;
 		}
 
-		bool is_ipv6() const { return not is_ipv4(); }
+		bool is_ipv4() const { return classify_address() == 4; }
+
+		bool is_ipv6() const { return classify_address() == 6; }
+
+		bool valid() const { return classify_address() > 0; }
 
 		std::string to_string() const
 		{
@@ -243,25 +178,94 @@ namespace deckard::net
 			{
 				if (i == best_start)
 				{
-					result += (i == 0) ? ":" : ":";
+					result += "::";
 					i += best_len;
-
-					if (i >= 8)
-						break;
 				}
 				else
 				{
-					if (i > 0)
-						result += ":";
+					if (not result.empty() and not result.ends_with(':'))
+						result += ':';
 					result += std::format("{:x}", groups[i]);
-
 					++i;
 				}
 			}
 			result.shrink_to_fit();
 			return result;
 		}
+
+		int version() const
+		{
+			if (is_ipv4())
+				return 4;
+			if (is_ipv6())
+				return 6;
+
+			return -1;
+		}
 	};
+
+	static_assert(sizeof(ip) == 16, "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
+
+
+	export enum class IPVersion : u32 {
+		IPV4 = 4,
+		IPV6 = 6,
+	};
+
+	export struct IPAddressResult
+	{
+		net::ip   address{};
+		IPVersion version{IPVersion::IPV4};
+	};
+
+	export std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const std::string_view domain) noexcept
+	{
+
+		struct addrinfo  hints{};
+		struct addrinfo* result = nullptr;
+
+		hints.ai_family   = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags    = 0;
+		hints.ai_protocol = 0;
+
+		int status = getaddrinfo(domain.data(), nullptr, &hints, &result);
+		if (status != 0)
+			return std::unexpected(std::format("no such address: \"{}\" (error: {})", domain, WSAGetLastError()));
+
+		std::vector<IPAddressResult> addresses;
+
+		for (struct addrinfo* p = result; p != nullptr; p = p->ai_next)
+		{
+			char ip_str[INET6_ADDRSTRLEN] = {0};
+
+			if (p->ai_family == AF_INET)
+			{
+				// IPv4
+				struct sockaddr_in* addr_in = reinterpret_cast<struct sockaddr_in*>(p->ai_addr);
+				if (inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, sizeof(ip_str)))
+				{
+					net::ip parsed(ip_str);
+					if (parsed.valid())
+						addresses.push_back({parsed, IPVersion::IPV4});
+				}
+			}
+			else if (p->ai_family == AF_INET6)
+			{
+				// IPv6
+				struct sockaddr_in6* addr_in6 = reinterpret_cast<struct sockaddr_in6*>(p->ai_addr);
+				if (inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, sizeof(ip_str)))
+				{
+					net::ip parsed(ip_str);
+					if (parsed.valid())
+						addresses.push_back({parsed, IPVersion::IPV6});
+				}
+			}
+		}
+
+		freeaddrinfo(result);
+		return addresses;
+	}
 
 } // namespace deckard::net
 
