@@ -100,7 +100,7 @@ namespace deckard::net
 	}
 
 	//
-	class socket_old
+	export class socket_old
 	{
 	public:
 		socket_old() = default;
@@ -293,6 +293,8 @@ namespace deckard::net
 		const transport& get_transport() const { return m_transport; }
 
 		bool is_open() const { return m_open; }
+
+		SOCKET raw() const { return m_socket; }
 
 	private:
 		address     m_address{.hostname = "", .port = 0};

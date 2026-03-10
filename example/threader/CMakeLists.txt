@@ -165,6 +165,8 @@ add_dependencies(${PROJECT_NAME} deckard)
  
 set(THIRD_PARTY_LIBS
     deckard
+
+    IPHLPAPI.lib
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_LIBS})

@@ -315,23 +315,28 @@ namespace deckard::platform
 
 	export std::wstring string_to_wide(std::string_view in)
 	{
-		std::wstring wret;
-		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, nullptr, 0);
-		wret.resize(static_cast<size_t>(size));
-		if (size = MultiByteToWideChar(CP_UTF8, 0, in.data(), -1, wret.data(), size); size == 0)
+		if (in.empty())
 			return {};
+		std::wstring wret;
+		auto size = MultiByteToWideChar(CP_UTF8, 0, in.data(), (int)in.size(), nullptr, 0);
+		if (size > 0)
+		{
+			wret.resize(static_cast<size_t>(size));
+			MultiByteToWideChar(CP_UTF8, 0, in.data(), (int)in.size(), wret.data(), size);
+		}
 		return wret;
 	}
 
 	export std::string string_from_wide(std::wstring_view wstr)
 	{
-		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), -1, nullptr, 0, nullptr, nullptr);
+		if (wstr.empty())
+			return {};
+		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
 		std::string str;
 		if (num_chars > 0)
 		{
 			str.resize(static_cast<size_t>(num_chars));
-			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.length(), str.data(), num_chars, nullptr, nullptr);
-			return str;
+			WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.size(), str.data(), num_chars, nullptr, nullptr);
 		}
 		return str;
 	}
