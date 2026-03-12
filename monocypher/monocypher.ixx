@@ -154,6 +154,10 @@ namespace deckard::monocypher
 	{
 		std::array<u8, 32> data{};
 
+		bool empty() const { return crypto_verify<u8>(data, 0); }
+
+		void clear() { crypto_wipe(data.data(), data.size()); }
+
 		bool operator==(const sessionkey& rhs) const { return crypto_verify32(data.data(), rhs.data.data()) == 0; }
 	};
 
@@ -226,16 +230,13 @@ namespace deckard::monocypher
 
 	export void wipe(sessionkey& k) { crypto_wipe(k.data.data(), k.data.size()); }
 
-	// encrypt and decrypt
-
-
-	//
-
 	export key random_key() { return {}; }
 
 	export nonce random_nonce() { return {}; }
 
-	//
+	// ###############################################################################################
+	// encrypt #######################################################################################
+
 	export [[nodiscard("Encrypt returns a MAC. You need it to decrypt the message.")]] mac encrypt(
 	  const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const std::span<const u8> input, std::span<u8> output)
 	{
@@ -254,6 +255,9 @@ namespace deckard::monocypher
 
 		return mac;
 	}
+
+	// ###############################################################################################
+	// decrypt #######################################################################################
 
 	export [[nodiscard("Check if decrypt failed")]] std::expected<void, std::string>
 	decrypt(const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const mac& mac, const std::span<const u8> input,

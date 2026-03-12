@@ -94,6 +94,7 @@ export namespace deckard
 	}
 
 	export template<typename To, typename From>
+	requires std::integral<To>
 	To load_as_be(const From from)
 	{
 		return std::byteswap(load_as<To>(from));
@@ -243,10 +244,11 @@ export namespace deckard
 			}
 
 			for (u8 byteindex = 0; byteindex < sizeof(T); byteindex++)
-			{
-				const T  shift       = byteindex * 8;
-				const T  mask        = sizeof(T) == 1 ? 0xFF : as<T>(0xFF_u8) << shift;
-				const u8 masked_byte = as<u8>((input_word & mask) >> shift);
+				{
+					using UT              = std::make_unsigned_t<T>;
+					const u32 shift       = byteindex * 8u;
+					const UT  mask        = static_cast<UT>(0xFFu) << shift;
+					const u8  masked_byte = static_cast<u8>((static_cast<UT>(input_word) & mask) >> shift);
 
 				if (not output_byte(i, offset++, HEX_LUT[((masked_byte) >> 4) + lowercase_offset]))
 					break;
