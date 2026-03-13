@@ -356,7 +356,7 @@ namespace deckard::random
 
 	export void cryptographic_random_bytes(std::span<u8> buffer)
 	{
-		std::uniform_int_distribution<i16> dist(0, 255);
+		std::uniform_int_distribution<i16> dist(0, limits::max<u8>);
 
 		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(random_device)); });
 	}

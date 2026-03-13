@@ -1,4 +1,4 @@
-﻿export module deckard.ringbuffer;
+export module deckard.ringbuffer;
 
 
 import std;
@@ -33,8 +33,13 @@ namespace deckard
 
 		const index_type mask{N - 1};
 
-		std::vector<std::aligned_storage_t<sizeof(T), alignof(T)>> slots;
-		std::vector<SlotFlag>                                      flags;
+		struct alignas(T) Slot
+		{
+			std::byte storage[sizeof(T)];
+		};
+
+		std::vector<Slot>     slots;
+		std::vector<SlotFlag> flags;
 
 
 	public:
@@ -60,7 +65,7 @@ namespace deckard
 
 			flags[index].flag.store(SlotFlag::State::Writing, std::memory_order_relaxed);
 
-			new (&slots[index]) T(value);
+			new (slots[index].storage) T(value);
 
 			flags[index].flag.store(SlotFlag::State::Ready, std::memory_order_release);
 			return true;
@@ -79,7 +84,7 @@ namespace deckard
 			}
 			flags[index].flag.store(SlotFlag::State::Writing, std::memory_order_relaxed);
 
-			new (&slots[index]) T(std::move(value));
+			new (slots[index].storage) T(std::move(value));
 
 			flags[index].flag.store(SlotFlag::State::Ready, std::memory_order_release);
 			return true;
@@ -92,15 +97,16 @@ namespace deckard
 
 			auto state = flags[index].flag.load(std::memory_order_acquire);
 			if (state != SlotFlag::State::Ready)
+			{
+				head.fetch_sub(1, std::memory_order_relaxed);
 				return std::nullopt;
+			}
 
-			T* elem  = reinterpret_cast<T*>(&slots[index]);
+			T* elem  = reinterpret_cast<T*>(slots[index].storage);
 			T  value = std::move(*elem);
 			elem->~T();
 
 			flags[index].flag.store(SlotFlag::State::Empty, std::memory_order_release);
-
-			head.store(pos + 1, std::memory_order_relaxed);
 			return value;
 		}
 
@@ -191,19 +197,13 @@ namespace deckard
 
 		[[nodiscard]] reference pop_front()
 		{
+			assert::check(m_content_size > 0, "pop from empty buffer");
+			reference elem = m_array[m_head];
 			increment_head();
-			return m_array[m_tail];
+			return elem;
 		}
 
 		[[nodiscard]] reference pop() { return pop_front(); }
-
-		[[nodiscard]] const_reference pop_front() const
-		{
-			increment_head();
-			return m_array[m_tail];
-		}
-
-		[[nodiscard]] const_reference pop() const { return pop_front(); }
 
 		[[nodiscard]] size_type size() const { return m_content_size; }
 
@@ -213,18 +213,22 @@ namespace deckard
 
 		[[nodiscard]] bool full() const { return m_content_size == m_array_size; }
 
-		[[nodiscard]] reference operator[](size_type index)
-		{
-			index += m_head;
-			index %= m_array_size;
-			return m_array[index];
-		}
+		private:
+			[[nodiscard]] size_type index_of(size_type index) const noexcept
+			{
+				return (index + m_head) % m_array_size;
+			}
 
-		[[nodiscard]] const_reference operator[](size_type index) const
-		{
-			const ringbuffer<value_type>& constMe = *this;
-			return const_cast<reference>(constMe.operator[](index));
-		}
+		public:
+			[[nodiscard]] reference operator[](size_type index)
+			{
+				return m_array[index_of(index)];
+			}
+
+			[[nodiscard]] const_reference operator[](size_type index) const
+			{
+				return m_array[index_of(index)];
+			}
 
 		[[nodiscard]] reference at(size_type index)
 		{
@@ -260,8 +264,8 @@ namespace deckard
 		// TODO: iterator instead of copying
 		[[nodiscard]] std::vector<value_type> last(size_type count) const
 		{
-			assert::check(count - 1 < m_content_size, "Cant get more than max size");
-			if (count - 1 > m_content_size)
+			assert::check(count <= m_content_size, "Cant get more than max size");
+			if (count == 0 or count > m_content_size)
 				return {};
 
 			std::vector<value_type> ret;

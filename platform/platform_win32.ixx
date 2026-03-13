@@ -29,7 +29,8 @@ namespace deckard::platform
 
 	export template<typename T>
 	requires std::is_pointer_v<T>
-	T get_dynamic_address(std::string_view dll, std::string_view apiname, const std::source_location& loc = std::source_location::current())
+	T get_dynamic_address(std::string_view dll, std::string_view apiname,
+						  const std::source_location& loc = std::source_location::current())
 	{
 		auto library = LoadLibraryA(dll.data());
 		assert::check(library != nullptr, std::format("library '{}' not found.", dll), loc);
@@ -71,9 +72,9 @@ namespace deckard::platform
 
 	using namespace std::chrono_literals;
 
-	export auto
-	execute_process(std::filesystem::path executable, std::string_view commandline = "", std::chrono::milliseconds timeout = 10s,
-					std::filesystem::path working_directory = std::filesystem::current_path()) -> execute_process_result
+	export auto execute_process(
+	  std::filesystem::path executable, std::string_view commandline = "", std::chrono::milliseconds timeout = 10s,
+	  std::filesystem::path working_directory = std::filesystem::current_path()) -> execute_process_result
 	{
 		execute_process_result result{};
 		u32                    timeout_ms = timeout.count() == 0 ? INFINITE : as<u32>(timeout.count());
@@ -188,7 +189,8 @@ namespace deckard::platform
 
 			if (bytes_read > 0)
 			{
-				peek_result = ReadFile(readpipe, temp_buffer.data(), static_cast<DWORD>(temp_buffer.size()), &bytes_read, nullptr);
+				peek_result =
+				  ReadFile(readpipe, temp_buffer.data(), static_cast<DWORD>(temp_buffer.size()), &bytes_read, nullptr);
 
 				if (not peek_result or bytes_read == 0)
 				{
@@ -197,7 +199,8 @@ namespace deckard::platform
 
 					result.output = std::string(output_buffer.begin(), output_buffer.end());
 
-					elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timer_start);
+					elapsed =
+					  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timer_start);
 					result.elapsed_time = elapsed;
 
 
@@ -300,7 +303,10 @@ namespace deckard::platform
 	// known folder paths
 	export fs::path get_local_appdata_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_LocalAppData) / fold; }
 
-	export fs::path get_roaming_appdata_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_RoamingAppData) / fold; }
+	export fs::path get_roaming_appdata_path(fs::path fold = "")
+	{
+		return GetKnownFolderPath(FOLDERID_RoamingAppData) / fold;
+	}
 
 	export fs::path get_profile_path(fs::path fold = "") { return GetKnownFolderPath(FOLDERID_Profile) / fold; }
 
@@ -318,7 +324,7 @@ namespace deckard::platform
 		if (in.empty())
 			return {};
 		std::wstring wret;
-		auto size = MultiByteToWideChar(CP_UTF8, 0, in.data(), (int)in.size(), nullptr, 0);
+		auto         size = MultiByteToWideChar(CP_UTF8, 0, in.data(), (int)in.size(), nullptr, 0);
 		if (size > 0)
 		{
 			wret.resize(static_cast<size_t>(size));
@@ -331,7 +337,7 @@ namespace deckard::platform
 	{
 		if (wstr.empty())
 			return {};
-		int         num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
+		int num_chars = WideCharToMultiByte(CP_UTF8, 0u, wstr.data(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
 		std::string str;
 		if (num_chars > 0)
 		{
@@ -349,10 +355,20 @@ namespace deckard::platform
 
 	export std::string get_error_string(u32 error = get_error())
 	{
-		char err[256]{0};
-		if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL) == 0)
+		std::string ret;
+		ret.resize(256);
+
+		if (FormatMessageA(
+			  FORMAT_MESSAGE_FROM_SYSTEM,
+			  NULL,
+			  error,
+			  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			  ret.data(),
+			  as<u32>(ret.size()),
+			  NULL) == 0)
 			return std::format("Failed to get error from code {:X}", error);
-		return std::string{err};
+
+		return ret;
 	}
 
 }; // namespace deckard::platform

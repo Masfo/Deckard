@@ -14,31 +14,15 @@ export namespace deckard
 
 	public:
 		template<typename Fn>
-		requires(!std::is_lvalue_reference_v<Fn> && std::is_nothrow_constructible_v<EF, Fn>)
 		explicit scope_exit(Fn &&fn) noexcept(noexcept_ctor<Fn>)
 			: exitfun(std::forward<Fn>(fn))
 		{
 		}
 
-		template<typename Fn>
-		explicit scope_exit(Fn &&fn) noexcept(noexcept_ctor<Fn>)
-			: exitfun(fn)
-		{
-		}
-
 		scope_exit(scope_exit &&other) noexcept(noexcept_move)
-		requires std::is_nothrow_move_constructible_v<EF>
-			: active(other.active)
-			, exitfun(std::forward<EF>(other.exitfun))
+			: active(std::exchange(other.active, false))
+			, exitfun(std::move_if_noexcept(other.exitfun))
 		{
-			other.release();
-		}
-
-		scope_exit(scope_exit &&other) noexcept(noexcept_move)
-			: active(other.active)
-			, exitfun(other.exitfun)
-		{
-			other.release();
 		}
 
 		scope_exit(const scope_exit &)            = delete;

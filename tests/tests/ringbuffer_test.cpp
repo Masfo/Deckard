@@ -70,7 +70,7 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 
 	SECTION("ringbuffer push/pop/reference")
 	{
-		ringbuffer<u32> rb(2);
+		ringbuffer<u32> rb(4);
 
 		rb.push(5);
 		rb.push(10);
@@ -80,11 +80,11 @@ TEST_CASE("ringbuffer", "[ringbuffer]")
 		rb.push(20);
 		auto item2 = rb.pop();
 
-		CHECK(rb.size() == 1);
-		CHECK(rb.capacity() == 2);
+		CHECK(rb.size() == 2);
+		CHECK(rb.capacity() == 4);
 
 		CHECK(item == 30);
-		CHECK(item2 == 20);
+		CHECK(item2 == 10);
 	}
 
 
