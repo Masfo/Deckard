@@ -61,6 +61,10 @@ namespace deckard::cpuid
 		u32 cores{0};
 		u32 threads{0};
 
+		// Invariant: constant rate ticks
+		// Non-invariant: variable rate ticks (scales with clock speed)
+		bool invariant_tsc{false};
+
 		Vendor vendor{Vendor::Unknown};
 	};
 
@@ -86,7 +90,9 @@ namespace deckard::cpuid
 		RDSEED,
 
 		HT,
-		FMA, 
+		FMA,
+
+		TSC,
 
 		MAX_FEATURE
 	};
@@ -114,8 +120,12 @@ namespace deckard::cpuid
 	  {"HT", 1, cpu_register::edx, 28},
 	  {"FMA", 1, cpu_register::ecx, 12},
 
+	  {"TSC", 0x8000'0007, cpu_register::edx, 8},
+
 
 	}};
+
+	export u32 speed_in_mhz();
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
@@ -123,10 +133,10 @@ namespace deckard::cpuid
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
-		#if 0
+#if 0
 		if (!has_cpuid())
 			return {0, 0, 0, 0};
-		#endif
+#endif
 
 		std::array<u32, 4> regs{0};
 		__cpuid(std::bit_cast<i32*>(regs.data()), id);
@@ -135,10 +145,10 @@ namespace deckard::cpuid
 
 	export auto cpuidex(int id, int leaf) -> std::array<u32, 4>
 	{
-		#if 0
+#if 0
 		if (!has_cpuid())
 			return {0, 0, 0, 0};
-		#endif
+#endif
 
 		std::array<u32, 4> regs{0};
 		__cpuidex(std::bit_cast<i32*>(regs.data()), id, leaf);
@@ -256,31 +266,6 @@ namespace deckard::cpuid
 			return {};
 		}
 
-		u32 speed_in_mhz() const
-		{
-			constexpr auto delay = 200ms;
-
-			auto start_time = clock_now();
-			auto start_tsc  = __rdtsc();
-			std::this_thread::sleep_for(delay);
-			auto end_tsc  = __rdtsc();
-			auto end_time = clock_now();
-
-
-			std::chrono::duration<f64> elapsed = end_time - start_time;
-			f64                        seconds = elapsed.count();
-
-			f64 cycles = as<f64>(end_tsc - start_tsc);
-			f64 hz     = cycles / seconds;
-			f64 mhz    = hz / std::mega::num;
-
-			return as<u32>(mhz);
-		}
-
-
-
-		
-
 		auto core_count() const -> std::pair<u32, u32>
 		{
 			u32 threads{0};
@@ -344,7 +329,7 @@ namespace deckard::cpuid
 				GetSystemInfo(&si);
 				cores = threads = si.dwNumberOfProcessors;
 
-				if(has(Feature::HT))
+				if (has(Feature::HT))
 					cores /= 2;
 			}
 
@@ -390,6 +375,8 @@ namespace deckard::cpuid
 			i.cores                     = cores;
 			i.threads                   = threads;
 
+			i.invariant_tsc = id.has(Feature::TSC);
+
 			return i;
 		}
 
@@ -427,5 +414,43 @@ namespace deckard::cpuid
 
 		const u32& EDX() const { return regs[3]; }
 	};
+
+	u64 fenced_rdtsc()
+	{
+		_mm_mfence();
+		_ReadWriteBarrier();
+
+		u64 r = __rdtsc();
+
+		_mm_mfence();
+		_ReadWriteBarrier();
+
+		return r;
+	}
+
+	u32 speed_in_mhz()
+	{
+		fenced_rdtsc();
+		std::this_thread::sleep_for(std::chrono::milliseconds{1});
+		fenced_rdtsc();
+
+		constexpr auto delay = 200ms;
+
+		auto start_time = clock_now();
+		u64  start_tsc  = fenced_rdtsc();
+		std::this_thread::sleep_for(delay);
+		u64  end_tsc  = fenced_rdtsc();
+		auto end_time = clock_now();
+
+
+		std::chrono::duration<f64> elapsed = end_time - start_time;
+		f64                        seconds = elapsed.count();
+
+		u64 cycles = as<u64>(end_tsc - start_tsc);
+		f64 hz     = cycles / seconds;
+		f64 mhz    = hz / std::mega::num;
+
+		return as<u32>(mhz);
+	}
 
 } // namespace deckard::cpuid
