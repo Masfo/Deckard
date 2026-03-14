@@ -3,7 +3,7 @@
 cmake_minimum_required (VERSION 4.2)
 
 
-set(SQLITE_ZIP_URL https://www.sqlite.org/2026/sqlite-amalgamation-3520000.zip)
+set(SQLITE_ZIP_URL https://sqlite.org/2026/sqlite-amalgamation-3510300.zip)
 get_filename_component(SQLITE_ZIP_NAME ${SQLITE_ZIP_URL} NAME)
 get_filename_component(SQLITE_ZIP_NAME_NOEXT ${SQLITE_ZIP_URL} NAME_WLE)
 
