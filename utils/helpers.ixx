@@ -39,7 +39,8 @@ export namespace deckard
 		}
 
 		return std::ranges::views::iota(start, finish) | std::ranges::views::stride(stepsize) |
-			   std::ranges::views::transform([begin, start, descending](auto i) { return descending ? (begin - (i - start)) : i; });
+			   std::ranges::views::transform(
+				 [begin, start, descending](auto i) { return descending ? (begin - (i - start)) : i; });
 	};
 
 	// loop (n, n+1, n+..)
@@ -148,7 +149,7 @@ export namespace deckard
 	export template<std::integral T>
 	constexpr void write_be(std::span<u8> buffer, size_t offset, T value)
 	{
-		assert::check(offset + sizeof(T) <= buffer.size(), "write_be: out of bounds");
+		assert::check(offset + sizeof(T) <= buffer.size(), "write_tbe: out of bounds");
 		if constexpr (sizeof(T) == 1)
 			write_le<T>(buffer, offset, value);
 		else
@@ -244,11 +245,11 @@ export namespace deckard
 			}
 
 			for (u8 byteindex = 0; byteindex < sizeof(T); byteindex++)
-				{
-					using UT              = std::make_unsigned_t<T>;
-					const u32 shift       = byteindex * 8u;
-					const UT  mask        = static_cast<UT>(0xFFu) << shift;
-					const u8  masked_byte = static_cast<u8>((static_cast<UT>(input_word) & mask) >> shift);
+			{
+				using UT              = std::make_unsigned_t<T>;
+				const u32 shift       = byteindex * 8u;
+				const UT  mask        = static_cast<UT>(0xFFu) << shift;
+				const u8  masked_byte = static_cast<u8>((static_cast<UT>(input_word) & mask) >> shift);
 
 				if (not output_byte(i, offset++, HEX_LUT[((masked_byte) >> 4) + lowercase_offset]))
 					break;
@@ -290,7 +291,8 @@ export namespace deckard
 
 	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
 	{
-		return to_hex_string(std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(len)), options);
+		return to_hex_string(
+		  std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(len)), options);
 	}
 
 	std::span<u8> to_span(std::string_view sv)
@@ -301,7 +303,8 @@ export namespace deckard
 	template<typename T>
 	std::span<u8> to_span(const std::vector<T>& sv)
 	{
-		return std::span<u8>{reinterpret_cast<u8*>(const_cast<T*>(sv.data())), static_cast<std::size_t>(sv.size() * sizeof(T))};
+		return std::span<u8>{
+		  reinterpret_cast<u8*>(const_cast<T*>(sv.data())), static_cast<std::size_t>(sv.size() * sizeof(T))};
 	}
 
 	template<typename T>
@@ -338,14 +341,16 @@ export namespace deckard
 	std::string day_month_year(std::string_view separator = ".")
 	{
 		auto time = std::chrono::system_clock::now();
-		return std::format("{0:%d}{1}{0:%m}{1}{0:%Y}", std::chrono::zoned_time{std::chrono::current_zone(), time}, separator);
+		return std::format(
+		  "{0:%d}{1}{0:%m}{1}{0:%Y}", std::chrono::zoned_time{std::chrono::current_zone(), time}, separator);
 	}
 
 	std::string hour_minute_second(std::string_view separator = ":")
 	{
 
 		auto time = std::chrono::system_clock::now();
-		return std::format("{0:%H}{1}{0:%M}{1}{0:%OS}", std::chrono::zoned_time{std::chrono::current_zone(), time}, separator);
+		return std::format(
+		  "{0:%H}{1}{0:%M}{1}{0:%OS}", std::chrono::zoned_time{std::chrono::current_zone(), time}, separator);
 	}
 
 	std::string current_time_as_string()
@@ -368,9 +373,11 @@ export namespace deckard
 
 	// make_array
 	template<class... Ts>
-	constexpr std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)> make_array(Ts&&... ts)
+	constexpr std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>
+	make_array(Ts&&... ts)
 	{
-		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{std::forward<Ts>(ts)...};
+		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{
+		  std::forward<Ts>(ts)...};
 	}
 
 	template<typename T, typename... Args>
@@ -1157,13 +1164,48 @@ export namespace deckard
 		return divided * multiple;
 	}
 
-	template<std::integral T>
+	export template<std::integral T>
 	T round_down(T value, T multiple)
 	{
 		if (multiple == 0)
 			return value;
 
 		return (value / multiple) * multiple;
+	}
+
+	export template<u64 Nearest, std::unsigned_integral T>
+	T round_to_nearest(T value)
+	{
+		static_assert(Nearest > 0, "Nearest must be greater than 0");
+		static_assert(Nearest <= static_cast<u64>(std::numeric_limits<T>::max()), "Nearest does not fit in T");
+
+		const T mod = value % static_cast<T>(Nearest);
+		if (mod * 2 >= Nearest)
+		{
+			if (value > (std::numeric_limits<T>::max() - (Nearest - mod)))
+				return (value / static_cast<T>(Nearest)) * static_cast<T>(Nearest);
+			return value + (static_cast<T>(Nearest) - mod);
+		}
+		return value - mod;
+	}
+
+	template<u64 Nearest, std::signed_integral T>
+	T round_to_nearest(T value)
+	{
+		static_assert(Nearest > 0, "Nearest must be greater than 0");
+		static_assert(Nearest <= static_cast<u64>(std::numeric_limits<T>::max()), "Nearest does not fit in T");
+
+		const T nearest = static_cast<T>(Nearest);
+		const T mod     = value % nearest;
+
+		if (mod == 0)
+			return value;
+
+		const T abs_mod = mod < 0 ? -mod : mod;
+		if (abs_mod * 2 >= nearest)
+			return value - mod + (value < 0 ? -nearest : nearest);
+
+		return value - mod;
 	}
 
 	// return nth digit from the right: (12345,3) returns the 100ths digit 3
