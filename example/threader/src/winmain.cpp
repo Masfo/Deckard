@@ -1,14 +1,18 @@
-// clang-format off
 #include <Windows.h>
+#include <intrin.h>
+#include <pdh.h>
 #include <winsock2.h>
+
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
-// clang-format on
 
 import std;
 import deckard;
+
+import deckard.helpers;
 import deckard.net;
 using namespace deckard;
+
 using namespace std::string_view_literals;
 
 template<typename T>
@@ -19,6 +23,21 @@ concept TransportConcept = requires(T t, std::string_view data, u64 n) {
 	{ t.receive(n) } -> std::convertible_to<std::string>;
 	//{ t.is_connected() } -> std::same_as<bool>;
 	{ t.protocol() } -> std::convertible_to<std::string_view>;
+};
+
+struct AsyncService
+{
+};
+
+struct NTPService : AsyncService
+{
+	std::chrono::system_clock::time_point query_time{};
+
+	std::chrono::milliseconds roundtrip_delay{};
+	std::chrono::milliseconds local_clock_offset{};
+
+	u32 unix_epoch{};
+	u32 local_epoch{};
 };
 
 enum class Address : u32
@@ -86,6 +105,56 @@ struct UDP
 	SOCKET socket{INVALID_SOCKET};
 };
 
+struct endpoint
+{
+	sockaddr_in6 addr{};
+
+	[[nodiscard]] u64 port() const noexcept { return ntohs(addr.sin6_port); }
+
+	void set_port(u64 p) noexcept { addr.sin6_port = htons(p); }
+
+	[[nodiscard]] std::string to_string() const
+	{
+		char buf[INET6_ADDRSTRLEN]{};
+		inet_ntop(AF_INET, &addr.sin6_addr, buf, sizeof(buf));
+		return std::format("[{}]:{}", buf, port());
+	}
+
+	[[nodiscard]] const sockaddr* as_sockaddr() const noexcept { return reinterpret_cast<const sockaddr*>(&addr); }
+
+	[[nodiscard]] auto resolve(std::string_view domain, std::uint16_t port) -> std::expected<endpoint, std::string>
+	{
+		addrinfo hints{
+		  .ai_flags    = AI_V4MAPPED | AI_ADDRCONFIG,
+		  .ai_family   = AF_INET6,
+		  .ai_socktype = SOCK_STREAM,
+		};
+		addrinfo* res      = nullptr;
+		auto      port_str = std::to_string(port);
+
+		if (int rc = getaddrinfo(domain.data(), port_str.c_str(), &hints, &res); rc != 0)
+			return std::unexpected{std::string{gai_strerrorA(rc)}};
+
+		std::unique_ptr<addrinfo, decltype([](addrinfo* p) { freeaddrinfo(p); })> guard{res};
+
+		endpoint ep{};
+		ep.addr = *reinterpret_cast<sockaddr_in6*>(res->ai_addr);
+		return ep;
+	}
+
+	endpoint() = default;
+
+	endpoint(std::string_view domain, u16 port)
+	{
+		if (not resolve(domain, port))
+		{
+			dbg::println("Failed to resolve domain: {}", domain);
+			return;
+		}
+		set_port(port);
+	}
+};
+
 template<TransportConcept TransportPolicy>
 struct Socket : TransportPolicy
 {
@@ -118,28 +187,510 @@ using TCPSocket = Socket<TCP>;
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
+
+constexpr size_t BUFFER_SIZE     = 512;
+constexpr size_t DNS_HEADER_SIZE = 12;
+
+// DNS header structure
+struct DNSHeader
+{
+	u16 id;         // Identification
+	u8  rd : 1;     // Recursion Desired
+	u8  tc : 1;     // Truncated
+	u8  aa : 1;     // Authoritative Answer
+	u8  opcode : 4; // Opcode
+	u8  qr : 1;     // Query/Response Flag
+	u8  rcode : 4;  // Response Code
+	u8  cd : 1;     // Checking Disabled
+	u8  ad : 1;     // Authenticated Data
+	u8  z : 1;      // Reserved for future use
+	u8  ra : 1;     // Recursion Available
+	u16 qcount;     // Number of Questions
+	u16 ancount;    // Number of Answers
+	u16 nscount;    // Number of Authority Resource Records
+	u16 arcount;    // Number of Additional Resource Records
+};
+
+// DNS question structure
+struct DNSQuestion
+{
+	u16 qtype;  // Query Type
+	u16 qclass; // Query Class
+};
+
+// DNS answer structure
+struct DNSAnswer
+{
+	std::string     name;     // Name
+	u16             type;     // Type
+	u16             class_;   // Class
+	u32             ttl;      // Time to Live
+	u16             data_len; // Data Length
+	std::vector<u8> data;     // Data
+};
+
+class DNSQuery
+{
+public:
+	explicit DNSQuery(const std::string& domain)
+		: domain(domain)
+	{
+		build_query();
+	}
+
+	void send_query()
+	{
+		int sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+		if (sockfd < 0)
+		{
+			throw std::runtime_error("Socket creation failed");
+		}
+
+
+		timeval timeout{};
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = 5000;
+
+		if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, as<const char*>(&timeout), sizeof timeout) == SOCKET_ERROR)
+			dbg::println("setsockopt failed: {}", WSAGetLastError());
+
+
+		sockaddr_in6 dest{};
+		dest.sin6_family = AF_INET6;
+		dest.sin6_port   = htons(53);
+
+		if (inet_pton(AF_INET6, "2606:4700:4700::1111", &dest.sin6_addr) != 1)
+		{
+			in_addr ipv4{};
+			if (inet_pton(AF_INET, "1.1.1.1", &ipv4) != 1)
+			{
+				closesocket(sockfd);
+				throw std::runtime_error("Invalid DNS server address");
+			}
+
+			dest.sin6_addr = {};
+			auto* bytes    = reinterpret_cast<u8*>(&dest.sin6_addr);
+			bytes[10]      = 0xFF;
+			bytes[11]      = 0xFF;
+			std::memcpy(bytes + 12, &ipv4, sizeof(ipv4));
+		}
+
+		const int send_len = sendto(
+		  sockfd,
+		  reinterpret_cast<const char*>(buffer.data()),
+		  static_cast<int>(query_length),
+		  0,
+		  reinterpret_cast<struct sockaddr*>(&dest),
+		  sizeof(dest));
+		if (send_len < 0)
+		{
+			closesocket(sockfd);
+			throw std::runtime_error("Send failed");
+		}
+
+		// Receiving the response
+		sockaddr_in6 src{};
+		socklen_t    len      = sizeof(src);
+		int          recv_len = recvfrom(
+          sockfd, reinterpret_cast<char*>(buffer.data()), BUFFER_SIZE, 0, reinterpret_cast<struct sockaddr*>(&src), &len);
+
+		if (recv_len < 0)
+		{
+			closesocket(sockfd);
+			throw std::runtime_error("Receive failed");
+		}
+
+		closesocket(sockfd);
+		parse_response(recv_len);
+	}
+
+private:
+	std::string                 domain;
+	std::array<u8, BUFFER_SIZE> buffer = {};
+	size_t                      query_length{0};
+
+	void build_query()
+	{
+		DNSHeader* dns = reinterpret_cast<DNSHeader*>(buffer.data());
+		dns->id        = htons(0x1234); // Transaction ID
+		dns->qr        = 0;             // Query
+		dns->opcode    = 0;             // Standard query
+		dns->aa        = 0;             // Not Authoritative
+		dns->tc        = 0;             // Not Truncated
+		dns->rd        = 1;             // Recursion Desired
+		dns->ra        = 0;             // Recursion Not Available
+		dns->z         = 0;             // Reserved
+		dns->rcode     = 0;             // No error
+		dns->qcount    = htons(1);      // One question
+		dns->ancount   = 0;             // No answer
+		dns->nscount   = 0;             // No authority
+		dns->arcount   = 0;             // No additional
+
+		size_t           offset = DNS_HEADER_SIZE;
+		std::string_view rest{domain};
+		constexpr size_t max_label_length = 63;
+
+		while (not rest.empty())
+		{
+			const auto dot   = rest.find('.');
+			auto       label = (dot == std::string_view::npos) ? rest : rest.substr(0, dot);
+
+			if (label.empty() or label.size() > max_label_length)
+				throw std::runtime_error("Invalid domain label");
+
+			if (offset + 1 + label.size() + sizeof(DNSQuestion) >= buffer.size())
+				throw std::runtime_error("Domain too long for DNS query");
+
+			buffer[offset++] = static_cast<u8>(label.size());
+			std::memcpy(buffer.data() + offset, label.data(), label.size());
+			offset += label.size();
+
+			if (dot == std::string_view::npos)
+				break;
+
+			rest.remove_prefix(dot + 1);
+		}
+
+		buffer[offset++] = 0;
+
+		DNSQuestion qinfo{};
+		qinfo.qtype  = htons(1);
+		qinfo.qclass = htons(1);
+
+		std::memcpy(buffer.data() + offset, &qinfo, sizeof(qinfo));
+		query_length = offset + sizeof(qinfo);
+	}
+
+	bool parse_name(size_t& offset, const size_t recv_len, std::string& out) const
+	{
+		out.clear();
+		size_t cursor     = offset;
+		bool   jumped     = false;
+		u32    jump_count = 0;
+
+		while (cursor < recv_len)
+		{
+			const u8 len = buffer[cursor];
+
+			if ((len & 0xC0) == 0xC0)
+			{
+				if (cursor + 1 >= recv_len)
+					return false;
+
+				u16 pointer = static_cast<u16>((static_cast<u16>(len & 0x3F) << 8) | buffer[cursor + 1]);
+				if (pointer >= recv_len)
+					return false;
+
+				if (not jumped)
+					offset = cursor + 2;
+
+				cursor = pointer;
+				jumped = true;
+
+				if (++jump_count > 20)
+					return false;
+
+				continue;
+			}
+
+			if (len == 0)
+			{
+				if (not jumped)
+					offset = cursor + 1;
+				return true;
+			}
+
+			if (len > 63)
+				return false;
+
+			++cursor;
+			if (cursor + len > recv_len)
+				return false;
+
+			if (not out.empty())
+				out += '.';
+
+			out.append(reinterpret_cast<const char*>(buffer.data() + cursor), len);
+			cursor += len;
+		}
+
+		return false;
+	}
+
+	bool read_u16(size_t& offset, const size_t recv_len, u16& out) const
+	{
+		if (offset + sizeof(u16) > recv_len)
+			return false;
+
+		std::memcpy(&out, buffer.data() + offset, sizeof(u16));
+		offset += sizeof(u16);
+		out = ntohs(out);
+		return true;
+	}
+
+	bool read_u32(size_t& offset, const size_t recv_len, u32& out) const
+	{
+		if (offset + sizeof(u32) > recv_len)
+			return false;
+
+		std::memcpy(&out, buffer.data() + offset, sizeof(u32));
+		offset += sizeof(u32);
+		out = ntohl(out);
+		return true;
+	}
+
+	void parse_response(size_t recv_len)
+	{
+		if (recv_len < DNS_HEADER_SIZE)
+			throw std::runtime_error("DNS response too short");
+
+		auto read_be16_at = [&](size_t pos) -> u16
+		{
+			if (pos + sizeof(u16) > recv_len)
+				throw std::runtime_error("Malformed DNS header");
+
+			u16 value{};
+			std::memcpy(&value, buffer.data() + pos, sizeof(value));
+			return ntohs(value);
+		};
+
+		int question_count   = static_cast<int>(read_be16_at(4));
+		int answer_count     = static_cast<int>(read_be16_at(6));
+		int authority_count  = static_cast<int>(read_be16_at(8));
+		int additional_count = static_cast<int>(read_be16_at(10));
+
+		dbg::println(
+		  "Received {} bytes, Questions: {}, Answers: {}, Authority: {}, Additional: {}",
+		  recv_len,
+		  question_count,
+		  answer_count,
+		  authority_count,
+		  additional_count);
+
+		size_t offset = DNS_HEADER_SIZE;
+
+		// Skip the questions
+		for (int i = 0; i < question_count; ++i)
+		{
+			std::string qname;
+			u16         qtype{};
+			u16         qclass{};
+
+			if (not parse_name(offset, recv_len, qname) or not read_u16(offset, recv_len, qtype) or
+				not read_u16(offset, recv_len, qclass))
+				throw std::runtime_error("Malformed DNS question section");
+		}
+
+		auto parse_records = [&](std::string_view section_name, int count)
+		{
+			dbg::println("{} records: {}", section_name, count);
+
+			for (int i = 0; i < count; ++i)
+			{
+				std::string name;
+				if (not parse_name(offset, recv_len, name))
+					throw std::runtime_error("Malformed DNS name in answer");
+
+				DNSAnswer answer;
+				if (not read_u16(offset, recv_len, answer.type) or not read_u16(offset, recv_len, answer.class_) or
+					not read_u32(offset, recv_len, answer.ttl) or not read_u16(offset, recv_len, answer.data_len))
+					throw std::runtime_error("Malformed DNS answer header");
+
+				if (offset + answer.data_len > recv_len)
+					throw std::runtime_error("Malformed DNS answer payload");
+
+				answer.data.resize(answer.data_len);
+				std::memcpy(answer.data.data(), buffer.data() + offset, answer.data_len);
+				offset += answer.data_len;
+
+				answer.name = name;
+
+				dbg::println("{} Record {}:", section_name, i + 1);
+				dbg::println("  Name: {}", answer.name);
+				dbg::println("  Type: {}", answer.type);
+				dbg::println("  Class: {}", answer.class_);
+				dbg::println("  TTL: {}", answer.ttl);
+
+
+				dbg::println("  Type: {}", answer.type);
+
+				if (answer.type == 1)
+				{
+					char ipv4[INET_ADDRSTRLEN]{};
+					if (answer.data.size() == 4 and inet_ntop(AF_INET, answer.data.data(), ipv4, sizeof(ipv4)) != nullptr)
+						dbg::println("  Address (IPv4): {}", ipv4);
+					else
+						dbg::println("  Address (IPv4): <invalid>");
+				}
+				else if (answer.type == 28)
+				{
+					char ipv6[INET6_ADDRSTRLEN]{};
+					if (answer.data.size() == 16 and inet_ntop(AF_INET6, answer.data.data(), ipv6, sizeof(ipv6)) != nullptr)
+						dbg::println("  Address (IPv6): {}", ipv6);
+					else
+						dbg::println("  Address (IPv6): <invalid>");
+				}
+				else
+				{
+					dbg::println(
+					  "  Data (hex): {}", to_hex_string(std::span{answer.data}, {.delimiter = " ", .show_hex = false}));
+				}
+			}
+		};
+
+		parse_records("Answer", answer_count);
+		parse_records("Authority", authority_count);
+		parse_records("Additional", additional_count);
+	}
+};
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
-	WSADATA wsa{};
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-		return 1;
+
+	endpoint ep("api.taboobuilder.com", 47482);
+
+	dbg::println("Endpoint: {}", ep.to_string());
+	_ = 0;
+
+	{
+		SOCKET server = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (server == INVALID_SOCKET)
+		{
+			dbg::println("Failed to create server socket: {}", WSAGetLastError());
+			return 1;
+		}
+
+		sockaddr_in server_addr{};
+		server_addr.sin_family      = AF_INET;
+		server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+		server_addr.sin_port        = htons(0);
+
+		if (::bind(server, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR)
+		{
+			dbg::println("bind() failed: {}", WSAGetLastError());
+			::closesocket(server);
+			return 1;
+		}
+
+		if (::listen(server, 1) == SOCKET_ERROR)
+		{
+			dbg::println("listen() failed: {}", WSAGetLastError());
+			::closesocket(server);
+			return 1;
+		}
+
+		int server_len = static_cast<int>(sizeof(server_addr));
+		if (::getsockname(server, reinterpret_cast<sockaddr*>(&server_addr), &server_len) == SOCKET_ERROR)
+		{
+			dbg::println("getsockname() failed: {}", WSAGetLastError());
+			::closesocket(server);
+			return 1;
+		}
+
+		SOCKET client = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (client == INVALID_SOCKET)
+		{
+			dbg::println("Failed to create client socket: {}", WSAGetLastError());
+			::closesocket(server);
+			return 1;
+		}
+
+		if (::connect(client, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR)
+		{
+			dbg::println("connect() failed: {}", WSAGetLastError());
+			::closesocket(client);
+			::closesocket(server);
+			return 1;
+		}
+
+		SOCKET accepted = ::accept(server, nullptr, nullptr);
+		if (accepted == INVALID_SOCKET)
+		{
+			dbg::println("accept() failed: {}", WSAGetLastError());
+			::closesocket(client);
+			::closesocket(server);
+			return 1;
+		}
+
+		auto sender = std::jthread(
+		  [client](std::stop_token st)
+		  {
+			  while (not st.stop_requested())
+			  {
+				  std::string msg = "hello from sender\n";
+				  int         n   = ::send(client, msg.data(), static_cast<int>(msg.size()), 0);
+				  if (n == SOCKET_ERROR)
+				  {
+					  dbg::println("send() failed: {}", WSAGetLastError());
+					  break;
+				  }
+				  dbg::println("Sent {} bytes", n);
+				  // std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			  }
+		  });
+
+		auto receiver = std::jthread(
+		  [accepted](std::stop_token st)
+		  {
+			  std::array<char, 1024> buf{};
+			  while (not st.stop_requested())
+			  {
+				  int n = ::recv(accepted, buf.data(), static_cast<int>(buf.size()), 0);
+				  if (n <= 0)
+				  {
+					  dbg::println("recv() ended: {}", WSAGetLastError());
+					  break;
+				  }
+				  dbg::println("Received {} bytes", n);
+				  dbg::println("Message: {}", std::string_view{buf.data(), static_cast<size_t>(n)});
+			  }
+		  });
+
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		sender.request_stop();
+		receiver.request_stop();
+
+		::shutdown(client, SD_BOTH);
+		::shutdown(accepted, SD_BOTH);
+		::closesocket(client);
+		::closesocket(accepted);
+		::closesocket(server);
+	}
+
+
+	try
+	{
+		DNSQuery query("api64.ipify.org");
+		query.send_query();
+	}
+	catch (const std::exception& e)
+	{
+		dbg::println("{}", e.what());
+		return 0;
+	}
+
+
 	//
-	ULONG                 outBufLen  = 0;
-	PIP_ADAPTER_ADDRESSES pAddresses = NULL;
+	ULONG                 outsize    = 0;
+	PIP_ADAPTER_ADDRESSES pHead      = nullptr; // original allocation — used for FREE
+	PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
 
 
-	DWORD dw = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, nullptr, &outBufLen);
+	DWORD dw = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, nullptr, &outsize);
+	dbg::println("Buffer needs to be {} bytes", outsize);
 
 	if (dw == ERROR_BUFFER_OVERFLOW)
 	{
-		dbg::println("Buffer overflow, allocating {} bytes", outBufLen);
+		dbg::println("Buffer overflow, allocating {} bytes", outsize);
 
-		pAddresses = (IP_ADAPTER_ADDRESSES*)MALLOC(outBufLen);
+		pHead      = (IP_ADAPTER_ADDRESSES*)MALLOC(outsize);
+		pAddresses = pHead;
 
-		dw = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
+		dw = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outsize);
 		if (dw != ERROR_SUCCESS)
 		{
 			dbg::println("GetAdaptersAddresses failed with error: {}", dw);
+			FREE(pHead);
 			return 0;
 		}
 	}
@@ -200,14 +751,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		//
 		while (pAddresses->FirstMulticastAddress and pAddresses->FirstMulticastAddress->Address.lpSockaddr != nullptr)
 		{
-			dbg::println("FirstMulticastAddress address: {}", address_to_string(&pAddresses->FirstMulticastAddress->Address.lpSockaddr));
+			dbg::println("FirstMulticastAddress address: {}",
+						 address_to_string(&pAddresses->FirstMulticastAddress->Address.lpSockaddr));
 			pAddresses->FirstMulticastAddress = pAddresses->FirstMulticastAddress->Next;
 		}
 
 		//
 		while (pAddresses->FirstDnsServerAddress and pAddresses->FirstDnsServerAddress->Address.lpSockaddr != nullptr)
 		{
-			dbg::println("FirstDnsServerAddress address: {}", address_to_string(&pAddresses->FirstDnsServerAddress->Address.lpSockaddr));
+			dbg::println("FirstDnsServerAddress address: {}",
+						 address_to_string(&pAddresses->FirstDnsServerAddress->Address.lpSockaddr));
 			pAddresses->FirstDnsServerAddress = pAddresses->FirstDnsServerAddress->Next;
 		}
 
@@ -310,6 +863,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		pAddresses = pAddresses->Next;
 	}
 
+
+	FREE(pHead);
+	pHead = pAddresses = nullptr;
+
 	info("GAA: {}", dw);
 	SOCKET tunnel_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -319,7 +876,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		char ip_str[INET_ADDRSTRLEN]{};
 		inet_ntop(AF_INET, &non_tunnel_local_addr->sin_addr, ip_str, sizeof(ip_str));
 		dbg::println("Non-tunnel local IP: {}", ip_str);
-		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&non_tunnel_local_addr.value()), sizeof(sockaddr_in)) != SOCKET_ERROR)
+		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&non_tunnel_local_addr.value()), sizeof(sockaddr_in)) !=
+			SOCKET_ERROR)
 		{
 			dbg::println("Socket bound to non-tunnel interface");
 		}
@@ -337,7 +895,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		// socket_old sock(transport::tcp, &ok);
 		//  bind() pins this socket to the tunnel interface — all traffic leaves via it
-		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(sockaddr_in)) != SOCKET_ERROR)
+		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(sockaddr_in)) !=
+			SOCKET_ERROR)
 		{
 			dbg::println("Socket bound to tunnel interface");
 
@@ -358,6 +917,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	if (s == INVALID_SOCKET)
 		return 4;
 
+	timeval timeout{};
+	timeout.tv_sec  = 1;
+	timeout.tv_usec = 0;
+
+	if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, as<const char*>(&timeout), sizeof timeout) == SOCKET_ERROR)
+		dbg::println("setsockopt failed: {}", WSAGetLastError());
 
 	// if (bind(s, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(*tunnel_local_addr)) == SOCKET_ERROR)
 	//{
