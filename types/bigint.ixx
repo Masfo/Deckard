@@ -1,4 +1,4 @@
-export module deckard.bigint;
+﻿export module deckard.bigint;
 
 import deckard.types;
 import deckard.assert;
@@ -1360,34 +1360,6 @@ namespace deckard
 
 		return {};
 	}
-
-	export bool is_prime(const bigint& n)
-	{
-		if (n <= 1)
-			return false;
-
-		if (n <= 3)
-			return true;
-
-		if (n % 2 == 0 or n % 3 == 0)
-			return false;
-
-		bigint i = 5;
-		while (i <= n / i)
-		{
-			if (n % i == 0 or n % (i + 2) == 0)
-				return false;
-
-			i += 6;
-		}
-
-		return true;
-	}
-
-	export constexpr bigint operator"" _bigint(const u64 value) { return bigint(value); }
-	export constexpr bigint operator"" _bigint(char const* buffer, size_t len) { return bigint({buffer, len}); }
-
-
 
 } // namespace deckard
 

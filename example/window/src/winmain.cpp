@@ -303,7 +303,7 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 
 
 	// pkt.rootDelay =
-	u32 root_delay = load_as_be<u32>(raw, 4).value_or(0);
+	u32 root_delay = load_as<u32>(raw, 4).value_or(0);
 	{
 		i16 int_part  = root_delay >> 16;
 		u16 frac_part = root_delay & 0xFFFF;
@@ -316,18 +316,19 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 
 
 	// Root dispersion
-	u32 root_dispersion = load_as_be<u32>(raw, 8).value_or(0);
+	u32 root_dispersion = load_as<u32>(raw, 8).value_or(0);
 	{
 		u16 int_part  = root_dispersion >> 16;
 		u16 frac_part = root_dispersion & 0xFFFF;
 
 		f64 frac_seconds            = static_cast<f64>(frac_part) / 65536.0;
 		f64 root_dispersion_seconds = int_part + frac_seconds;
-		pkt.root_dispersion         = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(root_dispersion_seconds));
+		pkt.root_dispersion = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(root_dispersion_seconds));
 	}
 
 
-	pkt.refId = load_as_be<u32>(raw, 12).value_or(0);
+	pkt.refId = load_as<u32>(raw, 12).value_or(0);
+
 	if (pkt.stratum == 0 or pkt.stratum == 1)
 	{
 		// stratum 0 Kiss of Death,
@@ -353,12 +354,16 @@ NtpPacket parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_poi
 	}
 
 
-	pkt.refTimestamp  = ntp_to_chrono(load_as_be<u64>(raw, 16).value_or(0));
-	pkt.origTimestamp = ntp_to_chrono(load_as_be<u64>(raw, 24).value_or(0));
-	pkt.rxTimestamp   = ntp_to_chrono(load_as_be<u64>(raw, 32).value_or(0));
-	pkt.txTimestamp   = ntp_to_chrono(load_as_be<u64>(raw, 40).value_or(0));
+	pkt.unix_epoch = to_unix_epoch(load_as<u64>(raw, 32).value_or(0));
 
-	pkt.unix_epoch = to_unix_epoch(load_as_be<u64>(raw, 40).value_or(0)); // transmit timestamp = freshest server time
+
+	pkt.refTimestamp = ntp_to_chrono(load_as<u64>(raw, 16).value_or(0));
+
+	auto origtime = load_as<u64>(raw, 24);
+
+	pkt.origTimestamp = ntp_to_chrono(load_as<u64>(raw, 24).value_or(0));
+	pkt.rxTimestamp   = ntp_to_chrono(load_as<u64>(raw, 32).value_or(0));
+	pkt.txTimestamp   = ntp_to_chrono(load_as<u64>(raw, 40).value_or(0));
 
 	auto t2 = pkt.rxTimestamp;
 	auto t3 = pkt.txTimestamp;
@@ -487,6 +492,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	}
 
 	// ########################################################################
+
 
 
 	std::array<u8, 32> hashdata{};
@@ -762,7 +768,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		for (const auto& ip : *ip_result)
 		{
-			dbg::println("{}: {}", ip.version == net::IPVersion::IPV4 ? "ipv4" : "ipv6", ip.address);
+         dbg::println("{}: {}", ip.version == net::IPVersion::IPV4 ? "ipv4" : "ipv6", ip.address);
 		}
 	}
 	else
