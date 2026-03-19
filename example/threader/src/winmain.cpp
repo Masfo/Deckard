@@ -111,7 +111,7 @@ struct endpoint
 
 	[[nodiscard]] u64 port() const noexcept { return ntohs(addr.sin6_port); }
 
-	void set_port(u64 p) noexcept { addr.sin6_port = htons(p); }
+	void set_port(u64 p) noexcept { addr.sin6_port = (USHORT)htons(p); }
 
 	[[nodiscard]] std::string to_string() const
 	{

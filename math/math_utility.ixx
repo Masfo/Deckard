@@ -282,20 +282,19 @@ export namespace deckard::math
 	template<std::integral T>
 	constexpr bool is_prime(T n)
 	{
-
 		if (n <= 1)
 			return false;
 
 		if (n <= 3)
 			return true;
 
-		if (n % 2 == 0 || n % 3 == 0)
+		if (n % 2 == 0 or n % 3 == 0)
 			return false;
 
 		T i = 5;
-		while (i * i <= n)
+		while (i <= n / i)
 		{
-			if (n % i == 0 || n % (i + 2) == 0)
+			if (n % i == 0 or n % (i + 2) == 0)
 				return false;
 
 			i += 6;

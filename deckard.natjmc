@@ -24,6 +24,7 @@
 
 	<File Name="platform_win32.ixx"/>
 
+	<File Name="_bigint.ixx"/>
 
 
 	<File Name="base64.ixx"/>

@@ -78,4 +78,28 @@ TEST_CASE("math.utility", "[math]")
 		CHECK(3 == count_digits(999));
 		CHECK(6 == count_digits(999999));
 	}
+
+	SECTION("is_prime")
+	{
+		// non-primes
+		CHECK(false == is_prime(0));
+		CHECK(false == is_prime(1));
+		CHECK(false == is_prime(4));
+		CHECK(false == is_prime(9));
+		CHECK(false == is_prime(25));
+
+		// primes
+		CHECK(true == is_prime(2));
+		CHECK(true == is_prime(3));
+		CHECK(true == is_prime(5));
+		CHECK(true == is_prime(7));
+		CHECK(true == is_prime(97));
+
+		// large prime (INT_MAX = 2147483647 is prime) — tests no overflow in i*i
+		CHECK(true == is_prime(2147483647));
+
+		// signed negatives are not prime
+		CHECK(false == is_prime(-1));
+		CHECK(false == is_prime(-7));
+	}
 }
