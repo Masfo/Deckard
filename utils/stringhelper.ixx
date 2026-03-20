@@ -84,6 +84,8 @@ export namespace deckard::string
 	// ###########################################################################
 
 
+
+
 	// count
 	i64 count(auto str, std::string_view interests) noexcept
 	{
