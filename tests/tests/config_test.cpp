@@ -6,6 +6,7 @@ import deckard.as;
 import deckard.types;
 import deckard.config;
 import deckard.debug;
+import deckard.net;
 using namespace deckard;
 using namespace std::string_view_literals;
 
@@ -658,7 +659,7 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("key = one\nkey = two\nkey = three\n"sv);
 
-		auto values = cfg["key"].as_all<std::string>();
+		auto values = cfg["key"].as_vector<std::string>();
 
 		REQUIRE(values.size() == 3);
 		CHECK(values[0] == "one");
@@ -670,7 +671,7 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("port = 80\nport = 443\nport = 8080\n"sv);
 
-		auto values = cfg["port"].as_all<i32>();
+		auto values = cfg["port"].as_vector<i32>();
 
 		REQUIRE(values.size() == 3);
 		CHECK(values[0] == 80);
@@ -682,7 +683,7 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("flag = true\nflag = false\nflag = true\n"sv);
 
-		auto values = cfg["flag"].as_all<bool>();
+		auto values = cfg["flag"].as_vector<bool>();
 
 		REQUIRE(values.size() == 3);
 		CHECK(values[0] == true);
@@ -694,7 +695,7 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("key = only\n"sv);
 
-		auto values = cfg["key"].as_all<std::string>();
+		auto values = cfg["key"].as_vector<std::string>();
 
 		REQUIRE(values.size() == 1);
 		CHECK(values[0] == "only");
@@ -704,7 +705,7 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("key = value\n"sv);
 
-		auto values = cfg["missing"].as_all<std::string>();
+		auto values = cfg["missing"].as_vector<std::string>();
 
 		CHECK(values.empty());
 	}
@@ -716,7 +717,7 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(cfg.has_multiple("server.host") == true);
 		CHECK(cfg["server.host"].as<std::string>() == "alpha");
 
-		auto values = cfg["server.host"].as_all<std::string>();
+		auto values = cfg["server.host"].as_vector<std::string>();
 
 		REQUIRE(values.size() == 3);
 		CHECK(values[0] == "alpha");
@@ -731,7 +732,7 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(cfg.has_multiple("net.port") == true);
 		CHECK(cfg.has_multiple("net.timeout") == false);
 
-		auto ports = cfg["net.port"].as_all<i32>();
+		auto ports = cfg["net.port"].as_vector<i32>();
 		REQUIRE(ports.size() == 2);
 		CHECK(ports[0] == 80);
 		CHECK(ports[1] == 443);
@@ -745,7 +746,7 @@ TEST_CASE("config set_comment", "[config]")
 
 		cfg["dup"] = 99;
 
-		auto values = cfg["dup"].as_all<i32>();
+		auto values = cfg["dup"].as_vector<i32>();
 		REQUIRE(values.size() == 3);
 		CHECK(values[0] == 99);
 		CHECK(values[1] == 2);
@@ -756,7 +757,7 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("tag = \"alpha\"\ntag = \"beta\"\n"sv);
 
-		auto values = cfg["tag"].as_all<std::string>();
+		auto values = cfg["tag"].as_vector<std::string>();
 
 		REQUIRE(values.size() == 2);
 		CHECK(values[0] == "alpha");
@@ -780,12 +781,31 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(cfg.has_multiple("a.key") == true);
 		CHECK(cfg.has_multiple("b.key") == false);
 
-		auto a_vals = cfg["a.key"].as_all<i32>();
+		auto a_vals = cfg["a.key"].as_vector<i32>();
 		REQUIRE(a_vals.size() == 2);
 		CHECK(a_vals[0] == 1);
 		CHECK(a_vals[1] == 2);
 
 		CHECK(cfg["b.key"].as<i32>() == 9);
 	}
-}
 
+	SECTION("convert key-values to types")
+	{
+		config cfg = config("key = 3.14\nkey = 6.28"sv);
+		CHECK(cfg.has_multiple("key"));
+
+		auto values = cfg["key"].as_vector<f64>();
+
+		CHECK(values.size() == 2);
+		CHECK(values[0] == 3.14);
+		CHECK(values[1] == 6.28);
+		
+	}
+
+	SECTION("value as endpoint, localhost:port")
+	{
+		config cfg = config("[server]\nhost=\"localhost:1234\""sv);
+		
+		CHECK(cfg["server.host"].as<net::endpoint>() == net::endpoint("localhost", 1234));
+	}
+}

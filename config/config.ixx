@@ -6,7 +6,9 @@ import deckard.types;
 import deckard.file;
 import deckard.debug;
 import deckard.helpers;
+import deckard.stringhelper;
 import deckard.as;
+import deckard.net;
 import deckard.utils.hash;
 
 namespace fs = std::filesystem;
@@ -65,7 +67,7 @@ namespace deckard
 		T as() const;
 
 		template<typename T>
-		std::vector<T> as_all() const;
+		std::vector<T> as_vector() const;
 
 		operator bool() const;
 		explicit operator std::string() const;
@@ -83,7 +85,7 @@ namespace deckard
 		T as() const;
 
 		template<typename T>
-		std::vector<T> as_all() const;
+		std::vector<T> as_vector() const;
 
 		template<typename T>
 		mutable_value_proxy& operator=(T value);
@@ -98,11 +100,11 @@ namespace deckard
 	export class config
 	{
 	private:
-		utf8::string                 m_data;
-		std::vector<TokenValue>      tokens;
+		utf8::string                              m_data;
+		std::vector<TokenValue>                   tokens;
 		std::unordered_map<u64, std::vector<u64>> key_hash_to_token_index;
-		std::vector<parse_error>     m_errors;
-		fs::path                     filename;
+		std::vector<parse_error>                  m_errors;
+		fs::path                                  filename;
 
 		void skip_until_newline(utf8::view& view)
 		{
@@ -174,11 +176,11 @@ namespace deckard
 			const char* p   = sv.data();
 			const char* end = p + sv.size();
 
-			// Optional leading sign
+			// leading sign
 			if (p != end and (*p == '+' or *p == '-'))
 				++p;
 
-			// Integer digits
+			// integer digits
 			const char* int_start = p;
 			while (p != end and *p >= '0' and *p <= '9')
 				++p;
@@ -189,20 +191,20 @@ namespace deckard
 			if (p == end)
 				return TokenType::VALUE_INTEGER;
 
-			// Decimal point separates integer from float
+			//
 			if (*p != '.')
 				return TokenType::VALUE_STRING;
 			++p;
 
-			// Fractional digits (required)
+			// fractional
 			const char* frac_start = p;
 			while (p != end and *p >= '0' and *p <= '9')
 				++p;
 
 			if (p == frac_start)
-				return TokenType::VALUE_STRING; // bare "3." is not a float
+				return TokenType::VALUE_STRING;
 
-			// Optional exponent
+			// exponent
 			if (p != end and (*p == 'e' or *p == 'E'))
 			{
 				++p;
@@ -212,7 +214,7 @@ namespace deckard
 				while (p != end and *p >= '0' and *p <= '9')
 					++p;
 				if (p == exp_start)
-					return TokenType::VALUE_STRING; // 'e' without digits
+					return TokenType::VALUE_STRING;
 			}
 
 			return (p == end) ? TokenType::VALUE_FLOAT : TokenType::VALUE_STRING;
@@ -250,7 +252,6 @@ namespace deckard
 			if (not view)
 				return;
 
-			// Quoted string — store content inside the quotes
 			if (*view == QUOTATION_MARK)
 			{
 				view++; // skip opening "
@@ -266,7 +267,7 @@ namespace deckard
 				return;
 			}
 
-			// Unquoted value (booleans, numbers, bare identifiers)
+			// boolean, integers...
 			auto copyview = view;
 			u32  start    = as<u32>(copyview.index());
 			while (copyview and not utf8::is_newline(*copyview))
@@ -529,12 +530,31 @@ namespace deckard
 				std::from_chars(sv.data(), sv.data() + sv.size(), result);
 				return result;
 			}
+			else if constexpr (std::is_same_v<T, deckard::net::endpoint>)
+			{
+				if (sv.empty())
+					return {};
+
+				auto host_and_port = string::split_once(sv, ":");
+				if (host_and_port.size() < 2)
+					return {};
+
+				auto& host     = host_and_port[0];
+				auto& port_str = host_and_port[1];
+
+				u16 result{};
+				auto [ptr, ec] = std::from_chars(port_str.data(), port_str.data() + port_str.size(), result);
+				if (ec != std::errc{})
+					return {};
+
+				return net::endpoint(host, result);
+			}
 			else
 				return T{};
 		}
 
 		template<typename T>
-		std::vector<T> get_all(std::string_view key) const
+		std::vector<T> get_vector(std::string_view key) const
 		{
 			auto it = key_hash_to_token_index.find(utils::stringhash(key));
 			if (it == key_hash_to_token_index.end())
@@ -559,6 +579,25 @@ namespace deckard
 					T result{};
 					std::from_chars(sv.data(), sv.data() + sv.size(), result);
 					results.push_back(result);
+				}
+				else if constexpr (std::is_same_v<T, deckard::net::endpoint>)
+				{
+					if (sv.empty())
+						continue;
+
+					auto host_and_port = string::split_once(sv, ":");
+					if (host_and_port.size() < 2)
+						continue;
+
+					auto& host     = host_and_port[0];
+					auto& port_str = host_and_port[1];
+
+					u16 result{};
+					auto [ptr, ec] = std::from_chars(port_str.data(), port_str.data() + port_str.size(), result);
+					if (ec != std::errc{})
+						continue;
+
+					results.push_back(net::endpoint(host, result));
 				}
 			}
 			return results;
@@ -677,7 +716,8 @@ namespace deckard
 			else
 			{
 				// Global key: insert after existing globals, before first section
-				auto first_section = std::ranges::find_if(tokens, [](const TokenValue& t) { return t.type == TokenType::SECTION; });
+				auto first_section =
+				  std::ranges::find_if(tokens, [](const TokenValue& t) { return t.type == TokenType::SECTION; });
 
 				if (first_section == tokens.end())
 				{
@@ -731,8 +771,8 @@ namespace deckard
 
 			// Check if there's a COMMENT token immediately after the VALUE
 			u64 comment_idx = val_idx + 1;
-			while (comment_idx < tokens.size() and
-				   (tokens[comment_idx].type == TokenType::NEWLINE_POSIX or tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
+			while (comment_idx < tokens.size() and (tokens[comment_idx].type == TokenType::NEWLINE_POSIX or
+													tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
 				comment_idx++;
 
 			if (comment_idx < tokens.size() and tokens[comment_idx].type == TokenType::COMMENT)
@@ -809,9 +849,9 @@ namespace deckard
 	}
 
 	template<typename T>
-	std::vector<T> value_proxy::as_all() const
+	std::vector<T> value_proxy::as_vector() const
 	{
-		return cfg.get_all<T>(key);
+		return cfg.get_vector<T>(key);
 	}
 
 	inline value_proxy::operator bool() const { return as<bool>(); }
@@ -833,9 +873,9 @@ namespace deckard
 	}
 
 	template<typename T>
-	std::vector<T> mutable_value_proxy::as_all() const
+	std::vector<T> mutable_value_proxy::as_vector() const
 	{
-		return cfg.get_all<T>(key);
+		return cfg.get_vector<T>(key);
 	}
 
 	template<typename T>
@@ -845,7 +885,7 @@ namespace deckard
 		return *this;
 	}
 
-	#warning "Add ip address parsing support and test with config files containing IP addresses, url:port"
+#warning "Add ip address parsing support and test with config files containing IP addresses, url:port"
 
 	inline mutable_value_proxy::operator bool() const { return as<bool>(); }
 
