@@ -25,7 +25,13 @@ TEST_CASE("as", "[as]")
 		CHECK(-123.456f == as<f32>("-123.456"));
 		CHECK(456.654 == as<f64>("456.654"));
 		CHECK(128 == as<u8>("128"));
-		CHECK(666 == as<i16>("#29A", 16));
+		CHECK(666 == as<i16>("#29A"));
+
+
+		std::string_view hex_str = "0x29a";
+		CHECK(as<u32>(hex_str, 8) == 1232); 
+		CHECK(as<std::string>(666u, 8) == "1232");
+
 	}
 	SECTION("number to string")
 	{
