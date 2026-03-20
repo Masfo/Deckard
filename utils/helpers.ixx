@@ -862,7 +862,7 @@ export namespace deckard
 	}
 
 	template<arithmetic T = i32>
-	auto try_to_number(std::string_view input, int [[maybe_unused]] base = 10) -> std::expected<T, std::string>
+	auto try_to_number(std::string_view input, int base = 10) -> std::expected<T, std::string>
 	{
 		if (input.empty())
 			return std::unexpected("Empty string");
@@ -870,46 +870,60 @@ export namespace deckard
 		if (input.starts_with('+'))
 			input.remove_prefix(1);
 
-		if (input.starts_with("0x"))
+		int parse_base = base;
+		if (input.starts_with("0x") or input.starts_with("0X"))
 		{
 			input.remove_prefix(2);
-			base = 16;
+			parse_base = 16;
 		}
-		else if (input.starts_with("0b"))
+		else if (input.starts_with("0b") or input.starts_with("0B"))
 		{
 			input.remove_prefix(2);
-			base = 2;
+			parse_base = 2;
 		}
 		else if (input.starts_with('#'))
 		{
 			input.remove_prefix(1);
-			base = 16;
+			parse_base = 16;
 		}
-
 
 		T val{};
 
 		if constexpr (std::is_floating_point_v<T>)
 		{
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val);
-			if (ec != std::errc())
-			{
-				return std::unexpected(std::format("try_to_number: Failed to convert to float: {}(base {})", input, base));
-			}
+			if (ec == std::errc())
+				return val;
 
-			return val;
+			return std::unexpected(std::format("try_to_number: Failed to convert to float: {}", input));
 		}
 
 		if constexpr (std::is_integral_v<T>)
 		{
-			auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, base)};
-			if (ec == std::errc::result_out_of_range)
+			auto [ptr, ec]{std::from_chars(input.data(), input.data() + input.size(), val, parse_base)};
+
+			if (ec != std::errc{})
 			{
-				return std::unexpected(std::format("try_to_number: Out of range: {}(base {})", input, base));
+				if (ec == std::errc::result_out_of_range)
+					return std::unexpected(std::format("try_to_number: Out of range: {}(base {})", input, parse_base));
+
+				return std::unexpected(std::format("try_to_number: Failed to convert: {}(base {})", input, parse_base));
 			}
-			else if (ec != std::errc())
+
+			// re-encode
+			if (base != 10 and parse_base != base)
 			{
-				return std::unexpected(std::format("try_to_number : Failed to convert: {}(base {})", input, base));
+				char buf[64]{};
+				auto [p, ec2] = std::to_chars(buf, buf + sizeof(buf), val, base);
+				if (ec2 != std::errc{})
+					return std::unexpected(std::format("try_to_number: Failed to re-encode to base {}", base));
+
+				T reencoded{};
+				auto [p2, ec3] = std::from_chars(buf, p, reencoded, 10);
+				if (ec3 != std::errc{})
+					return std::unexpected(std::format("try_to_number: Failed to parse re-encoded value"));
+
+				return reencoded;
 			}
 
 			return val;
