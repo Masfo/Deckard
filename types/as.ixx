@@ -62,9 +62,9 @@ namespace deckard
 #pragma warning(push)
 #pragma warning(disable : 4172) // returning address of local
 
-
 	export template<typename Ret = void*, bool give_warning = true, typename U>
-	constexpr Ret as(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
+	constexpr Ret
+	as(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
 	{
 		U value = u;
 
@@ -110,7 +110,8 @@ namespace deckard
 					return static_cast<Ret>(value);
 				}
 
-				dbg::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
+				dbg::println(
+				  "Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
 				return static_cast<Ret>(value);
 			}
 			else
@@ -149,20 +150,36 @@ namespace deckard
 #endif
 			return static_cast<Ret>(u);
 		}
-		else if constexpr (string_like_container<U>)
+		else if constexpr (std::is_arithmetic_v<Ret> and (std::is_same_v<U, char*> or std::is_same_v<U, const char*>))
 		{
-			// string -> integral
-			// TODO: try_to expected?
-			auto v = try_to_number<Ret>(value);
+			// char* -> arithmetic
+			std::string_view       str{value};
+			// arithmetic -> string
+			auto v = try_to_number<Ret>(str, base);
 			if (v)
-				return as<Ret>(*v);
+				return *v;
 #ifdef _DEBUG
 			if constexpr (give_warning)
 			{
 				dbg::trace(loc);
 			}
 #endif
-			dbg::panic("Could not convert input from string");
+			dbg::panic(std::format("Could not convert string to arithmetic: '{}'", str));
+		}
+		else if constexpr (std::is_arithmetic_v<Ret> and string_like_container<U>)
+		{
+			// arithmetic -> string
+			auto v = try_to_number<Ret>(value, base);
+			if (v)
+				return *v;
+
+#ifdef _DEBUG
+			if constexpr (give_warning)
+			{
+				dbg::trace(loc);
+			}
+#endif
+			dbg::panic(std::format("Could not convert string to arithmetic: '{}'", value));
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
 		{
@@ -176,17 +193,16 @@ namespace deckard
 				dbg::trace(loc);
 			}
 #endif
-			dbg::panic("Could not convert input to string");
+			dbg::panic(std::format("Could not convert integral to string: {}", value));
 		}
-		else if constexpr(std::is_same_v<std::span<const u8>, U> or std::is_same_v<std::span<u8>, U>)
+		else if constexpr (std::is_same_v<std::span<const u8>, U> or std::is_same_v<std::span<u8>, U>)
 		{
-			assert::check(
-			  value.size() <= sizeof(Ret), std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
+			assert::check(value.size() <= sizeof(Ret),
+						  std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
 
 			std::array<u8, sizeof(Ret)> buffer{};
-			std::ranges::copy_n(value.begin(), value.size(),buffer.begin());
+			std::ranges::copy_n(value.begin(), value.size(), buffer.begin());
 			return std::bit_cast<Ret>(buffer);
-
 		}
 		else
 		{
@@ -261,7 +277,7 @@ namespace deckard
 		else if constexpr (string_like_container<U>)
 		{
 			// TODO: try_to expected?
-			auto v = try_to_number<Ret>(value);
+			auto v = try_to_number<Ret>(value,base);
 			if (v)
 				return to<Ret>(*v);
 
