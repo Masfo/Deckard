@@ -64,6 +64,9 @@ namespace deckard
 		template<typename T>
 		T as() const;
 
+		template<typename T>
+		std::vector<T> as_all() const;
+
 		operator bool() const;
 		explicit operator std::string() const;
 		explicit operator int() const;
@@ -80,6 +83,9 @@ namespace deckard
 		T as() const;
 
 		template<typename T>
+		std::vector<T> as_all() const;
+
+		template<typename T>
 		mutable_value_proxy& operator=(T value);
 
 		operator bool() const;
@@ -94,7 +100,7 @@ namespace deckard
 	private:
 		utf8::string                 m_data;
 		std::vector<TokenValue>      tokens;
-		std::unordered_map<u64, u64> key_hash_to_token_index;
+		std::unordered_map<u64, std::vector<u64>> key_hash_to_token_index;
 		std::vector<parse_error>     m_errors;
 		fs::path                     filename;
 
@@ -152,8 +158,7 @@ namespace deckard
 
 					auto full_key = section.empty() ? key_str : section + '.' + key_str;
 					auto hash     = utils::stringhash(full_key);
-					if (not key_hash_to_token_index.contains(hash))
-						key_hash_to_token_index[hash] = i + 1;
+					key_hash_to_token_index[hash].push_back(i + 1);
 				}
 			}
 		}
@@ -481,10 +486,17 @@ namespace deckard
 					auto key_str  = std::string{key_sv.c_str(), key_sv.size_in_bytes()};
 					auto full_key = section.empty() ? key_str : section + '.' + key_str;
 
-					const auto& val_tok = tokens[i + 1];
-					auto        val_sv  = view.subview(val_tok.start, val_tok.length);
+					auto hash = utils::stringhash(full_key);
+					auto it   = key_hash_to_token_index.find(hash);
+					if (it == key_hash_to_token_index.end())
+						continue;
 
-					dbg::println("'{}' -> '{}'", full_key, val_sv);
+					for (u64 val_idx : it->second)
+					{
+						const auto& val_tok = tokens[val_idx];
+						auto        val_sv  = view.subview(val_tok.start, val_tok.length);
+						dbg::println("'{}' -> '{}'", full_key, val_sv);
+					}
 				}
 			}
 		}
@@ -499,10 +511,10 @@ namespace deckard
 		T get(std::string_view key) const
 		{
 			auto it = key_hash_to_token_index.find(utils::stringhash(key));
-			if (it == key_hash_to_token_index.end())
+			if (it == key_hash_to_token_index.end() or it->second.empty())
 				return T{};
 
-			const auto&      tok = tokens[it->second];
+			const auto&      tok = tokens[it->second.front()];
 			utf8::view       view(m_data);
 			auto             val_view = view.subview(tok.start, tok.length);
 			std::string_view sv{val_view.c_str(), val_view.size_in_bytes()};
@@ -522,6 +534,43 @@ namespace deckard
 		}
 
 		template<typename T>
+		std::vector<T> get_all(std::string_view key) const
+		{
+			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			if (it == key_hash_to_token_index.end())
+				return {};
+
+			std::vector<T> results;
+			results.reserve(it->second.size());
+			utf8::view view(m_data);
+
+			for (u64 idx : it->second)
+			{
+				const auto&      tok      = tokens[idx];
+				auto             val_view = view.subview(tok.start, tok.length);
+				std::string_view sv{val_view.c_str(), val_view.size_in_bytes()};
+
+				if constexpr (std::is_same_v<T, bool>)
+					results.push_back(sv == "true");
+				else if constexpr (std::is_same_v<T, std::string>)
+					results.push_back(std::string{sv});
+				else if constexpr (std::is_arithmetic_v<T>)
+				{
+					T result{};
+					std::from_chars(sv.data(), sv.data() + sv.size(), result);
+					results.push_back(result);
+				}
+			}
+			return results;
+		}
+
+		bool has_multiple(std::string_view key) const
+		{
+			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			return it != key_hash_to_token_index.end() and it->second.size() > 1;
+		}
+
+		template<typename T>
 		void set(std::string_view key, T value)
 		{
 			// Plain content (no quotes) — used for in-place token replacement
@@ -534,10 +583,10 @@ namespace deckard
 				content = std::format("{}", value);
 
 			auto it = key_hash_to_token_index.find(utils::stringhash(key));
-			if (it != key_hash_to_token_index.end())
+			if (it != key_hash_to_token_index.end() and not it->second.empty())
 			{
-				// Update: replace the content only — surrounding quotes in m_data stay intact
-				auto& val_tok   = tokens[it->second];
+				// Update: replace the first occurrence's content only
+				auto& val_tok   = tokens[it->second.front()];
 				u32   old_start = val_tok.start;
 				u32   old_len   = val_tok.length;
 				u32   new_len   = as<u32>(utf8::view{std::string_view{content}}.size());
@@ -548,7 +597,7 @@ namespace deckard
 				i64 delta = as<i64>(new_len) - as<i64>(old_len);
 				if (delta != 0)
 				{
-					u64 val_idx = it->second;
+					u64 val_idx = it->second.front();
 					for (u64 i = val_idx + 1; i < tokens.size(); ++i)
 					{
 						if (tokens[i].start >= old_start + old_len)
@@ -670,13 +719,13 @@ namespace deckard
 		void set_comment(std::string_view key, std::string_view comment)
 		{
 			auto it = key_hash_to_token_index.find(utils::stringhash(key));
-			if (it == key_hash_to_token_index.end())
+			if (it == key_hash_to_token_index.end() or it->second.empty())
 			{
 				dbg::println("set_comment: key '{}' not found, cannot set comment", key);
 				return;
 			}
 
-			u64        val_idx = it->second;
+			u64        val_idx = it->second.front();
 			auto&      val_tok = tokens[val_idx];
 			utf8::view view(m_data);
 
@@ -759,6 +808,12 @@ namespace deckard
 		return cfg.get<T>(key);
 	}
 
+	template<typename T>
+	std::vector<T> value_proxy::as_all() const
+	{
+		return cfg.get_all<T>(key);
+	}
+
 	inline value_proxy::operator bool() const { return as<bool>(); }
 
 	inline value_proxy::operator std::string() const { return as<std::string>(); }
@@ -778,11 +833,19 @@ namespace deckard
 	}
 
 	template<typename T>
+	std::vector<T> mutable_value_proxy::as_all() const
+	{
+		return cfg.get_all<T>(key);
+	}
+
+	template<typename T>
 	mutable_value_proxy& mutable_value_proxy::operator=(T value)
 	{
 		cfg.set(key, value);
 		return *this;
 	}
+
+	#warning "Add ip address parsing support and test with config files containing IP addresses, url:port"
 
 	inline mutable_value_proxy::operator bool() const { return as<bool>(); }
 

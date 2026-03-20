@@ -490,7 +490,7 @@ TEST_CASE("config global key placement", "[config]")
 	SECTION("global key readable after adding to config with existing section keys")
 	{
 		config cfg("[db]\nhost = localhost\nport = 5432"sv);
-		cfg["debug"] = false;
+		cfg["debug"]    = false;
 		cfg["loglevel"] = 3;
 
 		CHECK(cfg["debug"].as<bool>() == false);
@@ -566,7 +566,7 @@ TEST_CASE("config utf8 string values", "[config]")
 		config cfg;
 		cfg["title"] = "H\xC3\xA9llo \xF0\x9F\x8C\x8D";
 
-		auto serialized = cfg.to_string();
+		auto   serialized = cfg.to_string();
 		config cfg2(serialized);
 
 		CHECK(cfg2["title"].as<std::string>() == "H\xC3\xA9llo \xF0\x9F\x8C\x8D");
@@ -577,7 +577,7 @@ TEST_CASE("config utf8 string values", "[config]")
 		config cfg;
 		cfg["window.title"] = "H\xC3\xA9llo \xF0\x9F\x8C\x8D";
 
-		auto serialized = cfg.to_string();
+		auto   serialized = cfg.to_string();
 		config cfg2(serialized);
 
 		CHECK(cfg2["window.title"].as<std::string>() == "H\xC3\xA9llo \xF0\x9F\x8C\x8D");
@@ -632,4 +632,160 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(cfg["count"].as<i32>() == 42);
 		CHECK(cfg.to_string().to_string().find("count = 42 # answer to everything") != std::string::npos);
 	}
+
+	SECTION("has_multiple is false for unique key")
+	{
+		config cfg = config("key = one\n"sv);
+
+		CHECK(cfg.has_multiple("key") == false);
+	}
+
+	SECTION("has_multiple is true for duplicate key")
+	{
+		config cfg = config("key = one\nkey = two\n"sv);
+
+		CHECK(cfg.has_multiple("key") == true);
+	}
+
+	SECTION("get returns first value when duplicates exist")
+	{
+		config cfg = config("key = first\nkey = second\nkey = third\n"sv);
+
+		CHECK(cfg["key"].as<std::string>() == "first");
+	}
+
+	SECTION("get_all returns all values for duplicate string key")
+	{
+		config cfg = config("key = one\nkey = two\nkey = three\n"sv);
+
+		auto values = cfg["key"].as_all<std::string>();
+
+		REQUIRE(values.size() == 3);
+		CHECK(values[0] == "one");
+		CHECK(values[1] == "two");
+		CHECK(values[2] == "three");
+	}
+
+	SECTION("get_all returns all values for duplicate integer key")
+	{
+		config cfg = config("port = 80\nport = 443\nport = 8080\n"sv);
+
+		auto values = cfg["port"].as_all<i32>();
+
+		REQUIRE(values.size() == 3);
+		CHECK(values[0] == 80);
+		CHECK(values[1] == 443);
+		CHECK(values[2] == 8080);
+	}
+
+	SECTION("get_all returns all values for duplicate bool key")
+	{
+		config cfg = config("flag = true\nflag = false\nflag = true\n"sv);
+
+		auto values = cfg["flag"].as_all<bool>();
+
+		REQUIRE(values.size() == 3);
+		CHECK(values[0] == true);
+		CHECK(values[1] == false);
+		CHECK(values[2] == true);
+	}
+
+	SECTION("get_all returns single-element vector for unique key")
+	{
+		config cfg = config("key = only\n"sv);
+
+		auto values = cfg["key"].as_all<std::string>();
+
+		REQUIRE(values.size() == 1);
+		CHECK(values[0] == "only");
+	}
+
+	SECTION("get_all returns empty vector for missing key")
+	{
+		config cfg = config("key = value\n"sv);
+
+		auto values = cfg["missing"].as_all<std::string>();
+
+		CHECK(values.empty());
+	}
+
+	SECTION("duplicate keys under section")
+	{
+		config cfg = config("[server]\nhost = alpha\nhost = beta\nhost = gamma\n"sv);
+
+		CHECK(cfg.has_multiple("server.host") == true);
+		CHECK(cfg["server.host"].as<std::string>() == "alpha");
+
+		auto values = cfg["server.host"].as_all<std::string>();
+
+		REQUIRE(values.size() == 3);
+		CHECK(values[0] == "alpha");
+		CHECK(values[1] == "beta");
+		CHECK(values[2] == "gamma");
+	}
+
+	SECTION("duplicate keys mixed with unique keys under section")
+	{
+		config cfg = config("[net]\nport = 80\nport = 443\ntimeout = 30\n"sv);
+
+		CHECK(cfg.has_multiple("net.port") == true);
+		CHECK(cfg.has_multiple("net.timeout") == false);
+
+		auto ports = cfg["net.port"].as_all<i32>();
+		REQUIRE(ports.size() == 2);
+		CHECK(ports[0] == 80);
+		CHECK(ports[1] == 443);
+
+		CHECK(cfg["net.timeout"].as<i32>() == 30);
+	}
+
+	SECTION("set on duplicate key updates only the first occurrence")
+	{
+		config cfg = config("dup = 1\ndup = 2\ndup = 3\n"sv);
+
+		cfg["dup"] = 99;
+
+		auto values = cfg["dup"].as_all<i32>();
+		REQUIRE(values.size() == 3);
+		CHECK(values[0] == 99);
+		CHECK(values[1] == 2);
+		CHECK(values[2] == 3);
+	}
+
+	SECTION("duplicate quoted string values")
+	{
+		config cfg = config("tag = \"alpha\"\ntag = \"beta\"\n"sv);
+
+		auto values = cfg["tag"].as_all<std::string>();
+
+		REQUIRE(values.size() == 2);
+		CHECK(values[0] == "alpha");
+		CHECK(values[1] == "beta");
+	}
+
+	SECTION("two sections with same key are independent")
+	{
+		config cfg = config("[a]\nkey = 1\n[b]\nkey = 2\n"sv);
+
+		CHECK(cfg.has_multiple("a.key") == false);
+		CHECK(cfg.has_multiple("b.key") == false);
+		CHECK(cfg["a.key"].as<i32>() == 1);
+		CHECK(cfg["b.key"].as<i32>() == 2);
+	}
+
+	SECTION("duplicate keys only in one of two sections")
+	{
+		config cfg = config("[a]\nkey = 1\nkey = 2\n[b]\nkey = 9\n"sv);
+
+		CHECK(cfg.has_multiple("a.key") == true);
+		CHECK(cfg.has_multiple("b.key") == false);
+
+		auto a_vals = cfg["a.key"].as_all<i32>();
+		REQUIRE(a_vals.size() == 2);
+		CHECK(a_vals[0] == 1);
+		CHECK(a_vals[1] == 2);
+
+		CHECK(cfg["b.key"].as<i32>() == 9);
+	}
 }
+
