@@ -202,9 +202,44 @@ namespace deckard::net
 
 			return -1;
 		}
+
+		bool operator==(const ip& other) const { return address == other.address; }
 	};
 
-	static_assert(sizeof(ip) == 16, "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
+	static_assert(sizeof(ip) == 16,
+				  "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
+
+	export struct endpoint
+	{
+		ip  address{};
+		u16 port{};
+
+		endpoint() = default;
+
+		endpoint(const ip& address, u16 port)
+			: address(address)
+			, port(port)
+		{
+		}
+
+		endpoint(std::string_view address_str, u16 port)
+		{
+			ip parsed(address_str);
+			if (not parsed.valid())
+			{
+				dbg::eprintln("Invalid IP address '{}'", address_str);
+				this->address = ip{};
+			}
+			else
+			{
+				this->address = std::move(parsed);
+			}
+			this->port = port;
+		}
+
+		std::string to_string() const { return std::format("[{}]:{}", address.to_string(), port); }
+		bool operator==(const endpoint& other) const { return address == other.address && port == other.port; }
+	};
 
 
 	export enum class IPVersion : u32 {
@@ -278,7 +313,10 @@ namespace std
 	{
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const ip& address, std::format_context& ctx) const { return std::format_to(ctx.out(), "{}", address.to_string()); }
+		auto format(const ip& address, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", address.to_string());
+		}
 	};
 
 } // namespace std
