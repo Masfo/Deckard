@@ -13,6 +13,8 @@ import std;
 
 namespace deckard::net
 {
+	using namespace std::string_literals;
+
 	static constexpr u8          MAX_IPV4_ADDRESS_STR_LEN = 15;
 	static constexpr u8          MAX_IPV6_ADDRESS_STR_LEN = 39;
 	constexpr std::array<u8, 12> ipv4_mapped_prefix       = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF};
@@ -22,6 +24,7 @@ namespace deckard::net
 	// https://api64.ipify.org
 	// https://api.ipify.org
 	// https://api6.ipify.org
+
 
 	export class ip
 	{
@@ -137,9 +140,12 @@ namespace deckard::net
 
 		std::string to_string() const
 		{
+			if (not valid())
+					return "<invalid IP>"s;
+
+
 			if (is_ipv4())
 				return std::format("{}.{}.{}.{}", address[12], address[13], address[14], address[15]);
-
 
 			std::array<u16, 8> groups;
 			for (int i = 0; i < 8; ++i)
@@ -209,51 +215,7 @@ namespace deckard::net
 	static_assert(sizeof(ip) == 16,
 				  "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
 
-	export struct endpoint
-	{
-		ip  address{};
-		u16 port{};
-
-		endpoint() = default;
-
-		endpoint(const ip& address, u16 port)
-			: address(address)
-			, port(port)
-		{
-		}
-
-		endpoint(std::string_view address_str, u16 port)
-		{
-			ip parsed(address_str);
-			if (not parsed.valid())
-			{
-				dbg::eprintln("Invalid IP address '{}'", address_str);
-				this->address = ip{};
-			}
-			else
-			{
-				this->address = std::move(parsed);
-			}
-			this->port = port;
-		}
-
-		std::string to_string() const { return std::format("[{}]:{}", address.to_string(), port); }
-		bool operator==(const endpoint& other) const { return address == other.address && port == other.port; }
-	};
-
-
-	export enum class IPVersion : u32 {
-		IPV4 = 4,
-		IPV6 = 6,
-	};
-
-	export struct IPAddressResult
-	{
-		net::ip   address{};
-		IPVersion version{IPVersion::IPV4};
-	};
-
-	export std::expected<std::vector<IPAddressResult>, std::string> get_ip_addresses(const std::string_view domain) noexcept
+	export std::expected<std::vector<net::ip>, std::string> resolve_ips(const std::string_view domain) noexcept
 	{
 
 		struct addrinfo  hints{};
@@ -268,7 +230,7 @@ namespace deckard::net
 		if (status != 0)
 			return std::unexpected(std::format("no such address: \"{}\" (error: {})", domain, WSAGetLastError()));
 
-		std::vector<IPAddressResult> addresses;
+		std::vector<net::ip> addresses;
 
 		for (struct addrinfo* p = result; p != nullptr; p = p->ai_next)
 		{
@@ -282,7 +244,7 @@ namespace deckard::net
 				{
 					net::ip parsed(ip_str);
 					if (parsed.valid())
-						addresses.push_back({parsed, IPVersion::IPV4});
+						addresses.push_back(parsed);
 				}
 			}
 			else if (p->ai_family == AF_INET6)
@@ -293,7 +255,7 @@ namespace deckard::net
 				{
 					net::ip parsed(ip_str);
 					if (parsed.valid())
-						addresses.push_back({parsed, IPVersion::IPV6});
+						addresses.push_back(parsed);
 				}
 			}
 		}
@@ -301,6 +263,70 @@ namespace deckard::net
 		freeaddrinfo(result);
 		return addresses;
 	}
+
+	export struct endpoint
+	{
+		ip          address{};
+		u16         port{};
+		std::string hostname;
+
+		endpoint() = default;
+
+		endpoint(const ip& address, u16 port)
+			: address(address)
+			, port(port)
+		{
+		}
+
+		endpoint(std::string_view host_str, u16 port)
+		{
+			this->port = port;
+
+			// Strip URL scheme (e.g. "https://", "http://")
+			auto host = host_str;
+			if (const auto scheme_end = host.find("://"); scheme_end != std::string_view::npos)
+				host = host.substr(scheme_end + 3);
+
+			// Strip path component
+			if (const auto slash = host.find('/'); slash != std::string_view::npos)
+				host = host.substr(0, slash);
+
+			hostname = host;
+
+			ip parsed(hostname);
+			if (parsed.valid())
+			{
+				this->address = std::move(parsed);
+				return;
+			}
+
+			// Not an IP — try domain resolution
+			if (auto result = resolve_ips(host); result and not result->empty())
+			{
+				this->address = result->front();
+			}
+			else
+			{
+				dbg::eprintln("Cannot resolve host '{}'", host);
+				this->address = ip{};
+			}
+		}
+
+		bool valid() const { return address.valid(); }
+
+		std::string to_string() const
+		{
+			// if (not hostname.empty())
+			//	return std::format("{}:{}", hostname, port);
+			if (address.is_ipv6())
+				return std::format("[{}]:{}", address.to_string(), port);
+
+			return std::format("{}:{}", address.to_string(), port);
+		}
+
+		bool operator==(const endpoint& other) const { return address == other.address and port == other.port; }
+	};
+
 
 } // namespace deckard::net
 
