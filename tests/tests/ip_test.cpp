@@ -97,7 +97,7 @@ TEST_CASE("ipv6", "[ip]")
 		ip addr("::");
       CHECK(addr.is_ipv6() == false);
 		CHECK(addr.valid() == false);
-		CHECK(addr.to_string() == "::");
+		CHECK(addr.to_string() == "<invalid IP>");
 	}
 	SECTION("ipv6 double-colon at start (::1234)")
 	{
@@ -135,8 +135,98 @@ TEST_CASE("ipv6", "[ip]")
 	}
 }
 
-TEST_CASE("ip", "[ip]")
+TEST_CASE("ip version", "[ip]")
 {
+	SECTION("ipv4 version is 4")
+	{
+		CHECK(ip("1.2.3.4").version() == 4);
+	}
+
+	SECTION("ipv6 version is 6")
+	{
+		CHECK(ip("::1").version() == 6);
+	}
+
+	SECTION("invalid ip version is -1")
+	{
+		CHECK(ip{}.version() == -1);
+		CHECK(ip("").version() == -1);
+	}
+}
+
+TEST_CASE("ip equality", "[ip]")
+{
+	SECTION("same ipv4 are equal")
+	{
+		CHECK(ip("1.2.3.4") == ip("1.2.3.4"));
+	}
+
+	SECTION("different ipv4 are not equal")
+	{
+		CHECK_FALSE(ip("1.2.3.4") == ip("5.6.7.8"));
+	}
+
+	SECTION("same ipv6 are equal")
+	{
+		CHECK(ip("::1") == ip("::1"));
+	}
+
+	SECTION("ipv4 and ipv6 are not equal")
+	{
+		CHECK_FALSE(ip("1.2.3.4") == ip("::1"));
+	}
+
+	SECTION("two invalid addresses are equal")
+	{
+		CHECK(ip{} == ip{});
+	}
+}
+
+TEST_CASE("ip edge cases", "[ip]")
+{
+	SECTION("empty string is invalid")
+	{
+		ip addr("");
+		CHECK(addr.valid() == false);
+		CHECK(addr.to_string() == "<invalid IP>");
+	}
+
+	SECTION("0.0.0.0 is invalid")
+	{
+		ip addr("0.0.0.0");
+		CHECK(addr.valid() == false);
+	}
+
+	SECTION("default constructed to_string returns placeholder")
+	{
+		CHECK(ip{}.to_string() == "<invalid IP>");
+	}
+
+	SECTION("ipv4-mapped ipv6 (::ffff:1.2.3.4) is classified as ipv4")
+	{
+		ip addr("::ffff:1.2.3.4");
+		CHECK(addr.valid() == true);
+		CHECK(addr.is_ipv4() == true);
+		CHECK(addr.is_ipv6() == false);
+		CHECK(addr.to_string() == "1.2.3.4");
+	}
+
+	SECTION("ipv6 full-length address is compressed")
+	{
+		ip addr("2001:0000:0000:0000:0000:0000:0000:0001");
+		CHECK(addr.valid() == true);
+		CHECK(addr.is_ipv6() == true);
+		CHECK(addr.to_string() == "2001::1");
+	}
+
+	SECTION("ipv6 longest zero run is chosen for compression")
+	{
+		// 1:0:0:0:0:2:0:3 — first run (len=4) wins over last run (len=1)
+		ip addr("1:0:0:0:0:2:0:3");
+		CHECK(addr.valid() == true);
+		CHECK(addr.to_string() == "1::2:0:3");
+	}
+
 	SECTION("default constructed is not valid")
 	{
 		ip addr;
@@ -144,7 +234,6 @@ TEST_CASE("ip", "[ip]")
 		CHECK(addr.is_ipv4() == false);
 		CHECK(addr.is_ipv6() == false);
 	}
-
 
 	SECTION("ipv6 with embedded ipv4 tail")
 	{
@@ -154,7 +243,6 @@ TEST_CASE("ip", "[ip]")
 		CHECK(addr.is_ipv6() == true);
 		CHECK(addr.to_string() == "::c0a8:101");
 	}
-
 
 	SECTION("ipv4 is not ipv6")
 	{
