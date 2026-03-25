@@ -60,6 +60,12 @@ export namespace deckard
 
 	constexpr f64 operator""_f64(const u64 value) { return static_cast<f64>(value); }
 
+	constexpr std::filesystem::path operator""_path(const char* str, size_t len)
+	{
+		return std::filesystem::path(std::string_view(str, len));
+	}
+
+
 	template<class... Ts>
 	struct overloads : Ts...
 	{
@@ -189,8 +195,8 @@ export namespace deckard
 	requires std::ranges::contiguous_range<Range> and std::is_trivially_copyable_v<std::ranges::range_value_t<Range>>
 	std::span<const u8> to_bytes(Range& r)
 	{
-		return std::span<const u8>{
-		  reinterpret_cast<const u8*>(std::ranges::data(r)), std::ranges::size(r) * sizeof(std::ranges::range_value_t<Range>)};
+		return std::span<const u8>{reinterpret_cast<const u8*>(std::ranges::data(r)),
+								   std::ranges::size(r) * sizeof(std::ranges::range_value_t<Range>)};
 	}
 
 	// ###########################################################################
@@ -250,7 +256,10 @@ export namespace deckard
 		T height{T{0}};
 	};
 
-	auto to_extent(const RECT& r) -> extent<u16> { return extent{static_cast<u16>(r.right - r.left), static_cast<u16>(r.bottom - r.top)}; }
+	auto to_extent(const RECT& r) -> extent<u16>
+	{
+		return extent{static_cast<u16>(r.right - r.left), static_cast<u16>(r.bottom - r.top)};
+	}
 
 	// 	if constexpr (requires { from.data(); } )
 
