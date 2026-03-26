@@ -235,16 +235,18 @@ public:
 	explicit DNSQuery(const std::string& domain)
 		: domain(domain)
 	{
-		build_query();
+		if (auto result = build_query(); not result)
+			build_error = result.error();
 	}
 
-	void send_query()
+	std::expected<void, std::string> send_query()
 	{
+		if (build_error)
+			return std::unexpected(*build_error);
+
 		int sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 		if (sockfd < 0)
-		{
-			throw std::runtime_error("Socket creation failed");
-		}
+			return std::unexpected("Socket creation failed");
 
 
 		timeval timeout{};
@@ -265,7 +267,7 @@ public:
 			if (inet_pton(AF_INET, "1.1.1.1", &ipv4) != 1)
 			{
 				closesocket(sockfd);
-				throw std::runtime_error("Invalid DNS server address");
+				return std::unexpected("Invalid DNS server address");
 			}
 
 			dest.sin6_addr = {};
@@ -285,7 +287,7 @@ public:
 		if (send_len < 0)
 		{
 			closesocket(sockfd);
-			throw std::runtime_error("Send failed");
+			return std::unexpected("Send failed");
 		}
 
 		// Receiving the response
@@ -297,19 +299,20 @@ public:
 		if (recv_len < 0)
 		{
 			closesocket(sockfd);
-			throw std::runtime_error("Receive failed");
+			return std::unexpected("Receive failed");
 		}
 
 		closesocket(sockfd);
-		parse_response(recv_len);
+		return parse_response(recv_len);
 	}
 
 private:
 	std::string                 domain;
 	std::array<u8, BUFFER_SIZE> buffer = {};
 	size_t                      query_length{0};
+	std::optional<std::string>  build_error;
 
-	void build_query()
+	std::expected<void, std::string> build_query()
 	{
 		DNSHeader* dns = reinterpret_cast<DNSHeader*>(buffer.data());
 		dns->id        = htons(0x1234); // Transaction ID
@@ -336,10 +339,10 @@ private:
 			auto       label = (dot == std::string_view::npos) ? rest : rest.substr(0, dot);
 
 			if (label.empty() or label.size() > max_label_length)
-				throw std::runtime_error("Invalid domain label");
+				return std::unexpected("Invalid domain label");
 
 			if (offset + 1 + label.size() + sizeof(DNSQuestion) >= buffer.size())
-				throw std::runtime_error("Domain too long for DNS query");
+				return std::unexpected("Domain too long for DNS query");
 
 			buffer[offset++] = static_cast<u8>(label.size());
 			std::memcpy(buffer.data() + offset, label.data(), label.size());
@@ -359,6 +362,7 @@ private:
 
 		std::memcpy(buffer.data() + offset, &qinfo, sizeof(qinfo));
 		query_length = offset + sizeof(qinfo);
+		return {};
 	}
 
 	bool parse_name(size_t& offset, const size_t recv_len, std::string& out) const
@@ -439,25 +443,33 @@ private:
 		return true;
 	}
 
-	void parse_response(size_t recv_len)
+	std::expected<void, std::string> parse_response(size_t recv_len)
 	{
 		if (recv_len < DNS_HEADER_SIZE)
-			throw std::runtime_error("DNS response too short");
+			return std::unexpected("DNS response too short");
 
-		auto read_be16_at = [&](size_t pos) -> u16
+		auto read_be16_at = [&](size_t pos) -> std::optional<u16>
 		{
 			if (pos + sizeof(u16) > recv_len)
-				throw std::runtime_error("Malformed DNS header");
+				return std::nullopt;
 
 			u16 value{};
 			std::memcpy(&value, buffer.data() + pos, sizeof(value));
 			return ntohs(value);
 		};
 
-		int question_count   = static_cast<int>(read_be16_at(4));
-		int answer_count     = static_cast<int>(read_be16_at(6));
-		int authority_count  = static_cast<int>(read_be16_at(8));
-		int additional_count = static_cast<int>(read_be16_at(10));
+		const auto q_count    = read_be16_at(4);
+		const auto a_count    = read_be16_at(6);
+		const auto auth_count = read_be16_at(8);
+		const auto add_count  = read_be16_at(10);
+
+		if (not q_count or not a_count or not auth_count or not add_count)
+			return std::unexpected("Malformed DNS header");
+
+		int question_count   = static_cast<int>(*q_count);
+		int answer_count     = static_cast<int>(*a_count);
+		int authority_count  = static_cast<int>(*auth_count);
+		int additional_count = static_cast<int>(*add_count);
 
 		dbg::println(
 		  "Received {} bytes, Questions: {}, Answers: {}, Authority: {}, Additional: {}",
@@ -478,10 +490,10 @@ private:
 
 			if (not parse_name(offset, recv_len, qname) or not read_u16(offset, recv_len, qtype) or
 				not read_u16(offset, recv_len, qclass))
-				throw std::runtime_error("Malformed DNS question section");
+				return std::unexpected("Malformed DNS question section");
 		}
 
-		auto parse_records = [&](std::string_view section_name, int count)
+		auto parse_records = [&](std::string_view section_name, int count) -> std::expected<void, std::string>
 		{
 			dbg::println("{} records: {}", section_name, count);
 
@@ -489,15 +501,15 @@ private:
 			{
 				std::string name;
 				if (not parse_name(offset, recv_len, name))
-					throw std::runtime_error("Malformed DNS name in answer");
+					return std::unexpected("Malformed DNS name in answer");
 
 				DNSAnswer answer;
 				if (not read_u16(offset, recv_len, answer.type) or not read_u16(offset, recv_len, answer.class_) or
 					not read_u32(offset, recv_len, answer.ttl) or not read_u16(offset, recv_len, answer.data_len))
-					throw std::runtime_error("Malformed DNS answer header");
+					return std::unexpected("Malformed DNS answer header");
 
 				if (offset + answer.data_len > recv_len)
-					throw std::runtime_error("Malformed DNS answer payload");
+					return std::unexpected("Malformed DNS answer payload");
 
 				answer.data.resize(answer.data_len);
 				std::memcpy(answer.data.data(), buffer.data() + offset, answer.data_len);
@@ -536,18 +548,24 @@ private:
 					  "  Data (hex): {}", to_hex_string(std::span{answer.data}, {.delimiter = " ", .show_hex = false}));
 				}
 			}
+			return {};
 		};
 
-		parse_records("Answer", answer_count);
-		parse_records("Authority", authority_count);
-		parse_records("Additional", additional_count);
+		if (auto r = parse_records("Answer", answer_count); not r)
+			return r;
+		if (auto r = parse_records("Authority", authority_count); not r)
+			return r;
+		if (auto r = parse_records("Additional", additional_count); not r)
+			return r;
+		return {};
 	}
 };
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 
-	endpoint ep("api.taboobuilder.com", 47482);
+
+	net::endpoint ep("api.taboobuilder.com", 80);
 
 	dbg::println("Endpoint: {}", ep.to_string());
 	_ = 0;
@@ -661,13 +679,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	try
 	{
 		DNSQuery query("api64.ipify.org");
-		query.send_query();
-	}
-	catch (const std::exception& e)
-	{
-		dbg::println("{}", e.what());
-		return 0;
-	}
+	if (auto result = query.send_query(); not result)
+		dbg::println("{}", result.error());
 
 
 	//
