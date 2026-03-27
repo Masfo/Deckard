@@ -13,6 +13,58 @@ import deckard.helpers;
 import deckard.net;
 using namespace deckard;
 
+/* Deckard Net
+ *
+ *		- TCP/UDP socket abstraction with policy-based design
+ *		- Commands for sending/receiving data, opening/closing connections
+ *		- Handshakes and connection management
+ *		- Handle clients and realtime send/receive data
+ *		- Based on UDP with TCP-like reliability features (retries, acknowledgments, sequencing)
+ *		- STUN for clients
+ *		- Synch with NTP
+ *		- cloudflare workers for db, and coordination
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+
+struct DeckardNetHeader
+{
+	u8  version;   // Protocol version
+	u8  flags;     // Flags for future use (e.g., reliability, compression)
+	u16 sequence;  // Sequence number for ordering
+	u32 timestamp; // Timestamp for latency measurement
+};
+
+
+enum class NetCommand : u8
+{
+	Heartbeat = 0x00,
+
+	OpenConnection  = 0x01,
+	CloseConnection = 0x02,
+	SendData        = 0x03,
+	ReceiveData     = 0x04,
+	Handshake       = 0x05,
+
+	ServerHello = 0x10,
+	ClientHello = 0x11,
+
+
+	chat_message = 0x30,
+	chat_join    = 0x31,
+	chat_leave   = 0x32,
+
+
+	Ping = 0xFE,
+	Pong = 0xFF,
+};
+
+
 using namespace std::string_view_literals;
 
 template<typename T>
@@ -45,6 +97,43 @@ enum class Address : u32
 	V4 = AF_INET,
 	V6 = AF_INET6,
 };
+
+// Bitfield ACK - index and bit represent ACK for every packet after sequence number - 32 packets can be ACKed with each ACK
+// bitfield// u64
+//	- u32 for sequence number
+// - u32 for ACK bitfield (32 bits for ACKs of the last
+
+// 100 then 0b11111...1111101 ACKS packets 100-132, but not 101)
+
+struct BitfieldACK
+{
+	u64 sequence_and_bitfield{0};
+
+	std::generator<u32> acked_packets() const
+	{
+		u32 seq_num      = static_cast<u32>(sequence_and_bitfield >> 32);
+		u32 ack_bitfield = static_cast<u32>(sequence_and_bitfield & 0xFFFF'FFFF);
+		for (u32 i = 0; i < 32; ++i)
+		{
+			if (ack_bitfield & (1 << i))
+				co_yield seq_num - i;
+		}
+	}
+
+	void set_ack(u32 num)
+	{
+		u32 seq_num      = static_cast<u32>(sequence_and_bitfield >> 32);
+		u32 ack_bitfield = static_cast<u32>(sequence_and_bitfield & 0xFFFF'FFFF);
+		if (num > seq_num || num <= seq_num - 32)
+			return;
+
+		u32 bit_index = seq_num - num;
+		ack_bitfield |= (1 << bit_index);
+		sequence_and_bitfield = (static_cast<u64>(seq_num) << 32) | ack_bitfield;
+	}
+};
+
+static_assert(sizeof(BitfieldACK) == 8, "BitfieldACK should be exactly 8 bytes to fit into a single u64");
 
 struct TCP
 {
@@ -103,56 +192,6 @@ struct UDP
 	std::string_view protocol() const { return "UDP"; }
 
 	SOCKET socket{INVALID_SOCKET};
-};
-
-struct endpoint
-{
-	sockaddr_in6 addr{};
-
-	[[nodiscard]] u64 port() const noexcept { return ntohs(addr.sin6_port); }
-
-	void set_port(u64 p) noexcept { addr.sin6_port = htons(p); }
-
-	[[nodiscard]] std::string to_string() const
-	{
-		char buf[INET6_ADDRSTRLEN]{};
-		inet_ntop(AF_INET, &addr.sin6_addr, buf, sizeof(buf));
-		return std::format("[{}]:{}", buf, port());
-	}
-
-	[[nodiscard]] const sockaddr* as_sockaddr() const noexcept { return reinterpret_cast<const sockaddr*>(&addr); }
-
-	[[nodiscard]] auto resolve(std::string_view domain, std::uint16_t port) -> std::expected<endpoint, std::string>
-	{
-		addrinfo hints{
-		  .ai_flags    = AI_V4MAPPED | AI_ADDRCONFIG,
-		  .ai_family   = AF_INET6,
-		  .ai_socktype = SOCK_STREAM,
-		};
-		addrinfo* res      = nullptr;
-		auto      port_str = std::to_string(port);
-
-		if (int rc = getaddrinfo(domain.data(), port_str.c_str(), &hints, &res); rc != 0)
-			return std::unexpected{std::string{gai_strerrorA(rc)}};
-
-		std::unique_ptr<addrinfo, decltype([](addrinfo* p) { freeaddrinfo(p); })> guard{res};
-
-		endpoint ep{};
-		ep.addr = *reinterpret_cast<sockaddr_in6*>(res->ai_addr);
-		return ep;
-	}
-
-	endpoint() = default;
-
-	endpoint(std::string_view domain, u16 port)
-	{
-		if (not resolve(domain, port))
-		{
-			dbg::println("Failed to resolve domain: {}", domain);
-			return;
-		}
-		set_port(port);
-	}
 };
 
 template<TransportConcept TransportPolicy>
@@ -248,14 +287,12 @@ public:
 		if (sockfd < 0)
 			return std::unexpected("Socket creation failed");
 
-
 		timeval timeout{};
 		timeout.tv_sec  = 0;
 		timeout.tv_usec = 5000;
 
 		if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, as<const char*>(&timeout), sizeof timeout) == SOCKET_ERROR)
 			dbg::println("setsockopt failed: {}", WSAGetLastError());
-
 
 		sockaddr_in6 dest{};
 		dest.sin6_family = AF_INET6;
@@ -290,7 +327,6 @@ public:
 			return std::unexpected("Send failed");
 		}
 
-		// Receiving the response
 		sockaddr_in6 src{};
 		socklen_t    len      = sizeof(src);
 		int          recv_len = recvfrom(
@@ -481,7 +517,6 @@ private:
 
 		size_t offset = DNS_HEADER_SIZE;
 
-		// Skip the questions
 		for (int i = 0; i < question_count; ++i)
 		{
 			std::string qname;
@@ -522,9 +557,6 @@ private:
 				dbg::println("  Type: {}", answer.type);
 				dbg::println("  Class: {}", answer.class_);
 				dbg::println("  TTL: {}", answer.ttl);
-
-
-				dbg::println("  Type: {}", answer.type);
 
 				if (answer.type == 1)
 				{
@@ -676,9 +708,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	}
 
 
-	try
-	{
-		DNSQuery query("api64.ipify.org");
+	DNSQuery query("api64.ipify.org");
 	if (auto result = query.send_query(); not result)
 		dbg::println("{}", result.error());
 
