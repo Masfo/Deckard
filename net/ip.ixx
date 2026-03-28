@@ -215,13 +215,13 @@ namespace deckard::net
 	static_assert(sizeof(ip) == 16,
 				  "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
 
-	export std::expected<std::vector<net::ip>, std::string> resolve_ips(const std::string_view domain) noexcept
+	export std::expected<std::vector<net::ip>, std::string> resolve_ips(const std::string_view domain, int version=0) noexcept
 	{
 
 		struct addrinfo  hints{};
 		struct addrinfo* result = nullptr;
 
-		hints.ai_family   = AF_UNSPEC;
+		hints.ai_family   = (version == 0) ? AF_UNSPEC : (version == 4) ? AF_INET : AF_INET6;
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_flags    = 0;
 		hints.ai_protocol = 0;
@@ -261,6 +261,9 @@ namespace deckard::net
 		}
 
 		freeaddrinfo(result);
+
+		std::ranges::stable_partition(addresses, [](const net::ip& a) { return a.is_ipv4(); });
+
 		return addresses;
 	}
 
