@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -38,6 +38,15 @@ namespace deckard::net
 	}
 
 	export void deinitialize() { WSACleanup(); }
+
+
+	export std::string hostname()
+	{
+		std::array<char, 256> hostname { 0};
+		if (gethostname(hostname.data(), hostname.size()) == SOCKET_ERROR)
+			return "<unknown>";
+		return std::string{hostname.data()};
+	}
 
 
 } // namespace deckard::net
