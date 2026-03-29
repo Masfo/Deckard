@@ -29,9 +29,8 @@ TEST_CASE("as", "[as]")
 
 
 		std::string_view hex_str = "0x29a";
-		CHECK(as<u32>(hex_str, 8) == 1232); 
+		CHECK(as<u32>(hex_str, 8) == 1232);
 		CHECK(as<std::string>(666u, 8) == "1232");
-
 	}
 	SECTION("number to string")
 	{
@@ -1086,5 +1085,28 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(round_to_nearest<10>(15) == 20);
 		CHECK(round_to_nearest<10>(-14) == -10);
 		CHECK(round_to_nearest<10>(-15) == -20);
+	}
+
+	SECTION("is_any_of")
+	{ 
+		CHECK(is_any_of(10, 10, 20, 30) == true);
+		CHECK(is_any_of(10, 20, 30) == false);
+
+		CHECK(is_any_of(10.0f, 10.0f, 20.0f, 30.0f) == true);
+
+		CHECK(is_any_of("hello"sv, "hello"sv, "world"sv) == true);
+		CHECK(is_any_of("world"sv, "hello"sv, "world"sv) == true);
+		CHECK(is_any_of("wrong"sv, "hello"sv, "world"sv) == false);
+	}
+
+	SECTION("is_none_of")
+	{
+		CHECK(is_none_of(10, 20, 30) == true);
+		CHECK(is_none_of(10, 10, 20, 30) == false);
+		CHECK(is_none_of(10.0f, 20.0f, 30.0f) == true);
+		CHECK(is_none_of(10.0f, 10.0f, 20.0f, 30.0f) == false);
+		CHECK(is_none_of("wrong"sv, "hello"sv, "world"sv) == true);
+		CHECK(is_none_of("hello"sv, "hello"sv, "world"sv) == false);
+		CHECK(is_none_of("world"sv, "hello"sv, "world"sv) == false);
 	}
 }

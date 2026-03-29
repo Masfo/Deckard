@@ -462,6 +462,21 @@ export namespace deckard
 		return std::ranges::fold_left(container, ValueType{1}, std::multiplies<>{});
 	}
 
+	// compare
+	template<typename T, typename... Values>
+	constexpr bool is_any_of(const T& target, const Values&... values)
+	requires(std::equality_comparable_with<T, Values> && ...)
+	{
+		return ((target == values) or ...);
+	}
+
+	template<typename T, typename... Values>
+	constexpr bool is_none_of(const T& target, const Values&... values)
+	requires(std::equality_comparable_with<T, Values> && ...)
+	{
+		return ((target != values) and ...);
+	}
+
 	// min
 	template<std::integral A, std::integral... Args>
 	constexpr A vmin(A a, A b, Args... args)
