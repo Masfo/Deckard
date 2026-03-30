@@ -1,4 +1,4 @@
-﻿export module deckard.bigint;
+export module deckard.bigint;
 
 import deckard.types;
 import deckard.assert;
@@ -7,6 +7,7 @@ import deckard.as;
 import deckard.utils.hash;
 import deckard.helpers;
 import deckard.debug;
+import deckard.random;
 
 import std;
 
@@ -1346,6 +1347,11 @@ namespace deckard
 
 		return start + result;
 	}
+
+	export bigint random_bigint(u32 keysize)
+	{ 
+		return bigint(random::digit(keysize));
+			}
 
 	export bigint random_bigint(const bigint& range)
 	{
