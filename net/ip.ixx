@@ -9,6 +9,7 @@ import deckard.as;
 import deckard.assert;
 import deckard.debug;
 import deckard.utf8;
+import deckard.helpers;
 import std;
 
 namespace deckard::net
@@ -141,7 +142,7 @@ namespace deckard::net
 		std::string to_string() const
 		{
 			if (not valid())
-					return "<invalid IP>"s;
+				return "<invalid IP>"s;
 
 
 			if (is_ipv4())
@@ -199,6 +200,26 @@ namespace deckard::net
 			return result;
 		}
 
+		auto to_sockaddr() const -> std::pair<sockaddr_storage, socklen_t>
+		{
+			sockaddr_storage storage{};
+			if (is_ipv4())
+			{
+				auto& addr4      = reinterpret_cast<sockaddr_in&>(storage);
+				addr4.sin_family = AF_INET;
+				std::memcpy(&addr4.sin_addr, address.data() + 12, 4);
+				return {storage, sizeof(sockaddr_in)};
+			}
+			if (is_ipv6())
+			{
+				auto& addr6       = reinterpret_cast<sockaddr_in6&>(storage);
+				addr6.sin6_family = AF_INET6;
+				std::memcpy(&addr6.sin6_addr, address.data(), 16);
+				return {storage, sizeof(sockaddr_in6)};
+			}
+			return {storage, 0};
+		}
+
 		int version() const
 		{
 			if (is_ipv4())
@@ -215,16 +236,22 @@ namespace deckard::net
 	static_assert(sizeof(ip) == 16,
 				  "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
 
-	export std::expected<std::vector<net::ip>, std::string> resolve_ips(const std::string_view domain, int version=0) noexcept
+	export std::expected<std::vector<net::ip>, std::string>
+	resolve_ips(const std::string_view domain, u8 version = 0) noexcept
 	{
+		if (domain.empty())
+			return std::unexpected("Domain name cannot be empty");
+
+		assert::warning(
+		  is_any_of(version, 0, 4, 6), std::format("Invalid IP version specified: {}. Expected 0 (any), 4, or 6.", version));
 
 		struct addrinfo  hints{};
 		struct addrinfo* result = nullptr;
 
-		hints.ai_family   = (version == 0) ? AF_UNSPEC : (version == 4) ? AF_INET : AF_INET6;
+		hints.ai_family   = (is_none_of(version, 4_u8, 6_u8)) ? AF_UNSPEC : (version == 4_u8) ? AF_INET : AF_INET6;
 		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
 		hints.ai_flags    = 0;
-		hints.ai_protocol = 0;
 
 		int status = getaddrinfo(domain.data(), nullptr, &hints, &result);
 		if (status != 0)
@@ -294,37 +321,31 @@ namespace deckard::net
 			if (const auto slash = host.find('/'); slash != std::string_view::npos)
 				host = host.substr(0, slash);
 
-			hostname = host;
+				hostname = host;
 
-			ip parsed(hostname);
-			if (parsed.valid())
-			{
-				this->address = std::move(parsed);
-				return;
+				ip parsed(hostname);
+				if (parsed.valid())
+					this->address = std::move(parsed);
 			}
-
-			// Not an IP — try domain resolution
-			if (auto result = resolve_ips(host); result and not result->empty())
-			{
-				this->address = result->front();
-			}
-			else
-			{
-				dbg::eprintln("Cannot resolve host '{}'", host);
-				this->address = ip{};
-			}
-		}
 
 		bool valid() const { return address.valid(); }
 
 		std::string to_string() const
 		{
-			// if (not hostname.empty())
-			//	return std::format("{}:{}", hostname, port);
+			if (not address.valid() and not hostname.empty())
+				return std::format("{}:{}", hostname, port);
 			if (address.is_ipv6())
 				return std::format("[{}]:{}", address.to_string(), port);
-
 			return std::format("{}:{}", address.to_string(), port);
+		}
+
+		auto to_ip() const -> std::optional<ip>
+		{
+			if (address.valid())
+				return address;
+			if (!hostname.empty())
+				return ip(hostname);
+			return {};
 		}
 
 		bool operator==(const endpoint& other) const { return address == other.address and port == other.port; }

@@ -7,7 +7,6 @@ export module deckard.net;
 export import :socket;
 export import :server;
 export import :client;
-export import :address;
 export import :ip;
 
 import deckard.types;
@@ -43,7 +42,7 @@ namespace deckard::net
 	export std::string hostname()
 	{
 		std::array<char, 256> hostname { 0};
-		if (gethostname(hostname.data(), hostname.size()) == SOCKET_ERROR)
+		if (gethostname(hostname.data(), as<i32>(hostname.size())) == SOCKET_ERROR)
 			return "<unknown>";
 		return std::string{hostname.data()};
 	}

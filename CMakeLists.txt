@@ -254,7 +254,7 @@ set(DECKARD_SRCS
 		net/net.ixx
 		net/types.ixx
 		net/socket.ixx
-		net/address.ixx
+		
 		net/server.ixx
 		net/client.ixx
 		net/ip.ixx
