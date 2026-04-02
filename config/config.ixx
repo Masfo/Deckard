@@ -508,6 +508,8 @@ namespace deckard
 
 		std::span<const parse_error> errors() const { return m_errors; }
 
+		//
+
 		template<typename T>
 		T get(std::string_view key) const
 		{
@@ -536,18 +538,10 @@ namespace deckard
 					return {};
 
 				auto host_and_port = string::split_once(sv, ":");
-				if (host_and_port.size() < 2)
-					return {};
 
-				auto& host     = host_and_port[0];
-				auto& port_str = host_and_port[1];
+				const auto port = try_to_number<u16>(host_and_port[1]);
+				return net::endpoint(host_and_port[0], port.value_or(0));
 
-				u16 result{};
-				auto [ptr, ec] = std::from_chars(port_str.data(), port_str.data() + port_str.size(), result);
-				if (ec != std::errc{})
-					return {};
-
-				return net::endpoint(host, result);
 			}
 			else
 				return T{};
@@ -586,18 +580,9 @@ namespace deckard
 						continue;
 
 					auto host_and_port = string::split_once(sv, ":");
-					if (host_and_port.size() < 2)
-						continue;
 
-					auto& host     = host_and_port[0];
-					auto& port_str = host_and_port[1];
-
-					u16 result{};
-					auto [ptr, ec] = std::from_chars(port_str.data(), port_str.data() + port_str.size(), result);
-					if (ec != std::errc{})
-						continue;
-
-					results.push_back(net::endpoint(host, result));
+					auto port = try_to_number<u16>(host_and_port[1]);
+					results.push_back(net::endpoint(host_and_port[0], port.value_or(0)));
 				}
 			}
 			return results;
