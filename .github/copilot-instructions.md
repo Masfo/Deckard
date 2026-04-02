@@ -24,10 +24,6 @@
 - State what you found, where, and the fix. One pass.
 - If cause is unclear: say so. Do not guess.
 
-## ASCII Only
-- No em dashes, smart quotes, Unicode bullets.
-- Plain hyphens and straight quotes only.
-- Code output must be copy-paste safe.
 
 ## Project
 - CMake project targeting Windows (Win32 APIs used) with Ninja generator.
