@@ -806,6 +806,6 @@ TEST_CASE("config set_comment", "[config]")
 	{
 		config cfg = config("[server]\nhost=\"localhost:1234\""sv);
 		
-		CHECK(cfg["server.host"].as<net::endpoint>() == net::endpoint("localhost", 1234));
+		CHECK(cfg["server.host"].as<net::endpoint>() == net::endpoint("localhost"sv, 1234));
 	}
 }
