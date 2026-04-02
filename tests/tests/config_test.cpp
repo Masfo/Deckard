@@ -196,14 +196,6 @@ TEST_CASE("config parsing", "[config]")
 		CHECK(cfg[0].type == TokenType::NEWLINE_POSIX);
 	}
 
-	SECTION("boolean parsing")
-	{
-		//
-		config cfg = config("truekey = true"sv);
-
-		cfg.dump();
-		_ = 0;
-	}
 
 	SECTION("value type: bool")
 	{
