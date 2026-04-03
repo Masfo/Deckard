@@ -38,6 +38,24 @@ namespace deckard::net
 
 	export void deinitialize() { WSACleanup(); }
 
+	export std::string wsa_error_string(int error = WSAGetLastError())
+	{
+		std::string ret(256, '\0');
+		const DWORD written = FormatMessageA(
+		  FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		  nullptr,
+		  static_cast<DWORD>(error),
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  ret.data(),
+		  static_cast<DWORD>(ret.size()),
+		  nullptr);
+		if (written == 0)
+			return std::format("WSA error {}", error);
+		ret.resize(written);
+		while (not ret.empty() and (ret.back() == '\n' or ret.back() == '\r' or ret.back() == ' '))
+			ret.pop_back();
+		return ret;
+	}
 
 	export std::string hostname()
 	{
