@@ -200,7 +200,7 @@ namespace deckard::net
 			return result;
 		}
 
-		auto to_sockaddr() const -> std::pair<sockaddr_storage, socklen_t>
+		auto to_sockaddr() const noexcept -> std::pair<sockaddr_storage, socklen_t>
 		{
 			sockaddr_storage storage{};
 			if (is_ipv4())
@@ -302,31 +302,21 @@ namespace deckard::net
 
 		endpoint() = default;
 
-		endpoint(const ip& address, u16 port)
+		explicit endpoint(const ip& address, u16 port=80)
 			: address(address)
 			, port(port)
 		{
 		}
 
-		endpoint(std::string_view host_str, u16 port)
+		endpoint(const std::string_view host_str, u16 port=80)
 		{
 			this->port = port;
 
-			// Strip URL scheme (e.g. "https://", "http://")
-			auto host = host_str;
-			if (const auto scheme_end = host.find("://"); scheme_end != std::string_view::npos)
-				host = host.substr(scheme_end + 3);
+			hostname = host_str;
 
-			// Strip path component
-			if (const auto slash = host.find('/'); slash != std::string_view::npos)
-				host = host.substr(0, slash);
-
-				hostname = host;
-
-				ip parsed(hostname);
-				if (parsed.valid())
-					this->address = std::move(parsed);
-			}
+			if (auto result = resolve_ips(hostname); result and not result->empty())
+				this->address = result->front();
+		}
 
 		bool valid() const { return address.valid(); }
 
