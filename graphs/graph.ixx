@@ -415,7 +415,7 @@ namespace deckard::graph
 
 		std::generator<const T&> unconnected_components() const
 		{
-			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+			assert::equal(reverse_index.size(), adjacent_list.size(), "Reverse index and adjacent list should match");
 
 
 			for (u64 i = 0; i < adjacent_list.size(); ++i)
@@ -429,7 +429,7 @@ namespace deckard::graph
 
 		std::vector<T> unconnected_components_as_vector() const
 		{
-			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+			assert::equal(reverse_index.size(), adjacent_list.size(), "Reverse index and adjacent list should match");
 
 			std::vector<T> ret;
 			ret.reserve(adjacent_list.size());
@@ -634,7 +634,7 @@ namespace deckard::graph
 		// return vector of nodes to remove to get an unconnected nodes
 		auto independent_set() const -> std::vector<T>
 		{
-			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+			assert::equal(reverse_index.size() , adjacent_list.size(), "Reverse index and adjacent list should match");
 
 			u64               n = static_cast<u64>(reverse_index.size());
 			std::vector<char> blocked(n, 0);
@@ -655,7 +655,7 @@ namespace deckard::graph
 
 		std::vector<std::vector<T>> connected_components(u64 include_groups_larger_than = 1) const
 		{
-			assert::check(reverse_index.size() == adjacent_list.size(), "Reverse index and adjacent list should match");
+			assert::equal(reverse_index.size(), adjacent_list.size(), "Reverse index and adjacent list should match");
 
 
 			std::vector<std::vector<T>> comps;

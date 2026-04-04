@@ -1,4 +1,4 @@
-﻿export module deckard.function_ref;
+export module deckard.function_ref;
 
 import std;
 
@@ -71,7 +71,7 @@ namespace deckard
 	export template<class F>
 	class function_ref;
 
-	export template<class R, class... Args>
+	template<class R, class... Args>
 	class function_ref<R(Args...)>
 	{
 	public:

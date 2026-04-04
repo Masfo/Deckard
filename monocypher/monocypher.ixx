@@ -46,7 +46,7 @@ namespace deckard::monocypher
 	export template<typename T = u8>
 	constexpr int crypto_verify(std::span<const T> a, std::span<const T> b) noexcept
 	{
-		assert::check(a.size() == b.size(), "crypto_verify: input spans must have the same size");
+		assert::equal(a.size(), b.size(), "crypto_verify: input spans must have the same size");
 		using Acc = std::make_unsigned_t<std::conditional_t<(sizeof(T) < 4), u32, T>>;
 
 		Acc diff = 0;
@@ -190,8 +190,8 @@ namespace deckard::monocypher
 		wipe(your_private_key);
 	}
 
-	export [[nodiscard]] sessionkey
-	create_session_key(const sharedkey& shared_key, const publickey& your_public_key, const publickey& their_public_key, u32 counter)
+	export [[nodiscard]] sessionkey create_session_key(const sharedkey& shared_key, const publickey& your_public_key,
+													   const publickey& their_public_key, u32 counter)
 	{
 		std::array<u8, 32> out;
 		std::array<u8, 4>  ctr{};
@@ -237,10 +237,11 @@ namespace deckard::monocypher
 	// ###############################################################################################
 	// encrypt #######################################################################################
 
-	export [[nodiscard("Encrypt returns a MAC. You need it to decrypt the message.")]] mac encrypt(
-	  const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const std::span<const u8> input, std::span<u8> output)
+	export [[nodiscard("Encrypt returns a MAC. You need it to decrypt the message.")]] mac
+	encrypt(const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const std::span<const u8> input,
+			std::span<u8> output)
 	{
-		assert::check(input.size() == output.size(), "input and output must be the same size");
+		assert::equal(input.size(), output.size(), "input and output must be the same size");
 
 		mac mac{};
 		crypto_aead_lock(
@@ -260,10 +261,10 @@ namespace deckard::monocypher
 	// decrypt #######################################################################################
 
 	export [[nodiscard("Check if decrypt failed")]] std::expected<void, std::string>
-	decrypt(const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const mac& mac, const std::span<const u8> input,
-			std::span<u8> output)
+	decrypt(const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const mac& mac,
+			const std::span<const u8> input, std::span<u8> output)
 	{
-		assert::check(input.size() == output.size(), "input and output must be the same size");
+		assert::equal(input.size(), output.size(), "input and output must be the same size");
 
 		int result = crypto_aead_unlock(
 		  output.data(),
