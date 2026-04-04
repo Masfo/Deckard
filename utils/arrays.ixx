@@ -215,7 +215,7 @@ namespace deckard
 		}
 	};
 
-	export template<>
+	template<>
 	class array2d<bool>
 	{
 	private:
