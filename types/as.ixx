@@ -23,8 +23,8 @@ namespace deckard
 		if constexpr (std::is_floating_point_v<U>)
 		{
 			dbg::println(
-			  "Unable to cast '{:f}' safely. Target range is {}...{}, cast to '{}",
-			  value,
+			  "Unable to cast '{:f}' safely. Target range is {}...{}, cast to '{}'",
+				  value,
 			  std::numeric_limits<T>::min(),
 			  std::numeric_limits<T>::max(),
 			  casted);
@@ -34,14 +34,13 @@ namespace deckard
 		if constexpr (std::is_unsigned_v<U>)
 		{
 			dbg::println(
-			  "Unable to cast '{}' safely. Target range is {}...{}, cast to '{}",
-			  static_cast<u64>(value),
+			  "Unable to cast '{}' safely. Target range is {}...{}, cast to '{}'",
+				  static_cast<u64>(value),
 			  std::numeric_limits<T>::min(),
 			  std::numeric_limits<T>::max(),
 			  casted);
 		}
-#if 0
-		else if constexpr(std::is_signed_v<U>) // is signed
+		else if constexpr (std::is_signed_v<U>)
 		{
 			dbg::println(
 			  "Unable to cast '{}' safely. Target range is {}...{}, casting to '{}'",
@@ -51,13 +50,8 @@ namespace deckard
 			  casted);
 		}
 #endif
-#endif
 	}
 
-	export template<typename Ret = void*, typename U>
-	constexpr Ret as2(U u, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
-	{
-	}
 
 #pragma warning(push)
 #pragma warning(disable : 4172) // returning address of local
@@ -101,18 +95,21 @@ namespace deckard
 				if (std::isinf(new_value))
 				{
 					dbg::println("Casting '{}'(f64) to f32 resulted in INF. Consider using f64 instead", value);
-					return static_cast<Ret>(value);
+					return new_value;
 				}
 
 				if (std::isnan(new_value))
 				{
 					dbg::println("Casting '{}'(f64) to f32 resulted in NaN. Consider using f64 instead", value);
-					return static_cast<Ret>(value);
+					return new_value;
 				}
 
-				dbg::println(
-				  "Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
-				return static_cast<Ret>(value);
+				if (static_cast<f64>(new_value) != value)
+				{
+					dbg::println(
+					  "Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
+				}
+				return new_value;
 			}
 			else
 			{
@@ -124,7 +121,7 @@ namespace deckard
 		else if constexpr (std::is_enum_v<U> and std::is_integral_v<Ret>)
 		{
 			// Enum
-			return as<Ret>(std::to_underlying(u));
+			return as<Ret>(std::to_underlying(u), base, loc);
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_integral_v<Ret>)
 		{
@@ -153,8 +150,7 @@ namespace deckard
 		else if constexpr (std::is_arithmetic_v<Ret> and (std::is_same_v<U, char*> or std::is_same_v<U, const char*>))
 		{
 			// char* -> arithmetic
-			std::string_view       str{value};
-			// arithmetic -> string
+			std::string_view str{value};
 			auto v = try_to_number<Ret>(str, base);
 			if (v)
 				return *v;
@@ -168,7 +164,7 @@ namespace deckard
 		}
 		else if constexpr (std::is_arithmetic_v<Ret> and string_like_container<U>)
 		{
-			// arithmetic -> string
+			// string -> arithmetic
 			auto v = try_to_number<Ret>(value, base);
 			if (v)
 				return *v;
@@ -218,86 +214,6 @@ namespace deckard
 
 #pragma warning(pop)
 
-	// TODO: variadic to and as
-	///		to<i64,i64>(input1, input2)
-	//		as<i64,i64>(input1, input2)>
-	// to<...>(inputs...)
-
-	export template<typename Ret = void*, typename U>
-	constexpr Ret to(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current())
-	{
-		U value = u;
-
-
-		// pointers
-		if constexpr (std::is_pointer_v<U> and std::is_pointer_v<Ret>)
-		{
-#ifdef _DEBUG
-			if (value == nullptr)
-			{
-				dbg::trace(loc);
-				dbg::eprintln("Pointer is null");
-				return nullptr;
-			}
-#endif
-			return (Ret)u;
-		}
-		else if constexpr (std::is_enum_v<U> && std::is_integral_v<Ret>)
-		{
-			// Enum
-			return static_cast<Ret>(std::to_underlying(u));
-		}
-		else if constexpr (std::is_integral_v<U> && std::is_integral_v<Ret>)
-		{
-// integers
-#ifdef _DEBUG
-			if (std::in_range<Ret>(value))
-				return static_cast<Ret>(value);
-
-			warn_cast_limit<Ret>(u, loc);
-#endif
-			return static_cast<Ret>(value);
-		}
-		else if constexpr (std::is_floating_point_v<U> && std::is_integral_v<Ret>)
-		{
-			// floating point
-#ifdef _DEBUG
-
-			std::int64_t max_cast = static_cast<std::int64_t>(value);
-
-			if (std::in_range<Ret>(max_cast))
-				return static_cast<Ret>(value);
-
-
-			warn_cast_limit<Ret>(max_cast, loc);
-#endif
-
-			return static_cast<Ret>(u);
-		}
-		else if constexpr (string_like_container<U>)
-		{
-			// TODO: try_to expected?
-			auto v = try_to_number<Ret>(value,base);
-			if (v)
-				return to<Ret>(*v);
-
-			return Ret{0};
-		}
-		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
-		{
-
-			auto v = try_to_string<U>(value, base);
-			if (v)
-				return *v;
-
-
-			return "";
-		}
-		else
-		{
-			return static_cast<Ret>(value);
-		}
-	}
 
 	export template<typename T = u64, typename U>
 	T address(const U* address)
