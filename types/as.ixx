@@ -40,15 +40,6 @@ namespace deckard
 			  std::numeric_limits<T>::max(),
 			  casted);
 		}
-		else if constexpr (std::is_signed_v<U>)
-		{
-			dbg::println(
-			  "Unable to cast '{}' safely. Target range is {}...{}, casting to '{}'",
-			  static_cast<i64>(value),
-			  std::numeric_limits<T>::min(),
-			  std::numeric_limits<T>::max(),
-			  casted);
-		}
 #endif
 	}
 
