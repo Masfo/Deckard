@@ -63,7 +63,7 @@
 ## Performance & safety
 - Avoid extra allocations in hot paths.
 - Validate buffer sizes and offsets; prevent out-of-bounds access.
-- Use `assert::check` for internal invariants, not for user input validation.
+- Use `assert::check` and `assert::equal` for internal invariants, not for user input validation.
 - Prefer `std::span` for passing arrays/buffers to ensure size safety.
 - Minimize use of exceptions; prefer error codes or `std::expected` or `std::optional` for error handling.
 - Avoid raw pointers; use smart pointers or references where ownership semantics are clear.
@@ -73,3 +73,4 @@
 ## Build/test
 - Ensure changes build with CMake + Ninja.
 - If tests exist for a module, update/add tests when changing behavior.
+- Ignore IntelliSense module cache artifacts, you should not consider these as build errors. Only actual build errors from CMake/Ninja should be fixed.
