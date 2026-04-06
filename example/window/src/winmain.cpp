@@ -10,6 +10,7 @@ import deckard;
 import deckard.types;
 import deckard.timers;
 import deckard.helpers;
+import deckard.random;
 using namespace deckard;
 using namespace deckard::app;
 using namespace deckard::random;
@@ -484,6 +485,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 
+
+
 	std::array<u8, 32> hashdata{};
 
 	constexpr auto hex_char = [](char c) -> u8
@@ -754,12 +757,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-#if 0
-	if (auto ip_result = net::get_ip_addresses("api.taboobuilder.com"); ip_result)
+#if 1
+	if (auto ip_result = net::resolve_ips("api.taboobuilder.com"); ip_result)
 	{
 		for (const auto& ip : *ip_result)
 		{
-			dbg::println("{}: {}", ip.version == net::IPVersion::IPV4 ? "ipv4" : "ipv6", ip.address);
+			dbg::println("{}: {}", ip.is_ipv4() ? "ipv4" : "ipv6", ip);
 		}
 	}
 	else
@@ -771,115 +774,81 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	{
-		std::vector<std::pair<std::string, std::string>> hostnames;
 
+	auto resolve_stun = net::resolve_ips("stun.l.google.com");
+	for (const auto& ip : resolve_stun.value_or({}))
+		dbg::println("Resolved STUN IP: {}", ip);
+
+	_ = 0;
+	{
 		config stunservers("stuns.txt"_path);
-	
-		stunservers.save("stuns_out.txt"_path);
+
+		(void)stunservers.save("stuns_out.txt"_path);
 
 		auto servers = stunservers["servers.host"].as_vector<net::endpoint>();
-		for(const auto& server : servers)
-		{
-
-			hostnames.emplace_back(server.address.to_string(), as<std::string>(server.port));
-		}
 
 
 		_ = 0;
 		{
 			u8 hostname_index = random::randu8(0, as<u8>(servers.size() - 1));
-			// hostname_index    = 5;
-			auto [hostname, service]  = hostnames[hostname_index];
+			std::string hostname = servers[hostname_index].hostname;
+			std::string service  = std::to_string(servers[hostname_index].port);
 
 
 			// ----------------------- Resolve host ---------------------------------
-			addrinfo hints{}, *result = nullptr;
+			const auto& domain = hostname;
 
-			int ip_ver = 2;
+			dbg::println("Resolving '{}'...", domain);
+			auto resolved = net::resolve_ips(domain);
+			if (not resolved or resolved->empty())
+			{
+				dbg::println("Failed to resolve '{}'", domain);
+				return 1;
+			}
 
-			if (ip_ver == 0)
-				hints.ai_family = AF_UNSPEC;
-			else if (ip_ver == 1)
-				hints.ai_family = AF_INET;
+			for (const auto& ip : *resolved)
+				dbg::println("  {} (IPv{})", ip, ip.version());
+
+			auto [storage, addrlen] = resolved->front().to_sockaddr();
+
+			// Set the port on the storage
+			if (resolved->front().is_ipv6())
+				reinterpret_cast<sockaddr_in6&>(storage).sin6_port = htons(servers[hostname_index].port);
 			else
-				hints.ai_family = AF_INET6;
-
-
-			hints.ai_socktype = SOCK_DGRAM; // UDP
-			hints.ai_protocol = IPPROTO_UDP;
-
-			int rc = getaddrinfo(hostname.data(), service.data(), &hints, &result);
-			if (rc != 0)
-			{
-				dbg::println("getaddrinfo: {}", gai_strerrorA(rc));
-			}
-
-			// ip
-			std::string resolved_ip;
-			char        ip_str[INET6_ADDRSTRLEN]; // Buffer for IPv4 or IPv6
-			auto        addr = result->ai_addr;
-
-			if (addr->sa_family == AF_INET)
-			{
-				struct sockaddr_in* sin = (struct sockaddr_in*)addr;
-				if (inet_ntop(AF_INET, &sin->sin_addr, ip_str, INET_ADDRSTRLEN) == nullptr)
-					dbg::println("Invalid IP");
-			}
-			else if (addr->sa_family == AF_INET6)
-			{
-				struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
-				if (inet_ntop(AF_INET6, &sin6->sin6_addr, ip_str, INET6_ADDRSTRLEN) == nullptr)
-					dbg::println("Invalid IP");
-			}
-			else
-			{
-				dbg::println("Unsupported address family");
-			}
-
-			resolved_ip = std::string(ip_str);
-			dbg::println("{} hosted @ {}", hostname, resolved_ip);
-
+				reinterpret_cast<sockaddr_in&>(storage).sin_port = htons(servers[hostname_index].port);
 
 			// ----------------------- Create socket ---------------------------------
-			SOCKET sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+			SOCKET sock = socket(storage.ss_family, SOCK_DGRAM, IPPROTO_UDP);
 			if (sock == INVALID_SOCKET)
 			{
 				dbg::println("socket() failed: {}", WSAGetLastError());
-				freeaddrinfo(result);
 			}
 
 			std::array<u8, 20> stunpacket{
-			  // STUN Message Type: 0x0001 (Binding Request)
-			  0x00,
-			  0x01,
+				// STUN Message Type: 0x0001 (Binding Request)
+				0x00,
+				0x01,
 
-			  // Message Length: 0x0000 (No attributes for a basic request)
-			  0x00,
-			  0x00,
+				// Message Length: 0x0000 (No attributes for a basic request)
+				0x00,
+				0x00,
 
-			  // Magic Cookie: 0x2112A442
-			  // This value helps differentiate STUN from legacy protocols.
-			  0x21,
-			  0x12,
-			  0xA4,
-			  0x42,
+				// Magic Cookie: 0x2112A442
+				// This value helps differentiate STUN from legacy protocols.
+				0x21,
+				0x12,
+				0xA4,
+				0x42,
 
-			  // Transaction ID: A random, 96-bit (12-byte) identifier.
-			  // This example uses a placeholder, but should be generated randomly for a real application.
-			  // For example: `0x6f, 0x4c, 0x3a, 0x6e, 0x5a, 0x7b, 0x73, 0x9c, 0x2d, 0x82, 0x4f, 0x3a`
-			  0xDE,
-			  0xAD,
-			  0xBE,
-			  0xEF,
-			  0x69,
-			  0xCA,
-			  0xFE,
-			  0xBA,
-			  0xBE,
-			  0x11,
-			  0x22,
-			  0x33};
+				// Transaction ID: 12 random bytes
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00};
+
+			std::array<u8, 12> transaction_id_bytes{};
+			random::bytes(transaction_id_bytes);
+
+			write_le<u8>(stunpacket, transaction_id_bytes, 8);
 
 			DWORD timeoutMs = 2500;
 			setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
@@ -890,14 +859,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			  reinterpret_cast<const char*>(stunpacket.data()),
 			  static_cast<int>(stunpacket.size()),
 			  0,
-			  result->ai_addr,
-			  static_cast<int>(result->ai_addrlen));
+			  reinterpret_cast<sockaddr*>(&storage),
+			  static_cast<int>(addrlen));
 
 			if (sent == SOCKET_ERROR)
 			{
 				dbg::println("sendto() failed: {}", WSAGetLastError());
 				closesocket(sock);
-				freeaddrinfo(result);
 				WSACleanup();
 				return 1;
 			}
@@ -976,6 +944,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			if (stun_header.cookie != 0x2112'A442)
 			{
 				dbg::println("Invalid STUN magic cookie: 0x{:08X}", stun_header.cookie);
+			}
+
+			// Validate transaction ID matches what we sent
+			if (not std::ranges::equal(stun_header.transaction_id, std::span{stunpacket}.subspan<8, 12>()))
+			{
+				dbg::println("STUN transaction ID mismatch");
 			}
 
 
@@ -1278,21 +1252,20 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 				sent = sendto(
-				  sock,
-				  reinterpret_cast<const char*>(packet.data()),
-				  static_cast<int>(packet.size()),
-				  0,
-				  result->ai_addr,
-				  static_cast<int>(result->ai_addrlen));
+					  sock,
+					  reinterpret_cast<const char*>(packet.data()),
+					  static_cast<int>(packet.size()),
+					  0,
+					  reinterpret_cast<sockaddr*>(&storage),
+					  static_cast<int>(addrlen));
 
-				if (sent == SOCKET_ERROR)
-				{
-					dbg::println("sendto() failed: {}", WSAGetLastError());
-					closesocket(sock);
-					freeaddrinfo(result);
-					WSACleanup();
-					return 1;
-				}
+					if (sent == SOCKET_ERROR)
+					{
+						dbg::println("sendto() failed: {}", WSAGetLastError());
+						closesocket(sock);
+						WSACleanup();
+						return 1;
+					}
 				dbg::println("send 2 = {}", sent);
 
 				// ----------------------- Set receive timeout (5 seconds) ---------------
@@ -1377,69 +1350,77 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			_ = 0;
 		}
 
-		///
+		// The plan: 
+		// 
+		// 
+		// net::address ntp_google("time.google.com", 123);
+		// net::udpsocket sock(ntp_google);
+		// 
+		// endpoint ep("time.google.com", 123);
+		// net::udpsocket sock(ep);
+		// 
+		// net::udpsocket sock("time.google.com", 123);
+		// sock.timeout(500ms);
+		// 
+		// sock.connect("time.google.com", 123);
+		// 
+		// sock.bind, sock.listen, sock.accept
+		// 
+		// sock.send(....) -> std::expected<u32, std::string>
+		// sock.receive(...) -> std::expected<std::vector<u8>, std::string>
+		// sock.receive_into(buffer) -> std::expected<size_t, std::string> (returns number of bytes received)
+		//		- span<u8> buffer
+		// 
+		// sock.send("hello", 5);
+		// sock.send("hello"sv)		
+		// 
+		// std::array<u8, 48> ntp_request{};		-
+		// sock.send(ntp_request); -> std::expected<u32, std::string> 
+
+
+
 		{
 			constexpr size_t NTP_PACKET_SIZE = 48;
 
-			std::array<std::string_view, 5> ntp_hostnames{
-			  //
-			  "time.google.com"sv,
-			  "fi.pool.ntp.org"sv,
-			  "pool.ntp.org"sv,
-			  "time.cloudflare.com"sv,
-			  "time.windows.com"sv};
+			config ntpservers("ntp.txt"_path);
+			const u16 default_port = ntpservers["servers.port"].as<u16>();
+			auto      ntp_servers  = ntpservers["servers.host"].as_vector<net::endpoint>();
+			u8        server_index = random::randu8(0, as<u8>(ntp_servers.size() - 1));
 
-			u8 hostname_index = random::randu8(0, as<u8>(ntp_hostnames.size() - 1));
-			// hostname_index    = 0;
+			
+			if(ntpservers["servers.index"].as<i8>() >= 0)
+				server_index = std::clamp(ntpservers["servers.index"].as<u8>(), 0_u8, as<u8>(ntp_servers.size() - 1));
+			// server_index = 0;
 
-			std::string_view hostname = ntp_hostnames[hostname_index];
+			auto& ntp_server     = ntp_servers[server_index];
+			u16   ntp_port       = (ntp_server.port != 0) ? ntp_server.port : default_port;
+			std::string hostname = ntp_server.hostname;
 
-			const char* service = "123"; // NTP uses UDP port 123
-
-										 // ----------------------- Resolve host ---------------------------------
-			addrinfo hints{}, *addr_result = nullptr;
-			hints.ai_family   = AF_UNSPEC;  // IPv4 or IPv6
-			hints.ai_socktype = SOCK_DGRAM; // UDP
-			hints.ai_protocol = IPPROTO_UDP;
-
-			int rc = getaddrinfo(hostname.data(), service, &hints, &addr_result);
-			if (rc != 0)
+			// ----------------------- Resolve host ---------------------------------
+			dbg::println("Resolving '{}'...", hostname);
+			auto resolved = net::resolve_ips(hostname);
+			if (not resolved or resolved->empty())
 			{
-				dbg::println("getaddrinfo: {}", gai_strerrorA(rc));
+				dbg::println("Failed to resolve '{}'", hostname);
+				return 1;
 			}
 
-			// ip
-			std::string resolved_ip;
-			char        ip_str[INET6_ADDRSTRLEN]; // Buffer for IPv4 or IPv6
-			auto        addr = addr_result->ai_addr;
 
-			if (addr->sa_family == AF_INET)
-			{
-				struct sockaddr_in* sin = (struct sockaddr_in*)addr;
-				if (inet_ntop(AF_INET, &sin->sin_addr, ip_str, INET_ADDRSTRLEN) == nullptr)
-					dbg::println("Invalid IP");
-			}
-			else if (addr->sa_family == AF_INET6)
-			{
-				struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
-				if (inet_ntop(AF_INET6, &sin6->sin6_addr, ip_str, INET6_ADDRSTRLEN) == nullptr)
-					dbg::println("Invalid IP");
-			}
+			for (const auto& ip : *resolved)
+				dbg::println("  {} (IPv{})", ip, ip.version());
+
+			auto [ntp_storage, ntp_addrlen] = resolved->front().to_sockaddr();
+
+			if (resolved->front().is_ipv6())
+				reinterpret_cast<sockaddr_in6&>(ntp_storage).sin6_port = htons(ntp_port);
 			else
-			{
-				dbg::println("Unsupported address family");
-			}
-
-			resolved_ip = std::string(ip_str);
-			dbg::println("{} hosted @ {}", hostname, resolved_ip);
-
+				reinterpret_cast<sockaddr_in&>(ntp_storage).sin_port = htons(ntp_port);
 
 			// ----------------------- Create socket ---------------------------------
-			SOCKET sock = socket(addr_result->ai_family, addr_result->ai_socktype, addr_result->ai_protocol);
+			SOCKET sock = socket(ntp_storage.ss_family, SOCK_DGRAM, IPPROTO_UDP);
 			if (sock == INVALID_SOCKET)
 			{
 				dbg::println("socket() failed: {}", WSAGetLastError());
-				freeaddrinfo(addr_result);
 			}
 
 			DWORD timeoutMs = 5000;
@@ -1483,12 +1464,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 			// Origin timestamp
-			for (int i = 0; i < 8; ++i)
-				packet[24 + i] = static_cast<u8>(t1_packet >> (56 - 8 * i));
+			write_be<u64>(packet, 24, t1_packet);
 
 			// Transmit timestamp (optional)
-			for (int i = 0; i < 8; ++i)
-				packet[40 + i] = static_cast<u8>(t1_packet >> (56 - 8 * i));
+			write_be<u64>(packet, 40, t1_packet);
 
 
 			// ----------------------- Send request ----------------------------------
@@ -1497,14 +1476,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			  reinterpret_cast<const char*>(packet.data()),
 			  static_cast<int>(packet.size()),
 			  0,
-			  addr_result->ai_addr,
-			  static_cast<int>(addr_result->ai_addrlen));
+			  reinterpret_cast<sockaddr*>(&ntp_storage),
+			  static_cast<int>(ntp_addrlen));
 
 			if (sent == SOCKET_ERROR)
 			{
 				dbg::println("sendto() failed: {}", WSAGetLastError());
 				closesocket(sock);
-				freeaddrinfo(addr_result);
 				WSACleanup();
 				return 1;
 			}
@@ -1521,7 +1499,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			{
 				dbg::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
 				closesocket(sock);
-				freeaddrinfo(addr_result);
 				WSACleanup();
 			}
 
@@ -1529,8 +1506,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			{
 				dbg::println("Received packet too short ({}) bytes", recvLen);
 				closesocket(sock);
-				if (not addr_result)
-					freeaddrinfo(addr_result);
 			}
 
 			if (recvLen == NTP_PACKET_SIZE)
@@ -1567,7 +1542,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 			closesocket(sock);
-			freeaddrinfo(addr_result);
 		}
 
 
@@ -1826,5 +1800,4 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		return app01.run();
 	}
-
 }
