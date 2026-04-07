@@ -147,13 +147,31 @@ export namespace deckard
 	}
 
 	export template<std::integral T>
+	constexpr void write_le(std::span<u8> buffer, std::span<const T> data, size_t offset = 0)
+	{
+		assert::check(offset + data.size() * sizeof(T) <= buffer.size(), "write_le: out of bounds");
+
+		for (size_t i = 0; i < data.size(); ++i)
+			write_le<T>(buffer, offset + i * sizeof(T), data[i]);
+	}
+
+	export template<std::integral T>
 	constexpr void write_be(std::span<u8> buffer, size_t offset, T value)
 	{
-		assert::check(offset + sizeof(T) <= buffer.size(), "write_tbe: out of bounds");
+		assert::check(offset + sizeof(T) <= buffer.size(), "write_be: out of bounds");
 		if constexpr (sizeof(T) == 1)
 			write_le<T>(buffer, offset, value);
 		else
 			write_le<T>(buffer, offset, std::byteswap(value));
+	}
+
+	export template<std::integral T>
+	constexpr void write_be(std::span<u8> buffer, std::span<const T> data, size_t offset = 0)
+	{
+		assert::check(offset + data.size() * sizeof(T) <= buffer.size(), "write_be: out of bounds");
+
+		for (size_t i = 0; i < data.size(); ++i)
+			write_be<T>(buffer, offset + i * sizeof(T), data[i]);
 	}
 
 	auto clock_now() { return std::chrono::steady_clock::now(); }

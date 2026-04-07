@@ -191,6 +191,48 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(buf[15] == 0xFE_u8);
 	}
 
+	SECTION("write_be/write_le span")
+	{ 
+		std::array<u8, 4> buf{0};
+		std::array<u8, 2>  data{0x11, 0x22};
+
+		CHECK(buf[0] == 0);
+		CHECK(buf[1] == 0);
+		CHECK(buf[2] == 0);
+		CHECK(buf[3] == 0);
+
+		write_le<u8>(buf, data, 0);
+
+		CHECK(buf[0] == 0x11);
+		CHECK(buf[1] == 0x22);
+		CHECK(buf[2] == 0);
+		CHECK(buf[3] == 0);
+
+		//
+
+		std::array<u16, 2> buf16{0x3344,0x5566};
+		write_be<u16>(buf, buf16, 0);
+		CHECK(buf[0] == 0x33);
+		CHECK(buf[1] == 0x44);
+		CHECK(buf[2] == 0x55);
+		CHECK(buf[3] == 0x66);
+
+		write_le<u16>(buf, buf16, 0);
+		CHECK(buf[0] == 0x44);
+		CHECK(buf[1] == 0x33);
+		CHECK(buf[2] == 0x66);
+		CHECK(buf[3] == 0x55);
+
+		//
+
+		std::array<u32, 1> buf32{0xAABBCCDD};
+		write_be<u32>(buf, buf32, 0);
+		CHECK(buf[0] == 0xAA);
+		CHECK(buf[1] == 0xBB);
+		CHECK(buf[2] == 0xCC);
+		CHECK(buf[3] == 0xDD);
+	}
+
 	SECTION("replace")
 	{
 		std::string input("hello|world");
