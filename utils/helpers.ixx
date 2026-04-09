@@ -204,12 +204,14 @@ export namespace deckard
 	struct HexOption
 	{
 		std::string delimiter{", "};
-		bool        endian_swap{std::endian::native == std::endian::little};
-		bool        lowercase{false};
-		bool        show_hex{true};
+		u32         max_width{32};
+
+		bool endian_swap{std::endian::native == std::endian::little};
+		bool lowercase{false};
+		bool show_hex{true};
 	};
 
-	template<typename T>
+	export template<typename T>
 	u64 to_hex(const std::span<T> input, std::span<u8> output, const HexOption& options = {})
 	{
 		u64 len{0};
@@ -288,7 +290,7 @@ export namespace deckard
 	}
 
 	// TODO: limit output size
-	template<typename T>
+	export template<typename T>
 	std::string to_hex_string(const std::span<T> input, const HexOption& options = {})
 	{
 		std::string ret;
@@ -301,13 +303,13 @@ export namespace deckard
 		return ret;
 	}
 
-	std::string to_hex_string(const std::string_view input, const HexOption& options = {})
+	export std::string to_hex_string(const std::string_view input, const HexOption& options = {})
 	{
 		return to_hex_string(
 		  std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(input.size())), options);
 	}
 
-	std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
+	export std::string to_hex_string(const std::string_view input, size_t len, const HexOption& options = {})
 	{
 		return to_hex_string(
 		  std::span<const u8>(reinterpret_cast<const u8*>(input.data()), static_cast<std::size_t>(len)), options);
