@@ -68,8 +68,9 @@ namespace deckard::utils
 	constexpr u64 hash_values(const std::span<T>& args)
 	{
 		u64 seed = constant_seed;
-		for (const auto& arg : args)
-			seed = hash_combine(seed, arg);
+
+		for (size_t i; i < args.size(); i++)
+			seed = hash_combine(seed, args[i]);
 
 		return seed;
 	}
@@ -93,20 +94,20 @@ namespace deckard::utils
 
 		u64 last7 = (u64)(m.size() & 0xff) << 56;
 
-#define sipcompress()                                                                                                                      \
-	v0 += v1;                                                                                                                              \
-	v2 += v3;                                                                                                                              \
-	v1 = std::rotl(v1, 13);                                                                                                                \
-	v3 = std::rotl(v3, 16);                                                                                                                \
-	v1 ^= v0;                                                                                                                              \
-	v3 ^= v2;                                                                                                                              \
-	v0 = std::rotl(v0, 32);                                                                                                                \
-	v2 += v1;                                                                                                                              \
-	v0 += v3;                                                                                                                              \
-	v1 = std::rotl(v1, 17);                                                                                                                \
-	v3 = std::rotl(v3, 21);                                                                                                                \
-	v1 ^= v2;                                                                                                                              \
-	v3 ^= v0;                                                                                                                              \
+#define sipcompress()                                                                                                       \
+	v0 += v1;                                                                                                               \
+	v2 += v3;                                                                                                               \
+	v1 = std::rotl(v1, 13);                                                                                                 \
+	v3 = std::rotl(v3, 16);                                                                                                 \
+	v1 ^= v0;                                                                                                               \
+	v3 ^= v2;                                                                                                               \
+	v0 = std::rotl(v0, 32);                                                                                                 \
+	v2 += v1;                                                                                                               \
+	v0 += v3;                                                                                                               \
+	v1 = std::rotl(v1, 17);                                                                                                 \
+	v3 = std::rotl(v3, 21);                                                                                                 \
+	v1 ^= v2;                                                                                                               \
+	v3 ^= v0;                                                                                                               \
 	v2 = std::rotl(v2, 32);
 
 		for (i = 0, blocks = (m.size() & ~7); i < blocks; i += 8)
@@ -301,9 +302,15 @@ namespace deckard::utils
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
 	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
 
-	constexpr u64 chibihash64__load32le(const u8* p) { return (u64)p[0] << 0 | (u64)p[1] << 8 | (u64)p[2] << 16 | (u64)p[3] << 24; }
+	constexpr u64 chibihash64__load32le(const u8* p)
+	{
+		return (u64)p[0] << 0 | (u64)p[1] << 8 | (u64)p[2] << 16 | (u64)p[3] << 24;
+	}
 
-	constexpr u64 chibihash64__load64le(const u8* p) { return chibihash64__load32le(p) | (chibihash64__load32le(p + 4) << 32); }
+	constexpr u64 chibihash64__load64le(const u8* p)
+	{
+		return chibihash64__load32le(p) | (chibihash64__load32le(p + 4) << 32);
+	}
 
 	constexpr u64 chibihash64__rotl(u64 x, int n) { return (x << n) | (x >> (-n & 63)); }
 
@@ -402,8 +409,6 @@ namespace deckard::utils
 	public:
 		xxhash64_hasher() = default;
 
-	
-
 		void update(std::span<const u8> data) noexcept
 		{
 			auto ptr = data.data();
@@ -444,10 +449,7 @@ namespace deckard::utils
 
 		void update(std::span<u8> data) noexcept { update(std::span<const u8>{data.data(), data.size()}); }
 
-		void update(std::string_view data) noexcept
-		{
-			update(std::span<const u8>{as<const u8*>(data.data()), data.size()});
-		}
+		void update(std::string_view data) noexcept { update(std::span<const u8>{as<const u8*>(data.data()), data.size()}); }
 
 		[[nodiscard]] u64 digest() const noexcept
 		{
@@ -455,7 +457,8 @@ namespace deckard::utils
 
 			if (total_len_ >= 32)
 			{
-				hash = std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
+				hash =
+				  std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
 
 				for (u64 acc : state_)
 				{
@@ -564,9 +567,6 @@ namespace deckard::utils
 		hasher.update(buffer);
 		return hasher.digest();
 	}
-
-
-
 
 	export u64 stringhash(std::string_view str) { return xxhash64(str); }
 
