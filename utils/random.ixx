@@ -361,13 +361,14 @@ namespace deckard::random
 		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(random_device)); });
 	}
 
+	export void bytes(std::span<u8> buffer) { cryptographic_random_bytes(buffer); }
+
 	export std::vector<u8> bytes(size_t len)
 	{
 		std::vector<u8> ret(len);
-		cryptographic_random_bytes(ret);
+		random::bytes(ret);
 		return ret;
 	}
-
 
 	export template<std::integral T>
 	T cryptographic_random_integer(T min = limits::min<T>, T max = limits::max<T>)
@@ -393,7 +394,8 @@ namespace deckard::random
 		assert::check(len <= buffer.size(), "buffer too small");
 
 		len = std::min(len, as<u32>(buffer.size()));
-		std::ranges::generate_n(buffer.begin(), len, [&dictionary] { return dictionary[rnd<u64>(0u, dictionary.length() - 1)]; });
+		std::ranges::generate_n(
+		  buffer.begin(), len, [&dictionary] { return dictionary[rnd<u64>(0u, dictionary.length() - 1)]; });
 	}
 
 	// id ########################################################################################################
@@ -427,10 +429,7 @@ namespace deckard::random
 
 	export void alphanum(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_alphanumeric); }
 
-	export void alphanum(std::span<char> buffer, u32 len)
-	{
-		generate_with_dictionary<char>(buffer, len, dict_alphanumeric);
-	}
+	export void alphanum(std::span<char> buffer, u32 len) { generate_with_dictionary<char>(buffer, len, dict_alphanumeric); }
 
 	export void alphanum(std::string& buffer, u32 len)
 	{
@@ -474,10 +473,7 @@ namespace deckard::random
 
 	export void digit(std::span<u8> buffer, u32 len) { generate_with_dictionary<u8>(buffer, len, dict_digits); }
 
-	export void digit(std::span<char> buffer, u32 len)
-	{
-		generate_with_dictionary<char>(buffer, len, dict_digits);
-	}
+	export void digit(std::span<char> buffer, u32 len) { generate_with_dictionary<char>(buffer, len, dict_digits); }
 
 	export void digit(std::string& buffer, u32 len)
 	{
