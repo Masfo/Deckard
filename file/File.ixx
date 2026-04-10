@@ -100,7 +100,8 @@ namespace deckard::file
 				}
 			}
 
-			HANDLE handle = CreateFileW(file.wstring().c_str(), access, FILE_SHARE_READ, nullptr, creation, FILE_ATTRIBUTE_NORMAL, nullptr);
+			HANDLE handle = CreateFileW(
+			  file.wstring().c_str(), access, FILE_SHARE_READ, nullptr, creation, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (handle == INVALID_HANDLE_VALUE)
 			{
@@ -110,8 +111,8 @@ namespace deckard::file
 													   platform::string_from_wide(file.wstring()).c_str()));
 				}
 
-				return std::unexpected(
-				  std::format("write_file: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format(
+				  "write_file: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			if (offset > 0)
@@ -122,15 +123,17 @@ namespace deckard::file
 				{
 					CloseHandle(handle);
 					return std::unexpected(std::format(
-					  "write_file: could not seek to offset {} in file '{}'", offset, platform::string_from_wide(file.wstring()).c_str()));
+					  "write_file: could not seek to offset {} in file '{}'",
+					  offset,
+					  platform::string_from_wide(file.wstring()).c_str()));
 				}
 			}
 
 			if (not WriteFile(handle, content.data(), as<DWORD>(content_size), &bytes_written, nullptr))
 			{
 				CloseHandle(handle);
-				return std::unexpected(
-				  std::format("write_file: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format(
+				  "write_file: could not write to file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			CloseHandle(handle);
@@ -176,7 +179,8 @@ namespace deckard::file
 
 			auto file_size = fs::file_size(file);
 			if (file_size == 0)
-				return std::unexpected(std::format("read_file: file '{}' is empty", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(
+				  std::format("read_file: file '{}' is empty", platform::string_from_wide(file.wstring()).c_str()));
 
 			if (offset >= file_size)
 				return std::unexpected(std::format(
@@ -194,12 +198,12 @@ namespace deckard::file
 			buffer_size    = std::min(buffer_size, remaining);
 
 			if (buffer_size == 0)
-				return std::unexpected(
-				  std::format("read_file: buffer size is zero for file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format(
+				  "read_file: buffer size is zero for file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 
 			DWORD  bytes_read{0};
-			HANDLE handle =
-			  CreateFileW(file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			HANDLE handle = CreateFileW(
+			  file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (handle == INVALID_HANDLE_VALUE)
 				return std::unexpected(
 				  std::format("read_file: could not open file '{}'", platform::string_from_wide(file.wstring()).c_str()));
@@ -212,15 +216,17 @@ namespace deckard::file
 				{
 					CloseHandle(handle);
 					return std::unexpected(std::format(
-					  "read_file: could not seek to offset {} in file '{}'", offset, platform::string_from_wide(file.wstring()).c_str()));
+					  "read_file: could not seek to offset {} in file '{}'",
+					  offset,
+					  platform::string_from_wide(file.wstring()).c_str()));
 				}
 			}
 
 			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &bytes_read, nullptr))
 			{
 				CloseHandle(handle);
-				return std::unexpected(
-				  std::format("read_file: could not read from file '{}'", platform::string_from_wide(file.wstring()).c_str()));
+				return std::unexpected(std::format(
+				  "read_file: could not read from file '{}'", platform::string_from_wide(file.wstring()).c_str()));
 			}
 
 			CloseHandle(handle);
@@ -248,7 +254,11 @@ namespace deckard::file
 	export auto write(const options& options)
 	{
 		return impl::write_impl<u8>(
-		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset, options.mode);
+		  options.filename,
+		  options.buffer,
+		  options.size == 0 ? options.buffer.size_bytes() : options.size,
+		  options.offset,
+		  options.mode);
 	}
 
 	// ##################################################################################################################
@@ -257,7 +267,8 @@ namespace deckard::file
 	// return: bytes written
 	export auto append(const options& options)
 	{
-		return impl::append_impl<u8>(options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
+		return impl::append_impl<u8>(
+		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
 	}
 
 	// ##################################################################################################################
@@ -294,7 +305,8 @@ namespace deckard::file
 	{
 		if (auto size = filesize(options.filename); size)
 		{
-			assert::check(options.offset < *size, std::format("read_chunks: offset ({}) is beyond file size ({})", options.offset, *size));
+			assert::check(options.offset < *size,
+						  std::format("read_chunks: offset ({}) is beyond file size ({})", options.offset, *size));
 
 			std::vector<u8> buffer;
 			buffer.resize(options.chunk_size);
@@ -304,10 +316,10 @@ namespace deckard::file
 			{
 				u64  to_read = std::min(options.chunk_size, *size - offset);
 				auto res =
-				  read({.filename   = options.filename,
-						.buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
-						.size   = to_read,
-						.offset = offset});
+				  read({.filename = options.filename,
+						.buffer   = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
+						.size     = to_read,
+						.offset   = offset});
 
 				if (res)
 				{
@@ -331,16 +343,19 @@ namespace deckard::file
 
 		if (auto size = filesize(file); size)
 		{
-			assert::check(
-			  start_offset < *size, std::format("read_chunks: start_offset ({}) is beyond file size ({})", start_offset, *size));
+			assert::check(start_offset < *size,
+						  std::format("read_chunks: start_offset ({}) is beyond file size ({})", start_offset, *size));
 
 			std::array<u8, N> buffer;
 			u64               offset = start_offset;
 			while (offset < *size)
 			{
 				u64  to_read = std::min(N, *size - offset);
-				auto res     = read(
-                  {.file = file, .buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)), .size = to_read, .offset = offset});
+				auto res =
+				  read({.file   = file,
+						.buffer = std::span<u8>(buffer.data(), static_cast<size_t>(to_read)),
+						.size   = to_read,
+						.offset = offset});
 				if (res)
 				{
 					co_yield std::span<u8>(buffer.data(), static_cast<size_t>(*res));
@@ -365,7 +380,7 @@ namespace deckard::file
 	{
 		u64           offset{0};
 		u64           chunk_size{0};
-		std::span<u8> chunk_buffer{};
+		std::span<u8> chunk{};
 
 		bool m_stop{false};
 
@@ -408,8 +423,8 @@ namespace deckard::file
 			filemapping |= FILE_MAP_WRITE;
 		}
 
-		HANDLE handle =
-		  CreateFileW(option.filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		HANDLE handle = CreateFileW(
+		  option.filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (handle == INVALID_HANDLE_VALUE)
 		{
 			dbg::println("filemap: could not open file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
@@ -439,7 +454,8 @@ namespace deckard::file
 		if (mapping == nullptr)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: could not create mapping for file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
+			dbg::println("filemap: could not create mapping for file '{}'",
+						 platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
@@ -483,7 +499,7 @@ namespace deckard::file
 			u64  original_size   = chunk_size;
 			auto chunk_span      = view.subspan(static_cast<size_t>(current_offset), static_cast<size_t>(chunk_size));
 
-			view_map chunk{.offset = current_offset, .chunk_size = chunk_size, .chunk_buffer = chunk_span};
+			view_map chunk{.offset = current_offset, .chunk_size = chunk_size, .chunk = chunk_span};
 
 			co_yield chunk;
 
@@ -491,9 +507,10 @@ namespace deckard::file
 				break;
 
 			if (option.mode == filemode::readwrite)
-				FlushViewOfFile(chunk.chunk_buffer.data(), chunk.chunk_size);
+				FlushViewOfFile(chunk.chunk.data(), chunk.chunk_size);
 
-			current_offset     = (chunk.offset != original_offset) ? (chunk.offset + chunk.chunk_size) : (original_offset + original_size);
+			current_offset =
+			  (chunk.offset != original_offset) ? (chunk.offset + chunk.chunk_size) : (original_offset + original_size);
 			desired_chunk_size = chunk.chunk_size;
 		}
 
@@ -503,6 +520,251 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 	// ##################################################################################################################
+
+	export struct writer_options
+	{
+		fs::path filename{};
+		u64      limit{16_GiB};
+		u64      preallocate{0};
+	};
+
+	export struct writer_view
+	{
+		static constexpr u64 chunk_limit{1_GiB};
+
+		u64 initial_size{0};
+		u64 write_offset{0};
+		u64 m_written{0};
+		u64 limit{0};
+
+		bool m_stop{false};
+
+		void stop() { m_stop = true; }
+
+		[[nodiscard]] bool full() const { return m_written >= limit; }
+
+		[[nodiscard]] u64 written() const { return m_written; }
+
+		std::expected<u32, std::string> write(std::string_view data)
+		{
+			return write(std::span<const u8>(reinterpret_cast<const u8*>(data.data()), data.size()));
+		}
+
+		template<typename... Args>
+		std::expected<u32, std::string> write(std::format_string<Args...> fmt, Args&&... args)
+		{
+			auto formatted = std::format(fmt, std::forward<Args>(args)...);
+			return write(std::string_view{formatted});
+		}
+
+		std::expected<u32, std::string> write(std::span<const u8> data)
+		{
+			if (handle == INVALID_HANDLE_VALUE)
+				return std::unexpected(std::string{"appender: invalid file handle"});
+
+			if (m_stop or full() or data.empty())
+				return std::expected<u32, std::string>{0_u32};
+
+			const u64 remaining = limit - m_written;
+			const u64 to_buffer = std::min<u64>(remaining, data.size_bytes());
+
+			u64 offset = 0;
+			while (offset < to_buffer)
+			{
+				const u64 current_chunk_limit = chunk_limit;
+
+				if (m_buffer.size() >= current_chunk_limit)
+				{
+					auto result = flush();
+					if (not result)
+						return std::unexpected(result.error());
+					continue;
+				}
+
+				const u64 free_space = current_chunk_limit - m_buffer.size();
+				const u64 copy_size  = std::min<u64>(free_space, to_buffer - offset);
+
+				m_buffer.insert(m_buffer.end(),
+								data.data() + static_cast<size_t>(offset),
+								data.data() + static_cast<size_t>(offset + copy_size));
+
+				offset += copy_size;
+				m_written += copy_size;
+
+				if (m_buffer.size() >= current_chunk_limit)
+				{
+					auto result = flush();
+					if (not result)
+						return std::unexpected(result.error());
+				}
+
+				if (m_written >= limit)
+				{
+					m_stop      = true;
+					auto result = flush();
+					if (not result)
+						return std::unexpected(result.error());
+					break;
+				}
+			}
+
+			return std::expected<u32, std::string>{static_cast<u32>(to_buffer)};
+		}
+
+		std::expected<u32, std::string> flush()
+		{
+			if (m_buffer.empty())
+				return std::expected<u32, std::string>{0_u32};
+
+			if (handle == INVALID_HANDLE_VALUE)
+				return std::unexpected(std::string{"appender: invalid file handle"});
+
+			LARGE_INTEGER pos{};
+			pos.QuadPart = static_cast<LONGLONG>(write_offset);
+			if (SetFilePointerEx(handle, pos, nullptr, FILE_BEGIN) == 0)
+				return std::unexpected(std::string{"appender: seek failed"});
+
+			u64 written_total = 0;
+			while (written_total < m_buffer.size())
+			{
+				const u64 remaining = m_buffer.size() - written_total;
+				const u64 chunk     = std::min<u64>(remaining, std::numeric_limits<DWORD>::max());
+
+				DWORD bytes_written = 0;
+				if (not WriteFile(handle,
+								  m_buffer.data() + static_cast<size_t>(written_total),
+								  static_cast<DWORD>(chunk),
+								  &bytes_written,
+								  nullptr))
+					return std::unexpected(std::string{"appender: write failed"});
+
+				if (bytes_written == 0)
+					return std::unexpected(std::string{"appender: write failed"});
+
+				written_total += bytes_written;
+
+				dbg::println("flush: {}/{}", bytes_written, written_total);
+			}
+
+			write_offset += written_total;
+
+			m_buffer.clear();
+			return std::expected<u32, std::string>{static_cast<u32>(written_total)};
+		}
+
+	private:
+		HANDLE          handle{INVALID_HANDLE_VALUE};
+		std::vector<u8> m_buffer{};
+
+		friend std::generator<writer_view&> writer(const writer_options option);
+	};
+
+	export [[nodiscard]] std::generator<writer_view&> writer(const writer_options option)
+	{
+		if (option.filename.empty())
+		{
+			dbg::println("appender: filename is empty");
+			co_return;
+		}
+		auto file = std::filesystem::absolute(option.filename);
+
+		HANDLE handle = CreateFileW(
+		  file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (handle == INVALID_HANDLE_VALUE)
+		{
+			dbg::println("appender: could not open file '{}'", platform::string_from_wide(file.wstring()));
+			co_return;
+		}
+
+		LARGE_INTEGER original_size{};
+		if (GetFileSizeEx(handle, &original_size) == 0)
+		{
+			dbg::println("appender: could not get file size '{}'", platform::string_from_wide(file.wstring()));
+			CloseHandle(handle);
+			co_return;
+		}
+
+		if (option.preallocate > 0)
+		{
+			LARGE_INTEGER current_size{};
+			if (GetFileSizeEx(handle, &current_size) == 0)
+			{
+				dbg::println("appender: could not get file size '{}'", platform::string_from_wide(file.wstring()));
+				CloseHandle(handle);
+				co_return;
+			}
+
+			if (static_cast<u64>(current_size.QuadPart) < option.preallocate)
+			{
+				LARGE_INTEGER target_size{};
+				target_size.QuadPart = static_cast<LONGLONG>(option.preallocate);
+
+				if (SetFilePointerEx(handle, target_size, nullptr, FILE_BEGIN) == 0 or SetEndOfFile(handle) == 0)
+				{
+					dbg::println("appender: could not preallocate file '{}'", platform::string_from_wide(file.wstring()));
+					CloseHandle(handle);
+					co_return;
+				}
+			}
+		}
+
+		writer_view writer{};
+		writer.handle       = handle;
+		writer.initial_size = static_cast<u64>(original_size.QuadPart);
+		writer.write_offset = writer.initial_size;
+		writer.limit        = option.limit;
+
+		struct handle_guard
+		{
+			HANDLE&      handle;
+			writer_view& writer;
+			fs::path     file;
+
+			~handle_guard()
+			{
+				if (handle == INVALID_HANDLE_VALUE)
+					return;
+
+				if (auto result = writer.flush(); not result)
+					dbg::println("appender: flush failed '{}'", result.error());
+
+				FlushFileBuffers(handle);
+
+				LARGE_INTEGER target_size{};
+				target_size.QuadPart = static_cast<LONGLONG>(writer.write_offset);
+
+				if (SetFilePointerEx(handle, target_size, nullptr, FILE_BEGIN) == 0)
+					dbg::println("appender: seek for resize failed '{}'", platform::string_from_wide(file.wstring()));
+				else if (SetEndOfFile(handle) == 0)
+					dbg::println("appender: could not resize file '{}' (error {})",
+								 platform::string_from_wide(file.wstring()),
+								 platform::get_error());
+
+				CloseHandle(handle);
+				handle = INVALID_HANDLE_VALUE;
+			}
+		};
+
+		handle_guard close_guard{handle, writer, file};
+
+		if (writer.limit == 0)
+			co_return;
+
+		while (not writer.m_stop and not writer.full())
+		{
+			u64 previous_written = writer.m_written;
+			co_yield writer;
+
+			if (writer.m_stop or writer.full())
+				break;
+
+			if (writer.m_written == previous_written)
+				break;
+		}
+
+
+		co_return;
+	}
 
 	export fs::path get_temp_path() { return fs::temp_directory_path(); }
 
@@ -532,189 +794,6 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 
-	namespace v1
-	{
-
-
-		export class filemap
-		{
-		private:
-			std::span<u8> view;
-			fs::path      filepath;
-
-		public:
-			enum class access : u8
-			{
-				read,
-				readwrite,
-				createnew,
-				overwrite,
-			};
-
-			filemap() = default;
-
-			filemap(filemap&&)      = delete;
-			filemap(const filemap&) = delete;
-
-			filemap& operator=(const filemap&) = delete;
-			filemap& operator=(filemap&&)      = delete;
-
-			~filemap() { close(); }
-
-			explicit filemap(const fs::path file, access flag = access::read) { open(file, flag); }
-
-			std::optional<std::span<u8>> open(fs::path const file, access flag = access::read)
-			{
-				filepath          = file;
-				DWORD rw          = GENERIC_READ;
-				DWORD page        = PAGE_READONLY;
-				DWORD filemapping = FILE_MAP_READ;
-
-				if (flag == access::readwrite)
-				{
-					rw |= GENERIC_WRITE;
-					page = PAGE_READWRITE;
-					filemapping |= FILE_MAP_WRITE;
-				}
-
-				HANDLE handle =
-				  CreateFileW(filepath.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-				if (handle == INVALID_HANDLE_VALUE)
-				{
-					close();
-
-					dbg::println("Could not open file '{}'", platform::string_from_wide(filepath.wstring()).c_str());
-					return {};
-				}
-
-				LARGE_INTEGER fs;
-				u64           filesize{0};
-				if (GetFileSizeEx(handle, &fs) != 0)
-					filesize = as<u64>(fs.QuadPart);
-
-
-				HANDLE mapping = CreateFileMapping(handle, 0, page, 0, 0, nullptr);
-				if (mapping == nullptr)
-				{
-					close();
-
-					dbg::println("Could not create mapping for file '{}' ({})",
-								 platform::string_from_wide(filepath.wstring()).c_str(),
-								 human_readable_bytes(filesize));
-					return {};
-				}
-
-				CloseHandle(handle);
-				handle = nullptr;
-
-				u8* raw_address = as<u8*>(MapViewOfFile(mapping, filemapping, 0, 0, 0));
-				if (raw_address == nullptr)
-				{
-					close();
-
-					dbg::println("Could not map file '{}'", platform::string_from_wide(filepath.wstring()).c_str());
-					return {};
-				}
-
-				CloseHandle(mapping);
-				mapping = nullptr;
-
-
-				view = std::span<u8>{as<u8*>(raw_address), filesize};
-				return view;
-			}
-
-			std::vector<u8> data() const
-			{
-				std::vector<u8> ret;
-				ret.reserve(view.size());
-
-				std::ranges::copy_n(view.data(), view.size(), std::back_inserter(ret));
-				return ret;
-			}
-
-			std::span<u8> span() const { return view; }
-
-			u64 size() const { return view.size_bytes(); }
-
-			bool is_open() const { return not view.empty(); }
-
-			void flush() { FlushViewOfFile(view.data(), 0); }
-
-			fs::path name() const { return filepath; }
-
-			void close()
-			{
-				flush();
-				UnmapViewOfFile(view.data());
-				view = {};
-			}
-
-			u8& operator[](u64 index) const
-			{
-				assert::check(is_open(), "indexing a closed file");
-				assert::check(index < view.size_bytes(), std::format("indexing out-of-bounds: {} out of {}", index + 1, view.size_bytes()));
-				return view[index];
-			}
-
-			std::span<u8> operator[](u64 index, u64 size) const { return view.subspan(index, size); }
-
-			static u32 write(std::filesystem::path file, std::optional<std::span<u8>> content, access flag = access::createnew)
-			{
-				DWORD bytes_written{0};
-
-				if (not content.has_value())
-				{
-					dbg::println("write: empty content for file '{}'", platform::string_from_wide(file.wstring()).c_str());
-					return bytes_written;
-				}
-
-				const auto& data = content.value();
-
-
-				DWORD mode = CREATE_ALWAYS;
-				if (flag == access::overwrite)
-					mode = CREATE_NEW;
-
-
-				HANDLE handle =
-				  CreateFile(file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, mode, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-				if (handle == INVALID_HANDLE_VALUE)
-				{
-					CloseHandle(handle);
-					if (platform::get_error() == ERROR_ALREADY_EXISTS)
-						dbg::println("write: file '{}' already exists", platform::string_from_wide(file.wstring()).c_str());
-					else
-						dbg::println("write: could not open file '{}' for writing", platform::string_from_wide(file.wstring()).c_str());
-
-					return bytes_written;
-				}
-				if (!WriteFile(handle, data.data(), as<u32>(data.size_bytes()), &bytes_written, nullptr))
-				{
-					CloseHandle(handle);
-
-					return bytes_written;
-				}
-
-				CloseHandle(handle);
-
-				return bytes_written;
-			}
-
-			static u32 write(std::filesystem::path file, const u8* content, u32 content_len, access flag = access::createnew)
-			{
-				return write(file, std::span<u8>{as<u8*>(content), content_len}, flag);
-			}
-
-			static u32 write(std::filesystem::path file, const std::vector<u8>& content, access flag = access::createnew)
-
-			{
-				return write(file, std::span<u8>{as<u8*>(content.data()), content.size()}, flag);
-			}
-		};
-	}; // namespace v1
 
 	// simple api
 
@@ -779,7 +858,8 @@ namespace deckard::file
 		return std::string(v.begin(), v.end());
 	}
 
-	export std::vector<std::string> read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
+	export std::vector<std::string>
+	read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
 	{
 		using namespace deckard::string;
 
@@ -790,7 +870,8 @@ namespace deckard::file
 		return ret;
 	}
 
-	export std::vector<std::string> read_lines_delimiter(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	export std::vector<std::string>
+	read_lines_delimiter(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
@@ -811,7 +892,8 @@ namespace deckard::file
 		return ret;
 	}
 
-	export std::vector<std::string> read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	export std::vector<std::string>
+	read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		return read_lines_delimiter(path, delimiter, include_empty_lines);
 	}
@@ -850,7 +932,8 @@ namespace deckard::file
 	}
 
 	export template<arithmetic T>
-	std::vector<std::optional<T>> try_read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	std::vector<std::optional<T>>
+	try_read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
@@ -890,7 +973,10 @@ namespace deckard::file
 		return ret;
 	}
 
-	export auto try_read_all_lines(fs::path path, std::string_view delimiter = "\n") { return try_read_lines(path, delimiter, true); }
+	export auto try_read_all_lines(fs::path path, std::string_view delimiter = "\n")
+	{
+		return try_read_lines(path, delimiter, true);
+	}
 
 
 } // namespace deckard::file
