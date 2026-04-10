@@ -69,9 +69,18 @@ namespace deckard::utils
 	{
 		u64 seed = constant_seed;
 
-		for (size_t i; i < args.size(); i++)
+		for (size_t i=0; i < args.size(); i++)
 			seed = hash_combine(seed, args[i]);
 
+		return seed;
+	}
+
+	export template<typename T>
+	constexpr u64 hash_values(const std::vector<T>& args)
+	{
+		u64 seed = constant_seed;
+		for (size_t i=0; i < args.size(); i++)
+			seed = hash_combine(seed, args[i]);
 		return seed;
 	}
 
