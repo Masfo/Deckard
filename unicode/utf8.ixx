@@ -9,3 +9,4 @@ export import :decode;
 export import :utf8_span;
 export import :basic_characters;
 
+export using namespace deckard::utf8::literals;

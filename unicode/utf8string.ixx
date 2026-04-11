@@ -44,8 +44,8 @@ namespace deckard::utf8
 
 		using difference_type = difference_type;
 
-		using iterator_category   = std::random_access_iterator_tag;
-		constexpr static u64 npos = limits::max<u64>;
+        using iterator_category             = std::random_access_iterator_tag;
+		constexpr static difference_type npos = limits::max<difference_type>;
 
 	private:
 		pointer ptr{nullptr};
@@ -171,6 +171,15 @@ namespace deckard::utf8
 			return static_cast<unit>(decode_current_codepoint());
 		}
 
+		std::optional<unit> try_codepoint() const
+		{
+			assert::check(ptr != nullptr, "Null pointer dereference");
+			assert::check(current_index - 1 < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
+			if (current_index >= as<difference_type>(ptr->size()))
+				return std::nullopt;
+			return static_cast<unit>(decode_current_codepoint());
+		}
+
 		iterator operator++()
 		{
 			next_codepoint();
@@ -197,24 +206,24 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-		iterator operator+=(int v)
+      iterator& operator+=(difference_type v)
 		{
-			while (v)
+			if (v >= 0)
 			{
-				next_codepoint();
-				v--;
+				while (v-- > 0)
+					next_codepoint();
+			}
+			else
+			{
+				while (v++ < 0)
+					previous_codepoint();
 			}
 			return *this;
 		}
 
-		iterator operator-=(int v)
+		iterator& operator-=(difference_type v)
 		{
-			while (v)
-			{
-				previous_codepoint();
-				v--;
-			}
-			return *this;
+			return (*this += -v);
 		}
 
 		iterator operator+(difference_type n) const
@@ -225,7 +234,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-		iterator operator+(const std::optional<codepoint_type> n) const
+     iterator operator+(const std::optional<difference_type> n) const
 		{
 			if (n.has_value())
 				return operator+(n.value());
@@ -241,7 +250,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-		iterator operator-(const std::optional<codepoint_type> n) const
+     iterator operator-(const std::optional<difference_type> n) const
 		{
 			if (n.has_value())
 				return operator-(n.value());
@@ -1316,6 +1325,14 @@ namespace deckard::utf8
 
 
 } // namespace deckard::utf8
+
+export namespace deckard::utf8::literals
+{
+	inline utf8::string operator""_utf8(const char* str, size_t len)
+	{
+		return utf8::string(std::string_view(str, len));
+	}
+} // namespace deckard::utf8::literals
 
 export namespace std
 {
