@@ -325,7 +325,15 @@ namespace deckard::utf8
 			buffer.assign(start.ptr->data().subspan(start_index, end_index - start_index));
 		}
 
-		string(std::span<u8> input) { buffer.assign(input); }
+		string(std::span<u8> input) 
+		{
+
+			buffer.assign(input); 
+
+	
+
+	
+		}
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
@@ -437,7 +445,11 @@ namespace deckard::utf8
 		}
 
 		//
-		void assign(const char* str) { buffer.assign(std::span<u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); }
+       void assign(const char* str)
+		{
+			buffer.assign(std::span<u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); 
+
+		}
 
 		void assign(std::span<const u8> input) { buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), input.size()}); }
 
