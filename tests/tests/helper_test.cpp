@@ -554,11 +554,47 @@ TEST_CASE("helpers", "[helpers]")
 		std::vector<int> v = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 		std::span<int>   sp(v);
 
+		auto f1 = slice<3>(sp);
+		CHECK(f1.size() == 3);
+		CHECK(f1[0] == 0);
+		CHECK(f1[1] == 1);
+		CHECK(f1[2] == 2);
 
-		auto s1 = slice(sp, 2, 5);   // {2, 3, 4}
-		auto s2 = slice(sp, 3);      // {3, 4, 5, 6, 7, 8, 9}
-		auto s3 = slice(sp, -3, -1); // {7, 8}
-		auto s4 = slice(sp, 0, -2);  // {0, 1, 2, 3, 4, 5, 6, 7}
+		auto f2 = slice<3, 2>(sp);
+		CHECK(f2.size() == 3);
+		CHECK(f2[0] == 2);
+		CHECK(f2[1] == 3);
+		CHECK(f2[2] == 4);
+
+		std::array<int, 5> a{10, 11, 12, 13, 14};
+		auto               f5 = slice<2>(a);
+		CHECK(f5[0] == 10);
+		CHECK(f5[1] == 11);
+
+		auto f6 = slice<2, 2>(a);
+		CHECK(f6[0] == 12);
+		CHECK(f6[1] == 13);
+	}
+
+	SECTION("slice_copy")
+	{
+		std::vector<int> v = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+		std::span<int>   sp(v);
+
+		auto a1 = slice_copy<3>(sp);
+		CHECK(a1 == std::array<int, 3>{0, 1, 2});
+
+		auto a2 = slice_copy<3, 2>(sp);
+		CHECK(a2 == std::array<int, 3>{2, 3, 4});
+
+		std::array<int, 5> a{10, 11, 12, 13, 14};
+		auto               a5 = slice_copy<2>(a);
+		CHECK(a5 == std::array<int, 2>{10, 11});
+
+		auto a6 = slice_copy<2, 2>(a);
+		CHECK(a6 == std::array<int, 2>{12, 13});
+
+
 	}
 
 
@@ -1130,7 +1166,7 @@ TEST_CASE("helpers", "[helpers]")
 	}
 
 	SECTION("is_any_of")
-	{ 
+	{
 		CHECK(is_any_of(10, 10, 20, 30) == true);
 		CHECK(is_any_of(10, 20, 30) == false);
 
@@ -1151,4 +1187,6 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(is_none_of("hello"sv, "hello"sv, "world"sv) == false);
 		CHECK(is_none_of("world"sv, "hello"sv, "world"sv) == false);
 	}
+
+
 }

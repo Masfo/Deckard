@@ -102,6 +102,10 @@ target_sources(tests PUBLIC
 
     # LRU
     tests/lru_test.cpp
+
+    # Random
+    tests/random_test.cpp
+
 )
 
 
