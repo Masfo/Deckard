@@ -263,10 +263,11 @@ namespace deckard::random
 	export template<integral_or_bool T = i32>
 	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
 	{
+		assert::check(minimum <= maximum, "minimum >= maximum");
 
 		if constexpr (std::is_same_v<T, unsigned char> or std::is_same_v<T, char>)
 		{
-			std::uniform_int_distribution<i16> cdist(limits::min<T>, limits::max<T>);
+			std::uniform_int_distribution<i16> cdist(minimum, maximum);
 			return static_cast<T>(cdist(detail::engine));
 		}
 		else if constexpr (std::is_same_v<T, bool>)
@@ -297,9 +298,10 @@ namespace deckard::random
 	export template<integral_or_bool T = i32, std::uniform_random_bit_generator Engine>
 	T rnd(Engine& engine, T minimum = limits::min<T>, T maximum = limits::max<T>)
 	{
+
 		if constexpr (std::is_same_v<T, unsigned char> or std::is_same_v<T, char>)
 		{
-			std::uniform_int_distribution<i16> cdist(limits::min<T>, limits::max<T>);
+			std::uniform_int_distribution<i16> cdist(minimum, maximum);
 			return static_cast<T>(cdist(engine));
 		}
 		else if constexpr (std::is_same_v<T, bool>)
@@ -322,6 +324,8 @@ namespace deckard::random
 	export template<std::floating_point T = f32, std::uniform_random_bit_generator Engine>
 	T rnd(Engine& engine, T minimum = T{0}, T maximum = T{1})
 	{
+		assert::check(minimum <= maximum, "minimum >= maximum");
+
 		std::uniform_real_distribution<T> dist(minimum, maximum);
 		return dist(engine);
 	}
