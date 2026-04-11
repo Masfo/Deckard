@@ -1278,7 +1278,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("Overlong 2-byte") == true);
-		CHECK(err.error().contains("index 0") == true);
+     CHECK(err.error().contains("line 1, column 1") == true);
 	}
 
 	SECTION("invalid, missing continuation byte")
@@ -1297,7 +1297,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("continuation") == true);
-		CHECK(err.error().contains("index 3") == true);
+     CHECK(err.error().contains("line 1, column 4") == true);
 	}
 
 
@@ -1316,7 +1316,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("surrogate") == true);
-		CHECK(err.error().contains("index 0") == true);
+     CHECK(err.error().contains("line 1, column 1") == true);
 	}
 
 	SECTION("invalid, overlong 4-byte")
@@ -1335,7 +1335,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("Overlong 4-byte") == true);
-		CHECK(err.error().contains("index 1") == true);
+     CHECK(err.error().contains("line 1, column 2") == true);
 	}
 
 	SECTION("invalid, codepoint beyond U+10FFFF")
@@ -1354,7 +1354,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("beyond") == true);
-		CHECK(err.error().contains("index 2") == true);
+     CHECK(err.error().contains("line 1, column 3") == true);
 	}
 
 
@@ -1374,7 +1374,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("leading") == true);
-		CHECK(err.error().contains("index 4") == true);
+     CHECK(err.error().contains("line 1, column 5") == true);
 	}
 
 	SECTION("invalid, bad leading byte")
@@ -1393,7 +1393,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("leading") == true);
-		CHECK(err.error().contains("index 2") == true);
+     CHECK(err.error().contains("line 1, column 3") == true);
 	}
 
 	SECTION("invalid, truncated 4-byte sequence")
@@ -1412,7 +1412,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("continuation") == true);
-		CHECK(err.error().contains("index 3") == true);
+     CHECK(err.error().contains("line 1, column 4") == true);
 	}
 
 	SECTION("invalid, overlong 2-byte mixed")
@@ -1434,6 +1434,6 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		const auto err = str.valid();
 		CHECK(err.error().contains("Overlong 2-byte") == true);
-		CHECK(err.error().contains("index 1") == true);
+     CHECK(err.error().contains("line 1, column 2") == true);
 	}
 }
