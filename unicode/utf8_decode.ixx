@@ -156,6 +156,25 @@ export namespace deckard::utf8
 
 	std::expected<bool, std::string> valid(std::span<const std::byte> buffer)
 	{
+     auto location_at_index = [&](const size_t index)
+		{
+			size_t line = 1;
+            size_t column = 1;
+			for (size_t pos = 0; pos < index and pos < buffer.size(); pos++)
+			{
+				if (utf8::u8_at(buffer, pos) == static_cast<u8>('\n'))
+              {
+					line += 1;
+					column = 1;
+				}
+				else
+				{
+					column += 1;
+				}
+			}
+            return std::pair{line, column};
+		};
+
 		size_t i = 0;
 		while (i < buffer.size())
 		{
@@ -170,11 +189,17 @@ export namespace deckard::utf8
 			else if (utf8::is_two_byte_codepoint(c))
 			{
 				if (i + 1 >= buffer.size() or not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 1)))
-					return std::unexpected(std::format("Invalid or missing continuation byte at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
+				}
 
 				codepoint = (((c & 0x1F) << 6) | (utf8::u8_at(buffer, i + 1) & 0x3F));
 				if (codepoint < 0x80)
-					return std::unexpected(std::format("Overlong 2-byte encoding at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Overlong 2-byte encoding at line {}, column {}", line, column));
+				}
 
 				i += 2;
 			}
@@ -182,14 +207,23 @@ export namespace deckard::utf8
 			{
 				if (i + 2 >= buffer.size() or not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 1)) or
 					not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 2)))
-					return std::unexpected(std::format("Invalid or missing continuation byte at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
+				}
 
 				codepoint = (((c & 0x0F) << 12) | ((utf8::u8_at(buffer, i + 1) & 0x3F) << 6) | (utf8::u8_at(buffer, i + 2) & 0x3F));
 				if (codepoint < 0x800)
-					return std::unexpected(std::format("Overlong 3-byte encoding at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Overlong 3-byte encoding at line {}, column {}", line, column));
+				}
 
 				if (codepoint >= 0xD800 and codepoint <= 0xDFFF)
-					return std::unexpected(std::format("UTF-8 encoded surrogate pair at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("UTF-8 encoded surrogate pair at line {}, column {}", line, column));
+				}
 
 				i += 3;
 			}
@@ -198,22 +232,32 @@ export namespace deckard::utf8
 				if (i + 3 >= buffer.size() or not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 1)) or
 					not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 2)) or
 					not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 3)))
-					return std::unexpected(std::format("Invalid or missing continuation byte at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
+				}
 
 				codepoint = (((c & 0x07) << 18) | ((utf8::u8_at(buffer, i + 1) & 0x3F) << 12) | ((utf8::u8_at(buffer, i + 2) & 0x3F) << 6) |
 							 (utf8::u8_at(buffer, i + 3) & 0x3F));
 
 				if (codepoint < 0x1'0000)
-					return std::unexpected(std::format("Overlong 4-byte encoding at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Overlong 4-byte encoding at line {}, column {}", line, column));
+				}
 
 				if (codepoint > 0x10'FFFF)
-					return std::unexpected(std::format("Codepoint beyond U+10FFFF at index {}", i));
+             {
+					auto [line, column] = location_at_index(i);
+					return std::unexpected(std::format("Codepoint beyond U+10FFFF at line {}, column {}", line, column));
+				}
 
 				i += 4;
 			}
 			else
 			{
-				return std::unexpected(std::format("Invalid leading byte at index {}", i));
+             auto [line, column] = location_at_index(i);
+				return std::unexpected(std::format("Invalid leading byte at line {}, column {}", line, column));
 			}
 		}
 		return true;
