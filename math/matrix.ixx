@@ -462,18 +462,36 @@ namespace deckard::math
 namespace std
 {
 	template<>
-	struct hash<mat4_generic>
+       struct hash<deckard::math::mat4_generic>
 	{
-		size_t operator()(const mat4_generic& value) const { return deckard::utils::hash_values(value); }
+           size_t operator()(const deckard::math::mat4_generic& value) const
+		{
+			return deckard::utils::hash_values(value[0].x,
+									  value[0].y,
+									  value[0].z,
+									  value[0].w,
+									  value[1].x,
+									  value[1].y,
+									  value[1].z,
+									  value[1].w,
+									  value[2].x,
+									  value[2].y,
+									  value[2].z,
+									  value[2].w,
+									  value[3].x,
+									  value[3].y,
+									  value[3].z,
+									  value[3].w);
+		}
 	};
 
 	template<>
-	struct formatter<mat4_generic>
+      struct formatter<deckard::math::mat4_generic>
 	{
 		// TODO: Parse single or multi row?
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const mat4_generic& m, std::format_context& ctx) const
+          auto format(const deckard::math::mat4_generic& m, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "mat4(({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[0].x, m[0].y, m[0].z, m[0].w);
 			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[1].x, m[1].y, m[1].z, m[1].w);

@@ -29,17 +29,17 @@ namespace deckard
 			Less
 		};
 
-		// TODO: try base 10 and bas_digits 1, type to u8
-		#if 1
-		using type = u32;
+// TODO: try base 10 and bas_digits 1, type to u8
+#if 1
+		using type                        = u32;
 		static constexpr type base        = 10000;
 		static constexpr type base_digits = 4;
-		#else
-		using type = u8;
+#else
+		using type                        = u8;
 		static constexpr type base        = 10;
 		static constexpr type base_digits = 1;
-		#endif
-		static constexpr type mask        = limits::max<type>;
+#endif
+		static constexpr type mask = limits::max<type>;
 
 		std::vector<type> digits;
 		Sign              sign;
@@ -377,7 +377,8 @@ namespace deckard
 
 				while (i < lh->digits.size() or j < rh->digits.size())
 				{
-					int diff = (i < lh->digits.size() ? lh->digits[i] : 0) - (j < rh->digits.size() ? rh->digits[j] : 0) - borrow;
+					int diff =
+					  (i < lh->digits.size() ? lh->digits[i] : 0) - (j < rh->digits.size() ? rh->digits[j] : 0) - borrow;
 					if (diff < 0)
 					{
 						diff += bigint::base;
@@ -884,7 +885,7 @@ namespace deckard
 				return "0";
 
 			std::string result;
-			u32         len  = as<u8>(digits.size()) * bigint::base_digits + 1;
+			u32         len = as<u8>(digits.size()) * bigint::base_digits + 1;
 			result.reserve(len);
 
 			if (newbase == 10)
@@ -898,7 +899,6 @@ namespace deckard
 				}
 
 				result.append(std::format("{}", digits.back()));
-
 
 
 				auto it = digits.rbegin();
@@ -952,7 +952,7 @@ namespace deckard
 			u64 multiplier = 1;
 			for (const auto& digit : digits)
 			{
-				result += static_cast<T>(digit)*multiplier;
+				result += static_cast<T>(digit) * multiplier;
 				multiplier *= bigint::base;
 			}
 
@@ -1348,10 +1348,7 @@ namespace deckard
 		return start + result;
 	}
 
-	export bigint random_bigint(u32 keysize)
-	{ 
-		return bigint(random::digit(keysize));
-			}
+	export bigint random_bigint(u32 keysize) { return bigint(random::digit(keysize)); }
 
 	export bigint random_bigint(const bigint& range)
 	{

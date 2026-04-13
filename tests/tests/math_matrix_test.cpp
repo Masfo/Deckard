@@ -10,8 +10,8 @@ using namespace std::string_literals;
 
 TEST_CASE("matrix generic", "[matrix]")
 {
-	SECTION("default constructor") 
-	{ 
+	SECTION("default constructor")
+	{
 		mat4 identity;
 		CHECK(identity[0] == vec4{1.0f, 0.0f, 0.0f, 0.0f});
 		CHECK(identity[1] == vec4{0.0f, 1.0f, 0.0f, 0.0f});
@@ -338,9 +338,11 @@ TEST_CASE("matrix generic", "[matrix]")
 		mat4 ViewRotateX   = rotate(ViewTranslate, 2.5f, vec3(-1.0f, 0.0f, 0.0f));
 		mat4 View          = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
 
-		vec3 mouse_world_nearplane = unproject(vec3(mouse.x * width, mouse.y * height, 0.0f), View, Projection, vec4(0, 0, width, height));
+		vec3 mouse_world_nearplane =
+		  unproject(vec3(mouse.x * width, mouse.y * height, 0.0f), View, Projection, vec4(0, 0, width, height));
 
-		vec3 mouse_world_farplane = unproject(vec3(mouse.x * width, mouse.y * height, 1.0f), View, Projection, vec4(0, 0, width, height));
+		vec3 mouse_world_farplane =
+		  unproject(vec3(mouse.x * width, mouse.y * height, 1.0f), View, Projection, vec4(0, 0, width, height));
 
 
 		CHECK(mouse_world_nearplane == vec3(-4.7432f, -21.0652f, -33.4807f));
@@ -359,5 +361,17 @@ TEST_CASE("matrix generic", "[matrix]")
 		  "     (0.00000, 0.00000, 0.00000, 1.00000))");
 
 		CHECK(fmt == test);
+	}
+
+	SECTION("matrix hashing") 
+	{
+		const mat4 a{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		const mat4 b{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		const mat4 c{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
+
+		const std::hash<mat4> hasher{};
+
+		CHECK(hasher(a) == hasher(b));
+		CHECK(hasher(a) != hasher(c));
 	}
 }

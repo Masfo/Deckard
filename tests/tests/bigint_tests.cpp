@@ -1,4 +1,4 @@
-﻿#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -1043,6 +1043,17 @@ TEST_CASE("bigint", "[bigint]")
 		map[0] = "123456789";
 
 		CHECK(map[0].to_integer() == 123'456'789);
+	}
+
+	SECTION("hashing")
+	{ 
+		const bigint a("1234567890123456789012345678901234567890");
+		const bigint b("1234567890123456789012345678901234567890");
+		const bigint c("9876543210987654321098765432109876543210");
+
+		CHECK(std::hash<bigint>{}(a) == std::hash<bigint>{}(b));
+		CHECK(std::hash<bigint>{}(a) != std::hash<bigint>{}(c));
+
 	}
 
 	SECTION("formatter")
