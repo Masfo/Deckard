@@ -1,13 +1,14 @@
 module;
 
 export module deckard.filemonitor;
+import deckard.utils.hash;
 import std;
 
 struct MonitorHash
 {
 	using is_transparent = void;
 
-	std::size_t operator()(const std::string& r) const { return std::hash<std::string>{}(r); }
+	std::size_t operator()(const std::string_view r) const { return deckard::utils::hash_values(r); }
 };
 
 export namespace deckard
@@ -49,6 +50,7 @@ export namespace deckard
 				return "directory";
 			else
 				return "file";
+			
 		}
 
 		FileType type() const

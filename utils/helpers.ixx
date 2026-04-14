@@ -1591,5 +1591,9 @@ export namespace deckard
 		return result;
 	}
 
+	export bool has_bom_utf8(std::span<const u8> data)
+	{
+		return data.size() >= 3 and data[0] == 0xEF and data[1] == 0xBB and data[2] == 0xBF;
+	}
 
 } // namespace deckard

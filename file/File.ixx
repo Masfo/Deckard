@@ -14,6 +14,7 @@ import deckard.helpers;
 import deckard.stringhelper;
 import deckard.random;
 import deckard.utils.hash;
+import deckard.utf8;
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -824,7 +825,7 @@ namespace deckard::file
 			return v;
 
 		// remove bom
-		if (v.size() >= 3 and v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)
+		if (has_bom_utf8(v))
 			v.erase(v.begin(), v.begin() + 3);
 
 		std::vector<u8> out;
@@ -849,6 +850,17 @@ namespace deckard::file
 
 		out.shrink_to_fit();
 		return out;
+	}
+
+	export auto read_text_file_as_utf8(fs::path path) -> utf8::string
+	{
+		auto v = read_text_file(path);
+
+		utf8::string ret(v);
+		if (auto result = ret.valid(); not result)
+			dbg::println("Warning: file '{}' with invalid UTF-8 data: {}", path, result.error());
+
+		return ret;
 	}
 
 	export std::string read_text_file_as_string(fs::path path)
@@ -977,6 +989,10 @@ namespace deckard::file
 	{
 		return try_read_lines(path, delimiter, true);
 	}
+
+	// ##################################################################################################################
+	// ##################################################################################################################
+	// ##################################################################################################################
 
 
 } // namespace deckard::file
