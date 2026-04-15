@@ -97,9 +97,16 @@ export namespace deckard::math
 		return std::abs(x - y);
 	}
 
+	// between values
+	[[nodiscard]] constexpr auto is_between(arithmetic auto value, arithmetic auto lo, arithmetic auto hi) noexcept -> bool
+	{
+		using common_t       = std::common_type_t<decltype(value), decltype(lo), decltype(hi)>;
+		auto [lower, upper]  = std::minmax<common_t>(static_cast<common_t>(lo), static_cast<common_t>(hi));
+		auto converted_value = static_cast<common_t>(value);
+		return converted_value >= lower and converted_value <= upper;
+	}
+
 	// is_close_enough
-
-
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& a, const T& b, const T epsilon = T{1e-5})
 	{
