@@ -21,6 +21,39 @@ namespace deckard::utils
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
 	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
 
+	template<typename T>
+	constexpr T distribute(T x)
+	{
+		if constexpr (sizeof(T) == 8)
+		{
+			x ^= x >> 12;
+			x ^= x << 25;
+			x ^= x >> 27;
+			return x * 0x2545'F491'4F6C'DD1DULL;
+		}
+		else if constexpr (sizeof(T) == 4)
+		{
+			x ^= x >> 13;
+			x ^= x << 17;
+			x ^= x >> 5;
+			return x * 0x85eb'ca6bU;
+		}
+		else if constexpr (sizeof(T) == 2)
+		{
+			x ^= x >> 7;
+			x ^= x << 9;
+			x ^= x >> 3;
+			return x * 0x1b87'0bcdU;
+		}
+		else
+		{
+			x ^= x >> 3;
+			x ^= x << 5;
+			x ^= x >> 2;
+			return x * 0x27d4'eb2dU;
+		}
+	}
+
 	template<std::unsigned_integral T>
 	constexpr T distribute(T x)
 	{
@@ -41,17 +74,25 @@ namespace deckard::utils
 	}
 
 	export template<typename T, typename... Rest>
-	constexpr auto hash_combine(u64 seed, const T& v, Rest... rest)
+	constexpr u64 hash_combine(u64 seed, const T& v, Rest&&... rest)
 	{
-		seed = std::rotl(seed, std::numeric_limits<std::size_t>::digits / 3) ^ distribute(std::hash<T>{}(v));
+
+		if constexpr (std::is_integral_v<T>)
+		{
+			seed = std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^
+				   distribute(static_cast<u64>(static_cast<std::make_unsigned_t<T>>(v)));
+		}
+		else if constexpr (std::is_floating_point_v<T>)
+		{
+			using ftype = std::conditional_t<sizeof(T) == 4, u32, u64>;
+			seed =
+			  std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^ distribute(static_cast<u64>(std::bit_cast<ftype>(v)));
+		}
+
 		if constexpr (sizeof...(rest) > 0)
-		{
-			return hash_combine(seed, rest...);
-		}
+			return hash_combine(seed, std::forward<Rest>(rest)...);
 		else
-		{
 			return seed;
-		}
 	}
 
 	export constexpr u64 constant_seed = distribute<u64>(constant_seed_1);
@@ -65,24 +106,32 @@ namespace deckard::utils
 	}
 
 	export template<typename T>
-	constexpr u64 hash_values(const std::span<T>& args)
+	constexpr u64 hash_values(std::span<const T> args)
 	{
-		u64 seed = constant_seed;
+		return std::ranges::fold_left(args, constant_seed, [](u64 seed, const T& v) { return hash_combine(seed, v); });
+	}
 
-		for (size_t i=0; i < args.size(); i++)
-			seed = hash_combine(seed, args[i]);
-
-		return seed;
+	export template<typename T>
+	constexpr u64 hash_values(std::span<T> args)
+	{
+		return hash_values(std::span<const T>{args.data(), args.size()});
 	}
 
 	export template<typename T>
 	constexpr u64 hash_values(const std::vector<T>& args)
 	{
-		u64 seed = constant_seed;
-		for (size_t i=0; i < args.size(); i++)
-			seed = hash_combine(seed, args[i]);
-		return seed;
+		return hash_values(std::span<const T>{args.data(), args.size()});
 	}
+
+	export template<typename T, size_t N>
+	constexpr u64 hash_values(const std::array<T, N>& args)
+	{
+		return hash_values(std::span<const T>{args.data(), args.size()});
+	}
+
+	export constexpr u64 hash_values(std::string_view str) { return hash_values(to_span(str)); }
+
+	export constexpr u64 hash_values(const std::string& str) { return hash_values(to_span(str)); }
 
 	// ########################################################################
 	// Siphash
