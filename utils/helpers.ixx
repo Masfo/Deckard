@@ -293,13 +293,29 @@ export namespace deckard
 	export template<typename T>
 	std::string to_hex_string(const std::span<T> input, const HexOption& options = {})
 	{
+		if (options.max_width == 0 or input.size() <= options.max_width)
+		{
 		std::string ret;
-
-		auto len = to_hex<T>(input, {}, options);
+			auto        len = to_hex<T>(input, {}, options);
 		ret.resize(len);
-
 		(void)to_hex<T>(input, {as<u8*>(ret.data()), ret.size()}, options);
+			return ret;
+		}
 
+		std::string ret;
+		for (size_t i = 0; i < input.size(); i += options.max_width)
+		{
+			const size_t chunk_size = std::min<size_t>(options.max_width, input.size() - i);
+			const auto   chunk      = input.subspan(i, chunk_size);
+
+			auto        len = to_hex<T>(chunk, {}, options);
+			std::string line(len, '\0');
+			(void)to_hex<T>(chunk, {as<u8*>(line.data()), line.size()}, options);
+
+			ret += line;
+			if (i + options.max_width < input.size())
+				ret += '\n';
+		}
 		return ret;
 	}
 
