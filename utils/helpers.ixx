@@ -355,6 +355,151 @@ export namespace deckard
 		}
 	}
 
+	// slice span
+	export template<size_t Count, typename T>
+	auto slice(std::span<T> bytes) -> std::span<T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Count <= bytes.size(), "slice: out of bounds");
+
+		return std::span<T, Count>(bytes.data(), Count);
+	}
+
+	export template<size_t Count, size_t Offset, typename T>
+	auto slice(std::span<T> bytes) -> std::span<T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Offset + Count <= bytes.size(), "slice: out of bounds");
+
+		return std::span<T, Count>(bytes.data() + Offset, Count);
+	}
+
+	// slice array
+	export template<size_t Count, typename T, size_t N>
+	auto slice(std::array<T, N>& bytes) -> std::span<T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Count <= bytes.size(), "slice: out of bounds");
+
+		return std::span<T, Count>(bytes.data(), Count);
+	}
+
+	export template<size_t Count, typename T, size_t N>
+	auto slice(const std::array<T, N>& bytes) -> std::span<const T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Count <= bytes.size(), "slice: out of bounds");
+
+		return std::span<const T, Count>(bytes.data(), Count);
+	}
+
+	export template<size_t Count, size_t Offset, typename T, size_t N>
+	auto slice(std::array<T, N>& bytes) -> std::span<T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Offset + Count <= bytes.size(), "slice: out of bounds");
+
+		return std::span<T, Count>(bytes.data() + Offset, Count);
+	}
+
+	export template<size_t Count, size_t Offset, typename T, size_t N>
+	auto slice(const std::array<T, N>& bytes) -> std::span<const T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Offset + Count <= bytes.size(), "slice: out of bounds");
+
+		return std::span<const T, Count>(bytes.data() + Offset, Count);
+	}
+
+	// slice vector
+
+	template<size_t Count, typename T>
+	auto slice(std::vector<T>& bytes) -> std::span<T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Count <= bytes.size(), "slice: out of bounds");
+		return std::span<T, Count>(bytes.data(), Count);
+	}
+
+	template<size_t Count, size_t Offset, typename T>
+	auto slice(std::vector<T>& bytes) -> std::span<T, Count>
+	{
+		static_assert(Count > 0, "slice: Count must be > 0");
+		assert::check(Offset + Count <= bytes.size(), "slice: out of bounds");
+		return std::span<T, Count>(bytes.data() + Offset, Count);
+	}
+
+	// slice_copy
+	export template<size_t Count, typename T>
+	auto slice_copy(std::span<T> bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		static_assert(Count > 0, "slice_copy: Count must be > 0");
+		assert::check(Count <= bytes.size(), "slice_copy: out of bounds");
+
+		std::array<std::remove_cv_t<T>, Count> out{};
+		std::ranges::copy_n(bytes.data(), Count, out.begin());
+		return out;
+	}
+
+	export template<size_t Count, size_t Offset, typename T>
+	auto slice_copy(std::span<T> bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		static_assert(Count > 0, "slice_copy: Count must be > 0");
+		assert::check(Offset + Count <= bytes.size(), "slice_copy: out of bounds");
+
+		std::array<std::remove_cv_t<T>, Count> out{};
+		std::ranges::copy_n(bytes.data() + Offset, Count, out.begin());
+		return out;
+	}
+
+	export template<size_t Count, typename T, size_t N>
+	auto slice_copy(std::array<T, N>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count>(std::span<T>{bytes});
+	}
+
+	export template<size_t Count, typename T, size_t N>
+	auto slice_copy(const std::array<T, N>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count>(std::span<const T>{bytes});
+	}
+
+	export template<size_t Count, size_t Offset, typename T, size_t N>
+	auto slice_copy(std::array<T, N>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count, Offset>(std::span<T>{bytes});
+	}
+
+	export template<size_t Count, size_t Offset, typename T, size_t N>
+	auto slice_copy(const std::array<T, N>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count, Offset>(std::span<const T>{bytes});
+	}
+
+	export template<size_t Count, typename T>
+	auto slice_copy(std::vector<T>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count>(std::span<T>{bytes});
+	}
+
+	export template<size_t Count, typename T>
+	auto slice_copy(const std::vector<T>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count>(std::span<const T>{bytes});
+	}
+
+	export template<size_t Count, size_t Offset, typename T>
+	auto slice_copy(std::vector<T>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count, Offset>(std::span<T>{bytes});
+	}
+
+	export template<size_t Count, size_t Offset, typename T>
+	auto slice_copy(const std::vector<T>& bytes) -> std::array<std::remove_cv_t<T>, Count>
+	{
+		return slice_copy<Count, Offset>(std::span<const T>{bytes});
+	}
+
 	// epoch
 	template<typename T = std::chrono::seconds>
 	auto epoch() -> decltype(std::chrono::duration_cast<T>(std::chrono::system_clock::now().time_since_epoch()).count())
