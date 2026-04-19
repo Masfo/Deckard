@@ -1020,36 +1020,6 @@ export namespace deckard
 	//
 	// ##############################################################################
 
-	template<typename T>
-	std::expected<std::span<T>, std::string> slice(std::span<T> s, int start, int end)
-	{
-		int size = as<int>(s.size());
-
-		if (start < 0)
-			start += size;
-		if (end < 0)
-			end += size;
-
-		if (start < 0 || start > size)
-			return std::unexpected("Start index out of range: " + std::to_string(start));
-
-		if (end < 0 || end > size)
-			return std::unexpected("End index out of range: " + std::to_string(end));
-
-		if (start > end)
-			return std::unexpected("Start > end: " + std::to_string(start) + " > " + std::to_string(end));
-
-		return s.subspan(start, end - start);
-	}
-
-	template<typename T>
-	auto slice(std::span<T> s, int start)
-	{
-		return slice(s, start, as<int>(s.size()));
-	}
-
-	// ##############################################################################
-
 	// isrange
 	template<typename T>
 	bool isrange(T c, T a, T b)

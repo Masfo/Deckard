@@ -18,3 +18,4 @@ scratch.txt
 *.lnk
 /Testing/Temporary
 /build_out.txt
+/build
