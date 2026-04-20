@@ -206,34 +206,35 @@ include(ExternalProject)
 set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
 # TODO: function to download files
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCodeProperties.txt)
-file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCoreProperties.txt)
-message(STATUS Downloaded latest DerivedCoreProperties.txt)
-endif()
+function(download_file)
+    set(url ${ARGV0})
+    set(output ${ARGV1})
+    if(NOT EXISTS ${output})
+        file(DOWNLOAD ${url} ${output})
+        message(STATUS "Downloaded latest ${output}")
+    endif()
+endfunction()
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData.txt)
-file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData.txt)
-message(STATUS Downloaded latest UnicodeData.txt)
-endif()
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt 
+             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCoreProperties.txt)
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding.txt)
-file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding.txt)
-message(STATUS Downloaded latest CaseFolding.txt)
-endif()
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
+             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData.txt)
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
-file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
-        ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
-message(STATUS Downloaded latest PropList.txt)
-endif()
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
+             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding.txt)
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/bin/UCD.zip)
-file(DOWNLOAD https://www.unicode.org/Public/UCD/latest/ucd/UCD.zip
-        ${CMAKE_CURRENT_LIST_DIR}/bin/UCD.zip)
-message(STATUS Downloaded latest UCD.zip)
-endif()
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/Blocks.txt
+              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/Blocks.txt)
+
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
+              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
+              
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/NamesList.txt
+              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/NamesList.txt)
+
+
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/UCD.zip
+              ${CMAKE_CURRENT_LIST_DIR}/bin/UCD.zip)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)

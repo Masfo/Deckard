@@ -1,4 +1,4 @@
-﻿
+
 import std;
 using i64 = std::int64_t;
 using u64 = std::uint64_t;
@@ -360,6 +360,8 @@ UnicodeDataField parse_field(std::string_view line)
 	// 8
 	field.numeric_value = to_number<i64>(split_line[8], 10).value_or(-1z);
 
+	// 10
+	field.unicode10_name = split_line[10];
 
 	// 12
 	auto uc                 = to_number<int>(split_line[12], 16);
@@ -388,6 +390,32 @@ using IntTable = std::map<u64, u64>;
 
 using Character  = std::pair<std::string, i64>;
 using Characters = std::vector<Character>;
+
+using CharacterNames = std::map<i64, std::string>;
+
+struct RangeCmp
+{
+	using is_transparent = void;
+
+	bool operator()(const std::pair<i64, i64> &lhs, const std::pair<i64, i64> &rhs) const { return lhs.first < rhs.first; }
+};
+
+using Range    = std::pair<i64, i64>;
+using Entry    = std::pair<Range, std::string>;
+using RangeMap = std::map<Range, std::string, RangeCmp>;
+
+std::optional<Entry> lookup(const RangeMap &m, i64 value)
+{
+	auto it = m.upper_bound({value, {}});
+
+	if (it != m.begin())
+	{
+		--it;
+		if (value <= it->first.second)
+			return *it;
+	}
+	return {};
+}
 
 auto compress_runs(std::vector<char32_range> &input) -> std::vector<char32_range>
 {
@@ -452,6 +480,123 @@ std::vector<std::string> read_lines(fs::path file)
 		return {};
 
 	return split(str);
+}
+
+void write_lines(CharacterNames &input, fs::path filename)
+{
+	if (input.empty())
+	{
+		std::println("No input");
+		return;
+	}
+	std::ofstream f(filename);
+
+
+	auto skip_between = [&f](i64 start, i64 end, std::string_view name)
+	{
+		f << "\t\t";
+		f << std::format("if(codepoint >= 0x{:04X} and codepoint <= 0x{:04X})\n\t\t\t return \"{}\";\n ", start, end, name);
+	};
+
+	auto comment_between = [&](i64 start, i64 end, std::string_view name)
+	{
+		if (start == end)
+		{
+			f << "\n\t\t";
+			f << std::format("case {:04X}-U+{:04X} is a {} range\n\n", start, end, name);
+		}
+		else
+		{
+			f << "\t\t\t";
+			f << std::format("// U+{:04X}-U+{:04X} is a {} range\n", start, end, name);
+		}
+	};
+
+
+	const RangeMap skip_ranges
+	{
+		{{0x3400, 0x4DBF}, "CJK Ideograph Extension A"},
+		{{0x4E00, 0x9FFF}, "CJK Ideograph"},
+		{{0xAC00, 0xD7A3}, "Hangul Syllable"},
+		{{0xD800, 0xDB7F}, "Non Private Use High Surrogate"},
+		{{0xDB80, 0xDBFF}, "Private Use High Surrogate"},
+		{{0xDC00, 0xDFFF}, "Low Surrogate"},
+		{{0xE000, 0xF8FF}, "Private Use"},
+		{{0x17000, 0x187FF}, "Tangut Ideograph"},
+		{{0x18D00, 0x18D1E}, "Tangut Ideograph Supplement"},
+		{{0x20000, 0x2A6DF}, "CJK Ideograph Extension B"},
+		{{0x2A700, 0x2B73F}, "CJK Ideograph Extension C"},
+		{{0x2B740, 0x2B81D}, "CJK Ideograph Extension D"},
+		{{0x2B820, 0x2CEAD}, "CJK Ideograph Extension E"},
+		{{0x2CEB0, 0x2EBE0}, "CJK Ideograph Extension F"},
+		{{0x2EBF0, 0x2EE5D}, "CJK Ideograph Extension I"},
+		{{0x30000, 0x3134A}, "CJK Ideograph Extension G"},
+		{{0x31350, 0x323AF}, "CJK Ideograph Extension H"},
+		{{0x323B0, 0x33479}, "CJK Ideograph Extension J"},
+		{{0xF0000, 0xFFFFD}, "Plane 15 Private Use"},
+		{{0x10'0000, 0x10'FFFD}, "Plane 16 Private Use"},
+	};
+
+
+	f << "export module deckard.utf8:names;\n";
+	f << "import deckard.types;\n";
+	f << "import std;\n";
+
+	f << "\n";
+	f << "namespace deckard::utf8\n{\n";
+	f << "\texport std::string_view codepoint_to_name(char32 codepoint)\n";
+	f << "\t{\n";
+
+	f << "#ifndef _DEBUG\n";
+	f << "#else\n";
+
+	for (const auto &[range, name] : skip_ranges)
+		skip_between(range.first, range.second, name);
+
+	f << "\n";
+
+
+	f << "\t\tswitch(codepoint)\n";
+	f << "\t\t{\n";
+
+
+	std::unordered_set<i64> seen;
+
+	for (const auto &i : input)
+	{
+		auto [id, name] = i;
+
+		if (seen.contains(id))
+			continue;
+
+		if (auto vl = lookup(skip_ranges, id); vl)
+		{
+			auto [r, n] = *vl;
+			f << "\t\t\t";
+			f << std::format("// U+{:04X}-U+{:04X} is a {} range\n", r.first, r.second, n);
+			seen.insert(r.first);
+			seen.insert(r.second);
+		}
+		else
+		{
+			f << "\t\t\t";
+			f << std::format("case 0x{:04X}: return \"{}\";\n", id, name);
+		}
+		continue;
+	}
+
+	f << "\n";
+	f << "\t\t\t default: return \"<invalid utf codepoint>\";\n";
+
+	f << "\t\t}\n"; // switch
+	f << "\t\t#endif";
+	f << "\t}\n";   // codepoint_to_name
+
+
+	f << "}";       // namespace
+
+	f.flush();
+	f.close();
 }
 
 void write_lines(Characters &input, fs::path filename)
@@ -674,11 +819,14 @@ void process_unicode_data()
 	IntTable to_uppercase;
 	IntTable digits;
 
-	Characters characters;
+	Characters     characters;
+	CharacterNames character_names;
 
 
 	// TODO: to_uppercase, to_lowercase mappings
 	// 0x41, 0x61  ; LATIN CAPITAL LETTER A -> LATIN SMALL LETTER A
+	i64 first = 0, last = 0;
+
 
 	for (const auto &line : lines)
 	{
@@ -690,9 +838,17 @@ void process_unicode_data()
 		auto is = split_line.size();
 #endif
 
+		// TODO: detect ranges FIRST-LAST, write them to file
+		// like: if (codepoint >= 0x3400 and codepoint <= 0x4DBF) // "CJK Ideograph Extension A";
 
 		UnicodeDataField field{0};
 		field = parse_field(line);
+
+		auto name = field.character_name == "<control>" ? field.unicode10_name : field.character_name;
+		if (name.empty())
+			name = field.character_name;
+
+		character_names[field.code_value] = name;
 
 
 		if (field.uppercase_mapping != -1)
@@ -720,10 +876,25 @@ void process_unicode_data()
 
 		fields.emplace_back(field);
 
-		if (field.code_value == 0x41)
+		if (field.code_value == 0x3400)
 		{
-			//int k = 0;
+			int k = 0;
 		}
+
+		// no-name ranges
+		if (field.character_name.contains("First>"))
+			first = field.code_value;
+
+		if (field.character_name.contains("Last>"))
+			last = field.code_value;
+
+		if (first != 0 and last != 0)
+		{
+			std::string rangename = field.character_name.substr(1, field.character_name.find(", Last>") - 1);
+			std::println("{{{{0x{:04X}, 0x{:04X}}}, \"{}\"}},", first, last, rangename);
+			first = last = 0;
+		}
+
 
 		if (field.category == GeneralCategory::Pd)
 		{
@@ -767,6 +938,8 @@ void process_unicode_data()
 	write_lines(dashes, "dashes", "dashes.ixx");
 
 	write_lines(characters, "characters.ixx");
+
+	write_lines(character_names, "character_names.ixx");
 }
 
 void process_casefolding()
