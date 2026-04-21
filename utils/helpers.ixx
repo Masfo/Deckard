@@ -295,10 +295,10 @@ export namespace deckard
 	{
 		if (options.max_width == 0 or input.size() <= options.max_width)
 		{
-		std::string ret;
+			std::string ret;
 			auto        len = to_hex<T>(input, {}, options);
-		ret.resize(len);
-		(void)to_hex<T>(input, {as<u8*>(ret.data()), ret.size()}, options);
+			ret.resize(len);
+			(void)to_hex<T>(input, {as<u8*>(ret.data()), ret.size()}, options);
 			return ret;
 		}
 
@@ -1619,11 +1619,20 @@ export namespace deckard
 	}
 
 	// ####################################################################################
-	// █████    ██████    ████    ██████   ██████   █    █   ██████
-	// █    █     ██     █          ██     █         █  █      ██
-	// █████      ██     █  ███     ██     ████       ██       ██
-	// █    █     ██     █    █     ██     █         █  █      ██
-	// █████    ██████    ████      ██     ██████   █    █     ██
+	// ####################################################################################
+	//		█████    ██████    ████    ██████   ██████   █    █   ██████
+	//		█    █     ██     █          ██     █         █  █      ██
+	//		█████      ██     █  ███     ██     ████       ██       ██
+	//		█    █     ██     █    █     ██     █         █  █      ██
+	//		█████    ██████    ████      ██     ██████   █    █     ██
+	// ####################################################################################
+	//
+	//		#####    ######    ####    ######   ######   #    #   ######
+	//		#    #     ##     #          ##     #         #  #      ##
+	//		#####      ##     #  ###     ##     ####       ##       ##
+	//		#    #     ##     #    #     ##     #         #  #      ##
+	//		#####    ######    ####      ##     ######   #    #     ##
+	//
 	// ####################################################################################
 
 	struct Glyph
@@ -1722,9 +1731,58 @@ export namespace deckard
 		return result;
 	}
 
+	[[nodiscard]] constexpr auto is_suspicious(u8 b) noexcept -> bool
+	{
+		constexpr auto allowed_controls = std::array<u8, 5>{
+		  0x09,
+		  0x0A,
+		  0x0B,
+		  0x0C,
+		  0x0D,
+		};
+		if (b >= 0x20 && b <= 0x7E)
+			return false;
+		if (b >= 0x80)
+			return false;
+		return not std::ranges::contains(allowed_controls, b);
+	}
+
 	export bool has_bom_utf8(std::span<const u8> data)
 	{
 		return data.size() >= 3 and data[0] == 0xEF and data[1] == 0xBB and data[2] == 0xBF;
+	}
+
+	std::mt19937 rng{std::random_device{}()};
+
+	// detect binary content: 0-100
+	export f32 binary_percentage(std::span<const u8> buffer)
+	{
+		constexpr u64 k_sample_max    = 4096;
+		constexpr u64 k_sample_passes = 4;
+
+		if (buffer.empty() or has_bom_utf8(buffer))
+			return 0.0f;
+
+		if (buffer.size() <= k_sample_max)
+		{
+			const f64 suspicious = static_cast<f64>(std::ranges::count_if(buffer, is_suspicious));
+			return static_cast<f32>((suspicious / static_cast<f64>(buffer.size())) * 100.0);
+		}
+
+		const u64                          max_offset = buffer.size() - k_sample_max;
+		std::uniform_int_distribution<u64> dist{0, max_offset};
+
+		f64 total_suspicious = 0.0;
+		f64 total_bytes      = 0.0;
+
+		for (u64 i = 0; i < k_sample_passes; ++i)
+		{
+			const auto window = buffer.subspan(dist(rng), k_sample_max);
+			total_suspicious += static_cast<f64>(std::ranges::count_if(window, is_suspicious));
+			total_bytes += static_cast<f64>(window.size());
+		}
+
+		return static_cast<f32>((total_suspicious / total_bytes) * 100.0);
 	}
 
 } // namespace deckard
