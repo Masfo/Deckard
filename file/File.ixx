@@ -276,7 +276,7 @@ namespace deckard::file
 	// read
 
 	// return: bytes read
-	export auto read(const options& options)
+	export auto read(const options options)
 	{
 		return impl::read_impl<u8>(
 		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
@@ -302,8 +302,15 @@ namespace deckard::file
 	// ##################################################################################################################
 	// read_chunks
 
-	export std::generator<std::span<u8>> read_chunks(const options& options)
+	export std::generator<std::span<u8>> read_chunks(const options options)
 	{
+		if (not fs::exists(options.filename))
+		{
+			dbg::eprintln(
+			  "read_chunks: file '{}' does not exist", platform::string_from_wide(options.filename.wstring()).c_str());
+			co_return;
+		}
+
 		if (auto size = filesize(options.filename); size)
 		{
 			assert::check(options.offset < *size,
@@ -822,7 +829,10 @@ namespace deckard::file
 		std::vector<u8> v = read_file(path);
 
 		if (v.empty())
+		{
+			dbg::println("read_text_file: file '{}' is empty", path.generic_string());
 			return v;
+		}
 
 		// remove bom
 		if (has_bom_utf8(v))
@@ -866,7 +876,7 @@ namespace deckard::file
 	export std::string read_text_file_as_string(fs::path path)
 	{
 		auto v = read_text_file(path);
-
+		
 		return std::string(v.begin(), v.end());
 	}
 
