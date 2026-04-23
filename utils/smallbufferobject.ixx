@@ -23,8 +23,8 @@ namespace deckard
 		using value_type      = u8;
 		using pointer         = value_type*;
 		using reference       = value_type&;
-		using const_pointer   = const pointer;
-		using const_reference = const reference;
+		using const_pointer   = const value_type*;
+		using const_reference = const value_type&;
 		using difference_type = std::ptrdiff_t;
 		using size_type       = u32;
 
@@ -294,11 +294,10 @@ namespace deckard
 			else
 			{
 				set_large(true);
-				set_size(from.large_size());
-				set_capacity(from.large_capacity());
+					set_size(from.large_size());
+					set_capacity(from.large_capacity());
 
-				delete[] packed.large.ptr;
-				packed.large.ptr = new value_type[packed.large.capacity];
+					packed.large.ptr = new value_type[packed.large.capacity];
 
 				std::copy_n(from.packed.large.ptr, large_size(), packed.large.ptr);
 			}
@@ -314,14 +313,15 @@ namespace deckard
 			}
 			else
 			{
-				packed.large.ptr      = std::move(other.packed.large.ptr);
-				packed.large.size     = other.packed.large.size;
-				packed.large.capacity = other.packed.large.capacity;
-				packed.large.is_large = 1;
+				packed.large.ptr      = other.packed.large.ptr;
+					packed.large.size     = other.packed.large.size;
+					packed.large.capacity = other.packed.large.capacity;
+					packed.large.is_large = 1;
 
-				other.packed.large.is_large = 0;
-			}
-			other.reset();
+					other.packed.large.ptr      = nullptr;
+					other.packed.large.is_large = 0;
+				}
+				other.reset();
 		}
 
 		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT); }
@@ -449,77 +449,88 @@ namespace deckard
 		}
 
 	 iterator insert(const_iterator pos, const std::span<const value_type> buffer)
-		{
-			if (buffer.empty())
-			   return iterator(rawptr() + std::distance(cbegin(), pos));
+	 {
+		 if (buffer.empty())
+			 return iterator(rawptr() + std::distance(cbegin(), pos));
 
-		   const auto pivot      = std::distance(cbegin(), pos);
-		   const auto oldsize    = size();
-		   size_t     newsize    = oldsize + buffer.size();
-		   bool       self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
-		   ptrdiff_t  self_offset = self_insert ? buffer.data() - rawptr() : 0;
+		 const auto pivot   = std::distance(cbegin(), pos);
+		 const auto oldsize = size();
+		 size_t     newsize = oldsize + buffer.size();
 
-			if (newsize > capacity())
-				resize(newsize);
+		 bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+		 if (self_insert)
+		 {
+			 sbo<SIZE> tmp(std::span<value_type>{const_cast<value_type*>(buffer.data()), buffer.size()});
+			 if (newsize > capacity())
+				 resize(newsize);
+			 const pointer ptr = rawptr();
+			 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+			 std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
+			 set_size(newsize);
+			 return iterator(ptr + pivot);
+		 }
 
-			const pointer     ptr = rawptr();
-		   const value_type* src = self_insert
-			   ? ptr + self_offset + (self_offset >= pivot ? (ptrdiff_t)buffer.size() : 0)
-			   : buffer.data();
+		 if (newsize > capacity())
+			 resize(newsize);
 
-		   std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+		 const pointer ptr = rawptr();
+		 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+		 std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
+		 set_size(newsize);
+		 return iterator(ptr + pivot);
+	 }
 
-		   if (self_insert)
-			   std::memmove(ptr + pivot, src, buffer.size());
-		   else
-			   std::copy(src, src + buffer.size(), ptr + pivot);
+	 iterator insert(const_iterator pos, const value_type& v) { return insert(pos, {&v, 1}); }
 
-			set_size(newsize);
+	 iterator insert(iterator pos, std::span<value_type> buffer)
+	 {
+		 if (buffer.empty())
+			 return pos;
 
-			return iterator(ptr + pivot);
-		}
+		 const size_t pivot   = std::distance(begin(), pos);
+		 const size_t oldsize = size();
+		 size_t       newsize = oldsize + buffer.size();
 
-		iterator insert(const_iterator pos, const value_type& v) { return insert(pos, {&v, 1}); }
+		 bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+		 if (self_insert)
+		 {
+			 sbo<SIZE> tmp(buffer);
+			 if (newsize > capacity())
+				 resize(newsize);
+			 const pointer ptr = rawptr();
+			 if (pivot < oldsize)
+				 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+			 std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
+			 set_size(newsize);
+			 return iterator(ptr + pivot);
+		 }
 
-		iterator insert(iterator pos, std::span<value_type> buffer)
-		{
-			if (buffer.empty())
-				return pos;
+		 if (newsize > capacity())
+			 resize(newsize);
 
-			const size_t pivot       = std::distance(begin(), pos);
-			const size_t oldsize     = size();
-			size_t       newsize     = oldsize + buffer.size();
-			bool         self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
-			ptrdiff_t    self_offset = self_insert ? buffer.data() - rawptr() : 0;
-
-			if (newsize > capacity())
-				resize(newsize);
-
-			const pointer ptr = rawptr();
-
-			if (pivot < oldsize)
-				std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-
-			pointer src = self_insert
-				? ptr + self_offset + (self_offset >= (ptrdiff_t)pivot ? (ptrdiff_t)buffer.size() : 0)
-				: buffer.data();
-
-			if (self_insert)
-				std::memmove(ptr + pivot, src, buffer.size());
-			else
-				std::copy_n(src, buffer.size(), ptr + pivot);
-
-			set_size(newsize);
-
-			return iterator(ptr + pivot);
-		}
+		 const pointer ptr = rawptr();
+		 if (pivot < oldsize)
+			 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+		 std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
+		 set_size(newsize);
+		 return iterator(ptr + pivot);
+	 }
 
 		iterator insert(iterator pos, const value_type& v) { return insert(pos, std::span<value_type>{(pointer)&v, 1}); }
 
-     void assign(const std::span<const value_type> buffer)
+	 void assign(const std::span<const value_type> buffer)
 		{
+			bool self_assign = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+			if (self_assign)
+			{
+				sbo<SIZE> tmp;
+				tmp.insert(tmp.cbegin(), buffer);
+				clear();
+				insert(cbegin(), tmp.data());
+				return;
+			}
 			clear();
-            insert(cbegin(), buffer);
+			insert(cbegin(), buffer);
 		}
 
 		void assign(const sbo<SIZE>& other)
@@ -606,7 +617,6 @@ namespace deckard
 
 			if (is_large())
 			{
-				assert::check(index < size(), "Indexing out-of-bounds");
 				assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
 				return packed.large.ptr[index];
 			}
@@ -623,13 +633,12 @@ namespace deckard
 
 			if (is_large())
 			{
-				assert::check(index < size(), "Indexing out-of-bounds");
 				assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
 				return packed.large.ptr[index];
 			}
 			else
 			{
-				return (const_reference)packed.small.data[index];
+				return packed.small.data[index];
 			}
 		}
 
@@ -718,19 +727,23 @@ namespace deckard
 				{
 
 					pointer ptr    = large_rawptr();
+					value_type tmp[SIZE - 1];
+					std::copy_n(ptr, oldsize, tmp);
+
+					delete[] ptr;
+					packed.large.ptr = nullptr;
+
 					pointer newptr = small_rawptr();
-					std::copy_n(ptr, oldsize, newptr);
+					std::copy_n(tmp, oldsize, newptr);
 
 					set_large(false);
-					set_size(as<value_type>(oldsize));
+					set_size(oldsize);
 					return;
 				}
 
 				if (oldsize < large_capacity())
 				{
 					auto newptr = new value_type[oldsize];
-					std::fill_n(newptr, oldsize, 0u);
-
 					pointer oldptr = large_rawptr();
 
 					std::copy_n(oldptr, oldsize, newptr);
@@ -738,7 +751,6 @@ namespace deckard
 					delete[] packed.large.ptr;
 					packed.large.ptr = newptr;
 
-					set_large(true);
 					set_capacity(oldsize);
 					set_size(oldsize);
 				}
@@ -809,16 +821,12 @@ namespace deckard
 		iterator find(const std::span<value_type>& buffer)
 		{
 			if (buffer.empty() or size() < buffer.size())
-			{
 				return end();
-			}
 
-			for (auto it = begin(); it != end() - buffer.size() + 1; ++it)
+			for (auto it = begin(); it != end() - as<difference_type>(buffer.size()) + 1; ++it)
 			{
 				if (std::equal(buffer.begin(), buffer.end(), it))
-				{
 					return it;
-				}
 			}
 
 			return end();
@@ -827,16 +835,12 @@ namespace deckard
 		const_iterator find(const std::span<value_type>& buffer) const
 		{
 			if (buffer.empty() or size() < buffer.size())
-			{
 				return end();
-			}
 
-			for (auto it = cbegin(); it != cend() - buffer.size() + 1; ++it)
+			for (auto it = cbegin(); it != cend() - as<difference_type>(buffer.size()) + 1; ++it)
 			{
 				if (std::equal(buffer.begin(), buffer.end(), it))
-				{
 					return it;
-				}
 			}
 
 			return cend();
@@ -866,7 +870,7 @@ namespace deckard
 		iterator erase(iterator first, iterator last)
 		{
 			if (first == last)
-				return iterator(rawptr());
+				return first;
 
 
 			const auto pivot = std::distance(begin(), first);
@@ -900,7 +904,7 @@ namespace deckard
 			}
 
 			auto pos = erase(first, end);
-			return insert(first, buffer);
+			return insert(pos, buffer);
 		}
 
 		iterator replace(size_t pos, size_t count, const std::span<value_type>& buffer)
@@ -913,29 +917,27 @@ namespace deckard
 		iterator find_first_of(const std::span<value_type>& buffer)
 		{
 			if (buffer.empty() or empty())
-			{
 				return end();
-			}
 
 			for (auto it = begin(); it != end(); ++it)
 			{
 				if (std::find(buffer.begin(), buffer.end(), *it) != buffer.end())
-				{
 					return it;
-				}
 			}
 
 			return end();
 		}
 
-		iterator find_first_of(std::string_view view) const { return find_first_of({as<value_type*>(view.data()), view.size()}); }
 
-		// iterator find_first_of(const std::initializer_list<value_type>& il)
-		//{
-		//	return find_first_of(std::span<value_type>{il.begin() , il.size()});
-		// }
+		const_iterator find_first_of(std::string_view view) const
+		{
+			return find_first_of({as<const value_type*>(view.data()), view.size()});
+		}
 
-		// iterator find_first_of(char c) const { return find_first_of(std::span<value_type>{&c, 1}); }
+		iterator find_first_of(std::string_view view)
+		{
+			return find_first_of({as<const value_type*>(view.data()), view.size()});
+		}
 
 		auto subspan(size_t start, size_t count) const -> std::span<value_type>
 		{

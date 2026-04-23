@@ -1,4 +1,4 @@
-﻿#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 import deckard.types;
 import deckard.helpers;
@@ -19,6 +19,7 @@ TEST_CASE("to_hex", "[to_hex]")
 		CHECK(to_hex_string<u32>({&value, 1}, {.lowercase = true, .show_hex = false}) == "deadbeef"s);
 		CHECK(to_hex_string<u32>({&value, 1}, {.endian_swap = false, .lowercase = true, .show_hex = true}) == "0xefbeadde"s);
 		CHECK(to_hex_string<u32>({&value, 1}, {.lowercase = false, .show_hex = true}) == "0xDEADBEEF"s);
+
 	}
 
 	SECTION("array of u32 values")

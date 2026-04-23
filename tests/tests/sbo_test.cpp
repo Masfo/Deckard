@@ -2510,4 +2510,99 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[6] == 'C');
 		CHECK(ss[7] == 'D');
 	}
+
+	SECTION("self insert middle (small -> large, resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+				   'Q', 'R', 'S', 'T'};
+		CHECK(ss.size() == 20);
+		CHECK(ss.capacity() == 31);
+
+		ss.insert(ss.begin() + 10, ss.data());
+
+		CHECK(ss.size() == 40);
+
+		for (u32 i = 0; i < 10; i++)
+			CHECK(ss[i] == as<u8>('A' + i));
+
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[10 + i] == as<u8>('A' + i));
+
+		for (u32 i = 0; i < 10; i++)
+			CHECK(ss[30 + i] == as<u8>('K' + i));
+	}
+
+	SECTION("self insert straddling pivot (small, no resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E'};
+		CHECK(ss.size() == 5);
+
+		auto sub = ss.subspan(1, 3); // BCD
+		ss.insert(ss.begin() + 2, sub);
+
+		CHECK(ss.size() == 8);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'B');
+		CHECK(ss[3] == 'C');
+		CHECK(ss[4] == 'D');
+		CHECK(ss[5] == 'C');
+		CHECK(ss[6] == 'D');
+		CHECK(ss[7] == 'E');
+	}
+
+	SECTION("self insert straddling pivot (small -> large, resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+				   'Q', 'R', 'S', 'T'};
+		CHECK(ss.size() == 20);
+		CHECK(ss.capacity() == 31);
+
+		auto sub = ss.subspan(8, 8);
+		ss.insert(ss.begin() + 12, sub);
+
+		CHECK(ss.size() == 28);
+		for (u32 i = 0; i < 12; i++)
+			CHECK(ss[i] == as<u8>('A' + i));
+		for (u32 i = 0; i < 8; i++)
+			CHECK(ss[12 + i] == as<u8>('I' + i));
+		for (u32 i = 0; i < 8; i++)
+			CHECK(ss[20 + i] == as<u8>('M' + i));
+	}
+
+	SECTION("self append (small, no resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D'};
+		CHECK(ss.size() == 4);
+
+		ss.append(ss.data());
+
+		CHECK(ss.size() == 8);
+		CHECK(ss[0] == 'A');
+		CHECK(ss[1] == 'B');
+		CHECK(ss[2] == 'C');
+		CHECK(ss[3] == 'D');
+		CHECK(ss[4] == 'A');
+		CHECK(ss[5] == 'B');
+		CHECK(ss[6] == 'C');
+		CHECK(ss[7] == 'D');
+	}
+
+	SECTION("self append (small -> large, resize)")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+				   'Q', 'R', 'S', 'T'};
+		CHECK(ss.size() == 20);
+
+		ss.append(ss);
+
+		CHECK(ss.size() == 40);
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[i] == as<u8>('A' + i));
+		for (u32 i = 0; i < 20; i++)
+			CHECK(ss[20 + i] == as<u8>('A' + i));
+	}
 }
