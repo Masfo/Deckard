@@ -797,7 +797,195 @@ TEST_CASE("config set_comment", "[config]")
 	SECTION("value as endpoint, localhost:port")
 	{
 		config cfg = config("[server]\nhost=\"localhost:1234\""sv);
-		
+
 		CHECK(cfg["server.host"].as<net::endpoint>() == net::endpoint("localhost"sv, 1234));
+	}
+
+	SECTION("sections() yields section names in order, no duplicates")
+	{
+		config cfg = config("[a]\nk=1\n[b]\nk=2\n[a]\nk=3"sv);
+
+		std::vector<std::string> secs;
+		for (const auto& s : cfg.sections())
+			secs.push_back(s);
+
+		CHECK(secs.size() == 3);
+		CHECK(secs[0] == "a");
+		CHECK(secs[1] == "b");
+		CHECK(secs[2] == "a");
+	}
+
+	SECTION("keys() yields keys in global scope")
+	{
+		config cfg = config("x=1\ny=2\n[sec]\nz=3"sv);
+
+		std::vector<std::string> ks;
+		for (const auto& k : cfg.keys())
+			ks.push_back(k);
+
+		CHECK(ks.size() == 2);
+		CHECK(ks[0] == "x");
+		CHECK(ks[1] == "y");
+	}
+
+	SECTION("keys() yields keys for named section")
+	{
+		config cfg = config("[alpha]\nfoo=1\nbar=2\n[beta]\nbaz=3"sv);
+
+		std::vector<std::string> ks;
+		for (const auto& k : cfg.keys("alpha"))
+			ks.push_back(k);
+
+		CHECK(ks.size() == 2);
+		CHECK(ks[0] == "foo");
+		CHECK(ks[1] == "bar");
+	}
+
+	SECTION("sections() and keys() allow two-level iteration")
+	{
+		config cfg = config("[s1]\na=1\nb=2\n[s2]\nc=3"sv);
+
+		std::map<std::string, std::vector<std::string>> collected;
+		for (const auto& sec : cfg.sections())
+			for (const auto& key : cfg.keys(sec))
+				collected[sec].push_back(key);
+
+		CHECK(collected["s1"].size() == 2);
+		CHECK(collected["s1"][0] == "a");
+		CHECK(collected["s1"][1] == "b");
+		CHECK(collected["s2"].size() == 1);
+		CHECK(collected["s2"][0] == "c");
+	}
+
+	SECTION("utf8 section name is yielded correctly")
+	{
+		config cfg = config(utf8::string("[🌍]\nkey=1"));
+
+		std::vector<std::string> secs;
+		for (const auto& s : cfg.sections())
+			secs.push_back(s);
+
+		REQUIRE(secs.size() == 1);
+		CHECK(secs[0] == "\xF0\x9F\x8C\x8D");
+	}
+
+	SECTION("utf8 key name is yielded correctly")
+	{
+		config cfg = config(utf8::string("[sec]\ncafé=1"));
+
+		std::vector<std::string> ks;
+		for (const auto& k : cfg.keys("sec"))
+			ks.push_back(k);
+
+		REQUIRE(ks.size() == 1);
+		CHECK(ks[0] == "caf\xC3\xA9");
+	}
+
+	SECTION("utf8 value retrieved via utf8 section and key")
+	{
+		config cfg = config(utf8::string("[données]\nclé = \"valeur\""));
+
+		CHECK(cfg["données.clé"].as<std::string>() == "valeur");
+	}
+
+	SECTION("utf8 section with multiple utf8 keys iterated")
+	{
+		config cfg = config(utf8::string("[ñoño]\nalpha=1\nbéta=2\ngammaδ=3"));
+
+		std::vector<std::string> ks;
+		for (const auto& k : cfg.keys("ñoño"))
+			ks.push_back(k);
+
+		REQUIRE(ks.size() == 3);
+		CHECK(ks[0] == "alpha");
+		CHECK(ks[1] == "b\xC3\xA9ta");
+		CHECK(ks[2] == "gamma\xCE\xB4");
+	}
+
+	SECTION("two-level iteration over utf8 sections and keys")
+	{
+		config cfg = config(utf8::string("[α]\nx=1\ny=2\n[β]\nz=3"));
+
+		std::map<std::string, std::vector<std::string>> collected;
+		for (const auto& sec : cfg.sections())
+			for (const auto& key : cfg.keys(sec))
+				collected[sec].push_back(key);
+
+		CHECK(collected["\xCE\xB1"].size() == 2);
+		CHECK(collected["\xCE\xB1"][0] == "x");
+		CHECK(collected["\xCE\xB1"][1] == "y");
+		CHECK(collected["\xCE\xB2"].size() == 1);
+		CHECK(collected["\xCE\xB2"][0] == "z");
+	}
+
+
+}
+
+TEST_CASE("config data export", "[config]")
+{
+	SECTION("data() size matches input byte length")
+	{
+		std::string_view input = "key = value\n";
+		config           cfg(input);
+
+		CHECK(cfg.data().size() == input.size());
+	}
+
+	SECTION("data() bytes match input content")
+	{
+		std::string_view input = "key = value\n";
+		config           cfg(input);
+
+		auto span = cfg.data();
+		CHECK(std::string_view(reinterpret_cast<const char*>(span.data()), span.size()) == input);
+	}
+
+	SECTION("const data() returns read-only span with correct content")
+	{
+		std::string_view input = "[sec]\nfoo = bar\n";
+		const config     cfg(input);
+
+		auto span = cfg.data();
+		CHECK(std::string_view(reinterpret_cast<const char*>(span.data()), span.size()) == input);
+	}
+
+	SECTION("data() reflects mutation after set()")
+	{
+		config cfg("width = 100\n"sv);
+		cfg.set("width", 200);
+
+		auto span = cfg.data();
+		auto sv   = std::string_view(reinterpret_cast<const char*>(span.data()), span.size());
+		CHECK(sv.find("200") != std::string_view::npos);
+		CHECK(sv.find("100") == std::string_view::npos);
+	}
+
+	SECTION("data() reflects new key added via set()")
+	{
+		config cfg("[app]\n"sv);
+		cfg.set("app.version", 42);
+
+		auto span = cfg.data();
+		auto sv   = std::string_view(reinterpret_cast<const char*>(span.data()), span.size());
+		CHECK(sv.find("version") != std::string_view::npos);
+		CHECK(sv.find("42") != std::string_view::npos);
+	}
+
+	SECTION("data() on empty config has zero size")
+	{
+		config cfg(""sv);
+		CHECK(cfg.data().size() == 0);
+	}
+
+	SECTION("data() contains utf8 bytes for utf8 content")
+	{
+		config cfg(utf8::string("[données]\nclé = \"valeur\""));
+
+		auto span = cfg.data();
+		auto sv   = std::string_view(reinterpret_cast<const char*>(span.data()), span.size());
+
+		CHECK(sv.find("donn\xC3\xA9" "es") != std::string_view::npos);
+		CHECK(sv.find("cl\xC3\xA9") != std::string_view::npos);
+		CHECK(sv.find("valeur") != std::string_view::npos);
 	}
 }

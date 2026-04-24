@@ -790,6 +790,51 @@ namespace deckard
 			}
 		}
 
+		std::generator<std::string> sections() const
+		{
+			utf8::view  view(m_data);
+			std::string last;
+			for (const auto& tok : tokens)
+			{
+				if (tok.type != TokenType::SECTION)
+					continue;
+				auto sv = view.subview(tok.start, tok.length);
+				auto s  = std::string{sv.c_str(), sv.size_in_bytes()};
+				if (s != last)
+				{
+					last = s;
+					co_yield s;
+				}
+			}
+		}
+
+		std::generator<std::string> keys(std::string_view section = "") const
+		{
+			utf8::view  view(m_data);
+			std::string current_section;
+			bool        in_target = section.empty();
+
+			for (const auto& tok : tokens)
+			{
+				if (tok.type == TokenType::SECTION)
+				{
+					auto sv         = view.subview(tok.start, tok.length);
+					current_section = std::string{sv.c_str(), sv.size_in_bytes()};
+					in_target       = (current_section == section);
+					continue;
+				}
+
+				if (not in_target)
+					continue;
+
+				if (tok.type == TokenType::KEY)
+				{
+					auto sv = view.subview(tok.start, tok.length);
+					co_yield std::string{sv.c_str(), sv.size_in_bytes()};
+				}
+			}
+		}
+
 		value_proxy         operator[](std::string_view key) const;
 		mutable_value_proxy operator[](std::string_view key);
 
