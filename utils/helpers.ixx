@@ -174,6 +174,42 @@ export namespace deckard
 			write_be<T>(buffer, offset + i * sizeof(T), data[i]);
 	}
 
+	// 
+
+	template<typename T>
+	concept ByteReinterpretable = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
+
+	export template<ByteReinterpretable T>
+	[[nodiscard]] auto as_byte_span(T const& obj) noexcept -> std::span<const std::byte>
+	{
+		return {reinterpret_cast<std::byte const*>(std::addressof(obj)), sizeof(T)};
+	}
+
+	export template<ByteReinterpretable T>
+	[[nodiscard]] constexpr auto to_byte_array(T const& obj) noexcept -> std::array<std::byte, sizeof(T)>
+	{
+		return std::bit_cast<std::array<std::byte, sizeof(T)>>(obj);
+	}
+
+	export template<ByteReinterpretable T>
+	[[nodiscard]] constexpr auto from_byte_array(std::array<std::byte, sizeof(T)> const& arr) noexcept -> T
+	{
+		return std::bit_cast<T>(arr);
+	}
+
+	export template<ByteReinterpretable T>
+	[[nodiscard]] constexpr auto from_byte_array(std::span<const std::byte> span) noexcept -> T
+	{
+		assert::check(span.size() == sizeof(T), "from_byte_array: span size mismatch");
+		std::array<std::byte, sizeof(T)> arr{};
+		for (size_t i = 0; i < sizeof(T); ++i)
+			arr[i] = span[i];
+		return std::bit_cast<T>(arr);
+	}
+
+
+	// 
+
 	auto clock_now() { return std::chrono::steady_clock::now(); }
 
 	template<typename TimeType = std::chrono::milliseconds>
@@ -1731,41 +1767,44 @@ export namespace deckard
 		return result;
 	}
 
-	[[nodiscard]] constexpr auto is_suspicious(u8 b) noexcept -> bool
-	{
-		constexpr auto allowed_controls = std::array<u8, 5>{
-		  0x09,
-		  0x0A,
-		  0x0B,
-		  0x0C,
-		  0x0D,
-		};
-		if (b >= 0x20 && b <= 0x7E)
-			return false;
-		if (b >= 0x80)
-			return false;
-		return not std::ranges::contains(allowed_controls, b);
-	}
-
 	export bool has_bom_utf8(std::span<const u8> data)
 	{
 		return data.size() >= 3 and data[0] == 0xEF and data[1] == 0xBB and data[2] == 0xBF;
 	}
 
-	std::mt19937 rng{std::random_device{}()};
+	namespace detail
+	{
+		[[nodiscard]] constexpr auto is_suspicious(u8 b) noexcept -> bool
+		{
+			constexpr auto allowed_controls = std::array<u8, 5>{
+			  0x09,
+			  0x0A,
+			  0x0B,
+			  0x0C,
+			  0x0D,
+			};
+			if (b >= 0x20 && b <= 0x7E)
+				return false;
+			if (b >= 0x80)
+				return false;
+			return not std::ranges::contains(allowed_controls, b);
+		}
+
+	} // namespace detail
 
 	// detect binary content: 0-100
 	export f32 binary_percentage(std::span<const u8> buffer)
 	{
 		constexpr u64 k_sample_max    = 4096;
 		constexpr u64 k_sample_passes = 4;
+		std::mt19937  rng{std::random_device{}()};
 
 		if (buffer.empty() or has_bom_utf8(buffer))
 			return 0.0f;
 
 		if (buffer.size() <= k_sample_max)
 		{
-			const f64 suspicious = static_cast<f64>(std::ranges::count_if(buffer, is_suspicious));
+			const f64 suspicious = static_cast<f64>(std::ranges::count_if(buffer, detail::is_suspicious));
 			return static_cast<f32>((suspicious / static_cast<f64>(buffer.size())) * 100.0);
 		}
 
@@ -1778,7 +1817,7 @@ export namespace deckard
 		for (u64 i = 0; i < k_sample_passes; ++i)
 		{
 			const auto window = buffer.subspan(dist(rng), k_sample_max);
-			total_suspicious += static_cast<f64>(std::ranges::count_if(window, is_suspicious));
+			total_suspicious += static_cast<f64>(std::ranges::count_if(window, detail::is_suspicious));
 			total_bytes += static_cast<f64>(window.size());
 		}
 

@@ -192,9 +192,9 @@ TEST_CASE("helpers", "[helpers]")
 	}
 
 	SECTION("write_be/write_le span")
-	{ 
+	{
 		std::array<u8, 4> buf{0};
-		std::array<u8, 2>  data{0x11, 0x22};
+		std::array<u8, 2> data{0x11, 0x22};
 
 		CHECK(buf[0] == 0);
 		CHECK(buf[1] == 0);
@@ -210,7 +210,7 @@ TEST_CASE("helpers", "[helpers]")
 
 		//
 
-		std::array<u16, 2> buf16{0x3344,0x5566};
+		std::array<u16, 2> buf16{0x3344, 0x5566};
 		write_be<u16>(buf, buf16, 0);
 		CHECK(buf[0] == 0x33);
 		CHECK(buf[1] == 0x44);
@@ -225,7 +225,7 @@ TEST_CASE("helpers", "[helpers]")
 
 		//
 
-		std::array<u32, 1> buf32{0xAABBCCDD};
+		std::array<u32, 1> buf32{0xAABB'CCDD};
 		write_be<u32>(buf, buf32, 0);
 		CHECK(buf[0] == 0xAA);
 		CHECK(buf[1] == 0xBB);
@@ -593,8 +593,6 @@ TEST_CASE("helpers", "[helpers]")
 
 		auto a6 = slice_copy<2, 2>(a);
 		CHECK(a6 == std::array<int, 2>{12, 13});
-
-
 	}
 
 
@@ -1189,4 +1187,34 @@ TEST_CASE("helpers", "[helpers]")
 	}
 
 
+	SECTION("as_byte_span")
+	{
+		struct Packet
+		{
+			u32  id;
+			f32  value;
+			u16  flags;
+			bool alive;
+
+			bool operator==(const Packet& p) const
+			{
+				return id == p.id and value == p.value and flags == p.flags and alive == p.alive;
+			}
+		};
+
+		CHECK(std::is_trivially_copyable_v<Packet>);
+		CHECK(sizeof(Packet) == 12);
+
+
+		auto p  = Packet{.id = 1, .value = 2.0f, .flags = 3, .alive = true};
+		auto p2 = Packet{.id = 2, .value = 2.0f, .flags = 3, .alive = true};
+
+		CHECK(p != p2);
+
+		auto view = as_byte_span(p);
+
+		auto newp = from_byte_array<Packet>(view);
+
+		CHECK(p == newp);
+	}
 }
