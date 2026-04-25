@@ -54,7 +54,7 @@ export namespace deckard::math
 	}
 
 	template<arithmetic T>
-	[[nodiscard]] constexpr bool clamp01(const T x, const T lowerlimit = T{0}, const T upperlimit = T{1})
+	[[nodiscard]] constexpr T clamp01(const T x, const T lowerlimit = T{0}, const T upperlimit = T{1})
 	{
 		if (x < lowerlimit)
 			return lowerlimit;
@@ -68,7 +68,7 @@ export namespace deckard::math
 	template<arithmetic T>
 	T normalize(T value, T start, T end)
 	{
-		assert::check(is_close_enough_zero(end - start), "Lets not divide by zero");
+		assert::check(not is_close_enough_zero(end - start), "Lets not divide by zero");
 
 		T result = (value - start) / (end - start);
 		return result;
@@ -76,9 +76,9 @@ export namespace deckard::math
 
 	// remap
 	template<arithmetic T>
-	T remap(const T& X, const T& minimum, const T& maximum, const T& newminimum, const T& newmaximum)
+	T remap(const T value, const T minimum, const T maximum, const T newminimum, const T newmaximum)
 	{
-		return newminimum + (X - minimum) * (newmaximum - newminimum) / (maximum - minimum);
+		return newminimum + (value - minimum) * (newmaximum - newminimum) / (maximum - minimum);
 	}
 
 	// mod
