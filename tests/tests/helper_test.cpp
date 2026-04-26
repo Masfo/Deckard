@@ -541,12 +541,58 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK("123" == strip("123abcABC\t#", a | w | s));
 	}
 
+	SECTION("count")
+	{
+		CHECK(5 == count("hello world"sv, "lo"));
+		CHECK(0 == count("hello"sv, "xyz"));
+		CHECK(4 == count("aabbcc aa"sv, "a"));
+	}
+
+	SECTION("strip-single-char")
+	{
+		std::string input("hello world");
+
+		input = strip(input, 'l');
+		CHECK(input == "heo word");
+	}
+
 	SECTION("include only")
 	{
-		std::string input("ABC123DEF");
+		using enum string::option;
 
-		input = include_only(input, string::option::d);
-		CHECK(input == "123");
+		CHECK("123" == include_only("ABC123DEF", d));
+		CHECK("abc" == include_only("abc123ABC!@#", l));
+		CHECK("ABC" == include_only("abc123ABC!@#", u));
+		CHECK("abcABC" == include_only("abc123ABC!@#", a));
+		CHECK("abc123ABC" == include_only("abc123ABC!@#", an));
+		CHECK(" \t" == include_only("abc \t123", w));
+		CHECK("!@#" == include_only("abc123ABC!@#", s));
+		CHECK("abc123ABC" == include_only("abc123ABC!@#", alphanum));
+		CHECK("abc123ABC!@# \t" == include_only("abc123ABC!@# \t", all));
+		CHECK("abc_def" == include_only("abc_def123", l, "_"));
+	}
+
+	SECTION("split_to_vector")
+	{
+		auto ints_v = split_to_vector<i32>("1 2 3 4 5");
+		CHECK(ints_v.size() == 5);
+		CHECK(ints_v[0] == 1);
+		CHECK(ints_v[4] == 5);
+
+		auto strs = split_to_vector<std::string>("a,b,c", ",");
+		CHECK(strs.size() == 3);
+		CHECK(strs[0] == "a");
+		CHECK(strs[1] == "b");
+		CHECK(strs[2] == "c");
+	}
+
+	SECTION("split_to_vector/sized")
+	{
+		auto v = split_to_vector<i32, 3>("10 20 30 40 50");
+		CHECK(v.size() == 3);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 20);
+		CHECK(v[2] == 30);
 	}
 
 	SECTION("slice")
