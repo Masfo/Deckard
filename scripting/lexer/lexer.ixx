@@ -7,6 +7,8 @@ import deckard.assert;
 import deckard.helpers;
 import deckard.types;
 import deckard.file;
+import deckard.sbo;
+import deckard.utils.hash;
 
 namespace fs = std::filesystem;
 using namespace std::string_view_literals;
@@ -35,14 +37,189 @@ namespace deckard::lexer
 	literal					Numeric, logical, textual, and reference literals.		true, 6.02e23, "music"
 	comment					comment	Line or block comments. Usually discarded.
 
+
+	Stringpool to collect identifiers and keywords,
+
+
+		Lexer as a generator, generate tokens to parser, parser can peek tokens, lookahead, etc.
+
+		✅⚠️❌❗
+
+
 	 */
+
+	enum class TokenType : u8
+	{
+		// Types
+		Integer,       // -1, 1
+		FloatingPoint, // -3.14, 3.14
+		Identifier,    // x, color, UP
+		Character,     // 'a', '🌍'
+		String,        // "abc", "🌍🌍"
+		Keyword,       // if, for, fn, return
+
+
+		// Symbols
+		Plus,               // +
+		PlusPlus,           // ++
+		Minus,              // -
+		MinusMinus,         // --
+		Star,               // *
+		Percent,            // %
+		Question,           // ?
+		Bang,               // !
+		At,                 // @
+		Dollar,             // $
+		ShiftLeft,          // <<
+		ShiftRight,         // >>
+		Underscore,         // _
+		BackSlash,          // '\'
+		BackSlashBackSlash, // '\\'
+		Slash,              // /
+		SlashSlash,         // //
+		SlashStar,          // /*
+		StarSlash,          // */
+
+		TripleQuote,        // """
+
+		Equal,              // =
+
+		// Compare
+		LessThan,            // <
+		GreaterThan,         // >
+		LessThanEqual,       // <=
+		GreaterThanEqual,    // >=
+		EqualEqual,          // ==
+		LessLessEqual,       // <<=
+		GreaterGreaterEqual, // >>=
+
+		// LesserEqualGreater,  // <=>
+		// EqualEqualEqual,     // ===
+
+		PlusEqual,     // +=
+		MinusEqual,    // -=
+		StarEqual,     // *=
+		SlashEqual,    // /=
+		PercentEqual,  // %=
+		BangEqual,     // !=
+		XorEqual,      // ^=
+		QuestionEqual, // ?=
+		AndEqual,      // &=
+		OrEqual,       // |=
+
+
+		//
+		Dot,       // .
+		DotDot,    // ..
+		Ellipsis,  // ...
+		Comma,     // ,
+		Colon,     // :
+		Semicolon, // ;
+		Hash,      // #
+		Arrow,     // ->
+
+		Or,        // |
+		And,       // &
+		Xor,       // ^
+		Tilde,     // ~
+		OrOr,      // ||
+		AndAnd,    // &&
+
+		// brackets
+		LeftParen,         // (
+		RightParen,        // )
+		LeftBrace,         // {
+		RightBrace,        // }
+		LeftBracket,       // [
+		RightBracket,      // ]
+		LeftAngleBracket,  // <
+		RightAngleBracket, // >
+
+		// LeftBracketLeftBracket,   // [[
+		// RightBracketRightBracket, // ]]
+
+		//
+		EOL,
+		EOF,
+
+
+		// always last
+		TokenCount
+	};
+
+
+	using Lexeme = std::span<const u8>;
+
+	struct LexemeHash
+	{
+		using is_transparent = void;
+
+		size_t operator()(Lexeme s) const { return utils::hash_values(s); }
+	};
+
+	struct LexemeEqual
+	{
+		using is_transparent = void;
+
+		bool operator()(Lexeme a, Lexeme b) const { return std::ranges::equal(a, b); }
+	};
+
+	// Deduplicated storage for lexemes (identifiers, keywords, string literals)
+	export struct lexemepool
+	{
+		std::deque<std::vector<u8>>                              storage;
+		std::unordered_map<Lexeme, u32, LexemeHash, LexemeEqual> lookup;
+
+		lexemepool() { lookup.reserve(1024); }
+
+		u32 add(Lexeme view)
+		{
+			auto it = lookup.find(view);
+			if (it != lookup.end())
+				return it->second;
+
+			u32 id = as<u32>(storage.size());
+			storage.emplace_back(view.begin(), view.end());
+
+			Lexeme key{storage.back().data(), storage.back().size()};
+			lookup[key] = id;
+
+			return id;
+		}
+
+		u32 add(std::string_view str) { return add(Lexeme{as<const u8*>(str.data()), str.size()}); }
+
+		u32 add(utf8::string str) { return add(Lexeme{str.data().data(), str.data().size()}); }
+
+		Lexeme get(u32 id) const
+		{
+			if (id >= storage.size())
+				return {};
+
+			assert::check(not storage[id].empty(), std::format("Lexeme ID {} is empty", id));
+
+			return {storage[id].data(), storage[id].size()};
+		}
+
+		Lexeme operator[](u32 id) const { return get(id); }
+
+		u32 size() const { return as<u32>(storage.size()); }
+	};
+
+	struct Token
+	{
+		u32       lexeme_id;
+		u32       line;
+		u32       column;
+		TokenType type;
+	};
 
 	template<typename T>
 	concept codepoint_predicate = requires(T&& v, char32 cp) {
 		{ v(cp) } -> std::same_as<bool>;
 	};
 
-	export enum class TokenType : u8 {
+	export enum class TokenType2 : u8 {
 		INTEGER,        // 1, -1
 		FLOATING_POINT, // 3.14
 		KEYWORD,        // if, else
@@ -147,27 +324,29 @@ namespace deckard::lexer
 		TOKEN_COUNT
 	};
 
+#pragma region !Old tokenizer
+
 
 	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
 
 	static_assert(sizeof(TokenValue) == 32);
 
-	struct Token
+	struct Token2
 	{
 		std::span<u8> token_in_source; // tokens source
 		TokenValue    value;
 		TokenType     type;
 	};
 
-	constexpr auto TokenSize = sizeof(Token);
-	static_assert(sizeof(Token) == 56);
+	constexpr auto TokenSize = sizeof(Token2);
+	static_assert(sizeof(Token2) == 56);
 
 	using namespace deckard;
 
 	export class tokenizer
 	{
 	private:
-		using tokens = std::vector<Token>;
+		using tokens = std::vector<Token2>;
 
 		utf8::iterator it;
 		utf8::string   m_data;
@@ -181,12 +360,7 @@ namespace deckard::lexer
 			it = m_data.begin();
 		}
 
-		bool load_from_file(const fs::path )
-		{
-		
-
-			return true;
-		}
+		bool load_from_file(const fs::path) { return true; }
 
 		bool load_from_memory(const std::span<u8>& buffer)
 		{
@@ -287,7 +461,7 @@ namespace deckard::lexer
 				line += 1;
 				column = 0;
 			};
-			auto next_codepoint = [this](size_t count=1) mutable { column += count; };
+			auto next_codepoint = [this](size_t count = 1) mutable { column += count; };
 
 			auto is_newline = [this]()
 			{
@@ -345,7 +519,6 @@ namespace deckard::lexer
 					it++;
 					continue;
 				}
-				
 
 
 				dbg::println("unknown: {:x}", (u32)current_char);
@@ -353,6 +526,8 @@ namespace deckard::lexer
 			}
 		}
 	};
+
+#pragma endregion
 
 #pragma region !Old lexer
 #if 0
