@@ -695,7 +695,7 @@ void write_lines(const IntTable &table, const std::string &table_name, fs::path 
 	}
 	f << "}};\n";
 
-	f << std::format("constexpr uint32_t max_{}{{{}}};\n\n", table_name, table.size() - 1);
+	f << std::format("export constexpr uint32_t max_{}{{{}}};\n\n", table_name, table.size() - 1);
 
 	f.flush();
 	f.close();

@@ -1,4 +1,4 @@
-﻿export module deckard.utf8:xid_tables;
+export module deckard.utf8:xid_tables;
 
 import std;
 
@@ -132,7 +132,7 @@ namespace deckard::utf8
 	  {0x2'a700, 0x2'b81d}, {0x2'b820, 0x2'cead}, {0x2'ceb0, 0x2'ebe0}, {0x2'ebf0, 0x2'ee5d}, {0x2'f800, 0x2'fa1d}, {0x3'0000, 0x3'134a},
 	  {0x3'1350, 0x3'3479},
 	}};
-	constexpr char32_t                             max_xid_start = xid_start[690].end;
+	export constexpr char32_t                             max_xid_start = xid_start[690].end;
 
 
 	// v17.0.0 : 806 * 8 = 6448 bytes
@@ -273,7 +273,7 @@ namespace deckard::utf8
 	  {0x2'a700, 0x2'b81d}, {0x2'b820, 0x2'cead}, {0x2'ceb0, 0x2'ebe0}, {0x2'ebf0, 0x2'ee5d}, {0x2'f800, 0x2'fa1d}, {0x3'0000, 0x3'134a},
 	  {0x3'1350, 0x3'3479}, {0xe'0100, 0xe'01ef},
 	}};
-	constexpr char32_t                             max_xid_continue = xid_continue[805].end;
+	export constexpr char32_t                             max_xid_continue = xid_continue[805].end;
 
 
 } // namespace deckard::utf8

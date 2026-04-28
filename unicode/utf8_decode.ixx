@@ -75,7 +75,6 @@ export namespace deckard::utf8
 			const u32 type = utf8_table[byte];
 			codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
 
-			assert::check(256 + state + type < utf8_table.size(), "UTF-8 decoding table index out of bounds");
 			state = utf8_table[256 + state + type];
 
 			if (state == UTF8_ACCEPT)

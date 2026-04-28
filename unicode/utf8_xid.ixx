@@ -47,21 +47,17 @@ namespace deckard::utf8
 #if 1
 		// ~20-40% faster (depends on input) than lower_bound
 		size_t low    = 0;
-		size_t high   = range.size() - 1;
-		size_t middle = 0;
-
-		while (low <= high)
+		size_t high   = range.size();
+		while (low < high)
 		{
-			middle = low + ((high - low) / 2);
+			size_t middle = std::midpoint(low, high);
 
 			if (codepoint < range[middle].start)
-				high = middle - 1;
+				high = middle;
 			else if (codepoint > range[middle].end)
 				low = middle + 1;
 			else
-			{
 				return true;
-			}
 		}
 		return false;
 
@@ -97,9 +93,7 @@ namespace deckard::utf8
 			return false;
 
 		if (codepoint < 128)
-		{
 			return is_ascii_identifier_start(codepoint);
-		}
 
 		return is_in_range(codepoint, xid_start);
 	}
@@ -110,9 +104,8 @@ namespace deckard::utf8
 			return false;
 
 		if (codepoint < 128)
-		{
 			return is_ascii_identifier_continue(codepoint);
-		}
+
 		return is_in_range(codepoint, xid_continue);
 	}
 

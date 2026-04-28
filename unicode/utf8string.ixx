@@ -44,7 +44,7 @@ namespace deckard::utf8
 
 		using difference_type = difference_type;
 
-        using iterator_category             = std::random_access_iterator_tag;
+		using iterator_category               = std::random_access_iterator_tag;
 		constexpr static difference_type npos = limits::max<difference_type>;
 
 	private:
@@ -81,7 +81,6 @@ namespace deckard::utf8
 
 		unit decode_current_codepoint() const
 		{
-
 			if (current_index >= as<difference_type>(ptr->size()))
 				return REPLACEMENT_CHARACTER;
 
@@ -96,6 +95,7 @@ namespace deckard::utf8
 				const auto type = utf8_table[byte];
 				codepoint       = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
 				state           = utf8_table[256 + state + type];
+
 				if (state == 0)
 					return codepoint;
 				else if (state == UTF8_REJECT)
@@ -167,20 +167,18 @@ namespace deckard::utf8
 		unit operator*() const
 		{
 			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index - 1 < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
+			assert::check(current_index < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
 			return static_cast<unit>(decode_current_codepoint());
 		}
 
 		std::optional<unit> try_codepoint() const
 		{
-			assert::check(ptr != nullptr, "Null pointer dereference");
-			assert::check(current_index - 1 < as<i64>(ptr->size()), "Dereferencing out-of-bounds iterator");
-			if (current_index >= as<difference_type>(ptr->size()))
+			if (ptr == nullptr or current_index >= as<difference_type>(ptr->size()))
 				return std::nullopt;
 			return static_cast<unit>(decode_current_codepoint());
 		}
 
-		iterator operator++()
+		iterator& operator++()
 		{
 			next_codepoint();
 			return *this;
@@ -193,7 +191,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-		iterator operator--()
+		iterator& operator--()
 		{
 			previous_codepoint();
 			return *this;
@@ -206,7 +204,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-      iterator& operator+=(difference_type v)
+		iterator& operator+=(difference_type v)
 		{
 			if (v >= 0)
 			{
@@ -221,10 +219,7 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		iterator& operator-=(difference_type v)
-		{
-			return (*this += -v);
-		}
+		iterator& operator-=(difference_type v) { return (*this += -v); }
 
 		iterator operator+(difference_type n) const
 		{
@@ -234,7 +229,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-     iterator operator+(const std::optional<difference_type> n) const
+		iterator operator+(const std::optional<difference_type> n) const
 		{
 			if (n.has_value())
 				return operator+(n.value());
@@ -250,7 +245,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-     iterator operator-(const std::optional<difference_type> n) const
+		iterator operator-(const std::optional<difference_type> n) const
 		{
 			if (n.has_value())
 				return operator-(n.value());
@@ -273,12 +268,16 @@ namespace deckard::utf8
 
 		bool empty() const { return ptr == nullptr or ptr->empty(); }
 
-		// return: codepoint at index n (not byte index)
+		// return: codepoint at index n relative to this iterator's current position
 		unit operator[](difference_type n) const
 		{
+			assert::check(ptr != nullptr, "Null pointer dereference");
 			assert::check(n >= 0, "Index is negative");
-			assert::check(n < as<difference_type>(ptr->size()), "Index out-of-bounds");
-			return ptr->at(n);
+			auto tmp = *this;
+			for (difference_type i = 0; i < n; ++i)
+				tmp.next_codepoint();
+			assert::check(tmp.current_index < as<difference_type>(ptr->size()), "Index out-of-bounds");
+			return tmp.decode_current_codepoint();
 		}
 
 		auto byteindex() const { return current_index; }
@@ -325,25 +324,23 @@ namespace deckard::utf8
 			buffer.assign(start.ptr->data().subspan(start_index, end_index - start_index));
 		}
 
-		string(std::span<u8> input) 
-		{
-
-			buffer.assign(input); 
-
-	
-
-	
-		}
+		string(std::span<u8> input) { buffer.assign(input); }
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
 		string(unit u) { assign(u); }
 
 		template<size_t N>
-		string(std::array<u8, N>& input) { buffer.assign(std::span<u8>{input.data(), N}); }
+		string(std::array<u8, N>& input)
+		{
+			buffer.assign(std::span<u8>{input.data(), N});
+		}
 
 		template<size_t N>
-		string(const std::array<u8, N>& input) { buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), N}); }
+		string(const std::array<u8, N>& input)
+		{
+			buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), N});
+		}
 
 		string(const view& v) { *this = v; }
 
@@ -445,11 +442,7 @@ namespace deckard::utf8
 		}
 
 		//
-       void assign(const char* str)
-		{
-			buffer.assign(std::span<u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); 
-
-		}
+		void assign(const char* str) { buffer.assign(std::span<u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); }
 
 		void assign(std::span<const u8> input) { buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), input.size()}); }
 
@@ -474,7 +467,12 @@ namespace deckard::utf8
 			buffer.append({encoded.bytes.data(), encoded.count});
 		}
 
-		void append(const view v) { string tmp; tmp = v; append(tmp); };
+		void append(const view v)
+		{
+			string tmp;
+			tmp = v;
+			append(tmp);
+		};
 
 		void prepend(const std::string_view str) { insert(begin(), str); }
 
@@ -490,7 +488,12 @@ namespace deckard::utf8
 			buffer.prepend({encoded.bytes.data(), encoded.count});
 		}
 
-		void prepend(const view v) { string tmp; tmp = v; prepend(tmp); }
+		void prepend(const view v)
+		{
+			string tmp;
+			tmp = v;
+			prepend(tmp);
+		}
 
 		auto operator+(const std::string_view other) const
 		{
@@ -633,7 +636,7 @@ namespace deckard::utf8
 
 		std::optional<codepoint_type> find(std::span<u8> input, size_t offset = 0) const
 		{
-			if (input.empty() || input.size() > buffer.size() - offset)
+			if (input.empty() || offset > buffer.size() || input.size() > buffer.size() - offset)
 				return {};
 
 			for (size_t i = offset; i <= buffer.size() - input.size(); ++i)
@@ -673,7 +676,8 @@ namespace deckard::utf8
 
 		std::optional<codepoint_type> find(string input, size_t offset = 0) const
 		{
-			if (input.empty() or input.size_in_bytes() > buffer.size() - offset or not input.valid())
+			if (input.empty() or offset > buffer.size() or input.size_in_bytes() > buffer.size() - offset or
+				not input.valid())
 				return {};
 
 			for (size_t i = offset; i <= buffer.size() - input.size_in_bytes(); ++i)
@@ -950,7 +954,8 @@ namespace deckard::utf8
 		{
 			auto start_index = start.byteindex();
 
-			auto end_index = (start + count).byteindex();
+			auto end_it    = (count == npos) ? end() : start + static_cast<iterator::difference_type>(count);
+			auto end_index = end_it.byteindex();
 			auto v         = view(buffer.data());
 			return v.subview_bytes(start_index, end_index - start_index);
 		}
@@ -969,7 +974,7 @@ namespace deckard::utf8
 
 		size_t find_first_of(const string& str, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 
 			if (str.empty() or pos >= size())
@@ -995,7 +1000,7 @@ namespace deckard::utf8
 
 		size_t find_first_of(utf8::view view, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 			if (view.empty() or pos >= size())
 				return npos;
@@ -1022,7 +1027,7 @@ namespace deckard::utf8
 
 		size_t find_first_of(std::string_view str, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 
 			if (str.empty() or pos >= size())
@@ -1047,7 +1052,7 @@ namespace deckard::utf8
 
 		size_t find_first_of(CharacterType auto c, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 			if (c == 0 or pos >= size())
 				return npos;
@@ -1055,7 +1060,7 @@ namespace deckard::utf8
 			auto it    = begin() + pos;
 			auto itend = end();
 
-		for (; it != itend; ++it)
+			for (; it != itend; ++it)
 			{
 				if (*it == (char32)c)
 					return std::distance(begin(), it);
@@ -1066,7 +1071,7 @@ namespace deckard::utf8
 
 		size_t find_first_not_of(const string& str, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 			if (str.empty() or pos >= size())
 				return npos;
@@ -1093,7 +1098,7 @@ namespace deckard::utf8
 
 		size_t find_first_not_of(utf8::view view, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 			if (view.empty() or pos >= size())
 				return npos;
@@ -1123,7 +1128,7 @@ namespace deckard::utf8
 
 		size_t find_first_not_of(CharacterType auto c, size_t pos = 0) const
 		{
-			assert::check(pos < size(), "Index out of bounds");
+			assert::check(pos <= size(), "Index out of bounds");
 
 			if (c == 0 or pos >= size())
 				return npos;
@@ -1133,14 +1138,7 @@ namespace deckard::utf8
 
 			for (; it != itend; ++it)
 			{
-				bool found = false;
-				if (*it == (char32)c)
-				{
-					found = true;
-					break;
-				}
-
-				if (not found)
+				if (*it != (char32)c)
 					return std::distance(begin(), it);
 			}
 			return npos;
@@ -1340,10 +1338,7 @@ namespace deckard::utf8
 
 export namespace deckard::utf8::literals
 {
-	inline utf8::string operator""_utf8(const char* str, size_t len)
-	{
-		return utf8::string(std::string_view(str, len));
-	}
+	inline utf8::string operator""_utf8(const char* str, size_t len) { return utf8::string(std::string_view(str, len)); }
 } // namespace deckard::utf8::literals
 
 export namespace std
