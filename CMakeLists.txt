@@ -253,6 +253,8 @@ set(DECKARD_SRCS
 		# Net
 		net/net.ixx
 		net/types.ixx
+		net/protocol.ixx
+		net/auth.ixx
 		net/socket.ixx
 		
 		net/server.ixx
@@ -301,6 +303,7 @@ set(DECKARD_SRCS
 		unicode/utf8_decode.ixx
 		unicode/utf8_xid.ixx
 		unicode/utf8_xid_tables.ixx
+		unicode/utf8_name_tables.ixx
 		
 		unicode/utf8string.ixx
 		unicode/utf8view.ixx
@@ -343,6 +346,8 @@ set(DECKARD_SRCS
 		app/vulkan/swapchain.ixx
 		app/vulkan/texture.ixx
 		app/vulkan/shaders.ixx
+		app/vulkan/buffer.ixx
+		app/vulkan/pipeline.ixx
 
 
 		# Types
@@ -370,7 +375,7 @@ set(DECKARD_SRCS
 
 
 		std.ixx
- )
+)
 
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
@@ -471,10 +476,10 @@ if(DECKARD_RUN_BUILDINC)
 endif()
 
 
-if(DECKARD_BUILD_TESTS)
+#if(DECKARD_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(tests)
-endif()
+#endif()
 
 
 if(DECKARD_BUILD_EXAMPLES)
@@ -486,4 +491,5 @@ endif()
 if(DECKARD_BUILD_TOOLS)
 	add_subdirectory(tools/dbc)
 	add_subdirectory(tools/utftables)
+	add_subdirectory(tools/normalization)
 endif()

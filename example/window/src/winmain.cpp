@@ -34,6 +34,9 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	bool up = action == Action::Up;
 
+
+	// ★☆
+	//
 	// num 6 -> 0x66, 0x4d
 	// f     -> 0x46, 0x21
 
@@ -438,35 +441,47 @@ struct STUNHeader
 	u16 method_bits() const { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); }
 };
 
-// Frequency map
-template<typename T>
-std::unordered_map<T, int> freqMap(const std::vector<T>& v)
+template<std::integral T = u64>
+[[nodiscard]] auto encode_integer(T value, std::span<u8> output) -> u64
 {
-	std::unordered_map<T, int> freq;
-	for (auto& x : v)
-		freq[x]++;
-	return freq;
+	assert::check(output.size() >= 10, "output buffer must be at least 10 bytes long to encode a 64-bit integer");
+	u64 len{};
+
+	while (value > 0x7Fu)
+	{
+		output[len++] = static_cast<u8>((value & 0x7Fu) | 0x80u);
+		value >>= 7;
+	}
+	output[len++] = static_cast<u8>(value);
+	return len;
 }
 
-struct XA
+template<std::integral T = u64>
+T decode_integer(std::span<const u8> input)
 {
-	int type;
-	int age;
+	T value{};
+	for (u64 i{}; i < input.size(); ++i)
+	{
+		value |= static_cast<T>(input[i] & 0x7F) << (7 * i);
+		if ((input[i] & 0x80) == 0)
+			break;
+	}
+	return value;
+}
+
+struct X2
+{
 };
 
-struct XB
+struct Y2
 {
-	int type;
-	int age;
 };
 
-struct XC
+struct Z2
 {
-	int type;
-	int age;
 };
 
-using Input3 = std::array<u8, 3>;
+std::tuple<X2, Y2, Z2> tupfunc() { return {}; }
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -477,40 +492,46 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	for (const auto& chunk : file::read_chunks({.filename = "260.bin", .chunk_size = 64}))
+	dbg::println("{}", __cpp_structured_bindings);
+
+	auto [x, y, z] = tupfunc();
+	//auto [xq, rest] = tupfunc();
+
+
+	#if 0
+	for (const auto& path : fs::recursive_directory_iterator(R"(.)"))
 	{
-		info("chunk ({:>4} bytes): {}", chunk.size(), to_hex_string(chunk, {.delimiter = ","}));
+		if (path.is_regular_file())
+		{
+			auto data = file::read(path);
+			dbg::println("file: {} ({} bytes) - {:.5f}", path.path().string(), path.file_size(), binary_percentage(data));
+		}
 	}
+
+
+	std::vector<u8> rnsdo;
+	rnsdo.resize(1024 * 1024);
+	random::bytes(rnsdo);
+
+	dbg::println("rng:\n{:.5f}", binary_percentage(rnsdo));
+	#endif
+	_ = 0;
+
+
+	// for (const auto& chunk : file::read_chunks({.filename = "bin128.dat", .chunk_size = 256}))
+	// {
+	// 	info("chunk ({:>4} bytes): \n{}", chunk.size(), to_hex_string(chunk, {.delimiter = ",", .max_width=32}));
+	// }
+
 
 	// ########################################################################
 
+	std::array<u8, 10> encoded{};
+	u64                value = 1'234'567'890'123'456'789ULL;
+	u64                len   = encode_integer(value, encoded);
 
+	u64 decoded = decode_integer(encoded);
 
-
-	std::array<u8, 32> hashdata{};
-
-	constexpr auto hex_char = [](char c) -> u8
-	{
-		if (c >= '0' && c <= '9')
-			return c - '0';
-		if (c >= 'a' && c <= 'f')
-			return c - 'a' + 10;
-		if (c >= 'A' && c <= 'F')
-			return c - 'A' + 10;
-	};
-
-	std::string hex = "00e3a7f2c18b4d9e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3";
-
-	for (size_t i = 0; i < 32; ++i)
-		hashdata[i] = (hex_char(hex[i * 2]) << 4) | hex_char(hex[i * 2 + 1]);
-
-
-	for (const auto& i : hashdata)
-		dbg::print("{:08b}", i);
-	dbg::println();
-
-
-	//
 
 	test_cmdliner();
 
@@ -556,8 +577,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// file::write(
 	//   {.filename = "config.txt",
-	//    .buffer   = cfg.data()}); // complete rewrite, should be identical to original config.txt except for the modified
-	//    fullscreen value
+	//    .buffer   = cfg.data()}); // complete rewrite, should be identical to original config.txt except for the
+	//    modified fullscreen value
 	//
 
 
@@ -790,9 +811,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		_ = 0;
 		{
-			u8 hostname_index = random::randu8(0, as<u8>(servers.size() - 1));
-			std::string hostname = servers[hostname_index].hostname;
-			std::string service  = std::to_string(servers[hostname_index].port);
+			u8          hostname_index = random::randu8(0, as<u8>(servers.size() - 1));
+			std::string hostname       = servers[hostname_index].hostname ? *servers[hostname_index].hostname : "";
+			std::string service        = std::to_string(servers[hostname_index].port);
 
 
 			// ----------------------- Resolve host ---------------------------------
@@ -825,30 +846,39 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			}
 
 			std::array<u8, 20> stunpacket{
-				// STUN Message Type: 0x0001 (Binding Request)
-				0x00,
-				0x01,
+			  // STUN Message Type: 0x0001 (Binding Request)
+			  0x00,
+			  0x01,
 
-				// Message Length: 0x0000 (No attributes for a basic request)
-				0x00,
-				0x00,
+			  // Message Length: 0x0000 (No attributes for a basic request)
+			  0x00,
+			  0x00,
 
-				// Magic Cookie: 0x2112A442
-				// This value helps differentiate STUN from legacy protocols.
-				0x21,
-				0x12,
-				0xA4,
-				0x42,
+			  // Magic Cookie: 0x2112A442
+			  // This value helps differentiate STUN from legacy protocols.
+			  0x21,
+			  0x12,
+			  0xA4,
+			  0x42,
 
-				// Transaction ID: 12 random bytes
-				0x00, 0x00, 0x00, 0x00,
-				0x00, 0x00, 0x00, 0x00,
-				0x00, 0x00, 0x00, 0x00};
+			  // Transaction ID: 12 random bytes
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00,
+			  0x00};
 
 			std::array<u8, 12> transaction_id_bytes{};
 			random::bytes(transaction_id_bytes);
 
-			write_le<u8>(stunpacket, transaction_id_bytes, 8);
+			write_be<u8>(stunpacket, transaction_id_bytes, 8);
 
 			DWORD timeoutMs = 2500;
 			setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
@@ -1040,8 +1070,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					// MAPPED-ADDRESS
 					// The port is in network byte order (big-endian).
 					// The IP address is also in network byte order.
-					// To get the actual port number, you may need to convert it from network byte order to host byte order.
-					// On most systems, you can use the ntohs function for this purpose.
+					// To get the actual port number, you may need to convert it from network byte order to host byte
+					// order. On most systems, you can use the ntohs function for this purpose.
 					u16 real_port = port;
 					dbg::println("Real Port: {}", real_port);
 					dbg::println("{}.{}.{}.{}", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
@@ -1252,20 +1282,20 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 				sent = sendto(
-					  sock,
-					  reinterpret_cast<const char*>(packet.data()),
-					  static_cast<int>(packet.size()),
-					  0,
-					  reinterpret_cast<sockaddr*>(&storage),
-					  static_cast<int>(addrlen));
+				  sock,
+				  reinterpret_cast<const char*>(packet.data()),
+				  static_cast<int>(packet.size()),
+				  0,
+				  reinterpret_cast<sockaddr*>(&storage),
+				  static_cast<int>(addrlen));
 
-					if (sent == SOCKET_ERROR)
-					{
-						dbg::println("sendto() failed: {}", WSAGetLastError());
-						closesocket(sock);
-						WSACleanup();
-						return 1;
-					}
+				if (sent == SOCKET_ERROR)
+				{
+					dbg::println("sendto() failed: {}", WSAGetLastError());
+					closesocket(sock);
+					WSACleanup();
+					return 1;
+				}
 				dbg::println("send 2 = {}", sent);
 
 				// ----------------------- Set receive timeout (5 seconds) ---------------
@@ -1292,8 +1322,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				}
 			}
 
-			// 01 01 00 18 21 12 A4 42 DD 0C 8D CE 70 1F 76 17 54 5A B3 0C 00 01 00 08 00 01 EE 6E D5 98 A1 0A 00 20 00 08 00
-			// 01 CF 7C F4 8A 05 48
+			// 01 01 00 18 21 12 A4 42 DD 0C 8D CE 70 1F 76 17 54 5A B3 0C 00 01 00 08 00 01 EE 6E D5 98 A1 0A 00 20 00
+			// 08 00 01 CF 7C F4 8A 05 48
 
 
 			// PAcket 2:
@@ -1350,51 +1380,50 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			_ = 0;
 		}
 
-		// The plan: 
-		// 
-		// 
+		// The plan:
+		//
+		//
 		// net::address ntp_google("time.google.com", 123);
 		// net::udpsocket sock(ntp_google);
-		// 
+		//
 		// endpoint ep("time.google.com", 123);
 		// net::udpsocket sock(ep);
-		// 
+		//
 		// net::udpsocket sock("time.google.com", 123);
 		// sock.timeout(500ms);
-		// 
+		//
 		// sock.connect("time.google.com", 123);
-		// 
+		//
 		// sock.bind, sock.listen, sock.accept
-		// 
+		//
 		// sock.send(....) -> std::expected<u32, std::string>
 		// sock.receive(...) -> std::expected<std::vector<u8>, std::string>
 		// sock.receive_into(buffer) -> std::expected<size_t, std::string> (returns number of bytes received)
 		//		- span<u8> buffer
-		// 
+		//
 		// sock.send("hello", 5);
-		// sock.send("hello"sv)		
-		// 
+		// sock.send("hello"sv)
+		//
 		// std::array<u8, 48> ntp_request{};		-
-		// sock.send(ntp_request); -> std::expected<u32, std::string> 
-
+		// sock.send(ntp_request); -> std::expected<u32, std::string>
 
 
 		{
 			constexpr size_t NTP_PACKET_SIZE = 48;
 
-			config ntpservers("ntp.txt"_path);
+			config    ntpservers("ntp.txt"_path);
 			const u16 default_port = ntpservers["servers.port"].as<u16>();
 			auto      ntp_servers  = ntpservers["servers.host"].as_vector<net::endpoint>();
 			u8        server_index = random::randu8(0, as<u8>(ntp_servers.size() - 1));
 
-			
-			if(ntpservers["servers.index"].as<i8>() >= 0)
+
+			if (ntpservers["servers.index"].as<i8>() >= 0)
 				server_index = std::clamp(ntpservers["servers.index"].as<u8>(), 0_u8, as<u8>(ntp_servers.size() - 1));
 			// server_index = 0;
 
-			auto& ntp_server     = ntp_servers[server_index];
-			u16   ntp_port       = (ntp_server.port != 0) ? ntp_server.port : default_port;
-			std::string hostname = ntp_server.hostname;
+			auto&       ntp_server = ntp_servers[server_index];
+			u16         ntp_port   = (ntp_server.port != 0) ? ntp_server.port : default_port;
+			std::string hostname   = ntp_server.hostname ? *ntp_server.hostname : "";
 
 			// ----------------------- Resolve host ---------------------------------
 			dbg::println("Resolving '{}'...", hostname);
@@ -1761,7 +1790,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		//
 		//	// Create an AST
 		//	std::unique_ptr<Node> ast =
-		//	  create_assign_node("x", create_bin_op_node('+', create_num_node(2), create_bin_op_node('*', create_num_node(3),
+		//	  create_assign_node("x", create_bin_op_node('+', create_num_node(2), create_bin_op_node('*',
+		// create_num_node(3),
 		// create_num_node(6))));
 		//
 		//	std::unordered_map<std::string, int> constants;

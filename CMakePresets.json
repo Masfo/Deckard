@@ -1,111 +1,124 @@
 {
-    "version": 6,
-    "cmakeMinimumRequired": {
-        "major": 4,
-        "minor": 1
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 1
+  },
+  "configurePresets": [
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        // "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "v145,host=x64,version=14.51",
+        //  "value": "v145,host=x64",
+        "strategy": "external"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Windows" ],
+          "intelliSenseMode": "windows-msvc-x64",
+          "enableMicrosoftCodeAnalysis": true
+        }
+      }
     },
-    "configurePresets": [
-        {
-            "name": "windows-base",
-            "hidden": true,
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl.exe",
-                "CMAKE_CXX_COMPILER": "cl.exe",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-                // "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+    {
+      "name": "x64-debug",
+      "hidden": false,
+      "displayName": "x64 Debug",
+      "inherits": [ "windows-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+      }
+    },
+    {
+      "name": "x64-release",
+      "hidden": false,
+      "displayName": "x64 Release",
+      "inherits": [ "windows-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+      }
+    },
+    {
+      "name": "x64-reldebug",
+      "hidden": false,
+      "displayName": "x64 Release with debug",
+      "inherits": [ "windows-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+      }
+    },
+    {
+      "name": "x86-debug",
+      "hidden": true,
+      "displayName": "x86 Debug",
+      "inherits": "windows-base",
+      "architecture": {
+        "value": "x86",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VCPKG_TARGET_TRIPLET": "x86-windows-static"
 
-            },
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-          "toolset": {
-            "value": "v145,host=x64,version=14.51",
-            //  "value": "v145,host=x64",
-            "strategy": "external"
-          },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [ "Windows" ],
-                    "intelliSenseMode": "windows-msvc-x64",
-                    "enableMicrosoftCodeAnalysis": true
-                }
-            }
-        },
-        {
-            "name": "x64-debug",
-            "hidden": false,
-            "displayName": "x64 Debug",
-            "inherits": [ "windows-base" ],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
-            }
-        },
-        {
-            "name": "x64-release",
-            "hidden": false,
-            "displayName": "x64 Release",
-            "inherits": [ "windows-base" ],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
-            }
-        },
-        {
-            "name": "x64-reldebug",
-            "hidden": false,
-            "displayName": "x64 Release with debug",
-            "inherits": [ "windows-base" ],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
-            }
-        },
-        {
-            "name": "x86-debug",
-            "hidden": true,
-            "displayName": "x86 Debug",
-            "inherits": "windows-base",
-            "architecture": {
-                "value": "x86",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "VCPKG_TARGET_TRIPLET": "x86-windows-static"
-
-            }
-        },
-        {
-            "name": "x86-release",
-            "hidden": true,
-            "displayName": "x86 Release",
-            "inherits": "x86-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "VCPKG_TARGET_TRIPLET": "x86-windows-static"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "debugx64",
-            "configurePreset": "x64-debug",
-            "displayName": "Debug(x64)"
-        },
-        {
-            "name": "releasex64",
-            "configurePreset": "x64-release",
-            "displayName": "Release(x64)"
-        },
-        {
-            "name": "reldebugx64",
-            "configurePreset": "x64-reldebug",
-            "displayName": "Release(x64) debug"
-        }
-    ]
+      }
+    },
+    {
+      "name": "x86-release",
+      "hidden": true,
+      "displayName": "x86 Release",
+      "inherits": "x86-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "VCPKG_TARGET_TRIPLET": "x86-windows-static"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debugx64",
+      "configurePreset": "x64-debug",
+      "displayName": "Debug(x64)"
+    },
+    {
+      "name": "releasex64",
+      "configurePreset": "x64-release",
+      "displayName": "Release(x64)"
+    },
+    {
+      "name": "reldebugx64",
+      "configurePreset": "x64-reldebug",
+      "displayName": "Release(x64) debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "x64-debug",
+      "configurePreset": "x64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "jobs": 6,
+        "noTestsAction": "error"
+      }
+    }
+  ]
 }

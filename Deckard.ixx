@@ -60,6 +60,10 @@ export import deckard.logger;
 #error ("Use pack indexing on something");
 #endif
 
+#if defined(__cpp_structured_bindings) && __cpp_structured_bindings > 201'606L
+#error ("Use structured binding pack");
+#endif
+
 #ifdef __cpp_lib_optional_ref
 #error ("use optional ref instead");
 #endif
@@ -129,7 +133,8 @@ void redirect_console(bool show)
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
 
-		constexpr DWORD output_mode = ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+		constexpr DWORD output_mode =
+		  ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output_mode);
 		SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), output_mode);
 

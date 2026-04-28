@@ -1320,6 +1320,7 @@ namespace deckard
 
 	export size_t popcount(const bigint& a) { return a.popcount(); }
 
+
 	export bigint random_range(const bigint& start, const bigint& end)
 	{
 
