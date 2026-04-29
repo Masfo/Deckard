@@ -73,6 +73,9 @@ namespace deckard::net
 			return {};
 		}
 
+		// should only ip addresses v4 and v6, no hostnames
+		// 127.0.0.1
+		// ::1
 		std::expected<void, std::string> read_address(std::string_view input)
 		{
 			address.fill(0u);
@@ -208,14 +211,14 @@ namespace deckard::net
 				auto& addr4      = reinterpret_cast<sockaddr_in&>(storage);
 				addr4.sin_family = AF_INET;
 				std::memcpy(&addr4.sin_addr, address.data() + 12, 4);
-				return {storage, sizeof(sockaddr_in)};
+				return {storage, (socklen_t)sizeof(sockaddr_in)};
 			}
 			if (is_ipv6())
 			{
 				auto& addr6       = reinterpret_cast<sockaddr_in6&>(storage);
 				addr6.sin6_family = AF_INET6;
 				std::memcpy(&addr6.sin6_addr, address.data(), 16);
-				return {storage, sizeof(sockaddr_in6)};
+				return {storage, (socklen_t)sizeof(sockaddr_in6)};
 			}
 			return {storage, 0};
 		}
@@ -294,11 +297,26 @@ namespace deckard::net
 		return addresses;
 	}
 
+	std::expected<net::ip, std::string> parse_ip_or_hostname(const std::string_view input) noexcept
+	{
+		if (input.empty())
+			return std::unexpected("Input cannot be empty");
+		if (ip addr{input}; addr.valid())
+			return addr;
+		auto resolved = resolve_ips(input);
+		if (not resolved)
+			return std::unexpected(resolved.error());
+		if (resolved->empty())
+			return std::unexpected(std::format("No IP addresses found for hostname: \"{}\"", input));
+		return resolved->front();
+	}
+	
+
 	export struct endpoint
 	{
-		ip          address{};
-		u16         port{};
-		std::string hostname;
+		ip                       address{};
+		u16                      port{};
+		std::optional<std::string> hostname;
 
 		endpoint() = default;
 
@@ -308,22 +326,28 @@ namespace deckard::net
 		{
 		}
 
-		endpoint(const std::string_view host_str, u16 port=80)
+		endpoint(const std::string_view host_str, u16 port = 80)
+			: port(port)
 		{
-			this->port = port;
+			// handle hostname first
+			
+			if (ip addr{host_str}; addr.valid())
+			{
+				address = std::move(addr);
+				return;
+			}
 
-			hostname = host_str;
-
-			if (auto result = resolve_ips(hostname); result and not result->empty())
-				this->address = result->front();
+			hostname = std::string{host_str};
+			if (auto result = resolve_ips(*hostname); result and not result->empty())
+				address = result->front();
 		}
 
 		bool valid() const { return address.valid(); }
 
 		std::string to_string() const
 		{
-			if (not address.valid() and not hostname.empty())
-				return std::format("{}:{}", hostname, port);
+			if (not address.valid() and hostname.has_value())
+				return std::format("{}:{}", *hostname, port);
 			if (address.is_ipv6())
 				return std::format("[{}]:{}", address.to_string(), port);
 			return std::format("{}:{}", address.to_string(), port);
@@ -333,12 +357,17 @@ namespace deckard::net
 		{
 			if (address.valid())
 				return address;
-			if (!hostname.empty())
-				return ip(hostname);
-			return {};
+			return std::nullopt;
 		}
 
-		bool operator==(const endpoint& other) const { return address == other.address and port == other.port; }
+		bool operator==(const endpoint& other) const
+		{
+			if (port != other.port)
+				return false;
+			if (address.valid() or other.address.valid())
+				return address == other.address;
+			return hostname == other.hostname;
+		}
 	};
 
 
@@ -359,4 +388,15 @@ namespace std
 		}
 	};
 
+
+	template<>
+	struct formatter<endpoint>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const endpoint& ep, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", ep.to_string());
+		}
+	};
 } // namespace std
