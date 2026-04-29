@@ -2,7 +2,7 @@
   "version": 6,
   "cmakeMinimumRequired": {
     "major": 4,
-    "minor": 1
+    "minor": 2
   },
   "configurePresets": [
     {
@@ -15,7 +15,7 @@
         "CMAKE_CXX_COMPILER": "cl.exe",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        // "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        //"CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
 
       },
       "architecture": {

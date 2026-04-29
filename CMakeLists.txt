@@ -8,6 +8,7 @@ cmake_minimum_required (VERSION 4.3)
 
 project(deckard LANGUAGES CXX)
 
+
 add_library(deckard STATIC)
 
 option(DECKARD_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
@@ -15,17 +16,17 @@ option(DECKARD_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_BUILD_TOOLS "Build tools" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 
+#find_program(SCCACHE_PROGRAM sccache)
 
-# find_program(CCACHE_PROGRAM ccache)
-# if(CCACHE_PROGRAM)
-#    set_property(GLOBAL PROPERTY   "${CCACHE_PROGRAM}")
-# endif()
+if(SCCACHE_PROGRAM)
+    message(STATUS "sccache found: ${SCCACHE_PROGRAM}")
+    set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
+else()
+    message(STATUS "sccache not found — building without compiler cache")
+endif()
 
-# find_program(CCACHE_PROGRAM ccache)
-# if (CCACHE_PROGRAM)
-#     set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-#     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-# endif ()
+
 
 
 
@@ -69,6 +70,11 @@ if(MSVC)
 
 	target_compile_options(deckard PRIVATE /nologo)
 
+	# Ensure MSVC serializes PDB access across parallel cl.exe instances
+	# This adds the /FS flag to all compilation commands to avoid PDB file
+	# contention when multiple compiler processes write to the same .pdb.
+	add_compile_options(/FS)
+
 	target_compile_definitions(deckard PRIVATE UNICODE)
 	target_compile_definitions(deckard PRIVATE _UNICODE)
 	target_compile_definitions(deckard PRIVATE NOMINMAX)
@@ -105,25 +111,36 @@ if(MSVC)
 	#$<$<CONFIG:Release>:/RELEASE>
 	)
 
-    Target_link_options(deckard PRIVATE /RELEASE)
 
 
-		target_compile_options(deckard PRIVATE 
-	$<$<CONFIG:DEBUG>: /JMC /Od /RTC1 /GS /INCREMENTAL /Zi>
+	target_compile_options(deckard PRIVATE 
+	    $<$<CONFIG:DEBUG>: 
+			/JMC			# Enable Just My Code debugging
+			/Od				# Disable optimizations for easier debugging
+			/RTC1			# Enable runtime error checks for stack frames, uninitialized variables, and other common issues
+			/GS				# Enable security checks to help prevent buffer overruns
+			/INCREMENTAL	# Enable incremental linking for faster builds and better debugging experience
+			/Zi				# Generate complete debugging information
+			#/ZI			# Generate debugging information for Edit and Continue
+			/MP				# Multi-processor compilation
+		>
 
 		$<$<CONFIG:Release>: 
-		/O2         # Maximum optimization
-		/Ob2        # Inline any suitable function
-		/Oi         # Enable intrinsic functions
-		#/Ot         # Favor fast code
-		/GL         # Whole program optimization  
-		/Gy         # Function-level linking
-		/GF         # String pooling
-		/GT         # Fiber-safe optimizations
-		/fp:fast    # Fast floating point model
-		/Qpar       # Auto-parallelize loops
-	>
-		)
+			/O2         # Maximum optimization
+			/Ob2        # Inline any suitable function
+			/Oi         # Enable intrinsic functions
+			#/Ot         # Favor fast code
+			/GL         # Whole program optimization  
+			/Gy         # Function-level linking
+			/GF         # String pooling
+			/GT         # Fiber-safe optimizations
+			/fp:fast    # Fast floating point model
+			/Qpar       # Auto-parallelize loops
+			/EHsc       # Enable C++ exceptions, but only for functions that use them
+			/MP			# Multi-processor compilation
+			/RELEASE 
+		>
+	)
 
 
 	 # Debug
@@ -131,30 +148,10 @@ if(MSVC)
 	
 		#set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 		set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
-
-
-		#if (POLICY CMP0141)
-		 # cmake_policy(SET CMP0141 NEW)
-		 # set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
-		#endif()
-
 		set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
-
-
 		target_compile_definitions(deckard PRIVATE -DDEBUG)
-
-		target_compile_options(deckard PRIVATE /JMC)    # Just my debugging
-		target_compile_options(deckard PRIVATE /Od)
-
-		target_compile_options(deckard PRIVATE /RTC1)
-		target_compile_options(deckard PRIVATE /GS)
 		target_link_options(deckard PRIVATE /INCREMENTAL)
 		target_link_options(deckard PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
-
-
-		target_compile_options(deckard PRIVATE /Zi)     # /ZI edit/continue
-	
-
 	endif()
 	
 	# Release
@@ -165,22 +162,9 @@ if(MSVC)
 		set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 		target_compile_definitions(deckard PRIVATE -DNDEBUG)
-
-		target_compile_options(deckard PRIVATE /O2 /Os /Ob2)
-		target_compile_options(deckard PRIVATE /GS-)
-		target_compile_options(deckard PRIVATE /Gw /MP)
-		target_compile_options(deckard PRIVATE /EHsc)
-		#target_compile_options(deckard PRIVATE /GF /RELEASE)
-
-
 		
 		target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
-
-
 		option(DECKARD_BUILD_TESTS "Build tests" FALSE)
-
-
-
 
 	endif()
 
