@@ -62,11 +62,11 @@ export namespace deckard::utf8
 export namespace deckard::utf8
 {
 	// Caller must guarantee index < buffer.size()
-	decode_result decode_unchecked(std::span<const std::byte> buffer, size_t index)
+	decode_result decode_unchecked(std::span<const std::byte> buffer, size_t index) noexcept
 	{
 		u32    bytes_consumed = 0;
 		u32    state          = 0;
-		char32 codepoint      = 0;
+		u32 codepoint      = 0;
 		for (; index < buffer.size(); index++)
 		{
 			u8 byte = utf8::u8_at(buffer, index);
@@ -84,7 +84,7 @@ export namespace deckard::utf8
 		}
 		return {REPLACEMENT_CHARACTER, bytes_consumed};
 	}
-	auto decode(std::span<const std::byte> buffer, size_t index) -> std::optional<decode_result>
+	auto decode(std::span<const std::byte> buffer, size_t index) noexcept -> std::optional<decode_result>
 	{
 		if (index >= buffer.size())
 			return std::nullopt;
