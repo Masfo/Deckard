@@ -133,6 +133,8 @@ namespace deckard::utils
 
 	export constexpr u64 hash_values(const std::string& str) { return hash_values(to_span(str)); }
 
+	export constexpr u64 hash_values(const char* str) { return hash_values(to_span(str)); }
+
 	// ########################################################################
 	// Siphash
 
