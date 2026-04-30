@@ -127,6 +127,8 @@ namespace deckard
 
 	static_assert(sizeof(function_ref<void(void)>) == 16);
 	static_assert(sizeof(function_ref<std::string(std::string_view)>) == 16);
+	static_assert(sizeof(function_ref<std::map<std::string,std::string>(std::map<std::string,std::string>)>) == 16);
+
 
 
 
