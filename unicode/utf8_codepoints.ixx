@@ -26,17 +26,20 @@ namespace deckard::utf8
 
 	export constexpr bool is_four_byte_codepoint(const u8 byte) { return ((byte >> 3) == 0x1E); }
 
-	export constexpr bool is_combining_codepoint(const char32 cp)
+	export constexpr auto is_combining_codepoint(char32_t cp) noexcept -> bool
 	{
-		return (
-		  (cp >= 0x0300 and cp <= 0x036F) or     // Combining diacritical marks
-		  (cp >= 0x1AB0 and cp <= 0x1AFF) or     // Extended
-		  (cp >= 0x1DC0 and cp <= 0x1DFF) or     // Supplement
-		  (cp >= 0x20D0 and cp <= 0x20FF) or     // Symbols
-		  (cp >= 0xFE20 and cp <= 0xFE2F) or     // Half marks
-		  (cp >= 0x1'E000 and cp <= 0x1'E02F) or // Glagolitic
-		  (cp >= 0x1'D167 and cp <= 0x1'D169)    // Musical marks
-		);
+		constexpr std::pair<char32_t, char32_t> ranges[] = {
+		  {0x0300, 0x036F},     // Combining diacritical marks
+		  {0x1AB0, 0x1AFF},     // Extended
+		  {0x1DC0, 0x1DFF},     // Supplement
+		  {0x20D0, 0x20FF},     // Symbols
+		  {0xFE00, 0xFE0F},     // Variation selectors  ← added
+		  {0xFE20, 0xFE2F},     // Combining half marks
+		  {0x1'D167, 0x1'D169}, // Musical marks
+		  {0x1'E000, 0x1'E02F}, // Glagolitic supplement
+		};
+
+		return std::ranges::any_of(ranges, [cp](const auto& r) noexcept { return cp >= r.first && cp <= r.second; });
 	}
 
 	export constexpr u32 codepoint_width(u8 codepoint_byte)
@@ -107,7 +110,10 @@ namespace deckard::utf8
 
 	export constexpr bool is_hex_digit(char32 codepoint) { return is_ascii_hex_digit(codepoint); }
 
-	export constexpr bool is_identifier_start(char32 codepoint) { return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint); }
+	export constexpr bool is_identifier_start(char32 codepoint)
+	{
+		return is_ascii_identifier_start(codepoint) or is_xid_start(codepoint);
+	}
 
 	export constexpr bool is_identifier_continue(char32 codepoint)
 	{
