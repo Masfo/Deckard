@@ -32,18 +32,19 @@ export namespace deckard::utf8
 	*/
 
 	constexpr std::array<u8, 364> utf8_table{
-	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
-	  9,  9,  9,  9,  9,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
-	  7,  7,  7,  7,  7,  7,  8,  8,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
-	  2,  2,  2,  2,  2,  2,  2,  10, 3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  4,  3,  3,  11, 6,  6,  6,  5,  8,  8,  8,
-	  8,  8,  8,  8,  8,  8,  8,  8,  0,  12, 24, 36, 60, 96, 84, 12, 12, 12, 48, 72, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-	  12, 12, 0,  12, 12, 12, 12, 12, 0,  12, 0,  12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 24, 12, 12, 12, 12, 12, 12, 12, 12,
-	  12, 24, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12,
-	  36, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12, 36, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	  1,  1,  1,  1,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  7,  7,  7,  7,  7,  7,  7,  7,
+	  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  8,  8,  2,  2,
+	  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
+	  10, 3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  4,  3,  3,  11, 6,  6,  6,  5,  8,  8,  8,  8,  8,  8,  8,
+	  8,  8,  8,  8,  0,  12, 24, 36, 60, 96, 84, 12, 12, 12, 48, 72, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+	  12, 0,  12, 12, 12, 12, 12, 0,  12, 0,  12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 24, 12, 12, 12, 12, 12, 12,
+	  12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 12, 12, 36,
+	  12, 36, 12, 12, 12, 36, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12, 36, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
 	};
 	constexpr u32 UTF8_ACCEPT{0};
 	constexpr u32 UTF8_REJECT{12};
@@ -58,14 +59,12 @@ export namespace deckard::utf8
 
 } // namespace deckard::utf8
 
-
 export namespace deckard::utf8
 {
-	// Caller must guarantee index < buffer.size()
 	decode_result decode_unchecked(std::span<const std::byte> buffer, size_t index) noexcept
 	{
-		u32    bytes_consumed = 0;
-		u32    state          = 0;
+		u32 bytes_consumed = 0;
+		u32 state          = 0;
 		u32 codepoint      = 0;
 		for (; index < buffer.size(); index++)
 		{
@@ -84,6 +83,7 @@ export namespace deckard::utf8
 		}
 		return {REPLACEMENT_CHARACTER, bytes_consumed};
 	}
+
 	auto decode(std::span<const std::byte> buffer, size_t index) noexcept -> std::optional<decode_result>
 	{
 		if (index >= buffer.size())
@@ -102,21 +102,21 @@ export namespace deckard::utf8
 		}
 	}
 
-	size_t graphemes(std::span<const std::byte> buffer)
+[[nodiscard]] auto graphemes(std::span<const std::byte> buffer) -> std::size_t
 	{
-		// TODO: note that does not do full breaking rules
-		//		 Unicode Standard Annex #29 (UAX #29)
-		// https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries
+		std::size_t count = 0;
 
-		size_t count = 0;
-		size_t i     = 0;
-		while (i < buffer.size())
+		for (std::size_t i = 0; i < buffer.size();)
 		{
-			auto result = decode(buffer, i);
-			if (result and not utf8::is_combining_codepoint(result.value().codepoint))
-				count += 1;
-			i += result ? result->bytes_consumed : 1;
+			const auto        result = decode(buffer, i);
+			const std::size_t stride = result ? result->bytes_consumed : 1;
+
+			if (result && !utf8::is_combining_codepoint(result->codepoint))
+				++count;
+
+			i += stride;
 		}
+
 		return count;
 	}
 
@@ -133,7 +133,8 @@ export namespace deckard::utf8
 		for (; (ptr < endptr) and valid; len++)
 		{
 			const auto remaining = static_cast<size_t>(endptr - ptr);
-			valid                = (*ptr & 0x80) == 0 or (remaining >= 2 and (*ptr & 0xE0) == 0xC0 and (*(ptr + 1) & 0xC0) == 0x80) or
+			valid =
+			  (*ptr & 0x80) == 0 or (remaining >= 2 and (*ptr & 0xE0) == 0xC0 and (*(ptr + 1) & 0xC0) == 0x80) or
 					(remaining >= 3 and (*ptr & 0xF0) == 0xE0 and (*(ptr + 1) & 0xC0) == 0x80 and (*(ptr + 2) & 0xC0) == 0x80) or
 					(remaining >= 4 and (*ptr & 0xF8) == 0xF0 and (*(ptr + 1) & 0xC0) == 0x80 and (*(ptr + 2) & 0xC0) == 0x80 and
 					 (*(ptr + 3) & 0xC0) == 0x80);
@@ -157,7 +158,7 @@ export namespace deckard::utf8
 	{
      auto location_at_index = [&](const size_t index)
 		{
-			size_t line = 1;
+			size_t line   = 1;
             size_t column = 1;
 			for (size_t pos = 0; pos < index and pos < buffer.size(); pos++)
 			{
@@ -190,7 +191,8 @@ export namespace deckard::utf8
 				if (i + 1 >= buffer.size() or not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 1)))
              {
 					auto [line, column] = location_at_index(i);
-					return std::unexpected(std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
+					return std::unexpected(
+					  std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
 				}
 
 				codepoint = (((c & 0x1F) << 6) | (utf8::u8_at(buffer, i + 1) & 0x3F));
@@ -208,10 +210,12 @@ export namespace deckard::utf8
 					not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 2)))
              {
 					auto [line, column] = location_at_index(i);
-					return std::unexpected(std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
+					return std::unexpected(
+					  std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
 				}
 
-				codepoint = (((c & 0x0F) << 12) | ((utf8::u8_at(buffer, i + 1) & 0x3F) << 6) | (utf8::u8_at(buffer, i + 2) & 0x3F));
+				codepoint =
+				  (((c & 0x0F) << 12) | ((utf8::u8_at(buffer, i + 1) & 0x3F) << 6) | (utf8::u8_at(buffer, i + 2) & 0x3F));
 				if (codepoint < 0x800)
              {
 					auto [line, column] = location_at_index(i);
@@ -233,11 +237,12 @@ export namespace deckard::utf8
 					not utf8::is_continuation_byte(utf8::u8_at(buffer, i + 3)))
              {
 					auto [line, column] = location_at_index(i);
-					return std::unexpected(std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
+					return std::unexpected(
+					  std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
 				}
 
-				codepoint = (((c & 0x07) << 18) | ((utf8::u8_at(buffer, i + 1) & 0x3F) << 12) | ((utf8::u8_at(buffer, i + 2) & 0x3F) << 6) |
-							 (utf8::u8_at(buffer, i + 3) & 0x3F));
+				codepoint = (((c & 0x07) << 18) | ((utf8::u8_at(buffer, i + 1) & 0x3F) << 12) |
+							 ((utf8::u8_at(buffer, i + 2) & 0x3F) << 6) | (utf8::u8_at(buffer, i + 3) & 0x3F));
 
 				if (codepoint < 0x1'0000)
              {
