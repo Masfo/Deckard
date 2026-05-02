@@ -147,6 +147,7 @@ add_library(ZSTD OBJECT
 
 if(MSVC)
     set_target_properties(ZSTD PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
+    target_compile_options(ZSTD PRIVATE /Z7)
 endif()
 
 set_target_properties(ZSTD PROPERTIES LINKER_LANGUAGE C)

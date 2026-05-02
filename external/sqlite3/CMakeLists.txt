@@ -48,6 +48,10 @@ endif()
 project(sqlite3 C)
 add_library(sqlite3 OBJECT sqlite3.c)
 
+if(MSVC)
+    target_compile_options(sqlite3 PRIVATE /Z7)
+endif()
+
 set_target_properties(sqlite3 PROPERTIES
 	C_STANDARD 17
 )
