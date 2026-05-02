@@ -1301,9 +1301,9 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			// clang-format on
 
 			utf8::string str(err);
-			//CHECK(str.size() == 1);
-			//CHECK(str.size_in_bytes() == 11);
-			//CHECK(str.graphemes() == 1); // TODO: should be one 👩‍🚀
+			// CHECK(str.size() == 1);
+			// CHECK(str.size_in_bytes() == 11);
+			// CHECK(str.graphemes() == 1); // TODO: should be one 👩‍🚀
 
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
@@ -1314,7 +1314,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 									   0x81, 0xA5, 0xF3, 0xA0, 0x81, 0xAE, 0xF3, 0xA0, 0x81, 0xA7, 0xF3, 0xA0, 0x81, 0xBF};
 
 			utf8::string str(flag);
-			//CHECK(str.graphemes() == 1);
+			// CHECK(str.graphemes() == 1);
 			CHECK(str.valid() == true);
 		}
 		{
