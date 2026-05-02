@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 4.3)
 #   set(CMAKE_CXX_MODULE_STD 1)
 # endif ()
 
-project(deckard LANGUAGES CXX)
+project(deckard LANGUAGES CXX ASM_MASM)
 
 
 add_library(deckard STATIC)
@@ -19,39 +19,31 @@ option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 #find_program(SCCACHE_PROGRAM sccache)
 
 if(SCCACHE_PROGRAM)
-    message(STATUS "sccache found: ${SCCACHE_PROGRAM}")
-    set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
-    set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
+	message(STATUS "sccache found: ${SCCACHE_PROGRAM}")
+	set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
 else()
-    message(STATUS "sccache not found — building without compiler cache")
+	message(STATUS "sccache not found — building without compiler cache")
 endif()
 
 
 
 
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set_target_properties(deckard PROPERTIES
 	CXX_STANDARD 23
 	CXX_STANDARD_REQUIRED ON
-	#CXX_MODULE_STD 1
 	CXX_EXTENSIONS OFF
 	CXX_SCAN_FOR_MODULES ON
-	# COMPILE_WARNING_AS_ERROR ON
-	EXPORT_COMPILE_COMMANDS ON
-)
-
-
-set_target_properties(deckard PROPERTIES 
-	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
-	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
-	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
+	RUNTIME_OUTPUT_DIRECTORY                ${CMAKE_SOURCE_DIR}/bin
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG          ${CMAKE_SOURCE_DIR}/bin
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE        ${CMAKE_SOURCE_DIR}/bin
 	RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin
-	ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib
-	LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib
-	LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib
-
-	OBJECT_OUTPUTS ${CMAKE_SOURCE_DIR}/lib
-
+	ARCHIVE_OUTPUT_DIRECTORY                ${CMAKE_SOURCE_DIR}/lib
+	LIBRARY_OUTPUT_DIRECTORY_DEBUG          ${CMAKE_SOURCE_DIR}/lib
+	LIBRARY_OUTPUT_DIRECTORY_RELEASE        ${CMAKE_SOURCE_DIR}/lib
 	PDB_NAME deckard
 	PDB_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/pdb"
 )
@@ -68,35 +60,32 @@ if(MSVC)
 		set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 	endif()
 
-	target_compile_options(deckard PRIVATE /nologo)
 
-	# Ensure MSVC serializes PDB access across parallel cl.exe instances
-	# This adds the /FS flag to all compilation commands to avoid PDB file
-	# contention when multiple compiler processes write to the same .pdb.
-	add_compile_options(/FS)
-
-	target_compile_definitions(deckard PRIVATE UNICODE)
-	target_compile_definitions(deckard PRIVATE _UNICODE)
-	target_compile_definitions(deckard PRIVATE NOMINMAX)
-	target_compile_definitions(deckard PRIVATE WIN32_LEAN_AND_MEAN)
-	target_compile_definitions(deckard PRIVATE WIN32_EXTRA_LEAN)
+	target_compile_definitions(deckard PRIVATE 
+		UNICODE 
+		_UNICODE 
+		NOMINMAX 
+		WIN32_LEAN_AND_MEAN 
+		WIN32_EXTRA_LEAN
+	)
 	
-	target_compile_options(deckard PRIVATE /W4)
-	target_compile_options(deckard PRIVATE /EHsc)
+	# Global compile options for MSVC
+	target_compile_options(deckard PRIVATE 
+		$<$<COMPILE_LANGUAGE:CXX>:
+			/nologo
+			/Zc:preprocessor 
+			/std:c++latest 
+			/Zc:__cplusplus /Zc:__STDC__ 
+			/utf-8
+			/W4
+			/EHsc
+			/FS
+			/diagnostics:caret
+			/MP
+		>
+	)
 
-	#target_compile_options(deckard PRIVATE /await:strict)
 
-
-	target_compile_options(deckard PRIVATE /Zc:preprocessor)
-	target_compile_options(deckard PRIVATE /std:c++latest)
-	target_compile_options(deckard PRIVATE /Zc:__cplusplus /Zc:__STDC__)
-	target_compile_options(deckard PRIVATE /utf-8)
-
-
-	#target_compile_options(deckard PRIVATE /fp:fast)
-	#target_compile_options(deckard PRIVATE /fp:contract)
-
-	target_compile_options(deckard PRIVATE /diagnostics:caret)
 
 	#target_compile_options(deckard PRIVATE /arch:AVX2)
 
@@ -104,41 +93,23 @@ if(MSVC)
 
 	#set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
-	# Enable Hot Reload for MSVC compilers if supported.
-
-	target_compile_options(deckard PRIVATE 
-	$<$<CONFIG:DEBUG>:/DEBUG>
-	#$<$<CONFIG:Release>:/RELEASE>
-	)
-
-
-
-	target_compile_options(deckard PRIVATE 
-	    $<$<CONFIG:DEBUG>: 
-			/JMC			# Enable Just My Code debugging
-			/Od				# Disable optimizations for easier debugging
-			/RTC1			# Enable runtime error checks for stack frames, uninitialized variables, and other common issues
-			/GS				# Enable security checks to help prevent buffer overruns
-			/INCREMENTAL	# Enable incremental linking for faster builds and better debugging experience
-			/Zi				# Generate complete debugging information
-			#/ZI			# Generate debugging information for Edit and Continue
-			/MP				# Multi-processor compilation
+	target_compile_options(deckard PRIVATE
+		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:
+			/JMC
+			/Od
+			/RTC1
+			/GS
+			/Zi
 		>
 
-		$<$<CONFIG:Release>: 
-			/O2         # Maximum optimization
-			/Ob2        # Inline any suitable function
-			/Oi         # Enable intrinsic functions
-			#/Ot         # Favor fast code
-			/GL         # Whole program optimization  
-			/Gy         # Function-level linking
-			/GF         # String pooling
-			/GT         # Fiber-safe optimizations
-			/fp:fast    # Fast floating point model
-			/Qpar       # Auto-parallelize loops
-			/EHsc       # Enable C++ exceptions, but only for functions that use them
-			/MP			# Multi-processor compilation
-			/RELEASE 
+		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:
+			/O2
+			/Ob2
+			/Oi
+			/GL
+			/Gy
+			/GF
+			/GT
 		>
 	)
 
@@ -146,22 +117,23 @@ if(MSVC)
 	 # Debug
 	if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	
-		#set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
-		set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
-		set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
-		target_compile_definitions(deckard PRIVATE -DDEBUG)
-		target_link_options(deckard PRIVATE /INCREMENTAL)
-		target_link_options(deckard PRIVATE /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
+		set_target_properties(deckard PROPERTIES
+			MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase"
+			MSVC_RUNTIME_LIBRARY "MultiThreadedDebug"
+		)
+		target_compile_definitions(deckard PRIVATE DEBUG)
+		target_link_options(deckard PRIVATE /INCREMENTAL /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
 	endif()
 	
 	# Release
 	if (${CMAKE_BUILD_TYPE} MATCHES "Release")
 	
-		set_target_properties(deckard PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
-		set_target_properties(deckard PROPERTIES POSITION_INDEPENDENT_CODE ON)
-		set_target_properties(deckard PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+		set_target_properties(deckard PROPERTIES
+			MSVC_RUNTIME_LIBRARY "MultiThreaded"
+			INTERPROCEDURAL_OPTIMIZATION TRUE
+		)
 
-		target_compile_definitions(deckard PRIVATE -DNDEBUG)
+		target_compile_definitions(deckard PRIVATE NDEBUG)
 		
 		target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
 		option(DECKARD_BUILD_TESTS "Build tests" FALSE)
@@ -189,8 +161,6 @@ target_link_libraries(deckard PRIVATE Vulkan::Vulkan)
 # if(NOT GLSLC_EXECUTABLE)
 #     message(FATAL_ERROR "glslc not found! Please install the Vulkan SDK or set GLSLC_EXECUTABLE manually.")
 # endif()
-
-set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> <DEFINES>  -wall -w-reloc-abs-dword -w-reloc-rel-dword -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -o <OBJECT> <SOURCE>")
 
 
 set(DECKARD_SRCS
@@ -366,9 +336,8 @@ set(DECKARD_SRCS
 # $<$<NOT:$<PLATFORM_ID:Windows>>:file.cpp>
 
 
-target_sources(deckard PUBLIC
+target_sources(deckard PRIVATE
 		utils/cpuid.asm
-
 )
 
 
@@ -386,9 +355,7 @@ add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
 add_subdirectory(external/monocypher)
 
-add_dependencies(deckard sqlite3 ZSTD monocypher)
 
- 
 set(THIRD_PARTY_LIBS
 	sqlite3
 	ZSTD
@@ -409,39 +376,30 @@ set(THIRD_PARTY_LIBS
 target_link_libraries(deckard PUBLIC ${THIRD_PARTY_LIBS})
 
 #
-target_compile_options(deckard PRIVATE 
-	   
-	#/wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc.
-	#
-	#/wd5262 # implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break 
-	#        # statement is intentionally omitted between cases
-	#/wd4710 # function not inlined
-	#/wd4711 # function selected for automatic inline expansion
-	#/wd5045 # Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
-	/wd5050 # Possible incompatible environment while importing module
-	#
-	#/wd4820 # bytes padding added after data member
-	#
-	#/wd4626 # assignment operator was implicitly defined as deleted
-	#/wd5027 # move assignment operator was implicitly defined as deleted
-	#/wd5026 # move constructor was implicitly defined as deleted
-	#/wd4061 # switch of enum is not explicitly handled by a case label
-	#
-	#/wd4355 # 'this': used in base member initializer list
-	#/wd4625 # copy constructor was implicitly defined as deleted
-	#/wd5220 # a non-static data member with a volatile qualified type no longer implies
-	#        # that compiler generated copy/move constructors and copy/move assignment operators are not trivial
-	#/wd5204 # class has virtual functions, but its trivial destructor is not virtual; instances of 
-	#        # objects derived from this class may not be destructed correctly
-	/wd5205 # delete of an abstract class '??' that has a non-virtual destructor results in undefined behavior
-	#
-	#/wd4686 # possible change in behavior, change in UDT return calling convention
-	#
-	/wd4324 # structure was padded due to alignment specifier
-	#/wd5246 # the initialization of a subobject should be wrapped in braces
-	#/wd4273 # inconsistent dll linkage
+target_compile_options(deckard PRIVATE
+	$<$<COMPILE_LANGUAGE:CXX>:
+		/wd5050  # Possible incompatible environment while importing module
+		/wd5205  # delete of an abstract class with a non-virtual destructor
+		/wd4324  # structure was padded due to alignment specifier
 
-
+		#/wd5039  # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc.
+		#/wd5262  # implicit fall-through occurs here
+		#/wd4710  # function not inlined
+		#/wd4711  # function selected for automatic inline expansion
+		#/wd5045  # Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+		#/wd4820  # bytes padding added after data member
+		#/wd4626  # assignment operator was implicitly defined as deleted
+		#/wd5027  # move assignment operator was implicitly defined as deleted
+		#/wd5026  # move constructor was implicitly defined as deleted
+		#/wd4061  # switch of enum is not explicitly handled by a case label
+		#/wd4355  # 'this': used in base member initializer list
+		#/wd4625  # copy constructor was implicitly defined as deleted
+		#/wd5220  # a non-static data member with a volatile qualified type
+		#/wd5204  # class has virtual functions, but its trivial destructor is not virtual
+		#/wd4686  # possible change in behavior, change in UDT return calling convention
+		#/wd5246  # the initialization of a subobject should be wrapped in braces
+		#/wd4273  # inconsistent dll linkage
+	>
 )
 
 ###################################
@@ -460,10 +418,10 @@ if(DECKARD_RUN_BUILDINC)
 endif()
 
 
-#if(DECKARD_BUILD_TESTS)
+if(DECKARD_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(tests)
-#endif()
+endif()
 
 
 if(DECKARD_BUILD_EXAMPLES)

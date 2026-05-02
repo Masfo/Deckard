@@ -133,7 +133,7 @@ namespace deckard::cpuid
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
-#if 0
+#if 1
 		if (!has_cpuid())
 			return {0, 0, 0, 0};
 #endif
