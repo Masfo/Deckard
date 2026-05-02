@@ -90,6 +90,17 @@ TEST_CASE("HMAC-SHA1 digests", "[hmac][sha1][hash]")
 
 		CHECK(digest == correct_digest);
 	}
+
+	SECTION("0xaa repeated 131 times - empty data")
+	{
+		std::array<u8, 131> key{};
+		key.fill(0xaa);
+		std::span<const u8> key_bytes{key};
+
+		auto digest = hmac::sha256::quickhash(key_bytes, ""sv);
+
+		CHECK(digest == "44b545def5b97eb719d856a15e327833e520e4770619c0e3eefbde24b71285a7"sv);
+	}
 }
 
 TEST_CASE("HMAC-SHA256 digests", "[hmac][sha256][hash]")
@@ -132,6 +143,16 @@ TEST_CASE("HMAC-SHA256 digests", "[hmac][sha256][hash]")
 		sha256::digest correct_digest("9b09ffa71b942fcb27635fbcd5b0e944bfdc63644f0713938a7f51535c3a35e2");
 
 		CHECK(digest == correct_digest);
+	}
+
+	SECTION("0xaa repeated 80 times - empty data")
+	{
+		std::array<u8, 80> key{};
+		key.fill(0xaa);
+
+		auto digest = hmac::sha1::quickhash(key, ""sv);
+
+		CHECK(digest == "6fb70a345b84a347a0ca3b58b4f8ddc6ab1ec61f"sv);
 	}
 }
 
@@ -180,6 +201,16 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 									  "76fb6de0446065c97440fa8c6a58");
 
 		CHECK(digest == correct_digest);
+	}
+
+	SECTION("0xaa repeated 131 times - empty data")
+	{
+		std::array<u8, 131> key{};
+		key.fill(0xaa);
+
+		auto digest = hmac::sha256::quickhash(key, ""sv);
+
+		CHECK(digest == "44b545def5b97eb719d856a15e327833e520e4770619c0e3eefbde24b71285a7"s);
 	}
 }
 

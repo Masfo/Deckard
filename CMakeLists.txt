@@ -18,13 +18,13 @@ option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 
 #find_program(SCCACHE_PROGRAM sccache)
 
-if(SCCACHE_PROGRAM)
-	message(STATUS "sccache found: ${SCCACHE_PROGRAM}")
-	set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
-	set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
-else()
-	message(STATUS "sccache not found — building without compiler cache")
-endif()
+# if(SCCACHE_PROGRAM)
+# 	message(STATUS "sccache found: ${SCCACHE_PROGRAM}")
+# 	set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
+# 	set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
+# else()
+# 	message(STATUS "sccache not found — building without compiler cache")
+# endif()
 
 
 
