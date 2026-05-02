@@ -9,7 +9,7 @@ import deckard.helpers;
 namespace deckard::hmac
 {
 	template<Hasher Hasher, Digester Digest, u32 BLOCK_SIZE>
-	Digest generic_hmac(std::span<u8> key, std::span<u8> message)
+	Digest generic_hmac(std::span<const u8> key, std::span<const u8> message)
 	{
 		std::array<u8, BLOCK_SIZE> norm_key{};
 		if (key.size() > BLOCK_SIZE)
@@ -31,8 +31,8 @@ namespace deckard::hmac
 		std::array<u8, BLOCK_SIZE> opad{};
 		for (std::size_t i = 0; i < BLOCK_SIZE; ++i)
 		{
-			ipad[i] = norm_key[i] ^ u8 { 0x36 };
-			opad[i] = norm_key[i] ^ u8 { 0x5c };
+			ipad[i] = norm_key[i] ^ u8{0x36};
+			opad[i] = norm_key[i] ^ u8{0x5c};
 		}
 
 		Hasher inner;
@@ -53,18 +53,18 @@ namespace deckard::hmac
 		using digest             = deckard::sha1::digest;
 		constexpr u32 BLOCK_SIZE = 64;
 
-		export auto hash(std::span<u8> key, std::span<u8> msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, msg); }
+		export auto hash(std::span<const u8> key, std::span<const u8> msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, msg); }
 
 		export auto hash(std::string_view key, std::string_view msg)
 		{
 			return generic_hmac<hasher, digest, BLOCK_SIZE>(to_span(key), to_span(msg));
 		}
 
-		export auto hash(std::span<u8> key, std::string_view msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, to_span(msg)); }
+		export auto hash(std::span<const u8> key, std::string_view msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, to_span(msg)); }
 
-		export std::string quickhash(std::span<u8> key, std::span<u8> msg) { return hash(key, msg).to_string(); }
+		export std::string quickhash(std::span<const u8> key, std::span<const u8> msg) { return hash(key, msg).to_string(); }
 
-		export std::string quickhash(std::span<u8> key, std::string_view msg) { return hash(key, msg).to_string(); }
+		export std::string quickhash(std::span<const u8> key, std::string_view msg) { return hash(key, msg).to_string(); }
 
 		export std::string quickhash(std::string_view key, std::string_view msg) { return quickhash(to_span(key), to_span(msg)); }
 	} // namespace sha1
@@ -76,18 +76,18 @@ namespace deckard::hmac
 		using digest             = deckard::sha256::digest;
 		constexpr u32 BLOCK_SIZE = 64;
 
-		export auto hash(std::span<u8> key, std::span<u8> msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, msg); }
+		export auto hash(std::span<const u8> key, std::span<const u8> msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, msg); }
 
 		export auto hash(std::string_view key, std::string_view msg)
 		{
 			return generic_hmac<hasher, digest, BLOCK_SIZE>(to_span(key), to_span(msg));
 		}
 
-		export auto hash(std::span<u8> key, std::string_view msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, to_span(msg)); }
+		export auto hash(std::span<const u8> key, std::string_view msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, to_span(msg)); }
 
-		export std::string quickhash(std::span<u8> key, std::span<u8> msg) { return hash(key, msg).to_string(); }
+		export std::string quickhash(std::span<const u8> key, std::span<const u8> msg) { return hash(key, msg).to_string(); }
 
-		export std::string quickhash(std::span<u8> key, std::string_view msg) { return hash(key, msg).to_string(); }
+		export std::string quickhash(std::span<const u8> key, std::string_view msg) { return hash(key, msg).to_string(); }
 
 		export std::string quickhash(std::string_view key, std::string_view msg) { return quickhash(to_span(key), to_span(msg)); }
 	} // namespace sha256
@@ -99,18 +99,18 @@ namespace deckard::hmac
 		using digest             = deckard::sha512::digest;
 		constexpr u32 BLOCK_SIZE = 128;
 
-		export auto hash(std::span<u8> key, std::span<u8> msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, msg); }
+		export auto hash(std::span<const u8> key, std::span<const u8> msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, msg); }
 
 		export auto hash(std::string_view key, std::string_view msg)
 		{
 			return generic_hmac<hasher, digest, BLOCK_SIZE>(to_span(key), to_span(msg));
 		}
 
-		export auto hash(std::span<u8> key, std::string_view msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, to_span(msg)); }
+		export auto hash(std::span<const u8> key, std::string_view msg) { return generic_hmac<hasher, digest, BLOCK_SIZE>(key, to_span(msg)); }
 
-		export std::string quickhash(std::span<u8> key, std::span<u8> msg) { return hash(key, msg).to_string(); }
+		export std::string quickhash(std::span<const u8> key, std::span<const u8> msg) { return hash(key, msg).to_string(); }
 
-		export std::string quickhash(std::span<u8> key, std::string_view msg) { return hash(key, msg).to_string(); }
+		export std::string quickhash(std::span<const u8> key, std::string_view msg) { return hash(key, msg).to_string(); }
 
 		export std::string quickhash(std::string_view key, std::string_view msg) { return quickhash(to_span(key), to_span(msg)); }
 	} // namespace sha512
