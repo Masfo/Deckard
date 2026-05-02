@@ -185,6 +185,22 @@ export namespace deckard
 		return {reinterpret_cast<std::byte const*>(std::addressof(obj)), sizeof(T)};
 	}
 
+	// For structs/trivial types: view the raw bytes (same as as_byte_span, alias for clarity)
+	export template<ByteReinterpretable T>
+	[[nodiscard]] auto as_byte_span_be(T const& obj) noexcept -> std::span<const std::byte>
+	{
+		return {reinterpret_cast<std::byte const*>(std::addressof(obj)), sizeof(T)};
+	}
+
+	// For arithmetic types: view a pre-computed big-endian array as a span
+	export template<arithmetic T>
+		requires (not std::same_as<T, bool>)
+	[[nodiscard]] constexpr auto as_byte_span_be(std::array<std::byte, sizeof(T)> const& be_arr) noexcept
+		-> std::span<const std::byte>
+	{
+		return {be_arr.data(), be_arr.size()};
+	}
+
 	export template<ByteReinterpretable T>
 	[[nodiscard]] constexpr auto to_byte_array(T const& obj) noexcept -> std::array<std::byte, sizeof(T)>
 	{
@@ -201,6 +217,16 @@ export namespace deckard
 	[[nodiscard]] constexpr auto from_byte_array(std::span<const std::byte> span) noexcept -> T
 	{
 		assert::check(span.size() == sizeof(T), "from_byte_array: span size mismatch");
+		std::array<std::byte, sizeof(T)> arr{};
+		for (size_t i = 0; i < sizeof(T); ++i)
+			arr[i] = span[i];
+		return std::bit_cast<T>(arr);
+	}
+
+	export template<ByteReinterpretable T>
+	[[nodiscard]] constexpr auto from_be_byte_array(std::span<const std::byte> span) noexcept -> T
+	{
+		assert::check(span.size() == sizeof(T), "from_be_byte_array: span size mismatch");
 		std::array<std::byte, sizeof(T)> arr{};
 		for (size_t i = 0; i < sizeof(T); ++i)
 			arr[i] = span[i];

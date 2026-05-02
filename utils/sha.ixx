@@ -63,7 +63,7 @@ namespace deckard
 			}
 		}
 
-		generic_sha_digest(const std::initializer_list<u8>& digits)
+		generic_sha_digest(const std::initializer_list<const u8>& digits)
 		{
 			assert::check(digits.size() == binary.size(), "Initializer-list must be same size as digest");
 
@@ -83,7 +83,7 @@ namespace deckard
 
 		template<typename T>
 		requires(sizeof(T) == 1 and std::is_unsigned_v<T>)
-		generic_sha_digest(const std::span<u8>& digits)
+		generic_sha_digest(const std::span<const u8>& digits)
 		{
 			assert::check(digits.size() == binary.size(), "Input buffer must be same size as digest");
 
@@ -144,7 +144,7 @@ namespace deckard
 export template<typename T>
 concept Hasher = requires(T& obj) {
 	{ obj.reset() } -> std::same_as<void>;
-	{ obj.update(std::span<u8>{}) } -> std::same_as<void>;
+	{ obj.update(std::span<const u8>{}) } -> std::same_as<void>;
 	{ obj.update(std::string_view{}) } -> std::same_as<void>;
 } and std::is_same_v<decltype(std::declval<T>().finalize()), typename T::Digest>;
 
@@ -173,15 +173,15 @@ namespace deckard::sha1 // #####################################################
 		void update(std::string_view data) { generic_update<const char>(data); }
 
 		template<typename T>
-		void update(std::span<T> const data)
+		void update(std::span<const T> const data)
 		{
 			generic_update<T>(data);
 		}
 
 		template<typename T, size_t N>
-		void update(std::array<T, N>& data)
+		void update(const std::array<T, N>& data)
 		{
-			generic_update<T>(data);
+			generic_update<T>(std::span<const T>{data});
 		}
 
 		[[nodiscard]] digest finalize()
@@ -316,7 +316,7 @@ namespace deckard::sha1 // #####################################################
 		u64                               total_len{};
 	};
 
-	std::string quick_hash_generic(std::span<u8> input)
+	std::string quick_hash_generic(std::span<const u8> input)
 	{
 		sha1::hasher hasher;
 		hasher.update(input);
@@ -325,9 +325,9 @@ namespace deckard::sha1 // #####################################################
 		return digest.to_string();
 	}
 
-	export std::string quickhash(std::string_view input) { return quick_hash_generic({(u8*)input.data(), input.size()}); }
+	export std::string quickhash(std::string_view input) { return quick_hash_generic({(const u8*)input.data(), input.size()}); }
 
-	export std::string quickhash(std::span<u8> input) { return quick_hash_generic(input); }
+	export std::string quickhash(std::span<const u8> input) { return quick_hash_generic(input); }
 
 	static_assert(sizeof(hasher) == 104);
 
@@ -361,15 +361,15 @@ namespace deckard::sha256 // ###################################################
 		void update(std::string_view data) { generic_update<const char>(data); }
 
 		template<typename T>
-		void update(std::span<T> const data)
+		void update(std::span<const T> const data)
 		{
 			generic_update<T>(data);
 		}
 
 		template<typename T, size_t N>
-		void update(std::array<T, N>& data)
+		void update(const std::array<T, N>& data)
 		{
-			generic_update<T>(data);
+			generic_update<T>(std::span<const T>{data});
 		}
 
 		digest finalize()
@@ -393,7 +393,7 @@ namespace deckard::sha256 // ###################################################
 
 	private:
 		template<typename T>
-		void generic_update(const std::span<T> data)
+		void generic_update(const std::span<const T> data)
 		{
 			if (data.empty())
 				return;
@@ -514,7 +514,7 @@ namespace deckard::sha256 // ###################################################
 		return hasher.finalize();
 	}
 
-	std::string quick_hash_generic(std::span<u8> input)
+	std::string quick_hash_generic(std::span<const u8> input)
 	{
 		sha256::hasher hasher;
 		hasher.update(input);
@@ -526,7 +526,7 @@ namespace deckard::sha256 // ###################################################
 
 	export std::string quickhash(std::string_view input) { return quick_hash_generic(to_span(input)); }
 
-	export std::string quickhash(std::span<u8> input) { return quick_hash_generic(input); }
+	export std::string quickhash(std::span<const u8> input) { return quick_hash_generic(input); }
 
 	static_assert(sizeof(hasher) == 112);
 
@@ -568,15 +568,15 @@ namespace deckard::sha512 // ###################################################
 		void update(std::string_view data) { generic_update<const char>(data); }
 
 		template<typename T>
-		void update(std::span<T> const data)
+		void update(std::span<const T> const data)
 		{
 			generic_update<T>(data);
 		}
 
 		template<typename T, size_t N>
-		void update(std::array<T, N>& data)
+		void update(const std::array<T, N>& data)
 		{
-			generic_update<T>(data);
+			generic_update<T>(std::span<const T>{data});
 		}
 
 		digest finalize()
@@ -604,14 +604,14 @@ namespace deckard::sha512 // ###################################################
 
 	private:
 		template<typename T>
-		void generic_update(const std::span<T> data)
+		void generic_update(const std::span<const T> data)
 		{
 			if (data.empty())
 				return;
 
 			for (const auto& i : data)
 			{
-				m_block[m_blockindex++] = as<u8>(i & 0xFF);
+				m_block[m_blockindex++] = as<u8>(static_cast<u8>(i) & 0xFF);
 				if (m_blockindex == BLOCK_SIZE)
 				{
 					transform();
@@ -737,7 +737,7 @@ namespace deckard::sha512 // ###################################################
 		return hasher.finalize();
 	}
 
-	std::string quick_hash_generic(std::span<u8> input)
+	std::string quick_hash_generic(std::span<const u8> input)
 	{
 		sha512::hasher hasher;
 		hasher.update(input);
@@ -749,7 +749,7 @@ namespace deckard::sha512 // ###################################################
 
 	export std::string quickhash(std::string_view input) { return quick_hash_generic(to_span(input)); }
 
-	export std::string quickhash(std::span<u8> input) { return quick_hash_generic(input); }
+	export std::string quickhash(std::span<const u8> input) { return quick_hash_generic(input); }
 
 } // namespace deckard::sha512
 
