@@ -1263,4 +1263,58 @@ TEST_CASE("helpers", "[helpers]")
 
 		CHECK(p == newp);
 	}
+
+	SECTION("as_byte_span_be")
+	{
+		struct Packet
+		{
+			u32  id;
+			f32  value;
+			u16  flags;
+			bool alive;
+
+			bool operator==(const Packet& p) const
+			{
+				return id == p.id and value == p.value and flags == p.flags and alive == p.alive;
+			}
+		};
+
+		CHECK(std::is_trivially_copyable_v<Packet>);
+		CHECK(sizeof(Packet) == 12);
+
+
+		auto p  = Packet{.id = 1, .value = 2.0f, .flags = 3, .alive = true};
+		auto p2 = Packet{.id = 2, .value = 2.0f, .flags = 3, .alive = true};
+
+		CHECK(p != p2);
+
+		auto view = as_byte_span_be(p);
+
+		auto newp = from_be_byte_array<Packet>(view);
+
+		CHECK(p == newp);
+	}
+
+	SECTION("to and from byte array") 
+	{
+		// to_byte_array and from_byte_array should be inverses of each other
+		const u32 original_u32 = 0xDEAD'BEEFu;
+		auto      bytes_u32    = to_byte_array(original_u32);
+		CHECK(bytes_u32.size() == sizeof(u32));
+		CHECK(bytes_u32[0] == (std::byte)0xEF);
+		CHECK(bytes_u32[1] == (std::byte)0xBE);
+		CHECK(bytes_u32[2] == (std::byte)0xAD);
+		CHECK(bytes_u32[3] == (std::byte)0xDE);
+		CHECK(from_byte_array<u32>(bytes_u32) == original_u32); 
+		u32 reconstructed_u32 = from_byte_array<u32>(bytes_u32);
+		CHECK(reconstructed_u32 == original_u32);
+
+		const u64 original_u64 = 0x0102'0304'0506'0708ull;
+		auto      bytes_u64    = to_byte_array(original_u64);
+		CHECK(from_byte_array<u64>(bytes_u64) == original_u64);
+
+		const float original_f = 3.14159f;
+		auto        bytes_f    = to_byte_array(original_f);
+		CHECK(from_byte_array<float>(bytes_f) == original_f);
+	}
 }
