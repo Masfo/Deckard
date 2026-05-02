@@ -127,7 +127,7 @@ export namespace deckard::utf8
 			const auto        result = decode(buffer, i);
 			const std::size_t stride = result ? result->bytes_consumed : 1;
 
-			if (result and !utf8::is_combining_codepoint(result->codepoint))
+			if (result and not utf8::is_combining_codepoint(result->codepoint))
 				++count;
 
 			i += stride;
