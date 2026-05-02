@@ -82,7 +82,7 @@ if(MSVC)
 			/FS
 			/diagnostics:caret
 			/MP
-		>
+			>
 	)
 
 
@@ -100,6 +100,7 @@ if(MSVC)
 			/RTC1
 			/GS
 			/Zi
+			/FS
 		>
 
 		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:
