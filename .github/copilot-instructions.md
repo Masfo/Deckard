@@ -3,6 +3,7 @@
 ## Output
 - Return code first. Explanation after, only if non-obvious.
 - No inline prose. Use comments sparingly - only where logic is unclear.
+- No useless comments in code. If the code is self-explanatory, it needs no comment.
 - No boilerplate unless explicitly requested.
 
 ## Code Rules
