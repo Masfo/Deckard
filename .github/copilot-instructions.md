@@ -50,6 +50,16 @@
 - Use two-parameter `operator[]` for 2D indexing (e.g., `img[x, y]`) in this codebase; call sites should use that style.
 - Use std namespace explicitly (e.g., `std::vector`, `std::string_view`) instead of `using namespace std;`.
 - Avoid using const_cast; prefer to design APIs that do not require it.
+- Prefer `std::expected` for functions that may fail with recoverable errors, returning `std::expected<T, E>` instead of exceptions.
+- Use `std::optional` for parameters or returns that may not have a value, avoiding null pointers where semantics fit.
+- Leverage ranges and views (e.g., `std::views::transform`, `std::ranges::for_each`) for functional-style data processing over traditional loops.
+
+## Modern C++23/26 Features
+- Use coroutines (`co_await`, `co_return`, `co_yield`) for asynchronous programming or lazy evaluation, ensuring compatibility with MSVC.
+- Apply `consteval` for functions that must evaluate at compile time, such as metaprogramming helpers.
+- Adopt `std::generator` for producing sequences on-demand, preferring it over custom iterators for simple cases.
+- Favor `std::flat_map` and `std::flat_set` for small, frequently accessed sorted containers to optimize cache performance.
+- Utilize `std::mdspan` for multi-dimensional array views to improve type safety over raw pointers.
 
 ## Modules
 - Use C++ modules (`export module ...;`, `import ...;`) consistently.
