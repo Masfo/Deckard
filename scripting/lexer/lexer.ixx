@@ -38,18 +38,21 @@ namespace deckard::lexer
 	comment					comment	Line or block comments. Usually discarded.
 
 
-	Stringpool to collect identifiers and keywords,
-
 
 		Lexer as a generator, generate tokens to parser, parser can peek tokens, lookahead, etc.
 
 		✅⚠️❌❗
 
 
+
+
+		parser -> request next token from lexer
+
+
+
 	 */
 
-	enum class TokenType : u8
-	{
+	export enum class TokenType : u8 {
 		// Types
 		Integer,       // -1, 1
 		FloatingPoint, // -3.14, 3.14
@@ -139,14 +142,100 @@ namespace deckard::lexer
 		// RightBracketRightBracket, // ]]
 
 		//
-		EOL,
+		NEWLINE,
 		EOF,
-
+		UNKNOWN,
 
 		// always last
 		TokenCount
 	};
 
+	static_assert(static_cast<int>(TokenType::TokenCount) == 69, "Token count changed, update to_string");
+
+	export std::string_view to_string(TokenType type)
+	{
+		switch (type)
+		{
+			case TokenType::Integer: return "Integer"sv;
+			case TokenType::FloatingPoint: return "FloatingPoint"sv;
+			case TokenType::Identifier: return "Identifier"sv;
+			case TokenType::Character: return "Character"sv;
+			case TokenType::String: return "String"sv;
+			case TokenType::Keyword: return "Keyword"sv;
+
+			case TokenType::Plus: return "Plus"sv;
+			case TokenType::PlusPlus: return "PlusPlus"sv;
+			case TokenType::Minus: return "Minus"sv;
+			case TokenType::MinusMinus: return "MinusMinus"sv;
+			case TokenType::Star: return "Star"sv;
+			case TokenType::Percent: return "Percent"sv;
+			case TokenType::Question: return "Question"sv;
+			case TokenType::Bang: return "Bang"sv;
+			case TokenType::At: return "At"sv;
+			case TokenType::Dollar: return "Dollar"sv;
+			case TokenType::ShiftLeft: return "ShiftLeft"sv;
+			case TokenType::ShiftRight: return "ShiftRight"sv;
+			case TokenType::Underscore: return "Underscore"sv;
+			case TokenType::BackSlash: return "BackSlash"sv;
+			case TokenType::BackSlashBackSlash: return "BackSlashBackSlash"sv;
+			case TokenType::Slash: return "Slash"sv;
+			case TokenType::SlashSlash: return "SlashSlash"sv;
+			case TokenType::SlashStar: return "SlashStar"sv;
+			case TokenType::StarSlash: return "StarSlash"sv;
+			case TokenType::TripleQuote: return "TripleQuote"sv;
+			case TokenType::Equal: return "Equal"sv;
+
+			case TokenType::LessThan: return "LessThan"sv;
+			case TokenType::GreaterThan: return "GreaterThan"sv;
+			case TokenType::LessThanEqual: return "LessThanEqual"sv;
+			case TokenType::GreaterThanEqual: return "GreaterThanEqual"sv;
+			case TokenType::EqualEqual: return "EqualEqual"sv;
+			case TokenType::LessLessEqual: return "LessLessEqual"sv;
+			case TokenType::GreaterGreaterEqual: return "GreaterGreaterEqual"sv;
+
+			case TokenType::PlusEqual: return "PlusEqual"sv;
+			case TokenType::MinusEqual: return "MinusEqual"sv;
+			case TokenType::StarEqual: return "StarEqual"sv;
+			case TokenType::SlashEqual: return "SlashEqual"sv;
+			case TokenType::PercentEqual: return "PercentEqual"sv;
+			case TokenType::BangEqual: return "BangEqual"sv;
+			case TokenType::XorEqual: return "XorEqual"sv;
+			case TokenType::QuestionEqual: return "QuestionEqual"sv;
+			case TokenType::AndEqual: return "AndEqual"sv;
+			case TokenType::OrEqual: return "OrEqual"sv;
+
+			case TokenType::Dot: return "Dot"sv;
+			case TokenType::DotDot: return "DotDot"sv;
+			case TokenType::Ellipsis: return "Ellipsis"sv;
+			case TokenType::Comma: return "Comma"sv;
+			case TokenType::Colon: return "Colon"sv;
+			case TokenType::Semicolon: return "Semicolon"sv;
+			case TokenType::Hash: return "Hash"sv;
+			case TokenType::Arrow: return "Arrow"sv;
+
+			case TokenType::Or: return "Or"sv;
+			case TokenType::And: return "And"sv;
+			case TokenType::Xor: return "Xor"sv;
+			case TokenType::Tilde: return "Tilde"sv;
+			case TokenType::OrOr: return "OrOr"sv;
+			case TokenType::AndAnd: return "AndAnd"sv;
+
+			case TokenType::LeftParen: return "LeftParen"sv;
+			case TokenType::RightParen: return "RightParen"sv;
+			case TokenType::LeftBrace: return "LeftBrace"sv;
+			case TokenType::RightBrace: return "RightBrace"sv;
+			case TokenType::LeftBracket: return "LeftBracket"sv;
+			case TokenType::RightBracket: return "RightBracket"sv;
+			case TokenType::LeftAngleBracket: return "LeftAngleBracket"sv;
+			case TokenType::RightAngleBracket: return "RightAngleBracket"sv;
+
+			case TokenType::NEWLINE: return "Newline"sv;
+			case TokenType::EOF: return "EOF"sv;
+			case TokenType::UNKNOWN: return "Unknown token"sv;
+		}
+
+		return "Invalid token"sv;
+	}
 
 	using Lexeme = std::span<const u8>;
 
@@ -206,12 +295,14 @@ namespace deckard::lexer
 		u32 size() const { return as<u32>(storage.size()); }
 	};
 
-	struct Token
+	export struct Token
 	{
-		u32       lexeme_id;
+		u32       id;
 		u32       line;
 		u32       column;
-		TokenType type;
+		u32       offset; // Byte offset into the buffer
+		u32       length; // Length in codepoints
+		TokenType type{TokenType::TokenCount};
 	};
 
 	template<typename T>
@@ -219,1243 +310,190 @@ namespace deckard::lexer
 		{ v(cp) } -> std::same_as<bool>;
 	};
 
-	export enum class TokenType2 : u8 {
-		INTEGER,        // 1, -1
-		FLOATING_POINT, // 3.14
-		KEYWORD,        // if, else
-		IDENTIFIER,     // a123, _123
-		CHARACTER,      // 'a', '🌍'
-		STRING,         // "abc", "🌍🌍"
-
-		// keywords
-		// TODO: just token KEYWORD,
-		KEYWORD_BOOLEAN, //
-
-		KEYWORD_TRUE,    // true
-		KEYWORD_FALSE,   // false
-		KEYWORD_IF,      //
-		KEYWORD_ELSE,    //
-		KEYWORD_FN,      //
-		KEYWORD_LET,     //
-		KEYWORD_STRUCT,  //
-		KEYWORD_ENUM,    //
-		KEYWORD_RETURN,  //
-
-
-		TYPE,            // builtin type: i32, f32
-		USER_TYPE,       // struct <type>
-
-		// Op
-		PLUS,        // +
-		MINUS,       // -
-		STAR,        // *
-		SLASH,       // /
-		PERCENT,     // %
-		QUESTION,    // ?
-		BANG,        // !
-		AT,          // @
-		UNDERSCORE,  // _
-
-
-		BACK_SLASH,  // '\'
-		SLASH_SLASH, // //
-		SLASH_STAR,  // /*
-		STAR_SLASH,  // */
-
-		// TRIPLE_QUOTE, // """
-
-		EQUAL, // =
-
-		// Compare
-		LESSER,                // <
-		GREATER,               // >
-		LESSER_EQUAL,          // <=
-		GREATER_EQUAL,         // >=
-		EQUAL_EQUAL,           // ==
-		LESSER_LESSER_EQUAL,   // <<=
-		GREATER_GREATER_EQUAL, // >>=
-		PLUS_EQUAL,            // +=
-		MINUS_EQUAL,           // -=
-		STAR_EQUAL,            // *=
-		SLASH_EQUAL,           // /=
-		PERCENT_EQUAL,         // %=
-		BANG_EQUAL,            // !=
-		XOR_EQUAL,             // ^=
-		QUESTION_EQUAL,        // ?=
-		AND_EQUAL,             // &=
-		OR_EQUAL,              // |=
-
-
-		//
-		DOT,        // .
-		ELLIPSIS,   // ..
-		COMMA,      // ,
-		COLON,      // :
-		SEMI_COLON, // ;
-		HASH,       // #
-		ARROW,      // ->
-
-		OR,         // |
-		AND,        // &
-		XOR,        // ^
-		TILDE,      // ~
-		OR_OR,      // ||
-		AND_AND,    // &&
-
-		// Brackets
-		LEFT_PAREN,    // (
-		RIGHT_PAREN,   // )
-		LEFT_BRACE,    // {
-		RIGHT_BRACE,   // }
-		LEFT_BRACKET,  // [
-		RIGHT_BRACKET, // ]
-
-		//
-		UNKNOWN,
-		INVALID,
-		INVALID_CHAR,
-		INVALID_HEX,
-		INVALID_FLOATING_POINT,
-		INVALID_BINARY,
-		EOL,
-		EOF,
-
-
-		TOKEN_COUNT
-	};
-
-#pragma region !Old tokenizer
-
-
-	using TokenValue = std::variant<std::monostate, f64, i64, u64, utf8::view>;
-
-	static_assert(sizeof(TokenValue) == 32);
-
-	struct Token2
+	export utf8::view extract_token(utf8::view buffer, Token t)
 	{
-		std::span<u8> token_in_source; // tokens source
-		TokenValue    value;
-		TokenType     type;
-	};
+		return buffer.subview_bytes(t.offset, buffer.size_in_bytes() - t.offset).subview(t.length);
+	}
 
-	constexpr auto TokenSize = sizeof(Token2);
-	static_assert(sizeof(Token2) == 56);
-
-	using namespace deckard;
-
-	export class tokenizer
+	export std::generator<Token> tokenize(utf8::view buffer)
 	{
-	private:
-		using tokens = std::vector<Token2>;
+		using namespace deckard::utf8::basic_characters;
+		utf8::view cursor = buffer;
+		u32        line   = 1;
+		u32        column = 1;
 
-		utf8::iterator it;
-		utf8::string   m_data;
-		tokens         m_tokens;
-		u64            line{}, column{};
-
-	private:
-		void assign(const std::span<u8>& buffer)
+		auto emit = [&](TokenType type, u32 length = 1) mutable-> std::generator<Token>
 		{
-			m_data.assign(buffer);
-			it = m_data.begin();
-		}
-
-		bool load_from_file(const fs::path) { return true; }
-
-		bool load_from_memory(const std::span<u8>& buffer)
-		{
-			//
-			if (buffer.empty())
-				return false;
-			assign(buffer);
-			return true;
-		}
-
-	public:
-		tokenizer() = default;
-
-		explicit tokenizer(const fs::path path) { load_from_file(path); }
-
-		tokenizer(const char* input)
-			: m_data(input)
-			, it(m_data.begin())
-		{
-			tokenize();
-		}
-
-		tokenizer(std::string_view input)
-			: m_data(input)
-			, it(m_data.begin())
-		{
-			tokenize();
-		}
-
-		tokenizer(utf8::string input)
-			: m_data(input)
-			, it(m_data.begin())
-
-		{
-			tokenize();
-		}
-
-		auto eof() const { return it >= m_data.end() - 1; }
-
-		bool eol() const { return false; }
-
-		auto peek(size_t offset = 0) const -> std::optional<char32>
-		{
-			if (it + offset)
-				return *(it + offset);
-			return std::nullopt;
-		}
-
-		auto consume(const codepoint_predicate auto&& pred) -> u32
-		{
-			u32  count = 0;
-			auto start = it;
-
-			while (start != m_data.end())
-			{
-				if (auto cp = *start; pred(cp))
-				{
-
-					start++;
-					count++;
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			return count;
-		}
-
-		auto advance(int offset = 1)
-		{
-			if (it)
-				it += offset;
-		}
-
-		u64 scan_identifier(u64 offset)
-		{
-			u64 i = offset;
-
-			while (i < m_data.size_in_bytes())
-			{
-				auto cp = m_data[i];
-				if (utf8::is_identifier_continue(cp))
-					i += 1;
-				else
-					break;
-			}
-			return i - offset;
-		}
-
-		auto tokenize()
-		{
-			using namespace deckard::utf8::basic_characters;
-
-			auto next_line = [this]() mutable
-			{
-				line += 1;
-				column = 0;
-			};
-			auto next_codepoint = [this](size_t count = 1) mutable { column += count; };
-
-			auto is_newline = [this]()
-			{
-				return peek() == LINE_FEED or peek() == CARRIAGE_RETURN or   // posix LF
-					   (peek() == CARRIAGE_RETURN and peek(1) == LINE_FEED); // windows CR LF
-			};
-
-			while (it)
-			{
-				auto current = peek();
-				auto next    = peek(1);
-				// if (not(current and next))
-				//{
-				//	dbg::println("does not have two chars");
-				//	break;
-				// }
-
-				u32 current_char = current ? *current : 0;
-				u32 next_char    = next ? *next : 0;
-
-
-				if (current_char == CARRIAGE_RETURN and next_char == LINE_FEED) // windows
-				{
-					dbg::println("windows newline: {}", (u32)current_char);
-					next_codepoint();                                           // consume \n
-					next_line();
-					it++;
-					continue;
-				}
-
-				if (current_char == LINE_FEED or current_char == CARRIAGE_RETURN) // posix
-				{
-					dbg::println("nix newline: {}", (u32)current_char);
-					next_line();
-					it++;
-					continue;
-				}
-
-				if (utf8::is_whitespace(current_char))
-				{
-					u32 count = consume([](char32 codepoint) { return utf8::is_whitespace(codepoint); });
-
-					dbg::println("whitespace: {}", count);
-					next_codepoint(count);
-					it += count;
-					continue;
-				}
-
-
-				if (current_char == NUMBER_SIGN)
-				{
-
-					dbg::println("backslash: {}", (u32)current_char);
-					next_codepoint();
-					it++;
-					continue;
-				}
-
-
-				dbg::println("unknown: {:x}", (u32)current_char);
-				it++;
-			}
-		}
-	};
-
-#pragma endregion
-
-#pragma region !Old lexer
-#if 0
-
-	constexpr auto keyword_to_i64_hash = [](std::wstring_view str) -> i64 { return std::hash<std::wstring_view>{}(str); };
-	struct keyword
-	{
-		i64   word;
-		Token token;
-
-		bool operator<(const keyword& lhs) const { return word < lhs.word; }
-	};
-	using lexeme = std::vector<char32_t>;
-
-
-	using number = std::variant<std::monostate, double, i64, u64>;
-
-	export struct token
-	{
-		lexeme       lexeme;
-		std::wstring str_literal;
-		number       numeric_value;
-		u32          line{0};
-		u32          cursor{0}; // cursor pos in line
-		Token        type;
-
-		// in codepoints
-		u32 lexeme_index{0};
-		u32 lexeme_length{0};
-
-		template<typename T>
-		std::optional<T> get() const
-		{
-			if (std::holds_alternative<T>(numeric_value))
-				return std::get<T>(numeric_value);
-			return {};
-		}
-
-		auto as_i64() const { return get<i64>(); }
-
-		auto as_u64() const { return get<u64>(); }
-
-		auto as_double() const { return get<double>(); }
-	};
-
-	export struct tokenizer_config
-	{
-		std::string_view digit_separator{"\'"};
-		std::string_view line_comment{R"(//)"};
-		bool             dot_identifier{false};
-		bool             output_eol{false};
-		bool             ignore_keywords{false};
-	};
-
-	export class tokenizer
-	{
-	public:
-		using tokens = std::vector<token>;
-
-	private:
-		utf8::string m_data;
-
-		u32    index{0};
-		tokens m_tokens;
-		u32    current_token{0};
-
-		std::string      filename;
-		tokenizer_config config;
-
-		u32 line{0};
-		u32 cursor{0};
-
-		size_t                   longest_keyword{0};
-		std::vector<keyword>     keywords;
-		std::vector<std::string> builtin_types;
-
-	public:
-		tokenizer() = default;
-
-		tokenizer(utf8::string str)
-			: m_data(str)
-		{
-		}
-
-		explicit tokenizer(fs::path f) { open(f); }
-
-		explicit tokenizer(fs::path f, const tokenizer_config& tf)
-		{
-			open(f);
-			tokenize(tf);
-		}
-
-		explicit tokenizer(std::string_view str) { *this = str; }
-
-		explicit tokenizer(std::span<u8> input)
-		{
-			auto data(input);
-			m_data = utf8::string{data};
-			m_tokens.reserve(m_data.size());
-			filename = "";
-		}
-
-		void operator=(std::string_view input)
-		{
-			reset();
-			auto data(input);
-			m_data = data;
-			m_tokens.reserve(m_data.size());
-			filename = "";
+			u32 offset = as<u32>(cursor - buffer);
+			dbg::println("thi8");
+			co_yield Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
+			column += length;
+			cursor += length;
 		};
 
-		void open(fs::path f)
+		auto give_token = [&](TokenType type, u32 length = 1) mutable
 		{
-			file input_file(f);
-			if (input_file.is_open())
-				m_data = input_file.data();
+			u32 offset = as<u32>(cursor - buffer);
+			auto ret = Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
+			column += length;
+			cursor += length;
+			return ret;
 
-			m_tokens.reserve(m_data.size());
-			filename = input_file.name().string();
-		}
+		};
 
-		void setconfig(tokenizer_config c) { config = c; }
-
-		bool has_data(u32 offset = 0) const { return (index + offset) < m_data.size_in_bytes(); }
-
-		char32_t peek(u32 offset = 0)
+		while (cursor.has_next())
 		{
-			if (not m_data.empty())
+			char32 current = *cursor;
+			u32    offset  = as<u32>(cursor - buffer);
+
+			if (current == LINE_FEED)
 			{
-				return m_data.next(offset);
+				line += 1;
+				column = 1;
+				++cursor;
+				continue;
 			}
-			return utf8::EOF_CHARACTER;
-		}
-
-		void reset()
-		{
-			m_tokens.clear();
-			index  = 0;
-			line   = 0;
-			cursor = 0;
-		}
-
-		bool eof() { return peek() == utf8::EOF_CHARACTER; }
-
-		token create_token() const
-		{
-			token t;
-			t.line         = line;
-			t.cursor       = cursor;
-			t.lexeme_index = index;
-
-			return t;
-		}
-
-		tokens tokenize() { return tokenize(config); }
-
-		tokens tokenize(const tokenizer_config& cfg)
-		{
-			setconfig(cfg);
-
-			if (cfg.ignore_keywords == false)
-				init_defaults();
-
-			auto iter = m_data.begin();
-			while (iter != m_data.end())
+			else if (current == CARRIAGE_RETURN)
 			{
-				const auto current_char = m_data.current();
-				const auto next_char    = m_data.next();
+				++cursor;
+				if (cursor.has_next() and *cursor == LINE_FEED)
+					++cursor;
 
-
-				if ((current_char == '\\' and next_char == '\n'))
-				{
-					// TODO: any whitespace between slash and newline
-
-					// Any sequence of backslash (\) immediately followed by a new line is deleted,
-					// resulting in splicing lines together.
-					// \\n
-					m_data.next(2);
-
-					continue;
-				}
-
-				if ((current_char == '\\' and next_char == '\r' and peek(2) == '\n'))
-				{
-					// \ \r\n
-					m_data.next(3);
-
-					continue;
-				}
-				if (current_char == '\r' and next_char == '\n') // windows
-				{
-					if (config.output_eol)
-						insert_token(Token::EOL, {}, cursor);
-
-					m_data.next();
-
-					cursor = 0;
-					line += 1;
-					continue;
-				}
-
-				if (current_char == '\n' or current_char == '\r') // linux/mac
-				{
-					if (config.output_eol)
-						insert_token(Token::EOL, {}, cursor);
-
-					m_data.next();
-					cursor = 0;
-					line += 1;
-					continue;
-				}
-
-				if (utf8::is_whitespace(current_char))
-				{
-					m_data.next(1);
-
-					continue;
-				}
-				// TODO: line comment, user selected char // ; #
-
-
-				// TODO: block comment, nested
-
-
-				if (utf8::is_ascii_digit(current_char) or (current_char == '.' and utf8::is_ascii_digit(next_char)))
-				{
-					read_number();
-					continue;
-				}
-
-
-				if (current_char == '\'')
-				{
-					read_char();
-					continue;
-				}
-
-				if (current_char == '\"')
-				{
-					read_string();
-					continue;
-				}
-
-
-				if (utf8::is_identifier_start(current_char))
-				{
-					read_identifier();
-					continue;
-				}
-
-
-				if (utf8::is_ascii(current_char))
-				{
-					read_symbol();
-					continue;
-				}
-
-				dbg::println("Unknown: {}", (u32)current_char);
-				dbg::trace();
-				dbg::panic("what is this?");
+				line += 1;
+				column = 1;
+				continue;
 			}
 
-			insert_token(Token::EOF, {}, cursor);
-
-			return m_tokens;
-		}
-
-		void read_number()
-		{
-			// TODO: digit separator
-			// TODO: integer suffix	none i32/i64, u/U u32/u64, l/L i64,	ul/UL u64
-			bool hex    = false;
-			bool binary = false;
-
-			lexeme lit;
-			Token  type = Token::INTEGER;
-
-			auto current_char   = peek(0);
-			auto next_char      = peek(1);
-			u32  current_cursor = cursor;
-
-
-			auto diff = cursor - current_cursor;
-
-			if (utf8::is_ascii_digit(current_char) or current_char == '.')
+#if 0
+			if (current == LINE_FEED) // posix
 			{
-				switch (next_char)
+				co_yield Token{.id = 0, .line = line, .column = column, .offset = offset, .length = 1, .type = TokenType::NEWLINE};
+				line += 1;
+				column = 1;
+				++cursor;
+				continue;
+			}
+			else if (current == CARRIAGE_RETURN) // windows
+			{
+				u32 length = 1;
+
+				if (auto next = cursor.peek(); next and next == LINE_FEED)
 				{
-					case 'b': [[fallthrough]];
-					case 'B':
+					++cursor;
+					length += 1;
+				}
 
+				co_yield Token{.id = 0, .line = line, .column = column, .offset = offset, .length = 2, .type = TokenType::NEWLINE};
+				line += 1;
+				column = 1;
+				++cursor;
+				continue;
+			}
+#endif
+
+			if (utf8::is_ascii_digit(current))
+			{
+				u32 start_column = column;
+				u32 codepoints   = 1;
+
+				++cursor;
+				while (cursor.has_next() and utf8::is_ascii_digit(*cursor))
+				{
+					++cursor;
+					codepoints += 1;
+				}
+
+				if (cursor.has_next() and *cursor == FULL_STOP)
+				{
+					++cursor;
+					codepoints += 1;
+					while (cursor.has_next() and utf8::is_ascii_digit(*cursor))
 					{
-						binary = true;
-						lit.push_back(m_data.next());
-						lit.push_back(m_data.next());
-						diff = cursor - current_cursor;
-						while (not eof() and utf8::is_ascii_binary_digit(peek()))
-						{
-
-							lit.push_back(m_data.next());
-						}
-						break;
-					}
-					case 'x': [[fallthrough]];
-					case 'X':
-					{
-						hex = true;
-						lit.push_back(m_data.next());
-						lit.push_back(m_data.next());
-						diff = cursor - current_cursor;
-
-						while (not eof() and utf8::is_ascii_hex_digit(peek()))
-						{
-							lit.push_back(m_data.next());
-						}
-						break;
+						++cursor;
+						codepoints += 1;
 					}
 
-					default:
-					{
-						u32 dotcount = 0;
-						while (not eof() and (utf8::is_ascii_digit(peek()) or peek() == '.'))
-						{
-							// ellipsis
-							if (peek(0) == '.' and peek(1) == '.')
-								break;
-
-							if (peek() == '.' and dotcount == 0)
-							{
-								type = Token::FLOATING_POINT;
-								dotcount += 1;
-								lit.push_back(m_data.next());
-								continue;
-							}
-
-							if (peek() == '.' and dotcount >= 1)
-							{
-								type = Token::INVALID_FLOATING_POINT;
-								lit.push_back(m_data.next());
-								continue;
-							}
-
-							lit.push_back(m_data.next());
-						}
-						break;
-					}
+					co_yield Token{
+					  .id     = 0,
+					  .line   = line,
+					  .column = start_column,
+					  .offset = offset,
+					  .length = codepoints,
+					  .type   = TokenType::FloatingPoint};
+					continue;
 				}
+
+				co_yield Token{
+				  .id     = 0,
+				  .line   = line,
+				  .column = start_column,
+				  .offset = offset,
+				  .length = codepoints,
+				  .type   = TokenType::Integer};
+
+				continue;
 			}
 
 
-			if (diff == cursor - current_cursor)
+			if (utf8::is_whitespace(current))
 			{
-				if (hex)
-					type = Token::INVALID_HEX;
-				if (binary)
-					type = Token::INVALID_BINARY;
+				++cursor;
+				column += 1;
+				continue;
 			}
 
-			insert_token(type, lit, current_cursor);
-		}
-
-		void read_char()
-		{
-			// TODO: multicharacters, 'ABCD' => 0x41424344;
-			lexeme lit;
-			Token  type           = Token::CHARACTER;
-			u32    current_cursor = cursor;
-			m_data.next(); // '
-
-			auto diff = cursor - current_cursor;
-
-
-			while (not eof() and peek() != '\'')
-				lit.push_back(m_data.next());
-
-			if (peek() != '\'')
-				type = Token::INVALID_CHAR;
-			else
-				m_data.next(); // '
-
-			if (diff == cursor - current_cursor)
+			if (utf8::is_xid_start(current))
 			{
-				type = Token::INVALID_CHAR;
+				u32 start_column = column;
+				u32 codepoints   = 1;
+				++cursor;
+				column += 1;
+
+				while (cursor.has_next() and utf8::is_xid_continue(*cursor))
+				{
+					++cursor;
+					column += 1;
+					codepoints += 1;
+				}
+
+				co_yield Token{
+				  .id     = 0,
+				  .line   = line,
+				  .column = start_column,
+				  .offset = offset,
+				  .length = codepoints,
+				  .type   = TokenType::Identifier};
+				continue;
 			}
 
-			insert_token(type, lit, current_cursor);
-		}
-
-		void read_string()
-		{
 			//
-			lexeme lit;
-			Token  type           = Token::STRING;
-			u32    current_cursor = cursor;
-
-			// TODO: multiline string
-
-			// TODO: python triple """ string, read all until second """
-
-			m_data.next();
-			bool end_quote = false;
-			while (not eof())
-			{
-
-				if (end_quote)
-					break;
-
-				auto current = peek();
-				switch (current)
-				{
-					case '\"':
-					{
-						end_quote = true;
-						m_data.next();
-						break;
-					}
-					case '\\':
-					{
-						m_data.next();
-						current = peek();
-						switch (current)
-						{
-							case '\'':
-								lit.push_back('\'');
-								break;
-
-
-								// TODO: hex
-								// case 'x': lit.push_back('\n'); break;
-
-							case 'n': lit.push_back('\n'); break;
-							case 'r': lit.push_back('\r'); break;
-							case 't': lit.push_back('\t'); break;
-							case '\\': lit.push_back('\\'); break;
-							case '\"': lit.push_back('\"'); break;
-
-							default:
-							{
-								dbg::println("Invalid escape sequence");
-							}
-						}
-						m_data.next();
-
-						break;
-					}
-					default: lit.push_back(m_data.next()); break;
-				}
-			}
-
-			insert_token(type, lit, current_cursor);
-		}
-
-		void read_identifier()
-		{
-			lexeme lit;
-			u32    current_cursor = cursor;
-
-
-			while (not eof())
-			{
-				if (auto n = peek();
-					config.dot_identifier == true ? n == '.' or utf8::is_identifier_continue(n) : utf8::is_identifier_continue(n))
-					lit.push_back(m_data.next());
-				else
-					break;
-			}
-			// TODO: max len ident
-
-			Token type = Token::IDENTIFIER;
-
-			if (lit.size() == 1 and lit[0] == '_')
-			{
-				type = Token::UNDERSCORE;
-				insert_token(type, lit, current_cursor);
-				return;
-			}
-
-			type = identifier_to_token(lit);
-
-			insert_token(type, lit, current_cursor);
-		}
-
-		void read_symbol()
-		{
-			//
-			lexeme lit;
-			Token  type       = Token::UNKNOWN;
-			auto   current    = peek(0);
-			auto   next_char  = peek(1);
-			auto   next2_char = peek(2);
-
-			int symbol_size    = 1;
-			u32 current_cursor = cursor;
-
 			switch (current)
 			{
-				case '=':
+				using enum TokenType;
+				case HASH:
 				{
-					type = Token::EQUAL;
-
-					if (next_char == '=')
-					{
-						type        = Token::EQUAL_EQUAL;
-						symbol_size = 2;
-						break;
-					}
-
-					break;
+					co_yield give_token(Hash, 1);
+					continue;
 				}
-
-				case '+':
+				case PLUS_SIGN:
 				{
-					type = Token::PLUS;
-
-					if (next_char == '=')
-					{
-						type        = Token::PLUS_EQUAL;
-						symbol_size = 2;
-						break;
-					}
-
-					break;
+					co_yield give_token(Plus, 1);
+					continue;
 				}
-
-				case '-':
-				{
-					type = Token::MINUS;
-
-					if (next_char == '=')
-					{
-						type        = Token::MINUS_EQUAL;
-						symbol_size = 2;
-						break;
-					}
-					if (next_char == '>')
-					{
-						type        = Token::ARROW;
-						symbol_size = 2;
-						break;
-					}
-
-					break;
-				}
-
-				case '*':
-				{
-					type = Token::STAR;
-
-					if (next_char == '=')
-					{
-						type        = Token::STAR_EQUAL;
-						symbol_size = 2;
-					}
-					if (next_char == '/')
-					{
-						type        = Token::STAR_SLASH;
-						symbol_size = 2;
-					}
-					break;
-				}
-				case '/':
-				{
-					type = Token::SLASH;
-
-					if (next_char == '/')
-					{
-						type        = Token::SLASH_SLASH;
-						symbol_size = 2;
-					}
-					if (next_char == '=')
-					{
-						type        = Token::SLASH_EQUAL;
-						symbol_size = 2;
-					}
-					if (next_char == '*')
-					{
-						type        = Token::SLASH_STAR;
-						symbol_size = 2;
-					}
-
-					break;
-				}
-
-				case '%':
-				{
-					type = Token::PERCENT;
-
-					if (next_char == '=')
-					{
-						type        = Token::PERCENT_EQUAL;
-						symbol_size = 2;
-					}
-
-					break;
-				}
-
-				case '_':
-				{
-					type = Token::UNDERSCORE;
-					break;
-				}
-
-				case '?':
-				{
-					type = Token::QUESTION;
-					break;
-				}
-
-
-				case '&':
-				{
-					type = Token::AND;
-					if (next_char == '=')
-					{
-						type        = Token::AND_EQUAL;
-						symbol_size = 2;
-					}
-					if (next_char == '&')
-					{
-						type        = Token::AND_AND;
-						symbol_size = 2;
-					}
-					break;
-				}
-
-
-				case '|':
-				{
-					type = Token::OR;
-					if (next_char == '=')
-					{
-						type        = Token::OR_EQUAL;
-						symbol_size = 2;
-					}
-					if (next_char == '|')
-					{
-						type        = Token::OR_OR;
-						symbol_size = 2;
-					}
-
-					break;
-				}
-
-				case '^':
-				{
-					type = Token::XOR;
-					if (next_char == '=')
-					{
-						type        = Token::XOR_EQUAL;
-						symbol_size = 2;
-					}
-
-					break;
-				}
-
-				case '\\':
-				{
-					type = Token::BACK_SLASH;
-
-					break;
-				}
-
-				case '~':
-				{
-					type = Token::TILDE;
-					break;
-				}
-
-				case '<':
-				{
-					type = Token::LESSER;
-					if (next_char == '=')
-					{
-						type        = Token::LESSER_EQUAL;
-						symbol_size = 2;
-						break;
-					}
-
-					if (next_char == '<' and next2_char == '=')
-					{
-						type        = Token::LESSER_LESSER_EQUAL;
-						symbol_size = 3;
-						break;
-					}
-					break;
-				}
-				case '>':
-				{
-					type = Token::GREATER;
-					if (next_char == '=')
-					{
-						type        = Token::GREATER_EQUAL;
-						symbol_size = 2;
-						break;
-					}
-
-					if (next_char == '>' and next2_char == '=')
-					{
-						type        = Token::GREATER_GREATER_EQUAL;
-						symbol_size = 3;
-						break;
-					}
-
-					break;
-				}
-
-				case '.':
-				{
-					type = Token::DOT;
-					if (next_char == '.')
-					{
-						type        = Token::ELLIPSIS;
-						symbol_size = 2;
-					}
-
-					break;
-				}
-
-				case ',':
-				{
-					type = Token::COMMA;
-
-					break;
-				}
-
-				case ':':
-				{
-					type = Token::COLON;
-
-					break;
-				}
-
-				case ';':
-				{
-					type = Token::SEMI_COLON;
-
-					break;
-				}
-
-				case '!':
-				{
-					type = Token::BANG;
-					if (next_char == '=')
-					{
-						type        = Token::BANG_EQUAL;
-						symbol_size = 2;
-					}
-
-					break;
-				}
-
-				case '#':
-				{
-					type = Token::HASH;
-
-					break;
-				}
-
-				case '@':
-				{
-					type = Token::AT;
-
-					break;
-				}
-
-				case '(':
-				{
-					type = Token::LEFT_PAREN;
-
-					break;
-				}
-				case ')':
-				{
-					type = Token::RIGHT_PAREN;
-
-					break;
-				}
-
-				case '[':
-				{
-					type = Token::LEFT_BRACKET;
-
-					break;
-				}
-				case ']':
-				{
-					type = Token::RIGHT_BRACKET;
-
-					break;
-				}
-
-				case '{':
-				{
-					type = Token::LEFT_BRACE;
-
-					break;
-				}
-				case '}':
-				{
-					type = Token::RIGHT_BRACE;
-
-					break;
-				}
-
 
 				default:
 				{
-					dbg::println("Unknown symbol: '{:c}'", as<u32>(current));
-					type = Token::UNKNOWN;
+					co_yield give_token(TokenType::UNKNOWN, 1);
+					continue;
 				}
 			}
 
-			assert::check(type != Token::UNKNOWN, "Unknown symbol");
-
-			lit.push_back(current);
-			if (symbol_size == 2)
-				lit.push_back(next_char);
-			if (symbol_size == 3)
-			{
-				lit.push_back(next_char);
-				lit.push_back(next2_char);
-			}
 
 
-			insert_token(type, lit, current_cursor);
 		}
 
-		void insert_token(Token type, const lexeme& literal, u32 current_cursor, number num = 0)
-		{
-			std::wstring s;
-			for (const auto& c : literal)
-				s += (char32_t)c;
+		co_return;
+	}
 
-			token t{
-			  //
-			  .lexeme        = literal,
-			  .str_literal   = s,
-			  .numeric_value = num,
-			  .line          = line,
-			  .cursor        = current_cursor,
-			  .type          = type
-			  //
-			};
-
-			m_tokens.push_back(t);
-		}
-
-		token current() const
-		{
-			assert::check(not m_tokens.empty());
-			return m_tokens[current_token];
-		}
-
-		token next()
-		{
-			if (current_token < m_tokens.size())
-				current_token += 1;
-
-			return current();
-		}
-
-		token previous()
-		{
-			if (current_token > 0)
-				current_token -= 1;
-
-			return current();
-		}
-
-
-	private:
-		void add_keyword(std::wstring_view word, Token tok)
-		{
-			longest_keyword = std::max(longest_keyword, word.size());
-			keywords.push_back({keyword_to_i64_hash(word), tok});
-			std::ranges::sort(keywords, std::less{});
-		}
-
-		void add_type(const std::string& type) { builtin_types.push_back(type); }
-
-		void init_defaults()
-		{
-			// struct
-			add_keyword(L"let", Token::KEYWORD_LET);
-			add_keyword(L"fn", Token::KEYWORD_FN);
-			add_keyword(L"return", Token::KEYWORD_RETURN);
-			add_keyword(L"if", Token::KEYWORD_IF);
-			add_keyword(L"else", Token::KEYWORD_ELSE);
-			add_keyword(L"true", Token::KEYWORD_TRUE);
-			add_keyword(L"false", Token::KEYWORD_FALSE);
-			add_keyword(L"struct", Token::KEYWORD_STRUCT);
-			add_keyword(L"enum", Token::KEYWORD_ENUM);
-
-
-			// Builtin types
-			add_type("i8");
-			add_type("u8");
-			add_type("i16");
-			add_type("u16");
-			add_type("i32");
-			add_type("u32");
-			add_type("i64");
-			add_type("u64");
-			add_type("f32");
-			add_type("f64");
-		}
-
-		Token identifier_to_token(std::wstring_view keyword)
-		{
-			const auto hash = keyword_to_i64_hash(keyword);
-			for (const auto& word : keywords)
-			{
-				if (word.word == hash)
-					return word.token;
-			}
-			return Token::IDENTIFIER;
-		}
-
-		Token identifier_to_token(lexeme lex)
-		{
-			std::wstring wstr;
-			for (const auto& c : lex)
-				wstr += c;
-
-			return identifier_to_token(wstr);
-		}
-	};
-#endif
-#pragma endregion
 
 } // namespace deckard::lexer
