@@ -322,19 +322,11 @@ namespace deckard::lexer
 		u32        line   = 1;
 		u32        column = 1;
 
-		auto emit = [&](TokenType type, u32 length = 1) mutable-> std::generator<Token>
-		{
-			u32 offset = as<u32>(cursor - buffer);
-			dbg::println("thi8");
-			co_yield Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
-			column += length;
-			cursor += length;
-		};
 
 		auto give_token = [&](TokenType type, u32 length = 1) mutable
 		{
-			u32 offset = as<u32>(cursor - buffer);
-			auto ret = Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
+			u32  offset = as<u32>(cursor - buffer);
+			auto ret    = Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
 			column += length;
 			cursor += length;
 			return ret;
@@ -364,32 +356,95 @@ namespace deckard::lexer
 				continue;
 			}
 
-#if 0
-			if (current == LINE_FEED) // posix
+			if (current == APOSTROPHE)
 			{
-				co_yield Token{.id = 0, .line = line, .column = column, .offset = offset, .length = 1, .type = TokenType::NEWLINE};
-				line += 1;
-				column = 1;
-				++cursor;
-				continue;
-			}
-			else if (current == CARRIAGE_RETURN) // windows
-			{
-				u32 length = 1;
+				u32 start_column = column;
+				u32 codepoints   = 1; 
 
-				if (auto next = cursor.peek(); next and next == LINE_FEED)
+				++cursor;
+
+				// check for potential escape sequence or the character itself
+				if (cursor.has_next() and *cursor != APOSTROPHE)
 				{
-					++cursor;
-					length += 1;
+					if (*cursor == REVERSE_SOLIDUS)
+					{
+						++cursor; // skip backslash
+						codepoints += 1;
+						if (cursor.has_next())
+						{
+							++cursor; // skip the escaped character (e.g. 'n' in '\n')
+							codepoints += 1;
+						}
+					}
+					else
+					{
+						++cursor; // consume normal codepoint (e.g. 'a' or '🌍')
+						codepoints += 1;
+					}
 				}
 
-				co_yield Token{.id = 0, .line = line, .column = column, .offset = offset, .length = 2, .type = TokenType::NEWLINE};
-				line += 1;
-				column = 1;
-				++cursor;
+				// consume the closing ' if it exists
+				if (cursor.has_next() and *cursor == APOSTROPHE)
+				{
+					++cursor;
+					codepoints += 1;
+				}
+
+				co_yield Token{
+				  .id     = 0,
+				  .line   = line,
+				  .column = start_column,
+				  .offset = offset,
+				  .length = codepoints,
+				  .type   = TokenType::Character};
+
+				column += codepoints;
 				continue;
 			}
-#endif
+
+			if (current == QUOTATION_MARK)
+			{
+				u32 start_column = column;
+				u32 codepoints   = 1;
+				
+				++cursor;            
+
+				while (cursor.has_next() and *cursor != QUOTATION_MARK)
+				{
+					if (*cursor == REVERSE_SOLIDUS)
+					{
+						++cursor; 
+						codepoints += 1;
+						if (cursor.has_next())
+						{
+							++cursor;
+							codepoints += 1;
+						}
+					}
+					else
+				{
+					++cursor;
+						codepoints += 1;
+					}
+				}
+
+				if (cursor.has_next() and *cursor == QUOTATION_MARK)
+				{
+				++cursor;
+					codepoints += 1;
+				}
+
+				co_yield Token{
+				  .id     = 0,
+				  .line   = line,
+				  .column = start_column,
+				  .offset = offset,
+				  .length = codepoints,
+				  .type   = TokenType::String};
+
+				column += codepoints; 
+				continue;
+			}
 
 			if (utf8::is_ascii_digit(current))
 			{
@@ -470,6 +525,10 @@ namespace deckard::lexer
 			switch (current)
 			{
 				using enum TokenType;
+				// #######################################################################################################
+
+		
+				// #######################################################################################################
 				case HASH:
 				{
 					co_yield give_token(Hash, 1);
@@ -477,7 +536,132 @@ namespace deckard::lexer
 				}
 				case PLUS_SIGN:
 				{
+					if(cursor.peek(1) == PLUS_SIGN)
+						co_yield give_token(PlusPlus, 2);
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(PlusEqual, 2);
+					else
 					co_yield give_token(Plus, 1);
+					continue;
+				}
+
+				case HYPHEN_MINUS:
+				{
+					if (cursor.peek(1) == HYPHEN_MINUS)
+						co_yield give_token(MinusMinus, 2);
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(MinusEqual, 2);
+					else if (cursor.peek(1) == GREATER_THAN_SIGN)
+						co_yield give_token(Arrow, 2);
+					else
+						co_yield give_token(Minus, 1);
+					continue;
+				}
+
+				case ASTERISK:
+				{
+					if (cursor.peek(1) == ASTERISK)
+						co_yield give_token(SlashStar, 2);
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(StarEqual, 2);
+					else if (cursor.peek(1) == SOLIDUS)
+						co_yield give_token(StarSlash, 2);
+					else
+						co_yield give_token(Star, 1);
+					continue;
+				}
+
+				case SOLIDUS: // Slash
+				{
+					if (cursor.peek(1) == SOLIDUS)
+						co_yield give_token(SlashSlash, 2);
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(SlashEqual, 2);
+					else if (cursor.peek(1) == ASTERISK)
+						co_yield give_token(SlashStar, 2);
+					else
+						co_yield give_token(Slash, 1);
+					continue;
+				}
+
+				case REVERSE_SOLIDUS: // Backslash
+				{
+					if (cursor.peek(1) == REVERSE_SOLIDUS)
+						co_yield give_token(BackSlashBackSlash, 2);
+					else
+						co_yield give_token(BackSlash, 1);
+					continue;
+				}
+
+
+				// #######################################################################################################
+				// Extended symbols
+				case PERCENT_SIGN:
+				{
+					if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(PercentEqual, 2);
+					else
+						co_yield give_token(Percent, 1);
+					continue;
+				}
+				case QUESTION_MARK:
+				{
+					co_yield give_token(Question, 1);
+					continue;
+				}
+
+				case EXCLAMATION_MARK:
+				{
+					co_yield (cursor.peek(1) == EQUALS_SIGN) ? give_token(BangEqual, 2) : give_token(Bang, 1);
+					continue;
+				}
+				case COMMERCIAL_AT:
+				{
+					co_yield give_token(At, 1);
+					continue;
+				}
+				// Dollar sign can be used as identifier
+				// case DOLLAR_SIGN:
+				//{
+				//	co_yield give_token(Dollar, 1);
+				//	continue;
+				//}
+
+				case LESS_THAN_SIGN:
+				{
+					if (cursor.peek(1) == LESS_THAN_SIGN)
+					{
+						if (cursor.peek(2) == EQUALS_SIGN)
+							co_yield give_token(ShiftLeftEqual, 3);
+						else
+							co_yield give_token(ShiftLeft, 2);
+					}
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(LessThanEqual, 2);
+					else
+						co_yield give_token(LessThan, 1);
+					continue;
+				}
+
+				case GREATER_THAN_SIGN:
+				{
+					if (cursor.peek(1) == GREATER_THAN_SIGN)
+					{
+						if (cursor.peek(2) == EQUALS_SIGN)
+							co_yield give_token(ShiftRightEqual, 3);
+						else
+							co_yield give_token(ShiftRight, 2);
+					}
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(GreaterThanEqual, 2);
+					else
+						co_yield give_token(GreaterThan, 1);
+					continue;
+				}
+
+				case LOW_LINE:
+				{
+					co_yield give_token(Underscore, 1);
 					continue;
 				}
 
@@ -490,6 +674,14 @@ namespace deckard::lexer
 
 
 
+
+				// #######################################################################################################
+				default:
+				{
+					co_yield give_token(TokenType::UNKNOWN, 1);
+					continue;
+				}
+			}
 		}
 
 		co_return;
