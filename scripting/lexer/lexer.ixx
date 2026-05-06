@@ -59,7 +59,9 @@ namespace deckard::lexer
 		Identifier,    // x, color, UP
 		Character,     // 'a', '🌍'
 		String,        // "abc", "🌍🌍"
-		Keyword,       // if, for, fn, return
+
+					   // TODO
+		Keyword, // if, for, fn, return
 
 
 		// Symbols
@@ -72,9 +74,11 @@ namespace deckard::lexer
 		Question,           // ?
 		Bang,               // !
 		At,                 // @
-		Dollar,             // $
+		Dollar,             // $^
 		ShiftLeft,          // <<
 		ShiftRight,         // >>
+		ShiftLeftEqual,     // <<=
+		ShiftRightEqual,    // >>=
 		Underscore,         // _
 		BackSlash,          // '\'
 		BackSlashBackSlash, // '\\'
@@ -83,18 +87,17 @@ namespace deckard::lexer
 		SlashStar,          // /*
 		StarSlash,          // */
 
-		TripleQuote,        // """
+		// TODO
+		// TripleQuote,        // """
 
-		Equal,              // =
+		Equal, // =
 
 		// Compare
-		LessThan,            // <
-		GreaterThan,         // >
-		LessThanEqual,       // <=
-		GreaterThanEqual,    // >=
-		EqualEqual,          // ==
-		LessLessEqual,       // <<=
-		GreaterGreaterEqual, // >>=
+		LessThan,         // <
+		GreaterThan,      // >
+		LessThanEqual,    // <=
+		GreaterThanEqual, // >=
+		EqualEqual,       // ==
 
 		// LesserEqualGreater,  // <=>
 		// EqualEqualEqual,     // ===
@@ -129,28 +132,36 @@ namespace deckard::lexer
 		AndAnd,    // &&
 
 		// brackets
-		LeftParen,         // (
-		RightParen,        // )
-		LeftBrace,         // {
-		RightBrace,        // }
-		LeftBracket,       // [
-		RightBracket,      // ]
-		LeftAngleBracket,  // <
-		RightAngleBracket, // >
+		LeftParen,                       // (
+		RightParen,                      // )
+		LeftBrace,                       // {
+		RightBrace,                      // }
+		LeftBracket,                     // [
+		RightBracket,                    // ]
+		LeftAngleBracket  = LessThan,    // <
+		RightAngleBracket = GreaterThan, // >
 
 		// LeftBracketLeftBracket,   // [[
 		// RightBracketRightBracket, // ]]
 
 		//
-		NEWLINE,
+		NEWLINE = RightBracket + 1, // continue from last symbol
 		EOF,
 		UNKNOWN,
+
+		// Invalid
+		InvalidInteger,
+		InvalidHex,
+		InvalidFloatingPoint,
+		InvalidBinary,
+		InvalidString,
+		InvalidCharacter,
 
 		// always last
 		TokenCount
 	};
 
-	static_assert(static_cast<int>(TokenType::TokenCount) == 69, "Token count changed, update to_string");
+	static_assert(static_cast<int>(TokenType::TokenCount) == 72, "Token count changed, update to_string");
 
 	export std::string_view to_string(TokenType type)
 	{
@@ -175,14 +186,20 @@ namespace deckard::lexer
 			case TokenType::Dollar: return "Dollar"sv;
 			case TokenType::ShiftLeft: return "ShiftLeft"sv;
 			case TokenType::ShiftRight: return "ShiftRight"sv;
+			case TokenType::ShiftLeftEqual: return "ShiftLeftEqual"sv;
+			case TokenType::ShiftRightEqual: return "ShiftRightEqual"sv;
+
 			case TokenType::Underscore: return "Underscore"sv;
 			case TokenType::BackSlash: return "BackSlash"sv;
 			case TokenType::BackSlashBackSlash: return "BackSlashBackSlash"sv;
 			case TokenType::Slash: return "Slash"sv;
 			case TokenType::SlashSlash: return "SlashSlash"sv;
 			case TokenType::SlashStar: return "SlashStar"sv;
-			case TokenType::StarSlash: return "StarSlash"sv;
-			case TokenType::TripleQuote: return "TripleQuote"sv;
+			case TokenType::StarSlash:
+				return "StarSlash"sv;
+
+				//	case TokenType::TripleQuote: return "TripleQuote"sv;
+
 			case TokenType::Equal: return "Equal"sv;
 
 			case TokenType::LessThan: return "LessThan"sv;
@@ -190,8 +207,6 @@ namespace deckard::lexer
 			case TokenType::LessThanEqual: return "LessThanEqual"sv;
 			case TokenType::GreaterThanEqual: return "GreaterThanEqual"sv;
 			case TokenType::EqualEqual: return "EqualEqual"sv;
-			case TokenType::LessLessEqual: return "LessLessEqual"sv;
-			case TokenType::GreaterGreaterEqual: return "GreaterGreaterEqual"sv;
 
 			case TokenType::PlusEqual: return "PlusEqual"sv;
 			case TokenType::MinusEqual: return "MinusEqual"sv;
@@ -225,13 +240,21 @@ namespace deckard::lexer
 			case TokenType::LeftBrace: return "LeftBrace"sv;
 			case TokenType::RightBrace: return "RightBrace"sv;
 			case TokenType::LeftBracket: return "LeftBracket"sv;
-			case TokenType::RightBracket: return "RightBracket"sv;
-			case TokenType::LeftAngleBracket: return "LeftAngleBracket"sv;
-			case TokenType::RightAngleBracket: return "RightAngleBracket"sv;
+			case TokenType::RightBracket:
+				return "RightBracket"sv;
+				// case TokenType::LeftAngleBracket: return "LeftAngleBracket"sv;
+				// case TokenType::RightAngleBracket: return "RightAngleBracket"sv;
 
 			case TokenType::NEWLINE: return "Newline"sv;
 			case TokenType::EOF: return "EOF"sv;
 			case TokenType::UNKNOWN: return "Unknown token"sv;
+
+			case TokenType::InvalidInteger: return "Invalid integer literal"sv;
+			case TokenType::InvalidHex: return "Invalid hexadecimal literal"sv;
+			case TokenType::InvalidFloatingPoint: return "Invalid floating point literal"sv;
+			case TokenType::InvalidBinary: return "Invalid binary literal"sv;
+			case TokenType::InvalidString: return "Invalid string literal"sv;
+			case TokenType::InvalidCharacter: return "Invalid character literal"sv;
 		}
 
 		return "Invalid token"sv;
@@ -310,8 +333,17 @@ namespace deckard::lexer
 		{ v(cp) } -> std::same_as<bool>;
 	};
 
-	export utf8::view extract_token(utf8::view buffer, Token t)
+	export std::expected<utf8::view, std::string_view> extract_token(utf8::view buffer, Token t)
 	{
+		if (t.offset >= buffer.size_in_bytes())
+			return std::unexpected("Token offset is out of bounds");
+
+		u32 available_bytes = buffer.size_in_bytes() - t.offset;
+		u32 len             = std::min(t.length, available_bytes);
+
+		if (t.length > available_bytes)
+			return std::unexpected("Token length exceeds available bytes in buffer");
+
 		return buffer.subview_bytes(t.offset, buffer.size_in_bytes() - t.offset).subview(t.length);
 	}
 
@@ -321,16 +353,15 @@ namespace deckard::lexer
 		utf8::view cursor = buffer;
 		u32        line   = 1;
 		u32        column = 1;
+		TokenType  type   = TokenType::EOF;
 
-
-		auto give_token = [&](TokenType type, u32 length = 1) mutable
+		auto give_token = [&](TokenType type, u32 length = 1)
 		{
 			u32  offset = as<u32>(cursor - buffer);
 			auto ret    = Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
 			column += length;
 			cursor += length;
 			return ret;
-
 		};
 
 		while (cursor.has_next())
@@ -356,56 +387,110 @@ namespace deckard::lexer
 				continue;
 			}
 
+			if (utf8::is_whitespace(current))
+			{
+				++cursor;
+				column += 1;
+				continue;
+			}
+
+
+			// ###########################################################################################################
+			// ###########################################################################################################
+			// ###########################################################################################################
+
+
 			if (current == APOSTROPHE)
 			{
-				u32 start_column = column;
-				u32 codepoints   = 1; 
+				u32  start_column  = column;
+				u32  codepoints    = 1;
+				bool found_closing = false;
+				bool has_invalid_escape = false;
 
 				++cursor;
 
-				// check for potential escape sequence or the character itself
+
 				if (cursor.has_next() and *cursor != APOSTROPHE)
 				{
 					if (*cursor == REVERSE_SOLIDUS)
 					{
-						++cursor; // skip backslash
+						++cursor;
 						codepoints += 1;
+
 						if (cursor.has_next())
 						{
-							++cursor; // skip the escaped character (e.g. 'n' in '\n')
+							char32 escape_char = *cursor;
+							if (escape_char == LATIN_SMALL_LETTER_N or escape_char == LATIN_SMALL_LETTER_R or
+								escape_char == LATIN_SMALL_LETTER_T or escape_char == REVERSE_SOLIDUS or
+								escape_char == QUOTATION_MARK or escape_char == APOSTROPHE)
+							{
+								++cursor;
 							codepoints += 1;
+						}
+							else if (escape_char == LATIN_SMALL_LETTER_X)
+							{
+								++cursor;
+								codepoints += 1;
+
+								if (not cursor.has_next() or not utf8::is_ascii_hex_digit(*cursor))
+								{
+									has_invalid_escape = true;
+					}
+					else
+					{
+									++cursor;
+						codepoints += 1;
+
+									if (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
+									{
+										++cursor;
+										codepoints += 1;
+					}
+				}
+							}
+							else
+							{
+
+								++cursor;
+								codepoints += 1;
+							}
 						}
 					}
 					else
 					{
-						++cursor; // consume normal codepoint (e.g. 'a' or '🌍')
+						++cursor;
 						codepoints += 1;
 					}
 				}
 
-				// consume the closing ' if it exists
 				if (cursor.has_next() and *cursor == APOSTROPHE)
 				{
 					++cursor;
 					codepoints += 1;
+					found_closing = true;
 				}
 
+				type = TokenType::Character;
+
+				if (has_invalid_escape or not found_closing)
+					type = TokenType::InvalidCharacter;
+
 				co_yield Token{
-				  .id     = 0,
-				  .line   = line,
-				  .column = start_column,
-				  .offset = offset,
-				  .length = codepoints,
-				  .type   = TokenType::Character};
+				  .id = 0, .line = line, .column = start_column, .offset = offset, .length = codepoints, .type = type};
 
 				column += codepoints;
 				continue;
 			}
 
+			// ###########################################################################################################
+			// ###########################################################################################################
+
+
 			if (current == QUOTATION_MARK)
 			{
-				u32 start_column = column;
-				u32 codepoints   = 1;
+				u32  start_column       = column;
+				u32  codepoints         = 1;
+				bool has_invalid_escape = false;
 				
 				++cursor;            
 
@@ -415,32 +500,67 @@ namespace deckard::lexer
 					{
 						++cursor; 
 						codepoints += 1;
+
 						if (cursor.has_next())
 						{
+							char32 escape_char = *cursor;
+
+							if (escape_char == LATIN_SMALL_LETTER_N or escape_char == LATIN_SMALL_LETTER_R or
+								escape_char == LATIN_SMALL_LETTER_T or escape_char == REVERSE_SOLIDUS or
+								escape_char == QUOTATION_MARK or escape_char == APOSTROPHE)
+							{
 							++cursor;
 							codepoints += 1;
 						}
+							else if (escape_char == LATIN_SMALL_LETTER_X)
+							{
+								++cursor;
+								codepoints += 1;
+
+								if (not cursor.has_next() or not utf8::is_ascii_hex_digit(*cursor))
+								{
+									has_invalid_escape = true;
 					}
 					else
 				{
 					++cursor;
 						codepoints += 1;
+
+									if (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
+									{
+										++cursor;
+										codepoints += 1;
+									}
+								}
+							}
+						}
+						else
+						{
+							++cursor;
+							codepoints += 1;
+					}
+				}
+					else
+					{
+						++cursor;
+						codepoints += 1;
 					}
 				}
 
+				bool found_closing = false;
 				if (cursor.has_next() and *cursor == QUOTATION_MARK)
 				{
 				++cursor;
 					codepoints += 1;
+					found_closing = true;
 				}
 
+				type = TokenType::String;
+				if (has_invalid_escape or not found_closing)
+					type = TokenType::InvalidString;
+
 				co_yield Token{
-				  .id     = 0,
-				  .line   = line,
-				  .column = start_column,
-				  .offset = offset,
-				  .length = codepoints,
-				  .type   = TokenType::String};
+				  .id = 0, .line = line, .column = start_column, .offset = offset, .length = codepoints, .type = type};
 
 				column += codepoints; 
 				continue;
