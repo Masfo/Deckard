@@ -149,19 +149,26 @@ namespace deckard::lexer
 		EOF,
 		UNKNOWN,
 
-		// Invalid
+		// always last
+		TokenCount
+	};
+
+	export enum class TokenError {
+		None,
 		InvalidInteger,
 		InvalidHex,
 		InvalidFloatingPoint,
 		InvalidBinary,
 		InvalidString,
 		InvalidCharacter,
+		InvalidStringEscape,
 
-		// always last
-		TokenCount
+
+		// Must be last
+		TokenErrorCount
 	};
 
-	static_assert(static_cast<int>(TokenType::TokenCount) == 72, "Token count changed, update to_string");
+	static_assert(static_cast<int>(TokenType::TokenCount) == 66, "Token count changed, update to_string");
 
 	export std::string_view to_string(TokenType type)
 	{
@@ -248,13 +255,6 @@ namespace deckard::lexer
 			case TokenType::NEWLINE: return "Newline"sv;
 			case TokenType::EOF: return "EOF"sv;
 			case TokenType::UNKNOWN: return "Unknown token"sv;
-
-			case TokenType::InvalidInteger: return "Invalid integer literal"sv;
-			case TokenType::InvalidHex: return "Invalid hexadecimal literal"sv;
-			case TokenType::InvalidFloatingPoint: return "Invalid floating point literal"sv;
-			case TokenType::InvalidBinary: return "Invalid binary literal"sv;
-			case TokenType::InvalidString: return "Invalid string literal"sv;
-			case TokenType::InvalidCharacter: return "Invalid character literal"sv;
 		}
 
 		return "Invalid token"sv;
@@ -320,12 +320,12 @@ namespace deckard::lexer
 
 	export struct Token
 	{
-		u32       id;
-		u32       line;
-		u32       column;
-		u32       offset; // Byte offset into the buffer
-		u32       length; // Length in codepoints
-		TokenType type{TokenType::TokenCount};
+		u32        line;
+		u32        column;
+		u32        offset; // Byte offset into the buffer
+		u32        length; // Length in codepoints
+		TokenType  type{TokenType::TokenCount};
+		TokenError error{TokenError::None};
 	};
 
 	template<typename T>
@@ -355,10 +355,12 @@ namespace deckard::lexer
 		u32        column = 1;
 		TokenType  type   = TokenType::EOF;
 
-		auto give_token = [&](TokenType type, u32 length = 1)
+
+		auto give_token = [&](TokenType type, u32 length = 1, TokenError error = TokenError::None)
 		{
 			u32  offset = as<u32>(cursor - buffer);
-			auto ret    = Token{.id = 0, .line = line, .column = column, .offset = offset, .length = length, .type = type};
+			auto ret =
+			  Token{.line = line, .column = column, .offset = offset, .length = length, .type = type, .error = error};
 			column += length;
 			cursor += length;
 			return ret;
@@ -366,8 +368,9 @@ namespace deckard::lexer
 
 		while (cursor.has_next())
 		{
-			char32 current = *cursor;
-			u32    offset  = as<u32>(cursor - buffer);
+			TokenError error   = TokenError::None;
+			char32     current = *cursor;
+			u32        offset  = as<u32>(cursor - buffer);
 
 			if (current == LINE_FEED)
 			{
@@ -405,52 +408,34 @@ namespace deckard::lexer
 				u32  start_column  = column;
 				u32  codepoints    = 1;
 				bool found_closing = false;
-				bool has_invalid_escape = false;
+				bool is_invalid    = false;
 
 				++cursor;
 
-
-				if (cursor.has_next() and *cursor != APOSTROPHE)
+				while (cursor.has_next() and *cursor != APOSTROPHE)
 				{
 					if (*cursor == REVERSE_SOLIDUS)
 					{
 						++cursor;
 						codepoints += 1;
-
 						if (cursor.has_next())
 						{
-							char32 escape_char = *cursor;
-							if (escape_char == LATIN_SMALL_LETTER_N or escape_char == LATIN_SMALL_LETTER_R or
-								escape_char == LATIN_SMALL_LETTER_T or escape_char == REVERSE_SOLIDUS or
-								escape_char == QUOTATION_MARK or escape_char == APOSTROPHE)
+							if (*cursor == LATIN_SMALL_LETTER_X)
 							{
 								++cursor;
 							codepoints += 1;
-						}
-							else if (escape_char == LATIN_SMALL_LETTER_X)
+								int hex_count = 0;
+								while (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
 							{
 								++cursor;
 								codepoints += 1;
-
-								if (not cursor.has_next() or not utf8::is_ascii_hex_digit(*cursor))
-								{
-									has_invalid_escape = true;
+									++hex_count;
 					}
-					else
-					{
-									++cursor;
-						codepoints += 1;
-
-									if (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
-									{
-										++cursor;
-										codepoints += 1;
+								if (hex_count == 0 or hex_count > 2)
+									is_invalid = true;
 					}
-				}
-							}
 							else
 							{
-
 								++cursor;
 								codepoints += 1;
 							}
@@ -471,12 +456,16 @@ namespace deckard::lexer
 				}
 
 				type = TokenType::Character;
-
-				if (has_invalid_escape or not found_closing)
-					type = TokenType::InvalidCharacter;
+				if (is_invalid or not found_closing)
+					error = TokenError::InvalidCharacter;
 
 				co_yield Token{
-				  .id = 0, .line = line, .column = start_column, .offset = offset, .length = codepoints, .type = type};
+				  .line   = line,
+				  .column = start_column,
+				  .offset = offset,
+				  .length = codepoints,
+				  .type   = type,
+				  .error  = error};
 
 				column += codepoints;
 				continue;
@@ -488,58 +477,50 @@ namespace deckard::lexer
 
 			if (current == QUOTATION_MARK)
 			{
-				u32  start_column       = column;
-				u32  codepoints         = 1;
-				bool has_invalid_escape = false;
+				u32  start_column = column;
+				u32  codepoints   = 1;
+				bool is_invalid   = false;
 				
 				++cursor;            
 
 				while (cursor.has_next() and *cursor != QUOTATION_MARK)
 				{
+					if (*cursor == LINE_FEED or *cursor == CARRIAGE_RETURN)
+					{
+						is_invalid = true;
+						break;
+					}
+
 					if (*cursor == REVERSE_SOLIDUS)
 					{
 						++cursor; 
 						codepoints += 1;
-
 						if (cursor.has_next())
 						{
-							char32 escape_char = *cursor;
-
-							if (escape_char == LATIN_SMALL_LETTER_N or escape_char == LATIN_SMALL_LETTER_R or
-								escape_char == LATIN_SMALL_LETTER_T or escape_char == REVERSE_SOLIDUS or
-								escape_char == QUOTATION_MARK or escape_char == APOSTROPHE)
+							if (*cursor == LATIN_SMALL_LETTER_X)
 							{
 							++cursor;
 							codepoints += 1;
-						}
-							else if (escape_char == LATIN_SMALL_LETTER_X)
-							{
-								++cursor;
-								codepoints += 1;
+								int hex_count = 0;
 
-								if (not cursor.has_next() or not utf8::is_ascii_hex_digit(*cursor))
+								while (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
 								{
-									has_invalid_escape = true;
-					}
-					else
-				{
 					++cursor;
 						codepoints += 1;
-
-									if (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
-									{
-										++cursor;
-										codepoints += 1;
+									++hex_count;
 									}
+								if (hex_count == 0 or hex_count > 2)
+									is_invalid = true;
 								}
-							}
-						}
 						else
 						{
 							++cursor;
 							codepoints += 1;
 					}
 				}
+					else
+							is_invalid = true;
+					}
 					else
 					{
 						++cursor;
@@ -555,12 +536,17 @@ namespace deckard::lexer
 					found_closing = true;
 				}
 
-				type = TokenType::String;
-				if (has_invalid_escape or not found_closing)
-					type = TokenType::InvalidString;
+				TokenType token_type = TokenType::String;
+				if (is_invalid or not found_closing)
+					error = TokenError::InvalidString;
 
 				co_yield Token{
-				  .id = 0, .line = line, .column = start_column, .offset = offset, .length = codepoints, .type = type};
+				  .line   = line,
+				  .column = start_column,
+				  .offset = offset,
+				  .length = codepoints,
+				  .type   = token_type,
+				  .error  = error};
 
 				column += codepoints; 
 				continue;
