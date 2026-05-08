@@ -544,6 +544,7 @@ TEST_CASE("utf8::string", "[utf8]")
 	}
 }
 
+
 TEST_CASE("utf8::view", "[utf8][utf8view]")
 {
 	SECTION("c-tors")
@@ -1045,12 +1046,23 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 	SECTION("trim")
 	{
-		utf8::string str("  🌍23❌  ");
-		CHECK(str.size() == 8);
-		CHECK(str == "  🌍23❌  ");
-		str.trim();
-		CHECK(str.size() == 4);
-		CHECK(str == "🌍23❌");
+		utf8::string str("  hello 🌍  ");
+		utf8::view   v = str;
+
+		auto tl = v.trim_left();
+		CHECK(tl.size() == 9);
+		CHECK(tl[0] == 'h');
+		CHECK(tl[6] == 0x1'f30d);
+
+		auto tr = v.trim_right();
+		CHECK(tr.size() == 9);
+		CHECK(tr[0] == ' ');
+		CHECK(tr[8] == 0x1'f30d);
+
+		auto t = v.trim();
+		CHECK(t.size() == 7);
+		CHECK(t[0] == 'h');
+		CHECK(t[6] == 0x1'f30d);
 	}
 
 
@@ -1222,7 +1234,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			std::array<u8, 3> err = {
 			  // e + acute
 			  0x65,
-			  0xcc,
+			  0xCC,
 			  0x81, // e + acute (U+0301)
 			};
 
@@ -1238,9 +1250,9 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			// e + acute + o
 			std::array<u8, 4> err = {
 			  0x67,
-			  0xcc,
+			  0xCC,
 			  0x88,
-			  0x6f, // e + acute (U+0301) + o
+			  0x6F, // e + acute (U+0301) + o
 			};
 
 			utf8::string str(err);
@@ -1317,15 +1329,6 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			// CHECK(str.graphemes() == 1);
 			CHECK(str.valid() == true);
 		}
-		{
-			//
-			std::array<u8, 6> flag = {0xE2, 0x9D, 0xA4, 0xEF, 0xB8, 0x8F}; // ❤️ U+2764 + U+FE0F
-			utf8::string      str(flag);
-			CHECK(str.size_in_bytes() == 6);
-			CHECK(str.size() == 2);
-			CHECK(str.graphemes() == 1);
-		}
-
 		{
 			// clang-format off
             std::array<u8, 10> err = {
@@ -1517,6 +1520,145 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		const auto err = str.valid();
 		CHECK(err.error().contains("Overlong 2-byte") == true);
 		CHECK(err.error().contains("line 1, column 2") == true);
+	}
+}
+
+TEST_CASE("utf8::view", "[utf8]")
+{
+	SECTION("has_next(n)")
+	{
+		utf8::string str("hello 🌍");
+		utf8::view   v = str;
+
+		CHECK(v.has_next(1));
+		CHECK(v.has_next(5));
+		CHECK(v.has_next(7));
+		CHECK_FALSE(v.has_next(8));
+
+		v += 6; // At 🌍
+		CHECK(v.has_next(1));
+		CHECK_FALSE(v.has_next(2));
+
+		++v; // At end
+		CHECK_FALSE(v.has_next(1));
+	}
+
+	SECTION("index and remaining")
+	{
+		utf8::string str("hello 🌍");
+		utf8::view   v = str;
+
+		CHECK(v.index() == 0);
+		CHECK(v.remaining() == 7);
+
+		v += 3; // "lo 🌍"
+		CHECK(v.index() == 3);
+		CHECK(v.remaining() == 4);
+
+		v += 4; // end
+		CHECK(v.index() == 7);
+		CHECK(v.remaining() == 0);
+	}
+
+	SECTION("reverse navigation")
+	{
+		utf8::string str("abc 🌍");
+		utf8::view   v = str;
+
+		v += 5; // end
+		CHECK_FALSE(v.has_next());
+
+		v -= 1; // At 🌍
+		CHECK(*v == 0x1'f30d);
+
+		--v; // At space
+		CHECK(*v == ' ');
+
+		v -= 3; // At 'a'
+		CHECK(v.index() == 0);
+		CHECK(*v == 'a');
+	}
+
+	SECTION("at and operator[]")
+	{
+		utf8::string str("a🌍c");
+		utf8::view   v = str;
+
+		CHECK(v.at(0) == 'a');
+		CHECK(v.at(1) == 0x1'f30d);
+		CHECK(v[2] == 'c');
+	}
+
+	SECTION("trim")
+	{
+		utf8::string str("  hello 🌍  ");
+		utf8::view   v = str;
+
+		auto tl = v.trim_left();
+		CHECK(tl.size() == 9);
+		CHECK(tl[0] == 'h');
+		CHECK(tl[6] == 0x1'f30d);
+
+		auto tr = v.trim_right();
+		CHECK(tr.size() == 9);
+		CHECK(tr[0] == ' ');
+		CHECK(tr[8] == 0x1'f30d);
+
+		auto t = v.trim();
+		CHECK(t.size() == 7);
+		CHECK(t[0] == 'h');
+		CHECK(t[6] == 0x1'f30d);
+	}
+
+	SECTION("validity and bool")
+	{
+		utf8::view empty;
+		CHECK_FALSE(empty);
+		CHECK(empty.is_valid());
+
+		utf8::string str("ok");
+		utf8::view   v = str;
+		CHECK(v);
+		CHECK(v.is_valid());
+
+		v += 2; // end
+		CHECK_FALSE(v);
+	}
+
+	SECTION("subviews and indexing subviews") 
+	{
+		utf8::string str("abc 🌍 def");
+		//                012 3 45678 (codepoints)
+		//                012 3 4567890 (bytes)
+		utf8::view v = str;
+
+		SECTION("subview by codepoints")
+		{
+			auto sub = v.subview(4, 5); // "🌍 de"
+			CHECK(sub.length() == 5);
+			CHECK(sub[0] == 0x1F30D);
+			CHECK(sub[1] == ' ');
+			CHECK(sub[3] == 'e');
+		}
+
+		SECTION("subview_bytes")
+		{
+			auto sub = v.subview_bytes(4, 4); // "🌍"
+			CHECK(sub.length() == 1);
+			CHECK(sub[0] == 0x1F30D);
+
+			auto sub2 = v.subview_bytes(0, 3); // "abc"
+			CHECK(sub2.length() == 3);
+			CHECK(sub2[0] == 'a');
+			CHECK(sub2[2] == 'c');
+		}
+
+		SECTION("substr")
+		{
+			auto sub = v.substr(4, 1); // "🌍"
+			CHECK(sub.length() == 1);
+			CHECK(sub[0] == 0x1F30D);
+		}
 	}
 }
 

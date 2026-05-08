@@ -6,9 +6,11 @@ import deckard.as;
 
 export namespace deckard::utf8
 {
-    template<size_t N>
+	template<size_t N>
 	[[nodiscard]] constexpr auto as_ro_bytes(const std::array<u8, N>& a) -> std::span<const std::byte>
 	{
+		if constexpr (N == 0)
+			return {};
 		auto first = as<const std::byte*>(a.data());
 		return std::span<const std::byte>(first, first + N);
 	}
@@ -21,24 +23,32 @@ export namespace deckard::utf8
 
  [[nodiscard]] constexpr auto as_ro_bytes(std::span<u8> s) -> std::span<const std::byte>
 	{
+		if (s.empty())
+			return {};
 		auto first = as<const std::byte*>(s.data());
 		return std::span<const std::byte>(first, first + s.size());
 	}
 
 	[[nodiscard]] constexpr auto as_ro_bytes(std::span<const u8> s) -> std::span<const std::byte>
 	{
+		if (s.empty())
+			return {};
 		auto first = as<const std::byte*>(s.data());
 		return std::span<const std::byte>(first, first + s.size());
 	}
 
 	[[nodiscard]] constexpr auto as_ro_bytes(std::string_view s) -> std::span<const std::byte>
 	{
+		if (s.empty())
+			return {};
 		auto first = as<const std::byte*>(s.data());
 		return std::span<const std::byte>(first, first + s.size());
 	}
 
 	[[nodiscard]] constexpr auto as_ro_bytes(const char* s, u32 len) -> std::span<const std::byte>
 	{
+		if (len == 0 or s == nullptr)
+			return {};
 		auto first = as<const std::byte*>(s);
 		return std::span<const std::byte>(first, first + static_cast<size_t>(len));
 	}
@@ -50,6 +60,8 @@ export namespace deckard::utf8
 
 	[[nodiscard]] constexpr auto u8_data(std::span<const std::byte> s) -> const u8*
 	{
+		if (s.empty())
+			return nullptr;
 		return as<const u8*>(s.data());
 	}
 }
