@@ -423,17 +423,17 @@ namespace deckard::lexer
 							if (*cursor == LATIN_SMALL_LETTER_X)
 							{
 								++cursor;
-							codepoints += 1;
+								codepoints += 1;
 								int hex_count = 0;
 								while (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
-							{
-								++cursor;
-								codepoints += 1;
+								{
+									++cursor;
+									codepoints += 1;
 									++hex_count;
-					}
+								}
 								if (hex_count == 0 or hex_count > 2)
 									is_invalid = true;
-					}
+							}
 							else
 							{
 								++cursor;
@@ -480,8 +480,8 @@ namespace deckard::lexer
 				u32  start_column = column;
 				u32  codepoints   = 1;
 				bool is_invalid   = false;
-				
-				++cursor;            
+
+				++cursor;
 
 				while (cursor.has_next() and *cursor != QUOTATION_MARK)
 				{
@@ -493,32 +493,32 @@ namespace deckard::lexer
 
 					if (*cursor == REVERSE_SOLIDUS)
 					{
-						++cursor; 
+						++cursor;
 						codepoints += 1;
 						if (cursor.has_next())
 						{
 							if (*cursor == LATIN_SMALL_LETTER_X)
 							{
-							++cursor;
-							codepoints += 1;
+								++cursor;
+								codepoints += 1;
 								int hex_count = 0;
 
 								while (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
 								{
-					++cursor;
-						codepoints += 1;
+									++cursor;
+									codepoints += 1;
 									++hex_count;
-									}
+								}
 								if (hex_count == 0 or hex_count > 2)
 									is_invalid = true;
-								}
+							}
+							else
+							{
+								++cursor;
+								codepoints += 1;
+							}
+						}
 						else
-						{
-							++cursor;
-							codepoints += 1;
-					}
-				}
-					else
 							is_invalid = true;
 					}
 					else
@@ -531,7 +531,7 @@ namespace deckard::lexer
 				bool found_closing = false;
 				if (cursor.has_next() and *cursor == QUOTATION_MARK)
 				{
-				++cursor;
+					++cursor;
 					codepoints += 1;
 					found_closing = true;
 				}
@@ -548,61 +548,230 @@ namespace deckard::lexer
 				  .type   = token_type,
 				  .error  = error};
 
-				column += codepoints; 
+				column += codepoints;
 				continue;
 			}
 
+			// ###########################################################################################################
+			// ###########################################################################################################
+
+
 			if (utf8::is_ascii_digit(current))
 			{
-				u32 start_column = column;
-				u32 codepoints   = 1;
+				u32       start_column = column;
+				u32       codepoints   = 0;
+				TokenType type         = TokenType::Integer;
 
-				++cursor;
-				while (cursor.has_next() and utf8::is_ascii_digit(*cursor))
+				if (current == DIGIT_ZERO and cursor.peek(1))
 				{
-					++cursor;
-					codepoints += 1;
+					auto next = cursor.peek(1);
+					if (next and (*next == LATIN_SMALL_LETTER_X or *next == LATIN_CAPITAL_LETTER_X))
+					{
+						// hex
+						cursor += 2;
+						column += 2;
+						codepoints += 2;
+
+						u32 digits = 0;
+						while (cursor.has_next() and (utf8::is_ascii_hex_digit(*cursor) or *cursor == LOW_LINE))
+						{
+							if (*cursor != LOW_LINE)
+								digits += 1;
+
+							codepoints += 1;
+							column += 1;
+							++cursor;
+						}
+
+						if (digits == 0)
+						{
+							// greedy, better error messages
+							while (cursor.has_next() and utf8::is_xid_continue(*cursor))
+							{
+								codepoints += 1;
+								column += 1;
+								++cursor;
+							}
+
+							[[maybe_unused]] auto number_view =
+							  buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+
+							co_yield Token{
+							  .line   = line,
+							  .column = start_column,
+							  .offset = offset,
+							  .length = codepoints,
+							  .type   = TokenType::Integer,
+							  .error  = TokenError::InvalidHex};
+						}
+						else
+						{
+							co_yield Token{
+							  .line   = line,
+							  .column = start_column,
+							  .offset = offset,
+							  .length = codepoints,
+							  .type   = TokenType::Integer,
+							  .error  = TokenError::None};
+						}
+
+						continue;
+					}
+					else if (*next == LATIN_SMALL_LETTER_B or *next == LATIN_CAPITAL_LETTER_B)
+					{
+						// binary
+						cursor += 2;
+						column += 2;
+						codepoints += 2;
+
+						u32 digits = 0;
+
+						while (cursor.has_next() and (*cursor == DIGIT_ZERO or *cursor == DIGIT_ONE or *cursor == LOW_LINE))
+						{
+							if (*cursor != LOW_LINE)
+								digits += 1;
+
+							codepoints += 1;
+							column += 1;
+							++cursor;
+						}
+
+						[[maybe_unused]] auto number_view = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+
+						if (digits == 0)
+						{
+							error = TokenError::InvalidBinary;
+
+							// greedy, better error messages
+							while (cursor.has_next() and utf8::is_xid_continue(*cursor))
+							{
+								codepoints += 1;
+								column += 1;
+								++cursor;
+							}
+						}
+
+						co_yield Token{
+						  .line   = line,
+						  .column = start_column,
+						  .offset = offset,
+						  .length = codepoints,
+						  .type   = type,
+						  .error  = error};
+						continue;
+					}
 				}
 
+				// integer part
+				type = TokenType::Integer;
+				while (cursor.has_next() and (utf8::is_ascii_digit(*cursor) or *cursor == LOW_LINE))
+				{
+					codepoints += 1;
+					column += 1;
+					++cursor;
+				}
+
+				// fractional part
 				if (cursor.has_next() and *cursor == FULL_STOP)
 				{
-					++cursor;
-					codepoints += 1;
-					while (cursor.has_next() and utf8::is_ascii_digit(*cursor))
+					if (cursor.peek(1) != FULL_STOP)
 					{
-						++cursor;
-						codepoints += 1;
-					}
 
-					co_yield Token{
-					  .id     = 0,
-					  .line   = line,
-					  .column = start_column,
-					  .offset = offset,
-					  .length = codepoints,
-					  .type   = TokenType::FloatingPoint};
-					continue;
+						type = TokenType::FloatingPoint;
+						codepoints += 1;
+						column += 1;
+						++cursor;
+
+						// u32 fraction_digits = 0;
+						while (cursor.has_next() and (utf8::is_ascii_digit(*cursor) or *cursor == LOW_LINE))
+						{
+							// if (*cursor != LOW_LINE)
+							//	fraction_digits += 1;
+
+							codepoints += 1;
+							column += 1;
+							++cursor;
+						}
+
+						// if (fraction_digits == 0)
+						//	type = TokenType::InvalidFloatingPoint;
+					}
 				}
 
+				// Exponent part
+				if (cursor.has_next() and (*cursor == LATIN_SMALL_LETTER_E or *cursor == LATIN_CAPITAL_LETTER_E))
+				{
+					type = TokenType::FloatingPoint;
+					codepoints += 1;
+					column += 1;
+					++cursor;
+					if (cursor.has_next() and (*cursor == PLUS_SIGN or *cursor == HYPHEN_MINUS))
+					{
+						codepoints += 1;
+						column += 1;
+						++cursor;
+					}
+
+					u32 exponent_digits = 0;
+
+					while (cursor.has_next() and (utf8::is_ascii_digit(*cursor) or *cursor == LOW_LINE))
+					{
+						if (*cursor != LOW_LINE)
+							exponent_digits += 1;
+
+						codepoints += 1;
+						column += 1;
+						++cursor;
+					}
+
+					if (exponent_digits == 0)
+						error = TokenError::InvalidFloatingPoint;
+				}
+
+				// TODO: check for trailing types (ull, f)
+
+				bool has_garbage = false;
+				if (cursor.has_next())
+				{
+					char32 peek = *cursor;
+					if (utf8::is_xid_start(peek) or (peek == FULL_STOP and cursor.peek(1) != FULL_STOP))
+					{
+						has_garbage = true;
+						while (cursor.has_next() and (utf8::is_xid_continue(*cursor) or *cursor == FULL_STOP))
+						{
+							codepoints += 1;
+							column += 1;
+							++cursor;
+						}
+					}
+				}
+
+				if (has_garbage)
+				{
+					if (type == TokenType::Integer)
+						error = TokenError::InvalidInteger;
+					else if (type == TokenType::FloatingPoint)
+						error = TokenError::InvalidFloatingPoint;
+				}
+
+
+				[[maybe_unused]] auto number_view = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+
 				co_yield Token{
-				  .id     = 0,
 				  .line   = line,
 				  .column = start_column,
 				  .offset = offset,
 				  .length = codepoints,
-				  .type   = TokenType::Integer};
-
+				  .type   = type,
+				  .error  = error};
 				continue;
 			}
 
+			// ###########################################################################################################
+			// ###########################################################################################################
 
-			if (utf8::is_whitespace(current))
-			{
-				++cursor;
-				column += 1;
-				continue;
-			}
 
+			// Identifier/keyword
 			if (utf8::is_xid_start(current))
 			{
 				u32 start_column = column;
@@ -617,23 +786,33 @@ namespace deckard::lexer
 					codepoints += 1;
 				}
 
+
+				[[maybe_unused]] auto identifier_view = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+
+				bool is_keyword = false;
+
+
 				co_yield Token{
-				  .id     = 0,
 				  .line   = line,
 				  .column = start_column,
 				  .offset = offset,
 				  .length = codepoints,
-				  .type   = TokenType::Identifier};
+				  .type   = is_keyword ? TokenType::Keyword : TokenType::Identifier};
+
+
 				continue;
 			}
 
-			//
+			// ###########################################################################################################
+			// ###########################################################################################################
+			// Symbols
+
 			switch (current)
 			{
 				using enum TokenType;
 				// #######################################################################################################
 
-		
+
 				// #######################################################################################################
 				case HASH:
 				{
@@ -642,12 +821,12 @@ namespace deckard::lexer
 				}
 				case PLUS_SIGN:
 				{
-					if(cursor.peek(1) == PLUS_SIGN)
+					if (cursor.peek(1) == PLUS_SIGN)
 						co_yield give_token(PlusPlus, 2);
 					else if (cursor.peek(1) == EQUALS_SIGN)
 						co_yield give_token(PlusEqual, 2);
 					else
-					co_yield give_token(Plus, 1);
+						co_yield give_token(Plus, 1);
 					continue;
 				}
 
@@ -726,12 +905,12 @@ namespace deckard::lexer
 					co_yield give_token(At, 1);
 					continue;
 				}
-				// Dollar sign can be used as identifier
-				// case DOLLAR_SIGN:
-				//{
-				//	co_yield give_token(Dollar, 1);
-				//	continue;
-				//}
+					// Dollar sign can be used as identifier
+					// case DOLLAR_SIGN:
+					//{
+					//	co_yield give_token(Dollar, 1);
+					//	continue;
+					//}
 
 				case LESS_THAN_SIGN:
 				{
@@ -771,14 +950,120 @@ namespace deckard::lexer
 					continue;
 				}
 
-				default:
+					// #######################################################################################################
+					// Brackets and braces
+
+				case LEFT_PARENTHESIS:
 				{
-					co_yield give_token(TokenType::UNKNOWN, 1);
+					co_yield give_token(LeftParen, 1);
 					continue;
 				}
-			}
+				case RIGHT_PARENTHESIS:
+				{
+					co_yield give_token(RightParen, 1);
+					continue;
+				}
 
+				case LEFT_CURLY_BRACKET:
+				{
+					co_yield give_token(LeftBrace, 1);
+					continue;
+				}
+				case RIGHT_CURLY_BRACKET:
+				{
+					co_yield give_token(RightBrace, 1);
+					continue;
+				}
 
+				case LEFT_SQUARE_BRACKET:
+				{
+					co_yield give_token(LeftBracket, 1);
+					continue;
+				}
+
+				case RIGHT_SQUARE_BRACKET:
+				{
+					co_yield give_token(RightBracket, 1);
+					continue;
+				}
+
+					// #######################################################################################################
+				case EQUALS_SIGN:
+				{
+					if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(EqualEqual, 2);
+					else
+						co_yield give_token(Equal, 1);
+					continue;
+				}
+
+				case FULL_STOP:
+				{
+					if (cursor.peek(1) == FULL_STOP)
+					{
+						if (cursor.peek(2) == FULL_STOP)
+							co_yield give_token(Ellipsis, 3);
+						else
+							co_yield give_token(DotDot, 2);
+					}
+					else
+						co_yield give_token(Dot, 1);
+					continue;
+				}
+
+				case COMMA:
+				{
+					co_yield give_token(Comma, 1);
+					continue;
+				}
+
+				case COLON:
+				{
+					co_yield give_token(Colon, 1);
+					continue;
+				}
+				case SEMICOLON:
+				{
+					co_yield give_token(Semicolon, 1);
+					continue;
+				}
+
+				case VERTICAL_LINE:
+				{
+					if (cursor.peek(1) == VERTICAL_LINE)
+						co_yield give_token(OrOr, 2);
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(OrEqual, 2);
+					else
+						co_yield give_token(Or, 1);
+					continue;
+				}
+
+				case AMPERSAND:
+				{
+					if (cursor.peek(1) == AMPERSAND)
+						co_yield give_token(AndAnd, 2);
+					else if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(AndEqual, 2);
+					else
+						co_yield give_token(And, 1);
+					continue;
+				}
+
+				case CIRCUMFLEX_ACCENT:
+				{
+					if (cursor.peek(1) == EQUALS_SIGN)
+						co_yield give_token(XorEqual, 2);
+					else
+						co_yield give_token(Xor, 1);
+					continue;
+				}
+
+				case TILDE:
+				{
+					co_yield give_token(Tilde, 1);
+					continue;
+				}
 
 
 				// #######################################################################################################
