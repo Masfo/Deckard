@@ -1766,7 +1766,7 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 		CHECK(is_xid_start(max_xid_start));
 		CHECK_FALSE(is_xid_start(max_xid_start + 1));
 
-		CHECK(is_xid_start(0x370));
+		CHECK(is_xid_start(0x370)); 
 		CHECK_FALSE(is_xid_start(0x2C2));
 
 		CHECK(is_xid_start(0x3'3479)); // U+33479, a CJK ideograph

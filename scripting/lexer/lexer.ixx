@@ -338,8 +338,7 @@ namespace deckard::lexer
 		if (t.offset >= buffer.size_in_bytes())
 			return std::unexpected("Token offset is out of bounds");
 
-		u32 available_bytes = buffer.size_in_bytes() - t.offset;
-		u32 len             = std::min(t.length, available_bytes);
+		u32 available_bytes = as<u32>(buffer.size_in_bytes()) - t.offset;
 
 		if (t.length > available_bytes)
 			return std::unexpected("Token length exceeds available bytes in buffer");
@@ -347,7 +346,21 @@ namespace deckard::lexer
 		return buffer.subview_bytes(t.offset, buffer.size_in_bytes() - t.offset).subview(t.length);
 	}
 
-	export std::generator<Token> tokenize(utf8::view buffer)
+
+
+	// ########################################################################
+
+	struct TokenizeConfig
+	{
+		utf8::string single_line_comment_start{"//"};
+	};
+
+
+
+
+	// ########################################################################
+
+	export std::generator<Token> tokenize(utf8::view buffer, const TokenizeConfig config = {})
 	{
 		using namespace deckard::utf8::basic_characters;
 		utf8::view cursor = buffer;
@@ -559,8 +572,9 @@ namespace deckard::lexer
 			if (utf8::is_ascii_digit(current))
 			{
 				u32       start_column = column;
+				u32       start_offset = offset;
 				u32       codepoints   = 0;
-				TokenType type         = TokenType::Integer;
+				type         = TokenType::Integer;
 
 				if (current == DIGIT_ZERO and cursor.peek(1))
 				{
@@ -594,12 +608,12 @@ namespace deckard::lexer
 							}
 
 							[[maybe_unused]] auto number_view =
-							  buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+							  buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
 
 							co_yield Token{
 							  .line   = line,
 							  .column = start_column,
-							  .offset = offset,
+							  .offset = start_offset,
 							  .length = codepoints,
 							  .type   = TokenType::Integer,
 							  .error  = TokenError::InvalidHex};
@@ -609,7 +623,7 @@ namespace deckard::lexer
 							co_yield Token{
 							  .line   = line,
 							  .column = start_column,
-							  .offset = offset,
+							  .offset = start_offset,
 							  .length = codepoints,
 							  .type   = TokenType::Integer,
 							  .error  = TokenError::None};
@@ -636,7 +650,7 @@ namespace deckard::lexer
 							++cursor;
 						}
 
-						[[maybe_unused]] auto number_view = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+						[[maybe_unused]] auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
 
 						if (digits == 0)
 						{
@@ -654,7 +668,7 @@ namespace deckard::lexer
 						co_yield Token{
 						  .line   = line,
 						  .column = start_column,
-						  .offset = offset,
+						  .offset = start_offset,
 						  .length = codepoints,
 						  .type   = type,
 						  .error  = error};
@@ -755,12 +769,12 @@ namespace deckard::lexer
 				}
 
 
-				[[maybe_unused]] auto number_view = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+				[[maybe_unused]] auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
 
 				co_yield Token{
 				  .line   = line,
 				  .column = start_column,
-				  .offset = offset,
+				  .offset = start_offset,
 				  .length = codepoints,
 				  .type   = type,
 				  .error  = error};
@@ -775,6 +789,7 @@ namespace deckard::lexer
 			if (utf8::is_xid_start(current))
 			{
 				u32 start_column = column;
+				u32 start_offset = offset;
 				u32 codepoints   = 1;
 				++cursor;
 				column += 1;
@@ -787,7 +802,7 @@ namespace deckard::lexer
 				}
 
 
-				[[maybe_unused]] auto identifier_view = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+				[[maybe_unused]] auto identifier_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
 
 				bool is_keyword = false;
 
@@ -795,7 +810,7 @@ namespace deckard::lexer
 				co_yield Token{
 				  .line   = line,
 				  .column = start_column,
-				  .offset = offset,
+				  .offset = start_offset,
 				  .length = codepoints,
 				  .type   = is_keyword ? TokenType::Keyword : TokenType::Identifier};
 
