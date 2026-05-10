@@ -79,7 +79,7 @@ namespace deckard::lexer
 		ShiftRight,         // >>
 		ShiftLeftEqual,     // <<=
 		ShiftRightEqual,    // >>=
-		Underscore,         // _
+		//Underscore,         // _
 		BackSlash,          // '\'
 		BackSlashBackSlash, // '\\'
 		Slash,              // /
@@ -168,7 +168,7 @@ namespace deckard::lexer
 		TokenErrorCount
 	};
 
-	static_assert(static_cast<int>(TokenType::TokenCount) == 66, "Token count changed, update to_string");
+	static_assert(static_cast<int>(TokenType::TokenCount) == 65, "Token count changed, update to_string");
 
 	export std::string_view to_string(TokenType type)
 	{
@@ -196,7 +196,7 @@ namespace deckard::lexer
 			case TokenType::ShiftLeftEqual: return "ShiftLeftEqual"sv;
 			case TokenType::ShiftRightEqual: return "ShiftRightEqual"sv;
 
-			case TokenType::Underscore: return "Underscore"sv;
+			//case TokenType::Underscore: return "Underscore"sv;
 			case TokenType::BackSlash: return "BackSlash"sv;
 			case TokenType::BackSlashBackSlash: return "BackSlashBackSlash"sv;
 			case TokenType::Slash: return "Slash"sv;
@@ -959,11 +959,11 @@ namespace deckard::lexer
 					continue;
 				}
 
-				case LOW_LINE:
-				{
-					co_yield give_token(Underscore, 1);
-					continue;
-				}
+				//case LOW_LINE:
+				//{
+				//	co_yield give_token(Underscore, 1);
+				//	continue;
+				//}
 
 					// #######################################################################################################
 					// Brackets and braces
