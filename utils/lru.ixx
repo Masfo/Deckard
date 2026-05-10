@@ -39,7 +39,7 @@ namespace deckard
 			}
 
 			cache_items_list.emplace_front(key, std::move(value));
-			cache_items_map.emplace(std::move(key), cache_items_list.begin());
+			cache_items_map.emplace(key, cache_items_list.begin());
 
 			if (cache_items_map.size() > max_size)
 			{
@@ -64,7 +64,7 @@ namespace deckard
 			return {};
 		}
 
-		[[nodiscard]] bool exists(const Key& key) const { return cache_items_map.find(key) != cache_items_map.end(); }
+		[[nodiscard]] bool exists(const Key& key) const { return cache_items_map.contains(key); }
 
 		[[nodiscard]] u64 size() const { return cache_items_map.size(); }
 
