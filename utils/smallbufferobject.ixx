@@ -382,7 +382,12 @@ namespace deckard
 		}
 
 		// Move
-		sbo(sbo&& other) noexcept { move(other); }
+		sbo(sbo&& other) noexcept
+		{
+			packed.small.size = 0;
+			packed.small.is_large = false;
+			move(other); 
+		}
 
 		sbo& operator=(sbo&& other) noexcept
 		{
