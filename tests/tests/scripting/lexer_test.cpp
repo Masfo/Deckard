@@ -784,9 +784,8 @@ fn calc(a: i32, b: i32) -> i32 {
 	{
 		// -3 for Newline, EOF, Unknown
 		// -2 for aliased tokens RightAngleBracket, LeftAngleBracket
-		// -1 for Dollar (can be used as an identifier character in some contexts)
 		// -1 for keywords (not tested here)
-		constexpr u32 expected_token_count = static_cast<u32>(TokenType::TokenCount) - 3 - 2 - 1 - 1;
+		constexpr u32 expected_token_count = static_cast<u32>(TokenType::TokenCount) - 3 - 2 - 1;
 
 		CHECK(detail::token_counts.size() == expected_token_count);
 	}
