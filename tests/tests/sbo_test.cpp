@@ -42,8 +42,9 @@ TEST_CASE("sbo", "[sbo]")
 	SECTION("initializer list (large)")
 	{
 		sbo<32> ss{
-		  '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'Q', 'W', 'E', 'R',
-		  '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'Q', 'W', 'E', 'R',
+		  '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+		  'H', 'J', 'K', 'L', 'Q', 'W', 'E', 'R', '1', '2', '3', '4', '5', '6', '7', '8',
+		  '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'Q', 'W', 'E', 'R',
 		};
 
 		CHECK(ss.size() == 48);
@@ -383,7 +384,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 0);
 		CHECK(ss.capacity() == 31);
 
-	 ss.push_back('A');
+		ss.push_back('A');
 		ss.push_back('B');
 
 
@@ -488,7 +489,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
 
-	
 
 	SECTION("clear (small)")
 	{
@@ -668,7 +668,6 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.capacity() == 31);
 		CHECK(ss.front() == 'X');
 		CHECK(ss.back() == 'C');
-
 	}
 
 	SECTION("operator + (small)")
@@ -2330,8 +2329,6 @@ TEST_CASE("sbo", "[sbo]")
 
 		auto subspan3 = ss.subspan(1, 0);
 		CHECK(subspan3.size() == 0);
-
-
 	}
 
 	SECTION("sub_sbo")
@@ -2424,9 +2421,7 @@ TEST_CASE("sbo", "[sbo]")
 
 	SECTION("self append (small -> large, resize)")
 	{
-		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-				   'Q', 'R', 'S', 'T'};
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'};
 		CHECK(ss.size() == 20);
 		CHECK(ss.capacity() == 31);
 
@@ -2477,9 +2472,7 @@ TEST_CASE("sbo", "[sbo]")
 
 	SECTION("self prepend (small -> large, resize)")
 	{
-		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-				   'Q', 'R', 'S', 'T'};
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'};
 		CHECK(ss.size() == 20);
 		CHECK(ss.capacity() == 31);
 
@@ -2513,9 +2506,7 @@ TEST_CASE("sbo", "[sbo]")
 
 	SECTION("self insert middle (small -> large, resize)")
 	{
-		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-				   'Q', 'R', 'S', 'T'};
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'};
 		CHECK(ss.size() == 20);
 		CHECK(ss.capacity() == 31);
 
@@ -2554,9 +2545,7 @@ TEST_CASE("sbo", "[sbo]")
 
 	SECTION("self insert straddling pivot (small -> large, resize)")
 	{
-		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-				   'Q', 'R', 'S', 'T'};
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'};
 		CHECK(ss.size() == 20);
 		CHECK(ss.capacity() == 31);
 
@@ -2592,9 +2581,7 @@ TEST_CASE("sbo", "[sbo]")
 
 	SECTION("self append (small -> large, resize)")
 	{
-		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-				   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-				   'Q', 'R', 'S', 'T'};
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'};
 		CHECK(ss.size() == 20);
 
 		ss.append(ss);
@@ -2604,5 +2591,29 @@ TEST_CASE("sbo", "[sbo]")
 			CHECK(ss[i] == as<u8>('A' + i));
 		for (u32 i = 0; i < 20; i++)
 			CHECK(ss[20 + i] == as<u8>('A' + i));
+	}
+
+
+	SECTION("small sbo in a vector")
+	{
+		const sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+
+		std::vector<sbo<32>> vec;
+
+		vec.push_back(ss);
+
+		CHECK(vec.size() == 1);
+		CHECK(vec[0].size() == 6);
+		CHECK(vec[0] == ss);
+		
+		vec.push_back(ss);
+
+		CHECK(vec.size() == 2);
+		CHECK(vec[0].size() == 6);
+		CHECK(vec[0] == ss);
+		CHECK(vec[1].size() == 6);
+		CHECK(vec[1] == ss);
+
+
 	}
 }

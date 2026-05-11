@@ -327,10 +327,17 @@ namespace deckard
 		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT); }
 
 	public:
-		sbo() { reset(); }
-
-       explicit sbo(std::span<value_type> buffer)
+		sbo() 
 		{
+			packed.small.size = 0;
+			packed.small.is_large = 0;
+			reset(); 
+		}
+
+	   explicit sbo(std::span<value_type> buffer)
+		{
+		   packed.small.size     = 0;
+		   packed.small.is_large = 0;
 			reset();
 			if (buffer.size() <= small_capacity())
 			{
@@ -349,6 +356,8 @@ namespace deckard
 
 		sbo(const std::initializer_list<value_type>& il)
 		{
+			packed.small.size     = 0;
+			packed.small.is_large = 0;
 			reset();
 			if (il.size() <= small_capacity())
 			{
@@ -368,7 +377,12 @@ namespace deckard
 		}
 
 		// Copy
-		sbo(sbo const& other) { clone(other); }
+		sbo(sbo const& other) 
+		{ 
+			packed.small.size = 0;
+			packed.small.is_large = 0;
+			clone(other); 
+		}
 
 		sbo& operator=(sbo const& other)
 		{
@@ -544,7 +558,7 @@ namespace deckard
 				assign(other.data());
 		}
 
-     void assign(const value_type& v) { assign(std::span<const value_type>{(pointer)&v, 1}); }
+	 void assign(const value_type& v) { assign(std::span<const value_type>{(pointer)&v, 1}); }
 
 		void assign(const std::initializer_list<value_type>& il)
 		{
