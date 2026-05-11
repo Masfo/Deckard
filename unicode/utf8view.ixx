@@ -175,6 +175,43 @@ namespace deckard::utf8
 			return *this;
 		}
 
+		// starts_with
+		bool starts_with(const view prefix) const
+		{
+			if (prefix.m_data.empty())
+				return true;
+
+			if (prefix.m_data.size_bytes() > m_data.size_bytes() - byte_index)
+				return false;
+
+			for (size_t i = 0; i < prefix.m_data.size_bytes(); ++i)
+			{
+				if (m_data[byte_index + i] != prefix.m_data[i])
+					return false;
+			}
+			return true;
+		}
+
+		bool starts_with(std::string_view prefix) const { return starts_with(view(prefix)); }
+
+		// ends_with
+		bool ends_with(const view suffix) const
+		{
+			if (suffix.m_data.empty())
+				return true;
+			if (suffix.m_data.size_bytes() > m_data.size_bytes() - byte_index)
+				return false;
+			for (size_t i = 0; i < suffix.m_data.size_bytes(); ++i)
+			{
+				if (m_data[m_data.size_bytes() - suffix.m_data.size_bytes() + i] != suffix.m_data[i])
+					return false;
+			}
+			return true;
+		}
+
+		bool ends_with(std::string_view suffix) const { return ends_with(view(suffix)); }
+
+		// 
 		bool has_next() const { return byte_index < m_data.size_bytes(); }
 
 		bool has_next(size_t codepoints) const
@@ -240,7 +277,7 @@ namespace deckard::utf8
 			return tmp;
 		}
 
-		auto operator+=(int v)
+		auto operator+=(size_t v)
 		{
 			while (v--)
 				advance_to_next_codepoint(byte_index);
@@ -248,7 +285,7 @@ namespace deckard::utf8
 			return *this;
 		}
 
-		auto operator-=(int v)
+		auto operator-=(size_t v)
 		{
 			while (v--)
 				reverse_to_last_codepoint(byte_index);

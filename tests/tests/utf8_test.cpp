@@ -1625,6 +1625,40 @@ TEST_CASE("utf8::view", "[utf8]")
 		CHECK_FALSE(v);
 	}
 
+	SECTION("view starts_with")
+	{ 
+		utf8::string str("hello 🌍");
+		utf8::view   v = str;
+
+		CHECK(v.size() == 7);
+		CHECK(v.starts_with("hello"sv) == true);
+		CHECK_FALSE(v.starts_with("world"sv));
+
+		str = "🌍hello";
+		v   = str;
+		CHECK(v.size() == 6);
+		CHECK(v.starts_with("🌍he"sv));
+		CHECK_FALSE(v.starts_with("QQ"sv));
+	}
+
+	SECTION("view ends_with")
+	{
+		utf8::string str("hello 🌍");
+		utf8::view   v = str;
+
+		CHECK(v.size() == 7);
+		CHECK(v.ends_with("🌍"sv) == true);
+		CHECK_FALSE(v.ends_with("world"sv));
+
+		str = "🌍hello";
+		v   = str;
+		CHECK(v.size() == 6);
+		CHECK(v.ends_with("hello"sv));
+		CHECK_FALSE(v.ends_with("XX"sv));
+	}
+
+
+
 	SECTION("subviews and indexing subviews") 
 	{
 		utf8::string str("abc 🌍 def");
