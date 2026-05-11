@@ -49,6 +49,29 @@ export namespace deckard
 	// repeat
 	// repeat<10> = [&] { dbg::println("xshift: {:X}", xshift.next()); };
 	//
+#ifdef __cpp_reflection
+#error ("Use std::meta::reflect instead");
+
+	template<typename E>
+	requires std::is_enum_v<E> 
+	constexpr std::string enum_to_string(E value)
+	{
+		std::string result = "<unnamed>";
+		[:expand(std::meta::enumerators_of(^E)):] >> 
+												  [&]<auto e>
+		{
+			if (value == [:e:])
+			{
+				result = std::meta::identifier_of(e);
+			}
+		};
+		return result;
+	}
+	#endif
+
+
+
+
 	template<size_t Count>
 	struct repeat_t final
 	{
