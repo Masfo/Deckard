@@ -78,7 +78,7 @@ export namespace deckard::string
 		}
 
 
-		dbg::panic("conversion not handled");
+//		dbg::panic("conversion not handled");
 	}
 
 	// ###########################################################################
@@ -190,7 +190,7 @@ export namespace deckard::string
 
 			if (opt && lowercase)
 			{
-				if (in_range('a', 'a', c))
+				if (in_range('a', 'z', c))
 					ret += c;
 			}
 
