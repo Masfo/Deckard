@@ -20,10 +20,9 @@ namespace deckard::utf8
 		static constexpr size_t npos = std::string_view::npos;
 
 	private:
-		using type = const u8;
 
-		std::span<type> m_data;
-		size_t          byte_index{0};
+		std::span<const u8> m_data;
+		size_t              byte_index{0};
 
 		void advance_to_next_codepoint(size_t& idx) const
 		{
@@ -96,7 +95,19 @@ namespace deckard::utf8
 		}
 
 		view(std::string_view data)
-			: m_data(std::span<const u8>{reinterpret_cast<const u8*>(data.data()), data.size()})
+			: m_data{reinterpret_cast<const u8*>(data.data()), data.size()}
+			, byte_index(0uz)
+		{
+		}
+
+		view(const char* data, size_t size)
+			: m_data{reinterpret_cast<const u8*>(data), size}
+			, byte_index(0uz)
+		{
+		}
+
+		view(const u8* ptr, size_t size)
+			: m_data{ptr, size}
 			, byte_index(0uz)
 		{
 		}
@@ -122,6 +133,11 @@ namespace deckard::utf8
 		}
 
 		size_t size_in_bytes() const { return as<size_t>(m_data.size_bytes()); }
+
+		std::string_view as_string_view() const
+		{
+			return {reinterpret_cast<const char*>(m_data.data()), m_data.size_bytes()};
+		}
 
 		size_t length() const
 		{
@@ -303,6 +319,20 @@ namespace deckard::utf8
 				advance_to_next_codepoint(tmp);
 
 			return decode_codepoint_at(tmp);
+		}
+
+		char32 front() const
+		{
+			assert::check(not empty(), "front() on empty view");
+			return decode_codepoint_at(0);
+		}
+
+		char32 back() const
+		{
+			assert::check(not empty(), "back() on empty view");
+			size_t idx = m_data.size_bytes();
+			reverse_to_last_codepoint(idx);
+			return decode_codepoint_at(idx);
 		}
 
 		constexpr auto operator[](this const auto& self, size_t idx)

@@ -1354,21 +1354,14 @@ export namespace std
 	template<>
 	struct formatter<utf8::string>
 	{
-		constexpr auto parse(std::format_parse_context& ctx)
-		{
-			// TODO: width
-			return ctx.begin();
-		}
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 		auto format(const utf8::string& v, std::format_context& ctx) const
 		{
-			const auto       bytes = v.data();
-			std::string_view view{as<const char*>(bytes.data()), bytes.size()};
-			return std::format_to(ctx.out(), "{}", view);
+			const auto bytes = v.data();
+			return std::format_to(ctx.out(), "{}", std::string_view{as<const char*>(bytes.data()), bytes.size()});
 		}
 
-		int  parsed_base = 10;
-		bool uppercase   = false;
 	};
 
 

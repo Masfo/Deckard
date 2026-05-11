@@ -1571,7 +1571,7 @@ TEST_CASE("utf8::view", "[utf8]")
 		v -= 1; // At 🌍
 		CHECK(*v == 0x1'f30d);
 
-		--v; // At space
+		--v;    // At space
 		CHECK(*v == ' ');
 
 		v -= 3; // At 'a'
@@ -1587,6 +1587,24 @@ TEST_CASE("utf8::view", "[utf8]")
 		CHECK(v.at(0) == 'a');
 		CHECK(v.at(1) == 0x1'f30d);
 		CHECK(v[2] == 'c');
+	}
+
+	SECTION("front and back")
+	{
+		utf8::string str("a🌍c");
+		utf8::view   v = str;
+
+		CHECK(v.front() == 'a');
+		CHECK(v.back() == 'c');
+
+		utf8::string emoji("🌍");
+		utf8::view   ve = emoji;
+		CHECK(ve.front() == 0x1'f30d);
+		CHECK(ve.back() == 0x1'f30d);
+
+		utf8::view empty;
+		// CHECK_THROWS(empty.front());
+		// CHECK_THROWS(empty.back());
 	}
 
 	SECTION("trim")
