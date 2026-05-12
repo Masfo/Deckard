@@ -389,5 +389,10 @@ export namespace deckard::utf8
 		return REPLACEMENT_CHARACTER;
 	}
 
+	char32 decode_codepoint(std::string_view buffer)
+	{
+		return decode_codepoint(utf8::as_ro_bytes(buffer));
+	}
+
 
 } // namespace deckard::utf8

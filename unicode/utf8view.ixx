@@ -168,18 +168,18 @@ namespace deckard::utf8
 
 		explicit operator bool() const { return has_next(); }
 
-		bool operator==(const view& other) const
-		{
-			if (m_data.size() != other.m_data.size())
-				return false;
+		bool operator==(const view& other) const { return compare(other) == 0; }
+		bool operator==(std::string_view other) const { return compare(view(other)) == 0; }
 
-			for (size_t i = 0; i < m_data.size(); ++i)
-			{
-				if (m_data[i] != other.m_data[i])
-					return false;
-			}
-			return true;
+		std::strong_ordering operator<=>(const view& other) const
+		{
+			int r = compare(other);
+			if (r < 0) return std::strong_ordering::less;
+			if (r > 0) return std::strong_ordering::greater;
+			return std::strong_ordering::equal;
 		}
+
+		std::strong_ordering operator<=>(std::string_view other) const { return *this <=> view(other); }
 
 		auto& operator=(const view& input)
 		{
@@ -191,7 +191,25 @@ namespace deckard::utf8
 			return *this;
 		}
 
+		int compare(view other) const
+		{
+			auto ord = std::lexicographical_compare_three_way(
+			  m_data.begin(), m_data.end(), other.m_data.begin(), other.m_data.end());
+			if (ord < 0) return -1;
+			if (ord > 0) return 1;
+			return 0;
+		}
+
+		int compare(std::string_view other) const { return compare(view(other)); }
+
 		// starts_with
+		bool starts_with(char32 c) const
+		{
+			if (not has_next())
+				return false;
+			return decode_current_codepoint() == c;
+		}
+
 		bool starts_with(const view prefix) const
 		{
 			if (prefix.m_data.empty())
@@ -200,29 +218,33 @@ namespace deckard::utf8
 			if (prefix.m_data.size_bytes() > m_data.size_bytes() - byte_index)
 				return false;
 
-			for (size_t i = 0; i < prefix.m_data.size_bytes(); ++i)
-			{
-				if (m_data[byte_index + i] != prefix.m_data[i])
-					return false;
-			}
-			return true;
+			return std::string_view(as<const char*>(m_data.data() + byte_index), prefix.m_data.size_bytes()) ==
+				   std::string_view(as<const char*>(prefix.m_data.data()), prefix.m_data.size_bytes());
 		}
 
 		bool starts_with(std::string_view prefix) const { return starts_with(view(prefix)); }
 
 		// ends_with
+		bool ends_with(char32 c) const
+		{
+			if (empty())
+				return false;
+
+			size_t idx = m_data.size_bytes();
+			reverse_to_last_codepoint(idx);
+			return decode_codepoint_at(idx) == c;
+		}
+
 		bool ends_with(const view suffix) const
 		{
 			if (suffix.m_data.empty())
 				return true;
 			if (suffix.m_data.size_bytes() > m_data.size_bytes() - byte_index)
 				return false;
-			for (size_t i = 0; i < suffix.m_data.size_bytes(); ++i)
-			{
-				if (m_data[m_data.size_bytes() - suffix.m_data.size_bytes() + i] != suffix.m_data[i])
-					return false;
-			}
-			return true;
+
+			return std::string_view(as<const char*>(m_data.data() + m_data.size_bytes() - suffix.m_data.size_bytes()),
+									suffix.m_data.size_bytes()) ==
+				   std::string_view(as<const char*>(suffix.m_data.data()), suffix.m_data.size_bytes());
 		}
 
 		bool ends_with(std::string_view suffix) const { return ends_with(view(suffix)); }
@@ -404,6 +426,33 @@ namespace deckard::utf8
 
 		view substr(size_t count) const { return subview(0, count); }
 
+		void remove_prefix(size_t n)
+		{
+			size_t bytes = 0;
+			for (size_t i = 0; i < n and bytes < m_data.size_bytes(); ++i)
+				advance_to_next_codepoint(bytes);
+
+			m_data = m_data.subspan(bytes);
+			if (byte_index > bytes)
+				byte_index -= bytes;
+			else
+				byte_index = 0;
+		}
+
+		void remove_suffix(size_t n)
+		{
+			size_t total_len = length();
+			size_t to_keep   = (n >= total_len) ? 0 : (total_len - n);
+
+			size_t bytes = 0;
+			for (size_t i = 0; i < to_keep; ++i)
+				advance_to_next_codepoint(bytes);
+
+			m_data = m_data.subspan(0, bytes);
+			if (byte_index > m_data.size_bytes())
+				byte_index = m_data.size_bytes();
+		}
+
 		auto span() const { return utf8::as_ro_bytes(m_data); }
 
 		auto trim_left() const
@@ -424,23 +473,99 @@ namespace deckard::utf8
 
 		auto trim() const { return trim_left().trim_right(); }
 
-		bool contains(char32 c) const
+		bool contains(char32 c) const { return find_first_of(c) != npos; }
+
+		bool contains(view v) const { return find(v) != npos; }
+
+		bool contains(std::string_view sv) const { return find(sv) != npos; }
+
+		size_t find(char32 c, size_t pos = 0) const { return find_first_of(c, pos); }
+
+		size_t find(view v, size_t pos = 0) const
 		{
-			size_t idx = 0;
-			while (idx < m_data.size_bytes())
+			if (v.empty())
+				return pos <= length() ? pos : npos;
+
+			size_t current_pos = 0;
+			size_t idx         = 0;
+
+			// Skip to pos
+			while (current_pos < pos and idx < m_data.size_bytes())
 			{
-				auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
-				if (codepoint == c)
-					return true;
-				idx += bytes;
+				advance_to_next_codepoint(idx);
+				current_pos++;
 			}
-			return false;
+
+			std::string_view haystack{reinterpret_cast<const char*>(m_data.data()), m_data.size_bytes()};
+			std::string_view needle{reinterpret_cast<const char*>(v.m_data.data()), v.m_data.size_bytes()};
+
+			size_t found_byte = haystack.find(needle, idx);
+			while (found_byte != std::string_view::npos)
+			{
+				if (utf8::is_start_of_codepoint(static_cast<u8>(m_data[found_byte])))
+				{
+					// Count codepoints from idx to found_byte
+					while (idx < found_byte)
+					{
+						advance_to_next_codepoint(idx);
+						current_pos++;
+					}
+					return current_pos;
+				}
+				found_byte = haystack.find(needle, found_byte + 1);
+			}
+
+			return npos;
 		}
+
+		size_t find(std::string_view sv, size_t pos = 0) const { return find(view(sv), pos); }
+
+		size_t rfind(char32 c, size_t pos = npos) const { return find_last_of(c, pos); }
+
+		size_t rfind(view v, size_t pos = npos) const
+		{
+			size_t len = length();
+			if (v.empty())
+				return std::min(pos, len);
+			if (len == 0)
+				return npos;
+
+			size_t search_end_cp   = std::min(pos, len - 1);
+			size_t search_end_byte = 0;
+			for (size_t i = 0; i < search_end_cp and search_end_byte < m_data.size_bytes(); ++i)
+				advance_to_next_codepoint(search_end_byte);
+
+			std::string_view haystack{reinterpret_cast<const char*>(m_data.data()), m_data.size_bytes()};
+			std::string_view needle{reinterpret_cast<const char*>(v.m_data.data()), v.m_data.size_bytes()};
+
+			size_t found_byte = haystack.rfind(needle, search_end_byte);
+			while (found_byte != std::string_view::npos)
+			{
+				if (utf8::is_start_of_codepoint(static_cast<u8>(m_data[found_byte])))
+				{
+					size_t cp_idx = 0;
+					size_t b_idx  = 0;
+					while (b_idx < found_byte)
+					{
+						advance_to_next_codepoint(b_idx);
+						cp_idx++;
+					}
+					return cp_idx;
+				}
+				if (found_byte == 0)
+					break;
+				found_byte = haystack.rfind(needle, found_byte - 1);
+			}
+
+			return npos;
+		}
+
+		size_t rfind(std::string_view sv, size_t pos = npos) const { return rfind(view(sv), pos); }
 
 		size_t find_first_of(char32 c, size_t pos = 0) const
 		{
 			size_t current_pos = 0;
-			size_t idx         = 0;
+		 size_t idx         = 0;
 
 			// Skip to pos
 			while (current_pos < pos and idx < m_data.size_bytes())
@@ -477,7 +602,7 @@ namespace deckard::utf8
 		size_t find_first_of(view v, size_t pos = 0) const
 		{
 			size_t current_pos = 0;
-			size_t idx         = 0;
+		 size_t idx         = 0;
 
 			// Skip to pos
 			while (current_pos < pos and idx < m_data.size_bytes())
@@ -491,7 +616,7 @@ namespace deckard::utf8
 				auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
 				if (v.contains(codepoint))
 					return current_pos;
-				idx += bytes;
+			 idx += bytes;
 				current_pos++;
 			}
 
@@ -559,7 +684,7 @@ namespace deckard::utf8
 				return npos;
 
 			size_t current_pos = std::min(pos, total_len - 1);
-			size_t idx         = 0;
+		 size_t idx         = 0;
 
 			for (size_t i = 0; i < current_pos; ++i)
 				advance_to_next_codepoint(idx);
@@ -578,6 +703,115 @@ namespace deckard::utf8
 
 			return npos;
 		}
+
+		size_t find_first_not_of(char32 c, size_t pos = 0) const
+		{
+			size_t current_pos = 0;
+		 size_t idx         = 0;
+
+			// Skip to pos
+			while (current_pos < pos and idx < m_data.size_bytes())
+			{
+				advance_to_next_codepoint(idx);
+				current_pos++;
+			}
+
+			while (idx < m_data.size_bytes())
+			{
+				auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
+				if (codepoint != c)
+					return current_pos;
+			idx += bytes;
+				current_pos++;
+			}
+
+			return npos;
+		}
+
+		size_t find_first_not_of(view v, size_t pos = 0) const
+		{
+			size_t current_pos = 0;
+			size_t idx         = 0;
+
+			// Skip to pos
+			while (current_pos < pos and idx < m_data.size_bytes())
+			{
+				advance_to_next_codepoint(idx);
+				current_pos++;
+			}
+
+			while (idx < m_data.size_bytes())
+			{
+				auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
+				if (not v.contains(codepoint))
+					return current_pos;
+				idx += bytes;
+				current_pos++;
+			}
+
+			return npos;
+		}
+
+		size_t find_first_not_of(std::string_view v, size_t pos = 0) const { return find_first_not_of(view(v), pos); }
+
+
+		size_t find_last_not_of(char32 c, size_t pos = npos) const
+		{
+			size_t total_len = size();
+			if (total_len == 0)
+				return npos;
+
+			size_t current_pos = std::min(pos, total_len - 1);
+			size_t idx         = 0;
+
+			// Go to the specified start position (pos)
+			for (size_t i = 0; i < current_pos; ++i)
+				advance_to_next_codepoint(idx);
+
+			// Now search backwards
+			while (true)
+			{
+				if (decode_codepoint_at(idx) != c)
+					return current_pos;
+
+				if (current_pos == 0)
+					break;
+
+				reverse_to_last_codepoint(idx);
+				current_pos--;
+			}
+
+			return npos;
+		}
+
+		size_t find_last_not_of(view v, size_t pos = npos) const
+		{
+			size_t total_len = size();
+			if (total_len == 0)
+				return npos;
+
+			size_t current_pos = std::min(pos, total_len - 1);
+		 size_t idx         = 0;
+
+			for (size_t i = 0; i < current_pos; ++i)
+				advance_to_next_codepoint(idx);
+
+			while (true)
+			{
+				if (not v.contains(decode_codepoint_at(idx)))
+					return current_pos;
+
+				if (current_pos == 0)
+					break;
+
+				reverse_to_last_codepoint(idx);
+				current_pos--;
+			}
+
+			return npos;
+		}
+
+		size_t find_last_not_of(std::string_view v, size_t pos = npos) const { return find_last_not_of(view(v), pos); }
 	};
 
 } // namespace deckard::utf8

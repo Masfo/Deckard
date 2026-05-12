@@ -63,6 +63,11 @@ namespace deckard::utf8
 		return 0;
 	}
 
+	export constexpr bool is_zero_width_joiner(char32 codepoint)
+	{
+		return codepoint == 0x200C or codepoint == 0x200D; // ZERO WIDTH NON-JOINER, ZERO WIDTH JOINER
+	}
+
 	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
 	export constexpr bool start_with_bom(const std::span<const u8> buffer)

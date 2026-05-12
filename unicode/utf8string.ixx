@@ -405,7 +405,7 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool operator==(std::string_view str) const { return operator==({as<u8*>(str.data()), str.length()}); }
+		bool operator==(std::string_view str) const { return operator==(view(str)); }
 
 		// insert
 		iterator insert(iterator pos, std::span<u8> input)
@@ -502,10 +502,18 @@ namespace deckard::utf8
 			return ret;
 		}
 
-		auto operator+(const string& other)
+		auto operator+(const string& other) const
 		{
 			auto ret(*this);
 			ret.append(other);
+			return ret;
+		}
+
+		auto operator+(const view v) const
+		{
+			string tmp(v);
+			auto   ret(*this);
+			ret.append(tmp);
 			return ret;
 		}
 
@@ -518,6 +526,12 @@ namespace deckard::utf8
 		auto operator+=(const string& other)
 		{
 			append(other);
+			return *this;
+		}
+
+		auto operator+=(const view v)
+		{
+			append(string(v));
 			return *this;
 		}
 
@@ -724,9 +738,11 @@ namespace deckard::utf8
 			return false;
 		}
 
-		bool contains(std::string_view str) const { return contains({as<u8*>(str.data()), str.size()}); }
+		bool contains(std::string_view str) const { return contains(std::span<u8>{as<u8*>(str.data()), str.size()}); }
 
 		bool contains(string str) const { return contains(str.data()); }
+
+		bool contains(const view v) const { return find(v.as_string_view()).has_value(); }
 
 		// starts with
 		bool starts_with(std::span<u8> input) const
@@ -746,7 +762,9 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool starts_with(std::string_view str) const { return starts_with({as<u8*>(str.data()), str.size()}); }
+		bool starts_with(std::string_view str) const { return starts_with(std::span<u8>{as<u8*>(str.data()), str.size()}); }
+
+		bool starts_with(const view v) const { return starts_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()}); }
 
 		bool starts_with(const string& str) const
 		{
@@ -792,9 +810,11 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool ends_with(std::string_view str) const { return ends_with({as<u8*>(str.data()), str.size()}); }
+		bool ends_with(std::string_view str) const { return ends_with(std::span<u8>{as<u8*>(str.data()), str.size()}); }
 
 		bool ends_with(string str) const { return ends_with(str.data()); }
+
+		bool ends_with(const view v) const { return ends_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()}); }
 
 		codepoint_type front() const
 		{
@@ -1324,6 +1344,8 @@ namespace deckard::utf8
 			trim_right();
 			return *this;
 		}
+
+		bool operator==(const view& other) const { return view(*this).compare(other) == 0; }
 	};
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
