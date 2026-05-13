@@ -1802,6 +1802,19 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 		CHECK(it.try_codepoint().has_value() == false);
 	}
 
+	SECTION("is valid codepoint")
+	{
+		char32 valid_char   = U'A';      // 0x0041
+		char32 emoji        = U'🚀';     // 0x1F680
+		char32 surrogate    = 0xD801;    // Invalid scalar
+		char32 out_of_range = 0x11'0000; // Invalid
+
+		CHECK(is_valid_codepoint(valid_char));
+		CHECK(is_valid_codepoint(emoji));
+		CHECK_FALSE(is_valid_codepoint(surrogate));
+		CHECK_FALSE(is_valid_codepoint(out_of_range));
+	}
+
 	SECTION("is_xid_start")
 	{
 		CHECK(is_xid_start(0x24));       // '$'

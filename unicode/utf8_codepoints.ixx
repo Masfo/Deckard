@@ -125,6 +125,12 @@ namespace deckard::utf8
 		return is_ascii_identifier_continue(codepoint) or is_xid_continue(codepoint);
 	}
 
+	export bool is_valid_codepoint(char32 codepoint)
+	{
+		//return codepoint <= 0x10'FFFF and not(codepoint >= 0xD800 and codepoint <= 0xDFFF);
+		return (codepoint <= 0x10'FFFF) && ((codepoint & 0xFFFF'F800) != 0xD800);
+	}
+
 	export struct EncodedCodepoint
 	{
 		std::array<u8, 4> bytes{0};
