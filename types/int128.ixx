@@ -1,7 +1,7 @@
 module;
 #ifdef _MSC_VER
 #include <intrin.h>
-#pragma intrinsic(_addcarry_u64, _subborrow_u64, _umul128, _div128)
+#pragma intrinsic(_addcarry_u64, _subborrow_u64, _umul128, _div128, _udiv128)
 #endif
 export module deckard.int128;
 
@@ -93,6 +93,7 @@ namespace deckard
 		template<typename>
 		friend struct std::hash;
 		friend class uint128;
+		friend std::ostream& operator<<(std::ostream&, const int128&);
 
 	public:
 		constexpr int128() = default;
@@ -237,18 +238,18 @@ namespace deckard
 			int128 b   = (rhs.high < 0) ? -rhs : rhs;
 
 #ifdef _MSC_VER
-			u64 a_low = static_cast<u64>(a.low);
+			u64 a_low  = static_cast<u64>(a.low);
 			u64 a_high = static_cast<u64>(a.high);
-			u64 b_low = static_cast<u64>(b.low);
+			u64 b_low  = static_cast<u64>(b.low);
 			u64 b_high = static_cast<u64>(b.high);
 
-			u64 hi = 0;
-			u64 lo_lo = _umul128(a_low, b_low, &hi);
-			u64 lo_hi = a_high * b_low + a_low * b_high + hi;
+			u64    hi    = 0;
+			u64    lo_lo = _umul128(a_low, b_low, &hi);
+			u64    lo_hi = a_high * b_low + a_low * b_high + hi;
 			int128 result{static_cast<i64>(lo_hi), static_cast<i64>(lo_lo)};
 #else
-			auto mul_result = detail::mul_portable_u64(static_cast<u64>(a.low), static_cast<u64>(a.high), 
-													   static_cast<u64>(b.low), static_cast<u64>(b.high));
+			auto mul_result = detail::mul_portable_u64(
+			  static_cast<u64>(a.low), static_cast<u64>(a.high), static_cast<u64>(b.low), static_cast<u64>(b.high));
 			int128 result{static_cast<i64>(mul_result.high), static_cast<i64>(mul_result.low)};
 #endif
 			return neg ? -result : result;
@@ -260,6 +261,16 @@ namespace deckard
 
 		int128& operator*=(const int128& other) { return *this = *this * other; }
 
+		std::pair<int128, int128> div_mod(const int128& divisor) const;
+
+		int128 operator/(const int128& rhs) const { return div_mod(rhs).first; }
+
+		int128 operator%(const int128& rhs) const { return div_mod(rhs).second; }
+
+		int128& operator/=(const int128& other) { return *this = *this / other; }
+
+		int128& operator%=(const int128& other) { return *this = *this % other; }
+
 		// Bitwise
 		constexpr int128 operator&(const int128& other) const { return {high & other.high, low & other.low}; }
 
@@ -269,7 +280,7 @@ namespace deckard
 
 		constexpr int128 operator~() const { return {~high, ~low}; }
 
-		constexpr int128 operator<<(u32 shift) const
+		int128 operator<<(u32 shift) const
 		{
 			if (shift == 0)
 				return *this;
@@ -277,10 +288,15 @@ namespace deckard
 				return {0, 0};
 			if (shift >= 64)
 				return {low << (shift - 64), 0};
+#ifdef _MSC_VER
+			return {static_cast<i64>(__shiftleft128(static_cast<u64>(low), static_cast<u64>(high), static_cast<u8>(shift))),
+					low << shift};
+#else
 			return {(high << shift) | (low >> (64 - shift)), low << shift};
+#endif
 		}
 
-		constexpr int128 operator>>(u32 shift) const
+		int128 operator>>(u32 shift) const
 		{
 			if (shift == 0)
 				return *this;
@@ -288,13 +304,19 @@ namespace deckard
 				return high < 0 ? int128(-1, -1) : int128(0, 0);
 			if (shift >= 64)
 				return {high >> 63, high >> (shift - 64)};
+#ifdef _MSC_VER
+			return {
+			  high >> shift,
+			  static_cast<i64>(__shiftright128(static_cast<u64>(low), static_cast<u64>(high), static_cast<u8>(shift)))};
+#else
 			return {high >> shift,
 					static_cast<i64>((static_cast<u64>(low) >> shift) | (static_cast<u64>(high) << (64 - shift)))};
+#endif
 		}
 
-		constexpr int128& operator<<=(u32 shift) { return *this = *this << shift; }
+		int128& operator<<=(u32 shift) { return *this = *this << shift; }
 
-		constexpr int128& operator>>=(u32 shift) { return *this = *this >> shift; }
+		int128& operator>>=(u32 shift) { return *this = *this >> shift; }
 
 		std::string to_string(int base = 10) const
 		{
@@ -306,16 +328,16 @@ namespace deckard
 			bool   is_negative = high < 0;
 			int128 value       = is_negative ? -*this : *this;
 
-			const char* prefix = "";
-			int prefix_len = 0;
+			const char* prefix     = "";
+			int         prefix_len = 0;
 			if (base == 16)
 			{
-				prefix = "0x";
+				prefix     = "0x";
 				prefix_len = 2;
 			}
 			else if (base == 2)
 			{
-				prefix = "0b";
+				prefix     = "0b";
 				prefix_len = 2;
 			}
 
@@ -405,6 +427,7 @@ namespace deckard
 		template<typename>
 		friend struct std::hash;
 		friend class int128;
+		friend std::ostream& operator<<(std::ostream&, const uint128&);
 
 	public:
 		constexpr uint128() = default;
@@ -521,7 +544,7 @@ namespace deckard
 		uint128 operator*(const uint128& rhs) const
 		{
 #ifdef _MSC_VER
-			u64 hi = 0;
+			u64 hi    = 0;
 			u64 lo_lo = _umul128(low, rhs.low, &hi);
 			u64 lo_hi = high * rhs.low + low * rhs.high + hi;
 			return {lo_hi, lo_lo};
@@ -568,7 +591,7 @@ namespace deckard
 		}
 
 		template<std::integral T>
-		constexpr uint128 operator/(T value) const
+		uint128 operator/(T value) const
 		{
 			if constexpr (std::is_signed_v<T>)
 			{
@@ -612,7 +635,7 @@ namespace deckard
 
 		constexpr uint128 operator~() const { return {~high, ~low}; }
 
-		constexpr uint128 operator<<(u32 shift) const
+		uint128 operator<<(u32 shift) const
 		{
 			if (shift == 0)
 				return *this;
@@ -620,7 +643,11 @@ namespace deckard
 				return {0, 0};
 			if (shift >= 64)
 				return {low << (shift - 64), 0};
+#ifdef _MSC_VER
+			return {__shiftleft128(low, high, static_cast<u8>(shift)), low << shift};
+#else
 			return {(high << shift) | (low >> (64 - shift)), low << shift};
+#endif
 		}
 
 		template<std::integral T>
@@ -634,7 +661,7 @@ namespace deckard
 			return *this << static_cast<u32>(shift);
 		}
 
-		constexpr uint128 operator>>(u32 shift) const
+		uint128 operator>>(u32 shift) const
 		{
 			if (shift == 0)
 				return *this;
@@ -642,7 +669,11 @@ namespace deckard
 				return {0, 0};
 			if (shift >= 64)
 				return {0, high >> (shift - 64)};
+#ifdef _MSC_VER
+			return {high >> shift, __shiftright128(low, high, static_cast<u8>(shift))};
+#else
 			return {high >> shift, (low >> shift) | (high << (64 - shift))};
+#endif
 		}
 
 		template<std::integral T>
@@ -656,38 +687,80 @@ namespace deckard
 			return *this >> static_cast<u32>(shift);
 		}
 
-		constexpr uint128& operator<<=(u32 shift) { return *this = *this << shift; }
+		uint128& operator<<=(u32 shift) { return *this = *this << shift; }
 
-		constexpr uint128& operator>>=(u32 shift) { return *this = *this >> shift; }
+		uint128& operator>>=(u32 shift) { return *this = *this >> shift; }
+
+		static inline int get_msb_pos(const uint128& val)
+		{
+			if (val.high != 0)
+			{
+				return 127 - static_cast<int>(std::countl_zero(val.high));
+			}
+			if (val.low != 0)
+			{
+				return 63 - static_cast<int>(std::countl_zero(val.low));
+			}
+			return -1; // Should not happen if checked before
+		}
 
 		std::pair<uint128, uint128> div_mod(const uint128& divisor) const
+		{
+			assert::check(divisor != uint128(0u), "Division by zero");
+
+			if (*this < divisor)
+				return {0u, *this};
+
+			if (divisor == *this)
+				return {1u, 0u};
+
+			// fast path <= 64 bit divisor
+			if (high == 0u and divisor.high == 0u)
+				return {{0u, low / divisor.low}, {0u, low % divisor.low}};
+
+#ifdef _MSC_VER
+			// fast path intrinsics: 128 bit dividend, <= 64 bit divisor
+			if (divisor.high == 0u)
 			{
-				assert::check(divisor != uint128(0u), "Division by zero");
-
-				if (*this < divisor)
-					return {0u, *this};
-
-				if (divisor == *this)
-					return {1u, 0u};
-
-				uint128 quotient  = 0;
-				uint128 remainder = 0;
-
-				for (int i = 127; i >= 0; i--)
+				const u64 d = divisor.low;
+				u64       rem{};
+				if (high < d)
 				{
-					remainder <<= 1;
-					if (is_bit_set(static_cast<u32>(i)))
-						remainder.low |= 1u;
-
-					if (remainder >= divisor)
-					{
-						remainder -= divisor;
-						quotient.set_bit(static_cast<u32>(i));
-					}
+					const u64 q = _udiv128(high, low, d, &rem);
+					return {{0u, q}, {0u, rem}};
 				}
-
-				return {quotient, remainder};
+				else
+				{
+					const u64 q_high = high / d;
+					const u64 q_low  = _udiv128(high % d, low, d, &rem);
+					return {{q_high, q_low}, {0u, rem}};
+				}
 			}
+#endif
+
+			// Fallback: Restoring Division Algorithm
+			int msb_dividend = get_msb_pos(*this);
+			int msb_divisor  = get_msb_pos(divisor);
+
+			// Since *this >= divisor, msb_dividend >= msb_divisor
+			int shift = msb_dividend - msb_divisor;
+
+			uint128 quotient  = 0;
+			uint128 remainder = *this;
+			uint128 d         = divisor << shift;
+
+			for (int i = shift; i >= 0; --i)
+			{
+				if (remainder >= d)
+				{
+					remainder -= d;
+					quotient = quotient | (uint128(1u) << i);
+				}
+				d >>= 1;
+			}
+
+			return {quotient, remainder};
+		}
 
 		uint128 operator/(const uint128& rhs) const { return div_mod(rhs).first; }
 
@@ -710,7 +783,7 @@ namespace deckard
 				return "0";
 			}
 
-			std::string   s;
+			std::string s;
 			s.reserve(40); // 128 bits max ~40 chars
 			uint128       temp = *this;
 			const uint128 radix(static_cast<u64>(base));
@@ -748,6 +821,37 @@ namespace deckard
 				detail::set_bit_u64(low, bit);
 		}
 	};
+
+	inline std::pair<int128, int128> int128::div_mod(const int128& divisor) const
+	{
+		assert::check(divisor != int128(0), "Division by zero");
+
+		const bool neg_q = (high < 0) != (divisor.high < 0);
+		const bool neg_r = high < 0;
+
+		int128 abs_a = (high < 0) ? -*this : *this;
+		int128 abs_b = (divisor.high < 0) ? -divisor : divisor;
+
+		uint128 ua(static_cast<u64>(abs_a.high), static_cast<u64>(abs_a.low));
+		uint128 ub(static_cast<u64>(abs_b.high), static_cast<u64>(abs_b.low));
+
+		auto [uq, ur] = ua.div_mod(ub);
+
+		int128 q(static_cast<i64>(uq.high), static_cast<i64>(uq.low));
+		int128 r(static_cast<i64>(ur.high), static_cast<i64>(ur.low));
+		return {neg_q ? -q : q, neg_r ? -r : r};
+	}
+
+	export inline std::ostream& operator<<(std::ostream& os, const int128& val)
+	{
+		return os << val.to_string();
+	}
+
+	export inline std::ostream& operator<<(std::ostream& os, const uint128& val)
+	{
+		return os << val.to_string();
+	}
+
 } // namespace deckard
 
 export namespace std

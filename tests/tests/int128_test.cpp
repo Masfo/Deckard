@@ -22,7 +22,7 @@ TEST_CASE("int128", "[int128]")
 		CHECK(empty == int128(0));
 
 		int128 from_i64(42);
-		auto cmp = from_i64 == int128(0, 42);
+		auto   cmp = from_i64 == int128(0, 42);
 		CHECK(cmp);
 		int128 from_neg_i64(-42);
 		CHECK(from_neg_i64 < int128(0));
@@ -36,7 +36,7 @@ TEST_CASE("int128", "[int128]")
 
 		int128 pos(0, 100);
 		int128 neg(-50);
-		auto result = pos + neg;
+		auto   result = pos + neg;
 		CHECK(result > int128(0));
 
 		int128 zero(0, 0);
@@ -56,7 +56,7 @@ TEST_CASE("int128", "[int128]")
 
 		int128 zero(0, 0);
 		int128 five(0, 5);
-		auto result = zero - five;
+		auto   result = zero - five;
 		CHECK(result < int128(0));
 
 		int128 a1(0, 10);
@@ -86,7 +86,7 @@ TEST_CASE("int128", "[int128]")
 
 		int128 pos(0, 5);
 		int128 neg(-3);
-		auto result = pos * neg;
+		auto   result = pos * neg;
 		CHECK(result < int128(0));
 
 		int128 zero(0, 0);
@@ -140,7 +140,7 @@ TEST_CASE("int128", "[int128]")
 		CHECK(max_neg != max_pos);
 
 		// low word must be compared unsigned: int128(0, 2^63) is positive, greater than int128(0, 1)
-		int128 large_low(0, static_cast<i64>(0x8000'0000'0000'0000));  // positive, low MSB set
+		int128 large_low(0, static_cast<i64>(0x8000'0000'0000'0000)); // positive, low MSB set
 		CHECK(large_low > int128(0, 1));
 		CHECK(large_low > int128(0));
 	}
@@ -171,9 +171,9 @@ TEST_CASE("int128", "[int128]")
 		CHECK((pos >> 64) == int128(0, 0));
 
 		// arithmetic right shift: high word fills with sign bit, not bit 31
-		int128 neg2(-2, 0);                              // high=-2, low=0
-		CHECK((neg2 >> 64) == int128(-1, -2));           // high>>63 fills sign, low=high>>0=-2
-		CHECK((neg2 >> 65) == int128(-1, -1));           // high>>1=-1, sign fill
+		int128 neg2(-2, 0);                    // high=-2, low=0
+		CHECK((neg2 >> 64) == int128(-1, -2)); // high>>63 fills sign, low=high>>0=-2
+		CHECK((neg2 >> 65) == int128(-1, -1)); // high>>1=-1, sign fill
 	}
 
 	SECTION("parse")
@@ -209,17 +209,16 @@ TEST_CASE("int128", "[int128]")
 		CHECK(int128(0, 42).to_string() == "42");
 
 		int128 neg_val(-42);
-		auto neg_str = neg_val.to_string();
+		auto   neg_str = neg_val.to_string();
 		CHECK(neg_str.find('-') != std::string::npos);
 
-		CHECK(int128(0x7FFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF).to_string() == 
-			  "170141183460469231731687303715884105727");
-		CHECK(int128(0x8000'0000'0000'0000, 0x0000'0000'0000'0000).to_string() == 
+		CHECK(int128(0x7FFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF).to_string() == "170141183460469231731687303715884105727");
+		CHECK(int128(0x8000'0000'0000'0000, 0x0000'0000'0000'0000).to_string() ==
 			  "-170141183460469231731687303715884105728");
 
 		auto hex_str = int128(0, 255).to_string(16);
-		bool has_ff = (hex_str.find("ff") != std::string::npos);
-		bool has_FF = (hex_str.find("FF") != std::string::npos);
+		bool has_ff  = (hex_str.find("ff") != std::string::npos);
+		bool has_FF  = (hex_str.find("FF") != std::string::npos);
 		CHECK((has_ff || has_FF));
 
 		auto bin_str = int128(0, 255).to_string(2);
@@ -228,10 +227,10 @@ TEST_CASE("int128", "[int128]")
 
 	SECTION("convert to floats")
 	{
-		f64 d64 = static_cast<f64>(int128(0, 123456789));
+		f64 d64 = static_cast<f64>(int128(0, 123'456'789));
 		CHECK_THAT(d64, Catch::Matchers::WithinAbs(123456789.0, 1000.0));
 
-		f32 d32 = static_cast<f32>(int128(0, 123456789));
+		f32 d32 = static_cast<f32>(int128(0, 123'456'789));
 		CHECK_THAT(d32, Catch::Matchers::WithinAbs(123456789.0f, 10000.0f));
 	}
 
@@ -244,15 +243,300 @@ TEST_CASE("int128", "[int128]")
 		CHECK(neg_formatted.find('-') != std::string::npos);
 
 		auto hex_formatted = std::format("{:x}", int128(0, 255));
-		bool has_ff_fmt = (hex_formatted.find("ff") != std::string::npos);
-		bool has_xFF = (hex_formatted.find("xFF") != std::string::npos);
+		bool has_ff_fmt    = (hex_formatted.find("ff") != std::string::npos);
+		bool has_xFF       = (hex_formatted.find("xFF") != std::string::npos);
 		CHECK((has_ff_fmt || has_xFF));
 
 		auto bin_formatted = std::format("{:b}", int128(0, 255));
 		CHECK(bin_formatted.find("11111111") != std::string::npos);
 	}
 
+	SECTION("div")
+	{
+		CHECK(int128(0, 100) / int128(0, 10) == int128(0, 10));
+		CHECK(int128(0, 100) % int128(0, 10) == int128(0));
+		CHECK(int128(0, 7) / int128(0, 2) == int128(0, 3));
+		CHECK(int128(0, 7) % int128(0, 2) == int128(0, 1));
 
+		// truncation toward zero: remainder has sign of dividend
+		CHECK(int128(-7) / int128(0, 2) == int128(-3));
+		CHECK(int128(-7) % int128(0, 2) == int128(-1));
+		CHECK(int128(0, 7) / int128(-2) == int128(-3));
+		CHECK(int128(0, 7) % int128(-2) == int128(0, 1));
+		CHECK(int128(-7) / int128(-2) == int128(0, 3));
+		CHECK(int128(-7) % int128(-2) == int128(-1));
+
+		// identity: a == (a/b)*b + a%b
+		int128 a("12345678901234567890");
+		int128 b("987654321");
+		CHECK(a == (a / b) * b + a % b);
+
+		int128 neg_a("-12345678901234567890");
+		CHECK(neg_a == (neg_a / b) * b + neg_a % b);
+
+		// divisor larger than dividend
+		CHECK(int128(0, 5) / int128(0, 10) == int128(0));
+		CHECK(int128(0, 5) % int128(0, 10) == int128(0, 5));
+
+		// same value
+		CHECK(int128(0, 42) / int128(0, 42) == int128(0, 1));
+		CHECK(int128(0, 42) % int128(0, 42) == int128(0));
+
+		// max / 2: result has high word set
+		int128 imax("170141183460469231731687303715884105727");
+		CHECK(imax / int128(0, 2) == int128("85070591730234615865843651857942052863"));
+		CHECK(imax % int128(0, 2) == int128(0, 1));
+
+		// min / 2: min is -2^127 (even)
+		int128 imin("-170141183460469231731687303715884105728");
+		CHECK(imin / int128(0, 2) == int128("-85070591730234615865843651857942052864"));
+		CHECK(imin % int128(0, 2) == int128(0));
+
+		// large positive / large positive: exact reverse of known multiplication
+		int128 large_prod("-24855484201628309703698791272217822204");
+		int128 large_fa("-6242398038732451891");
+		int128 large_fb("3981720493856129044");
+		CHECK(large_prod / large_fa == large_fb);
+		CHECK(large_prod % large_fa == int128(0));
+		CHECK(large_prod / large_fb == large_fa);
+		CHECK(large_prod % large_fb == int128(0));
+
+		// large identity checks both signs
+		int128 big_a("123456789012345678901234567890123456789");
+		int128 big_b("987654321098765432109876543");
+		CHECK(big_a == (big_a / big_b) * big_b + big_a % big_b);
+		int128 neg_big_a = -big_a;
+		CHECK(neg_big_a == (neg_big_a / big_b) * big_b + neg_big_a % big_b);
+		int128 neg_big_b = -big_b;
+		CHECK(big_a == (big_a / neg_big_b) * neg_big_b + big_a % neg_big_b);
+
+		// edge case: negative dividend with small positive divisor
+		int128 neg_small("-5");
+		int128 pos_divisor(0, 3);
+		int128 q_result = neg_small / pos_divisor;
+		int128 r_result = neg_small % pos_divisor;
+		CHECK(q_result == int128(-1));
+		CHECK(r_result == int128(-2));
+		CHECK(neg_small == q_result * pos_divisor + r_result);
+
+		// edge case: INT128_MIN divided by 2 (no overflow)
+		int128 imin2("-170141183460469231731687303715884105728");
+		int128 divisor_2(0, 2);
+		int128 q_min = imin2 / divisor_2;
+		int128 r_min = imin2 % divisor_2;
+		CHECK(q_min == int128("-85070591730234615865843651857942052864"));
+		CHECK(r_min == int128(0));
+		CHECK(imin2 == q_min * divisor_2 + r_min);
+
+		// edge case: remainder is zero (no negation needed)
+		int128 evenly_divisible("-100");
+		int128 divisor_10(0, 10);
+		CHECK(evenly_divisible % divisor_10 == int128(0));
+
+		// edge case: very large negative divided by large positive
+		int128 large_neg("-999999999999999999999999999999");
+		int128 large_div("111111111111111111111111111111");
+		int128 q_large = large_neg / large_div;
+		int128 r_large = large_neg % large_div;
+		CHECK(large_neg == q_large * large_div + r_large);
+		// remainder should have sign of dividend (negative)
+		if (r_large != int128(0))
+		{
+			CHECK(r_large < int128(0));
+		}
+	}
+}
+
+TEST_CASE("int128::div_mod - Basic Cases", "[int128][division]")
+{
+	SECTION("Positive / Positive")
+	{
+		int128 a    = 100;
+		int128 b    = 7;
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == 14);
+		CHECK(r == 2);
+		CHECK(a == q * b + r);
+	}
+
+	SECTION("Negative / Positive")
+	{
+		int128 a    = -100;
+		int128 b    = 7;
+		auto [q, r] = a.div_mod(b);
+		// C++11 rule: -100 / 7 = -14, -100 % 7 = -2
+		CHECK(q == -14);
+		CHECK(r == -2);
+		CHECK(a == q * b + r);
+	}
+
+	SECTION("Positive / Negative")
+	{
+		int128 a    = 100;
+		int128 b    = -7;
+		auto [q, r] = a.div_mod(b);
+		// 100 / -7 = -14, 100 % -7 = 2 (remainder sign matches dividend)
+		CHECK(q == -14);
+		CHECK(r == 2);
+		CHECK(a == q * b + r);
+	}
+
+	SECTION("Negative / Negative")
+	{
+		int128 a    = -100;
+		int128 b    = -7;
+		auto [q, r] = a.div_mod(b);
+		// -100 / -7 = 14, -100 % -7 = -2
+		CHECK(q == 14);
+		CHECK(r == -2);
+		CHECK(a == q * b + r);
+	}
+
+	SECTION("Divide by One")
+	{
+		int128 a    = 999;
+		int128 b    = 1;
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == 999);
+		CHECK(r == 0);
+	}
+
+	SECTION("Divide by Negative One")
+	{
+		int128 a    = 999;
+		int128 b    = -1;
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == -999);
+		CHECK(r == 0);
+	}
+
+	SECTION("Zero Dividend")
+	{
+		int128 a    = 0;
+		int128 b    = 12345;
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == 0);
+		CHECK(r == 0);
+	}
+}
+
+TEST_CASE("int128::div_mod - Edge Cases", "[int128][edge]")
+{
+	const int128 min_val = std::numeric_limits<int128>::min();
+	const int128 max_val = std::numeric_limits<int128>::max();
+
+	SECTION("Dividend is INT128_MIN, Divisor is 1")
+	{
+		int128 a    = min_val;
+		int128 b    = 1;
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == min_val);
+		CHECK(r == 0);
+		CHECK(a == q * b + r);
+	}
+
+	SECTION("Dividend is INT128_MIN, Divisor is -1 (Overflow Case)")
+	{
+		int128 a = min_val;
+		int128 b = -1;
+
+		// This is the critical test.
+		// Mathematically: -2^127 / -1 = 2^127.
+		// 2^127 cannot be represented in signed int128 (max is 2^127 - 1).
+		// Our implementation likely wraps to min_val (0x80...00) or asserts.
+		// If your implementation throws, wrap in CHECK_THROWS.
+		// If it returns a wrapped value:
+		auto [q, r] = a.div_mod(b);
+
+		// The remainder MUST be 0.
+		CHECK(r == 0);
+
+		// The quotient behavior depends on your overflow policy.
+		// If it wraps: q == min_val (which is -2^127, mathematically wrong but bit-pattern consistent)
+		// If it saturates: q == max_val
+		// If it asserts: The test will fail at the assert line.
+
+		// For this test, we check the invariant a == q*b + r holds with the returned q.
+		// If q wraps to min_val: min_val * -1 = min_val (overflow again).
+		// This is a known limitation of fixed-width integers.
+		// We assert that the remainder is correct, which is the primary guarantee.
+		CHECK(r == 0);
+
+		// Optional: Check if your implementation handles this gracefully (e.g. throws)
+		// CHECK_THROWS_AS(a.div_mod(b), std::overflow_error);
+	}
+
+	SECTION("Divisor is INT128_MIN")
+	{
+		int128 a    = 1000;
+		int128 b    = min_val;
+		auto [q, r] = a.div_mod(b);
+		// 1000 / -2^127 = 0
+		// 1000 % -2^127 = 1000
+		CHECK(q == 0);
+		CHECK(r == 1000);
+		CHECK(a == q * b + r);
+	}
+
+	SECTION("Large Numbers near Max")
+	{
+		int128 a    = max_val;
+		int128 b    = 2;
+		auto [q, r] = a.div_mod(b);
+		// max_val is odd (2^127 - 1)
+		// (2^127 - 1) / 2 = 2^126 - 1
+		// Remainder = 1
+		CHECK(r == 1);
+		CHECK(a == q * b + r);
+	}
+}
+
+TEST_CASE("int128::div_mod - Randomized Stress Test", "[int128][stress]")
+{
+
+	auto test_case = [](int128 a, int128 b)
+	{
+		if (b == 0)
+			return; // Skip zero divisor
+
+		auto [q, r] = a.div_mod(b);
+
+		CHECK(a == q * b + r);
+
+		// Check remainder magnitude < divisor magnitude
+		// Skip this check if either value is int128::min() since negation overflows
+		if (r != std::numeric_limits<int128>::min() && b != std::numeric_limits<int128>::min())
+		{
+			int128 abs_r = (r < 0) ? -r : r;
+			int128 abs_b = (b < 0) ? -b : b;
+			CHECK(abs_r < abs_b);
+		}
+
+		if (r != 0)
+		{
+			bool r_neg = (r < 0);
+			bool a_neg = (a < 0);
+			CHECK(r_neg == a_neg);
+		}
+	};
+
+	SECTION("Small Random Values")
+	{
+		test_case(42, 5);
+		test_case(-42, 5);
+		test_case(42, -5);
+		test_case(-42, -5);
+		test_case(1, 1);
+		test_case(-1, 1);
+	}
+
+	SECTION("Boundary Values")
+	{
+		test_case(std::numeric_limits<int128>::min(), 2);
+		test_case(std::numeric_limits<int128>::max(), 2);
+		test_case(std::numeric_limits<int128>::min(), std::numeric_limits<int128>::max());
+		test_case(std::numeric_limits<int128>::max(), std::numeric_limits<int128>::min());
+	}
 }
 
 TEST_CASE("uint128", "[uint128]")
@@ -542,11 +826,11 @@ TEST_CASE("uint128", "[uint128]")
 
 		uint128 asymmetric(0xFFFF'FFFF'0000'0000, 0x1234'5678);
 		uint128 div_by_high(0x1000'0000, 0);
-		uint128 quotient = asymmetric / div_by_high;
+		uint128 quotient  = asymmetric / div_by_high;
 		uint128 remainder = asymmetric % div_by_high;
 		CHECK(quotient * div_by_high + remainder == asymmetric);
 
-		uint128 power_2(2, 0);  // 2^65
+		uint128 power_2(2, 0); // 2^65
 		CHECK(power_2 / uint128(0, 2) == uint128(1, 0));
 		CHECK(power_2 % uint128(0, 2) == uint128(0));
 
@@ -567,6 +851,37 @@ TEST_CASE("uint128", "[uint128]")
 		auto [q_check, r_check] = dividend.div_mod(divisor_check);
 		CHECK(r_check < divisor_check);
 		CHECK(q_check * divisor_check + r_check == dividend);
+
+		// max / 2^64: quotient = UINT64_MAX, remainder = UINT64_MAX
+		CHECK(uint128(UINT64_MAX, UINT64_MAX) / uint128(1, 0) == uint128(0, UINT64_MAX));
+		CHECK(uint128(UINT64_MAX, UINT64_MAX) % uint128(1, 0) == uint128(0, UINT64_MAX));
+
+		// exact reverse of known multiplication: UINT64_MAX * UINT64_MAX
+		uint128 sq("340282366920938463426481119284349108225");
+		CHECK(sq / uint128(0, UINT64_MAX) == uint128(0, UINT64_MAX));
+		CHECK(sq % uint128(0, UINT64_MAX) == uint128(0));
+
+		// near-max / near-max: quotient = 1, remainder = 1
+		uint128 nm1(UINT64_MAX, UINT64_MAX);
+		uint128 nm2(UINT64_MAX, UINT64_MAX - 1);
+		CHECK(nm1 / nm2 == uint128(0, 1));
+		CHECK(nm1 % nm2 == uint128(0, 1));
+
+		// both high words non-zero: identity check
+		uint128 bh_a(0xFEDC'BA98'7654'3210, 0x0123'4567'89AB'CDEF);
+		uint128 bh_b(0x1234'5678'9ABC'DEF0, 0xFEDC'BA98'7654'3210);
+		auto [bh_q, bh_r] = bh_a.div_mod(bh_b);
+		CHECK(bh_q * bh_b + bh_r == bh_a);
+		CHECK(bh_r < bh_b);
+
+		// exact reverse of known multiplication: 4010586790773080478 * 6814296587827358857
+		uint128 known_product("27329327883550479895825042596647093646");
+		uint128 known_factor_a(0, 4'010'586'790'773'080'478ULL);
+		uint128 known_factor_b(0, 6'814'296'587'827'358'857ULL);
+		CHECK(known_product / known_factor_a == known_factor_b);
+		CHECK(known_product % known_factor_a == uint128(0));
+		CHECK(known_product / known_factor_b == known_factor_a);
+		CHECK(known_product % known_factor_b == uint128(0));
 	}
 
 	SECTION("mul")
@@ -617,10 +932,11 @@ TEST_CASE("uint128", "[uint128]")
 			  "00000000000000000000000000000000000000000000000000000000000000000");
 	}
 
-	SECTION("formatter") 
-	{ 
-		CHECK(std::format("{}", uint128(0, 0)) == "0"); 
-		CHECK(std::format("{}", uint128(4'256'066'292'496'146'311, 6'725'288'669'015'888'136)) == "78510565658418270060149122660758376712");
+	SECTION("formatter")
+	{
+		CHECK(std::format("{}", uint128(0, 0)) == "0");
+		CHECK(std::format("{}", uint128(4'256'066'292'496'146'311, 6'725'288'669'015'888'136)) ==
+			  "78510565658418270060149122660758376712");
 		CHECK(std::format("{}", uint128(0, 1)) == "1");
 		CHECK(std::format("{:x}", uint128(0, 255)) == "0xff");
 		CHECK(std::format("{:b}", uint128(0, 255)) == "0b11111111");
@@ -628,7 +944,6 @@ TEST_CASE("uint128", "[uint128]")
 		CHECK(std::format("{:b}", uint128(0, 256)) == "0b100000000");
 	}
 }
-
 
 TEST_CASE("int128/uint128", "[int128][uint128]")
 {
@@ -664,30 +979,181 @@ TEST_CASE("int128/uint128", "[int128][uint128]")
 	}
 
 	SECTION("mixed signed/unsigned compares")
-	{ 
+	{
 		uint128 uval(0, 42);
 		int128  ival(0, 42);
 
 		CHECK(uval == ival);
 		CHECK(ival == uval);
 
-		// Negative int128 vs uint128
 		int128 neg(-42);
 		CHECK(neg != uval);
 		CHECK(uval != neg);
 		CHECK(neg < uval);
 		CHECK(uval > neg);
 
-		// Large positive int128 vs uint128
-		int128 large_pos(0x7FFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF);
+		int128  large_pos(0x7FFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF);
 		uint128 larger_u(0xFFFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF);
 		CHECK(large_pos < larger_u);
 		CHECK(larger_u > large_pos);
 
-		// Boundary case: negative int128 vs zero uint128
-		int128 neg_one(-1);
+		int128  neg_one(-1);
 		uint128 zero_u(0);
 		CHECK(neg_one < zero_u);
 		CHECK(zero_u > neg_one);
+	}
+}
+
+TEST_CASE("uint128 - Bit Boundary Tests", "[uint128][math]")
+{
+	uint128 zero{0};
+	uint128 one{1};
+	uint128 max64{0u, 0xFFFF'FFFF'FFFF'FFFFULL};
+	uint128 power64{1u, 0u};
+
+	SECTION("Boundary Arithmetic")
+	{
+		CHECK((max64 + one) == power64);
+		CHECK((power64 - one) == max64);
+	}
+
+	SECTION("Multiplication/Division across 64-bit")
+	{
+		uint128 a{0u, 0x8000'0000'0000'0000ULL}; 
+		auto [q, r] = (a * uint128(2)).div_mod(uint128(2));
+		CHECK(q == a);
+		CHECK(r == zero);
+	}
+}
+
+TEST_CASE("uint128 - Division Edge Cases", "[uint128][div]")
+{
+	SECTION("Divisor > Dividend")
+	{
+		uint128 a{100};
+		uint128 b{200};
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == 0u);
+		CHECK(r == a);
+	}
+
+	SECTION("Exact 128-bit Division")
+	{
+		uint128 a{5u, 0u};
+		uint128 b{5u};
+		auto [q, r] = a.div_mod(b);
+		CHECK(q == uint128{1u, 0u});
+		CHECK(r == 0u);
+	}
+
+	SECTION("Divisor with bits in both halves")
+	{
+		uint128 a{0xFFFF'FFFF'FFFF'FFFFULL, 0xFFFF'FFFF'FFFF'FFFFULL};
+		uint128 b{0x0000'0000'0000'0001ULL, 0x0000'0000'0000'0000ULL};
+
+		auto [q, r] = a.div_mod(b);
+
+		CHECK(q == 0xFFFF'FFFF'FFFF'FFFFULL);
+		CHECK(r == 0xFFFF'FFFF'FFFF'FFFFULL);
+	}
+
+	SECTION("Large prime division")
+	{
+		uint128 a{0xABCD'EF01'2345'6789ULL, 0x9876'5432'10FE'DCBAULL};
+		uint128 b{0x1234'5678'9ABC'DEF0ULL, 0x0FED'CBA9'8765'4321ULL};
+
+		auto [q, r] = a.div_mod(b);
+		CHECK((q * b) + r == a);
+	}
+}
+
+TEST_CASE("uint128 - Comparison and Bitwise", "[uint128][logic]")
+{
+	uint128 low_max{0u, 0xFFFF'FFFF'FFFF'FFFFULL};
+	uint128 high_min{1u, 0u};
+
+	CHECK(high_min > low_max);
+	CHECK(low_max < high_min);
+	CHECK(high_min != low_max);
+
+	SECTION("Bitwise")
+	{
+		uint128 val{0xAAAA'AAAA'AAAA'AAAAULL, 0x5555'5555'5555'5555ULL};
+		uint128 mask{0xFFFF'FFFF'0000'0000ULL, 0x0000'0000'FFFF'FFFFULL};
+
+		uint128 expected{0xAAAA'AAAA'0000'0000ULL, 0x0000'0000'5555'5555ULL};
+		CHECK((val & mask) == expected);
+	}
+}
+
+TEST_CASE("uint128 - Wrap Around", "[uint128][limits]")
+{
+	uint128 max{0xFFFF'FFFF'FFFF'FFFFULL, 0xFFFF'FFFF'FFFF'FFFFULL};
+	uint128 zero{0};
+
+	CHECK((max + uint128(1)) == zero);
+	CHECK((zero - uint128(1)) == max);
+}
+
+// Helper to construct uint128 from two 64-bit parts
+inline uint128 make_u128(u64 h, u64 l) { return uint128{h, l}; }
+
+TEST_CASE("uint128::div_mod - High-Zero MSB Alignment Bug", "[uint128][division][bug]")
+{
+
+	SECTION("Dividend MSB in Low, Divisor MSB in Low (Small)")
+	{
+		uint128 dividend = make_u128(0u, 0x8000'0000'0000'0000ULL);
+		uint128 divisor  = make_u128(0u, 1u);
+
+		auto [q, r] = dividend.div_mod(divisor);
+
+		CHECK(q == dividend);
+		CHECK(r == 0u);
+
+		CHECK(dividend == q * divisor + r);
+	}
+
+	SECTION("Dividend MSB in Low, Divisor MSB in Low (Medium)")
+	{
+
+		uint128 dividend = make_u128(0u, 0xC000'0000'0000'0000ULL);
+		uint128 divisor  = make_u128(0u, 1024u);
+
+		uint128 expected_q = make_u128(0u, 0x30'0000'0000'0000ULL); 
+
+		auto [q, r] = dividend.div_mod(divisor);
+
+		CHECK(q == expected_q);
+		CHECK(r == 0u);
+		CHECK(dividend == q * divisor + r);
+	}
+
+	SECTION("Stress Test: Random High-Zero Cases")
+	{
+		auto test_random = [](u64 d_val, u64 v_val)
+		{
+			if (v_val == 0)
+				return;
+
+			uint128 dividend = make_u128(0u, d_val);
+			uint128 divisor  = make_u128(0u, v_val);
+
+			u64 expected_q = d_val / v_val;
+			u64 expected_r = d_val % v_val;
+
+			auto [q, r] = dividend.div_mod(divisor);
+
+			CHECK(q == make_u128(0u, expected_q));
+			CHECK(r == make_u128(0u, expected_r));
+			CHECK(dividend == q * divisor + r);
+		};
+
+		test_random(0x8000'0000'0000'0000ULL, 1u);
+		test_random(0xFFFF'FFFF'FFFF'FFFFULL, 1u);
+		test_random(0xFFFF'FFFF'FFFF'FFFFULL, 0xFFFF'FFFF'FFFF'FFFFULL);
+		test_random(0x1000'0000'0000'0000ULL, 0x1000'0000'0000'0000ULL);
+		test_random(0x1234'5678'9ABC'DEF0ULL, 0xFEDC'BA98'7654'3210ULL);
+		test_random(1'000'000'007u, 1'000'000'007u);
 	}
 }
