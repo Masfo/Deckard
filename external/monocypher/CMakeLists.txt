@@ -2,6 +2,14 @@
 
 cmake_minimum_required (VERSION 3.23)
 
+if(MSVC)
+    # Disable debug info to avoid warning D9025
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif()
+
 set(MONOCYPHER_ZIP_URL https://github.com/LoupVaillant/Monocypher/archive/refs/tags/4.0.2.zip)
 set(MONOCYPHER_ZIP_NAME_NO_EXT Monocypher-4.0.2)
 
@@ -47,6 +55,8 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${MONOCYPHER_ZIP_NAME})
 endif()
 
 project(monocypher C)
+
+
 add_library(monocypher OBJECT
 	monocypher.c
 	monocypher.h
@@ -55,13 +65,18 @@ add_library(monocypher OBJECT
 	optional/monocypher-ed25519.h
 )
 
+if(MSVC)
+    target_compile_options(monocypher PRIVATE /W0)
+	set_target_properties(monocypher PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
+    #target_compile_options(monocypher PRIVATE /Z7)
+
+endif()
+
 set_target_properties(monocypher PROPERTIES
 	C_STANDARD 17
 )
 
-if(MSVC)
-	set_target_properties(monocypher PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
-endif()
+
 
 set_target_properties(monocypher PROPERTIES LINKER_LANGUAGE C)
 

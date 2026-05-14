@@ -2,6 +2,13 @@
 
 cmake_minimum_required (VERSION 4.2)
 
+if(MSVC)
+	# Disable debug info to avoid warning D9025
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif()
 
 set(SQLITE_ZIP_URL https://www.sqlite.org/2026/sqlite-amalgamation-3530100.zip)
 get_filename_component(SQLITE_ZIP_NAME ${SQLITE_ZIP_URL} NAME)
@@ -49,13 +56,13 @@ project(sqlite3 C)
 add_library(sqlite3 OBJECT sqlite3.c)
 
 if(MSVC)
-    target_compile_options(sqlite3 PRIVATE /Z7)
+    target_compile_options(sqlite3 PRIVATE /W0)
+    #target_compile_options(sqlite3 PRIVATE /Z7)
 endif()
 
 set_target_properties(sqlite3 PROPERTIES
 	C_STANDARD 17
 )
-
 # target_compile_definitions(sqlite3 PRIVATE -DSQLITE_ENABLE_COLUMN_METADATA)
 
 set_source_files_properties(sqlite3.c sqlite3.h PROPERTIES LANGUAGE C)

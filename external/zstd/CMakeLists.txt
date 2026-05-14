@@ -1,5 +1,13 @@
 # https://github.com/facebook/zstd/
 
+if(MSVC)
+	# Disable debug info to avoid warning D9025
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif()
+
 cmake_minimum_required (VERSION 3.23)
 
 set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.zip)
@@ -7,6 +15,7 @@ set(ZSTD_ZIP_NAME_NOEXT zstd-1.5.7)
 #set(ZSTD_ZIP_NAME_NOEXT zstd-dev)
 #set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/heads/dev.zip)
 get_filename_component(ZSTD_ZIP_NAME ${ZSTD_ZIP_URL} NAME)
+
 
 
  
@@ -145,12 +154,18 @@ add_library(ZSTD OBJECT
         decompress/zstd_decompress_block.c
 )
 
+
+
 if(MSVC)
+    target_compile_options(ZSTD PRIVATE /W0)
     set_target_properties(ZSTD PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
-    target_compile_options(ZSTD PRIVATE /Z7)
+    #target_compile_options(ZSTD PRIVATE /Z7)
+
 endif()
 
+
 set_target_properties(ZSTD PROPERTIES LINKER_LANGUAGE C)
+
 
 target_include_directories(ZSTD PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
