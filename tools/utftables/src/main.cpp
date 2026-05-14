@@ -878,7 +878,6 @@ void process_unicode_data()
 
 		if (field.code_value == 0x3400)
 		{
-			int k = 0;
 		}
 
 		// no-name ranges
