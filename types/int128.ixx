@@ -1,0 +1,904 @@
+export module deckard.int128;
+
+import std;
+import deckard.types;
+import deckard.utils.hash;
+import deckard.assert;
+
+namespace deckard
+{
+	namespace detail
+	{
+		constexpr std::optional<u32> digit_value(char c)
+		{
+			if (c >= '0' and c <= '9')
+				return static_cast<u32>(c - '0');
+			if (c >= 'a' and c <= 'f')
+				return static_cast<u32>(c - 'a' + 10);
+			if (c >= 'A' and c <= 'F')
+				return static_cast<u32>(c - 'A' + 10);
+			return {};
+		}
+
+		constexpr std::pair<u64, u64> mul_u64_u32(u64 value, u32 mul)
+		{
+			constexpr u64 mask = 0xFFFF'FFFFu;
+			const u64     a0   = value & mask;
+			const u64     a1   = value >> 32;
+			const u64     p0   = a0 * mul;
+			const u64     p1   = a1 * mul;
+			const u64     mid  = (p0 >> 32) + p1;
+			const u64     lo   = (p0 & mask) | ((mid & mask) << 32);
+			const u64     hi   = mid >> 32;
+			return std::pair<u64, u64>{hi, lo};
+		}
+	} // namespace detail
+
+	export class int128
+	{
+	private:
+		i64 high{0};
+		i64 low{0};
+
+		template<typename>
+		friend struct std::hash;
+		friend class uint128;
+
+	public:
+		constexpr int128() = default;
+
+		constexpr int128(i64 h, i64 l)
+			: high(h)
+			, low(l)
+		{
+		}
+
+		constexpr int128(i64 value)
+			: high(value < 0 ? -1 : 0)
+			, low(value)
+		{
+		}
+
+		constexpr int128(const int128& other)                = default;
+		constexpr int128(int128&& other) noexcept            = default;
+		constexpr int128& operator=(const int128& other)     = default;
+		constexpr int128& operator=(int128&& other) noexcept = default;
+
+		constexpr int128(std::string_view str)
+		{
+			if (str.empty())
+				return;
+
+			bool negative = false;
+			if (str[0] == '-')
+			{
+				negative = true;
+				str.remove_prefix(1);
+			}
+			else if (str[0] == '+')
+			{
+				str.remove_prefix(1);
+			}
+
+			u32 base = 10;
+			if (str.size() >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X'))
+			{
+				base = 16;
+				str.remove_prefix(2);
+			}
+			if (str.empty())
+			{
+				if (negative)
+					*this = int128(-1);
+				return;
+			}
+
+			int128 result(0);
+			for (char c : str)
+			{
+				auto digit = detail::digit_value(c);
+				if (not digit or *digit >= base)
+				{
+					high = 0;
+					low  = 0;
+					return;
+				}
+				auto [low_carry, new_low]                    = detail::mul_u64_u32(static_cast<u64>(result.low), base);
+				[[maybe_unused]] auto [high_carry, new_high] = detail::mul_u64_u32(static_cast<u64>(result.high), base);
+				new_high += low_carry;
+				new_low += *digit;
+				if (new_low < *digit)
+					new_high += 1u;
+				result.high = static_cast<i64>(new_high);
+				result.low  = static_cast<i64>(new_low);
+			}
+			high = result.high;
+			low  = result.low;
+
+			if (negative)
+				*this = -*this;
+		}
+
+		explicit constexpr operator bool() const { return high != 0 or low != 0; }
+
+		explicit constexpr operator f64() const noexcept
+		{
+			constexpr f64 two_pow_64 = 18446744073709551616.0;
+			return static_cast<f64>(high) * two_pow_64 + static_cast<f64>(static_cast<u64>(low));
+		}
+
+		explicit constexpr operator f32() const noexcept
+		{
+			constexpr f32 two_pow_64 = 18446744073709551616.0f;
+			return static_cast<f32>(high) * two_pow_64 + static_cast<f32>(static_cast<u64>(low));
+		}
+
+		constexpr bool operator==(const int128& other) const = default;
+
+		constexpr std::strong_ordering operator<=>(const int128& rhs) const
+		{
+			if (const auto cmp = high <=> rhs.high; cmp != 0)
+				return cmp;
+			return static_cast<u64>(low) <=> static_cast<u64>(rhs.low);
+		}
+
+		constexpr int128 operator+(const int128& other) const
+		{
+			u64 r_low  = static_cast<u64>(low) + static_cast<u64>(other.low);
+			u64 r_high = static_cast<u64>(high) + static_cast<u64>(other.high) + (static_cast<u64>(low) > r_low ? 1u : 0u);
+			return {static_cast<i64>(r_high), static_cast<i64>(r_low)};
+		}
+
+		constexpr int128 operator-(const int128& other) const
+		{
+			u64 r_low  = static_cast<u64>(low) - static_cast<u64>(other.low);
+			u64 r_high = static_cast<u64>(high) - static_cast<u64>(other.high) -
+						 (static_cast<u64>(low) < static_cast<u64>(other.low) ? 1u : 0u);
+			return {static_cast<i64>(r_high), static_cast<i64>(r_low)};
+		}
+
+		constexpr int128 operator-() const
+		{
+			u64 low_bits  = static_cast<u64>(low);
+			u64 high_bits = static_cast<u64>(high);
+			low_bits      = ~low_bits + 1u;
+			high_bits     = ~high_bits + (low_bits == 0u ? 1u : 0u);
+			return {static_cast<i64>(high_bits), static_cast<i64>(low_bits)};
+		}
+
+		constexpr int128 operator*(const int128& rhs) const
+		{
+			bool   neg = (high < 0) != (rhs.high < 0);
+			int128 a   = (high < 0) ? -(*this) : *this;
+			int128 b   = (rhs.high < 0) ? -rhs : rhs;
+
+			constexpr u64      mask  = 0xFFFF'FFFFu;
+			std::array<u64, 4> a_arr = {
+			  static_cast<u64>(a.low) & mask,
+			  static_cast<u64>(a.low) >> 32,
+			  static_cast<u64>(a.high) & mask,
+			  static_cast<u64>(a.high) >> 32};
+			std::array<u64, 4> b_arr = {
+			  static_cast<u64>(b.low) & mask,
+			  static_cast<u64>(b.low) >> 32,
+			  static_cast<u64>(b.high) & mask,
+			  static_cast<u64>(b.high) >> 32};
+			std::array<u64, 8> res{};
+
+			for (int i = 0; i < 4; ++i)
+			{
+				for (int j = 0; j < 4; ++j)
+				{
+					const int k    = i + j;
+					const u64 prod = a_arr[i] * b_arr[j];
+					u64       sum  = res[k] + (prod & mask);
+					res[k]         = sum & mask;
+					u64 carry      = sum >> 32;
+
+					sum        = res[k + 1] + (prod >> 32) + carry;
+					res[k + 1] = sum & mask;
+					carry      = sum >> 32;
+
+					for (int kk = k + 2; carry != 0 and kk < 8; ++kk)
+					{
+						sum     = res[kk] + carry;
+						res[kk] = sum & mask;
+						carry   = sum >> 32;
+					}
+				}
+			}
+
+			int128 result{static_cast<i64>((res[3] << 32) | res[2]), static_cast<i64>((res[1] << 32) | res[0])};
+			return neg ? -result : result;
+		}
+
+		constexpr int128& operator+=(const int128& other) { return *this = *this + other; }
+
+		constexpr int128& operator-=(const int128& other) { return *this = *this - other; }
+
+		constexpr int128& operator*=(const int128& other) { return *this = *this * other; }
+
+		// Bitwise
+		constexpr int128 operator&(const int128& other) const { return {high & other.high, low & other.low}; }
+
+		constexpr int128 operator|(const int128& other) const { return {high | other.high, low | other.low}; }
+
+		constexpr int128 operator^(const int128& other) const { return {high ^ other.high, low ^ other.low}; }
+
+		constexpr int128 operator~() const { return {~high, ~low}; }
+
+		constexpr int128 operator<<(u32 shift) const
+		{
+			if (shift == 0)
+				return *this;
+			if (shift >= 128)
+				return {0, 0};
+			if (shift >= 64)
+				return {low << (shift - 64), 0};
+			return {(high << shift) | (low >> (64 - shift)), low << shift};
+		}
+
+		constexpr int128 operator>>(u32 shift) const
+		{
+			if (shift == 0)
+				return *this;
+			if (shift >= 128)
+				return high < 0 ? int128(-1, -1) : int128(0, 0);
+			if (shift >= 64)
+				return {high >> 63, high >> (shift - 64)};
+			return {high >> shift,
+					static_cast<i64>((static_cast<u64>(low) >> shift) | (static_cast<u64>(high) << (64 - shift)))};
+		}
+
+		constexpr int128& operator<<=(u32 shift) { return *this = *this << shift; }
+
+		constexpr int128& operator>>=(u32 shift) { return *this = *this >> shift; }
+
+		std::string to_string(int base = 10) const
+		{
+			assert::check(base >= 2 and base <= 36, "Base must be between 2 and 36");
+
+			if (*this == int128(0))
+				return "0";
+
+			bool   is_negative = high < 0;
+			int128 value       = is_negative ? -*this : *this;
+
+			const char* prefix = "";
+			if (base == 16)
+				prefix = "0x";
+			else if (base == 2)
+				prefix = "0b";
+
+			std::string s;
+
+			while (value != int128(0))
+			{
+				int128 quotient  = value;
+				i64    remainder = 0;
+
+				for (int bit = 127; bit >= 0; --bit)
+				{
+					remainder = (remainder << 1) | static_cast<int>(value.is_bit_set(bit));
+					if (remainder >= base)
+					{
+						remainder -= base;
+						quotient.set_bit(bit);
+					}
+					else
+					{
+						quotient.clear_bit(bit);
+					}
+				}
+
+				const u32 digit = static_cast<u32>(remainder);
+				if (digit < 10u)
+					s += static_cast<char>('0' + digit);
+				else
+					s += static_cast<char>('a' + (digit - 10u));
+
+				value = quotient;
+			}
+
+			std::reverse(s.begin(), s.end());
+			if (is_negative)
+				s.insert(0, "-");
+			if (*prefix != '\0')
+				s.insert(is_negative ? 1 : 0, prefix);
+			return s;
+		}
+
+	private:
+		constexpr bool is_bit_set(u32 bit) const
+		{
+			if (bit >= 64)
+				return (static_cast<u64>(high) >> (bit - 64)) & 1;
+			return (static_cast<u64>(low) >> bit) & 1;
+		}
+
+		constexpr void set_bit(u32 bit)
+		{
+			if (bit >= 64)
+				high |= static_cast<i64>(1ULL << (bit - 64));
+			else
+				low |= static_cast<i64>(1ULL << bit);
+		}
+
+		constexpr void clear_bit(u32 bit)
+		{
+			if (bit >= 64)
+				high &= static_cast<i64>(~(1ULL << (bit - 64)));
+			else
+				low &= static_cast<i64>(~(1ULL << bit));
+		}
+	};
+
+	export class uint128
+	{
+	private:
+		u64 high{0};
+		u64 low{0};
+
+		template<typename>
+		friend struct std::hash;
+		friend class int128;
+
+	public:
+		constexpr uint128() = default;
+
+		constexpr uint128(u64 h, u64 l)
+			: high(h)
+			, low(l)
+		{
+		}
+
+		constexpr uint128(u64 value)
+			: high(0)
+			, low(value)
+		{
+		}
+
+		constexpr uint128(const uint128& other)                = default;
+		constexpr uint128(uint128&& other) noexcept            = default;
+		constexpr uint128& operator=(const uint128& other)     = default;
+		constexpr uint128& operator=(uint128&& other) noexcept = default;
+
+		constexpr uint128(std::string_view str)
+		{
+			if (str.empty())
+				return;
+
+			u32 base = 10;
+			if (str.size() >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X'))
+			{
+				base = 16;
+				str.remove_prefix(2);
+			}
+			if (str.empty())
+				return;
+
+			uint128 result(0);
+			for (char c : str)
+			{
+				auto digit = detail::digit_value(c);
+				if (not digit or *digit >= base)
+				{
+					high = 0;
+					low  = 0;
+					return;
+				}
+				auto [low_carry, new_low]                    = detail::mul_u64_u32(result.low, base);
+				[[maybe_unused]] auto [high_carry, new_high] = detail::mul_u64_u32(result.high, base);
+				new_high += low_carry;
+				new_low += *digit;
+				if (new_low < *digit)
+					new_high += 1u;
+				result.high = new_high;
+				result.low  = new_low;
+			}
+			high = result.high;
+			low  = result.low;
+		}
+
+		explicit constexpr operator bool() const { return high != 0 or low != 0; }
+
+		explicit constexpr operator f64() const noexcept
+		{
+			constexpr f64 two_pow_64 = 18446744073709551616.0;
+			return static_cast<f64>(high) * two_pow_64 + static_cast<f64>(low);
+		}
+
+		explicit constexpr operator f32() const noexcept
+		{
+			constexpr f32 two_pow_64 = 18446744073709551616.0f;
+			return static_cast<f32>(high) * two_pow_64 + static_cast<f32>(low);
+		}
+
+		constexpr bool operator==(std::integral auto value) const
+		{
+			if constexpr (std::is_signed_v<decltype(value)>)
+			{
+				if (value < 0)
+					return false;
+			}
+			return high == 0 && low == static_cast<u64>(value);
+		}
+
+		constexpr bool operator==(const uint128& other) const                = default;
+		constexpr std::strong_ordering operator<=>(const uint128& rhs) const = default;
+
+		constexpr uint128 operator+(const uint128& other) const
+		{
+			u64 r_low  = low + other.low;
+			u64 r_high = high + other.high + (r_low < low ? 1u : 0u);
+			return {r_high, r_low};
+		}
+
+		constexpr uint128 operator-(const uint128& other) const
+		{
+			u64 r_low  = low - other.low;
+			u64 r_high = high - other.high - (low < other.low ? 1u : 0u);
+			return {r_high, r_low};
+		}
+
+		constexpr uint128 operator*(const uint128& rhs) const
+		{
+			constexpr u64      mask = 0xFFFF'FFFFu;
+			std::array<u64, 4> a    = {low & mask, low >> 32, high & mask, high >> 32};
+			std::array<u64, 4> b    = {rhs.low & mask, rhs.low >> 32, rhs.high & mask, rhs.high >> 32};
+			std::array<u64, 8> res{};
+
+			for (int i = 0; i < 4; ++i)
+			{
+				for (int j = 0; j < 4; ++j)
+				{
+					const int k    = i + j;
+					const u64 prod = a[i] * b[j];
+					u64       sum  = res[k] + (prod & mask);
+					res[k]         = sum & mask;
+					u64 carry      = sum >> 32;
+
+					sum        = res[k + 1] + (prod >> 32) + carry;
+					res[k + 1] = sum & mask;
+					carry      = sum >> 32;
+
+					for (int kk = k + 2; carry != 0 and kk < 8; ++kk)
+					{
+						sum     = res[kk] + carry;
+						res[kk] = sum & mask;
+						carry   = sum >> 32;
+					}
+				}
+			}
+
+			return {(res[3] << 32) | res[2], (res[1] << 32) | res[0]};
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator+(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+					return *this - uint128(static_cast<u64>(-(value + 1))) - 1u;
+			}
+			return *this + uint128(static_cast<u64>(value));
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator-(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+					return *this + uint128(static_cast<u64>(-(value + 1))) + 1u;
+			}
+			return *this - uint128(static_cast<u64>(value));
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator*(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+				{
+					assert::check(false, "uint128 does not support multiply by negative values");
+					return uint128(0u);
+				}
+			}
+			return *this * uint128(static_cast<u64>(value));
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator/(T value) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (value < 0)
+				{
+					assert::check(false, "uint128 does not support divide by negative values");
+					return uint128(0u);
+				}
+			}
+			return *this / uint128(static_cast<u64>(value));
+		}
+
+		constexpr uint128& operator+=(const uint128& other) { return *this = *this + other; }
+
+		constexpr uint128& operator-=(const uint128& other) { return *this = *this - other; }
+
+		constexpr uint128& operator*=(const uint128& other) { return *this = *this * other; }
+
+		constexpr bool operator==(const int128& other) const
+		{
+			if (other.high < 0)
+				return false;  
+			return high == static_cast<u64>(other.high) and low == static_cast<u64>(other.low);
+		}
+
+		std::strong_ordering operator<=>(const int128& rhs) const
+		{
+			if (rhs.high < 0)
+				return std::strong_ordering::greater;  
+			if (const auto cmp = high <=> static_cast<u64>(rhs.high); cmp != 0)
+				return cmp;
+			return low <=> static_cast<u64>(rhs.low);
+		}
+
+		// Bitwise
+		constexpr uint128 operator&(const uint128& other) const { return {high & other.high, low & other.low}; }
+
+		constexpr uint128 operator|(const uint128& other) const { return {high | other.high, low | other.low}; }
+
+		constexpr uint128 operator^(const uint128& other) const { return {high ^ other.high, low ^ other.low}; }
+
+		constexpr uint128 operator~() const { return {~high, ~low}; }
+
+		constexpr uint128 operator<<(u32 shift) const
+		{
+			if (shift == 0)
+				return *this;
+			if (shift >= 128)
+				return {0, 0};
+			if (shift >= 64)
+				return {low << (shift - 64), 0};
+			return {(high << shift) | (low >> (64 - shift)), low << shift};
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator<<(T shift) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (shift < 0)
+					return *this >> static_cast<u32>(-(shift + 1)) + 1u;
+			}
+			return *this << static_cast<u32>(shift);
+		}
+
+		constexpr uint128 operator>>(u32 shift) const
+		{
+			if (shift == 0)
+				return *this;
+			if (shift >= 128)
+				return {0, 0};
+			if (shift >= 64)
+				return {0, high >> (shift - 64)};
+			return {high >> shift, (low >> shift) | (high << (64 - shift))};
+		}
+
+		template<std::integral T>
+		constexpr uint128 operator>>(T shift) const
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (shift < 0)
+					return *this << static_cast<u32>(-(shift + 1)) + 1u;
+			}
+			return *this >> static_cast<u32>(shift);
+		}
+
+		constexpr uint128& operator<<=(u32 shift) { return *this = *this << shift; }
+
+		constexpr uint128& operator>>=(u32 shift) { return *this = *this >> shift; }
+
+		constexpr std::pair<uint128, uint128> div_mod(const uint128& divisor) const
+		{
+			assert::check(divisor != uint128(0u), "Division by zero");
+
+			if (*this < divisor)
+				return {0u, *this};
+
+			if (divisor == *this)
+				return {1u, 0u};
+
+			uint128 quotient  = 0;
+			uint128 remainder = 0;
+
+			for (int i = 127; i >= 0; i--)
+			{
+				remainder <<= 1;
+				if (is_bit_set(static_cast<u32>(i)))
+					remainder.low |= 1u;
+
+				if (remainder >= divisor)
+				{
+					remainder -= divisor;
+					quotient.set_bit(static_cast<u32>(i));
+				}
+			}
+
+			return {quotient, remainder};
+		}
+
+		constexpr uint128 operator/(const uint128& rhs) const { return div_mod(rhs).first; }
+
+		constexpr uint128 operator%(const uint128& rhs) const { return div_mod(rhs).second; }
+
+		constexpr uint128& operator/=(const uint128& rhs) { return *this = *this / rhs; }
+
+		constexpr uint128& operator%=(const uint128& rhs) { return *this = *this % rhs; }
+
+		std::string to_string(int base = 10) const
+		{
+			assert::check(base >= 2 and base <= 36, "Base must be between 2 and 36");
+
+			const char* prefix = "";
+			if (base == 16)
+				prefix = "0x";
+			else if (base == 2)
+				prefix = "0b";
+
+			if (*this == 0u)
+				return std::string{prefix} + "0";
+
+			std::string   s;
+			uint128       temp = *this;
+			const uint128 radix(static_cast<u64>(base));
+
+
+			while (temp != 0u)
+			{
+				auto [q, r]     = temp.div_mod(radix);
+				const u32 digit = static_cast<u32>(r.low);
+				if (digit < 10u)
+					s += static_cast<char>('0' + digit);
+				else
+					s += static_cast<char>('a' + (digit - 10u));
+				temp = q;
+			}
+			std::reverse(s.begin(), s.end());
+			if (*prefix != '\0')
+				s.insert(0, prefix);
+			return s;
+		}
+
+
+	private:
+		constexpr bool is_bit_set(u32 bit) const
+		{
+			if (bit >= 64)
+				return (high >> (bit - 64)) & 1;
+			return (low >> bit) & 1;
+		}
+
+		constexpr void set_bit(u32 bit)
+		{
+			if (bit >= 64)
+				high |= (1ULL << (bit - 64));
+			else
+				low |= (1ULL << bit);
+		}
+	};
+} // namespace deckard
+
+export namespace std
+{
+
+	template<>
+	struct hash<deckard::int128>
+	{
+		size_t operator()(const deckard::int128& value) const { return deckard::utils::hash_values(value.low, value.high); }
+	};
+
+	template<>
+	struct formatter<deckard::int128>
+	{
+		int base = 10;
+
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto it = ctx.begin();
+			if (it != ctx.end() and (*it == 'x' or *it == 'b'))
+			{
+				if (*it == 'x')
+					base = 16;
+				else if (*it == 'b')
+					base = 2;
+				++it;
+			}
+			return it;
+		}
+
+		auto format(const deckard::int128& value, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", value.to_string(base));
+		}
+	};
+
+	template<>
+	struct hash<deckard::uint128>
+	{
+		size_t operator()(const deckard::uint128& value) const { return deckard::utils::hash_values(value.low, value.high); }
+	};
+
+	template<>
+	struct formatter<deckard::uint128>
+	{
+		int base = 10;
+
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			auto it = ctx.begin();
+			if (it != ctx.end() and (*it == 'x' or *it == 'b'))
+			{
+				if (*it == 'x')
+					base = 16;
+				else if (*it == 'b')
+					base = 2;
+				++it;
+			}
+			return it;
+		}
+
+		auto format(const deckard::uint128& value, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", value.to_string(base));
+		}
+	};
+
+	template<>
+	class numeric_limits<deckard::int128>
+	{
+	public:
+		static constexpr bool is_specialized = true;
+		static constexpr bool is_signed = true;
+		static constexpr bool is_integer = true;
+		static constexpr bool is_exact = true;
+		static constexpr bool has_infinity = false;
+		static constexpr bool has_quiet_NaN = false;
+		static constexpr bool has_signaling_NaN = false;
+		static constexpr std::float_round_style round_style = std::round_toward_zero;
+		static constexpr bool is_iec559 = false;
+		static constexpr bool is_bounded = true;
+		static constexpr bool is_modulo = true;
+		static constexpr int digits = 127;
+		static constexpr int digits10 = 38;
+		static constexpr int max_digits10 = 0;
+		static constexpr int radix = 2;
+		static constexpr int min_exponent = 0;
+		static constexpr int min_exponent10 = 0;
+		static constexpr int max_exponent = 0;
+		static constexpr int max_exponent10 = 0;
+		static constexpr bool traps = false;
+		static constexpr bool tinyness_before = false;
+
+		static constexpr deckard::int128 min() noexcept
+		{
+			return deckard::int128(static_cast<deckard::i64>(0x8000'0000'0000'0000), 0);
+		}
+
+		static constexpr deckard::int128 max() noexcept
+		{
+			return deckard::int128(static_cast<deckard::i64>(0x7FFF'FFFF'FFFF'FFFF), static_cast<deckard::i64>(0xFFFF'FFFF'FFFF'FFFF));
+		}
+
+		static constexpr deckard::int128 lowest() noexcept
+		{
+			return min();
+		}
+
+		static constexpr deckard::int128 epsilon() noexcept
+		{
+			return deckard::int128(0);
+		}
+
+		static constexpr deckard::int128 round_error() noexcept
+		{
+			return deckard::int128(0);
+		}
+
+		static constexpr deckard::int128 infinity() noexcept
+		{
+			return deckard::int128(0);
+		}
+
+		static constexpr deckard::int128 quiet_NaN() noexcept
+		{
+			return deckard::int128(0);
+		}
+
+		static constexpr deckard::int128 signaling_NaN() noexcept
+		{
+			return deckard::int128(0);
+		}
+
+		static constexpr deckard::int128 denorm_min() noexcept
+		{
+			return deckard::int128(0);
+		}
+	};
+
+	template<>
+	class numeric_limits<deckard::uint128>
+	{
+	public:
+		static constexpr bool is_specialized = true;
+		static constexpr bool is_signed = false;
+		static constexpr bool is_integer = true;
+		static constexpr bool is_exact = true;
+		static constexpr bool has_infinity = false;
+		static constexpr bool has_quiet_NaN = false;
+		static constexpr bool has_signaling_NaN = false;
+		static constexpr std::float_round_style round_style = std::round_toward_zero;
+		static constexpr bool is_iec559 = false;
+		static constexpr bool is_bounded = true;
+		static constexpr bool is_modulo = true;
+		static constexpr int digits = 128;
+		static constexpr int digits10 = 38;
+		static constexpr int max_digits10 = 0;
+		static constexpr int radix = 2;
+		static constexpr int min_exponent = 0;
+		static constexpr int min_exponent10 = 0;
+		static constexpr int max_exponent = 0;
+		static constexpr int max_exponent10 = 0;
+		static constexpr bool traps = false;
+		static constexpr bool tinyness_before = false;
+
+		static constexpr deckard::uint128 min() noexcept
+		{
+			return deckard::uint128(0);
+		}
+
+		static constexpr deckard::uint128 max() noexcept
+		{
+			return deckard::uint128(0xFFFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF);
+		}
+
+		static constexpr deckard::uint128 lowest() noexcept
+		{
+			return min();
+		}
+
+		static constexpr deckard::uint128 epsilon() noexcept
+		{
+			return deckard::uint128(0);
+		}
+
+		static constexpr deckard::uint128 round_error() noexcept
+		{
+			return deckard::uint128(0);
+		}
+
+		static constexpr deckard::uint128 infinity() noexcept
+		{
+			return deckard::uint128(0);
+		}
+
+		static constexpr deckard::uint128 quiet_NaN() noexcept
+		{
+			return deckard::uint128(0);
+		}
+
+		static constexpr deckard::uint128 signaling_NaN() noexcept
+		{
+			return deckard::uint128(0);
+		}
+
+		static constexpr deckard::uint128 denorm_min() noexcept
+		{
+			return deckard::uint128(0);
+		}
+	};
+} // namespace std

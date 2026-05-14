@@ -311,7 +311,7 @@ set(DECKARD_SRCS
 		types/enum_flags.ixx
 		types/helpertypes.ixx
 		types/types.ixx
-		types/uint128.ixx
+		types/int128.ixx
 		types/allocator.ixx
 		types/image.ixx
 
@@ -352,9 +352,6 @@ target_sources(deckard
 
 #target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
 
-add_subdirectory(external/sqlite3)
-add_subdirectory(external/zstd)
-add_subdirectory(external/monocypher)
 
 
 set(THIRD_PARTY_LIBS
@@ -436,3 +433,9 @@ if(DECKARD_BUILD_TOOLS)
 	add_subdirectory(tools/utftables)
 	add_subdirectory(tools/normalization)
 endif()
+
+
+
+add_subdirectory(external/sqlite3)
+add_subdirectory(external/zstd)
+add_subdirectory(external/monocypher)
