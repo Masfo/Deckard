@@ -1,3 +1,8 @@
+module;
+#ifdef _MSC_VER
+#include <intrin.h>
+#pragma intrinsic(_addcarry_u64, _subborrow_u64, _umul128, _div128)
+#endif
 export module deckard.int128;
 
 import std;
@@ -32,11 +37,56 @@ namespace deckard
 			const u64     hi   = mid >> 32;
 			return std::pair<u64, u64>{hi, lo};
 		}
+
+		struct uint128_result
+		{
+			u64 high;
+			u64 low;
+		};
+
+		inline uint128_result mul_portable_u64(u64 a_low, u64 a_high, u64 b_low, u64 b_high)
+		{
+			constexpr u64      mask = 0xFFFF'FFFFu;
+			std::array<u64, 4> a    = {a_low & mask, a_low >> 32, a_high & mask, a_high >> 32};
+			std::array<u64, 4> b    = {b_low & mask, b_low >> 32, b_high & mask, b_high >> 32};
+			std::array<u64, 8> res{};
+
+			for (int i = 0; i < 4; ++i)
+			{
+				for (int j = 0; j < 4; ++j)
+				{
+					const int k    = i + j;
+					const u64 prod = a[i] * b[j];
+					u64       sum  = res[k] + (prod & mask);
+					res[k]         = sum & mask;
+					u64 carry      = sum >> 32;
+
+					sum        = res[k + 1] + (prod >> 32) + carry;
+					res[k + 1] = sum & mask;
+					carry      = sum >> 32;
+
+					for (int kk = k + 2; carry != 0 and kk < 8; ++kk)
+					{
+						sum     = res[kk] + carry;
+						res[kk] = sum & mask;
+						carry   = sum >> 32;
+					}
+				}
+			}
+
+			return {(res[3] << 32) | res[2], (res[1] << 32) | res[0]};
+		}
+
+		inline bool is_bit_set_u64(u64 value, u32 bit) { return (value >> bit) & 1; }
+
+		inline void set_bit_u64(u64& value, u32 bit) { value |= (1ULL << bit); }
+
+		inline void clear_bit_u64(u64& value, u32 bit) { value &= ~(1ULL << bit); }
+
 	} // namespace detail
 
 	export class int128
 	{
-	private:
 		i64 high{0};
 		i64 low{0};
 
@@ -142,19 +192,33 @@ namespace deckard
 			return static_cast<u64>(low) <=> static_cast<u64>(rhs.low);
 		}
 
-		constexpr int128 operator+(const int128& other) const
+		int128 operator+(const int128& other) const
 		{
+#ifdef _MSC_VER
+			u64 result_low, result_high;
+			u8  carry = _addcarry_u64(0, static_cast<u64>(low), static_cast<u64>(other.low), &result_low);
+			_addcarry_u64(carry, static_cast<u64>(high), static_cast<u64>(other.high), &result_high);
+			return {static_cast<i64>(result_high), static_cast<i64>(result_low)};
+#else
 			u64 r_low  = static_cast<u64>(low) + static_cast<u64>(other.low);
 			u64 r_high = static_cast<u64>(high) + static_cast<u64>(other.high) + (static_cast<u64>(low) > r_low ? 1u : 0u);
 			return {static_cast<i64>(r_high), static_cast<i64>(r_low)};
+#endif
 		}
 
-		constexpr int128 operator-(const int128& other) const
+		int128 operator-(const int128& other) const
 		{
+#ifdef _MSC_VER
+			u64 result_low, result_high;
+			u8  borrow = _subborrow_u64(0, static_cast<u64>(low), static_cast<u64>(other.low), &result_low);
+			_subborrow_u64(borrow, static_cast<u64>(high), static_cast<u64>(other.high), &result_high);
+			return {static_cast<i64>(result_high), static_cast<i64>(result_low)};
+#else
 			u64 r_low  = static_cast<u64>(low) - static_cast<u64>(other.low);
 			u64 r_high = static_cast<u64>(high) - static_cast<u64>(other.high) -
 						 (static_cast<u64>(low) < static_cast<u64>(other.low) ? 1u : 0u);
 			return {static_cast<i64>(r_high), static_cast<i64>(r_low)};
+#endif
 		}
 
 		constexpr int128 operator-() const
@@ -166,57 +230,35 @@ namespace deckard
 			return {static_cast<i64>(high_bits), static_cast<i64>(low_bits)};
 		}
 
-		constexpr int128 operator*(const int128& rhs) const
+		int128 operator*(const int128& rhs) const
 		{
 			bool   neg = (high < 0) != (rhs.high < 0);
 			int128 a   = (high < 0) ? -(*this) : *this;
 			int128 b   = (rhs.high < 0) ? -rhs : rhs;
 
-			constexpr u64      mask  = 0xFFFF'FFFFu;
-			std::array<u64, 4> a_arr = {
-			  static_cast<u64>(a.low) & mask,
-			  static_cast<u64>(a.low) >> 32,
-			  static_cast<u64>(a.high) & mask,
-			  static_cast<u64>(a.high) >> 32};
-			std::array<u64, 4> b_arr = {
-			  static_cast<u64>(b.low) & mask,
-			  static_cast<u64>(b.low) >> 32,
-			  static_cast<u64>(b.high) & mask,
-			  static_cast<u64>(b.high) >> 32};
-			std::array<u64, 8> res{};
+#ifdef _MSC_VER
+			u64 a_low = static_cast<u64>(a.low);
+			u64 a_high = static_cast<u64>(a.high);
+			u64 b_low = static_cast<u64>(b.low);
+			u64 b_high = static_cast<u64>(b.high);
 
-			for (int i = 0; i < 4; ++i)
-			{
-				for (int j = 0; j < 4; ++j)
-				{
-					const int k    = i + j;
-					const u64 prod = a_arr[i] * b_arr[j];
-					u64       sum  = res[k] + (prod & mask);
-					res[k]         = sum & mask;
-					u64 carry      = sum >> 32;
-
-					sum        = res[k + 1] + (prod >> 32) + carry;
-					res[k + 1] = sum & mask;
-					carry      = sum >> 32;
-
-					for (int kk = k + 2; carry != 0 and kk < 8; ++kk)
-					{
-						sum     = res[kk] + carry;
-						res[kk] = sum & mask;
-						carry   = sum >> 32;
-					}
-				}
-			}
-
-			int128 result{static_cast<i64>((res[3] << 32) | res[2]), static_cast<i64>((res[1] << 32) | res[0])};
+			u64 hi = 0;
+			u64 lo_lo = _umul128(a_low, b_low, &hi);
+			u64 lo_hi = a_high * b_low + a_low * b_high + hi;
+			int128 result{static_cast<i64>(lo_hi), static_cast<i64>(lo_lo)};
+#else
+			auto mul_result = detail::mul_portable_u64(static_cast<u64>(a.low), static_cast<u64>(a.high), 
+													   static_cast<u64>(b.low), static_cast<u64>(b.high));
+			int128 result{static_cast<i64>(mul_result.high), static_cast<i64>(mul_result.low)};
+#endif
 			return neg ? -result : result;
 		}
 
-		constexpr int128& operator+=(const int128& other) { return *this = *this + other; }
+		int128& operator+=(const int128& other) { return *this = *this + other; }
 
-		constexpr int128& operator-=(const int128& other) { return *this = *this - other; }
+		int128& operator-=(const int128& other) { return *this = *this - other; }
 
-		constexpr int128& operator*=(const int128& other) { return *this = *this * other; }
+		int128& operator*=(const int128& other) { return *this = *this * other; }
 
 		// Bitwise
 		constexpr int128 operator&(const int128& other) const { return {high & other.high, low & other.low}; }
@@ -265,12 +307,20 @@ namespace deckard
 			int128 value       = is_negative ? -*this : *this;
 
 			const char* prefix = "";
+			int prefix_len = 0;
 			if (base == 16)
+			{
 				prefix = "0x";
+				prefix_len = 2;
+			}
 			else if (base == 2)
+			{
 				prefix = "0b";
+				prefix_len = 2;
+			}
 
 			std::string s;
+			s.reserve(40); // 128 bits max ~40 chars
 
 			while (value != int128(0))
 			{
@@ -292,10 +342,7 @@ namespace deckard
 				}
 
 				const u32 digit = static_cast<u32>(remainder);
-				if (digit < 10u)
-					s += static_cast<char>('0' + digit);
-				else
-					s += static_cast<char>('a' + (digit - 10u));
+				s += static_cast<char>(digit < 10 ? '0' + digit : 'a' + (digit - 10u));
 
 				value = quotient;
 			}
@@ -303,8 +350,8 @@ namespace deckard
 			std::reverse(s.begin(), s.end());
 			if (is_negative)
 				s.insert(0, "-");
-			if (*prefix != '\0')
-				s.insert(is_negative ? 1 : 0, prefix);
+			if (prefix_len > 0)
+				s.insert(is_negative ? 1 : 0, prefix, prefix_len);
 			return s;
 		}
 
@@ -312,24 +359,40 @@ namespace deckard
 		constexpr bool is_bit_set(u32 bit) const
 		{
 			if (bit >= 64)
-				return (static_cast<u64>(high) >> (bit - 64)) & 1;
-			return (static_cast<u64>(low) >> bit) & 1;
+				return detail::is_bit_set_u64(static_cast<u64>(high), bit - 64);
+			return detail::is_bit_set_u64(static_cast<u64>(low), bit);
 		}
 
 		constexpr void set_bit(u32 bit)
 		{
 			if (bit >= 64)
-				high |= static_cast<i64>(1ULL << (bit - 64));
+			{
+				u64 h = static_cast<u64>(high);
+				detail::set_bit_u64(h, bit - 64);
+				high = static_cast<i64>(h);
+			}
 			else
-				low |= static_cast<i64>(1ULL << bit);
+			{
+				u64 l = static_cast<u64>(low);
+				detail::set_bit_u64(l, bit);
+				low = static_cast<i64>(l);
+			}
 		}
 
 		constexpr void clear_bit(u32 bit)
 		{
 			if (bit >= 64)
-				high &= static_cast<i64>(~(1ULL << (bit - 64)));
+			{
+				u64 h = static_cast<u64>(high);
+				detail::clear_bit_u64(h, bit - 64);
+				high = static_cast<i64>(h);
+			}
 			else
-				low &= static_cast<i64>(~(1ULL << bit));
+			{
+				u64 l = static_cast<u64>(low);
+				detail::clear_bit_u64(l, bit);
+				low = static_cast<i64>(l);
+			}
 		}
 	};
 
@@ -424,54 +487,48 @@ namespace deckard
 			return high == 0 && low == static_cast<u64>(value);
 		}
 
-		constexpr bool operator==(const uint128& other) const                = default;
-		constexpr std::strong_ordering operator<=>(const uint128& rhs) const = default;
+		constexpr bool                 operator==(const uint128& other) const = default;
+		constexpr std::strong_ordering operator<=>(const uint128& rhs) const  = default;
 
-		constexpr uint128 operator+(const uint128& other) const
+		uint128 operator+(const uint128& other) const
 		{
+#ifdef _MSC_VER
+			u64 result_low, result_high;
+			u8  carry = _addcarry_u64(0, low, other.low, &result_low);
+			_addcarry_u64(carry, high, other.high, &result_high);
+			return {result_high, result_low};
+#else
 			u64 r_low  = low + other.low;
 			u64 r_high = high + other.high + (r_low < low ? 1u : 0u);
 			return {r_high, r_low};
+#endif
 		}
 
-		constexpr uint128 operator-(const uint128& other) const
+		uint128 operator-(const uint128& other) const
 		{
+#ifdef _MSC_VER
+			u64 result_low, result_high;
+			u8  borrow = _subborrow_u64(0, low, other.low, &result_low);
+			_subborrow_u64(borrow, high, other.high, &result_high);
+			return {result_high, result_low};
+#else
 			u64 r_low  = low - other.low;
 			u64 r_high = high - other.high - (low < other.low ? 1u : 0u);
 			return {r_high, r_low};
+#endif
 		}
 
-		constexpr uint128 operator*(const uint128& rhs) const
+		uint128 operator*(const uint128& rhs) const
 		{
-			constexpr u64      mask = 0xFFFF'FFFFu;
-			std::array<u64, 4> a    = {low & mask, low >> 32, high & mask, high >> 32};
-			std::array<u64, 4> b    = {rhs.low & mask, rhs.low >> 32, rhs.high & mask, rhs.high >> 32};
-			std::array<u64, 8> res{};
-
-			for (int i = 0; i < 4; ++i)
-			{
-				for (int j = 0; j < 4; ++j)
-				{
-					const int k    = i + j;
-					const u64 prod = a[i] * b[j];
-					u64       sum  = res[k] + (prod & mask);
-					res[k]         = sum & mask;
-					u64 carry      = sum >> 32;
-
-					sum        = res[k + 1] + (prod >> 32) + carry;
-					res[k + 1] = sum & mask;
-					carry      = sum >> 32;
-
-					for (int kk = k + 2; carry != 0 and kk < 8; ++kk)
-					{
-						sum     = res[kk] + carry;
-						res[kk] = sum & mask;
-						carry   = sum >> 32;
-					}
-				}
-			}
-
-			return {(res[3] << 32) | res[2], (res[1] << 32) | res[0]};
+#ifdef _MSC_VER
+			u64 hi = 0;
+			u64 lo_lo = _umul128(low, rhs.low, &hi);
+			u64 lo_hi = high * rhs.low + low * rhs.high + hi;
+			return {lo_hi, lo_lo};
+#else
+			auto result = detail::mul_portable_u64(low, high, rhs.low, rhs.high);
+			return {result.high, result.low};
+#endif
 		}
 
 		template<std::integral T>
@@ -524,23 +581,23 @@ namespace deckard
 			return *this / uint128(static_cast<u64>(value));
 		}
 
-		constexpr uint128& operator+=(const uint128& other) { return *this = *this + other; }
+		uint128& operator+=(const uint128& other) { return *this = *this + other; }
 
-		constexpr uint128& operator-=(const uint128& other) { return *this = *this - other; }
+		uint128& operator-=(const uint128& other) { return *this = *this - other; }
 
-		constexpr uint128& operator*=(const uint128& other) { return *this = *this * other; }
+		uint128& operator*=(const uint128& other) { return *this = *this * other; }
 
 		constexpr bool operator==(const int128& other) const
 		{
 			if (other.high < 0)
-				return false;  
+				return false;
 			return high == static_cast<u64>(other.high) and low == static_cast<u64>(other.low);
 		}
 
 		std::strong_ordering operator<=>(const int128& rhs) const
 		{
 			if (rhs.high < 0)
-				return std::strong_ordering::greater;  
+				return std::strong_ordering::greater;
 			if (const auto cmp = high <=> static_cast<u64>(rhs.high); cmp != 0)
 				return cmp;
 			return low <=> static_cast<u64>(rhs.low);
@@ -603,74 +660,74 @@ namespace deckard
 
 		constexpr uint128& operator>>=(u32 shift) { return *this = *this >> shift; }
 
-		constexpr std::pair<uint128, uint128> div_mod(const uint128& divisor) const
-		{
-			assert::check(divisor != uint128(0u), "Division by zero");
-
-			if (*this < divisor)
-				return {0u, *this};
-
-			if (divisor == *this)
-				return {1u, 0u};
-
-			uint128 quotient  = 0;
-			uint128 remainder = 0;
-
-			for (int i = 127; i >= 0; i--)
+		std::pair<uint128, uint128> div_mod(const uint128& divisor) const
 			{
-				remainder <<= 1;
-				if (is_bit_set(static_cast<u32>(i)))
-					remainder.low |= 1u;
+				assert::check(divisor != uint128(0u), "Division by zero");
 
-				if (remainder >= divisor)
+				if (*this < divisor)
+					return {0u, *this};
+
+				if (divisor == *this)
+					return {1u, 0u};
+
+				uint128 quotient  = 0;
+				uint128 remainder = 0;
+
+				for (int i = 127; i >= 0; i--)
 				{
-					remainder -= divisor;
-					quotient.set_bit(static_cast<u32>(i));
+					remainder <<= 1;
+					if (is_bit_set(static_cast<u32>(i)))
+						remainder.low |= 1u;
+
+					if (remainder >= divisor)
+					{
+						remainder -= divisor;
+						quotient.set_bit(static_cast<u32>(i));
+					}
 				}
+
+				return {quotient, remainder};
 			}
 
-			return {quotient, remainder};
-		}
+		uint128 operator/(const uint128& rhs) const { return div_mod(rhs).first; }
 
-		constexpr uint128 operator/(const uint128& rhs) const { return div_mod(rhs).first; }
+		uint128 operator%(const uint128& rhs) const { return div_mod(rhs).second; }
 
-		constexpr uint128 operator%(const uint128& rhs) const { return div_mod(rhs).second; }
+		uint128& operator/=(const uint128& rhs) { return *this = *this / rhs; }
 
-		constexpr uint128& operator/=(const uint128& rhs) { return *this = *this / rhs; }
-
-		constexpr uint128& operator%=(const uint128& rhs) { return *this = *this % rhs; }
+		uint128& operator%=(const uint128& rhs) { return *this = *this % rhs; }
 
 		std::string to_string(int base = 10) const
 		{
 			assert::check(base >= 2 and base <= 36, "Base must be between 2 and 36");
 
-			const char* prefix = "";
-			if (base == 16)
-				prefix = "0x";
-			else if (base == 2)
-				prefix = "0b";
-
 			if (*this == 0u)
-				return std::string{prefix} + "0";
+			{
+				if (base == 16)
+					return "0x0";
+				else if (base == 2)
+					return "0b0";
+				return "0";
+			}
 
 			std::string   s;
+			s.reserve(40); // 128 bits max ~40 chars
 			uint128       temp = *this;
 			const uint128 radix(static_cast<u64>(base));
-
 
 			while (temp != 0u)
 			{
 				auto [q, r]     = temp.div_mod(radix);
 				const u32 digit = static_cast<u32>(r.low);
-				if (digit < 10u)
-					s += static_cast<char>('0' + digit);
-				else
-					s += static_cast<char>('a' + (digit - 10u));
+				s += static_cast<char>(digit < 10 ? '0' + digit : 'a' + (digit - 10u));
 				temp = q;
 			}
 			std::reverse(s.begin(), s.end());
-			if (*prefix != '\0')
-				s.insert(0, prefix);
+
+			if (base == 16)
+				s.insert(0, "0x");
+			else if (base == 2)
+				s.insert(0, "0b");
 			return s;
 		}
 
@@ -679,16 +736,16 @@ namespace deckard
 		constexpr bool is_bit_set(u32 bit) const
 		{
 			if (bit >= 64)
-				return (high >> (bit - 64)) & 1;
-			return (low >> bit) & 1;
+				return detail::is_bit_set_u64(high, bit - 64);
+			return detail::is_bit_set_u64(low, bit);
 		}
 
 		constexpr void set_bit(u32 bit)
 		{
 			if (bit >= 64)
-				high |= (1ULL << (bit - 64));
+				detail::set_bit_u64(high, bit - 64);
 			else
-				low |= (1ULL << bit);
+				detail::set_bit_u64(low, bit);
 		}
 	};
 } // namespace deckard
@@ -723,7 +780,8 @@ export namespace std
 
 		auto format(const deckard::int128& value, std::format_context& ctx) const
 		{
-			return std::format_to(ctx.out(), "{}", value.to_string(base));
+			std::string str = value.to_string(base);
+			return std::ranges::copy(str, ctx.out()).out;
 		}
 	};
 
@@ -754,7 +812,8 @@ export namespace std
 
 		auto format(const deckard::uint128& value, std::format_context& ctx) const
 		{
-			return std::format_to(ctx.out(), "{}", value.to_string(base));
+			std::string str = value.to_string(base);
+			return std::ranges::copy(str, ctx.out()).out;
 		}
 	};
 
@@ -762,27 +821,27 @@ export namespace std
 	class numeric_limits<deckard::int128>
 	{
 	public:
-		static constexpr bool is_specialized = true;
-		static constexpr bool is_signed = true;
-		static constexpr bool is_integer = true;
-		static constexpr bool is_exact = true;
-		static constexpr bool has_infinity = false;
-		static constexpr bool has_quiet_NaN = false;
-		static constexpr bool has_signaling_NaN = false;
-		static constexpr std::float_round_style round_style = std::round_toward_zero;
-		static constexpr bool is_iec559 = false;
-		static constexpr bool is_bounded = true;
-		static constexpr bool is_modulo = true;
-		static constexpr int digits = 127;
-		static constexpr int digits10 = 38;
-		static constexpr int max_digits10 = 0;
-		static constexpr int radix = 2;
-		static constexpr int min_exponent = 0;
-		static constexpr int min_exponent10 = 0;
-		static constexpr int max_exponent = 0;
-		static constexpr int max_exponent10 = 0;
-		static constexpr bool traps = false;
-		static constexpr bool tinyness_before = false;
+		static constexpr bool                   is_specialized    = true;
+		static constexpr bool                   is_signed         = true;
+		static constexpr bool                   is_integer        = true;
+		static constexpr bool                   is_exact          = true;
+		static constexpr bool                   has_infinity      = false;
+		static constexpr bool                   has_quiet_NaN     = false;
+		static constexpr bool                   has_signaling_NaN = false;
+		static constexpr std::float_round_style round_style       = std::round_toward_zero;
+		static constexpr bool                   is_iec559         = false;
+		static constexpr bool                   is_bounded        = true;
+		static constexpr bool                   is_modulo         = true;
+		static constexpr int                    digits            = 127;
+		static constexpr int                    digits10          = 38;
+		static constexpr int                    max_digits10      = 0;
+		static constexpr int                    radix             = 2;
+		static constexpr int                    min_exponent      = 0;
+		static constexpr int                    min_exponent10    = 0;
+		static constexpr int                    max_exponent      = 0;
+		static constexpr int                    max_exponent10    = 0;
+		static constexpr bool                   traps             = false;
+		static constexpr bool                   tinyness_before   = false;
 
 		static constexpr deckard::int128 min() noexcept
 		{
@@ -791,114 +850,70 @@ export namespace std
 
 		static constexpr deckard::int128 max() noexcept
 		{
-			return deckard::int128(static_cast<deckard::i64>(0x7FFF'FFFF'FFFF'FFFF), static_cast<deckard::i64>(0xFFFF'FFFF'FFFF'FFFF));
+			return deckard::int128(
+			  static_cast<deckard::i64>(0x7FFF'FFFF'FFFF'FFFF), static_cast<deckard::i64>(0xFFFF'FFFF'FFFF'FFFF));
 		}
 
-		static constexpr deckard::int128 lowest() noexcept
-		{
-			return min();
-		}
+		static constexpr deckard::int128 lowest() noexcept { return min(); }
 
-		static constexpr deckard::int128 epsilon() noexcept
-		{
-			return deckard::int128(0);
-		}
+		static constexpr deckard::int128 epsilon() noexcept { return deckard::int128(0); }
 
-		static constexpr deckard::int128 round_error() noexcept
-		{
-			return deckard::int128(0);
-		}
+		static constexpr deckard::int128 round_error() noexcept { return deckard::int128(0); }
 
-		static constexpr deckard::int128 infinity() noexcept
-		{
-			return deckard::int128(0);
-		}
+		static constexpr deckard::int128 infinity() noexcept { return deckard::int128(0); }
 
-		static constexpr deckard::int128 quiet_NaN() noexcept
-		{
-			return deckard::int128(0);
-		}
+		static constexpr deckard::int128 quiet_NaN() noexcept { return deckard::int128(0); }
 
-		static constexpr deckard::int128 signaling_NaN() noexcept
-		{
-			return deckard::int128(0);
-		}
+		static constexpr deckard::int128 signaling_NaN() noexcept { return deckard::int128(0); }
 
-		static constexpr deckard::int128 denorm_min() noexcept
-		{
-			return deckard::int128(0);
-		}
+		static constexpr deckard::int128 denorm_min() noexcept { return deckard::int128(0); }
 	};
 
 	template<>
 	class numeric_limits<deckard::uint128>
 	{
 	public:
-		static constexpr bool is_specialized = true;
-		static constexpr bool is_signed = false;
-		static constexpr bool is_integer = true;
-		static constexpr bool is_exact = true;
-		static constexpr bool has_infinity = false;
-		static constexpr bool has_quiet_NaN = false;
-		static constexpr bool has_signaling_NaN = false;
-		static constexpr std::float_round_style round_style = std::round_toward_zero;
-		static constexpr bool is_iec559 = false;
-		static constexpr bool is_bounded = true;
-		static constexpr bool is_modulo = true;
-		static constexpr int digits = 128;
-		static constexpr int digits10 = 38;
-		static constexpr int max_digits10 = 0;
-		static constexpr int radix = 2;
-		static constexpr int min_exponent = 0;
-		static constexpr int min_exponent10 = 0;
-		static constexpr int max_exponent = 0;
-		static constexpr int max_exponent10 = 0;
-		static constexpr bool traps = false;
-		static constexpr bool tinyness_before = false;
+		static constexpr bool                   is_specialized    = true;
+		static constexpr bool                   is_signed         = false;
+		static constexpr bool                   is_integer        = true;
+		static constexpr bool                   is_exact          = true;
+		static constexpr bool                   has_infinity      = false;
+		static constexpr bool                   has_quiet_NaN     = false;
+		static constexpr bool                   has_signaling_NaN = false;
+		static constexpr std::float_round_style round_style       = std::round_toward_zero;
+		static constexpr bool                   is_iec559         = false;
+		static constexpr bool                   is_bounded        = true;
+		static constexpr bool                   is_modulo         = true;
+		static constexpr int                    digits            = 128;
+		static constexpr int                    digits10          = 38;
+		static constexpr int                    max_digits10      = 0;
+		static constexpr int                    radix             = 2;
+		static constexpr int                    min_exponent      = 0;
+		static constexpr int                    min_exponent10    = 0;
+		static constexpr int                    max_exponent      = 0;
+		static constexpr int                    max_exponent10    = 0;
+		static constexpr bool                   traps             = false;
+		static constexpr bool                   tinyness_before   = false;
 
-		static constexpr deckard::uint128 min() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 min() noexcept { return deckard::uint128(0); }
 
 		static constexpr deckard::uint128 max() noexcept
 		{
 			return deckard::uint128(0xFFFF'FFFF'FFFF'FFFF, 0xFFFF'FFFF'FFFF'FFFF);
 		}
 
-		static constexpr deckard::uint128 lowest() noexcept
-		{
-			return min();
-		}
+		static constexpr deckard::uint128 lowest() noexcept { return min(); }
 
-		static constexpr deckard::uint128 epsilon() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 epsilon() noexcept { return deckard::uint128(0); }
 
-		static constexpr deckard::uint128 round_error() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 round_error() noexcept { return deckard::uint128(0); }
 
-		static constexpr deckard::uint128 infinity() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 infinity() noexcept { return deckard::uint128(0); }
 
-		static constexpr deckard::uint128 quiet_NaN() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 quiet_NaN() noexcept { return deckard::uint128(0); }
 
-		static constexpr deckard::uint128 signaling_NaN() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 signaling_NaN() noexcept { return deckard::uint128(0); }
 
-		static constexpr deckard::uint128 denorm_min() noexcept
-		{
-			return deckard::uint128(0);
-		}
+		static constexpr deckard::uint128 denorm_min() noexcept { return deckard::uint128(0); }
 	};
 } // namespace std
