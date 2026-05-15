@@ -11,7 +11,7 @@ namespace deckard::memory
 
 	std::vector<u8> global_memory_pool;
 
-	export void initialize(u64 max_size_in_kibibytes) 
+	export void initialize([[maybe_unused]]u64 max_size_in_kibibytes) 
 	{
 
 	}
