@@ -814,6 +814,8 @@ namespace deckard::utf8
 		size_t find_last_not_of(std::string_view v, size_t pos = npos) const { return find_last_not_of(view(v), pos); }
 	};
 
+	export inline std::ostream& operator<<(std::ostream& os, const utf8::view& s) { return os << s.as_string_view(); }
+
 } // namespace deckard::utf8
 
 export namespace std

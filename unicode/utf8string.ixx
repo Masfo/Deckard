@@ -764,7 +764,10 @@ namespace deckard::utf8
 
 		bool starts_with(std::string_view str) const { return starts_with(std::span<u8>{as<u8*>(str.data()), str.size()}); }
 
-		bool starts_with(const view v) const { return starts_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()}); }
+		bool starts_with(const view v) const
+		{
+			return starts_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()});
+		}
 
 		bool starts_with(const string& str) const
 		{
@@ -814,7 +817,10 @@ namespace deckard::utf8
 
 		bool ends_with(string str) const { return ends_with(str.data()); }
 
-		bool ends_with(const view v) const { return ends_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()}); }
+		bool ends_with(const view v) const
+		{
+			return ends_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()});
+		}
 
 		codepoint_type front() const
 		{
@@ -1350,10 +1356,7 @@ namespace deckard::utf8
 
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
-	// TODO:
-	// rfind
-	// trim copy, trim modify inplace
-	// self insert, deletes prev buffer
+	export inline std::ostream& operator<<(std::ostream& os, const utf8::string& s) { return os << s.to_string(); }
 
 
 } // namespace deckard::utf8
@@ -1383,7 +1386,6 @@ export namespace std
 			const auto bytes = v.data();
 			return std::format_to(ctx.out(), "{}", std::string_view{as<const char*>(bytes.data()), bytes.size()});
 		}
-
 	};
 
 
