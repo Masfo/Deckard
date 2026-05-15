@@ -1,4 +1,4 @@
-github.com/AlDanial/cloc v 1.98  T=0.21 s (570.4 files/s, 400831.4 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.23 s (515.9 files/s, 367310.7 lines/s)
 ----------------------------------------------------------------------------------------------------------------
 File                                                                         blank        comment           code
 ----------------------------------------------------------------------------------------------------------------
@@ -7,16 +7,18 @@ File                                                                         bla
 .\types\bigint.ixx                                                             281             32           1149
 .\example\window\src\winmain.cpp                                               431            288           1114
 .\graphs\graph.ixx                                                             176             27           1091
-.\unicode\utf8string.ixx                                                       297             19           1059
+.\unicode\utf8string.ixx                                                       302             14           1076
 .\app\app.ixx                                                                  345            179           1050
-.\example\threader\src\winmain.cpp                                             288             83           1039
+.\example\threader\src\winmain.cpp                                             295             83           1050
+.\scripting\lexer\lexer.ixx                                                    224            106           1033
 .\types\image.ixx                                                              222             58           1016
-.\scripting\lexer\lexer.ixx                                                    196             88            944
-.\utils\smallbufferobject.ixx                                                  214             28            754
+.\types\int128.ixx                                                             161              6            856
+.\utils\smallbufferobject.ixx                                                  214             28            768
 .\file\File.ixx                                                                200             55            753
 .\config\config.ixx                                                            164             32            735
 .\build\CMakeFiles\4.3.2\CompilerIdCXX\CMakeCXXCompilerId.cpp                  157             63            729
 .\utils\sha.ixx                                                                154              4            655
+.\unicode\utf8view.ixx                                                         186             14            644
 .\math\generic_vec4.ixx                                                        146             11            620
 .\math\generic_vec3.ixx                                                        148             13            590
 .\app\vulkan\device.ixx                                                        195             34            546
@@ -24,7 +26,6 @@ File                                                                         bla
 .\utils\stringhelper.ixx                                                       136             28            524
 .\utils\hash.ixx                                                               107             25            511
 .\utils\serializer.ixx                                                         106             16            447
-.\unicode\utf8view.ixx                                                         126              8            444
 .\net\protocol.ixx                                                              82             41            434
 .\utils\grid.ixx                                                               126             15            433
 .\graphs\avltree.ixx                                                            94             10            384
@@ -37,11 +38,10 @@ File                                                                         bla
 .\net\server.ixx                                                                93             30            335
 .\utils\cpuid.ixx                                                              111             15            330
 .\graphs\binarytree.ixx                                                         82             12            324
-.\types\uint128.ixx                                                             64              7            315
+.\unicode\utf8_decode.ixx                                                       66             17            315
 .\math\quaternion.ixx                                                           94              0            314
 .\utils\colors.ixx                                                              83             16            313
 .\net\ip.ixx                                                                    79             11            312
-.\unicode\utf8_decode.ixx                                                       65             17            311
 .\app\gl\opengl.ixx                                                             58              7            289
 .\net\client.ixx                                                                75             15            274
 .\utils\arrays.ixx                                                             112              2            273
@@ -62,7 +62,7 @@ File                                                                         bla
 .\debug\debug.ixx                                                               54             36            156
 .\file\filemonitor.ixx                                                          39              7            155
 .\utils\commandline.ixx                                                         47             53            154
-.\unicode\utf8_codepoints.ixx                                                   29              7            145
+.\unicode\utf8_codepoints.ixx                                                   31              8            153
 .\app\vulkan\pipeline.ixx                                                       21              7            136
 .\app\vulkan\swapchain.ixx                                                      47              6            135
 .\math\primitives.ixx                                                           39              6            134
@@ -121,5 +121,5 @@ File                                                                         bla
 .\scripting\parser\parser.ixx                                                   11             16              4
 .\build\CMakeFiles\ShowIncludes\foo.h                                            1              0              0
 ----------------------------------------------------------------------------------------------------------------
-SUM:                                                                          8417           2176          72323
+SUM:                                                                          8617           2195          73207
 ----------------------------------------------------------------------------------------------------------------

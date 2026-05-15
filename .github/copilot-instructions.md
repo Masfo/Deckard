@@ -31,6 +31,9 @@
 - Use C++23 and C++26 where available; keep code compatible with MSVC.
 - Prefer standard library facilities; avoid adding new external dependencies.
 
+
+## Tests
+- 
 ## Coding style
 - Follow existing naming and formatting in the surrounding files (tabs/indentation, brace style).
 - Keep APIs minimal and consistent with existing modules.

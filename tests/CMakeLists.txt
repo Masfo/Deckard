@@ -98,7 +98,7 @@ target_sources(tests PUBLIC
     tests/bigint_tests.cpp
 
     # uint128
-    tests/uint128_test.cpp
+    tests/int128_test.cpp
 
     # LRU
     tests/lru_test.cpp

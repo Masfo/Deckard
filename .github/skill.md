@@ -23,6 +23,7 @@ Before writing any code, ask:
 - Can this be expressed as a range pipeline?
 - Is there a standard algorithm or view for this?
 - Should this be its own module unit or partition?
+- Can already defined functions/types be reused instead of new ones?
 
 ---
 

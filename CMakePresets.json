@@ -15,8 +15,6 @@
         "CMAKE_CXX_COMPILER": "cl.exe",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        //"CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
-
       },
       "architecture": {
         "value": "x64",
@@ -24,7 +22,6 @@
       },
       "toolset": {
         "value": "v145,host=x64,version=14.51",
-        //  "value": "v145,host=x64",
         "strategy": "external"
       },
       "vendor": {
