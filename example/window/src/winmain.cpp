@@ -527,10 +527,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 	std::array<u8, 10> encoded{};
-	u64                value = 1'234'567'890'123'456'789ULL;
-	u64                len   = encode_integer(value, encoded);
+	//u64                value = 1'234'567'890'123'456'789ULL;
+	//u64                len   = encode_integer(value, encoded);
 
-	u64 decoded = decode_integer(encoded);
+	//u64 decoded = decode_integer(encoded);
 
 
 	test_cmdliner();
@@ -539,7 +539,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	_;
 	// ##############################
 
-#if 1
+#if 0
 	Tree<char> tree[]{
 	  {'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 

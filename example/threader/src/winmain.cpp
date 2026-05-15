@@ -12,9 +12,11 @@ import deckard;
 
 import deckard.helpers;
 import deckard.net;
+import deckard.file;
 using namespace deckard;
 
 using namespace std::chrono_literals;
+namespace fs = std::filesystem;
 
 /* Deckard Net
  *
@@ -165,7 +167,7 @@ struct TCP
 
 struct UDP
 {
-	bool open(u16 port, Address inet = Address::V6)
+	bool open([[maybe_unused]]u16 port, Address inet = Address::V6)
 	{
 		u32 type = (inet == Address::V6) ? AF_INET6 : AF_INET;
 
@@ -785,17 +787,130 @@ public:
 	}
 };
 
+auto ip_query(std::string_view host, [[maybe_unused]]int version = 4) -> std::pair<std::string, std::chrono::milliseconds>
+{
+	const std::string req = std::format("GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n", host);
+
+	net::socket s(net::endpoint{host, 80});
+	s.write(req);
+	if (not s.send())
+		return {};
+
+	auto [response, rtt] = s.recv_string();
+
+	// Strip HTTP headers — body follows "\r\n\r\n"
+	if (const auto pos = response.find("\r\n\r\n"); pos != std::string::npos)
+	{
+		auto ip = response.substr(pos + 4);
+		// trim trailing whitespace/newline
+		while (not ip.empty() and (ip.back() == '\n' or ip.back() == '\r' or ip.back() == ' '))
+			ip.pop_back();
+		return {ip, rtt};
+	}
+
+	return {response, rtt};
+}
+
+auto ip_query(int version = 4)
+{
+	const std::string host = (version == 6) ? "ipv6.icanhazip.com" : "ipv4.icanhazip.com";
+	return ip_query(host, version);
+}
+
+auto ipify_query(int version = 4)
+{
+	const std::string host = (version == 6) ? "api6.ipify.org" : "api.ipify.org";
+	return ip_query(host, version);
+}
+
+
+
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
+#if 0
+	u64        lines = 0;
+	ScopeTimer timer("File writing");
+	timer.start();
+	for (auto& out : file::writer({.filename = "newfile7.txt"_path, .limit = 16_GiB}))
+	{
+		out.write("Line {}\n", ++lines);
 
-	std::array<u8, 4> ipv4_bytes{192, 168, 1, 2};
+		if (lines >= 1'000'000'000)
+		{
+			out.stop();
+			break;
+		}
+	}
+	timer.now();
+#endif
 
-	auto ipvsli = slice<2>(ipv4_bytes);
+	std::unordered_set<utf8::string> keywords;
+
+	keywords.insert("if"sv);
+	keywords.insert("fn"sv);
+	keywords.insert("ident"sv);
 
 
-	auto ipv6_bytes = make_vector(192, 168, 1, 3);
-	auto kocko      = slice<2>(ipv6_bytes);
+	std::vector<utf8::string> test_strings= {"if"sv, "else"sv, "fn"sv, "while"sv};
 
+
+	for (const auto& test : test_strings)
+	if (keywords.contains(test))
+		info("'{}' is a keyword", test);
+	else
+		info("'{}' is not a keyword", test);
+
+	_ = 0;
+
+
+	/* deckard::threadpool tp(0);
+	tp.post([] { info("Hello from threadpool!"); });
+
+	auto task = [](deckard::threadpool& tp, int id)
+	{
+		info("Task {} started", id);
+		std::this_thread::sleep_for(1s);
+
+		while(tp.is_running())
+		{
+			info("Task {} is running...", id);
+			std::this_thread::sleep_for(1s);
+		}
+
+		tp.post([id] {
+			info("Task {} completed", id);
+		});
+	};
+
+
+	tp.post(task);
+
+
+	*/
+
+
+
+
+	auto [body, rtt] = ip_query();
+	dbg::println("Public IPv4: {} - ({})", body, rtt);
+
+	auto [body2, rtt2] = ip_query(6);
+	dbg::println("Public IPv6: {} - ({})", body2, rtt2);
+
+	auto [body3, rtt3] = ipify_query();
+	dbg::println("Public IPv4: {} - ({})", body3, rtt3);
+
+	auto [body4, rtt4] = ipify_query(6);
+	dbg::println("Public IPv6: {} - ({})", body4, rtt4);
+
+
+	_ = 0;
+
+
+	info("░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░");
+	info("✅ ⚠️ ❌ ❗");
 
 	auto ips1 = net::resolve_ips("1.1.1.1", 4);
 	auto ips2 = net::resolve_ips("2606:4700:4700::1111", 6);
@@ -804,25 +919,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	for (const auto& ip : ips.value_or({}))
 		dbg::println("Resolved IP: {}", ip);
 
-#if 0
-	for (int i = 0; i < 4; ++i)
-	{
-		if (auto ping_result = net::ping({"80.80.80.80", 80}); ping_result)
-			dbg::println("ping: {}", *ping_result);
-
-		std::this_thread::sleep_for(500ms);
-	}
-
-
-	for (int i = 0; i < 4; ++i)
-	{
-		if (auto ping_result = net::ping({"1.1.1.1", 80}); ping_result)
-			dbg::println("ping: {}", *ping_result);
-
-		std::this_thread::sleep_for(500ms);
-	}
-
-#endif
 
 	dbg::println("Hostname: {}", net::hostname());
 
@@ -1133,8 +1229,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		dbg::println(" - Ipv6 enabled: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0);
 		dbg::println(" - Ipv6 Managed Address Config: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_MANAGE_ADDRESS_CONFIG) != 0);
 
-		bool has_ipv4 = (pAddresses->Flags & IP_ADAPTER_IPV4_ENABLED) != 0;
-		bool has_ipv6 = (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0;
+		[[maybe_unused]] bool has_ipv4 = (pAddresses->Flags & IP_ADAPTER_IPV4_ENABLED) != 0;
+		[[maybe_unused]] bool has_ipv6 = (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0;
 
 
 		dbg::println("IfType: {}", pAddresses->IfType);
