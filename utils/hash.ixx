@@ -507,8 +507,6 @@ namespace deckard::utils
 			}
 		}
 
-		//void update(std::span<u8> data) noexcept { update(std::span<const u8>{data.data(), data.size()}); }
-
 		void update(std::string_view data) noexcept { update(std::span<const u8>{as<const u8*>(data.data()), data.size()}); }
 
 		[[nodiscard]] u64 digest() const noexcept
