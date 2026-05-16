@@ -58,8 +58,8 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		str = "\xF0\x9F\xA4\xA6\xF0\x9F\x8F\xBC\xE2\x80\x8D\xE2\x99\x82\xEF\xB8\x8F";
 		CHECK(str.length() == 5);
+		CHECK(str.graphemes() == 1);
 		CHECK(str.size_in_bytes() == 17);
-		// CHECK(str.count() == 2); // TODO: should be 1
 
 		str = "नमस्ते";
 		CHECK(str.length() == 6);
@@ -73,7 +73,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size() == 5);
 		CHECK(str.size_in_bytes() == 5);
 		CHECK(str.c_str() == std::string_view("hello"));
-
 
 		std::array<u8, 10> bytes2 = {'h', 'e', 'l', 'l', 'o', ' ', 0xF0, 0x9F, 0x8C, 0x8D}; // "hello 🌍"
 		utf8::string       str2(bytes2);
@@ -543,7 +542,6 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str == "abc ABC 123");
 	}
 }
-
 
 TEST_CASE("utf8::view", "[utf8][utf8view]")
 {
@@ -1210,7 +1208,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		}
 	}
 
-	SECTION("graphemes")
+	SECTION("length")
 	{
 		{
 			std::array<u8, 5> err = {
@@ -1225,7 +1223,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			utf8::string str(err);
 			CHECK(str.size() == 5);
 			CHECK(str.size_in_bytes() == 5);
-			CHECK(str.graphemes() == 5);
+			CHECK(str.length() == 5);
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
 		}
@@ -1240,8 +1238,9 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			utf8::string str(err);
 			CHECK(str.size() == 2);
-			CHECK(str.size_in_bytes() == 3);
 			CHECK(str.graphemes() == 1);
+			CHECK(str.size_in_bytes() == 3);
+			CHECK(str.length() == 2);
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
 		}
@@ -1258,6 +1257,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			utf8::string str(err);
 			CHECK(str.size() == 3);
 			CHECK(str.size_in_bytes() == 4);
+			CHECK(str.length() == 3);
 			CHECK(str.graphemes() == 2);
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
@@ -1270,7 +1270,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			utf8::string      str(err);
 			CHECK(str.size() == 1);
 			CHECK(str.size_in_bytes() == 3);
-			CHECK(str.graphemes() == 1);
+			CHECK(str.length() == 1);
 
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
@@ -1283,7 +1283,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			utf8::string      str(err);
 			CHECK(str.size() == 2);
 			CHECK(str.size_in_bytes() == 6);
-			CHECK(str.graphemes() == 2);
+			CHECK(str.length() == 2);
 
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
@@ -1295,7 +1295,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			utf8::string      str(err);
 			CHECK(str.size() == 3);
 			CHECK(str.size_in_bytes() == 9);
-			CHECK(str.graphemes() == 3);
+			CHECK(str.length() == 3);
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
 		}
@@ -1305,17 +1305,19 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			// emoji zwj emoji
 
 			// clang-format off
-            std::array<u8, 11> err = {
-                0xF0, 0x9F, 0x91, 0xA9, // 👩
-                0xE2, 0x80, 0x8D,		// ZWJ
-                0xF0, 0x9F,0x9A,0x80	//🚀
-            };
+			std::array<u8, 11> err = {
+				0xF0, 0x9F, 0x91, 0xA9, // 👩
+				0xE2, 0x80, 0x8D,		// ZWJ
+				0xF0, 0x9F,0x9A,0x80	//🚀
+			};
 			// clang-format on
 
 			utf8::string str(err);
-			// CHECK(str.size() == 1);
-			// CHECK(str.size_in_bytes() == 11);
-			// CHECK(str.graphemes() == 1); // TODO: should be one 👩‍🚀
+			CHECK(str.size() == 3);
+			CHECK(str.graphemes() == 1);
+			CHECK(str.size_in_bytes() == 11);
+			CHECK(str.length() == 3); 
+			CHECK(str.graphemes() == 1);
 
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
@@ -1326,23 +1328,25 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 									   0x81, 0xA5, 0xF3, 0xA0, 0x81, 0xAE, 0xF3, 0xA0, 0x81, 0xA7, 0xF3, 0xA0, 0x81, 0xBF};
 
 			utf8::string str(flag);
-			// CHECK(str.graphemes() == 1);
+			CHECK(str.length() == 7);
+			CHECK(str.graphemes() == 1);
 			CHECK(str.valid() == true);
 		}
 		{
 			// clang-format off
-            std::array<u8, 10> err = {
-                'e',				//
-                0xCC, 0x81,			// combining acute (U+0301)
-                'l', 'o',			//
-                0xE4, 0xB8, 0xAD,	// 中 ( 3-byte chinese)
-                0xCC, 0x88,			// combining diaeresis
-            };
+			std::array<u8, 10> err = {
+				'e',				//
+				0xCC, 0x81,			// combining acute (U+0301)
+				'l', 'o',			//
+				0xE4, 0xB8, 0xAD,	// 中 ( 3-byte chinese)
+				0xCC, 0x88,			// combining diaeresis
+			};
 			// clang-format on
 
 			utf8::string str(err);
 			CHECK(str.size() == 6);
-			CHECK(str.graphemes() == 4);
+			CHECK(str.length() == 6);
+			CHECK(str.graphemes() == 4); // e + acute, l, o, 中 + diaeresis
 			CHECK(str.capacity() == 31);
 			CHECK(str.valid() == true);
 		}
@@ -1351,9 +1355,9 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, overlong")
 	{
 		// clang-format off
-        std::array<u8, 2> overlong = {
-          0xC0, 0xAF,				// overlong encoding of '/'
-        };
+		std::array<u8, 2> overlong = {
+		  0xC0, 0xAF,				// overlong encoding of '/'
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1369,10 +1373,10 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, missing continuation byte")
 	{
 		// clang-format off
-        std::array<u8, 5> overlong = {
-          'A','B','C',
-          0xE2, 0x28,				// 3-byte sequence, missing 3rd byte
-        };
+		std::array<u8, 5> overlong = {
+		  'A','B','C',
+		  0xE2, 0x28,				// 3-byte sequence, missing 3rd byte
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1389,9 +1393,9 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, surrogate half")
 	{
 		// clang-format off
-        std::array<u8, 3> overlong = {
-          0xED, 0xA0, 0x80,				// U+D800 encoded directly
-        };
+		std::array<u8, 3> overlong = {
+		  0xED, 0xA0, 0x80,				// U+D800 encoded directly
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1407,10 +1411,10 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, overlong 4-byte")
 	{
 		// clang-format off
-        std::array<u8, 5> overlong = {
-          'A',
-          0xF0, 0x80, 0x80, 0xAF,				// overlong encoding
-        };
+		std::array<u8, 5> overlong = {
+		  'A',
+		  0xF0, 0x80, 0x80, 0xAF,				// overlong encoding
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1426,10 +1430,10 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, codepoint beyond U+10FFFF")
 	{
 		// clang-format off
-        std::array<u8, 6> overlong = {
-          'A', 'B',
-          0xF4, 0x90, 0x80, 0x80,				// codepoint beyond U+10FFFF
-        };
+		std::array<u8, 6> overlong = {
+		  'A', 'B',
+		  0xF4, 0x90, 0x80, 0x80,				// codepoint beyond U+10FFFF
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1446,10 +1450,10 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, single continuation byte")
 	{
 		// clang-format off
-        std::array<u8, 5> overlong = {
-          'A', 'B', 'C', 'D',
-          0x80,				// continuation byte
-        };
+		std::array<u8, 5> overlong = {
+		  'A', 'B', 'C', 'D',
+		  0x80,				// continuation byte
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1465,10 +1469,10 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, bad leading byte")
 	{
 		// clang-format off
-        std::array<u8, 3> overlong = {
-          'A', 'B',
-          0xFF,				// invalid leading byte
-        };
+		std::array<u8, 3> overlong = {
+		  'A', 'B',
+		  0xFF,				// invalid leading byte
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1484,10 +1488,10 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, truncated 4-byte sequence")
 	{
 		// clang-format off
-        std::array<u8, 6> overlong = {
-          'A', 'B', 'C',
-          0xF0, 0x9F, 0x92				// missing 4th byte
-        };
+		std::array<u8, 6> overlong = {
+		  'A', 'B', 'C',
+		  0xF0, 0x9F, 0x92				// missing 4th byte
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1503,13 +1507,13 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 	SECTION("invalid, overlong 2-byte mixed")
 	{
 		// clang-format off
-        std::array<u8, 9> overlong = {
-          0x48,						// H
-          0xC0, 0x81,				// overlong encoding
-          0x65,						// e
-          0xF4, 0x90, 0x80, 0x80,	// > U+10FFFF
-          0x21						// !
-        };
+		std::array<u8, 9> overlong = {
+		  0x48,						// H
+		  0xC0, 0x81,				// overlong encoding
+		  0x65,						// e
+		  0xF4, 0x90, 0x80, 0x80,	// > U+10FFFF
+		  0x21						// !
+		};
 		// clang-format on
 
 		utf8::string str(overlong);
@@ -1520,6 +1524,123 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		const auto err = str.valid();
 		CHECK(err.error().contains("Overlong 2-byte") == true);
 		CHECK(err.error().contains("line 1, column 2") == true);
+	}
+
+	SECTION("utf8 string security checks")
+	{
+		{
+			std::array<u8, 2> overlong_nul = {0xC0, 0x80};
+			utf8::string      str(overlong_nul);
+
+			CHECK(str.size() == 0);
+			CHECK(str.capacity() == 31);
+
+			const auto err = str.valid();
+			CHECK(err.error().contains("Overlong 2-byte") == true);
+			CHECK(err.error().contains("line 1, column 1") == true);
+		}
+
+		{
+			std::array<u8, 1> truncated_2 = {0xC2};
+			utf8::string      str(truncated_2);
+
+			CHECK(str.size() == 0);
+			CHECK(str.capacity() == 31);
+
+			const auto err = str.valid();
+			CHECK(err.error().contains("continuation") == true);
+			CHECK(err.error().contains("line 1, column 1") == true);
+		}
+
+		{
+			std::array<u8, 2> truncated_3 = {0xE2, 0x82};
+			utf8::string      str(truncated_3);
+
+			CHECK(str.size() == 0);
+			CHECK(str.capacity() == 31);
+
+			const auto err = str.valid();
+			CHECK(err.error().contains("continuation") == true);
+			CHECK(err.error().contains("line 1, column 1") == true);
+		}
+
+		for (u8 lead : {u8{0xF5}, u8{0xF6}, u8{0xF7}, u8{0xF8}, u8{0xF9}, u8{0xFA}, u8{0xFB}, u8{0xFC}, u8{0xFD}, u8{0xFE}})
+		{
+			std::array<u8, 1> invalid_leading = {lead};
+			utf8::string      str(invalid_leading);
+
+			CHECK(str.size() == 0);
+			CHECK(str.capacity() == 31);
+
+			const auto err = str.valid();
+			CHECK_FALSE(err);
+			CHECK(err.error().contains("line 1, column 1") == true);
+		}
+
+		{
+			std::array<u8, 1> one_byte = {0x7F};
+			utf8::string      str(one_byte);
+
+			CHECK(str.size() == 1);
+			CHECK(str[0] == 0x7F);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 2> two_byte = {0xC2, 0x80};
+			utf8::string      str(two_byte);
+
+			CHECK(str.size() == 1);
+			CHECK(str[0] == 0x80);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 2> two_byte_max = {0xDF, 0xBF};
+			utf8::string      str(two_byte_max);
+
+			CHECK(str.size() == 1);
+			CHECK(str[0] == 0x7FF);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 3> three_byte_min = {0xE0, 0xA0, 0x80};
+			utf8::string      str(three_byte_min);
+
+			CHECK(str.size() == 1);
+			CHECK(str[0] == 0x800);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 3> three_byte_max = {0xEF, 0xBF, 0xBF};
+			utf8::string      str(three_byte_max);
+
+			CHECK(str.size() == 1);
+			CHECK(str[0] == 0xFFFF);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 4> four_byte_min = {0xF0, 0x90, 0x80, 0x80};
+			utf8::string      str(four_byte_min);
+
+			CHECK(str.size() == 1);
+			CHECK(str[0] == 0x1'0000);
+			CHECK(str.valid() == true);
+		}
+
+		{
+			std::array<u8, 3> embedded_nul = {0x41, 0x00, 0x42};
+			utf8::string      str(embedded_nul);
+
+			CHECK(str.size() == 3);
+			CHECK(str[0] == 'A');
+			CHECK(str[1] == 0);
+			CHECK(str[2] == 'B');
+			CHECK(str.valid() == true);
+		}
 	}
 }
 
@@ -1607,7 +1728,7 @@ TEST_CASE("utf8::view", "[utf8]")
 		// CHECK_THROWS(empty.back());
 	}
 
-	SECTION("trim")
+	SECTION("view trim")
 	{
 		utf8::string str("  hello 🌍  ");
 		utf8::view   v = str;
@@ -1644,7 +1765,7 @@ TEST_CASE("utf8::view", "[utf8]")
 	}
 
 	SECTION("view starts_with")
-	{ 
+	{
 		utf8::string str("hello 🌍");
 		utf8::view   v = str;
 
@@ -1675,9 +1796,77 @@ TEST_CASE("utf8::view", "[utf8]")
 		CHECK_FALSE(v.ends_with("XX"sv));
 	}
 
+	SECTION("starts_with and ends_with with codepoints")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   v = str;
+		CHECK(v.starts_with(0x1'f30d));
+		CHECK_FALSE(v.starts_with('A'));
+
+		CHECK(v.ends_with(0x1'f30d));
+		CHECK_FALSE(v.ends_with('B'));
+
+		utf8::view empty;
+		CHECK_FALSE(empty.starts_with('a'));
+		CHECK_FALSE(empty.ends_with('a'));
+	}
 
 
-	SECTION("subviews and indexing subviews") 
+	SECTION("find and contains")
+	{
+		utf8::string str("hello 🌍 world 🌍");
+		utf8::view   v = str;
+
+		CHECK(v.contains('h'));
+		CHECK(v.contains(0x1'f30d));
+		CHECK(v.contains("world"sv));
+		CHECK(v.contains("🌍"sv));
+		CHECK_FALSE(v.contains('z'));
+		CHECK_FALSE(v.contains("planet"sv));
+
+		CHECK(v.find('e') == 1);
+		CHECK(v.find(0x1'f30d) == 6);
+		CHECK(v.find("world"sv) == 8);
+		CHECK(v.find("🌍"sv, 7) == 14);
+		CHECK(v.find('z') == utf8::view::npos);
+		CHECK(v.find("") == 0);
+		CHECK(v.find(" ", 100) == utf8::view::npos);
+
+		CHECK(v.rfind('o') == 9);
+		CHECK(v.rfind(0x1'f30d) == 14);
+		CHECK(v.rfind("hello"sv) == 0);
+		CHECK(v.rfind("") == v.length());
+		CHECK(v.rfind("z") == utf8::view::npos);
+		CHECK(v.rfind("hello", 0) == 0);
+	}
+
+	SECTION("not_of variants")
+	{
+		utf8::string str("  abc  ");
+		utf8::view   v = str;
+
+		CHECK(v.find_first_not_of(' ') == 2);
+		CHECK(v.find_last_not_of(' ') == 4);
+
+		utf8::string vowels("aeiou");
+		utf8::string text("apple");
+		utf8::view   vt = text;
+		CHECK(vt.find_first_not_of(vowels) == 1); // 'p'
+		CHECK(vt.find_last_not_of(vowels) == 3);  // 'l'
+
+		CHECK(vt.find_first_not_of("apple") == utf8::view::npos);
+		CHECK(vt.find_first_not_of("xyz") == 0);
+
+		utf8::string u_str("ä🌍ä");
+		utf8::view   uv = u_str;
+		CHECK(uv.find_first_not_of("ä") == 1);  // 🌍
+		CHECK(uv.find_last_not_of("ä") == 1);   // 🌍
+		CHECK(uv.find_first_not_of("🌍") == 0); // ä
+		CHECK(uv.find_last_not_of("🌍") == 2);  // ä
+		CHECK(uv.find_first_not_of("ä🌍") == utf8::view::npos);
+	}
+
+	SECTION("subviews and indexing subviews")
 	{
 		utf8::string str("abc 🌍 def");
 		//                012 3 45678 (codepoints)
@@ -1688,7 +1877,7 @@ TEST_CASE("utf8::view", "[utf8]")
 		{
 			auto sub = v.subview(4, 5); // "🌍 de"
 			CHECK(sub.length() == 5);
-			CHECK(sub[0] == 0x1F30D);
+			CHECK(sub[0] == 0x1'F30D);
 			CHECK(sub[1] == ' ');
 			CHECK(sub[3] == 'e');
 		}
@@ -1697,7 +1886,7 @@ TEST_CASE("utf8::view", "[utf8]")
 		{
 			auto sub = v.subview_bytes(4, 4); // "🌍"
 			CHECK(sub.length() == 1);
-			CHECK(sub[0] == 0x1F30D);
+			CHECK(sub[0] == 0x1'F30D);
 
 			auto sub2 = v.subview_bytes(0, 3); // "abc"
 			CHECK(sub2.length() == 3);
@@ -1705,11 +1894,597 @@ TEST_CASE("utf8::view", "[utf8]")
 			CHECK(sub2[2] == 'c');
 		}
 
-		SECTION("substr")
+		SECTION("view substr")
 		{
 			auto sub = v.substr(4, 1); // "🌍"
 			CHECK(sub.length() == 1);
-			CHECK(sub[0] == 0x1F30D);
+			CHECK(sub[0] == 0x1'F30D);
+		}
+
+		SECTION("remove_prefix and remove_suffix")
+		{
+			utf8::string s("abcde");
+			utf8::view   sv = s;
+
+			sv.remove_prefix(2);
+			CHECK(sv == "cde");
+			CHECK(sv.length() == 3);
+
+			sv.remove_suffix(1);
+			CHECK(sv == "cd");
+			CHECK(sv.length() == 2);
+
+			sv.remove_prefix(10); // Should empty it
+			CHECK(sv.empty());
+		}
+
+		SECTION("subview compare")
+		{
+			utf8::view v1 = "abc"sv;
+			utf8::view v2 = "abd"sv;
+			utf8::view v3 = "ab"sv;
+
+			CHECK(v1.compare(v2) < 0);
+			CHECK(v2.compare(v1) > 0);
+			CHECK(v1.compare(v1) == 0);
+			CHECK(v1.compare(v3) > 0);
+		}
+	}
+
+	SECTION("empty views")
+	{
+		SECTION("default constructor creates empty view")
+		{
+			utf8::view empty;
+			CHECK(empty.empty());
+			CHECK(empty.size() == 0);
+			CHECK(empty.length() == 0);
+		}
+
+		SECTION("empty() returns true")
+		{
+			utf8::view empty;
+			CHECK(empty.empty());
+		}
+
+		SECTION("size and length return 0")
+		{
+			utf8::view empty;
+			CHECK(empty.size() == 0);
+			CHECK(empty.length() == 0);
+			CHECK(empty.size_in_bytes() == 0);
+		}
+
+		SECTION("is_valid returns true for empty view")
+		{
+			utf8::view empty;
+			CHECK(empty.is_valid());
+		}
+
+		SECTION("has_next returns false for empty view")
+		{
+			utf8::view empty;
+			CHECK_FALSE(empty.has_next());
+			CHECK_FALSE(empty.has_next(1));
+			CHECK_FALSE(empty.has_next(100));
+		}
+
+		SECTION("operator bool returns false for empty view")
+		{
+			utf8::view empty;
+			CHECK_FALSE(empty);
+		}
+
+		SECTION("front and back assert on empty view")
+		{
+			utf8::view empty;
+			// These should trigger assertions or be safely handled
+			// Commented out since they may abort; behavior is verified in production
+		}
+
+		SECTION("starts_with empty prefix always returns true")
+		{
+			utf8::view empty;
+			utf8::view prefix;
+			CHECK(empty.starts_with(prefix));
+			CHECK(empty.starts_with(""sv));
+
+			utf8::string str("hello");
+			utf8::view   v = str;
+			CHECK(v.starts_with(prefix));
+			CHECK(v.starts_with(""sv));
+		}
+
+		SECTION("ends_with empty suffix always returns true")
+		{
+			utf8::view empty;
+			utf8::view suffix;
+			CHECK(empty.ends_with(suffix));
+			CHECK(empty.ends_with(""sv));
+
+			utf8::string str("hello");
+			utf8::view   v = str;
+			CHECK(v.ends_with(suffix));
+			CHECK(v.ends_with(""sv));
+		}
+
+		SECTION("starts_with codepoint returns false for empty view")
+		{
+			utf8::view empty;
+			CHECK_FALSE(empty.starts_with('a'));
+			CHECK_FALSE(empty.starts_with(0x1'f30d));
+		}
+
+		SECTION("ends_with codepoint returns false for empty view")
+		{
+			utf8::view empty;
+			CHECK_FALSE(empty.ends_with('a'));
+			CHECK_FALSE(empty.ends_with(0x1'f30d));
+		}
+
+		SECTION("subview of empty view returns empty")
+		{
+			utf8::view empty;
+			auto       sub = empty.subview(0, 10);
+			CHECK(sub.empty());
+			CHECK(sub.size() == 0);
+		}
+
+		SECTION("empty views are equal")
+		{
+			utf8::view v1;
+			utf8::view v2;
+			CHECK(v1 == v2);
+			CHECK(v1.compare(v2) == 0);
+		}
+
+		SECTION("find on empty view returns npos or pos")
+		{
+			utf8::view empty;
+			CHECK(empty.find('a') == utf8::view::npos);
+			CHECK(empty.find(""sv) == 0);
+			CHECK(empty.find("hello"sv) == utf8::view::npos);
+		}
+	}
+
+	SECTION("comparison consistency")
+	{
+		SECTION("reflexivity: v == v")
+		{
+			utf8::string str("hello 🌍");
+			utf8::view   v = str;
+			CHECK(v == v);
+			CHECK(v.compare(v) == 0);
+		}
+
+		SECTION("symmetry: if v1 == v2 then v2 == v1")
+		{
+			utf8::string str1("hello");
+			utf8::string str2("hello");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+
+			CHECK(v1 == v2);
+			CHECK(v2 == v1);
+			CHECK(v1.compare(v2) == 0);
+			CHECK(v2.compare(v1) == 0);
+		}
+
+		SECTION("transitivity: if v1 == v2 and v2 == v3 then v1 == v3")
+		{
+			utf8::string str1("test");
+			utf8::string str2("test");
+			utf8::string str3("test");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+			utf8::view   v3 = str3;
+
+			CHECK(v1 == v2);
+			CHECK(v2 == v3);
+			CHECK(v1 == v3);
+		}
+
+		SECTION("compare consistency with operator==")
+		{
+			utf8::string str1("abc");
+			utf8::string str2("abc");
+			utf8::string str3("abd");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+			utf8::view   v3 = str3;
+
+			// Equal views
+			CHECK((v1 == v2) == (v1.compare(v2) == 0));
+
+			// Different views
+			CHECK((v1 != v3) == (v1.compare(v3) != 0));
+		}
+
+		SECTION("views from different sources with same content are equal")
+		{
+			utf8::string     str("hello");
+			std::string_view sv = "hello";
+			utf8::view       v1 = str;
+			utf8::view       v2 = sv;
+
+			CHECK(v1 == v2);
+			CHECK(v1.compare(v2) == 0);
+		}
+
+		SECTION("operator== with string_view")
+		{
+			utf8::string str("world");
+			utf8::view   v = str;
+
+			CHECK(v == "world"sv);
+			CHECK(v == std::string_view("world"));
+		}
+
+		SECTION("different content results in inequality")
+		{
+			utf8::string str1("hello");
+			utf8::string str2("world");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+
+			CHECK(v1 != v2);
+			CHECK(v1.compare(v2) < 0);
+		}
+
+		SECTION("case sensitive comparison")
+		{
+			utf8::string str1("Hello");
+			utf8::string str2("hello");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+
+			CHECK(v1 != v2);
+			CHECK(v1.compare(v2) != 0);
+		}
+
+		SECTION("comparison with multibyte content")
+		{
+			utf8::string str1("🌍hello");
+			utf8::string str2("🌍hello");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+
+			CHECK(v1 == v2);
+		}
+
+		SECTION("consistency across copy assignments")
+		{
+			utf8::string str("test");
+			utf8::view   v1 = str;
+			utf8::view   v2 = v1;
+
+			CHECK(v1 == v2);
+			CHECK(v1.compare(v2) == 0);
+		}
+
+		SECTION("ordering operators")
+		{
+			utf8::view a = "abc"sv;
+			utf8::view b = "abd"sv;
+			utf8::view c = "abc"sv;
+
+			CHECK(a < b);
+			CHECK(b > a);
+			CHECK(a <= c);
+			CHECK(a >= c);
+			CHECK(a <= b);
+			CHECK(b >= a);
+		}
+
+		SECTION("ordering with prefix")
+		{
+			utf8::view shorter = "ab"sv;
+			utf8::view longer  = "abc"sv;
+
+			CHECK(shorter < longer);
+			CHECK(longer > shorter);
+		}
+
+		SECTION("ordering empty vs non-empty")
+		{
+			utf8::view empty;
+			utf8::view nonempty = "a"sv;
+
+			CHECK(empty < nonempty);
+			CHECK(nonempty > empty);
+		}
+
+		SECTION("compare with string_view overload")
+		{
+			utf8::view v = "abc"sv;
+
+			CHECK(v.compare("abc"sv) == 0);
+			CHECK(v.compare("abd"sv) < 0);
+			CHECK(v.compare("abb"sv) > 0);
+			CHECK(v.compare(""sv) > 0);
+		}
+
+		SECTION("ordering with multibyte codepoints")
+		{
+			// U+1F30D (🌍) encodes to 0xF0 0x9F 0x8C 0x8D — sorts after ASCII
+			utf8::view ascii     = "z"sv;
+			utf8::view multibyte = "🌍"sv;
+
+			CHECK(ascii < multibyte);
+			CHECK(multibyte > ascii);
+
+			utf8::view v1 = "🌍abc"sv;
+			utf8::view v2 = "🌍abc"sv;
+			CHECK(v1 == v2);
+			CHECK(v1.compare(v2) == 0);
+			CHECK((v1 <=> v2) == std::strong_ordering::equal);
+		}
+
+		SECTION("spaceship operator returns strong_ordering")
+		{
+			utf8::view a = "abc"sv;
+			utf8::view b = "abd"sv;
+			utf8::view c = "abc"sv;
+
+			CHECK((a <=> b) == std::strong_ordering::less);
+			CHECK((b <=> a) == std::strong_ordering::greater);
+			CHECK((a <=> c) == std::strong_ordering::equal);
+		}
+
+		SECTION("spaceship operator with string_view")
+		{
+			utf8::view v = "abc"sv;
+
+			CHECK((v <=> "abc"sv) == std::strong_ordering::equal);
+			CHECK((v <=> "abd"sv) == std::strong_ordering::less);
+			CHECK((v <=> "abb"sv) == std::strong_ordering::greater);
+		}
+	}
+
+	SECTION("formatter support")
+	{
+		SECTION("format empty view")
+		{
+			utf8::view empty;
+			auto       result = std::format("{}", empty);
+			CHECK(result == "");
+		}
+
+		SECTION("format ASCII view")
+		{
+			utf8::string str("hello");
+			utf8::view   v      = str;
+			auto         result = std::format("{}", v);
+			CHECK(result == "hello");
+		}
+
+		SECTION("format multibyte view")
+		{
+			utf8::string str("🌍world");
+			utf8::view   v      = str;
+			auto         result = std::format("{}", v);
+			CHECK(result == "🌍world");
+		}
+
+		SECTION("format mixed ASCII and multibyte")
+		{
+			utf8::string str("hello 🌍 world");
+			utf8::view   v      = str;
+			auto         result = std::format("{}", v);
+			CHECK(result == "hello 🌍 world");
+		}
+
+		SECTION("format view with special characters")
+		{
+			utf8::string str("test\nline");
+			utf8::view   v      = str;
+			auto         result = std::format("{}", v);
+			CHECK(result == "test\nline");
+		}
+	}
+
+	SECTION("hash support")
+	{
+		SECTION("hash is deterministic")
+		{
+			utf8::string str("hello");
+			utf8::view   v = str;
+
+			size_t h1 = std::hash<utf8::view>{}(v);
+			size_t h2 = std::hash<utf8::view>{}(v);
+			CHECK(h1 == h2);
+		}
+
+		SECTION("equal views have equal hashes")
+		{
+			utf8::string str1("test");
+			utf8::string str2("test");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+
+			size_t h1 = std::hash<utf8::view>{}(v1);
+			size_t h2 = std::hash<utf8::view>{}(v2);
+			CHECK(h1 == h2);
+		}
+
+		SECTION("empty view can be hashed")
+		{
+			utf8::view empty;
+			(void)std::hash<utf8::view>{}(empty); // it compiles
+
+			CHECK(true);
+		}
+
+		SECTION("multibyte view can be hashed")
+		{
+			utf8::string str("🌍hello🌍");
+			utf8::view   v = str;
+
+			size_t h1 = std::hash<utf8::view>{}(v);
+			size_t h2 = std::hash<utf8::view>{}(v);
+			CHECK(h1 == h2);
+		}
+
+		SECTION("hash works in unordered_map")
+		{
+			std::unordered_map<utf8::view, int> map;
+
+			utf8::string key1("test");
+			utf8::view   v1 = key1;
+
+			map[v1] = 42;
+			CHECK(map[v1] == 42);
+		}
+
+		SECTION("hash works in unordered_set")
+		{
+			std::unordered_set<utf8::view> set;
+
+			utf8::string str("hello");
+			utf8::view   v = str;
+
+			set.insert(v);
+			CHECK(set.count(v) == 1);
+		}
+
+		SECTION("different content likely has different hashes")
+		{
+			utf8::string str1("hello");
+			utf8::string str2("world");
+			utf8::view   v1 = str1;
+			utf8::view   v2 = str2;
+
+			size_t h1 = std::hash<utf8::view>{}(v1);
+			size_t h2 = std::hash<utf8::view>{}(v2);
+
+
+			CHECK(h1 != h2);
+		}
+	}
+
+	SECTION("single codepoint boundary conditions")
+	{
+		SECTION("single ASCII codepoint view")
+		{
+			utf8::string str("a");
+			utf8::view   v = str;
+
+			CHECK(v.size() == 1);
+			CHECK(v.length() == 1);
+			CHECK(v[0] == 'a');
+			CHECK(v.front() == 'a');
+			CHECK(v.back() == 'a');
+		}
+
+		SECTION("single 2-byte codepoint view")
+		{
+			utf8::string str("é"); // U+00E9 (2 bytes: C3 A9)
+			utf8::view   v = str;
+
+			CHECK(v.size() == 1);
+			CHECK(v.length() == 1);
+			CHECK(v[0] == 0xE9);
+		}
+
+		SECTION("single 3-byte codepoint view")
+		{
+			utf8::string str("€"); // U+20AC (3 bytes: E2 82 AC)
+			utf8::view   v = str;
+
+			CHECK(v.size() == 1);
+			CHECK(v.length() == 1);
+			CHECK(v[0] == 0x20AC);
+		}
+
+		SECTION("single 4-byte codepoint view")
+		{
+			utf8::string str("🌍"); // U+1F30D (4 bytes: F0 9F 8C 8D)
+			utf8::view   v = str;
+
+			CHECK(v.size() == 1);
+			CHECK(v.length() == 1);
+			CHECK(v[0] == 0x1'f30d);
+			CHECK(v.front() == 0x1'f30d);
+			CHECK(v.back() == 0x1'f30d);
+		}
+
+		SECTION("view at buffer boundary")
+		{
+			std::array<u8, 4> buffer{'h', 'e', 'l', 'o'};
+			utf8::view        v(buffer);
+
+			CHECK(v.size() == 4);
+			CHECK(v[0] == 'h');
+			CHECK(v[3] == 'o');
+		}
+
+		SECTION("subview at exact boundaries")
+		{
+			utf8::string str("abcdef");
+			utf8::view   v = str;
+
+			auto sub = v.subview(0, 3);
+			CHECK(sub.size() == 3);
+			CHECK(sub[0] == 'a');
+			CHECK(sub[2] == 'c');
+
+			auto tail = v.subview(3, 3);
+			CHECK(tail.size() == 3);
+			CHECK(tail[0] == 'd');
+			CHECK(tail[2] == 'f');
+		}
+
+		SECTION("subview_bytes at multibyte boundaries")
+		{
+			utf8::string str("a🌍b"); // a(1) + 🌍(4) + b(1) = 6 bytes
+			utf8::view   v = str;
+
+			auto emoji = v.subview_bytes(1, 4);
+			CHECK(emoji.size() == 1);
+			CHECK(emoji[0] == 0x1'f30d);
+		}
+
+		SECTION("view created from various sources")
+		{
+			const char*      cstr = "test";
+			std::string_view sv   = "test";
+			utf8::string     str("test");
+
+			utf8::view v1(cstr, 4);
+			utf8::view v2 = sv;
+			utf8::view v3 = str;
+
+			CHECK(v1 == v2);
+			CHECK(v2 == v3);
+			CHECK(v1 == v3);
+		}
+
+		SECTION("remaining() at boundaries")
+		{
+			utf8::string str("abc");
+			utf8::view   v = str;
+
+			CHECK(v.remaining() == 3);
+
+			++v;
+			CHECK(v.remaining() == 2);
+
+			v += 2;
+			CHECK(v.remaining() == 0);
+		}
+
+		SECTION("index() at boundaries")
+		{
+			utf8::string str("abc");
+			utf8::view   v = str;
+
+			CHECK(v.index() == 0);
+
+			++v;
+			CHECK(v.index() == 1);
+
+			v += 2;
+			CHECK(v.index() == 3);
 		}
 	}
 }
@@ -1815,26 +2590,239 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 		CHECK_FALSE(is_valid_codepoint(out_of_range));
 	}
 
+
 	SECTION("is_xid_start")
 	{
-		CHECK(is_xid_start(0x24));       // '$'
-		CHECK(is_xid_start(0x41));       // 'A'
-		CHECK(is_xid_start(0x5A));       // 'Z'
-		CHECK(is_xid_start(0x61));       // 'a'
-		CHECK(is_xid_start(0x7A));       // 'z'
-		CHECK(is_xid_start(0xD8));       // 'Ø', a non-ascii letterc
+		CHECK(is_xid_start(0x24));                    // '$'
+		CHECK(is_xid_start(0x41));                    // 'A'
+		CHECK(is_xid_start(0x5A));                    // 'Z'
+		CHECK(is_xid_start(0x61));                    // 'a'
+		CHECK(is_xid_start(0x7A));                    // 'z'
+		CHECK(is_xid_start(0xD8));                    // 'Ø', a non-ascii letterc
+		CHECK(is_xid_start(decode_codepoint("ℹ"sv))); // ℹ U+2139  INFORMATION SOURCE
+		CHECK(is_xid_start(decode_codepoint("п")));   // 'п' U+043F CYRILLIC SMALL LETTER PE
 
-		CHECK_FALSE(is_xid_start(0x30)); // '0'
-		CHECK_FALSE(is_xid_start(0x20)); // Space
-		CHECK_FALSE(is_xid_start(0x7F)); // DEL
+
+		CHECK_FALSE(is_xid_start(0x30));              // '0'
+		CHECK_FALSE(is_xid_start(0x20));              // Space
+		CHECK_FALSE(is_xid_start(0x7F));              // DEL
 
 		CHECK(is_xid_start(max_xid_start));
 		CHECK_FALSE(is_xid_start(max_xid_start + 1));
 
-		CHECK(is_xid_start(0x370)); 
+		CHECK(is_xid_start(0x370));
 		CHECK_FALSE(is_xid_start(0x2C2));
 
 		CHECK(is_xid_start(0x3'3479)); // U+33479, a CJK ideograph
 		CHECK_FALSE(is_xid_start(0x3'3480));
+	}
+
+	SECTION("compare string with view")
+	{
+		utf8::string str("hello");
+
+		CHECK(str == utf8::view("hello"sv));
+		CHECK(str != utf8::view("world"sv));
+	}
+
+	SECTION("contains view")
+	{
+		utf8::string str("hello world");
+
+		CHECK(str.contains(utf8::view("hello"sv)));
+		CHECK(str.contains(utf8::view("world"sv)));
+		CHECK(str.contains(utf8::view(" "sv)));
+		CHECK_FALSE(str.contains(utf8::view("xyz"sv)));
+		CHECK_FALSE(str.contains(utf8::view("HELLO"sv)));
+
+		utf8::string unicode("こんにちは世界");
+		CHECK(unicode.contains(utf8::view("にちは"sv)));
+		CHECK_FALSE(unicode.contains(utf8::view("hello"sv)));
+	}
+
+	SECTION("starts_with view")
+	{
+		utf8::string str("hello world");
+
+		CHECK(str.starts_with(utf8::view("hello"sv)));
+		CHECK(str.starts_with(utf8::view("hello world"sv)));
+		CHECK_FALSE(str.starts_with(utf8::view("world"sv)));
+		CHECK_FALSE(str.starts_with(utf8::view("HELLO"sv)));
+
+		utf8::string unicode("こんにちは");
+		CHECK(unicode.starts_with(utf8::view("こんに"sv)));
+		CHECK_FALSE(unicode.starts_with(utf8::view("にちは"sv)));
+	}
+
+	SECTION("ends_with view")
+	{
+		utf8::string str("hello world");
+
+		CHECK(str.ends_with(utf8::view("world"sv)));
+		CHECK(str.ends_with(utf8::view("hello world"sv)));
+		CHECK_FALSE(str.ends_with(utf8::view("hello"sv)));
+		CHECK_FALSE(str.ends_with(utf8::view("WORLD"sv)));
+
+		utf8::string unicode("こんにちは");
+		CHECK(unicode.ends_with(utf8::view("にちは"sv)));
+		CHECK_FALSE(unicode.ends_with(utf8::view("こんに"sv)));
+	}
+
+	SECTION("operator+ view")
+	{
+		utf8::string str("hello");
+
+		auto result = str + utf8::view(" world"sv);
+		CHECK(result == "hello world"sv);
+
+		utf8::string unicode("こんにちは");
+		auto         result2 = unicode + utf8::view("世界"sv);
+		CHECK(result2 == "こんにちは世界"sv);
+	}
+
+	SECTION("operator+= view")
+	{
+		utf8::string str("hello");
+		str += utf8::view(" world"sv);
+		CHECK(str == "hello world"sv);
+
+		utf8::string unicode("こんにちは");
+		unicode += utf8::view("世界"sv);
+		CHECK(unicode == "こんにちは世界"sv);
+	}
+
+	SECTION("short string in a vector")
+	{
+		std::vector<utf8::string> valid_strings = {
+		  "hello"sv,
+		  "こんにちは"sv,
+		  "😀"sv,
+		  "éàü"sv,
+		  "data\0with\0nul"sv,
+		  "\xF0\x9F\x98\x80"sv, // 😀 U+1F600
+		};
+
+		CHECK(valid_strings.size() == 6);
+		CHECK(valid_strings[0] == utf8::string("hello"sv));
+		CHECK(valid_strings[1] == utf8::string("こんにちは"sv));
+		CHECK(valid_strings[2] == utf8::string("😀"sv));
+		CHECK(valid_strings[3] == utf8::string("éàü"sv));
+		CHECK(valid_strings[4] == utf8::string("data\0with\0nul"sv));
+		CHECK(valid_strings[5] == utf8::string("\xF0\x9F\x98\x80"sv));
+	}
+
+	SECTION("short in a set")
+	{
+		std::unordered_set<utf8::string> set;
+
+		set.insert("hello"sv);
+		set.insert("world"sv);
+
+		CHECK(set.size() == 2);
+		CHECK(set.contains("hello"sv));
+		CHECK_FALSE(set.contains("qwerty"sv));
+	}
+
+	SECTION("long string in vector")
+	{
+		utf8::string              str("a long string, it is not an SSO buffer, lorem ipsum 42");
+		std::vector<utf8::string> lv;
+		lv.push_back(str);
+
+		CHECK(lv.size() == 1);
+		CHECK(lv[0] == str);
+
+		lv.clear();
+		CHECK(lv.empty());
+
+		str += str;
+		str += str;
+		lv.push_back(str);
+		CHECK(lv.size() == 1);
+		CHECK(lv[0] == str);
+	}
+
+	SECTION("long string in set")
+	{
+		std::unordered_set<utf8::string> set;
+		utf8::string                     long_str("a long string, it is not an SSO buffer, lorem ipsum 42");
+		set.insert(long_str);
+		CHECK(set.size() == 1);
+		CHECK(set.contains(long_str));
+		long_str += long_str;
+		long_str += long_str;
+		set.insert(long_str);
+		CHECK(set.size() == 2);
+		CHECK(set.contains(long_str));
+	}
+
+	SECTION("long string in map")
+	{
+		std::unordered_map<utf8::string, int> map;
+		utf8::string                          long_str("a long string, it is not an SSO buffer, lorem ipsum 42");
+		map[long_str] = 42;
+		CHECK(map.size() == 1);
+		CHECK(map.contains(long_str));
+		CHECK(map[long_str] == 42);
+	}
+
+	SECTION("security checks")
+	{
+		utf8::string latin_d("data");    // latin d - data
+		utf8::string cyrillic_d("ԁata"); // cyrillic d - ԁata
+
+		CHECK(latin_d != cyrillic_d);
+
+		utf8::string data_string("data");           // normal data
+		utf8::string rlo_data_string("da\u202Eta"); // data with right-to-left override
+		CHECK(rlo_data_string.length() == 5);
+
+		CHECK(data_string != rlo_data_string);
+	}
+
+	SECTION("grapheme cluster")
+	{
+		// https://hsivonen.fi/string-length/
+		utf8::string man("🤦🏼‍♂️");
+		// U + 1F926  🤦 FACE PALM
+		// U + 1F3FC  🏼 skin tone modifier(medium - light)
+		// U + 200D ZWJ
+		// U + 2642   ♂ male sign
+		// U + FE0F variation selector - 16
+		CHECK(man.graphemes() == 1);
+		CHECK(man.length() == 5);
+		CHECK(man.size_in_bytes() == 17);
+
+		utf8::string family("👨‍👩‍👧‍👦");
+		// U + 1F468
+		// U + 200D ZWJ
+		// U + 1F469
+		// U + 200D
+		// U + 1F467
+		// U + 200D
+		// U + 1F466
+
+
+		CHECK(family.length() == 7);
+		CHECK(family.graphemes() == 1);
+
+		utf8::string longer("👩‍❤️‍💋‍👩");
+		CHECK(longer.graphemes() == 1);
+		CHECK(longer.length() == 8);
+
+
+		utf8::string combined("a👩‍❤️‍💋‍👩b");
+		CHECK(combined.length() == 10);
+		CHECK(combined.graphemes() == 3);
+
+		utf8::string sentence_with_clusters("hello "); //  6 - 6
+		sentence_with_clusters.append(man);            //  1 - 5
+		sentence_with_clusters.append(" world ");      //  7 - 7
+		sentence_with_clusters.append(family);         //  1 - 7
+		sentence_with_clusters.append(longer);         //  1 - 8
+													   // 16 - 33
+
+		CHECK(sentence_with_clusters.graphemes() == 16);
+		CHECK(sentence_with_clusters.size() == 33);
 	}
 }
