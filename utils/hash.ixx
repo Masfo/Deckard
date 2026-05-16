@@ -455,15 +455,15 @@ namespace deckard::utils
 	// ########################################################
 	class xxhash64_hasher
 	{
-		static constexpr u64 prime1 = 11'400'714'785'074'694'791ULL;
-		static constexpr u64 prime2 = 14'029'467'366'897'019'727ULL;
-		static constexpr u64 prime3 = 1'609'587'929'392'839'161ULL;
-		static constexpr u64 prime4 = 9'650'029'242'287'828'579ULL;
-		static constexpr u64 prime5 = 2'870'177'450'012'600'261ULL;
+		static constexpr u64 prime1 = 0x9E37'79B1'85EB'CA87ULL;
+		static constexpr u64 prime2 = 0xC2B2'AE3D'27D4'EB4FULL;
+		static constexpr u64 prime3 = 0x1656'67B1'9E37'79F9ULL;
+		static constexpr u64 prime4 = 0x85EB'CA77'C2B2'AE63ULL;
+		static constexpr u64 prime5 = 0x27D4'EB2F'1656'67C5ULL;
 
 		std::array<u64, 4> state_{prime1 + prime2, prime2, 0, static_cast<u64>(-static_cast<i64>(prime1))};
 		std::array<u8, 32> buffer_{};
-		u64                buffer_size_ = 0;
+		size_t             buffer_size_ = 0;
 		u64                total_len_   = 0;
 
 	public:
@@ -472,14 +472,14 @@ namespace deckard::utils
 		void update(std::span<const u8> data) noexcept
 		{
 			auto ptr = data.data();
-			u64  len = data.size();
+			auto len = data.size();
 			total_len_ += len;
 
 			// Fill buffer if we have leftover data
 			if (buffer_size_ > 0)
 			{
-				u64 to_copy = std::min(32 - buffer_size_, len);
-				std::memcpy(buffer_.data() + buffer_size_, ptr, to_copy);
+				auto to_copy = std::min(size_t{32} - buffer_size_, len);
+				std::copy_n(ptr, to_copy, buffer_.data() + buffer_size_);
 				buffer_size_ += to_copy;
 				ptr += to_copy;
 				len -= to_copy;
@@ -502,12 +502,12 @@ namespace deckard::utils
 			// Store remaining bytes in buffer
 			if (len > 0)
 			{
-				std::memcpy(buffer_.data(), ptr, len);
+				std::copy_n(ptr, len, buffer_.data());
 				buffer_size_ = len;
 			}
 		}
 
-		void update(std::span<u8> data) noexcept { update(std::span<const u8>{data.data(), data.size()}); }
+		//void update(std::span<u8> data) noexcept { update(std::span<const u8>{data.data(), data.size()}); }
 
 		void update(std::string_view data) noexcept { update(std::span<const u8>{as<const u8*>(data.data()), data.size()}); }
 
@@ -517,8 +517,7 @@ namespace deckard::utils
 
 			if (total_len_ >= 32)
 			{
-				hash =
-				  std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
+				hash = std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
 
 				for (u64 acc : state_)
 				{
@@ -536,14 +535,13 @@ namespace deckard::utils
 
 			hash += total_len_;
 
-			// Process remaining bytes
-			u64       remaining = buffer_size_;
-			const u8* ptr       = buffer_.data();
+			auto buffer_span = std::span<const u8>{buffer_.data(), buffer_size_};
+			auto remaining  = buffer_span.size();
+			auto ptr        = buffer_span.data();
 
 			while (remaining >= 8)
 			{
-				u64 k1{};
-				std::memcpy(&k1, ptr, 8);
+				u64 k1 = load_as<u64>(ptr);
 				k1 *= prime2;
 				k1 = std::rotl(k1, 31);
 				k1 *= prime1;
@@ -555,23 +553,19 @@ namespace deckard::utils
 
 			if (remaining >= 4)
 			{
-				u32 k1{};
-				std::memcpy(&k1, ptr, 4);
-				hash ^= static_cast<u64>(k1) * prime1;
+				u64 k1 = load_as<u32>(ptr);
+				hash ^= k1 * prime1;
 				hash = std::rotl(hash, 23) * prime2 + prime3;
 				ptr += 4;
 				remaining -= 4;
 			}
 
-			while (remaining > 0)
+			for (; remaining > 0; ++ptr, --remaining)
 			{
 				hash ^= (*ptr) * prime5;
 				hash = std::rotl(hash, 11) * prime1;
-				++ptr;
-				--remaining;
 			}
 
-			// Finalization mix
 			hash ^= hash >> 33;
 			hash *= prime2;
 			hash ^= hash >> 29;
@@ -591,10 +585,9 @@ namespace deckard::utils
 	private:
 		void process_block(const u8* block) noexcept
 		{
-			for (u64 i = 0; i < 4; ++i)
+			for (size_t i = 0; i < 4; ++i)
 			{
-				u64 lane;
-				std::memcpy(&lane, block + i * 8, 8);
+				u64 lane = load_as<u64>(block + i * 8);
 				state_[i] += lane * prime2;
 				state_[i] = std::rotl(state_[i], 31);
 				state_[i] *= prime1;
