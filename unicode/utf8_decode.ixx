@@ -61,6 +61,7 @@ export namespace deckard::utf8
 
 export namespace deckard::utf8
 {
+
 	decode_result decode_unchecked(std::span<const std::byte> buffer, size_t index) noexcept
 	{
 		u8 byte = utf8::u8_at(buffer, index);
@@ -70,9 +71,9 @@ export namespace deckard::utf8
 		u32 state     = 0;
 		u32 codepoint = 0;
 
-		const u32 type = utf8_table[byte];
-		codepoint      = (0xffu >> type) & byte;
-		state          = utf8_table[256 + state + type];
+		u32 type  = utf8_table[byte];
+		codepoint = (0xffu >> type) & byte;
+		state     = utf8_table[256 + state + type];
 
 		if (state == UTF8_ACCEPT)
 			return {codepoint, 1};
@@ -86,9 +87,9 @@ export namespace deckard::utf8
 			byte = utf8::u8_at(buffer, index);
 			bytes_consumed += 1;
 
-			const u32 type = utf8_table[byte];
-			codepoint      = (byte & 0x3fu) | (codepoint << 6);
-			state          = utf8_table[256 + state + type];
+			type      = utf8_table[byte];
+			codepoint = (byte & 0x3fu) | (codepoint << 6);
+			state     = utf8_table[256 + state + type];
 
 			if (state == UTF8_ACCEPT)
 				return {codepoint, bytes_consumed};
@@ -118,19 +119,64 @@ export namespace deckard::utf8
 		}
 	}
 
-	[[nodiscard]] auto graphemes(std::span<const std::byte> buffer) -> std::size_t
+	export size_t grapheme_count(std::span<const u8> buffer)
 	{
+		auto bytes = as_ro_bytes(buffer);
+
 		std::size_t count = 0;
 
-		for (std::size_t i = 0; i < buffer.size();)
+		bool prev_was_ZWJ      = false;
+		bool prev_was_regional = false;
+		bool in_regional_pair  = false;
+
+		size_t i = 0;
+		while (i < bytes.size())
 		{
-			const auto        result = decode(buffer, i);
-			const std::size_t stride = result ? result->bytes_consumed : 1;
+			auto [cp, consumed] = utf8::decode_unchecked(bytes, i);
+			i += consumed;
 
-			if (result and not utf8::is_combining_codepoint(result->codepoint))
+			const bool is_extend =
+			  is_variation_selector(cp) or is_skintone_modifier(cp) or is_zero_width_non_joiner(cp) or is_combining_mark(cp) or
+			  is_spacing_mark(cp) or is_tag_character(cp); 
+
+
+			if (count == 0)
+			{
 				++count;
+			}
+			else if (prev_was_ZWJ and is_extended_pictographic(cp))
+			{
+				// continue cluster
+			}
+			else if ( is_zero_width_joiner(cp) or is_extend) // GB9: Extend or ZWJ never breaks (continues current cluster)
+			{
+				// continue cluster
+			}
+			else if (is_regional_indicator(cp)) // GB12/GB13: Regional Indicators pair up
+			{
+				if (prev_was_regional and not in_regional_pair)
+				{
+					// second RI completes the flag — continue cluster
+					in_regional_pair = true;
+				}
+				else
+				{
+					// either first RI, or third RI (starts fresh flag cluster)
+					++count;
+					in_regional_pair = false;
+				}
+			}
+			// Everything else: new cluster
+			else
+			{
+				++count;
+				in_regional_pair = false;
+			}
 
-			i += stride;
+			prev_was_ZWJ      = is_zero_width_joiner(cp);
+			prev_was_regional = is_regional_indicator(cp);
+			if (not is_regional_indicator(cp))
+				in_regional_pair = false;
 		}
 
 		return count;
@@ -389,10 +435,7 @@ export namespace deckard::utf8
 		return REPLACEMENT_CHARACTER;
 	}
 
-	char32 decode_codepoint(std::string_view buffer)
-	{
-		return decode_codepoint(utf8::as_ro_bytes(buffer));
-	}
+	char32 decode_codepoint(std::string_view buffer) { return decode_codepoint(utf8::as_ro_bytes(buffer)); }
 
 
 } // namespace deckard::utf8

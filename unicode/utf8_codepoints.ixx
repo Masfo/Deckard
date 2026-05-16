@@ -63,11 +63,6 @@ namespace deckard::utf8
 		return 0;
 	}
 
-	export constexpr bool is_zero_width_joiner(char32 codepoint)
-	{
-		return codepoint == 0x200C or codepoint == 0x200D; // ZERO WIDTH NON-JOINER, ZERO WIDTH JOINER
-	}
-
 	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
 	export constexpr bool start_with_bom(const std::span<const u8> buffer)
@@ -127,8 +122,82 @@ namespace deckard::utf8
 
 	export bool is_valid_codepoint(char32 codepoint)
 	{
-		//return codepoint <= 0x10'FFFF and not(codepoint >= 0xD800 and codepoint <= 0xDFFF);
+		// return codepoint <= 0x10'FFFF and not(codepoint >= 0xD800 and codepoint <= 0xDFFF);
 		return (codepoint <= 0x10'FFFF) && ((codepoint & 0xFFFF'F800) != 0xD800);
+	}
+
+	[[nodiscard]] constexpr auto is_variation_selector(uint32_t cp) noexcept -> bool
+	{
+		return (cp >= 0xFE00 && cp <= 0xFE0F)        // VS1–VS16
+			   || (cp >= 0xE'0100 && cp <= 0xE'01EF) // VS17–VS256
+			   || (cp >= 0x180B && cp <= 0x180D)     // Mongolian FVS1–3
+			   || cp == 0x180F;                      // Mongolian FVS4
+	}
+
+	export bool is_skintone_modifier(char32 codepoint)
+	{
+		return codepoint >= 0x1'F3FB and
+			   codepoint <= 0x1'F3FF; // EMOJI MODIFIER FITZPATRICK TYPE-1-2..EMOJI MODIFIER FITZPATRICK TYPE-6
+	}
+
+	export constexpr bool is_zero_width_non_joiner(char32 codepoint) { return codepoint == 0x200C; }
+
+	export constexpr bool is_zero_width_joiner(char32 codepoint) { return codepoint == 0x200D; }
+
+	export constexpr bool is_zero_width_codepoint(char32 codepoint)
+	{
+		return is_zero_width_joiner(codepoint) or is_zero_width_non_joiner(codepoint);
+	}
+
+	export bool is_regional_indicator(char32 codepoint)
+	{
+		return codepoint >= 0x1'F1E6 and
+			   codepoint <= 0x1'F1FF; // REGIONAL INDICATOR SYMBOL LETTER A..REGIONAL INDICATOR SYMBOL LETTER Z
+	}
+
+	export bool is_combining_mark(char32 codepoint)
+	{
+		return (codepoint >= 0x0300 and codepoint <= 0x036F) or // Combining Diacritical Marks
+			   (codepoint >= 0x1AB0 and codepoint <= 0x1AFF) or // Combining Diacritical Marks Extended
+			   (codepoint >= 0x1DC0 and codepoint <= 0x1DFF) or // Combining Diacritical Marks Supplement
+			   (codepoint >= 0x20D0 and codepoint <= 0x20FF) or // Combining Diacritical Marks for Symbols
+			   (codepoint >= 0xFE20 and codepoint <= 0xFE2F);   // Combining Half Marks
+	}
+
+	[[nodiscard]] constexpr bool is_extended_pictographic(uint32_t cp) noexcept
+	{
+		return (cp == 0x00A9) || (cp == 0x00AE) || (cp >= 0x203C && cp <= 0x2B55) // misc symbols/dingbats region
+			   || (cp >= 0x1'F000 && cp <= 0x1'F0FF)                              // mahjong/dominos
+			   || (cp >= 0x1'F100 && cp <= 0x1'F1FF)                              // enclosed alphanumerics (incl. regional)
+			   || (cp >= 0x1'F300 && cp <= 0x1'F9FF)                              // misc emoji
+			   || (cp >= 0x1'FA00 && cp <= 0x1'FAFF);                             // extended symbols
+	}
+
+	[[nodiscard]] constexpr auto is_spacing_mark(uint32_t cp) noexcept -> bool
+	{
+		return (cp >= 0x0900 && cp <= 0x097F &&                                    // Devanagari vowel signs
+				((cp >= 0x093E && cp <= 0x0940) || (cp >= 0x0949 && cp <= 0x094C) || cp == 0x094E || cp == 0x094F)) ||
+			   (cp >= 0x0982 && cp <= 0x0983)                                      // Bengali
+			   || (cp >= 0x0A02 && cp <= 0x0A03)                                   // Gurmukhi
+			   || (cp >= 0x0A82 && cp <= 0x0A83)                                   // Gujarati
+			   || (cp >= 0x0B02 && cp <= 0x0B03)                                   // Oriya
+			   || (cp >= 0x0BBE && cp <= 0x0BBF)                                   // Tamil
+			   || (cp >= 0x0BC1 && cp <= 0x0BC2) || (cp >= 0x0C01 && cp <= 0x0C03) // Telugu
+			   || (cp >= 0x0C82 && cp <= 0x0C83)                                   // Kannada
+			   || (cp >= 0x0D02 && cp <= 0x0D03)                                   // Malayalam
+			   || (cp >= 0x0D3E && cp <= 0x0D40) || cp == 0x0E33                   // Thai sara am
+			   || cp == 0x0EB3;                                                    // Lao sara am
+	}
+
+	export bool is_grapheme_extend(char32 codepoint)
+	{
+		return is_combining_mark(codepoint) or is_zero_width_joiner(codepoint) or is_variation_selector(codepoint) or
+			   is_skintone_modifier(codepoint) or is_regional_indicator(codepoint);
+	}
+
+	[[nodiscard]] constexpr bool is_tag_character(uint32_t cp) noexcept
+	{
+		return cp >= 0xE'0000 && cp <= 0xE'007F; // includes CANCEL TAG at E007F
 	}
 
 	export struct EncodedCodepoint
