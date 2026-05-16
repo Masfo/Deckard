@@ -453,7 +453,7 @@ namespace deckard::utils
 	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
 
 	// ########################################################
-	class xxhash64_hasher
+	export class xxhash64_hasher
 	{
 		static constexpr u64 prime1 = 0x9E37'79B1'85EB'CA87ULL;
 		static constexpr u64 prime2 = 0xC2B2'AE3D'27D4'EB4FULL;
@@ -632,3 +632,15 @@ namespace deckard::utils
 
 
 } // namespace deckard::utils
+
+// ########################################################
+// std::hash specialization for xxhash64_hasher
+
+export template<>
+struct std::hash<deckard::utils::xxhash64_hasher>
+{
+	[[nodiscard]] size_t operator()(const deckard::utils::xxhash64_hasher& hasher) const noexcept
+	{
+		return hasher.digest();
+	}
+};

@@ -47,6 +47,26 @@ TEST_CASE("xxhasher", "[hash][xxhash]")
 
 		CHECK(xxhash64(part1, part2) == xxhash64("The quick brown fox jumps over the lazy dog"));
 	}
+
+	SECTION("xxhasher std::hash specialization")
+	{
+		xxhash64_hasher hasher1;
+		hasher1.update("Hello, World!");
+		auto hash1 = std::hash<xxhash64_hasher>{}(hasher1);
+
+		xxhash64_hasher hasher2;
+		hasher2.update("Hello, World!");
+		auto hash2 = std::hash<xxhash64_hasher>{}(hasher2);
+
+		CHECK(hash1 == hash2);
+
+		// Different data should produce different hashes (with high probability)
+		xxhash64_hasher hasher3;
+		hasher3.update("Different data");
+		auto hash3 = std::hash<xxhash64_hasher>{}(hasher3);
+
+		CHECK(hash1 != hash3);
+	}
 }
 
 TEST_CASE("HMAC-SHA1 digests", "[hmac][sha1][hash]")
