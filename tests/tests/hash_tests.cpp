@@ -60,7 +60,6 @@ TEST_CASE("xxhasher", "[hash][xxhash]")
 
 		CHECK(hash1 == hash2);
 
-		// Different data should produce different hashes (with high probability)
 		xxhash64_hasher hasher3;
 		hasher3.update("Different data");
 		auto hash3 = std::hash<xxhash64_hasher>{}(hasher3);
