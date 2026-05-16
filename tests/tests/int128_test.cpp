@@ -905,7 +905,6 @@ TEST_CASE("uint128", "[uint128]")
 	SECTION("uint128 - Wrap Around")
 	{
 		uint128 max{0xFFFF'FFFF'FFFF'FFFFULL, 0xFFFF'FFFF'FFFF'FFFFULL};
-		uint128 zero{0};
 
 		CHECK((max + uint128(1)) == zero);
 		CHECK((zero - uint128(1)) == max);
