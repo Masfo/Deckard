@@ -247,6 +247,8 @@ set(DECKARD_SRCS
 		utils/colors.ixx
 		utils/circular_buffer.ixx
 		utils/lru.ixx
+		utils/bytepool.ixx
+		utils/stringpool.ixx
 		
 
 
@@ -330,7 +332,7 @@ set(DECKARD_SRCS
 
 
 		std.ixx
-)
+  )
 
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>

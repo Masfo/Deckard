@@ -863,11 +863,11 @@ namespace deckard::utf8
 		{
 			if (empty())
 				return 0;
-		
+
 			auto status = valid();
 			if (not status or not *status)
 				return 0;
-		
+
 			auto len = utf8::length(utf8::as_ro_bytes(buffer.data()));
 			return len ? *len : 0;
 		}

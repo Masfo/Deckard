@@ -20,7 +20,6 @@ namespace deckard::utf8
 		static constexpr size_t npos = std::string_view::npos;
 
 	private:
-
 		std::span<const u8> m_data;
 		size_t              byte_index{0};
 
@@ -169,13 +168,16 @@ namespace deckard::utf8
 		explicit operator bool() const { return has_next(); }
 
 		bool operator==(const view& other) const { return compare(other) == 0; }
+
 		bool operator==(std::string_view other) const { return compare(view(other)) == 0; }
 
 		std::strong_ordering operator<=>(const view& other) const
 		{
 			int r = compare(other);
-			if (r < 0) return std::strong_ordering::less;
-			if (r > 0) return std::strong_ordering::greater;
+			if (r < 0)
+				return std::strong_ordering::less;
+			if (r > 0)
+				return std::strong_ordering::greater;
 			return std::strong_ordering::equal;
 		}
 
@@ -193,10 +195,12 @@ namespace deckard::utf8
 
 		int compare(view other) const
 		{
-			auto ord = std::lexicographical_compare_three_way(
-			  m_data.begin(), m_data.end(), other.m_data.begin(), other.m_data.end());
-			if (ord < 0) return -1;
-			if (ord > 0) return 1;
+			auto ord =
+			  std::lexicographical_compare_three_way(m_data.begin(), m_data.end(), other.m_data.begin(), other.m_data.end());
+			if (ord < 0)
+				return -1;
+			if (ord > 0)
+				return 1;
 			return 0;
 		}
 
@@ -249,7 +253,7 @@ namespace deckard::utf8
 
 		bool ends_with(std::string_view suffix) const { return ends_with(view(suffix)); }
 
-		// 
+		//
 		bool has_next() const { return byte_index < m_data.size_bytes(); }
 
 		bool has_next(size_t codepoints) const
@@ -565,7 +569,7 @@ namespace deckard::utf8
 		size_t find_first_of(char32 c, size_t pos = 0) const
 		{
 			size_t current_pos = 0;
-		 size_t idx         = 0;
+			size_t idx         = 0;
 
 			// Skip to pos
 			while (current_pos < pos and idx < m_data.size_bytes())
@@ -602,7 +606,7 @@ namespace deckard::utf8
 		size_t find_first_of(view v, size_t pos = 0) const
 		{
 			size_t current_pos = 0;
-		 size_t idx         = 0;
+			size_t idx         = 0;
 
 			// Skip to pos
 			while (current_pos < pos and idx < m_data.size_bytes())
@@ -616,7 +620,7 @@ namespace deckard::utf8
 				auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
 				if (v.contains(codepoint))
 					return current_pos;
-			 idx += bytes;
+				idx += bytes;
 				current_pos++;
 			}
 
@@ -684,7 +688,7 @@ namespace deckard::utf8
 				return npos;
 
 			size_t current_pos = std::min(pos, total_len - 1);
-		 size_t idx         = 0;
+			size_t idx         = 0;
 
 			for (size_t i = 0; i < current_pos; ++i)
 				advance_to_next_codepoint(idx);
@@ -707,7 +711,7 @@ namespace deckard::utf8
 		size_t find_first_not_of(char32 c, size_t pos = 0) const
 		{
 			size_t current_pos = 0;
-		 size_t idx         = 0;
+			size_t idx         = 0;
 
 			// Skip to pos
 			while (current_pos < pos and idx < m_data.size_bytes())
@@ -721,7 +725,7 @@ namespace deckard::utf8
 				auto [codepoint, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(m_data), idx);
 				if (codepoint != c)
 					return current_pos;
-			idx += bytes;
+				idx += bytes;
 				current_pos++;
 			}
 
@@ -753,7 +757,6 @@ namespace deckard::utf8
 		}
 
 		size_t find_first_not_of(std::string_view v, size_t pos = 0) const { return find_first_not_of(view(v), pos); }
-
 
 		size_t find_last_not_of(char32 c, size_t pos = npos) const
 		{
@@ -791,7 +794,7 @@ namespace deckard::utf8
 				return npos;
 
 			size_t current_pos = std::min(pos, total_len - 1);
-		 size_t idx         = 0;
+			size_t idx         = 0;
 
 			for (size_t i = 0; i < current_pos; ++i)
 				advance_to_next_codepoint(idx);

@@ -16,6 +16,8 @@ export import deckard.types;
 export import deckard.uuid;
 export import deckard.image;
 
+export import deckard.int128;
+
 export import deckard.allocator;
 
 // File
@@ -55,6 +57,9 @@ export import deckard.timers;
 export import deckard.utils.hash;
 export import deckard.uuid;
 export import deckard.logger;
+export import deckard.bytepool;
+export import deckard.stringpool;
+
 
 #ifdef __cpp_pack_indexing
 #error ("Use pack indexing on something");
