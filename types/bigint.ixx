@@ -8,12 +8,12 @@ import deckard.utils.hash;
 import deckard.helpers;
 import deckard.debug;
 import deckard.random;
-
+import deckard.logger;
 import std;
 
 namespace deckard
 {
-	export enum struct Sign {
+	export enum struct Sign : i8 {
 		positive = 1,
 		zero     = 0,
 		negative = -1,
@@ -22,434 +22,344 @@ namespace deckard
 	export class bigint
 	{
 	private:
-		enum struct Compare
+		enum struct Compare : i8
 		{
-			Greater,
-			Equal,
-			Less
+			Greater = 1,
+			Equal   = 0,
+			Less    = -1,
 		};
 
-// TODO: try base 10 and bas_digits 1, type to u8
-#if 1
 		using type                        = u32;
-		static constexpr type base        = 10000;
-		static constexpr type base_digits = 4;
-#else
-		using type                        = u8;
-		static constexpr type base        = 10;
-		static constexpr type base_digits = 1;
-#endif
-		static constexpr type mask = limits::max<type>;
+		static constexpr type base        = 1'000'000'000;
+		static constexpr type base_digits = 9;
 
 		std::vector<type> digits;
-		Sign              sign;
+		Sign              sign{Sign::zero};
 
-		void remove_trailing_zeros()
+		// -------------------------------------------------------------------------
+		// Helpers
+		// -------------------------------------------------------------------------
+
+
+		void remove_trailing_zeros() noexcept
 		{
-			//
-			if (digits.empty())
-				return;
-
-			while (not digits.empty() and digits.back() == 0)
+			while (!digits.empty() and digits.back() == 0)
 				digits.pop_back();
 
-
-			fix_sign();
-
-			digits.shrink_to_fit();
-		}
-
-		void fix_sign()
-		{
 			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
-			{
 				sign = Sign::zero;
-				return;
-			}
-
-			if (*this < 0)
-				sign = Sign::negative;
-			else
-				sign = Sign::positive;
 		}
 
-		Compare compare(const bigint& lhs, const bigint& rhs) const
+		[[nodiscard]] static Compare compare_magnitude(const bigint& lhs, const bigint& rhs) noexcept
 		{
-			if (lhs.sign > rhs.sign)
-				return Compare::Greater;
-			else if (lhs.sign < rhs.sign)
-				return Compare::Less;
+			if (lhs.digits.size() != rhs.digits.size())
+				return lhs.digits.size() > rhs.digits.size() ? Compare::Greater : Compare::Less;
+
+			for (auto i = static_cast<i64>(lhs.digits.size()) - 1; i >= 0; --i)
+			{
+				if (lhs.digits[i] != rhs.digits[i])
+					return lhs.digits[i] > rhs.digits[i] ? Compare::Greater : Compare::Less;
+			}
+			return Compare::Equal;
+		}
+
+		[[nodiscard]] Compare compare(const bigint& lhs, const bigint& rhs) const noexcept
+		{
+			if (lhs.sign != rhs.sign)
+			{
+				return static_cast<i8>(lhs.sign) > static_cast<i8>(rhs.sign) ? Compare::Greater : Compare::Less;
+			}
 
 			if (lhs.sign == Sign::positive)
 				return compare_magnitude(lhs, rhs);
-			else
+			if (lhs.sign == Sign::negative)
 				return compare_magnitude(rhs, lhs);
+			return Compare::Equal;
 		}
 
-		Compare compare_magnitude(const bigint& lhs, const bigint& rhs) const
+		[[nodiscard]] static bigint largest_divisor(const bigint& a, const bigint& b)
 		{
-			if (lhs.size() > rhs.size())
-				return Compare::Greater;
-			else if (lhs.size() < rhs.size())
-				return Compare::Less;
-			else
+			bigint divisor = b;
+			bigint doubled = divisor + divisor;
+			while (doubled <= a)
 			{
-				for (i64 i = lhs.size() - 1; i >= 0 or i == 0; i--)
-				{
-					if (lhs[i] > rhs[i])
-						return Compare::Greater;
-					else if (lhs[i] < rhs[i])
-						return Compare::Less;
-				}
-				return Compare::Equal;
+				divisor = std::move(doubled);
+				doubled = divisor + divisor;
 			}
-		}
-
-		bigint largest_divisor(const bigint& a, const bigint& b)
-		{
-			bigint divisor(b);
-			while ((a - divisor) >= divisor)
-				divisor = divisor + divisor;
 			return divisor;
 		}
 
 		void shift_left(const bigint& lhs, type shift)
 		{
-			digits.clear();
-			digits.reserve(lhs.digits.size() + shift / bigint::base_digits + 1);
-
 			if (shift == 0)
 			{
-				operator=(lhs);
+				if (this != &lhs)
+					*this = lhs;
+				return;
 			}
-			else
+
+			if (lhs.is_zero())
 			{
-				u64 carry = 0;
-				for (const u64 digit : lhs.digits)
-				{
-					u64 new_digit = (digit << shift) + carry;
-					carry         = new_digit / bigint::base;
-					digits.push_back(new_digit % bigint::base);
-				}
-
-				while (carry > 0)
-				{
-					digits.push_back(carry % bigint::base);
-					carry /= bigint::base;
-				}
+				*this = 0;
+				return;
 			}
 
-			sign = lhs.sign;
+			bigint power_of_2(1);
+			bigint temp;
+			for (type i = 0; i < shift; ++i)
+			{
+				temp.add(power_of_2, power_of_2);
+				power_of_2 = std::move(temp);
+			}
+
+			const auto input_digits = lhs.digits;
+			const auto input_sign   = lhs.sign;
+
+			const size_t lh_size = input_digits.size();
+			const size_t rh_size = power_of_2.digits.size();
+			digits.assign(lh_size + rh_size, 0);
+			sign = input_sign;
+
+			for (size_t j = 0; j < rh_size; ++j)
+			{
+				type carry = 0;
+				for (size_t i = 0; i < lh_size; ++i)
+				{
+					const u64 prod = static_cast<u64>(input_digits[i]) * power_of_2.digits[j] + digits[i + j] + carry;
+					digits[i + j]  = static_cast<type>(prod % base);
+					carry          = static_cast<type>(prod / base);
+				}
+				if (carry)
+					digits[lh_size + j] += carry;
+			}
+
 			remove_trailing_zeros();
 		}
 
 		void shift_right(const bigint& lhs, type shift)
 		{
-			digits.clear();
-			digits.reserve(lhs.digits.size());
-
-			u64 carry = 0;
-
-			for (i64 i = as<i64>(lhs.digits.size() - 1); i >= 0; --i)
+			if (shift == 0)
 			{
-				u64 new_digit = as<u64>(lhs.digits[i] + carry * bigint::base);
-				carry         = new_digit % (1ull << shift);
-				new_digit /= (1ull << shift);
-				digits.push_back(as<type>(new_digit));
+				if (this != &lhs)
+					*this = lhs;
+				return;
 			}
 
-			std::reverse(digits.begin(), digits.end());
-			sign = lhs.sign;
-			remove_trailing_zeros();
+			if (lhs.is_zero())
+			{
+				*this = 0;
+				return;
+			}
+
+			bigint power_of_2(1);
+			bigint temp;
+			for (type i = 0; i < shift; ++i)
+			{
+				temp.add(power_of_2, power_of_2);
+				power_of_2 = std::move(temp);
+			}
+
+			bigint dividend = lhs;
+			divide(dividend, power_of_2);
 		}
 
+		// Generic bitwise op
 		template<typename Op>
 		void bitwise(const bigint& lhs, const bigint& rhs, Op op)
 		{
 			digits.clear();
 
-			if (lhs.is_zero() or rhs.is_zero())
+			auto lhs_val = lhs.to_integer<u64>();
+			auto rhs_val = rhs.to_integer<u64>();
+			if (lhs_val.has_value() and rhs_val.has_value())
 			{
-				sign = Sign::zero;
-				return;
-			}
-			else if ((lhs.sign == Sign::positive and rhs.sign == Sign::negative) or //
-					 (lhs.sign == Sign::negative and rhs.sign == Sign::positive))
-				sign = Sign::negative;
-			else
-				sign = Sign::positive;
-
-			auto smaller = lhs;
-			auto larger  = rhs;
-			if (smaller.size() > larger.size())
-				std::swap(smaller, larger);
-
-			std::string result;
-			result.reserve(2 + smaller.size() * 8);
-
-			while (smaller > 0)
-			{
-				const auto digit1 = smaller % 2;
-				const auto digit2 = larger % 2;
-				smaller /= 2;
-				larger /= 2;
-
-
-				type binary1 = digit1.to_integer<type>().value();
-				type binary2 = digit2.to_integer<type>().value();
-
-				result.push_back('0' + ((char)(op(binary1, binary2))));
-			}
-			result += "b0";
-			std::ranges::reverse(result);
-
-			operator=(result);
-
-			remove_trailing_zeros();
-		}
-
-		// bit ops
-		void bit_and(const bigint& lhs, const bigint& rhs)
-		{
-			if (lhs.is_zero())
-				operator=(lhs);
-			else if (rhs.is_zero())
-				operator=(rhs);
-			else
-			{
-				bitwise(lhs, rhs, std::bit_and<type>());
-			}
-		}
-
-		void bit_or(const bigint& lhs, const bigint& rhs)
-		{
-			if (lhs.is_zero())
-				operator=(rhs);
-			else if (rhs.is_zero())
-				operator=(lhs);
-			else
-			{
-				bitwise(lhs, rhs, std::bit_or<type>());
-			}
-		}
-
-		void bit_xor(const bigint& lhs, const bigint& rhs)
-		{
-
-			if (lhs.is_zero())
-				operator=(rhs);
-			else if (rhs.is_zero())
-				operator=(lhs);
-			else if (lhs == rhs)
-			{
-				operator=(0);
-			}
-			else
-			{
-				bitwise(lhs, rhs, std::bit_xor<type>());
-			}
-		}
-
-		void bit_not(const bigint& lhs)
-		{
-			digits.clear();
-
-			if (lhs.is_zero())
-			{
-				digits.push_back(1);
-				sign = Sign::positive;
+				*this = op(lhs_val.value(), rhs_val.value());
+				sign  = is_zero() ? Sign::zero : Sign::positive;
 				return;
 			}
 
-			bigint      count(lhs);
-			std::string result;
-			result.reserve(2 + lhs.size() * 8);
+			static const bigint two32(4'294'967'296ULL);
 
-			while (count > 0)
+			bigint lo = lhs.abs();
+			bigint ro = rhs.abs();
+
+			std::vector<u32> chunks;
+			chunks.reserve(std::max(lo.size(), ro.size()) / 2 + 1);
+
+			while (not lo.is_zero() or not ro.is_zero())
 			{
-				const auto digit = count % 2;
-				count >>= 1;
+				bigint lrem, rrem;
+				bigint lq, rq;
+				if (not lo.is_zero())
+					lq.divide(lo, two32, &lrem);
+				if (not ro.is_zero())
+					rq.divide(ro, two32, &rrem);
 
-				bool binary = (bool)digit.to_integer<u8>().value();
+				const u32 lchunk = lrem.to_integer<u32>().value_or(0u);
+				const u32 rchunk = rrem.to_integer<u32>().value_or(0u);
+				chunks.push_back(static_cast<u32>(op(lchunk, rchunk)));
 
-				result.push_back('0' + (!binary));
+				lo = std::move(lq);
+				ro = std::move(rq);
 			}
-			result += "b0";
-			std::ranges::reverse(result);
 
-			operator=(result);
+			bigint result(0);
+			for (auto i = static_cast<i64>(chunks.size()) - 1; i >= 0; --i)
+			{
+				result = result * bigint(4'294'967'296ULL) + bigint(static_cast<u64>(chunks[i]));
+			}
 
+			*this = std::move(result);
+			sign  = is_zero() ? Sign::zero : Sign::positive;
+		}
+
+		// -------------------------------------------------------------------------
+		// Arithmetic primitives
+		// -------------------------------------------------------------------------
+
+		void subtract_magnitudes(const bigint& lhs, const bigint& rhs)
+		{
+			if (this == &lhs or this == &rhs)
+			{
+				bigint temp_lhs = lhs;
+				bigint temp_rhs = rhs;
+				subtract_magnitudes(temp_lhs, temp_rhs);
+				return;
+			}
+
+			std::vector<type> result;
+			result.reserve(lhs.digits.size());
+			int borrow = 0;
+			for (size_t i = 0; i < lhs.digits.size(); ++i)
+			{
+				int diff =
+				  static_cast<int>(lhs.digits[i]) - (i < rhs.digits.size() ? static_cast<int>(rhs.digits[i]) : 0) - borrow;
+				if (diff < 0)
+				{
+					diff += base;
+					borrow = 1;
+				}
+				else
+					borrow = 0;
+				result.push_back(static_cast<type>(diff));
+			}
+			digits = std::move(result);
 			remove_trailing_zeros();
 		}
 
-		// bin op
 		void add(const bigint& lhs, const bigint& rhs)
 		{
-			if (lhs.sign == Sign::zero)
+			if (lhs.is_zero())
 			{
-				operator=(rhs);
+				if (this != &rhs)
+					*this = rhs;
 				return;
 			}
-			if (rhs.sign == Sign::zero)
+			if (rhs.is_zero())
 			{
-				operator=(lhs);
+				if (this != &lhs)
+					*this = lhs;
 				return;
-			}
-
-
-			const bigint *lh = &lhs, *rh = &rhs;
-
-			if (compare_magnitude(lhs, rhs) == Compare::Less)
-			{
-				lh = &rhs;
-				rh = &lhs;
 			}
 
 			if (lhs.sign == rhs.sign)
 			{
-				if (lh != this)
-					operator=(*lh);
+				const bigint& lh = lhs.digits.size() >= rhs.digits.size() ? lhs : rhs;
+				const bigint& rh = lhs.digits.size() >= rhs.digits.size() ? rhs : lhs;
 
 				std::vector<type> result;
-				type              carry = 0;
-				size_t            i = 0, j = 0;
-
-				while (i < lh->digits.size() or j < rh->digits.size() or carry != 0)
+				result.reserve(lh.digits.size() + 1);
+				type   carry = 0;
+				size_t i = 0, j = 0;
+				while (i < lh.digits.size() or j < rh.digits.size() or carry)
 				{
-					unsigned sum = carry;
-					if (i < lh->digits.size())
-						sum += lh->digits[i++];
-
-					if (j < rh->digits.size())
-						sum += rh->digits[j++];
-
-					result.push_back(sum % bigint::base);
-					carry = sum / bigint::base;
+					u64 sum = carry;
+					if (i < lh.digits.size())
+						sum += lh.digits[i++];
+					if (j < rh.digits.size())
+						sum += rh.digits[j++];
+					result.push_back(static_cast<type>(sum % base));
+					carry = static_cast<type>(sum / base);
 				}
-				digits = result;
+				digits = std::move(result);
+				sign   = lhs.sign;
 			}
 			else
 			{
-				if (lh->sign == Sign::positive)
+				auto cmp = compare_magnitude(lhs, rhs);
+				if (cmp == Compare::Equal)
 				{
-					subtract(*lh, -(*rh));
+					*this = 0;
+					return;
 				}
-				else
-				{
-					subtract(-(*lh), *rh);
-					operator-();
-				}
+				const bool    lhs_dominates = (cmp == Compare::Greater);
+				const bigint& bigger        = lhs_dominates ? lhs : rhs;
+				const bigint& smaller       = lhs_dominates ? rhs : lhs;
+				Sign          result_sign   = lhs_dominates ? lhs.sign : rhs.sign;
+				subtract_magnitudes(bigger, smaller);
+				sign = result_sign;
 			}
 		}
 
 		void subtract(const bigint& lhs, const bigint& rhs)
 		{
-			if (lhs.sign == Sign::zero)
+			if (lhs.is_zero())
 			{
-				operator=(rhs);
-				operator-();
+				*this = rhs;
+				negate();
 				return;
 			}
-			if (rhs.sign == Sign::zero)
+			if (rhs.is_zero())
 			{
-				operator=(lhs);
+				if (this != &lhs)
+					*this = lhs;
 				return;
 			}
 
+			const Sign rhs_sign = (rhs.sign == Sign::positive) ? Sign::negative : Sign::positive;
 
-			const bigint *lh = &lhs, *rh = &rhs;
-
-			if (compare_magnitude(lhs, rhs) == Compare::Less)
+			if (lhs.sign == rhs_sign)
 			{
-				lh = &rhs;
-				rh = &lhs;
-			}
-
-			if (lhs.sign == rhs.sign)
-			{
-				if (lh != this)
-					operator=(*lh);
+				const bigint& lh = lhs.digits.size() >= rhs.digits.size() ? lhs : rhs;
+				const bigint& rh = lhs.digits.size() >= rhs.digits.size() ? rhs : lhs;
 
 				std::vector<type> result;
-
-				i32    borrow = 0;
+				result.reserve(lh.digits.size() + 1);
+				type   carry = 0;
 				size_t i = 0, j = 0;
-
-				while (i < lh->digits.size() or j < rh->digits.size())
+				while (i < lh.digits.size() or j < rh.digits.size() or carry)
 				{
-					int diff =
-					  (i < lh->digits.size() ? lh->digits[i] : 0) - (j < rh->digits.size() ? rh->digits[j] : 0) - borrow;
-					if (diff < 0)
-					{
-						diff += bigint::base;
-						borrow = 1;
-					}
-					else
-					{
-						borrow = 0;
-					}
-
-					result.push_back(diff);
-					i++;
-					j++;
+					u64 sum = carry;
+					if (i < lh.digits.size())
+						sum += lh.digits[i++];
+					if (j < rh.digits.size())
+						sum += rh.digits[j++];
+					result.push_back(static_cast<type>(sum % base));
+					carry = static_cast<type>(sum / base);
 				}
-
-				while (result.size() > 1 && result.back() == 0)
-					result.pop_back();
-
-				digits = result;
+				digits = std::move(result);
+				sign   = lhs.sign;
 			}
 			else
 			{
-
-				if (lh->sign == Sign::positive)
+				auto cmp = compare_magnitude(lhs, rhs);
+				if (cmp == Compare::Equal)
 				{
-					add(*lh, -(*rh));
+					*this = 0;
+					return;
 				}
-				else
-				{
-					add(-(*lh), *rh);
-					operator-();
-				}
+				const bool    lhs_dominates = (cmp == Compare::Greater);
+				const bigint& bigger        = lhs_dominates ? lhs : rhs;
+				const bigint& smaller       = lhs_dominates ? rhs : lhs;
+				const Sign    result_sign   = lhs_dominates ? lhs.sign : rhs_sign;
+				subtract_magnitudes(bigger, smaller);
+				sign = result_sign;
 			}
-
-			if (lh != &lhs)
-				operator-();
-
-			remove_trailing_zeros();
 		}
 
-		void karatsuba_multiply(const bigint& lhs, const bigint& rhs)
-		{
-			size_t n = std::max(lhs.size(), rhs.size());
-			size_t m = n / 2;
-
-			bigint high1(lhs.digits.begin() + m, lhs.digits.end());
-			bigint low1(lhs.digits.begin(), lhs.digits.begin() + m);
-			bigint high2(rhs.digits.begin() + m, rhs.digits.end());
-			bigint low2(rhs.digits.begin(), rhs.digits.begin() + m);
-
-			bigint z0 = low1 * low2;
-			bigint z1 = (low1 + high1) * (low2 + high2);
-			bigint z2 = high1 * high2;
-
-			digits = z2.digits;
-			digits.insert(digits.begin(), m * 2, 0);
-			bigint temp = z1 - z2 - z0;
-			temp.digits.insert(temp.digits.begin(), m, 0);
-			*this += temp;
-			*this += z0;
-		}
-
-		// mul
 		void multiply(const bigint& lhs, const bigint& rhs)
 		{
-			// if (lhs.size() >= 32 and rhs.size() >= 32)
-			//{
-			//	karatsuba_multiply(lhs, rhs);
-			//	return;
-			// }
-
+			assert::check(this != &lhs and this != &rhs, "multiply: output aliases input");
 
 			digits.clear();
 
@@ -458,220 +368,257 @@ namespace deckard
 				sign = Sign::zero;
 				return;
 			}
-			else if ((lhs.sign == Sign::positive and rhs.sign == Sign::negative) or //
-					 (lhs.sign == Sign::negative and rhs.sign == Sign::positive))
-				sign = Sign::negative;
-			else
-				sign = Sign::positive;
 
-			if (rhs == 2)
+			sign = (lhs.sign == rhs.sign) ? Sign::positive : Sign::negative;
+
+			const size_t lh_size = lhs.digits.size();
+			const size_t rh_size = rhs.digits.size();
+			digits.assign(lh_size + rh_size, 0);
+
+			for (size_t j = 0; j < rh_size; ++j)
 			{
-				operator=(lhs << 1);
-				return;
-			}
-
-			const bigint *lh = &lhs, *rh = &rhs;
-
-			if (compare_magnitude(lhs, rhs) == Compare::Less)
-			{
-				lh = &rhs;
-				rh = &lhs;
-			}
-
-			digits.reserve(lh->digits.size() + rh->digits.size());
-
-			size_t index = 0, lh_size = lh->digits.size(), rh_size = rh->digits.size();
-			type   carry = 0, buffer = 0;
-
-
-			for (size_t lower = 0; lower < rh_size; lower++)
-			{
-				index = lower;
-
-				for (int upper = 0; upper < lh_size; upper++)
+				type carry = 0;
+				for (size_t i = 0; i < lh_size; ++i)
 				{
-					buffer = lh->digits[upper] * rh->digits[lower] + carry;
-					if (index < digits.size())
-						buffer += digits[index];
-
-					carry = buffer / bigint::base;
-					buffer %= bigint::base;
-
-					if (index < digits.size())
-						digits[index] = buffer;
-					else
-						digits.push_back(buffer);
-
-					index++;
+					const u64 prod = static_cast<u64>(lhs.digits[i]) * rhs.digits[j] + digits[i + j] + carry;
+					digits[i + j]  = static_cast<type>(prod % base);
+					carry          = static_cast<type>(prod / base);
 				}
-				if (carry != 0)
-				{
-					digits.push_back(carry);
-					carry = 0;
-				}
+				if (carry)
+					digits[lh_size + j] += carry;
 			}
+
+			remove_trailing_zeros();
 		}
 
-		// divide
-
-
-		void divide(const bigint& dividend, const bigint& divisor)
+		void divide(const bigint& dividend, const bigint& divisor, bigint* out_remainder = nullptr)
 		{
 			if (divisor.is_zero())
-			{
-				dbg::panic("divide zero");
-			}
+				dbg::panic("Division by zero");
 
-			if (dividend.is_zero() || compare_magnitude(dividend, divisor) == Compare::Less)
+			if (dividend.is_zero())
 			{
-				operator=(0);
+				*this = 0;
+				if (out_remainder)
+					*out_remainder = 0;
 				return;
 			}
 
-			bigint a(dividend), b(divisor);
-			if (a.sign == b.sign)
-			{
-				if (a.sign == Sign::negative)
-				{
-					-a;
-					-b;
-				}
+			const Sign result_sign =
+			  (static_cast<i8>(dividend.sign) * static_cast<i8>(divisor.sign)) >= 0 ? Sign::positive : Sign::negative;
 
-				sign = Sign::positive;
-			}
-			else
-			{
-				if (a.sign == Sign::negative)
-					-a;
-				else
-					-b;
+			bigint abs_dividend = dividend;
+			bigint abs_divisor  = divisor;
+			abs_dividend.sign   = Sign::positive;
+			abs_divisor.sign    = Sign::positive;
 
-				sign = Sign::negative;
-			}
-
-			if (divisor == 2)
+			if (compare_magnitude(abs_dividend, abs_divisor) == Compare::Less)
 			{
-				operator=(dividend >> 1);
+				*this = 0;
+				if (out_remainder)
+					*out_remainder = std::move(abs_dividend);
 				return;
 			}
 
-			bigint c(largest_divisor(a, b));
-			bigint n(1);
-			a = a - c;
+			digits.clear();
+			digits.reserve(abs_dividend.digits.size());
+			bigint remainder(0);
 
-			while (c != b)
+			for (auto i = static_cast<i64>(abs_dividend.digits.size()) - 1; i >= 0; --i)
 			{
-				c = c >> 1;
-				n = n + n;
-				if (c <= a)
+				remainder = remainder.multiply_by_digit(base);
+				remainder += bigint(static_cast<u64>(abs_dividend.digits[i]));
+
+				type   quotient_digit = 0;
+				bigint last_product;
+
+				if (remainder >= abs_divisor)
 				{
-					a = a - c;
-					n = n + 1;
+					i32 low = 0, high = static_cast<i32>(base - 1);
+					while (low <= high)
+					{
+						i32    mid     = low + (high - low) / 2;
+						bigint product = abs_divisor.multiply_by_digit(static_cast<type>(mid));
+
+						if (product <= remainder)
+						{
+							quotient_digit = static_cast<type>(mid);
+							last_product   = std::move(product);
+							low            = mid + 1;
+						}
+						else
+						{
+							high = mid - 1;
+						}
+					}
 				}
+
+				remainder -= last_product;
+				digits.push_back(quotient_digit);
 			}
-			if (sign == Sign::negative)
-				-n;
-			operator=(n);
+
+			std::ranges::reverse(digits);
+			sign = result_sign;
+			remove_trailing_zeros();
+
+			if (out_remainder)
+			{
+				bigint rem     = std::move(remainder);
+				*out_remainder = std::move(rem);
+			}
 		}
 
-		// modulus
 		void modulus(const bigint& lhs, const bigint& rhs)
 		{
 			if (rhs.is_zero())
-				operator=(0);
-
-			if (compare_magnitude(lhs, rhs) == Compare::Less)
 			{
-				operator=(lhs);
+				dbg::panic("Modulus by zero");
+			}
+
+			if (lhs.is_zero())
+			{
+				*this = 0;
 				return;
 			}
 
-			operator=(lhs - rhs * (lhs / rhs));
+			if (compare_magnitude(lhs, rhs) == Compare::Less)
+			{
+				if (this != &lhs)
+					*this = lhs;
+				return;
+			}
+
+			bigint abs_lhs = lhs;
+			bigint abs_rhs = rhs;
+			abs_lhs.sign   = Sign::positive;
+			abs_rhs.sign   = Sign::positive;
+
+			bigint quotient;
+			bigint remainder;
+			quotient.divide(abs_lhs, abs_rhs, &remainder);
+
+			if (remainder.is_zero())
+			{
+				*this = 0;
+			}
+			else
+			{
+				*this = remainder;
+				sign  = lhs.is_negative() ? Sign::negative : Sign::positive;
+			}
 		}
 
 		void sqrt_op(const bigint& rhs)
 		{
-			if (rhs.is_zero() || rhs.signum() == Sign::negative)
+			if (rhs.is_zero() or rhs.is_negative())
 			{
-				operator=(0);
+				*this = 0;
 				return;
 			}
 
-			bigint left(1), right(rhs), mid, result;
-			while (left <= right)
+			if (rhs == 1)
 			{
-				mid                = (left + right) / 2;
-				bigint mid_squared = mid * mid;
-				if (mid_squared == rhs)
-				{
-					operator=(mid);
-					return;
-				}
-				else if (mid_squared < rhs)
-				{
-					left   = mid + 1;
-					result = mid;
-				}
-				else
-				{
-					right = mid - 1;
-				}
+				*this = 1;
+				return;
 			}
-			operator=(result);
+
+			bigint x = rhs;
+			bigint x_prev;
+
+			while (true)
+			{
+				x_prev = x;
+				x      = (x + rhs / x) >> 1;
+
+				if (x >= x_prev)
+					break;
+			}
+
+			*this = std::move(x_prev);
 		}
 
-		bigint from_string(std::string_view input, i32 newbase = 0)
+		[[nodiscard]] bigint multiply_by_digit(type digit) const
+		{
+			if (digit == 0)
+				return bigint(0);
+			if (digit == 1)
+				return *this;
+
+			bigint result;
+			result.digits.clear();
+			result.digits.reserve(digits.size() + 1);
+
+			u64 carry = 0;
+			for (const auto& d : digits)
+			{
+				const u64 prod = static_cast<u64>(d) * digit + carry;
+				result.digits.push_back(static_cast<type>(prod % base));
+				carry = prod / base;
+			}
+
+			if (carry)
+				result.digits.push_back(static_cast<type>(carry));
+
+			result.sign = sign;
+			return result;
+		}
+
+		// Helper: flip sign without creating a copy
+		void negate() noexcept
+		{
+			if (sign == Sign::positive)
+				sign = Sign::negative;
+			else if (sign == Sign::negative)
+				sign = Sign::positive;
+		}
+
+		[[nodiscard]] bigint from_string(std::string_view input, i32 newbase = 0)
 		{
 			if (input.empty())
 				return {};
-
 			if (input.size() == 1 and (input[0] == '-' or input[0] == '0'))
 				return {};
 
-			i32 newsign = 1;
-			if (input.size() >= 1 and input[0] == '-')
+			bool neg = false;
+			if (input[0] == '-')
 			{
 				input.remove_prefix(1);
-				newsign = -1;
+				neg = true;
 			}
 
-
-			if (newbase == 0 and input.size() >= 2)
+			if (newbase == 0)
 			{
-				if (input[0] == '0' && (input[1] == 'x' || input[1] == 'X'))
+				if (input.size() >= 2)
 				{
-					newbase = 16;
-					input.remove_prefix(2);
-				}
-				else if (input[0] == '0' && (input[1] == 'b' || input[1] == 'B'))
-				{
-					newbase = 2;
-					input.remove_prefix(2);
-				}
-				else if (input[0] == '#')
-				{
-					newbase = 16;
-					input.remove_prefix(1);
-				}
-				else if (input[0] == '0')
-				{
-					newbase = 8;
-					input.remove_prefix(1);
+					if (input[0] == '0' and (input[1] == 'x' or input[1] == 'X'))
+					{
+						newbase = 16;
+						input.remove_prefix(2);
+					}
+					else if (input[0] == '0' and (input[1] == 'b' or input[1] == 'B'))
+					{
+						newbase = 2;
+						input.remove_prefix(2);
+					}
+					else if (input[0] == '#')
+					{
+						newbase = 16;
+						input.remove_prefix(1);
+					}
+					else if (input[0] == '0')
+					{
+						newbase = 8;
+						input.remove_prefix(1);
+					}
+					else
+						newbase = 10;
 				}
 				else
-				{
 					newbase = 10;
-				}
-			}
-			else if (newbase == 0 and input.size() < 2)
-			{
-				newbase = 10;
 			}
 
-			//
 			bigint result;
-
-			for (const auto& c : input)
+			for (const char c : input)
 			{
 				i32 value = 0;
 				if (c >= '0' and c <= '9')
@@ -685,21 +632,21 @@ namespace deckard
 
 				if (value >= newbase)
 					dbg::panic("invalid character '{:c}' in string", c);
-
 				result = result * newbase + value;
 			}
 
-			if (newsign < 0)
-				-result;
-
-
+			if (neg)
+				result.negate(); // mutate in place — no copy
 			return result;
 		}
 
 	public:
+		// -------------------------------------------------------------------------
+		// Construction
+		// -------------------------------------------------------------------------
+
 		bigint()
 		{
-			digits.clear();
 			digits.push_back(0);
 			sign = Sign::zero;
 		}
@@ -714,510 +661,529 @@ namespace deckard
 
 		bigint(std::integral auto v) { operator=(v); }
 
-		bigint(const bigint& bi) { operator=(bi); }
+		bigint(const bigint&) noexcept       = default;
+		bigint(bigint&&) noexcept            = default;
+		bigint& operator=(bigint&&) noexcept = default;
 
-		bigint(const char* str) { operator=(from_string(str)); }
+		explicit bigint(const char* str) { *this = from_string(str); }
 
-		bigint& operator=(const char* str) { return operator=(from_string(str)); }
-
-		bigint(std::string_view input)
+		explicit bigint(std::string_view input)
 		{
 			if (input.empty())
 			{
-				digits.clear();
 				digits.push_back(0);
-				sign = Sign::positive;
+				sign = Sign::zero;
 				return;
 			}
-
-			operator=(from_string(input));
-
-			remove_trailing_zeros();
+			*this = from_string(input);
 		}
 
-		bigint& operator=(const std::string_view input)
+		bigint& operator=(const char* str) 
 		{
-			bigint r(input);
-			sign = r.sign;
-			operator=(r);
+			assert::check(str != nullptr, "bigint: null string pointer");
+			return *this = from_string(str); 
+		}
+
+		bigint& operator=(std::string_view input)
+		{
+			*this = from_string(input);
 			return *this;
 		}
 
-		bigint& operator=(const bigint& rhs)
-		{
-			sign   = rhs.sign;
-			digits = rhs.digits;
-
-			return *this;
-		}
+		bigint& operator=(const bigint&) = default;
 
 		template<std::unsigned_integral T>
 		bigint& operator=(T const rhs)
 		{
-			u64 temp(rhs);
-
 			digits.clear();
-			digits.reserve(3);
-
 			if (rhs == 0)
+			{
+				digits.push_back(0);
 				sign = Sign::zero;
-			else
-				sign = Sign::positive;
+				return *this;
+			}
+			sign = Sign::positive;
 
+			u64 temp = rhs;
 			while (temp > 0)
 			{
-				digits.push_back(temp % bigint::base);
-				temp /= bigint::base;
+				digits.push_back(static_cast<type>(temp % base));
+				temp /= base;
 			}
-
 			return *this;
 		}
 
 		template<std::signed_integral T>
 		bigint& operator=(T const rhs)
 		{
-			u64 temp(std::abs(as<i64>(rhs)));
-
 			digits.clear();
-			digits.reserve(3);
-
 			if (rhs == 0)
+			{
+				digits.push_back(0);
 				sign = Sign::zero;
-			else if (rhs > 0)
-				sign = Sign::positive;
-			else
-				sign = Sign::negative;
+				return *this;
+			}
+			sign = (rhs > 0) ? Sign::positive : Sign::negative;
 
+			const i64 as_i64 = static_cast<i64>(rhs);
+			u64       temp   = (as_i64 < 0) ? (~static_cast<u64>(as_i64) + 1u) : static_cast<u64>(as_i64);
 			while (temp > 0)
 			{
-				digits.push_back(temp % bigint::base);
-				temp /= bigint::base;
+				digits.push_back(static_cast<type>(temp % base));
+				temp /= base;
 			}
-
 			return *this;
 		}
 
-		type& operator[](size_t index)
+		// -------------------------------------------------------------------------
+		// Element access
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] type& operator[](size_t index)
 		{
 			assert::check(index < digits.size(), "Out-of-bound indexing on bigint");
 			return digits[index];
 		}
 
-		const type& operator[](size_t index) const
+		[[nodiscard]] const type& operator[](size_t index) const
 		{
 			assert::check(index < digits.size(), "Out-of-bound indexing on bigint");
 			return digits[index];
 		}
 
-		bigint operator+() { return *this; }
+		// -------------------------------------------------------------------------
+		// Unary operators
+		// -------------------------------------------------------------------------
 
-		bigint operator+() const { return *this; }
+		[[nodiscard]] bigint operator+() const& { return *this; }
 
-		bigint operator-()
+		[[nodiscard]] bigint operator+() and { return std::move(*this); }
+
+		bigint& operator-() noexcept
 		{
-			if (sign == Sign::positive)
-				sign = Sign::negative;
-			else if (sign == Sign::negative)
-				sign = Sign::positive;
-
+			negate();
 			return *this;
 		}
 
-		bigint operator-() const
+		[[nodiscard]] bigint operator-() const
 		{
 			bigint result(*this);
-			result.operator-();
+			result.negate();
 			return result;
 		}
 
-		// compares
-		bool operator==(const bigint& rhs) const { return compare(*this, rhs) == Compare::Equal; }
+		// -------------------------------------------------------------------------
+		// Comparison
+		// -------------------------------------------------------------------------
 
-		bool operator<(const bigint& rhs) const { return compare(*this, rhs) == Compare::Less; }
+		[[nodiscard]] bool operator==(const bigint& rhs) const noexcept { return compare(*this, rhs) == Compare::Equal; }
 
-		bool operator<=(const bigint& rhs) const { return operator<(rhs) or operator==(rhs); }
+		[[nodiscard]] bool operator<(const bigint& rhs) const noexcept { return compare(*this, rhs) == Compare::Less; }
 
-		bool operator>(const bigint& rhs) const { return compare(*this, rhs) == Compare::Greater; }
+		[[nodiscard]] bool operator<=(const bigint& rhs) const noexcept { return compare(*this, rhs) != Compare::Greater; }
 
-		bool operator>=(const bigint& rhs) const { return operator>(rhs) or operator==(rhs); }
+		[[nodiscard]] bool operator>(const bigint& rhs) const noexcept { return compare(*this, rhs) == Compare::Greater; }
 
-		//
-		Sign signum() const { return sign; }
+		[[nodiscard]] bool operator>=(const bigint& rhs) const noexcept { return compare(*this, rhs) != Compare::Less; }
 
-		size_t size() const { return digits.size(); }
+		[[nodiscard]] bool operator==(std::string_view rhs) const { return *this == bigint(rhs); }
 
-		size_t count() const
+		// -------------------------------------------------------------------------
+		// Queries
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] Sign signum() const noexcept { return sign; }
+
+		[[nodiscard]] size_t size() const noexcept { return digits.size(); }
+
+		[[nodiscard]] bool empty() const noexcept { return digits.empty(); }
+
+		[[nodiscard]] bool is_zero() const noexcept { return sign == Sign::zero; }
+
+		[[nodiscard]] bool is_negative() const noexcept { return sign == Sign::negative; }
+
+		[[nodiscard]] bool is_positive() const noexcept { return sign == Sign::positive; }
+
+		[[nodiscard]] type bit_length() const
+		{
+			if (is_zero())
+				return 0;
+
+			bigint temp = abs();
+			type   bits = 0;
+			while (not temp.is_zero())
+			{
+				temp.divide(temp, bigint(2));
+				bits++;
+			}
+			return bits;
+		}
+
+		[[nodiscard]] size_t count() const
 		{
 			if (sign == Sign::zero)
 				return 1;
 			if (digits.empty())
 				return 0;
-
-			return ((digits.size() - 1) * bigint::base_digits) + count_digits(digits.back());
+			return (digits.size() - 1) * base_digits + count_digits(digits.back());
 		}
 
-		size_t popcount() const
+		[[nodiscard]] size_t popcount() const
 		{
-			size_t result = 0;
-			bigint count(*this);
-			bigint digit;
-			while (count > 0)
-			{
-				digit = count % 2;
-				count >>= 1;
+			if (is_zero())
+				return 0;
 
-				result += digit.to_integer<size_t>().value();
+			static const bigint two32(4'294'967'296ULL);
+
+			bigint temp   = abs();
+			size_t result = 0;
+			while (not temp.is_zero())
+			{
+				bigint rem;
+				bigint q;
+				q.divide(temp, two32, &rem);
+				result += std::popcount(rem.to_integer<u32>().value_or(0u));
+				temp = std::move(q);
 			}
 			return result;
 		}
 
-		auto back() const { return digits.back(); }
+		[[nodiscard]] auto back() const { return digits.back(); }
 
-		auto rbegin() const { return digits.rbegin(); }
+		[[nodiscard]] auto rbegin() const { return digits.rbegin(); }
 
-		auto rend() const { return digits.rend(); }
+		[[nodiscard]] auto rend() const { return digits.rend(); }
 
-		bool empty() const { return digits.empty(); }
+		// -------------------------------------------------------------------------
+		// Conversion
+		// -------------------------------------------------------------------------
 
 		std::string to_string(int newbase = 10, bool uppercase = false) const
 		{
 			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
 				return "0";
 
-			std::string result;
-			u32         len = as<u8>(digits.size()) * bigint::base_digits + 1;
-			result.reserve(len);
-
 			if (newbase == 10)
 			{
+				std::string result;
+				result.reserve(digits.size() * base_digits + 1);
 
-				switch (signum())
-				{
-					case Sign::negative: result.append("-"); break;
-					case Sign::zero: return "0";
-					default: break;
-				}
-
-				result.append(std::format("{}", digits.back()));
-
-
-				auto it = digits.rbegin();
-				for (it++; it != digits.rend(); ++it)
-					result.append(std::format("{:0{}}", *it, bigint::base_digits));
-
+				if (sign == Sign::negative)
+					result += '-';
+				result += std::format("{}", digits.back());
+				for (auto it = digits.rbegin() + 1; it != digits.rend(); ++it)
+					result += std::format("{:0{}}", *it, base_digits);
 				return result;
 			}
 
+			assert::check(newbase >= 2 && newbase <= 36, "Base must be in the range [2, 36]");
 
-			static constexpr char chars[]      = "0123456789abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-			u32                   upper_offset = uppercase ? 36 : 0;
+			static constexpr std::string_view lower_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+			static constexpr std::string_view upper_chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+			const auto&                       chars       = uppercase ? upper_chars : lower_chars;
 
-			assert::check(newbase >= 2 or newbase <= 36, "Base must be in the range [2, 36]");
+			u64 chunk_base = newbase;
+			int chunk_size = 1;
+			while (chunk_base <= std::numeric_limits<u64>::max() / static_cast<u64>(newbase))
+			{
+				chunk_base *= newbase;
+				++chunk_size;
+			}
 
+			chunk_base /= newbase;
+			--chunk_size;
 
-			bigint value(*this);
+			std::string result;
+			result.reserve(digits.size() * base_digits + 2);
 
+			bigint value(sign == Sign::negative ? abs() : *this);
 
-			bigint carry = 0;
+			std::vector<std::string> chunks;
 			while (!value.is_zero())
 			{
-				bigint remainder = value % newbase;
-				value /= newbase;
-				u32 index = upper_offset + remainder.to_integer<u32>().value_or(99);
-				assert::check(index < 99, "Base index is wrong");
-				result.push_back(chars[index]);
+				bigint remainder = value % static_cast<u64>(chunk_base);
+				value            = value / static_cast<u64>(chunk_base);
+
+				auto        r = remainder.to_integer<u64>().value_or(0);
+				std::string chunk;
+				chunk.reserve(chunk_size);
+				for (int i = 0; i < chunk_size; ++i)
+				{
+					chunk.push_back(chars[r % newbase]);
+					r /= newbase;
+				}
+				chunks.push_back(std::move(chunk));
 			}
 
 			if (sign == Sign::negative)
-				result.push_back('-');
+				result += '-';
 
-			while (not result.empty() and result.back() == '0')
-				result.pop_back();
+			if (not chunks.empty())
+			{
+				auto& top = chunks.back();
+				while (top.size() > 1 && top.back() == '0')
+					top.pop_back();
+				result += std::string(top.rbegin(), top.rend());
 
-			std::reverse(result.begin(), result.end());
+				for (auto it = chunks.rbegin() + 1; it != chunks.rend(); ++it)
+				{
+					std::string padded(chunk_size, chars[0]);
+					for (int i = 0; i < chunk_size; ++i)
+						padded[chunk_size - 1 - i] = (*it)[i];
+					result += padded;
+				}
+			}
 
 			return result;
 		}
 
 		template<std::integral T = i64>
-		std::expected<T, std::string> to_integer() const
+		[[nodiscard]] std::expected<T, std::string> to_integer() const
 		{
-			if (signum() == Sign::zero or empty())
+			if (is_zero() or empty())
 				return T{0};
-
 			if (count() > count_digits(std::numeric_limits<T>::max()))
 				return std::unexpected("bigint too large for integer conversion");
 
-			u64 result     = 0;
-			u64 multiplier = 1;
+			u64 result = 0, multiplier = 1;
 			for (const auto& digit : digits)
 			{
-				result += static_cast<T>(digit) * multiplier;
-				multiplier *= bigint::base;
+				result += static_cast<u64>(digit) * multiplier;
+				multiplier *= base;
 			}
 
 			if constexpr (std::is_signed_v<T>)
-			{
-				if (signum() == Sign::negative)
-				{
-					i64 iresult = result;
-					return static_cast<T>(-iresult);
-				}
-			}
+				if (sign == Sign::negative)
+					return static_cast<T>(-static_cast<i64>(result));
 
 			return as<T>(result);
 		}
 
-		void operator++()
-		{
-			if (digits.empty())
-				operator=(0);
+		// -------------------------------------------------------------------------
+		// Increment / Decrement
+		// -------------------------------------------------------------------------
 
+		bigint& operator++()
+		{
 			if (is_zero())
 			{
-				operator=(1);
-				return;
+				*this = 1;
+				return *this;
 			}
-			else if (sign == Sign::negative and digits.size() == 1 and digits[0] == 1)
+			if (sign == Sign::negative and digits.size() == 1 and digits[0] == 1)
 			{
-				sign = Sign::zero;
-				operator=(0);
-				return;
+				*this = 0;
+				return *this;
 			}
 
 			if (sign == Sign::negative)
-				digits[0] -= 1;
+				--digits[0];
 			else
-				digits[0] += 1;
+				++digits[0];
 
-			type carry = 0;
-			for (int index = 0; index < digits.size(); index++)
+			type carry = digits[0] / base;
+			digits[0] %= base;
+			for (size_t i = 1; i < digits.size() and carry; ++i)
 			{
-				digits[index] += carry;
-				carry = digits[index] / bigint::base;
-				digits[index] %= bigint::base;
+				digits[i] += carry;
+				carry = digits[i] / base;
+				digits[i] %= base;
 			}
-			if (carry != 0)
+			if (carry)
 				digits.push_back(carry);
+
+			if (digits.empty() or (digits.size() == 1 and digits[0] == 0))
+				sign = Sign::zero;
+
+			return *this;
 		}
 
-		void operator++(int) { operator++(); }
+		bigint operator++(int)
+		{
+			bigint tmp(*this);
+			++(*this);
+			return tmp;
+		}
 
-		void operator--()
+		bigint& operator--()
 		{
 			if (is_zero())
 			{
-				operator=(-1);
-				return;
+				*this = -1;
+				return *this;
 			}
-			else if (sign == Sign::positive and digits.size() == 1 and digits[0] == 1)
+			if (sign == Sign::positive and digits.size() == 1 and digits[0] == 1)
 			{
-				sign = Sign::zero;
-				operator=(0);
-				return;
+				*this = 0;
+				return *this;
 			}
 
-			type carry = 0;
 			if (digits[0] == 0)
 			{
-				carry     = 1;
-				digits[0] = bigint::base - 1;
+				digits[0]  = base - 1;
+				type carry = 1;
+				for (size_t i = 1; i < digits.size() and carry; ++i)
+				{
+					if (digits[i] < carry)
+					{
+						digits[i] += base - carry;
+						carry = 1;
+					}
+					else
+					{
+						digits[i] -= carry;
+						carry = 0;
+					}
+				}
 			}
 			else
 			{
 				if (sign == Sign::positive)
-					digits[0]--;
+					--digits[0];
 				else
-					digits[0]++;
-			}
-
-
-			for (int index = 1; index < digits.size(); index++)
-			{
-
-				if (digits[index] < carry)
-				{
-					digits[index] += bigint::base;
-					digits[index] -= carry;
-					carry = 1;
-				}
-				else
-				{
-					digits[index] -= carry;
-					carry = 0;
-				}
+					++digits[0];
 			}
 
 			remove_trailing_zeros();
-		}
-
-		void operator--(int) { operator--(); }
-
-		// shift left
-		auto operator<<(const type shift) const
-		{
-			bigint result;
-			result.shift_left(*this, shift);
-			return result;
-		}
-
-		bigint& operator<<=(const type shift)
-		{
-			operator=(operator<<(shift));
 			return *this;
 		}
 
-		// shift right
-		auto operator>>(const type shift) const
+		bigint operator--(int)
 		{
-			bigint result;
-			result.shift_right(*this, shift);
-			return result;
+			bigint tmp(*this);
+			--(*this);
+			return tmp;
 		}
 
-		bigint& operator>>=(const type shift)
+		// -------------------------------------------------------------------------
+		// Shifts
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] bigint operator<<(type shift) const
 		{
-			operator=(operator>>(shift));
+			bigint r;
+			r.shift_left(*this, shift);
+			return r;
+		}
+
+		[[nodiscard]] bigint operator>>(type shift) const
+		{
+			bigint r;
+			r.shift_right(*this, shift);
+			return r;
+		}
+
+		bigint& operator<<=(type shift)
+		{
+			shift_left(*this, shift);
 			return *this;
 		}
 
-		// add
+		bigint& operator>>=(type shift)
+		{
+			shift_right(*this, shift);
+			return *this;
+		}
+
+		// -------------------------------------------------------------------------
+		// Arithmetic
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] bigint operator+(const bigint& rhs) const
+		{
+			bigint r;
+			r.add(*this, rhs);
+			return r;
+		}
+
+		[[nodiscard]] bigint operator-(const bigint& rhs) const
+		{
+			bigint r;
+			r.subtract(*this, rhs);
+			return r;
+		}
+
+		[[nodiscard]] bigint operator*(const bigint& rhs) const
+		{
+			bigint r;
+			r.multiply(*this, rhs);
+			return r;
+		}
+
+		[[nodiscard]] bigint operator/(const bigint& rhs) const
+		{
+			bigint r;
+			r.divide(*this, rhs);
+			return r;
+		}
+
+		[[nodiscard]] bigint operator%(const bigint& rhs) const
+		{
+			bigint r;
+			r.modulus(*this, rhs);
+			return r;
+		}
+
 		bigint& operator+=(const bigint& rhs)
 		{
-			operator=(operator+(rhs));
+			add(*this, rhs);
 			return *this;
 		}
 
-		bigint operator+(const bigint& rhs) const
-		{
-			bigint result;
-			result.add(*this, rhs);
-			return result;
-		}
-
-		// sub
 		bigint& operator-=(const bigint& rhs)
 		{
-			operator=(operator-(rhs));
+			subtract(*this, rhs);
 			return *this;
 		}
-
-		bigint operator-(const bigint& rhs) const
-
-		{
-			bigint result;
-			result.subtract(*this, rhs);
-			return result;
-		}
-
-		// mul
 
 		bigint& operator*=(const bigint& rhs)
 		{
-			operator=(operator*(rhs));
+			*this = *this * rhs;
 			return *this;
-		}
-
-		bigint operator*(const bigint& rhs) const
-		{
-			bigint result;
-			result.multiply(*this, rhs);
-			return result;
-		}
-
-		// div
-		auto operator/(const bigint& rhs) const
-		{
-			bigint result;
-			result.divide(*this, rhs);
-			return result;
 		}
 
 		bigint& operator/=(const bigint& rhs)
 		{
-			operator=(operator/(rhs));
+			divide(*this, rhs);
 			return *this;
-		}
-
-		// modulus
-		auto operator%(const bigint& rhs) const
-		{
-			bigint result;
-			result.modulus(*this, rhs);
-			return result;
 		}
 
 		bigint& operator%=(const bigint& rhs)
 		{
-			operator=(operator%(rhs));
+			modulus(*this, rhs);
 			return *this;
 		}
 
-		bigint pow(const bigint& exponent) const
+		// -------------------------------------------------------------------------
+		// Bitwise
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] bigint operator&(const bigint& rhs) const
 		{
-			bigint result(1);
-
-			if (exponent.is_zero())
-				return result;
-			if (exponent.is_negative())
-				return 0;
-
-			bigint base_copy(*this);
-
-			bigint exp_copy(exponent);
-
-			while (exp_copy > 0)
-			{
-				if (exp_copy[0] % 2 == 1)
-					result *= base_copy;
-				base_copy *= base_copy;
-				exp_copy >>= 1;
-			}
-
-			result.sign = sign;
-
-			return result;
+			bigint r;
+			r.bit_and(*this, rhs);
+			return r;
 		}
 
-		bigint mod(const bigint& rhs) const { return *this % rhs; }
-
-		// sqrt
-		bigint sqrt() const
+		[[nodiscard]] bigint operator|(const bigint& rhs) const
 		{
-			bigint result;
-			result.sqrt_op(*this);
-			return result;
+			bigint r;
+			r.bit_or(*this, rhs);
+			return r;
 		}
 
-		// abs
-		bigint& abs()
+		[[nodiscard]] bigint operator^(const bigint& rhs) const
 		{
-			sign = Sign::positive;
-			return *this;
+			bigint r;
+			r.bit_xor(*this, rhs);
+			return r;
 		}
 
-		bigint abs() const
+		[[nodiscard]] bigint operator~() const
 		{
-			bigint result(*this);
-			if (result < 0)
-				return -result;
-			return result;
-		}
-
-		bigint abs(const bigint& rhs) const
-		{
-			if (rhs.signum() == Sign::negative)
-				return -rhs;
-
-			return rhs;
-		}
-
-		// bitwise and
-		bigint operator&(const bigint& rhs) const
-		{
-			bigint result;
-			result.bit_and(*this, rhs);
-			return result;
+			bigint r;
+			r.bit_not(*this);
+			return r;
 		}
 
 		bigint& operator&=(const bigint& rhs)
@@ -1226,74 +1192,182 @@ namespace deckard
 			return *this;
 		}
 
-		// bitwise or
-		bigint operator|(const bigint& rhs) const
-		{
-			bigint result;
-			result.bit_or(*this, rhs);
-			return result;
-		}
-
 		bigint& operator|=(const bigint& rhs)
 		{
-			operator=(operator&(rhs));
-			return *this;
-		}
-
-		// bitwise xor
-		bigint operator^(const bigint& rhs) const
-		{
-			bigint result;
-			result.bit_xor(*this, rhs);
-			return result;
+			operator=(operator|(rhs));
+			return *this; 
 		}
 
 		bigint& operator^=(const bigint& rhs)
 		{
-			operator=(operator&(rhs));
+			operator=(operator^(rhs));
 			return *this;
 		}
 
-		// bitwise not
-		bigint operator~() const
+		// -------------------------------------------------------------------------
+		// Math
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] bigint pow(const bigint& exponent) const
 		{
-			bigint result;
-			result.bit_not(*this);
+			if (exponent.is_zero())
+				return bigint(1);
+			if (exponent.is_negative())
+				return bigint(0);
+
+			bigint result(1);
+			bigint base_copy(*this);
+			bigint exp = exponent;
+
+			while (exp > 0)
+			{
+				if (exp.digits[0] % 2 == 1)
+					result *= base_copy;
+				base_copy *= base_copy;
+				exp >>= 1;
+			}
+
+			result.sign = sign;
 			return result;
 		}
 
-		bool is_zero() const { return sign == Sign::zero; }
+		[[nodiscard]] bigint mod(const bigint& rhs) const { return *this % rhs; }
 
-		bool is_negative() const { return sign == Sign::negative; }
+		[[nodiscard]] bigint sqrt() const
+		{
+			bigint r;
+			r.sqrt_op(*this);
+			return r;
+		}
 
-		bool is_positive() const { return sign == Sign::positive; }
-	};
+		[[nodiscard]] bigint abs() const
+		{
+			bigint r(*this);
+			r.sign = (r.is_zero() ? Sign::zero : Sign::positive);
+			return r;
+		}
 
-	export bigint abs(const bigint& a) { return a.abs(); }
+		[[nodiscard]] bigint abs()
+		{
+			bigint r(*this);
+			r.sign = (r.is_zero() ? Sign::zero : Sign::positive);
+			return r;
+		}
 
-	export bigint sqrt(const bigint& a) { return a.sqrt(); }
+		bigint& abs_in_place() noexcept
+		{
+			if (!is_zero())
+				sign = Sign::positive;
+			return *this;
+		}
 
-	export bigint pow(const bigint& a, const bigint& b) { return a.pow(b); }
+	private:
+		void bit_and(const bigint& lhs, const bigint& rhs)
+		{
+			if (lhs.is_zero())
+			{
+				*this = lhs;
+				return;
+			}
+			if (rhs.is_zero())
+			{
+				*this = rhs;
+				return;
+			}
+			bitwise(lhs, rhs, std::bit_and<>{});
+		}
 
-	export bigint mod(const bigint& a, const bigint& b) { return a.mod(b); }
+		void bit_or(const bigint& lhs, const bigint& rhs)
+		{
+			if (lhs.is_zero())
+			{
+				*this = rhs;
+				return;
+			}
+			if (rhs.is_zero())
+			{
+				*this = lhs;
+				return;
+			}
+			bitwise(lhs, rhs, std::bit_or<>{});
+		}
 
-	export bigint gcd(bigint a, bigint b)
+		void bit_xor(const bigint& lhs, const bigint& rhs)
+		{
+			if (lhs.is_zero())
+			{
+				*this = rhs;
+				return;
+			}
+			if (rhs.is_zero())
+			{
+				*this = lhs;
+				return;
+			}
+			if (lhs == rhs)
+			{
+				*this = 0;
+				return;
+			}
+			bitwise(lhs, rhs, std::bit_xor<>{});
+		}
+
+		void bit_not(const bigint& lhs)
+		{
+			if (lhs.is_zero())
+			{
+				digits = {1};
+				sign   = Sign::positive;
+				return;
+			}
+
+			type bit_len = lhs.bit_length();
+			*this        = lhs ^ ((bigint(1) << bit_len) - 1);
+		}
+	}; // end class bigint
+
+	export [[nodiscard]] bigint abs(const bigint& a) { return a.abs(); }
+
+	export [[nodiscard]] bigint sqrt(const bigint& a) { return a.sqrt(); }
+
+	export [[nodiscard]] bigint pow(const bigint& a, const bigint& b) { return a.pow(b); }
+
+	export [[nodiscard]] bigint mod(const bigint& a, const bigint& b) { return a.mod(b); }
+
+	export [[nodiscard]] bigint gcd(const bigint& a_orig, const bigint& b_orig)
 	{
-		a = a.abs();
-		b = b.abs();
+		bigint a = a_orig;
+		bigint b = b_orig;
+		a.abs_in_place();
+		b.abs_in_place();
 
+		int iteration = 0;
 		while (true)
 		{
 			if (b.is_zero())
+			{
 				return a;
+			}
+
 			a %= b;
+
 			if (a.is_zero())
+			{
 				return b;
+			}
+
 			b %= a;
+
+			iteration++;
+			if (iteration > 100)
+			{
+				break;
+			}
 		}
+		return a;
 	}
 
-	export bigint lcm(const bigint& a, const bigint& b)
+	export [[nodiscard]] bigint lcm(const bigint& a, const bigint& b)
 	{
 		if (a.is_zero() or b.is_zero())
 			return bigint(0);
@@ -1301,81 +1375,76 @@ namespace deckard
 	}
 
 	export template<std::integral T>
-	bigint operator*(const T lhs, const bigint& rhs)
+	[[nodiscard]] bigint operator*(T lhs, const bigint& rhs)
 	{
 		return bigint{lhs} * rhs;
 	}
 
 	export template<std::integral T>
-	bigint operator+(const T lhs, const bigint& rhs)
+	[[nodiscard]] bigint operator+(T lhs, const bigint& rhs)
 	{
 		return bigint{lhs} + rhs;
 	}
 
 	export template<std::integral T>
-	bigint operator-(const T lhs, const bigint& rhs)
+	[[nodiscard]] bigint operator-(T lhs, const bigint& rhs)
 	{
 		return bigint{lhs} - rhs;
 	}
 
-	export size_t popcount(const bigint& a) { return a.popcount(); }
+	export [[nodiscard]] size_t popcount(const bigint& a) { return a.popcount(); }
 
-
-	export bigint random_range(const bigint& start, const bigint& end)
+	export [[nodiscard]] bigint random_range(const bigint& start, const bigint& end)
 	{
-
 		if (end < start)
-			dbg::panic("End must be greater than start. Swap order");
-
+			dbg::panic("End must be greater than start");
 
 		std::random_device                 rd;
 		std::mt19937                       gen(rd());
 		std::uniform_int_distribution<u32> dist(0, 10);
 
-		bigint range = (abs(end - start)) + 1;
+		const bigint range     = abs(end - start) + 1;
+		const size_t range_cnt = range.count();
+
 		bigint result;
-		size_t range_count = range.count();
 		do
 		{
-
 			result = 0;
-
-			for (size_t i = 0; i < range_count; ++i)
-				result = (result * 10) + dist(gen);
-
-
+			for (size_t i = 0; i < range_cnt; ++i)
+				result = result * 10 + dist(gen);
 		} while (result >= range);
 
 		return start + result;
 	}
 
-	export bigint random_bigint(u32 keysize) { return bigint(random::digit(keysize)); }
+	export [[nodiscard]] bigint random_bigint(u32 keysize) { return bigint(random::digit(keysize)); }
 
-	export bigint random_bigint(const bigint& range)
+	export [[nodiscard]] bigint random_bigint(const bigint& /*range*/) { return {}; } // TODO
+
+	export [[nodiscard]] bigint random_prime(size_t /*keysize*/ = 0) { return {}; }   // TODO
+
+	[[nodiscard]] bigint midpoint(const bigint& a, const bigint& b)
 	{
-		//
-		return range;
-	}
-
-	export bigint random_prime(size_t keysize = 0)
-	{
-		//
-		(keysize);
-
-		return {};
+		if (a <= b)
+			return a + (b - a) / 2;
+		else
+			return a - (a - b) / 2;
 	}
 
 } // namespace deckard
 
-export namespace std
+// -------------------------------------------------------------------------
+// std specializations
+// -------------------------------------------------------------------------
 
+export namespace std
 {
 	using namespace deckard;
 
 	template<>
 	struct hash<bigint>
 	{
-		size_t operator()(const bigint& value) const { return deckard::utils::hash_values(value.to_string()); }
+		[[nodiscard]] size_t operator()(const bigint& value) const { return deckard::utils::hash_values(value.to_string()); }
 	};
 
 	template<>
@@ -1383,76 +1452,51 @@ export namespace std
 	{
 		constexpr auto parse(std::format_parse_context& ctx)
 		{
-			// TODO: Width + leading zeros, 0x,0b,0o
 			auto pos = ctx.begin();
-			while (pos != ctx.end() && *pos != '}')
+			while (pos != ctx.end() and *pos != '}')
 			{
-				if (*pos == 'x')
-					parsed_base = 16;
-
-				if (*pos == 'X')
+				switch (*pos)
 				{
-					parsed_base = 16;
-					uppercase   = true;
-				}
-
-				if (*pos == 'o')
-					parsed_base = 8;
-
-				if (*pos == 'O')
-				{
-					parsed_base = 8;
-					uppercase   = true;
-				}
-
-
-				if (*pos == 'd')
-				{
-					parsed_base = 10;
-				}
-
-				if (*pos == 'D')
-				{
-					parsed_base = 10;
-					uppercase   = true;
-				}
-
-				if (*pos == 'b' or *pos == 'B')
-				{
-					++pos;
-					parsed_base = 0;
-
-					if (*pos >= '0' and *pos <= '9')
+					case 'x': parsed_base = 16; break;
+					case 'X':
+						parsed_base = 16;
+						uppercase   = true;
+						break;
+					case 'o': parsed_base = 8; break;
+					case 'O':
+						parsed_base = 8;
+						uppercase   = true;
+						break;
+					case 'd': parsed_base = 10; break;
+					case 'D':
+						parsed_base = 10;
+						uppercase   = true;
+						break;
+					case 'b':
+					case 'B':
 					{
-						parsed_base += *pos - '0';
 						++pos;
-						if (*pos >= '0' and *pos <= '9')
+						parsed_base = 0;
+						while (pos != ctx.end() and *pos >= '0' and *pos <= '9')
 						{
-							parsed_base *= 10;
-							parsed_base += *pos - '0';
+							parsed_base = parsed_base * 10 + (*pos - '0');
 							++pos;
-
-							if (parsed_base < 2 or parsed_base > 36)
-								dbg::panic("Base invalid");
-
-							continue;
 						}
+						if (parsed_base < 2 or parsed_base > 36)
+							dbg::panic("Base invalid");
+						continue;
 					}
-					continue;
+					default: break;
 				}
-
 				++pos;
 			}
-
 			if (pos != ctx.end() and *pos != '}')
 				throw std::format_error("Invalid format");
-
 			return pos;
 		}
 
 		auto format(const bigint& v, std::format_context& ctx) const
 		{
-			//
 			return std::format_to(ctx.out(), "{}", v.to_string(parsed_base, uppercase));
 		}
 
