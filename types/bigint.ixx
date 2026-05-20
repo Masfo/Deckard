@@ -391,6 +391,14 @@ namespace deckard
 			remove_trailing_zeros();
 		}
 
+		// TODO: optional<&> for remainder
+#ifdef __cpp_lib_optional_ref
+#error ("use optional ref for remainder");
+		// std::optional<bigint&> out_remainder = std::nullopt
+
+		if (out_remainder)
+			*out_remainder = std::move(rem);
+#endif
 		void divide(const bigint& dividend, const bigint& divisor, bigint* out_remainder = nullptr)
 		{
 			if (divisor.is_zero())
@@ -466,6 +474,13 @@ namespace deckard
 				bigint rem     = std::move(remainder);
 				*out_remainder = std::move(rem);
 			}
+		}
+
+		[[nodiscard]] static std::pair<bigint, bigint> divmod(const bigint& n, const bigint& d)
+		{
+			bigint q, r;
+			q.divide(n, d, &r);
+			return {std::move(q), std::move(r)};
 		}
 
 		void modulus(const bigint& lhs, const bigint& rhs)
@@ -678,10 +693,10 @@ namespace deckard
 			*this = from_string(input);
 		}
 
-		bigint& operator=(const char* str) 
+		bigint& operator=(const char* str)
 		{
 			assert::check(str != nullptr, "bigint: null string pointer");
-			return *this = from_string(str); 
+			return *this = from_string(str);
 		}
 
 		bigint& operator=(std::string_view input)
@@ -759,11 +774,7 @@ namespace deckard
 
 		[[nodiscard]] bigint operator+() and { return std::move(*this); }
 
-		bigint& operator-() noexcept
-		{
-			negate();
-			return *this;
-		}
+	
 
 		[[nodiscard]] bigint operator-() const
 		{
@@ -855,6 +866,45 @@ namespace deckard
 		[[nodiscard]] auto rend() const { return digits.rend(); }
 
 		// -------------------------------------------------------------------------
+		// Base conversion helpers
+		// -------------------------------------------------------------------------
+
+		[[nodiscard]] static std::string
+		dc_to_string(const bigint& n, int newbase, std::span<const bigint> powers, size_t level, std::string_view chars)
+		{
+			auto small = n.to_integer<u64>();
+			if (small.has_value())
+			{
+				u64 val = small.value();
+				if (val == 0)
+					return std::string(1, chars[0]);
+				std::string result;
+				while (val > 0)
+				{
+					result.push_back(chars[val % static_cast<u64>(newbase)]);
+					val /= static_cast<u64>(newbase);
+				}
+				std::ranges::reverse(result);
+				return result;
+			}
+
+			if (level == 0)
+			{
+				return dc_to_string(n, newbase, powers, 1, chars);
+			}
+
+			auto [q, r]      = divmod(n, powers[level - 1]);
+			std::string high = dc_to_string(q, newbase, powers, level - 1, chars);
+			std::string low  = dc_to_string(r, newbase, powers, level - 1, chars);
+
+			const size_t low_width = size_t{1} << (level - 1);
+			while (low.size() < low_width)
+				low.insert(low.begin(), chars[0]);
+
+			return high + low;
+		}
+
+		// -------------------------------------------------------------------------
 		// Conversion
 		// -------------------------------------------------------------------------
 
@@ -882,58 +932,93 @@ namespace deckard
 			static constexpr std::string_view upper_chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 			const auto&                       chars       = uppercase ? upper_chars : lower_chars;
 
-			u64 chunk_base = newbase;
-			int chunk_size = 1;
-			while (chunk_base <= std::numeric_limits<u64>::max() / static_cast<u64>(newbase))
-			{
-				chunk_base *= newbase;
-				++chunk_size;
-			}
-
-			chunk_base /= newbase;
-			--chunk_size;
-
 			std::string result;
-			result.reserve(digits.size() * base_digits + 2);
-
-			bigint value(sign == Sign::negative ? abs() : *this);
-
-			std::vector<std::string> chunks;
-			while (!value.is_zero())
-			{
-				bigint remainder = value % static_cast<u64>(chunk_base);
-				value            = value / static_cast<u64>(chunk_base);
-
-				auto        r = remainder.to_integer<u64>().value_or(0);
-				std::string chunk;
-				chunk.reserve(chunk_size);
-				for (int i = 0; i < chunk_size; ++i)
-				{
-					chunk.push_back(chars[r % newbase]);
-					r /= newbase;
-				}
-				chunks.push_back(std::move(chunk));
-			}
-
 			if (sign == Sign::negative)
 				result += '-';
 
-			if (not chunks.empty())
-			{
-				auto& top = chunks.back();
-				while (top.size() > 1 && top.back() == '0')
-					top.pop_back();
-				result += std::string(top.rbegin(), top.rend());
+			const bigint value = (sign == Sign::negative) ? abs() : *this;
 
-				for (auto it = chunks.rbegin() + 1; it != chunks.rend(); ++it)
+			if (std::has_single_bit(static_cast<unsigned>(newbase)))
+			{
+				const int bits_per_digit = std::countr_zero(static_cast<unsigned>(newbase));
+
+				static const bigint two32(4'294'967'296ULL);
+				std::vector<bigint> pow2_32;
+				pow2_32.push_back(two32);
+				while (pow2_32.back() <= value)
+					pow2_32.push_back(pow2_32.back() * pow2_32.back());
+
+				std::vector<u32> bin_limbs;
+				bin_limbs.reserve((value.count() * 10 + 95) / 96); // ceil(decimal_digits * log2(10) / 32)
+				auto             collect = [&](this auto& self, const bigint& n, size_t level) -> void
 				{
-					std::string padded(chunk_size, chars[0]);
-					for (int i = 0; i < chunk_size; ++i)
-						padded[chunk_size - 1 - i] = (*it)[i];
-					result += padded;
+					auto small = n.to_integer<u64>();
+					if (small.has_value())
+					{
+						u64 v = small.value();
+						bin_limbs.push_back(static_cast<u32>(v & 0xFFFF'FFFFu));
+						if (v > 0xFFFF'FFFFu)
+							bin_limbs.push_back(static_cast<u32>(v >> 32));
+						return;
+					}
+					if (level == 0)
+					{
+						bin_limbs.push_back(n.to_integer<u32>().value_or(0u));
+						return;
+					}
+					auto [q, r]          = divmod(n, pow2_32[level - 1]);
+					const size_t r_limbs = size_t{1} << (level - 1);
+					self(r, level - 1);
+
+					while (bin_limbs.size() % r_limbs != 0 or bin_limbs.size() < r_limbs)
+						bin_limbs.push_back(0u);
+					self(q, level - 1);
+				};
+
+				collect(value, pow2_32.size());
+
+				while (bin_limbs.size() > 1 and bin_limbs.back() == 0u)
+					bin_limbs.pop_back();
+
+				std::string digits_str;
+				digits_str.reserve(bin_limbs.size() * 32 / bits_per_digit + 1);
+				const u32 mask    = static_cast<u32>((1u << bits_per_digit) - 1u);
+				size_t    limb_i  = 0;
+				u64       window  = bin_limbs[0];
+				int       avail   = 32;
+
+				while (limb_i < bin_limbs.size() or avail >= bits_per_digit)
+				{
+					if (avail < bits_per_digit)
+					{
+						++limb_i;
+						if (limb_i >= bin_limbs.size())
+							break;
+						window |= static_cast<u64>(bin_limbs[limb_i]) << avail;
+						avail += 32;
+					}
+					digits_str.push_back(chars[window & mask]);
+					window >>= bits_per_digit;
+					avail -= bits_per_digit;
 				}
+
+				std::ranges::reverse(digits_str);
+				auto first_nonzero = digits_str.find_first_not_of(chars[0]);
+				result += (first_nonzero == std::string::npos) ? std::string(1, chars[0]) : digits_str.substr(first_nonzero);
+				return result;
 			}
 
+			std::vector<bigint> powers;
+			powers.emplace_back(newbase);
+			while (powers.back() <= value)
+				powers.push_back(powers.back() * powers.back());
+
+			const size_t start_level = powers.size() - 1;
+
+			std::string body = dc_to_string(value, newbase, std::span<const bigint>(powers), start_level, chars);
+
+			auto first = body.find_first_not_of(chars[0]);
+			result += (first == std::string::npos) ? std::string(1, chars[0]) : body.substr(first);
 			return result;
 		}
 
@@ -1195,7 +1280,7 @@ namespace deckard
 		bigint& operator|=(const bigint& rhs)
 		{
 			operator=(operator|(rhs));
-			return *this; 
+			return *this;
 		}
 
 		bigint& operator^=(const bigint& rhs)
