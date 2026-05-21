@@ -57,146 +57,8 @@ namespace deckard
 			large large;
 		} packed;
 
-		class const_iterator;
-
-		class iterator
-		{
-		private:
-			pointer ptr;
-
-		public:
-			friend class const_iterator;
-			using iterator_category = std::random_access_iterator_tag;
-			using difference_type   = std::ptrdiff_t;
-			using value_type        = value_type;
-
-			iterator(const_iterator& ci)
-				: ptr(ci.ptr)
-			{
-			}
-
-			iterator(pointer p)
-				: ptr(p)
-			{
-			}
-
-			reference operator*() const { return *ptr; }
-
-			pointer operator->() const { return ptr; }
-
-			iterator& operator++()
-			{
-				ptr++;
-				return *this;
-			}
-
-			iterator operator++(int)
-			{
-				iterator tmp = *this;
-				ptr++;
-				return tmp;
-			}
-
-			iterator& operator--()
-			{
-				ptr--;
-				return *this;
-			}
-
-			iterator operator--(int)
-			{
-				iterator tmp = *this;
-				ptr--;
-				return tmp;
-			}
-
-			iterator operator+=(int v)
-			{
-				ptr += v;
-				return *this;
-			}
-
-			iterator operator-=(int v)
-			{
-				ptr -= v;
-				return *this;
-			}
-
-			iterator operator+(difference_type n) const { return iterator(ptr + n); }
-
-			iterator operator-(difference_type n) const { return iterator(ptr - n); }
-
-			difference_type operator-(const iterator& other) const { return ptr - other.ptr; }
-
-			reference operator[](difference_type n) const { return ptr[n]; }
-
-			auto operator<=>(const iterator&) const = default;
-
-			bool operator==(const iterator& other) const { return ptr == other.ptr; }
-		};
-
-		class const_iterator
-		{
-		private:
-			pointer ptr;
-
-		public:
-			friend class iterator;
-			using iterator_category = std::bidirectional_iterator_tag;
-			using difference_type   = std::ptrdiff_t;
-			using value_type        = value_type;
-
-			const_iterator(pointer p)
-				: ptr(p)
-			{
-			}
-
-			const_reference operator*() const { return *ptr; }
-
-			const_pointer operator->() const { return ptr; }
-
-			const_iterator& operator++()
-			{
-				ptr++;
-				return *this;
-			}
-
-			const_iterator operator++(int)
-			{
-				const_iterator tmp = *this;
-				ptr++;
-				return tmp;
-			}
-
-			const_iterator& operator--()
-			{
-				ptr--;
-				return *this;
-			}
-
-			const_iterator operator--(int)
-			{
-				const_iterator tmp = *this;
-				ptr--;
-				return tmp;
-			}
-
-			const_iterator operator+(difference_type n) const { return const_iterator(ptr + n); }
-
-			const_iterator operator-(difference_type n) const { return const_iterator(ptr - n); }
-
-			difference_type operator-(const const_iterator& other) const { return ptr - other.ptr; }
-
-			const_reference operator[](difference_type n) const
-			{
-				assert::check(ptr != nullptr, "Ptr is null");
-				return ptr[n];
-			}
-
-			auto operator<=>(const const_iterator&) const = default;
-
-			bool operator==(const const_iterator& other) const { return ptr == other.ptr; }
-		};
+		// ##############################################################
+		// 	
 
 		void set_size(size_t newsize)
 		{
@@ -288,10 +150,10 @@ namespace deckard
 			else
 			{
 				set_large(true);
-					set_size(from.large_size());
-					set_capacity(from.large_capacity());
+				set_size(from.large_size());
+				set_capacity(from.large_capacity());
 
-					packed.large.ptr = new value_type[packed.large.capacity];
+				packed.large.ptr = new value_type[packed.large.capacity];
 
 				std::copy_n(from.packed.large.ptr, large_size(), packed.large.ptr);
 			}
@@ -308,30 +170,65 @@ namespace deckard
 			else
 			{
 				packed.large.ptr      = other.packed.large.ptr;
-					packed.large.size     = other.packed.large.size;
-					packed.large.capacity = other.packed.large.capacity;
-					packed.large.is_large = 1;
+				packed.large.size     = other.packed.large.size;
+				packed.large.capacity = other.packed.large.capacity;
+				packed.large.is_large = 1;
 
-					other.packed.large.ptr      = nullptr;
-					other.packed.large.is_large = 0;
-				}
-				other.reset();
+				other.packed.large.ptr      = nullptr;
+				other.packed.large.is_large = 0;
+			}
+			other.reset();
 		}
 
-		size_t newcapacity_size(size_t size) const { return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT); }
+		size_t newcapacity_size(size_t size) const
+		{
+			return math::align_integer(as<size_t>(SCALE_FACTOR * size), ALIGNMENT);
+		}
 
 	public:
-		sbo() 
+		// iterator
+		using iterator               = pointer;
+		using const_iterator         = const_pointer;
+		using reverse_iterator       = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+		constexpr iterator begin() noexcept { return rawptr(); }
+
+		constexpr const_iterator begin() const noexcept { return rawptr(); }
+
+		constexpr const_iterator cbegin() const noexcept { return rawptr(); }
+
+		constexpr iterator end() noexcept { return rawptr() + size(); }
+
+		constexpr const_iterator end() const noexcept { return rawptr() + size(); }
+
+		constexpr const_iterator cend() const noexcept { return rawptr() + size(); }
+
+		// reverse iterator
+		reverse_iterator rbegin() { return std::reverse_iterator(end()); }
+
+		reverse_iterator rend() { return std::reverse_iterator(begin()); }
+
+		const_reverse_iterator rbegin() const { return std::reverse_iterator(end()); }
+
+		const_reverse_iterator rend() const { return std::reverse_iterator(begin()); }
+
+		const_reverse_iterator crbegin() const { return std::reverse_iterator(cend()); }
+
+		const_reverse_iterator crend() const { return std::reverse_iterator(cbegin()); }
+
+	public:
+		sbo()
 		{
-			packed.small.size = 0;
+			packed.small.size     = 0;
 			packed.small.is_large = 0;
-			reset(); 
+			reset();
 		}
 
-	   explicit sbo(std::span<const value_type> buffer)
+		explicit sbo(std::span<const value_type> buffer)
 		{
-		   packed.small.size     = 0;
-		   packed.small.is_large = 0;
+			packed.small.size     = 0;
+			packed.small.is_large = 0;
 			reset();
 			if (buffer.size() <= small_capacity())
 			{
@@ -371,11 +268,11 @@ namespace deckard
 		}
 
 		// Copy
-		sbo(sbo const& other) 
-		{ 
-			packed.small.size = 0;
+		sbo(sbo const& other)
+		{
+			packed.small.size     = 0;
 			packed.small.is_large = 0;
-			clone(other); 
+			clone(other);
 		}
 
 		sbo& operator=(sbo const& other)
@@ -392,9 +289,9 @@ namespace deckard
 		// Move
 		sbo(sbo&& other) noexcept
 		{
-			packed.small.size = 0;
+			packed.small.size     = 0;
 			packed.small.is_large = false;
-			move(other); 
+			move(other);
 		}
 
 		sbo& operator=(sbo&& other) noexcept
@@ -418,17 +315,18 @@ namespace deckard
 				return false;
 
 			if (is_small())
-				return std::equal(packed.small.data.begin(), packed.small.data.begin() + small_size(), other.packed.small.data.begin());
+				return std::equal(
+				  packed.small.data.begin(), packed.small.data.begin() + small_size(), other.packed.small.data.begin());
 			else
 				return std::equal(packed.large.ptr, packed.large.ptr + large_size(), other.packed.large.ptr);
 		}
 
 #if __cpp_deleted_function
 #error "Delete reason (C++26) is supported, use it"
-		bool operator<(const sbo&)  = delete("Less-than compare doesn't make sense");
-		bool operator<=(const sbo&) = delete("Less-than compare doesn't make sense");
-		bool operator>(const sbo&)  = delete("Greater-than compare doesn't make sense");
-		bool operator>=(const sbo&) = delete("Greater-than compare doesn't make sense");
+		bool operator<(const sbo&)  = delete ("Less-than compare doesn't make sense");
+		bool operator<=(const sbo&) = delete ("Less-than compare doesn't make sense");
+		bool operator>(const sbo&)  = delete ("Greater-than compare doesn't make sense");
+		bool operator>=(const sbo&) = delete ("Greater-than compare doesn't make sense");
 #else
 		bool operator<(const sbo&)  = delete;
 		bool operator<=(const sbo&) = delete;
@@ -461,77 +359,77 @@ namespace deckard
 			}
 		}
 
-	 iterator insert(const_iterator pos, std::span<const value_type> buffer)
-	 {
-		 if (buffer.empty())
-			 return iterator(rawptr() + std::distance(cbegin(), pos));
+		iterator insert(const_iterator pos, std::span<const value_type> buffer)
+		{
+			if (buffer.empty())
+				return iterator(rawptr() + std::distance(cbegin(), pos));
 
-		 const auto pivot   = std::distance(cbegin(), pos);
-		 const auto oldsize = size();
-		 size_t     newsize = oldsize + buffer.size();
+			const auto pivot   = std::distance(cbegin(), pos);
+			const auto oldsize = size();
+			size_t     newsize = oldsize + buffer.size();
 
-		 bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
-		 if (self_insert)
-		 {
-			 sbo<SIZE> tmp(std::span<value_type>{const_cast<value_type*>(buffer.data()), buffer.size()});
-			 if (newsize > capacity())
-				 resize(newsize);
-			 const pointer ptr = rawptr();
-			 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-			 std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
-			 set_size(newsize);
-			 return iterator(ptr + pivot);
-		 }
+			bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+			if (self_insert)
+			{
+				sbo<SIZE> tmp(std::span<value_type>{const_cast<value_type*>(buffer.data()), buffer.size()});
+				if (newsize > capacity())
+					resize(newsize);
+				const pointer ptr = rawptr();
+				std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+				std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
+				set_size(newsize);
+				return iterator(ptr + pivot);
+			}
 
-		 if (newsize > capacity())
-			 resize(newsize);
+			if (newsize > capacity())
+				resize(newsize);
 
-		 const pointer ptr = rawptr();
-		 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-		 std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
-		 set_size(newsize);
-		 return iterator(ptr + pivot);
-	 }
+			const pointer ptr = rawptr();
+			std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+			std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
+			set_size(newsize);
+			return iterator(ptr + pivot);
+		}
 
-	 iterator insert(const_iterator pos, const value_type& v) { return insert(pos, {&v, 1}); }
+		iterator insert(const_iterator pos, const value_type& v) { return insert(pos, {&v, 1}); }
 
-	 iterator insert(iterator pos, std::span<const value_type> buffer)
-	 {
-		 if (buffer.empty())
-			 return pos;
+		iterator insert(iterator pos, std::span<const value_type> buffer)
+		{
+			if (buffer.empty())
+				return pos;
 
-		 const size_t pivot   = std::distance(begin(), pos);
-		 const size_t oldsize = size();
-		 size_t       newsize = oldsize + buffer.size();
+			const size_t pivot   = std::distance(begin(), pos);
+			const size_t oldsize = size();
+			size_t       newsize = oldsize + buffer.size();
 
-		 bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
-		 if (self_insert)
-		 {
-			 sbo<SIZE> tmp(buffer);
-			 if (newsize > capacity())
-				 resize(newsize);
-			 const pointer ptr = rawptr();
-			 if (pivot < oldsize)
-				 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-			 std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
-			 set_size(newsize);
-			 return iterator(ptr + pivot);
-		 }
+			bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+			if (self_insert)
+			{
+				sbo<SIZE> tmp(buffer);
+				if (newsize > capacity())
+					resize(newsize);
+				const pointer ptr = rawptr();
+				if (pivot < oldsize)
+					std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+				std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
+				set_size(newsize);
+				return iterator(ptr + pivot);
+			}
 
-		 if (newsize > capacity())
-			 resize(newsize);
+			if (newsize > capacity())
+				resize(newsize);
 
-		 const pointer ptr = rawptr();
-		 if (pivot < oldsize)
-			 std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-		 std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
-		 set_size(newsize);
-		 return iterator(ptr + pivot);
-	 }
+			const pointer ptr = rawptr();
+			if (pivot < oldsize)
+				std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+			std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
+			set_size(newsize);
+			return iterator(ptr + pivot);
+		}
 
 		iterator insert(iterator pos, const value_type& v) { return insert(pos, std::span<value_type>{(pointer)&v, 1}); }
 
-	 void assign(const std::span<const value_type> buffer)
+		void assign(const std::span<const value_type> buffer)
 		{
 			bool self_assign = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
 			if (self_assign)
@@ -552,7 +450,7 @@ namespace deckard
 				assign(other.data());
 		}
 
-	 void assign(const value_type& v) { assign(std::span<const value_type>{(pointer)&v, 1}); }
+		void assign(const value_type& v) { assign(std::span<const value_type>{(pointer)&v, 1}); }
 
 		void assign(const std::initializer_list<value_type>& il)
 		{
@@ -667,147 +565,118 @@ namespace deckard
 
 		void push_back(const value_type& v)
 		{
-			auto current_size     = size();
-			auto current_capacity = capacity();
-			if (current_size + 1 > current_capacity)
-			{
-				resize(newcapacity_size(current_capacity+1));
-			}
+			const size_t current_size = size();
 
+			if (current_size >= capacity())
+				reserve(newcapacity_size(current_size + 1));
 
-			if (is_large() and current_size <= large_capacity())
-			{
-				packed.large.ptr[packed.large.size] = v;
-				packed.large.size += 1;
-			}
-			else if (is_small() and current_size <= small_capacity())
-			{
-				packed.small.data[packed.small.size] = v;
-				packed.small.size += 1;
-			}
+			pointer ptr       = rawptr();
+			ptr[current_size] = v;
+
+			set_size(current_size + 1);
 		}
 
 		void pop_back()
 		{
 			assert::check(not empty(), "Cannot pop back from empty sbo");
 
-			if (is_large() and large_size() > 0)
-			{
-				packed.large.size -= 1;
-			}
-			else if (is_small() and small_size() > 0)
-			{
-				packed.small.size -= 1;
-			}
+			const size_t current_size = size();
+
+			pointer ptr           = rawptr();
+			ptr[current_size - 1] = 0_u8;
+
+			set_size(current_size - 1);
 		}
 
-		// resize
-		void resize(size_t newsize)
+		// reserve
+		void reserve(size_t new_capacity)
 		{
-			size_t oldsize = size();
-
-			if (newsize <= capacity())
-			{
-				pointer ptr = rawptr();
-				std::fill(ptr + newsize, ptr + capacity(), 0_u8);
-				set_size(newsize);
+			if (new_capacity <= capacity())
 				return;
-			}
 
-			size_t new_capacity = std::max(newsize, newcapacity_size(capacity()));
-			auto   newptr       = new value_type[new_capacity];
-			std::fill_n(newptr, new_capacity, 0_u8);
+			const size_t oldsize         = size();
+			const size_t actual_capacity = std::max(new_capacity, newcapacity_size(capacity()));
+			auto         newptr          = new value_type[actual_capacity];
 
-			pointer oldptr = rawptr();
-			std::copy_n(oldptr, std::min(oldsize, newsize), newptr);
+			std::ranges::fill_n(newptr, actual_capacity, 0_u8);
+
+			std::ranges::copy_n(rawptr(), oldsize, newptr);
+
 			if (is_large())
 				delete[] packed.large.ptr;
 
 			packed.large.ptr = newptr;
 			set_large(true);
-			set_capacity(new_capacity);
+			set_capacity(actual_capacity);
 			set_size(oldsize);
 		}
 
-		void shrink_to_fit()
-
+		// resize
+		void resize(size_t newsize)
 		{
-			if (is_large())
-			{
-				size_t oldsize = large_size();
-				if (oldsize <= small_capacity())
-				{
+			const size_t oldsize = size();
 
-					pointer ptr    = large_rawptr();
-					value_type tmp[SIZE - 1];
-					std::copy_n(ptr, oldsize, tmp);
-
-					delete[] ptr;
-					packed.large.ptr = nullptr;
-
-					pointer newptr = small_rawptr();
-					std::copy_n(tmp, oldsize, newptr);
-
-					set_large(false);
-					set_size(oldsize);
-					return;
-				}
-
-				if (oldsize < large_capacity())
-				{
-					auto newptr = new value_type[oldsize];
-					pointer oldptr = large_rawptr();
-
-					std::copy_n(oldptr, oldsize, newptr);
-
-					delete[] packed.large.ptr;
-					packed.large.ptr = newptr;
-
-					set_capacity(oldsize);
-					set_size(oldsize);
-				}
-			}
-		}
-
-		void reserve(size_t newsize)
-
-		{
 			if (newsize > capacity())
+				reserve(newsize);
+
+			const pointer ptr = rawptr();
+			if (newsize > oldsize)
 			{
-				resize(newsize);
+				std::ranges::fill_n(ptr + oldsize, newsize - oldsize, 0_u8);
+			}
+			else if (newsize < oldsize)
+			{
+				std::ranges::fill_n(ptr + newsize, oldsize - newsize, 0_u8);
+			}
+
+			set_size(newsize);
+		}
+
+		void shrink_to_fit()
+		{
+			if (not is_large())
+				return;
+
+			const size_t current_size = size();
+
+			if (current_size <= small_capacity())
+			{
+				const pointer old_heap_ptr = packed.large.ptr;
+
+				std::array<value_type, SIZE> tmp;
+				std::ranges::copy_n(old_heap_ptr, current_size, tmp.begin());
+
+				reset();
+
+				std::ranges::copy_n(tmp.begin(), current_size, packed.small.data.begin());
+				set_large(false);
+				set_size(current_size);
+				return;
+			}
+
+			if (current_size < large_capacity())
+			{
+				const pointer old_heap_ptr = packed.large.ptr;
+				auto          new_heap_ptr = new value_type[current_size];
+
+				std::ranges::copy_n(old_heap_ptr, current_size, new_heap_ptr);
+
+				delete[] old_heap_ptr;
+				packed.large.ptr = new_heap_ptr;
+				set_capacity(current_size);
+				set_size(current_size);
 			}
 		}
 
-		[[nodiscard("Use the data span")]] std::span<value_type> data() const { return is_large() ? large_data() : small_data(); }
+		[[nodiscard("Use the data span")]] std::span<value_type> data() const
+		{
+			return is_large() ? large_data() : small_data();
+		}
 
-		// iterator
-
+		// contains
 		bool contains(const value_type& value) const { return find(value) != cend(); }
 
-		iterator begin() { return iterator(rawptr()); }
-
-		iterator end() { return iterator(end_rawptr()); }
-
-		const_iterator begin() const { return const_iterator(rawptr()); }
-
-		const_iterator end() const { return const_iterator(end_rawptr()); }
-
-		const_iterator cbegin() const { return const_iterator(rawptr()); }
-
-		const_iterator cend() const { return const_iterator(end_rawptr()); }
-
-		std::reverse_iterator<iterator> rbegin() { return std::reverse_iterator(end()); }
-
-		std::reverse_iterator<iterator> rend() { return std::reverse_iterator(begin()); }
-
-		std::reverse_iterator<const_iterator> rbegin() const { return std::reverse_iterator(end()); }
-
-		std::reverse_iterator<const_iterator> rend() const { return std::reverse_iterator(begin()); }
-
-		std::reverse_iterator<const_iterator> crbegin() const { return std::reverse_iterator(cend()); }
-
-		std::reverse_iterator<const_iterator> crend() const { return std::reverse_iterator(cbegin()); }
-
+	
 		iterator find(const value_type& value)
 		{
 			auto it = begin();
@@ -897,7 +766,29 @@ namespace deckard
 		iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 
 		// replace
-		iterator replace(iterator pos, const std::span<value_type>& buffer)
+		iterator replace(iterator pos, const value_type& v)
+		{
+			return replace(pos, pos + 1, std::span<const value_type>{&v, 1});
+		}
+
+		iterator replace(iterator first, iterator last, std::span<const value_type> buffer)
+		{
+			if (first == last)
+				return insert(first, buffer);
+
+			auto next_it = erase(first, last);
+
+			return insert(next_it, buffer);
+		}
+
+		iterator replace(size_t pos, size_t count, std::span<const value_type> buffer)
+		{
+			return replace(begin() + pos, begin() + pos + count, buffer);
+		}
+
+
+
+		iterator replace(iterator pos, std::span<const value_type> buffer)
 		{
 			if (pos == end())
 			{
@@ -907,24 +798,8 @@ namespace deckard
 			return replace(pos, pos + 1, buffer);
 		}
 
-		iterator replace(iterator first, iterator end, const std::span<value_type>& buffer)
-		{
-			if (first == end)
-			{
-				auto pos = erase(first);
-				return insert(pos, buffer);
-			}
 
-			auto pos = erase(first, end);
-			return insert(pos, buffer);
-		}
-
-		iterator replace(size_t pos, size_t count, const std::span<value_type>& buffer)
-		{
-			auto first = begin() + pos;
-			auto end   = first + count;
-			return replace(first, end, buffer);
-		}
+		//
 
 		iterator find_first_of(const std::span<value_type>& buffer)
 		{
@@ -939,7 +814,6 @@ namespace deckard
 
 			return end();
 		}
-
 
 		const_iterator find_first_of(std::string_view view) const
 		{
