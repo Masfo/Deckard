@@ -58,7 +58,7 @@ namespace deckard
 		} packed;
 
 		// ##############################################################
-		// 	
+		//
 
 		void set_size(size_t newsize)
 		{
@@ -133,7 +133,7 @@ namespace deckard
 
 		void reset() noexcept
 		{
-			if (is_large() && packed.large.ptr)
+			if (is_large() and packed.large.ptr)
 				delete[] packed.large.ptr;
 
 			std::memset(&packed, 0, sizeof(packed));
@@ -359,36 +359,12 @@ namespace deckard
 			}
 		}
 
+		// insert
+
 		iterator insert(const_iterator pos, std::span<const value_type> buffer)
 		{
-			if (buffer.empty())
-				return iterator(rawptr() + std::distance(cbegin(), pos));
-
-			const auto pivot   = std::distance(cbegin(), pos);
-			const auto oldsize = size();
-			size_t     newsize = oldsize + buffer.size();
-
-			bool self_insert = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
-			if (self_insert)
-			{
-				sbo<SIZE> tmp(std::span<value_type>{const_cast<value_type*>(buffer.data()), buffer.size()});
-				if (newsize > capacity())
-					resize(newsize);
-				const pointer ptr = rawptr();
-				std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-				std::copy_n(tmp.rawptr(), buffer.size(), ptr + pivot);
-				set_size(newsize);
-				return iterator(ptr + pivot);
-			}
-
-			if (newsize > capacity())
-				resize(newsize);
-
-			const pointer ptr = rawptr();
-			std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
-			std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
-			set_size(newsize);
-			return iterator(ptr + pivot);
+			iterator mutable_pos = begin() + std::distance(cbegin(), pos);
+			return insert(mutable_pos, buffer);
 		}
 
 		iterator insert(const_iterator pos, const value_type& v) { return insert(pos, {&v, 1}); }
@@ -422,6 +398,7 @@ namespace deckard
 			const pointer ptr = rawptr();
 			if (pivot < oldsize)
 				std::copy_backward(ptr + pivot, ptr + oldsize, ptr + newsize);
+
 			std::copy_n(buffer.data(), buffer.size(), ptr + pivot);
 			set_size(newsize);
 			return iterator(ptr + pivot);
@@ -429,17 +406,27 @@ namespace deckard
 
 		iterator insert(iterator pos, const value_type& v) { return insert(pos, std::span<value_type>{(pointer)&v, 1}); }
 
-		void assign(const std::span<const value_type> buffer)
+		// assign
+		void assign(std::span<const value_type> buffer)
 		{
-			bool self_assign = buffer.data() >= rawptr() and buffer.data() < end_rawptr();
+			const bool self_assign = (buffer.data() >= rawptr() and buffer.data() < end_rawptr());
+
 			if (self_assign)
 			{
-				sbo<SIZE> tmp;
-				tmp.insert(tmp.cbegin(), buffer);
+				const size_t source_size = buffer.size();
+
+				assert::check(source_size <= capacity(), "Self-assign subspan exceeds capacity invariants");
+
+				std::array<value_type, SIZE> temp_buffer;
+				std::ranges::copy_n(buffer.data(), source_size, temp_buffer.begin());
+
 				clear();
-				insert(cbegin(), tmp.data());
+
+				std::ranges::copy_n(temp_buffer.data(), source_size, rawptr());
+				set_size(source_size);
 				return;
 			}
+
 			clear();
 			insert(cbegin(), buffer);
 		}
@@ -480,7 +467,6 @@ namespace deckard
 
 		void append(const std::initializer_list<value_type>& il)
 		{
-			//
 			for (const auto& i : il)
 				append(i);
 		}
@@ -643,28 +629,33 @@ namespace deckard
 			{
 				const pointer old_heap_ptr = packed.large.ptr;
 
-				std::array<value_type, SIZE> tmp;
-				std::ranges::copy_n(old_heap_ptr, current_size, tmp.begin());
-
-				reset();
-
-				std::ranges::copy_n(tmp.begin(), current_size, packed.small.data.begin());
-				set_large(false);
-				set_size(current_size);
-				return;
-			}
-
-			if (current_size < large_capacity())
-			{
-				const pointer old_heap_ptr = packed.large.ptr;
-				auto          new_heap_ptr = new value_type[current_size];
-
-				std::ranges::copy_n(old_heap_ptr, current_size, new_heap_ptr);
+				std::array<value_type, SIZE - 1> tmp;
+				if (current_size > 0)
+					std::ranges::copy_n(old_heap_ptr, current_size, tmp.begin());
 
 				delete[] old_heap_ptr;
+				std::memset(&packed, 0, sizeof(packed));
+
+				std::ranges::copy_n(tmp.begin(), current_size, packed.small.data.begin());
+				if (current_size > 0)
+					std::ranges::copy_n(tmp.begin(), current_size, packed.small.data.begin());
+
+				set_large(false);
+				set_size(current_size);
+			}
+			else if (current_size < large_capacity())
+			{
+				pointer old_heap_ptr = packed.large.ptr;
+
+				pointer new_heap_ptr = new (std::nothrow) value_type[current_size];
+				if (not new_heap_ptr)
+					return;
+
+				std::ranges::copy_n(old_heap_ptr, current_size, new_heap_ptr);
+				delete[] old_heap_ptr;
+
 				packed.large.ptr = new_heap_ptr;
 				set_capacity(current_size);
-				set_size(current_size);
 			}
 		}
 
@@ -676,7 +667,8 @@ namespace deckard
 		// contains
 		bool contains(const value_type& value) const { return find(value) != cend(); }
 
-	
+
+		// find
 		iterator find(const value_type& value)
 		{
 			auto it = begin();
@@ -701,12 +693,22 @@ namespace deckard
 
 		iterator find(std::span<const value_type>& buffer)
 		{
-			if (buffer.empty() or size() < buffer.size())
+			const size_t container_size = size();
+			const size_t search_size    = buffer.size();
+
+			if (search_size == 0)
 				return end();
 
-			for (auto it = begin(); it != end() - as<difference_type>(buffer.size()) + 1; ++it)
+			if (container_size < search_size)
+				return end();
+
+			const size_t  max_offset     = container_size - search_size;
+			const pointer start_ptr      = begin();
+			const pointer end_search_ptr = start_ptr + max_offset;
+
+			for (auto it = start_ptr; it <= end_search_ptr; ++it)
 			{
-				if (std::equal(buffer.begin(), buffer.end(), it))
+				if (std::ranges::equal(buffer, it))
 					return it;
 			}
 
@@ -715,10 +717,20 @@ namespace deckard
 
 		const_iterator find(const std::span<const value_type>& buffer) const
 		{
-			if (buffer.empty() or size() < buffer.size())
+			const size_t container_size = size();
+			const size_t search_size    = buffer.size();
+
+			if (search_size == 0)
 				return cend();
 
-			for (auto it = cbegin(); it != cend() - as<difference_type>(buffer.size()) + 1; ++it)
+			if (container_size < search_size)
+				return cend();
+
+			const size_t        max_offset     = container_size - search_size;
+			const const_pointer start_ptr      = cbegin();
+			const const_pointer end_search_ptr = start_ptr + max_offset;
+
+			for (auto it = start_ptr; it <= end_search_ptr; ++it)
 			{
 				if (std::equal(buffer.begin(), buffer.end(), it))
 					return it;
@@ -731,21 +743,24 @@ namespace deckard
 
 		iterator erase(size_t pos, size_t count)
 		{
-			assert::check(count <= size(), "trying to erase too much");
-			assert::check(pos <= size() - 1, "indexing outside buffer");
-			assert::check(pos + count <= size(), "indexing outside buffer");
+			if (count == 0)
+				return begin() + pos;
 
-			size_t pivot    = pos + count;
-			size_t new_size = size() - count;
+			const size_t old_size = size();
 
-			if (pivot < size()) // fill if erased to end of buffer
-			{
-				std::copy(begin() + pivot, end(), begin() + pos);
-			}
+			assert::check(pos <= old_size && count <= (old_size - pos), "Indexing outside buffer limits");
 
-			std::fill(begin() + new_size, end(), 0_u8);
+			const size_t  new_size     = old_size - count;
+			const pointer ptr          = rawptr();
+			const size_t  rem_elements = old_size - (pos + count);
+
+			if (rem_elements > 0)
+				std::memmove(ptr + pos, ptr + pos + count, rem_elements);
+
+			std::ranges::fill_n(ptr + new_size, count, 0_u8);
 			set_size(new_size);
-			return begin() + pos;
+
+			return ptr + pos;
 		}
 
 		iterator erase(iterator first, iterator last)
@@ -753,15 +768,14 @@ namespace deckard
 			if (first == last)
 				return first;
 
-
 			const auto pivot = std::distance(begin(), first);
 			const auto count = std::distance(first, last);
 			return erase(pivot, count);
 		}
 
-		iterator erase(const_iterator first, const_iterator last) { return erase(iterator(first), iterator(last)); }
-
 		iterator erase(iterator pos) { return erase(pos, pos + 1); }
+
+		iterator erase(const_iterator first, const_iterator last) { return erase(iterator(first), iterator(last)); }
 
 		iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 
@@ -786,8 +800,6 @@ namespace deckard
 			return replace(begin() + pos, begin() + pos + count, buffer);
 		}
 
-
-
 		iterator replace(iterator pos, std::span<const value_type> buffer)
 		{
 			if (pos == end())
@@ -797,7 +809,6 @@ namespace deckard
 			}
 			return replace(pos, pos + 1, buffer);
 		}
-
 
 		//
 
