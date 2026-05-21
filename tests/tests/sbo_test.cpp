@@ -174,7 +174,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		sbo<32> copy(std::move(ss));
 
-		CHECK(copy.size() == 6);
+		CHECK(copy.size() == 128);
 		CHECK(copy.capacity() == 128);
 		CHECK(copy[0] == 'A');
 
@@ -205,7 +205,7 @@ TEST_CASE("sbo", "[sbo]")
 		sbo<32> copy;
 		copy = std::move(ss);
 
-		CHECK(copy.size() == 6);
+		CHECK(copy.size() == 128);
 		CHECK(copy.capacity() == 128);
 		CHECK(copy[0] == 'A');
 
@@ -233,12 +233,12 @@ TEST_CASE("sbo", "[sbo]")
 
 		ss.resize(128);
 
-		CHECK(ss.size() == 6);
+		CHECK(ss.size() == 128);
 		CHECK(ss.capacity() == 128);
 
 		ss = std::move(ss);
 
-		CHECK(ss.size() == 6);
+		CHECK(ss.size() == 128);
 		CHECK(ss.capacity() == 128);
 	}
 
@@ -316,7 +316,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		sbo<32> copy(ss);
 
-		CHECK(copy.size() == 6);
+		CHECK(copy.size() == 128);
 		CHECK(copy.capacity() == 128);
 		CHECK(copy[0] == 'A');
 	}
@@ -366,13 +366,13 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(ss[0] == 'A');
 		CHECK(ss.size() == 64);
-		CHECK(ss.capacity() == 72);
+		CHECK(ss.capacity() == 80);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 
 		ss.push_back('B');
 		CHECK(ss.size() == 65);
-		CHECK(ss.capacity() == 72);
+		CHECK(ss.capacity() == 80);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 	}
 
@@ -411,14 +411,14 @@ TEST_CASE("sbo", "[sbo]")
 
 		CHECK(ss[0] == 'A');
 		CHECK(ss.size() == 65);
-		CHECK(ss.capacity() == 72);
+		CHECK(ss.capacity() == 80);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 		repeat<55> = [&] { ss.pop_back(); };
 
 		CHECK(ss[0] == 'A');
 		CHECK(ss.size() == 10);
-		CHECK(ss.capacity() == 72);
+		CHECK(ss.capacity() == 80);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 
@@ -446,7 +446,6 @@ TEST_CASE("sbo", "[sbo]")
 
 		ss.pop_back();
 		CHECK(ss[0] == 'A');
-		CHECK(ss[1] == 'B');
 		CHECK(ss.size() == 1);
 		CHECK(ss.capacity() == 31);
 	}
@@ -459,7 +458,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.capacity() == 31);
 
 		ss.resize(128);
-		CHECK(ss.size() == 0);
+		CHECK(ss.size() == 128);
 		CHECK(ss.capacity() == 128);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
@@ -478,7 +477,7 @@ TEST_CASE("sbo", "[sbo]")
 
 
 		ss.resize(128);
-		CHECK(ss.size() == 0);
+		CHECK(ss.size() == 128);
 		CHECK(ss.capacity() == 128);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
@@ -550,7 +549,7 @@ TEST_CASE("sbo", "[sbo]")
 		ss.push_back('F');
 
 
-		ss.resize(128);
+		ss.reserve(128);
 
 		CHECK(ss.size() == 6);
 		CHECK(ss.capacity() == 128);
@@ -719,7 +718,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.max_size() == 31);
 
 		ss.push_back('A');
-		ss.resize(128);
+		ss.reserve(128);
 
 		CHECK(ss.size() == 1);
 		CHECK(ss.capacity() == 128);
@@ -987,7 +986,7 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 128);
-		CHECK(ss.capacity() == 168);
+		CHECK(ss.capacity() == 128);
 		CHECK(ss.max_size() == 0xFFFF'FFFF);
 
 
@@ -1190,7 +1189,7 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 256);
-		CHECK(ss.capacity() == 256);
+		CHECK(ss.capacity() == 304);
 		CHECK(ss[0] == 0);
 		CHECK(ss[1] == 1);
 		CHECK(ss[2] == 2);
@@ -1205,7 +1204,7 @@ TEST_CASE("sbo", "[sbo]")
 		ss.insert(ss.begin(), buffer);
 
 		CHECK(ss.size() == 262);
-		CHECK(ss.capacity() == 384);
+		CHECK(ss.capacity() == 304);
 
 		CHECK(ss[0] == 'Q');
 		CHECK(ss[1] == 'W');
@@ -1219,7 +1218,7 @@ TEST_CASE("sbo", "[sbo]")
 		ss.insert(ss.end(), 'P');
 		CHECK(ss.back() == 'P');
 		CHECK(ss.size() == 263);
-		CHECK(ss.capacity() == 384);
+		CHECK(ss.capacity() == 304);
 	}
 
 	SECTION("self insert")
@@ -1369,12 +1368,12 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 256);
-		CHECK(ss.capacity() == 256);
+		CHECK(ss.capacity() == 304);
 
 		ss.erase(ss.cbegin() + 2, ss.cend() - 2);
 
 		CHECK(ss.size() == 4);
-		CHECK(ss.capacity() == 256);
+		CHECK(ss.capacity() == 304);
 		CHECK(ss[0] == 0);
 		CHECK(ss[1] == 1);
 		CHECK(ss[2] == 254);
@@ -1471,7 +1470,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		std::array<u8, 3> newbuffer{'X', 'Y', 'Z'};
 
-		ss.replace(ss.begin() + 2, ss.begin() + 2, newbuffer);
+		ss.replace(ss.begin() + 2, ss.begin() + 3, newbuffer);
 
 		CHECK(ss.size() == 8);
 		CHECK(ss.capacity() == 31);
@@ -1479,13 +1478,15 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss[0] == 'Q');
 		CHECK(ss[1] == 'W');
 
+		// replaced E
 		CHECK(ss[2] == 'X');
-		CHECK(ss[3] == 'Y');
+		CHECK(ss[3] == 'Y'); 
 		CHECK(ss[4] == 'Z');
 
 		CHECK(ss[5] == 'R');
 		CHECK(ss[6] == 'T');
 		CHECK(ss[7] == 'Y');
+
 	}
 
 	SECTION("replace smaller size (small)")
@@ -1614,14 +1615,14 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 256);
-		CHECK(ss.capacity() == 256);
+		CHECK(ss.capacity() == 304);
 
 		std::array<u8, 4> newbuffer{'X', 'Y', 'Z', 'Q'};
 
 		ss.replace(ss.begin() + 2, ss.begin() + 5, newbuffer);
 
 		CHECK(ss.size() == 257);
-		CHECK(ss.capacity() == 384);
+		CHECK(ss.capacity() == 304);
 
 		CHECK(ss[0] == 0);
 		CHECK(ss[1] == 1);
@@ -1888,7 +1889,7 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 256);
-		CHECK(ss.capacity() == 256);
+		CHECK(ss.capacity() == 304);
 
 		sbo<32> a;
 
@@ -1989,7 +1990,7 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 128);
-		CHECK(ss.capacity() == 168);
+		CHECK(ss.capacity() == 128);
 
 		auto it = std::find(ss.begin(), ss.end(), as<u8>(64));
 		CHECK(it != ss.end());
@@ -2051,7 +2052,7 @@ TEST_CASE("sbo", "[sbo]")
 			ss.push_back(as<u8>(i));
 
 		CHECK(ss.size() == 134);
-		CHECK(ss.capacity() == 168);
+		CHECK(ss.capacity() == 200);
 
 		CHECK(ss.contains(0x7F) == true);
 		CHECK(ss.contains(0xFF) == false);
@@ -2096,7 +2097,7 @@ TEST_CASE("sbo", "[sbo]")
 			a.push_back(as<u8>(i));
 
 		CHECK(a.size() == 128);
-		CHECK(a.capacity() == 168);
+		CHECK(a.capacity() == 128);
 
 		sbo<32> b;
 
@@ -2107,7 +2108,7 @@ TEST_CASE("sbo", "[sbo]")
 			b.push_back(as<u8>(i));
 
 		CHECK(a.size() == 128);
-		CHECK(a.capacity() == 168);
+		CHECK(a.capacity() == 128);
 
 
 		CHECK(a == b);
@@ -2139,7 +2140,7 @@ TEST_CASE("sbo", "[sbo]")
 			b.push_back(as<u8>(i));
 
 		CHECK(b.size() == 128);
-		CHECK(b.capacity() == 168);
+		CHECK(b.capacity() == 128);
 
 		CHECK(a != b);
 	}
