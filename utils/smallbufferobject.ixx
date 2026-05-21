@@ -66,7 +66,7 @@ namespace deckard
 
 		public:
 			friend class const_iterator;
-			using iterator_category = std::bidirectional_iterator_tag;
+			using iterator_category = std::random_access_iterator_tag;
 			using difference_type   = std::ptrdiff_t;
 			using value_type        = value_type;
 
@@ -128,7 +128,7 @@ namespace deckard
 
 			difference_type operator-(const iterator& other) const { return ptr - other.ptr; }
 
-			reference& operator[](difference_type n) const { return ptr[n]; }
+			reference operator[](difference_type n) const { return ptr[n]; }
 
 			auto operator<=>(const iterator&) const = default;
 
@@ -271,16 +271,10 @@ namespace deckard
 
 		void reset() noexcept
 		{
-			if (is_large())
-			{
-				std::fill_n(large_rawptr(), large_size(), 0_u8);
-
+			if (is_large() && packed.large.ptr)
 				delete[] packed.large.ptr;
-			}
 
-			std::ranges::fill_n(packed.small.data.data(), packed.small.data.size(), 0_u8);
-			packed.small.size     = 0;
-			packed.small.is_large = 0;
+			std::memset(&packed, 0, sizeof(packed));
 		}
 
 		void clone(const sbo& from)
@@ -334,7 +328,7 @@ namespace deckard
 			reset(); 
 		}
 
-	   explicit sbo(std::span<value_type> buffer)
+	   explicit sbo(std::span<const value_type> buffer)
 		{
 		   packed.small.size     = 0;
 		   packed.small.is_large = 0;
@@ -467,7 +461,7 @@ namespace deckard
 			}
 		}
 
-	 iterator insert(const_iterator pos, const std::span<const value_type> buffer)
+	 iterator insert(const_iterator pos, std::span<const value_type> buffer)
 	 {
 		 if (buffer.empty())
 			 return iterator(rawptr() + std::distance(cbegin(), pos));
@@ -501,7 +495,7 @@ namespace deckard
 
 	 iterator insert(const_iterator pos, const value_type& v) { return insert(pos, {&v, 1}); }
 
-	 iterator insert(iterator pos, std::span<value_type> buffer)
+	 iterator insert(iterator pos, std::span<const value_type> buffer)
 	 {
 		 if (buffer.empty())
 			 return pos;
@@ -580,7 +574,7 @@ namespace deckard
 			return *this;
 		}
 
-		void append(const std::span<value_type> buffer) { insert(end(), buffer); }
+		void append(const std::span<const value_type> buffer) { insert(end(), buffer); }
 
 		void append(const sbo<SIZE>& other) { append(other.data()); }
 
@@ -594,7 +588,7 @@ namespace deckard
 		}
 
 		// prepend
-		void prepend(const std::span<value_type> buffer) { insert(begin(), buffer); }
+		void prepend(const std::span<const value_type> buffer) { insert(begin(), buffer); }
 
 		void prepend(const sbo<SIZE>& other) { prepend(other.data()); }
 
@@ -631,23 +625,22 @@ namespace deckard
 
 		[[nodiscard("Use result on index operator")]] reference operator[](size_t index)
 		{
-			assert::check(index < capacity(), "Indexing out-of-bounds");
-
-
 			if (is_large())
 			{
+				assert::check(index < large_size(), "Indexing out-of-bounds");
 				assert::check(packed.large.ptr != nullptr, "sbo buffer is null");
 				return packed.large.ptr[index];
 			}
 			else
 			{
+				assert::check(index < small_capacity(), "Indexing out-of-bounds");
 				return packed.small.data[index];
 			}
 		}
 
 		[[nodiscard("Use result on index operator")]] const_reference operator[](size_t index) const
 		{
-			assert::check(index < capacity(), "Indexing out-of-bounds");
+			assert::check(index < size(), "Indexing out-of-bounds");
 
 
 			if (is_large())
@@ -678,7 +671,7 @@ namespace deckard
 			auto current_capacity = capacity();
 			if (current_size + 1 > current_capacity)
 			{
-				resize(newcapacity_size(current_capacity));
+				resize(newcapacity_size(current_capacity+1));
 			}
 
 
@@ -837,7 +830,7 @@ namespace deckard
 			return cend();
 		}
 
-		iterator find(const std::span<value_type>& buffer)
+		iterator find(std::span<const value_type>& buffer)
 		{
 			if (buffer.empty() or size() < buffer.size())
 				return end();
@@ -851,10 +844,10 @@ namespace deckard
 			return end();
 		}
 
-		const_iterator find(const std::span<value_type>& buffer) const
+		const_iterator find(const std::span<const value_type>& buffer) const
 		{
 			if (buffer.empty() or size() < buffer.size())
-				return end();
+				return cend();
 
 			for (auto it = cbegin(); it != cend() - as<difference_type>(buffer.size()) + 1; ++it)
 			{
