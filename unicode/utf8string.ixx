@@ -58,7 +58,7 @@ namespace deckard::utf8
 			if (current_index >= as<difference_type>(ptr->size()))
 				return;
 
-			auto [cp, bytes] = utf8::decode_unchecked(utf8::as_ro_bytes(ptr->data()), static_cast<size_t>(current_index));
+			auto [cp, bytes] = utf8::decode_unchecked(ptr->data(), static_cast<size_t>(current_index));
 			current_index += static_cast<i64>(bytes);
 		}
 
@@ -342,7 +342,13 @@ namespace deckard::utf8
 			buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), N});
 		}
 
-		string(const view& v) { *this = v; }
+		explicit string(const view& v) { *this = v; }
+
+		explicit string(const v2::view& v)
+		{
+			auto raw = v.data();
+			buffer.assign(std::span<u8>{const_cast<u8*>(raw.data()), raw.size()});
+		}
 
 		string& operator=(std::string_view input)
 		{
@@ -449,7 +455,7 @@ namespace deckard::utf8
 		void assign(unit u)
 		{
 			auto encoded = encode_codepoint(u);
-			buffer.assign(std::span<u8>{encoded.bytes.data(), encoded.count});
+			buffer.assign(std::span<const u8>{encoded.bytes.data(), encoded.count});
 		}
 
 		// append
@@ -464,10 +470,11 @@ namespace deckard::utf8
 		void append(const char32 c)
 		{
 			auto encoded = encode_codepoint(c);
-			buffer.append({encoded.bytes.data(), encoded.count});
+			buffer.append(std::span<const u8>{encoded.bytes.data(), encoded.count});
 		}
 
 		void append(const view v)
+
 		{
 			string tmp;
 			tmp = v;
@@ -532,6 +539,40 @@ namespace deckard::utf8
 		auto operator+=(const view v)
 		{
 			append(string(v));
+			return *this;
+		}
+
+		// View
+		// Explicit constructor to prevent unintended hidden allocations
+
+
+		string& operator=(const v2::view input)
+		{
+			if (input.empty())
+			{
+				clear();
+				return *this;
+			}
+			auto raw = input.data();
+			buffer.assign(std::span<u8>{const_cast<u8*>(raw.data()), raw.size()});
+			return *this;
+		}
+
+		void append(const v2::view v)
+		{
+			auto raw = v.data();
+			buffer.append({const_cast<u8*>(raw.data()), raw.size()});
+		}
+
+		void prepend(const v2::view v)
+		{
+			auto raw = v.data();
+			buffer.prepend({const_cast<u8*>(raw.data()), raw.size()});
+		}
+
+		auto operator+=(const v2::view v)
+		{
+			append(v);
 			return *this;
 		}
 
@@ -857,7 +898,7 @@ namespace deckard::utf8
 
 		size_t size() const { return length(); }
 
-		std::expected<bool, std::string> valid() const { return utf8::valid(utf8::as_ro_bytes(buffer.data())); }
+		std::expected<void, std::string> valid() const { return utf8::valid(buffer.data()); }
 
 		size_t length() const
 		{
@@ -865,10 +906,10 @@ namespace deckard::utf8
 				return 0;
 
 			auto status = valid();
-			if (not status or not *status)
+			if (not status.has_value())
 				return 0;
 
-			auto len = utf8::length(utf8::as_ro_bytes(buffer.data()));
+			auto len = utf8::length(buffer.data());
 			return len ? *len : 0;
 		}
 
@@ -878,7 +919,7 @@ namespace deckard::utf8
 				return 0;
 
 			auto status = valid();
-			if (not status or not *status)
+			if (not status.has_value())
 				return 0;
 
 			return utf8::grapheme_count(buffer.data());

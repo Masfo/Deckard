@@ -62,7 +62,7 @@ export namespace deckard::utf8
 export namespace deckard::utf8
 {
 
-	decode_result decode_unchecked(std::span<const std::byte> buffer, size_t index) noexcept
+	decode_result decode_unchecked(std::span<const u8> buffer, size_t index) noexcept
 	{
 		u8 byte = utf8::u8_at(buffer, index);
 		if (byte < 0x80)
@@ -75,17 +75,14 @@ export namespace deckard::utf8
 		codepoint = (0xffu >> type) & byte;
 		state     = utf8_table[256 + state + type];
 
-		if (state == UTF8_ACCEPT)
-			return {codepoint, 1};
 		if (state == UTF8_REJECT)
-			return {REPLACEMENT_CHARACTER, 1};
+			return {REPLACEMENT_CHARACTER, 1}; // invalid lead byte
 
 		u32 bytes_consumed = 1;
-
 		for (index += 1; index < buffer.size(); ++index)
 		{
 			byte = utf8::u8_at(buffer, index);
-			bytes_consumed += 1;
+			++bytes_consumed;
 
 			type      = utf8_table[byte];
 			codepoint = (byte & 0x3fu) | (codepoint << 6);
@@ -101,14 +98,14 @@ export namespace deckard::utf8
 		return {REPLACEMENT_CHARACTER, bytes_consumed};
 	}
 
-	auto decode(std::span<const std::byte> buffer, size_t index) noexcept -> std::optional<decode_result>
+	auto decode(std::span<const u8> buffer, size_t index) noexcept -> std::optional<decode_result>
 	{
 		if (index >= buffer.size())
 			return std::nullopt;
 		return decode_unchecked(buffer, index);
 	}
 
-	std::generator<char32> yield_codepoints(std::span<const std::byte> buffer)
+	std::generator<char32> yield_codepoints(std::span<const u8> buffer)
 	{
 		size_t i = 0;
 		while (i < buffer.size())
@@ -121,7 +118,6 @@ export namespace deckard::utf8
 
 	export size_t grapheme_count(std::span<const u8> buffer)
 	{
-		auto bytes = as_ro_bytes(buffer);
 
 		std::size_t count = 0;
 
@@ -130,14 +126,14 @@ export namespace deckard::utf8
 		bool in_regional_pair  = false;
 
 		size_t i = 0;
-		while (i < bytes.size())
+		while (i < buffer.size())
 		{
-			auto [cp, consumed] = utf8::decode_unchecked(bytes, i);
+			auto [cp, consumed] = utf8::decode_unchecked(buffer, i);
 			i += consumed;
 
 			const bool is_extend =
-			  is_variation_selector(cp) or is_skintone_modifier(cp) or is_zero_width_non_joiner(cp) or is_combining_mark(cp) or
-			  is_spacing_mark(cp) or is_tag_character(cp); 
+			  is_variation_selector(cp) or is_skintone_modifier(cp) or is_zero_width_non_joiner(cp) or
+			  is_combining_mark(cp) or is_spacing_mark(cp) or is_tag_character(cp);
 
 
 			if (count == 0)
@@ -148,7 +144,7 @@ export namespace deckard::utf8
 			{
 				// continue cluster
 			}
-			else if ( is_zero_width_joiner(cp) or is_extend) // GB9: Extend or ZWJ never breaks (continues current cluster)
+			else if (is_zero_width_joiner(cp) or is_extend) // GB9: Extend or ZWJ never breaks (continues current cluster)
 			{
 				// continue cluster
 			}
@@ -182,7 +178,7 @@ export namespace deckard::utf8
 		return count;
 	}
 
-	std::optional<size_t> length(std::span<const std::byte> buffer)
+	std::optional<size_t> length(std::span<const u8> buffer)
 	{
 		if (buffer.empty())
 			return 0uz;
@@ -281,11 +277,11 @@ export namespace deckard::utf8
 		return std::optional<size_t>{len};
 	}
 
-	auto length(std::string_view buffer) { return length(utf8::as_ro_bytes(buffer)); }
+	std::optional<size_t> length(std::string_view buffer) { return length(to_span(buffer)); }
 
-	auto length(const char* str, u32 len) { return length(utf8::as_ro_bytes(str, len)); }
+	// std::optional<size_t> length(const char* str, u32 len) { return length({as<const u8*>(str), len}); }
 
-	std::expected<bool, std::string> valid(std::span<const std::byte> buffer)
+	std::expected<void, std::string> valid(std::span<const u8> buffer)
 	{
 		auto location_at_index = [&](const size_t index)
 		{
@@ -395,24 +391,24 @@ export namespace deckard::utf8
 				return std::unexpected(std::format("Invalid leading byte at line {}, column {}", line, column));
 			}
 		}
-		return true;
+		return {};
 	}
 
 	bool is_valid(std::string_view buffer)
 	{
-		auto ret = valid(utf8::as_ro_bytes(buffer));
+		auto ret = valid(to_span(buffer));
 
 		return ret.has_value() == true;
 	}
 
-	bool is_valid(const char* str, u32 len)
-	{
-		auto ret = valid(utf8::as_ro_bytes(str, len));
+	// bool is_valid(const char* str, u32 len)
+	//{
+	//	auto ret = valid(utf8::as_ro_bytes(str, len));
+	//
+	//	return ret ? true : false;
+	// }
 
-		return ret ? true : false;
-	}
-
-	char32 decode_codepoint(std::span<const std::byte> buffer, u32 index = 0)
+	char32 decode_codepoint(std::span<const u8> buffer, u32 index = 0)
 	{
 		assert::check(index < buffer.size(), "Index out-of-bounds");
 
@@ -435,7 +431,7 @@ export namespace deckard::utf8
 		return REPLACEMENT_CHARACTER;
 	}
 
-	char32 decode_codepoint(std::string_view buffer) { return decode_codepoint(utf8::as_ro_bytes(buffer)); }
+	char32 decode_codepoint(std::string_view buffer) { return decode_codepoint(to_span(buffer)); }
 
 
 } // namespace deckard::utf8

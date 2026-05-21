@@ -53,12 +53,12 @@ export namespace deckard::utf8
 		return std::span<const std::byte>(first, first + static_cast<size_t>(len));
 	}
 
- [[nodiscard]] constexpr auto u8_at(std::span<const std::byte> s, size_t i) -> u8
+ [[nodiscard]] constexpr auto u8_at(std::span<const u8> s, size_t i) -> u8
 	{
 		return static_cast<u8>(s[i]);
 	}
 
-	[[nodiscard]] constexpr auto u8_data(std::span<const std::byte> s) -> const u8*
+	[[nodiscard]] constexpr auto u8_data(std::span<const u8> s) -> const u8*
 	{
 		if (s.empty())
 			return nullptr;
