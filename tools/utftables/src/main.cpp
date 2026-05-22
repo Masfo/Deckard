@@ -1,8 +1,13 @@
 
 import std;
+#include <assert.h>
 using i64 = std::int64_t;
-using u64 = std::uint64_t;
+
+using u8  = std::uint8_t;
+using u16  = std::uint16_t;
 using u32 = std::uint32_t;
+using u64 = std::uint64_t;
+
 
 
 namespace fs = std::filesystem;
@@ -308,21 +313,21 @@ std::vector<std::string> split_csv(std::string_view str, std::string_view delimi
 
 struct UnicodeDataField
 {
-	i64                   code_value{-1};                      // 0
-	std::string           character_name;                      // 1
-	GeneralCategory       category{-1};                        // 2
-	i64                   canonical_combining_classes{-1};     // 3
-	BiDirectionalCategory bidirectional_category{-1};          // 4
-	i64                   character_decomposition_mapping{-1}; // 5
-	i64                   decimal_digit_value{-1};             // 6
-	i64                   digit_value{-1};                     // 7
-	i64                   numeric_value{-1};                   // 8
-	i64                   mirrored{-1};                        // 9
-	std::string           unicode10_name;                      // 10. unicode 1.0 name
-	std::string           comment;                             // 11. 10646 comment field
-	i64                   uppercase_mapping{-1};               // 12.
-	i64                   lowercase_mapping{-1};               // 13
-	i64                   titlecase_mapping{-1};               // 14
+	i64                   code_value{-1};                  // 0
+	std::string           character_name;                  // 1
+	GeneralCategory       category{-1};                    // 2
+	i64                   canonical_combining_classes{-1}; // 3
+	BiDirectionalCategory bidirectional_category{-1};      // 4
+	std::vector<u32>      character_decomposed;            // 5
+	i64                   decimal_digit_value{-1};         // 6
+	i64                   digit_value{-1};                 // 7
+	i64                   numeric_value{-1};               // 8
+	i64                   mirrored{-1};                    // 9
+	std::string           unicode10_name;                  // 10. unicode 1.0 name
+	std::string           comment;                         // 11. 10646 comment field
+	i64                   uppercase_mapping{-1};           // 12.
+	i64                   lowercase_mapping{-1};           // 13
+	i64                   titlecase_mapping{-1};           // 14
 };
 
 UnicodeDataField parse_field(std::string_view line)
@@ -351,11 +356,23 @@ UnicodeDataField parse_field(std::string_view line)
 	field.category = to_GeneralCategory(split_line[2]);
 
 	// 3
-	auto combining                    = to_number<int>(split_line[3], 16);
+	auto combining                    = to_number<int>(split_line[3]);
 	field.canonical_combining_classes = combining ? *combining : -1;
 
 	// 4
 	field.bidirectional_category = to_BiDirectionalCategory(split_line[4]);
+
+	// 5
+	auto decomp_str = split_line[5];
+	if (not decomp_str.empty() and decomp_str[0] != '<')
+	{
+		auto decompose_split = split(decomp_str, " ");
+		for (const auto &dstr : decompose_split)
+		{
+			auto value = to_number<u32>(dstr, 16);
+			field.character_decomposed.push_back(*value);
+		}
+	}
 
 	// 8
 	field.numeric_value = to_number<i64>(split_line[8], 10).value_or(-1z);
@@ -378,6 +395,14 @@ UnicodeDataField parse_field(std::string_view line)
 
 	return field;
 }
+
+struct decompose_table
+{
+	std::vector<u32> to;
+	i64              ccc{0};
+};
+
+using DecomposeTable = std::map<i64, decompose_table>;
 
 struct char32_range
 {
@@ -513,8 +538,7 @@ void write_lines(CharacterNames &input, fs::path filename)
 	};
 
 
-	const RangeMap skip_ranges
-	{
+	const RangeMap skip_ranges{
 		{{0x3400, 0x4DBF}, "CJK Ideograph Extension A"},
 		{{0x4E00, 0x9FFF}, "CJK Ideograph"},
 		{{0xAC00, 0xD7A3}, "Hangul Syllable"},
@@ -701,6 +725,120 @@ void write_lines(const IntTable &table, const std::string &table_name, fs::path 
 	f.close();
 }
 
+void write_lines(DecomposeTable table, u32 max_decomposition, fs::path filename)
+{
+	constexpr size_t RESERVE_COUNT = 5000;
+	std::ofstream    f(filename);
+
+	std::vector<std::string> lines;
+	lines.reserve(RESERVE_COUNT);
+
+	lines.push_back(std::format("struct decomposed_entry {{\n"));
+	lines.push_back(std::format("\tuint32_t codepoint{{}};\n"));
+	lines.push_back(std::format("\tuint32_t mapping[{}]{{}};\n", max_decomposition));
+	lines.push_back(std::format("\tuint8_t len{{}};\n"));
+	lines.push_back(std::format("\tuint8_t ccc{{}};\n"));
+	lines.push_back(std::format("}};)\n"));
+	lines.push_back("\n");
+
+	// change line 7
+	lines.push_back(std::format("constexpr decomposed_entry decompose_table[] = {{\n"));
+
+
+	std::vector<u32> codepoints;
+	codepoints.reserve(RESERVE_COUNT);
+
+	std::vector<std::pair<u32, u64>> compressed_decomposition;
+	compressed_decomposition.reserve(RESERVE_COUNT);
+
+	u32 count{};
+	for (const auto [codepoint, decomp] : table)
+	{
+		auto [to, ccc] = decomp;
+
+		std::vector<u32> itable{};
+		itable.resize(max_decomposition);
+
+		for (const auto [index, entry] : to | std::views::enumerate)
+			itable[index] = entry;
+
+		if (not to.empty() or ccc > 0)
+		{
+			codepoints.push_back((u32)codepoint);
+			++count;
+
+			lines.push_back(std::format("{{ {:#0x}, {{", codepoint));
+
+			for (u32 i = 0; i < max_decomposition; ++i)
+			{
+				lines.push_back(std::format("{:#0x}{}", itable[i], i < max_decomposition - 1 ? "," : ""));
+			}
+			u64 v{};
+			v |= static_cast<u64>(ccc);             // 8-bits
+			v |= static_cast<u64>(to.size()) << 8; // 2 bits
+			v |= static_cast<u64>(itable[1]) << 10; // 21 bits
+			v |= static_cast<u64>(itable[0]) << 31; // 21 bits
+
+			// 0-7 8-bits                                9876543210 
+			// 8-9 2-bits
+			//                     1098765432109876543210  
+			// 0000000000000000000001111111111111111111112233333333
+
+			u8 dcc = static_cast<u8>(v & 0xFF);
+			u32 dsize = static_cast<u32>((v >> 8) & 0x03);
+			u32 dit1 = static_cast<u32>((v >> 10) & 0x1F'FFFF);
+			u32 dit0  = static_cast<u32>((v >> 31) & 0x1F'FFFF);
+
+			if (ccc != dcc or dsize != to.size() or dit0 != itable[0] or dit1 != itable[1])
+			{
+				std::println("{} error", codepoint);
+			}
+
+			compressed_decomposition.push_back({(u32)codepoint, v});
+	
+
+			lines.push_back(std::format("}}, {}, {:#0x} }},\n", to.size(), ccc));
+		}
+	}
+	lines.push_back("};\n");
+
+	lines[7] = std::format("constexpr decomposed_entry decompose_table[{}] = {{\n", count);
+
+	lines.push_back("\n\n");
+
+	// compressed version
+
+	lines.push_back("// compressed\n");
+	lines.push_back(std::format("struct compresseddecomposed_entry {{\n"));
+	lines.push_back(std::format("\tuint32_t codepoint{{}};\n"));
+	lines.push_back(std::format("\tuint64_t data{{}};\n"));
+	lines.push_back(std::format("}};)\n"));
+	lines.push_back("\n");
+	lines.push_back(std::format("constexpr compressed_decomposed_entry compressed_decompose_table[{}] = {{\n", count));
+
+	for (const auto &[codepoint, data] : compressed_decomposition)
+	{
+		lines.push_back(std::format("{{{:#0x}, {:#0x}}},\n", codepoint, data));
+	}
+	lines.push_back("};\n");
+
+
+	for (const auto &line : lines)
+		f << line;
+
+	f.flush();
+	f.close();
+
+
+	u32 chunks{0};
+	for (const auto chunk : codepoints | std::views::chunk_by([](u32 a, u32 b) { return b == a + 1; }))
+	{
+		// std::println("first: {:#0x}, last {:#0x}", *chunk.begin(), *std::prev(chunk.end()));
+		++chunks;
+	}
+	std::println("Chunk count: {}", chunks);
+}
+
 void process_core_properties()
 {
 	auto lines = read_lines("utf/DerivedCoreProperties.txt");
@@ -822,9 +960,12 @@ void process_unicode_data()
 	Characters     characters;
 	CharacterNames character_names;
 
+	DecomposeTable decomposetable;
 
 	// TODO: to_uppercase, to_lowercase mappings
 	// 0x41, 0x61  ; LATIN CAPITAL LETTER A -> LATIN SMALL LETTER A
+
+	u32 longest_decomposition = 0;
 	i64 first = 0, last = 0;
 
 
@@ -838,11 +979,24 @@ void process_unicode_data()
 		auto is = split_line.size();
 #endif
 
+
 		// TODO: detect ranges FIRST-LAST, write them to file
 		// like: if (codepoint >= 0x3400 and codepoint <= 0x4DBF) // "CJK Ideograph Extension A";
 
 		UnicodeDataField field{0};
 		field = parse_field(line);
+
+		longest_decomposition = std::max(longest_decomposition, (u32)field.character_decomposed.size());
+
+
+		// ---------------------------------------------------------------------------------
+
+		decomposetable[field.code_value] = {.to = field.character_decomposed, .ccc = field.canonical_combining_classes};
+
+		int x = 0;
+
+
+		//
 
 		auto name = field.character_name == "<control>" ? field.unicode10_name : field.character_name;
 		if (name.empty())
@@ -915,6 +1069,16 @@ void process_unicode_data()
 
 		//
 	}
+
+	std::println("Longest decomposition: {}", longest_decomposition);
+
+	// ASSERT: Check whats changes, as of Unicode 17, it been 2, in Unicode Canonical Decomposition.
+	assert(longest_decomposition <= 2);
+	// -----------------------------------
+
+	write_lines(decomposetable, longest_decomposition, "decompose_table.ixx");
+
+
 	// Force include some controls
 	whitespaces["whitespace"].push_back({0x09, 0x0D});     // controls
 	whitespaces["whitespace"].push_back({0x85, 0x85});     // NEXT LINE
