@@ -4,10 +4,9 @@ import std;
 using i64 = std::int64_t;
 
 using u8  = std::uint8_t;
-using u16  = std::uint16_t;
+using u16 = std::uint16_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
-
 
 
 namespace fs = std::filesystem;
@@ -775,18 +774,13 @@ void write_lines(DecomposeTable table, u32 max_decomposition, fs::path filename)
 			}
 			u64 v{};
 			v |= static_cast<u64>(ccc);             // 8-bits
-			v |= static_cast<u64>(to.size()) << 8; // 2 bits
-			v |= static_cast<u64>(itable[1]) << 10; // 21 bits
-			v |= static_cast<u64>(itable[0]) << 31; // 21 bits
+			v |= static_cast<u64>(to.size()) << 8;  // 2 bits	8
+			v |= static_cast<u64>(itable[1]) << 10; // 21 bits	10
+			v |= static_cast<u64>(itable[0]) << 31; // 21 bits  31
 
-			// 0-7 8-bits                                9876543210 
-			// 8-9 2-bits
-			//                     1098765432109876543210  
-			// 0000000000000000000001111111111111111111112233333333
-
-			u8 dcc = static_cast<u8>(v & 0xFF);
+			u8  dcc   = static_cast<u8>(v & 0xFF);
 			u32 dsize = static_cast<u32>((v >> 8) & 0x03);
-			u32 dit1 = static_cast<u32>((v >> 10) & 0x1F'FFFF);
+			u32 dit1  = static_cast<u32>((v >> 10) & 0x1F'FFFF);
 			u32 dit0  = static_cast<u32>((v >> 31) & 0x1F'FFFF);
 
 			if (ccc != dcc or dsize != to.size() or dit0 != itable[0] or dit1 != itable[1])
@@ -795,7 +789,7 @@ void write_lines(DecomposeTable table, u32 max_decomposition, fs::path filename)
 			}
 
 			compressed_decomposition.push_back({(u32)codepoint, v});
-	
+
 
 			lines.push_back(std::format("}}, {}, {:#0x} }},\n", to.size(), ccc));
 		}
