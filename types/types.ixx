@@ -271,6 +271,10 @@ export namespace deckard
 	};
 
 	export template<typename T>
+	concept character_type =
+	  std::is_same_v<T, char> or std::is_same_v<T, wchar_t> or std::is_same_v<T, char16_t> or std::is_same_v<T, char32_t>;
+
+	export template<typename T>
 	concept basic_container = requires(T cont) { requires std::ranges::range<T>; };
 
 
