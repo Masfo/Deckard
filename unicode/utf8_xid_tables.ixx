@@ -10,6 +10,8 @@ namespace deckard::utf8
 		char32_t end;
 	};
 
+	static_assert(sizeof char32_range == 8);
+
 	// Total size: 5528 + 6448 = 11976 bytes
 
 	// DerivedCoreProperties.txt
