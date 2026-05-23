@@ -655,7 +655,7 @@ void write_lines(Characters &input, fs::path filename)
 			comment = std::format("// {0}{1:c}{0}", is_escape ? "'" : "", id);
 
 		f << "\t";
-		f << std::format(R"(constexpr char32 {} = U'\u{:04X}';  {})", name, id, comment);
+		f << std::format(R"(constexpr char32 {} = u8'\u{:04X}';  {})", name, id, comment);
 		f << "\n";
 	}
 	f << "\n";
