@@ -97,7 +97,6 @@ if(MSVC)
 		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:
 			/JMC
 			/Od
-			/RTC1
 			/GS
 			/Zi
 			/FS
@@ -264,6 +263,7 @@ set(DECKARD_SRCS
 		
 		unicode/utf8string.ixx
 		unicode/utf8view.ixx
+		unicode/utf8_scanner.ixx
 		unicode/utf8_span.ixx
 
 		# Graph
@@ -332,7 +332,7 @@ set(DECKARD_SRCS
 
 
 		std.ixx
-  )
+)
 
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>

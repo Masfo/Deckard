@@ -37,8 +37,11 @@ namespace deckard
 		std::atomic<u64> index;
 		std::mutex       flush_mutex;
 		std::mutex       push_mutex;
+		std::mutex       init_mutex;
 
 		std::atomic<u64> total_buffer_size;
+		bool             suppress_init = false;
+		bool             initialized   = false;
 
 		fs::path logfile;
 
@@ -129,7 +132,11 @@ namespace deckard
 			push(std::vformat(fmt, std::make_format_args(args...)));
 		}
 
-		void initialize() { push("Deckard Log initialized at {} {}\n\n", day_month_year(), hour_minute_second()); }
+		void initialize()
+		{
+			if (not suppress_init)
+				push("Deckard Log initialized at {} {}\n\n", day_month_year(), hour_minute_second());
+		}
 
 		auto gen_log_filename() const
 		{
@@ -161,10 +168,25 @@ namespace deckard
 			logfile = gen_log_filename();
 
 			clean_older_logfiles();
-			initialize();
 		}
 
 		~logger() { save(); }
+
+		void set_suppress_init(bool suppress) { suppress_init = suppress; }
+
+		void ensure_initialized()
+		{
+			if (initialized)
+				return;
+
+			std::scoped_lock l(init_mutex);
+
+			if (initialized)
+				return;
+
+			initialize();
+			initialized = true;
+		}
 
 		void flush()
 		{
@@ -177,6 +199,7 @@ namespace deckard
 		template<typename... Args>
 		void operator()(std::string_view fmt, Args&&... args)
 		{
+			ensure_initialized();
 			push(fmt, args...);
 		}
 
