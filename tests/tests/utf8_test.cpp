@@ -5,6 +5,7 @@ import std;
 import deckard.utf8;
 import deckard.as;
 import deckard.types;
+
 using namespace deckard;
 using namespace deckard::utf8;
 using namespace std::string_view_literals;
@@ -21,7 +22,7 @@ TEST_CASE("utf8::ascii", "[utf8]")
 	{
 
 		{
-			std::array<std::byte, 3> buf{std::byte{0xF0}, std::byte{0x9F}, std::byte{0x98}}; // truncated 4-byte sequence
+			std::array<u8, 3> buf{u8{0xF0}, u8{0x9F}, u8{0x98}}; // truncated 4-byte sequence
 			std::vector<char32>      cps;
 			for (auto cp : utf8::yield_codepoints(buf))
 				cps.push_back(cp);
@@ -30,7 +31,7 @@ TEST_CASE("utf8::ascii", "[utf8]")
 		}
 
 		{
-			std::array<std::byte, 2> buf{std::byte{0x80}, std::byte{0x80}}; // two invalid standalone continuation bytes
+			std::array<u8, 2> buf{u8{0x80}, u8{0x80}}; // two invalid standalone continuation bytes
 			std::vector<char32>      cps;
 			for (auto cp : utf8::yield_codepoints(buf))
 				cps.push_back(cp);
@@ -96,7 +97,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 7);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 10);
-		CHECK(str.valid() == true);
+		CHECK(str.valid());
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
 	}
 
@@ -110,14 +111,14 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(a.length() == 7);
 		CHECK(a.empty() == false);
 		CHECK(a.size_in_bytes() == 10);
-		CHECK(a.valid() == true);
+		CHECK(a.valid());
 		CHECK(std::string(a.c_str()) == "hello 🌍"sv);
 
 		CHECK(b.size() == 7);
 		CHECK(b.length() == 7);
 		CHECK(b.empty() == false);
 		CHECK(b.size_in_bytes() == 10);
-		CHECK(b.valid() == true);
+		CHECK(b.valid());
 		CHECK(std::string(b.c_str()) == "hello 🌍"sv);
 
 		CHECK(a == b);
@@ -205,7 +206,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 7);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 10);
-		CHECK(str.valid() == true);
+		CHECK(str.valid());
 		CHECK(std::string(str.c_str()) == "hello 🌍"sv);
 		//
 
@@ -215,7 +216,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.length() == 5);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 5);
-		CHECK(str.valid() == true);
+		CHECK(str.valid());
 		CHECK(std::string(str.c_str()) == "hello"sv);
 		//
 	}
@@ -1071,7 +1072,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(str.length() == 14);
 		CHECK(str.empty() == false);
 		CHECK(str.size_in_bytes() == 23);
-		CHECK(str.valid() == true);
+		CHECK(str.valid());
 		//	CHECK(std::hash<utf8::string>{}(str) == 0x25);
 	}
 
@@ -1164,14 +1165,14 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		CHECK(str.size() == 13);
 		CHECK(str.capacity() == 31);
-		CHECK(str.valid() == true);
+		CHECK(str.valid());
 
 		{                                   // 1-byte
 			std::array<u8, 1> err = {0x21}; // !' U+0021
 			str.assign(err);
 			CHECK(str.size() == 1);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{                                         // 2-byte
@@ -1179,7 +1180,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			str.assign(err);
 			CHECK(str.size() == 1);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{                                               // 3-byte
@@ -1187,7 +1188,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			str.assign(err);
 			CHECK(str.size() == 1);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{                                                     // 4-byte
@@ -1195,7 +1196,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			str.assign(err);
 			CHECK(str.size() == 1);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{                                                     // 4-byte
@@ -1204,7 +1205,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			str.assign(err);
 			CHECK(str.size() == 1);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 	}
 
@@ -1225,7 +1226,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.size_in_bytes() == 5);
 			CHECK(str.length() == 5);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1242,7 +1243,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.size_in_bytes() == 3);
 			CHECK(str.length() == 2);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1260,7 +1261,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.length() == 3);
 			CHECK(str.graphemes() == 2);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1273,7 +1274,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.length() == 1);
 
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1286,7 +1287,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.length() == 2);
 
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 		{
 			// 9 bytes, 1 grapheme
@@ -1297,7 +1298,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.size_in_bytes() == 9);
 			CHECK(str.length() == 3);
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1316,11 +1317,11 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.size() == 3);
 			CHECK(str.graphemes() == 1);
 			CHECK(str.size_in_bytes() == 11);
-			CHECK(str.length() == 3); 
+			CHECK(str.length() == 3);
 			CHECK(str.graphemes() == 1);
 
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 		{
 			// 28-byte flag,
@@ -1330,7 +1331,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			utf8::string str(flag);
 			CHECK(str.length() == 7);
 			CHECK(str.graphemes() == 1);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 		{
 			// clang-format off
@@ -1348,7 +1349,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str.length() == 6);
 			CHECK(str.graphemes() == 4); // e + acute, l, o, 中 + diaeresis
 			CHECK(str.capacity() == 31);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 	}
 
@@ -1583,7 +1584,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			CHECK(str.size() == 1);
 			CHECK(str[0] == 0x7F);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1592,7 +1593,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			CHECK(str.size() == 1);
 			CHECK(str[0] == 0x80);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1601,7 +1602,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			CHECK(str.size() == 1);
 			CHECK(str[0] == 0x7FF);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1610,7 +1611,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			CHECK(str.size() == 1);
 			CHECK(str[0] == 0x800);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1619,7 +1620,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			CHECK(str.size() == 1);
 			CHECK(str[0] == 0xFFFF);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1628,7 +1629,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 			CHECK(str.size() == 1);
 			CHECK(str[0] == 0x1'0000);
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 
 		{
@@ -1639,7 +1640,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 			CHECK(str[0] == 'A');
 			CHECK(str[1] == 0);
 			CHECK(str[2] == 'B');
-			CHECK(str.valid() == true);
+			CHECK(str.valid());
 		}
 	}
 }
@@ -2498,12 +2499,12 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 
 		auto cp = it.try_codepoint();
 		CHECK(cp.has_value());
-		CHECK(cp.value() == U'h');
+		CHECK(cp.value() == u8'h');
 
 		++it;
 		cp = it.try_codepoint();
 		CHECK(cp.has_value());
-		CHECK(cp.value() == U'e');
+		CHECK(cp.value() == u8'e');
 	}
 
 	SECTION("multibyte codepoint")
@@ -2579,7 +2580,7 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 
 	SECTION("is valid codepoint")
 	{
-		char32 valid_char   = U'A';      // 0x0041
+		char32 valid_char   = u8'A';      // 0x0041
 		char32 emoji        = U'🚀';     // 0x1F680
 		char32 surrogate    = 0xD801;    // Invalid scalar
 		char32 out_of_range = 0x11'0000; // Invalid
@@ -2826,3 +2827,4 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 		CHECK(sentence_with_clusters.size() == 33);
 	}
 }
+
