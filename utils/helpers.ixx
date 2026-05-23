@@ -53,12 +53,11 @@ export namespace deckard
 #error ("Use std::meta::reflect instead");
 
 	template<typename E>
-	requires std::is_enum_v<E> 
+	requires std::is_enum_v<E>
 	constexpr std::string enum_to_string(E value)
 	{
 		std::string result = "<unnamed>";
-		[:expand(std::meta::enumerators_of(^E)):] >> 
-												  [&]<auto e>
+		[:expand(std::meta::enumerators_of(^E)):] >> [&]<auto e>
 		{
 			if (value == [:e:])
 			{
@@ -67,9 +66,7 @@ export namespace deckard
 		};
 		return result;
 	}
-	#endif
-
-
+#endif
 
 
 	template<size_t Count>
@@ -197,7 +194,7 @@ export namespace deckard
 			write_be<T>(buffer, offset + i * sizeof(T), data[i]);
 	}
 
-	// 
+	//
 
 	template<typename T>
 	concept ByteReinterpretable = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
@@ -217,9 +214,9 @@ export namespace deckard
 
 	// For arithmetic types: view a pre-computed big-endian array as a span
 	export template<arithmetic T>
-		requires (not std::same_as<T, bool>)
+	requires(not std::same_as<T, bool>)
 	[[nodiscard]] constexpr auto as_byte_span_be(std::array<std::byte, sizeof(T)> const& be_arr) noexcept
-		-> std::span<const std::byte>
+	  -> std::span<const std::byte>
 	{
 		return {be_arr.data(), be_arr.size()};
 	}
@@ -256,8 +253,7 @@ export namespace deckard
 		return std::bit_cast<T>(arr);
 	}
 
-
-	// 
+	//
 
 	auto clock_now() { return std::chrono::steady_clock::now(); }
 
@@ -267,22 +263,23 @@ export namespace deckard
 		const auto duration = clock_now() - start;
 		const auto took     = std::chrono::duration<f64, TimeType::period>(duration).count();
 
-#ifdef _DEBUG
-		if constexpr (std::is_same_v<TimeType, std::chrono::hours>)
-			dbg::println("{} took {:.6f} hrs", id, took);
-		else if constexpr (std::is_same_v<TimeType, std::chrono::minutes>)
-			dbg::println("{} took {:.6f} min", id, took);
-		else if constexpr (std::is_same_v<TimeType, std::chrono::seconds>)
-			dbg::println("{} took {:.6f} s", id, took);
-		else if constexpr (std::is_same_v<TimeType, std::chrono::milliseconds>)
-			dbg::println("{} took {} ms", id, (i64)(took));
-		else if constexpr (std::is_same_v<TimeType, std::chrono::microseconds>)
-			dbg::println("{} took {} us", id, (i64)(took));
-		else if constexpr (std::is_same_v<TimeType, std::chrono::nanoseconds>)
-			dbg::println("{} took {} ns", id, (i64)(took));
-		else
-			dbg::println("{} took {} (unknown) ", id, (i64)(took));
-#endif
+		if constexpr (is_debug_build)
+		{
+			if constexpr (std::is_same_v<TimeType, std::chrono::hours>)
+				dbg::println("{} took {:.6f} hrs", id, took);
+			else if constexpr (std::is_same_v<TimeType, std::chrono::minutes>)
+				dbg::println("{} took {:.6f} min", id, took);
+			else if constexpr (std::is_same_v<TimeType, std::chrono::seconds>)
+				dbg::println("{} took {:.6f} s", id, took);
+			else if constexpr (std::is_same_v<TimeType, std::chrono::milliseconds>)
+				dbg::println("{} took {} ms", id, (i64)(took));
+			else if constexpr (std::is_same_v<TimeType, std::chrono::microseconds>)
+				dbg::println("{} took {} us", id, (i64)(took));
+			else if constexpr (std::is_same_v<TimeType, std::chrono::nanoseconds>)
+				dbg::println("{} took {} ns", id, (i64)(took));
+			else
+				dbg::println("{} took {} (unknown) ", id, (i64)(took));
+		}
 	}
 
 	// to_hex
@@ -879,7 +876,6 @@ export namespace deckard
 
 		return std::ranges::equal(a, b);
 	}
-
 
 	// ##############################################################################
 	// ##############################################################################
@@ -1562,6 +1558,7 @@ export namespace deckard
 		return count_digits(as<u64>(v < 0 ? -v : v));
 	}
 #endif
+
 	template<arithmetic T>
 	constexpr auto split_digit(T v) -> std::pair<T, T>
 	{

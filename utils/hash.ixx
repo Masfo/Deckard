@@ -11,6 +11,7 @@ import deckard_build;
 import deckard.types;
 import deckard.as;
 import deckard.helpers;
+import deckard.debug;
 import std;
 
 namespace deckard::utils
@@ -199,11 +200,14 @@ namespace deckard::utils
 	export u64 siphash(std::span<u8> buffer)
 	{
 #ifdef _DEBUG
+
 		// key from random.org
 		constexpr static std::array<u8, 16> key = {
 		  0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
 		return siphash(std::span<u8, 16>{(u8*)key.data(), key.size()}, buffer);
+
 #else
+
 		return siphash(std::span<u8, 16>{(u8*)deckard_build::build::rng_buffer, 16}, buffer);
 #endif
 	}
@@ -515,7 +519,8 @@ namespace deckard::utils
 
 			if (total_len_ >= 32)
 			{
-				hash = std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
+				hash =
+				  std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
 
 				for (u64 acc : state_)
 				{
@@ -534,8 +539,8 @@ namespace deckard::utils
 			hash += total_len_;
 
 			auto buffer_span = std::span<const u8>{buffer_.data(), buffer_size_};
-			auto remaining  = buffer_span.size();
-			auto ptr        = buffer_span.data();
+			auto remaining   = buffer_span.size();
+			auto ptr         = buffer_span.data();
 
 			while (remaining >= 8)
 			{
@@ -639,8 +644,5 @@ namespace deckard::utils
 export template<>
 struct std::hash<deckard::utils::xxhash64_hasher>
 {
-	[[nodiscard]] size_t operator()(const deckard::utils::xxhash64_hasher& hasher) const noexcept
-	{
-		return hasher.digest();
-	}
+	[[nodiscard]] size_t operator()(const deckard::utils::xxhash64_hasher& hasher) const noexcept { return hasher.digest(); }
 };

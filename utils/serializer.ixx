@@ -12,7 +12,7 @@ namespace deckard
 	// TODO: append bitreader/writers
 	// TODO: limit array/string to 16-bit max?
 
-#ifdef _DEBUG
+
 	enum class serialize_type : u8
 	{
 		boolean,
@@ -83,7 +83,6 @@ namespace deckard
 			return serialize_type::array;
 	}
 
-#endif
 
 	export enum class padding : u8 { yes, no };
 
@@ -537,7 +536,7 @@ namespace deckard
 			align_to_byte_offset(readpos);
 			const size_t start = byte_index(readpos);
 			const size_t count = remaining();
-			readpos = buffer.size() * 8; // Move read position to end
+			readpos            = buffer.size() * 8; // Move read position to end
 			return std::span<const u8>{buffer.data() + start, count};
 		}
 

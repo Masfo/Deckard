@@ -6,12 +6,13 @@ export module deckard.debug;
 
 import std;
 import deckard.types;
-//import deckard.log;
-using namespace deckard;
-using namespace std::string_view_literals;
+// import deckard.log;
 
-//export deckard::log::log_to_file global_log;
 
+// export deckard::log::log_to_file global_log;
+
+// debug_null defines it false
+export constexpr bool is_debug_build = true;
 
 void output_message(const std::string_view message)
 {
@@ -20,7 +21,7 @@ void output_message(const std::string_view message)
 
 	OutputDebugStringA(message.data());
 
-	//log::global_log.log(message);
+	// log::global_log.log(message);
 }
 
 void error_output_message(const std::string_view message)
@@ -183,10 +184,8 @@ export namespace deckard::dbg
 
 		for (const auto& traceline : traces)
 		{
-			#ifdef _DEBUG
 			if (traceline.source_file().contains("catch2"))
 				continue;
-			#endif
 
 			if (traceline.source_file().contains(std::string_view{__FILE__}))
 				continue;
@@ -202,7 +201,10 @@ export namespace deckard::dbg
 		println("\n{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
 	}
 
-	void trace(const std::source_location& loc = std::source_location::current()) { println("\n{}({}):"sv, loc.file_name(), loc.line()); }
+	void trace(const std::source_location& loc = std::source_location::current())
+	{
+		println("\n{}({}):"sv, loc.file_name(), loc.line());
+	}
 
 	void trace(FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
 

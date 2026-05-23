@@ -43,10 +43,11 @@ namespace deckard::random
 		return (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31));
 	}
 
-
 #ifdef _DEBUG
 	pcg32_random_t pcg_state = {0x853c'49e6'748f'ea9bULL, 0xda3e'39cb'94b9'5bdbULL};
+
 #else
+
 	pcg32_random_t pcg_state = {deckard_build::build::random_seed, deckard_build::build::version};
 #endif
 
@@ -70,10 +71,10 @@ namespace deckard::random
 	export class splitmix64
 	{
 	private:
-#ifndef _DEBUG
-		u64 state{deckard_build::build::random_seed};
-#else
+#ifdef _DEBUG
 		u64 state{0xdead'beef'1234'5678ULL};
+#else
+		u64 state{deckard_build::build::random_seed};
 #endif
 
 		constexpr void seed_from(u64 seed)

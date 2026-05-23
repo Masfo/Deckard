@@ -133,10 +133,6 @@ namespace deckard::cpuid
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{
-#if 1
-		if (!has_cpuid())
-			return {0, 0, 0, 0};
-#endif
 
 		std::array<u32, 4> regs{0};
 		__cpuid(std::bit_cast<i32*>(regs.data()), id);
@@ -145,10 +141,6 @@ namespace deckard::cpuid
 
 	export auto cpuidex(int id, int leaf) -> std::array<u32, 4>
 	{
-#if 0
-		if (!has_cpuid())
-			return {0, 0, 0, 0};
-#endif
 
 		std::array<u32, 4> regs{0};
 		__cpuidex(std::bit_cast<i32*>(regs.data()), id, leaf);

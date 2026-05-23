@@ -83,9 +83,11 @@ namespace deckard
 		void push(std::string_view str)
 		{
 
-#ifdef _DEBUG
-			dbg::println("{}", str);
-#endif
+			if constexpr (is_debug_build)
+			{
+				dbg::println("{}", str);
+			}
+
 			std::scoped_lock l(push_mutex);
 
 			u64 needed = str.size() + 1; // message + newline

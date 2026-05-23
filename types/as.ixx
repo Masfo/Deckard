@@ -13,36 +13,36 @@ namespace deckard
 	template<typename T, typename U>
 	void warn_cast_limit([[maybe_unused]] U value, [[maybe_unused]] const std::source_location& loc)
 	{
-#ifdef _DEBUG
-		dbg::trace(loc);
-
-
-		T casted = static_cast<T>(value);
-
-
-		if constexpr (std::is_floating_point_v<U>)
+		if constexpr (is_debug_build)
 		{
-			dbg::println(
-			  "Unable to cast '{:f}' safely. Target range is {}...{}, cast to '{}'",
+			dbg::trace(loc);
+
+
+			T casted = static_cast<T>(value);
+
+
+			if constexpr (std::is_floating_point_v<U>)
+			{
+				dbg::println(
+				  "Unable to cast '{:f}' safely. Target range is {}...{}, cast to '{}'",
 				  value,
-			  std::numeric_limits<T>::min(),
-			  std::numeric_limits<T>::max(),
-			  casted);
-			return;
-		}
+				  std::numeric_limits<T>::min(),
+				  std::numeric_limits<T>::max(),
+				  casted);
+				return;
+			}
 
-		if constexpr (std::is_unsigned_v<U>)
-		{
-			dbg::println(
-			  "Unable to cast '{}' safely. Target range is {}...{}, cast to '{}'",
+			if constexpr (std::is_unsigned_v<U>)
+			{
+				dbg::println(
+				  "Unable to cast '{}' safely. Target range is {}...{}, cast to '{}'",
 				  static_cast<u64>(value),
-			  std::numeric_limits<T>::min(),
-			  std::numeric_limits<T>::max(),
-			  casted);
+				  std::numeric_limits<T>::min(),
+				  std::numeric_limits<T>::max(),
+				  casted);
+			}
 		}
-#endif
 	}
-
 
 #pragma warning(push)
 #pragma warning(disable : 4172) // returning address of local
@@ -56,15 +56,17 @@ namespace deckard
 		// pointers
 		if constexpr (std::is_pointer_v<U> and std::is_pointer_v<Ret>)
 		{
-#ifdef _DEBUG
-			if (value == nullptr)
+			if constexpr (is_debug_build)
 			{
-				dbg::trace(loc);
-				dbg::panic("Pointer is null");
+				if (value == nullptr)
+				{
+					dbg::trace(loc);
+					dbg::panic("Pointer is null");
+				}
 			}
-#endif
 			return (Ret)u;
 		}
+
 		else if constexpr (std::is_pointer_v<Ret> and std::is_integral_v<U>)
 		{
 			return reinterpret_cast<Ret>(u);
@@ -97,8 +99,9 @@ namespace deckard
 
 				if (static_cast<f64>(new_value) != value)
 				{
-					dbg::println(
-					  "Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.", value, new_value);
+					dbg::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.",
+								 value,
+								 new_value);
 				}
 				return new_value;
 			}
@@ -117,13 +120,15 @@ namespace deckard
 		else if constexpr (std::is_integral_v<U> and std::is_integral_v<Ret>)
 		{
 			// integer -> integer
-#ifdef _DEBUG
-			if (std::in_range<Ret>(value))
-				return static_cast<Ret>(value);
+			if constexpr (is_debug_build)
+			{
 
-			if constexpr (give_warning)
-				warn_cast_limit<Ret>(u, loc);
-#endif
+				if (std::in_range<Ret>(value))
+					return static_cast<Ret>(value);
+
+				if constexpr (give_warning)
+					warn_cast_limit<Ret>(u, loc);
+			}
 			return static_cast<Ret>(value);
 		}
 		else if constexpr (std::is_floating_point_v<U> and std::is_integral_v<Ret>)
@@ -132,25 +137,27 @@ namespace deckard
 			if (value >= std::numeric_limits<Ret>::min() and value <= std::numeric_limits<Ret>::max())
 				return static_cast<Ret>(value);
 
-#ifdef _DEBUG
-			if constexpr (give_warning)
-				warn_cast_limit<Ret>(value, loc);
-#endif
+			if constexpr (is_debug_build)
+			{
+				if constexpr (give_warning)
+					warn_cast_limit<Ret>(value, loc);
+			}
 			return static_cast<Ret>(u);
 		}
 		else if constexpr (std::is_arithmetic_v<Ret> and (std::is_same_v<U, char*> or std::is_same_v<U, const char*>))
 		{
 			// char* -> arithmetic
 			std::string_view str{value};
-			auto v = try_to_number<Ret>(str, base);
+			auto             v = try_to_number<Ret>(str, base);
 			if (v)
 				return *v;
-#ifdef _DEBUG
-			if constexpr (give_warning)
+			if constexpr (is_debug_build)
 			{
-				dbg::trace(loc);
+				if constexpr (give_warning)
+				{
+					dbg::trace(loc);
+				}
 			}
-#endif
 			dbg::panic(std::format("Could not convert string to arithmetic: '{}'", str));
 		}
 		else if constexpr (std::is_arithmetic_v<Ret> and string_like_container<U>)
@@ -159,13 +166,13 @@ namespace deckard
 			auto v = try_to_number<Ret>(value, base);
 			if (v)
 				return *v;
-
-#ifdef _DEBUG
-			if constexpr (give_warning)
+			if constexpr (is_debug_build)
 			{
-				dbg::trace(loc);
+				if constexpr (give_warning)
+				{
+					dbg::trace(loc);
+				}
 			}
-#endif
 			dbg::panic(std::format("Could not convert string to arithmetic: '{}'", value));
 		}
 		else if constexpr (std::is_integral_v<U> and std::is_same_v<Ret, std::string>)
@@ -174,12 +181,14 @@ namespace deckard
 			auto v = try_to_string<U>(value, base);
 			if (v)
 				return *v;
-#ifdef _DEBUG
-			if constexpr (give_warning)
+
+			if constexpr (is_debug_build)
 			{
-				dbg::trace(loc);
+				if constexpr (give_warning)
+				{
+					dbg::trace(loc);
+				}
 			}
-#endif
 			dbg::panic(std::format("Could not convert integral to string: {}", value));
 		}
 		else if constexpr (std::is_same_v<std::span<const u8>, U> or std::is_same_v<std::span<u8>, U>)
@@ -193,18 +202,18 @@ namespace deckard
 		}
 		else
 		{
-#ifdef _DEBUG
-			if constexpr (give_warning)
+			if constexpr (is_debug_build)
 			{
-				dbg::println("fallback <as> {}({})", loc.file_name(), loc.line());
+				if constexpr (give_warning)
+				{
+					dbg::println("fallback <as> {}({})", loc.file_name(), loc.line());
+				}
 			}
-#endif
 			return static_cast<Ret>(u);
 		}
 	}
 
 #pragma warning(pop)
-
 
 	export template<typename T = u64, typename U>
 	T address(const U* address)

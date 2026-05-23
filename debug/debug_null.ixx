@@ -1,6 +1,5 @@
 module;
 #include <Windows.h>
-#include <cstdio>
 
 
 export module deckard.debug;
@@ -8,18 +7,18 @@ export module deckard.debug;
 import std;
 using namespace std::string_view_literals;
 
-void output_message(const std::string_view message) 
-{ std::print(std::cout, "{}"sv, message); }
+// debug.ixx defines this true
+export constexpr bool is_debug_build = false;
+
+void output_message(const std::string_view message) { std::print(std::cout, "{}"sv, message); }
 
 void error_output_message(const std::string_view message) { std::print(std::cerr, "{}"sv, message); }
-
 
 template<typename... Args>
 auto format(std::string_view fmt, Args&&... args)
 {
 	return std::vformat(fmt, std::make_format_args(args...));
 }
-
 
 struct alignas(64) FormatLocation
 {
@@ -47,7 +46,7 @@ export namespace deckard::dbg
 	void breakpoint() { }
 
 	template<typename... Args>
-	void print(std::string_view fmt, Args&&...args)
+	void print(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 			output_message(format(fmt, args...));
@@ -57,7 +56,7 @@ export namespace deckard::dbg
 
 	// println
 	template<typename... Args>
-	void println(std::string_view fmt, Args&&...args)
+	void println(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 		{
@@ -73,7 +72,7 @@ export namespace deckard::dbg
 
 	// eprintln
 	template<typename... Args>
-	void eprintln(std::string_view fmt, Args&&...args)
+	void eprintln(std::string_view fmt, Args&&... args)
 	{
 		if constexpr (sizeof...(Args) > 0)
 		{
@@ -92,9 +91,9 @@ export namespace deckard::dbg
 	{
 	}
 
-	std::string who_called_me() { }
+	std::string who_called_me() { return {}; }
 
-	void stacktrace(std::string_view) { }
+	void stacktrace() { }
 
 	// trace
 	template<typename... Args>

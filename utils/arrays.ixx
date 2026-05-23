@@ -12,7 +12,6 @@ import deckard.file;
 import deckard.function_ref;
 import deckard.helpers;
 
-
 namespace deckard
 {
 	using namespace deckard::math;
@@ -56,7 +55,10 @@ namespace deckard
 
 		T& operator[](const u32 x, const u32 y) { return at(x, y); }
 
-		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
+		bool valid(const u32 x, const u32 y) const
+		{
+			return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height);
+		}
 
 		bool valid(const ivec2& v) const { return valid(v.x, v.y); }
 
@@ -137,50 +139,52 @@ namespace deckard
 
 		void dump() const
 		{
-#ifdef _DEBUG
-			constexpr u32 MIN_DUMPSIZE = 256;
 
-			u32 w = std::min(width(), MIN_DUMPSIZE);
-
-
-			u32 maxunit{1};
-			for (i32 i : upto(count_digits(w) - 1))
-				maxunit *= 10;
-
-			i32 dwidth = count_digits(w);
-
-			for (int units = maxunit; units >= 1; units /= 10)
+			if constexpr (is_debug_build)
 			{
-				dbg::print("{:{}}", "", dwidth + 2);
+				constexpr u32 MIN_DUMPSIZE = 256;
 
-				for (int i : upto(w))
+				u32 w = std::min(width(), MIN_DUMPSIZE);
+
+
+				u32 maxunit{1};
+				for (i32 i : upto(count_digits(w) - 1))
+					maxunit *= 10;
+
+				i32 dwidth = count_digits(w);
+
+				for (int units = maxunit; units >= 1; units /= 10)
 				{
-					int dv = i / units;
-					if (units == 1)
-						dbg::print("{}", i % 10);
-					else
+					dbg::print("{:{}}", "", dwidth + 2);
+
+					for (int i : upto(w))
 					{
-						if (i < units)
-							dbg::print(" ");
+						int dv = i / units;
+						if (units == 1)
+							dbg::print("{}", i % 10);
 						else
-							dbg::print("{}", dv % 10);
+						{
+							if (i < units)
+								dbg::print(" ");
+							else
+								dbg::print("{}", dv % 10);
+						}
 					}
+					dbg::println();
+				}
+
+
+				for (u32 y = 0; y < height(); y++)
+				{
+					dbg::print("{:0{}}. ", y, dwidth);
+
+					for (u32 x = 0; x < width(); x++)
+						dbg::print("{:}", static_cast<char>(get(x, y)));
+
+					dbg::println();
 				}
 				dbg::println();
 			}
-
-
-			for (u32 y = 0; y < height(); y++)
-			{
-				dbg::print("{:0{}}. ", y, dwidth);
-
-				for (u32 x = 0; x < width(); x++)
-					dbg::print("{:}", static_cast<char>(get(x, y)));
-
-				dbg::println();
-			}
-			dbg::println();
-#endif
 		}
 
 		operator hash_type() const noexcept { return hash(); }
@@ -236,7 +240,10 @@ namespace deckard
 
 		array2d(u32 w, u32 h) { resize(w, h); }
 
-		bool valid(const u32 x, const u32 y) const { return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height); }
+		bool valid(const u32 x, const u32 y) const
+		{
+			return (x >= 0 && x < m_extent.width) && (y >= 0 && y < m_extent.height);
+		}
 
 		bool operator[](const u32 index) const { return (m_data[index / 8] >> (index % 8)) & 1; }
 
@@ -292,7 +299,7 @@ namespace deckard
 #if 0
 		void dump()
 		{
-#ifdef _DEBUG
+if constexpr (is_debug_build){
 			constexpr u32 MIN_DUMPSIZE = 256;
 
 			u32 width  = std::min(width(), MIN_DUMPSIZE);
@@ -336,7 +343,7 @@ namespace deckard
 				dbg::println();
 			}
 			dbg::println();
-#endif
+}
 		}
 #endif
 
