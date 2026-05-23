@@ -13,6 +13,7 @@ import deckard.as;
 
 namespace deckard::utf8
 {
+	export class string;
 
 	export class view
 	{
@@ -92,6 +93,8 @@ namespace deckard::utf8
 		{
 		}
 
+		view(const string&) noexcept; // in utf8.ixx
+
 		view(std::string_view data)
 			: m_data{reinterpret_cast<const u8*>(data.data()), data.size()}
 			, byte_index(0uz)
@@ -143,17 +146,9 @@ namespace deckard::utf8
 			return ret ? as<size_t>(*ret) : 0;
 		}
 
-		auto c_str() const
-		{
-			if (empty())
-				return "";
-
-			return as<const char*>(m_data.data());
-		}
-
 		size_t size() const { return length(); }
 
-		constexpr bool empty() const { return size() == 0uz; }
+		constexpr bool empty() const noexcept { return m_data.empty(); }
 
 		bool is_valid() const
 		{
@@ -830,8 +825,6 @@ namespace deckard::utf8
 	// ############################################################################################
 
 
-	export class string;
-
 	namespace v2
 	{
 
@@ -1060,7 +1053,6 @@ namespace deckard::utf8
 
 			// implemented in utf8.ixx
 			[[nodiscard]] string sub_str(size_t codepoint_offset, size_t codepoint_count = npos) const;
-
 
 			// Comparison and search operators
 			[[nodiscard]] bool operator==(const view& other) const { return std::ranges::equal(m_data, other.m_data); }

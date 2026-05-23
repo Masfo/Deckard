@@ -44,7 +44,7 @@ namespace deckard::utf8
 
 		using difference_type = difference_type;
 
-		using iterator_category               = std::random_access_iterator_tag;
+		using iterator_category               = std::bidirectional_iterator_tag;
 		constexpr static difference_type npos = limits::max<difference_type>;
 
 	private:
@@ -324,7 +324,7 @@ namespace deckard::utf8
 			buffer.assign(start.ptr->data().subspan(start_index, end_index - start_index));
 		}
 
-		string(std::span<u8> input) { buffer.assign(input); }
+		string(std::span<const u8> input) { buffer.assign(input); }
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
@@ -333,13 +333,13 @@ namespace deckard::utf8
 		template<size_t N>
 		string(std::array<u8, N>& input)
 		{
-			buffer.assign(std::span<u8>{input.data(), N});
+			buffer.assign(std::span<const u8>{input.data(), N});
 		}
 
 		template<size_t N>
 		string(const std::array<u8, N>& input)
 		{
-			buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), N});
+			buffer.assign(std::span<const u8>{const_cast<u8*>(input.data()), N});
 		}
 
 		explicit string(const view& v) { *this = v; }
@@ -347,7 +347,7 @@ namespace deckard::utf8
 		explicit string(const v2::view& v)
 		{
 			auto raw = v.data();
-			buffer.assign(std::span<u8>{const_cast<u8*>(raw.data()), raw.size()});
+			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
 		}
 
 		string& operator=(std::string_view input)
@@ -364,7 +364,7 @@ namespace deckard::utf8
 				return *this;
 			}
 			auto raw = input.data();
-			buffer.assign(std::span<u8>{const_cast<u8*>(raw.data()), raw.size()});
+			buffer.assign(std::span<const u8>{raw.data(), raw.size()});
 			return *this;
 		}
 
@@ -383,13 +383,13 @@ namespace deckard::utf8
 
 		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const { return at(index); }
 
-		bool operator==(std::span<u8> other) const
+		bool operator==(std::span<const u8> other) const
 		{
 			if (buffer.size() != other.size())
 				return false;
 
 
-			for (u32 i = 0; i < other.size(); i++)
+			for (size_t i = 0; i < other.size(); i++)
 			{
 				if (buffer[i] != other[i])
 					return false;
@@ -403,7 +403,7 @@ namespace deckard::utf8
 				return false;
 
 
-			for (u32 i = 0; i < buffer.size(); i++)
+			for (size_t i = 0; i < buffer.size(); i++)
 			{
 				if (buffer.at(i) != other.buffer.at(i))
 					return false;
@@ -414,7 +414,7 @@ namespace deckard::utf8
 		bool operator==(std::string_view str) const { return operator==(view(str)); }
 
 		// insert
-		iterator insert(iterator pos, std::span<u8> input)
+		iterator insert(iterator pos, std::span<const u8> input)
 		{
 			if (input.empty())
 				return pos;
@@ -448,9 +448,9 @@ namespace deckard::utf8
 		}
 
 		//
-		void assign(const char* str) { buffer.assign(std::span<u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); }
+		void assign(const char* str) { buffer.assign(std::span<const u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); }
 
-		void assign(std::span<const u8> input) { buffer.assign(std::span<u8>{const_cast<u8*>(input.data()), input.size()}); }
+		void assign(std::span<const u8> input) { buffer.assign(std::span<const u8>{const_cast<u8*>(input.data()), input.size()}); }
 
 		void assign(unit u)
 		{
@@ -554,7 +554,7 @@ namespace deckard::utf8
 				return *this;
 			}
 			auto raw = input.data();
-			buffer.assign(std::span<u8>{const_cast<u8*>(raw.data()), raw.size()});
+			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
 			return *this;
 		}
 
@@ -689,7 +689,7 @@ namespace deckard::utf8
 			return replace(first, end, v);
 		}
 
-		std::optional<codepoint_type> find(std::span<u8> input, size_t offset = 0) const
+		std::optional<codepoint_type> find(std::span<const u8> input, size_t offset = 0) const
 		{
 			if (input.empty() || offset > buffer.size() || input.size() > buffer.size() - offset)
 				return {};
@@ -726,7 +726,7 @@ namespace deckard::utf8
 
 		auto find(std::string_view input, size_t offset = 0) const
 		{
-			return find(std::span<u8>{as<u8*>(input.data()), input.size()}, offset);
+			return find(std::span<const u8>{as<u8*>(input.data()), input.size()}, offset);
 		}
 
 		std::optional<codepoint_type> find(string input, size_t offset = 0) const
@@ -765,7 +765,7 @@ namespace deckard::utf8
 			return {};
 		}
 
-		bool contains(std::span<u8> input) const
+		bool contains(std::span<const u8> input) const
 		{
 			if (input.empty() || input.size() > buffer.size())
 				return false;
@@ -779,14 +779,14 @@ namespace deckard::utf8
 			return false;
 		}
 
-		bool contains(std::string_view str) const { return contains(std::span<u8>{as<u8*>(str.data()), str.size()}); }
+		bool contains(std::string_view str) const { return contains(std::span<const u8>{as<u8*>(str.data()), str.size()}); }
 
 		bool contains(string str) const { return contains(str.data()); }
 
 		bool contains(const view v) const { return find(v.as_string_view()).has_value(); }
 
 		// starts with
-		bool starts_with(std::span<u8> input) const
+		bool starts_with(std::span<const u8> input) const
 		{
 			if (input.empty())
 				return true;
@@ -803,11 +803,11 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool starts_with(std::string_view str) const { return starts_with(std::span<u8>{as<u8*>(str.data()), str.size()}); }
+		bool starts_with(std::string_view str) const { return starts_with(std::span<const u8>{as<u8*>(str.data()), str.size()}); }
 
 		bool starts_with(const view v) const
 		{
-			return starts_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()});
+			return starts_with(std::span<const u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()});
 		}
 
 		bool starts_with(const string& str) const
@@ -836,7 +836,7 @@ namespace deckard::utf8
 		}
 
 		// ends with
-		bool ends_with(std::span<u8> input) const
+		bool ends_with(std::span<const u8> input) const
 		{
 			if (input.empty())
 				return true;
@@ -854,13 +854,13 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool ends_with(std::string_view str) const { return ends_with(std::span<u8>{as<u8*>(str.data()), str.size()}); }
+		bool ends_with(std::string_view str) const { return ends_with(std::span<const u8>{as<u8*>(str.data()), str.size()}); }
 
 		bool ends_with(string str) const { return ends_with(str.data()); }
 
 		bool ends_with(const view v) const
 		{
-			return ends_with(std::span<u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()});
+			return ends_with(std::span<const u8>{const_cast<u8*>(v.data().data()), v.size_in_bytes()});
 		}
 
 		codepoint_type front() const
@@ -966,7 +966,7 @@ namespace deckard::utf8
 
 		// start index of character, count of characters
 		// returns raw bytes of the string
-		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<u8>
+		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<const u8>
 		{
 			if (start == size())
 				return {};
@@ -974,7 +974,7 @@ namespace deckard::utf8
 			assert::check(start < size(), "Indexing out-of-bounds");
 
 			if (empty())
-				return std::span<u8>{};
+				return std::span<const u8>{};
 
 			// Find byte index of start position
 			auto it = begin();
@@ -982,7 +982,7 @@ namespace deckard::utf8
 				++it;
 
 			if (it == end())
-				return std::span<u8>{};
+				return std::span<const u8>{};
 
 			auto start_byte = it.byteindex();
 			// Count N codepoints forward

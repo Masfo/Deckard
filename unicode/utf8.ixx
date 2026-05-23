@@ -17,7 +17,14 @@ namespace deckard::utf8
 {
 	// to avoid circular modules
 
-	export [[nodiscard]] string v2::view::sub_str(size_t codepoint_offset, size_t codepoint_count) const
+
+	view::view(const string& u8str) noexcept
+		: m_data{u8str.span()}
+		, byte_index{0uz}
+	{
+	}
+
+	[[nodiscard]] string v2::view::sub_str(size_t codepoint_offset, size_t codepoint_count) const
 	{
 		const size_t total_bytes = m_data.size_bytes();
 		if (total_bytes == 0 or codepoint_count == 0)
