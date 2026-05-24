@@ -234,9 +234,19 @@ namespace deckard::utf8
 				: m_data(str.subspan())
 			{
 			}
+			constexpr view(const view&) = default;
+
+			constexpr view& operator=(const view&) = default;
+			constexpr view& operator=(view&&)      = default;
+			constexpr view(view&&)                 = default;
+			constexpr ~view()                      = default;
+
+
 
 			constexpr view(const string&) noexcept;
-			constexpr view(const string&, size_t) noexcept;
+			constexpr view(const string&, size_t) noexcept; // from 0 to length-1 codepoints
+			constexpr view(const string&, size_t, size_t) noexcept; // from start index, length in codepoints
+
 
 			[[nodiscard]] constexpr iterator begin() const noexcept { return iterator(m_data, 0uz); }
 

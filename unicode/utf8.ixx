@@ -24,10 +24,15 @@ namespace deckard::utf8
 	}
 
 	constexpr v1::view::view(const string& u8str, size_t length) noexcept
-		
-	{ 
-		*this = u8str.subview(0, length);
+		: view(u8str, 0, length)
+	{
 	}
+
+	constexpr v1::view::view(const string& u8str, size_t offset, size_t length) noexcept
+	{
+		m_data = u8str.subspan(offset, length);
+	}
+
 
 	[[nodiscard]] string v1::view::sub_str(size_t codepoint_offset, size_t codepoint_count) const
 	{

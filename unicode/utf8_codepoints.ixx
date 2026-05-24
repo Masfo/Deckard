@@ -63,6 +63,24 @@ namespace deckard::utf8
 		return 0;
 	}
 
+	export constexpr u32 codepoint_width(char32 codepoint)
+	{
+		if (codepoint <= 0x7F)
+			return 1;
+		if (codepoint <= 0x7FF)
+			return 2;
+		if (codepoint <= 0xFFFF)
+			return 3;
+		if (codepoint <= 0x10'FFFF)
+			return 4;
+
+		//if (codepoint <= 0x3FF'FFFF)
+		//	return 5;
+		//if (codepoint <= 0x7FFF'FFFF)
+		//	return 6;
+		return 0;
+	}
+
 	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
 	export constexpr bool start_with_bom(const std::span<const u8> buffer)
@@ -259,4 +277,3 @@ namespace deckard::utf8
 
 
 } // namespace deckard::utf8
-
