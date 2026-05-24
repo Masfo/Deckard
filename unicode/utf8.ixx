@@ -18,13 +18,18 @@ namespace deckard::utf8
 	// to avoid circular modules
 
 
-	view::view(const string& u8str) noexcept
-		: m_data{u8str.span()}
-		, byte_index{0uz}
+	constexpr v1::view::view(const string& u8str) noexcept
+		: m_data{u8str.data()}
 	{
 	}
 
-	[[nodiscard]] string v2::view::sub_str(size_t codepoint_offset, size_t codepoint_count) const
+	constexpr v1::view::view(const string& u8str, size_t length) noexcept
+		
+	{ 
+		*this = u8str.subview(0, length);
+	}
+
+	[[nodiscard]] string v1::view::sub_str(size_t codepoint_offset, size_t codepoint_count) const
 	{
 		const size_t total_bytes = m_data.size_bytes();
 		if (total_bytes == 0 or codepoint_count == 0)
@@ -67,13 +72,6 @@ namespace deckard::utf8
 		}
 	};
 
-	//[[nodiscard]] string v2::view::to_utf8_string() const
-	//{
-	//	if (empty())
-	//		return string{};
-	//
-	//	return string{*this};
-	//}
 
 } // namespace deckard::utf8
 
