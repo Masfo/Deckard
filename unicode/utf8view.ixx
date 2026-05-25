@@ -23,6 +23,7 @@ namespace deckard::utf8
 		public:
 			static constexpr size_t npos = static_cast<size_t>(-1);
 
+
 		private:
 			std::span<const u8> m_data{};
 
@@ -37,6 +38,7 @@ namespace deckard::utf8
 				using pointer           = void;
 				using reference         = char32;
 
+
 				constexpr iterator() = default;
 
 				constexpr iterator(std::span<const u8> data, size_t byte_idx) noexcept
@@ -50,6 +52,13 @@ namespace deckard::utf8
 				}
 
 				[[nodiscard]] constexpr char32 operator*() const noexcept { return m_current_cp; }
+
+				[[nodiscard]] constexpr char32 operator[](difference_type n) const noexcept
+				{
+					iterator tmp = *this;
+					tmp += n;
+					return *tmp;
+				}
 
 				// Pre-increment
 				constexpr iterator& operator++() noexcept
@@ -234,6 +243,7 @@ namespace deckard::utf8
 				: m_data(str.subspan())
 			{
 			}
+
 			constexpr view(const view&) = default;
 
 			constexpr view& operator=(const view&) = default;
@@ -242,11 +252,9 @@ namespace deckard::utf8
 			constexpr ~view()                      = default;
 
 
-
 			constexpr view(const string&) noexcept;
-			constexpr view(const string&, size_t) noexcept; // from 0 to length-1 codepoints
+			constexpr view(const string&, size_t) noexcept;         // from 0 to length-1 codepoints
 			constexpr view(const string&, size_t, size_t) noexcept; // from start index, length in codepoints
-
 
 			[[nodiscard]] constexpr iterator begin() const noexcept { return iterator(m_data, 0uz); }
 
@@ -270,13 +278,12 @@ namespace deckard::utf8
 
 			[[nodiscard]] constexpr size_t operator-(const view& other) const
 			{
-				assert::check(m_data.data() >= other.m_data.data(), "Invalid view subtraction order or distinct buffers");
 
-				size_t byte_offset = static_cast<size_t>(m_data.data() - other.m_data.data());
+				assert::check(
+				  m_data.data() >= other.m_data.data() and m_data.data() <= other.m_data.data() + other.m_data.size_bytes(),
+				  "View subtraction: `this` does not point into `other`'s span");
 
-				view delta_view(other.m_data.data(), byte_offset);
-
-				return delta_view.length();
+				return static_cast<size_t>(m_data.data() - other.m_data.data());
 			}
 
 			constexpr view& operator++() noexcept
@@ -494,6 +501,8 @@ namespace deckard::utf8
 					current_codepoint++;
 				}
 
+				assert::check(current_codepoint == codepoint_offset, "subview: codepoint_offset is out of bounds");
+
 				if (byte_start >= total_bytes)
 					return view{};
 
@@ -633,7 +642,11 @@ namespace deckard::utf8
 						}
 						return current_cp;
 					}
-					found_byte = haystack.find(needle, found_byte + 1);
+					size_t cp_start = found_byte;
+					while (cp_start > 0 and utf8::is_continuation_byte(m_data[cp_start]))
+						--cp_start;
+					auto [_, cp_bytes] = utf8::decode_unchecked(m_data, cp_start);
+					found_byte         = haystack.find(needle, cp_start + cp_bytes); // skip the whole codepoint
 				}
 				return npos;
 			}
@@ -651,7 +664,7 @@ namespace deckard::utf8
 
 				size_t search_end_cp   = std::min(pos, length() - 1);
 				size_t search_end_byte = 0;
-				for (size_t i = 0; i < search_end_cp and search_end_byte < m_data.size_bytes(); ++i)
+				for (size_t i = 0; i <= search_end_cp and search_end_byte < m_data.size_bytes(); ++i)
 				{
 					auto [_, bytes] = utf8::decode_unchecked(m_data, search_end_byte);
 					search_end_byte += bytes;
@@ -661,6 +674,7 @@ namespace deckard::utf8
 				std::string_view needle{reinterpret_cast<const char*>(v.m_data.data()), v.m_data.size_bytes()};
 
 				size_t found_byte = haystack.rfind(needle, search_end_byte);
+
 				while (found_byte != std::string_view::npos)
 				{
 					if (utf8::is_start_of_codepoint(m_data[found_byte]))
@@ -792,80 +806,78 @@ namespace deckard::utf8
 
 			// ###################################
 			// ###################################
+			size_t find_last_of(const string&, size_t) const; // in utf8.ixx
 
-			[[nodiscard]] size_t find_last_of(char32 c, size_t pos = npos) const
+			size_t find_last_of(character_type auto c, size_t pos = npos) const
 			{
-				size_t total_cp = size();
-				if (total_cp == 0)
+				if (empty() or c == 0)
 					return npos;
 
-				size_t current_cp = std::min(pos, total_cp - 1);
-				size_t byte_idx   = 0;
+				if (pos >= size())
+					pos = size() - 1;
 
-				for (size_t i = 0; i < current_cp; ++i)
-				{
-					auto [_, bytes] = utf8::decode_unchecked(m_data, byte_idx);
-					byte_idx += bytes;
-				}
-
+				auto it = begin() + pos;
 				while (true)
 				{
-					auto [codepoint, _] = utf8::decode_unchecked(m_data, byte_idx);
-					if (codepoint == c)
-						return current_cp;
+					if (*it == (char32)c)
+						return std::distance(begin(), it);
 
-					if (current_cp == 0)
+					if (it == begin())
 						break;
 
-					if (byte_idx > 0)
-					{
-						byte_idx--;
-						while (byte_idx > 0 and utf8::is_continuation_byte(m_data[byte_idx]))
-							byte_idx--;
-					}
-					current_cp--;
+					--it;
 				}
 				return npos;
 			}
 
-			[[nodiscard]] size_t find_last_of(view v, size_t pos = npos) const
+			[[nodiscard]] size_t find_last_of(const view v, size_t pos = npos) const
 			{
-				size_t total_cp = size();
-				if (total_cp == 0)
+				if (empty() or v.empty())
 					return npos;
 
-				size_t current_cp = std::min(pos, total_cp - 1);
-				size_t byte_idx   = 0;
+				if (pos >= size())
+					pos = size() - 1;
 
-				for (size_t i = 0; i < current_cp; ++i)
-				{
-					auto [_, bytes] = utf8::decode_unchecked(m_data, byte_idx);
-					byte_idx += bytes;
-				}
-
+				auto it = begin() + pos;
 				while (true)
 				{
-					auto [codepoint, _] = utf8::decode_unchecked(m_data, byte_idx);
-					if (v.contains(codepoint))
-						return current_cp;
+					for (auto view_it = v.begin(); view_it != v.end(); ++view_it)
+					{
+						if (*it == *view_it)
+							return std::distance(begin(), it);
+					}
 
-					if (current_cp == 0)
+					if (it == begin())
 						break;
 
-					if (byte_idx > 0)
-					{
-						byte_idx--;
-						while (byte_idx > 0 and utf8::is_continuation_byte(m_data[byte_idx]))
-							byte_idx--;
-					}
-					current_cp--;
+					--it;
 				}
 				return npos;
 			}
 
 			[[nodiscard]] size_t find_last_of(std::string_view sv, size_t pos = npos) const
 			{
-				return find_last_of(view(sv), pos);
+				if (empty() or sv.empty())
+					return npos;
+
+				if (pos >= size())
+					pos = size() - 1;
+
+				auto it = begin() + pos;
+				while (true)
+				{
+					for (char32 ch : sv)
+					{
+						if (*it == ch)
+							return std::distance(begin(), it);
+					}
+
+					if (it == begin())
+						break;
+
+					--it;
+				}
+				return npos;
 			}
 
 			// ###################################

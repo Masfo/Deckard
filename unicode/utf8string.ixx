@@ -25,7 +25,7 @@ namespace deckard::utf8
 	using const_reference = const value_type&;
 
 	using difference_type = std::ptrdiff_t;
-	using codepoint_type  = u32;
+	using codepoint_type  = char32;
 	export using unit     = char32;
 
 	static constexpr size_t BYTES_PER_CODEPOINT = sizeof(codepoint_type);
@@ -342,9 +342,9 @@ namespace deckard::utf8
 			buffer.assign(std::span<const u8>{const_cast<u8*>(input.data()), N});
 		}
 
-		explicit string(const view& v) { *this = v; }
+		// explicit string(const view& v) { *this = v; }
 
-		explicit string(const v2::view& v)
+		explicit string(const view& v)
 		{
 			auto raw = v.data();
 			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
@@ -448,9 +448,15 @@ namespace deckard::utf8
 		}
 
 		//
-		void assign(const char* str) { buffer.assign(std::span<const u8>{const_cast<u8*>(as<const u8*>(str)), std::strlen(str)}); }
+		void assign(const char* str)
+		{
+			buffer.assign(std::span<const u8>{as<const u8*>(str), std::strlen(str)});
+		}
 
-		void assign(std::span<const u8> input) { buffer.assign(std::span<const u8>{const_cast<u8*>(input.data()), input.size()}); }
+		void assign(std::span<const u8> input)
+		{
+			buffer.assign(std::span<const u8>{const_cast<u8*>(input.data()), input.size()});
+		}
 
 		void assign(unit u)
 		{
@@ -474,12 +480,10 @@ namespace deckard::utf8
 		}
 
 		void append(const view v)
-
 		{
-			string tmp;
-			tmp = v;
-			append(tmp);
-		};
+			auto raw = v.data();
+			buffer.append({const_cast<u8*>(raw.data()), raw.size()});
+		}
 
 		void prepend(const std::string_view str) { insert(begin(), str); }
 
@@ -545,36 +549,6 @@ namespace deckard::utf8
 		// View
 		// Explicit constructor to prevent unintended hidden allocations
 
-
-		string& operator=(const v2::view input)
-		{
-			if (input.empty())
-			{
-				clear();
-				return *this;
-			}
-			auto raw = input.data();
-			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
-			return *this;
-		}
-
-		void append(const v2::view v)
-		{
-			auto raw = v.data();
-			buffer.append({const_cast<u8*>(raw.data()), raw.size()});
-		}
-
-		void prepend(const v2::view v)
-		{
-			auto raw = v.data();
-			buffer.prepend({const_cast<u8*>(raw.data()), raw.size()});
-		}
-
-		auto operator+=(const v2::view v)
-		{
-			append(v);
-			return *this;
-		}
 
 		iterator erase(iterator pos)
 		{
@@ -691,10 +665,18 @@ namespace deckard::utf8
 
 		std::optional<codepoint_type> find(std::span<const u8> input, size_t offset = 0) const
 		{
-			if (input.empty() || offset > buffer.size() || input.size() > buffer.size() - offset)
+			// Convert codepoint offset to byte offset
+			size_t byte_offset = 0;
+			for (size_t i = 0; i < offset and byte_offset < buffer.size(); ++i)
+			{
+				auto [_, bytes] = utf8::decode_unchecked(buffer.data(), byte_offset);
+				byte_offset += bytes;
+			}
+
+			if (input.empty() || byte_offset > buffer.size() || input.size() > buffer.size() - byte_offset)
 				return {};
 
-			for (size_t i = offset; i <= buffer.size() - input.size(); ++i)
+			for (size_t i = byte_offset; i <= buffer.size() - input.size(); ++i)
 			{
 				if (i > 0 and utf8::is_continuation_byte(buffer[i]))
 					continue;
@@ -720,7 +702,6 @@ namespace deckard::utf8
 					return codepoint_index;
 				}
 			}
-
 			return {};
 		}
 
@@ -731,11 +712,20 @@ namespace deckard::utf8
 
 		std::optional<codepoint_type> find(string input, size_t offset = 0) const
 		{
-			if (input.empty() or offset > buffer.size() or input.size_in_bytes() > buffer.size() - offset or
-				not input.valid())
+			if (input.empty() or not input.valid())
 				return {};
 
-			for (size_t i = offset; i <= buffer.size() - input.size_in_bytes(); ++i)
+			size_t byte_offset = 0;
+			for (size_t i = 0; i < offset and byte_offset < buffer.size(); ++i)
+			{
+				auto [_, bytes] = utf8::decode_unchecked(buffer.data(), byte_offset);
+				byte_offset += bytes;
+			}
+
+			if (byte_offset > buffer.size() or input.size_in_bytes() > buffer.size() - byte_offset)
+				return {};
+
+			for (size_t i = byte_offset; i <= buffer.size() - input.size_in_bytes(); ++i)
 			{
 				if (i > 0 and utf8::is_continuation_byte(buffer[i]))
 					continue;
@@ -761,9 +751,9 @@ namespace deckard::utf8
 					return codepoint_index;
 				}
 			}
-
 			return {};
 		}
+
 
 		bool contains(std::span<const u8> input) const
 		{
@@ -783,7 +773,7 @@ namespace deckard::utf8
 
 		bool contains(string str) const { return contains(str.data()); }
 
-		bool contains(const view v) const { return find(v.as_string_view()).has_value(); }
+		bool contains(const view v) const { return find(v.to_string()).has_value(); }
 
 		// starts with
 		bool starts_with(std::span<const u8> input) const
@@ -803,7 +793,7 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool starts_with(std::string_view str) const { return starts_with(std::span<const u8>{as<u8*>(str.data()), str.size()}); }
+		bool starts_with(std::string_view str) const { return starts_with(to_span(str)); }
 
 		bool starts_with(const view v) const
 		{
@@ -854,7 +844,10 @@ namespace deckard::utf8
 			return true;
 		}
 
-		bool ends_with(std::string_view str) const { return ends_with(std::span<const u8>{as<u8*>(str.data()), str.size()}); }
+		bool ends_with(std::string_view str) const
+		{
+			return ends_with(std::span<const u8>{as<u8*>(str.data()), str.size()});
+		}
 
 		bool ends_with(string str) const { return ends_with(str.data()); }
 
@@ -958,7 +951,7 @@ namespace deckard::utf8
 
 		void resize(size_t count, char c) { resize(count, (char32)c); }
 
-		void resize(size_t count) { resize(count, (char32)0); }
+		void resize(size_t count) { resize(count, (char32)0x20); }
 
 		void reserve(size_t bytes) { buffer.reserve(bytes); }
 
@@ -1004,14 +997,13 @@ namespace deckard::utf8
 			auto start_byte = start.byteindex();
 
 			if (count == npos)
-				return string(buffer.subspan(start_byte, count));
+				return string(buffer.subspan(start_byte)); 
 
 			auto end_it = start;
 			for (size_t i = 0; i < count && end_it != end(); ++i)
 				++end_it;
 
 			auto end_byte = end_it.byteindex();
-
 			return string(buffer.subspan(start_byte, end_byte - start_byte));
 		}
 
@@ -1031,7 +1023,10 @@ namespace deckard::utf8
 
 		auto span() const { return buffer.data(); }
 
-		auto c_str() const { return as<const char*>(buffer.data().data()); }
+		[[nodiscard]] std::string_view as_string_view() const
+		{
+			return std::string_view{as<const char*>(buffer.data().data()), buffer.size()};
+		}
 
 		std::string to_string() const
 		{
@@ -1092,30 +1087,7 @@ namespace deckard::utf8
 			return npos;
 		}
 
-		size_t find_first_of(std::string_view str, size_t pos = 0) const
-		{
-			assert::check(pos <= size(), "Index out of bounds");
-
-
-			if (str.empty() or pos >= size())
-				return npos;
-
-			auto it    = begin() + pos;
-			auto itend = end();
-
-			for (; it != itend; ++it)
-			{
-				for (char32 byte : str)
-				{
-					if (*it == byte)
-					{
-						return std::distance(begin(), it);
-					}
-				}
-			}
-
-			return npos;
-		}
+		size_t find_first_of(std::string_view str, size_t pos = 0) const { return find_first_of(view(str), pos); }
 
 		size_t find_first_of(CharacterType auto c, size_t pos = 0) const
 		{
@@ -1215,26 +1187,18 @@ namespace deckard::utf8
 		{
 			if (empty() or view.empty())
 				return npos;
-
 			if (pos >= size())
 				pos = size() - 1;
-
 			auto it = begin() + pos;
-
-			while (it >= begin())
+			while (true)
 			{
-				auto view_it  = view.begin();
-				auto view_end = view.end();
-
-				for (; view_it != view_end; ++view_it)
-				{
+				for (auto view_it = view.begin(); view_it != view.end(); ++view_it)
 					if (*it == *view_it)
 						return std::distance(begin(), it);
-				}
-
+				if (it == begin())
+					break;
 				--it;
 			}
-
 			return npos;
 		}
 
@@ -1245,13 +1209,13 @@ namespace deckard::utf8
 			if (pos >= size())
 				pos = size() - 1;
 			auto it = begin() + pos;
-			while (it >= begin())
+			while (true)
 			{
-				for (char32 byte : view)
-				{
-					if (*it == byte)
+				for (char32 ch : view)
+					if (*it == ch)
 						return std::distance(begin(), it);
-				}
+				if (it == begin())
+					break;
 				--it;
 			}
 			return npos;
@@ -1261,16 +1225,15 @@ namespace deckard::utf8
 		{
 			if (empty() or c == 0)
 				return npos;
-
 			if (pos >= size())
 				pos = size() - 1;
-
 			auto it = begin() + pos;
-
-			while (it >= begin())
+			while (true)
 			{
 				if (*it == (char32)c)
 					return std::distance(begin(), it);
+				if (it == begin())
+					break;
 				--it;
 			}
 			return npos;
@@ -1283,21 +1246,19 @@ namespace deckard::utf8
 			if (pos >= size())
 				pos = size() - 1;
 			auto it = begin() + pos;
-			while (it >= begin())
+			while (true)
 			{
-				bool found    = false;
-				auto view_it  = view.begin();
-				auto view_end = view.end();
-				for (; view_it != view_end; ++view_it)
-				{
+				bool found = false;
+				for (auto view_it = view.begin(); view_it != view.end(); ++view_it)
 					if (*it == *view_it)
 					{
 						found = true;
 						break;
 					}
-				}
 				if (not found)
 					return std::distance(begin(), it);
+				if (it == begin())
+					break;
 				--it;
 			}
 			return npos;
@@ -1310,19 +1271,19 @@ namespace deckard::utf8
 			if (pos >= size())
 				pos = size() - 1;
 			auto it = begin() + pos;
-			while (it >= begin())
+			while (true)
 			{
 				bool found = false;
-				for (char32 byte : view)
-				{
-					if (*it == byte)
+				for (char32 ch : view)
+					if (*it == ch)
 					{
 						found = true;
 						break;
 					}
-				}
 				if (not found)
 					return std::distance(begin(), it);
+				if (it == begin())
+					break;
 				--it;
 			}
 			return npos;
@@ -1335,14 +1296,18 @@ namespace deckard::utf8
 			if (pos >= size())
 				pos = size() - 1;
 			auto it = begin() + pos;
-			while (it >= begin())
+			while (true)
 			{
 				if (*it != (char32)c)
 					return std::distance(begin(), it);
+				if (it == begin())
+					break;
 				--it;
 			}
 			return npos;
 		}
+
+
 
 		auto trim_right()
 		{
