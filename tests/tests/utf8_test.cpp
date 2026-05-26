@@ -41,7 +41,7 @@ TEST_CASE("utf8::ascii", "[utf8]")
 		}
 	}
 
-	SECTION("codepoint widths") 
+	SECTION("codepoint widths")
 	{
 		CHECK(utf8::codepoint_width(U'$') == 1);
 		CHECK(utf8::codepoint_width(U'£') == 2);
@@ -557,319 +557,6 @@ TEST_CASE("utf8::string", "[utf8]")
 
 TEST_CASE("utf8::view", "[utf8][utf8view]")
 {
-	SECTION("c-tors")
-	{
-		std::array<u8, 4> buffer{'A', 'B', 'C', 'D'};
-
-		utf8::view v(buffer);
-		CHECK(v.size() == 4);
-
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		//
-	}
-
-	SECTION("compare")
-	{
-		utf8::string str("🌍hello🌍");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-
-		utf8::view w2(str.data());
-		CHECK(w2.size() == 7);
-
-		CHECK(w == w2);
-	}
-
-	SECTION("contains")
-	{
-		utf8::string str("🌍hello😊");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		CHECK(w.contains("hello"sv));
-		CHECK(w.contains("😊"sv));
-		CHECK(w.contains("🌍"sv));
-		CHECK_FALSE(w.contains("world"sv));
-	}
-
-	SECTION("starts_with")
-	{
-		utf8::string str("🌍hello😊");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		CHECK(w.starts_with("🌍"sv));
-		CHECK_FALSE(w.starts_with("😊"sv));
-	}
-
-	SECTION("starts_with string")
-	{
-		utf8::string str("🌍hello😊");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		CHECK(w.starts_with("🌍he"sv));
-		CHECK_FALSE(w.starts_with("😊it"sv));
-	}
-
-
-	SECTION("ends_with")
-	{
-		utf8::string str("🌍hello😊");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		CHECK(w.ends_with("😊"sv));
-		CHECK_FALSE(w.ends_with("🌍"sv));
-	}
-
-	SECTION("ends_with string")
-	{
-		utf8::string str("🌍hello😊");
-		utf8::view   w(str.data());
-		CHECK(w.size() == 7);
-
-		CHECK(w.ends_with("lo😊"sv));
-		CHECK_FALSE(w.ends_with("he"sv));
-	}
-
-
-	SECTION("scanner")
-	{
-		utf8::string  str("🌍hello🌍");
-		utf8::scanner w{str};
-
-		CHECK(w.size() == 7);
-
-		CHECK(w.next() == U'🌍');
-		CHECK(w.next() == 'h');
-		CHECK(w.next() == 'e');
-		CHECK(w.next() == 'l');
-		CHECK(w.next() == 'l');
-		CHECK(w.next() == 'o');
-		CHECK(w.next() == U'🌍'); // w is now at the end
-
-		w--;
-		CHECK(*w == U'🌍');
-
-
-		w--; // o
-		w--; // l
-		w--; // l
-		w--; // e
-		w--; // h
-		CHECK(*w == 'h');
-
-
-		w += 5;
-		CHECK(*w == U'🌍');
-
-		w -= 6;
-		CHECK(*w == U'🌍');
-
-		w += 3;
-		CHECK(*w == 'l');
-		w -= 1;
-		CHECK(*w == 'e');
-	}
-
-	SECTION("scanner out of bounds")
-	{
-		utf8::string  str("hello");
-		utf8::scanner w{str};
-		CHECK(w.next() == 'h');
-		CHECK(w.next() == 'e');
-		CHECK(w.next() == 'l');
-		CHECK(w.next() == 'l');
-		CHECK(w.next() == 'o');
-		CHECK_FALSE(w.has_next());
-	}
-
-	SECTION("scanner take")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(utf8::view("hello"sv) == w.take(5));
-		w.skip_whitespace();
-		CHECK(utf8::view("world"sv) == w.take(5));
-	}
-
-	SECTION("scanner take until")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(utf8::view("hello"sv) == w.take_until(' '));
-		CHECK(w.next() == ' ');
-		CHECK(utf8::view("world"sv) == w.take_until(' '));
-	}
-
-	SECTION("scanner take while")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(utf8::view("hello"sv) == w.take_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
-		CHECK(w.next() == ' ');
-		CHECK(utf8::view("world"sv) == w.take_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
-	}
-
-	SECTION("scanner take while with multibyte")
-	{
-		utf8::string  str("hello 🌍");
-		utf8::scanner w{str};
-		CHECK(utf8::view("hello"sv) == w.take_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
-		CHECK(w.next() == ' ');
-		CHECK(utf8::view("🌍"sv) == w.take_while([](char32 c) { return not utf8::is_ascii(c); }));
-	}
-
-	SECTION("scanner take line")
-	{
-		utf8::string  str("hello world\nthis is a test");
-		utf8::scanner w{str};
-		CHECK(utf8::view("hello world"sv) == w.take_line());
-		CHECK(w.next() == '\n');
-		CHECK(utf8::view("this is a test"sv) == w.take_line());
-		CHECK_FALSE(w.has_next());
-	}
-
-	SECTION("scanner remaining")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(w.next() == 'h');
-		CHECK(w.next() == 'e');
-		CHECK(utf8::view("llo world"sv) == w.remaining_view());
-		CHECK(w.remaining() == 9);
-	}
-
-	SECTION("scanner full view")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(utf8::view("hello world"sv) == w.full_view());
-	}
-
-	SECTION("scanner expect char")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(w.expect('h'));
-		CHECK(w.expect('e'));
-		CHECK_FALSE(w.expect('x'));
-	}
-
-	SECTION("scanner expect string")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(w.expect("hello"sv));
-		w.skip_whitespace();
-		CHECK(w.expect("world"sv));
-		CHECK_FALSE(w.expect("!"sv));
-	}
-
-	SECTION("scanner expect string with multibyte")
-	{
-		utf8::string  str("hello 🌍");
-		utf8::scanner w{str};
-		CHECK(w.expect("hello"sv));
-		w.skip_whitespace();
-		CHECK(w.expect("🌍"sv));
-		CHECK_FALSE(w.expect("!"sv));
-	}
-
-	SECTION("scanner skip")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(w.skip('h'));
-		CHECK(w.skip('e'));
-		CHECK_FALSE(w.skip('x'));
-		CHECK(w.skip_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
-		CHECK(w.next() == ' ');
-		CHECK(w.skip_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
-		CHECK_FALSE(w.has_next());
-	}
-
-	SECTION("scanner skip with multibyte")
-	{
-		utf8::string  str("hello 🌍");
-		utf8::scanner w{str};
-		CHECK(w.skip('h'));
-		CHECK(w.skip('e'));
-		CHECK_FALSE(w.skip('x'));
-		CHECK(w.skip_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
-		CHECK(w.next() == ' ');
-		CHECK(w.skip_while([](char32 c) { return not utf8::is_ascii(c); }));
-		CHECK_FALSE(w.has_next());
-	}
-
-	SECTION("scanner starts_with")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(w.starts_with("hello"sv));
-		CHECK_FALSE(w.starts_with("world"sv));
-	}
-
-	SECTION("scanner starts_with with multibyte")
-	{
-		utf8::string  str("hello 🌍");
-		utf8::scanner w{str};
-		CHECK(w.starts_with("hello"sv));
-		CHECK(w.starts_with("hello 🌍"sv));
-		CHECK_FALSE(w.starts_with("world"sv));
-	}
-
-	SECTION("scanner ends_with")
-	{
-		utf8::string  str("hello world");
-		utf8::scanner w{str};
-		CHECK(w.ends_with("world"sv));
-		CHECK_FALSE(w.ends_with("hello"sv));
-	}
-
-	SECTION("scanner ends_with with multibyte")
-	{
-		utf8::string  str("hello 🌍");
-		utf8::scanner w{str};
-		CHECK(w.ends_with("🌍"sv));
-		CHECK(w.ends_with("hello 🌍"sv));
-		CHECK_FALSE(w.ends_with("world"sv));
-	}
-
-	SECTION("scanner out of bounds on expect/skip")
-	{
-		utf8::string  str("hi");
-		utf8::scanner w{str};
-		CHECK(w.expect('h'));
-		CHECK(w.expect('i'));
-		CHECK_FALSE(w.expect('x'));
-		CHECK_FALSE(w.skip('x'));
-	}
-
-	SECTION("scanner out of bounds on take")
-	{
-		utf8::string  str("hi");
-		utf8::scanner w{str};
-		CHECK(w.take(1) == "h"sv);
-		CHECK(w.take(1) == "i"sv);
-		CHECK(w.take(1) == ""sv);
-	}
-
-	SECTION("scanner peek / peek_back")
-	{
-		utf8::string  str("hello 🌍");
-		utf8::scanner w{str};
-		CHECK(w.peek(0) == 'h');
-		CHECK(w.expect("hello"sv)); // skip "hello"
-		CHECK(w.peek(0) == ' ');
-		CHECK(w.peek_back() == 'o');
-	}
-
 
 
 	SECTION("indexing")
@@ -1199,184 +886,6 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		utf8::view sub = str.subview(0, 7);
 		CHECK(sub.size() == 7);
 	}
-
-	SECTION("view trim")
-	{
-		utf8::string str("  hello 🌍 world  ");
-		utf8::view   v(str.data());
-
-		auto         tl = v.trim_left(); // "hello 🌍 world  "
-		CHECK(tl.size() == 15);
-		CHECK(tl[0] == 'h');
-		CHECK(tl[6] == 0x1'f30d);
-
-		auto tr = v.trim_right(); // "  hello 🌍 world"
-		CHECK(tr.size() == 15);
-		CHECK(tr[0] == ' ');
-		CHECK(tr[14] == 'd');
-
-		auto t = v.trim(); // "hello 🌍 world"
-		CHECK(t.size() == 13);
-		CHECK(t[0] == 'h');
-		CHECK(t[6] == 0x1'f30d);
-		CHECK(t[12] == 'd');
-	}
-
-	SECTION("view starts_with / ends_with")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		CHECK(v.starts_with("hello"sv));
-		CHECK_FALSE(v.starts_with("world"sv));
-		CHECK(v.ends_with("world"sv));
-		CHECK_FALSE(v.ends_with("hello"sv));
-	}
-
-	SECTION("view contains")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		CHECK(v.contains("hello"sv));
-		CHECK(v.contains("🌍"sv));
-		CHECK(v.contains("world"sv));
-		CHECK_FALSE(v.contains("test"sv));
-	}
-
-	SECTION("empty view")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str, 0);
-		CHECK(v.empty());
-		CHECK(v.size() == 0);
-		CHECK(v.valid());
-		CHECK_FALSE(v.starts_with("hello"sv));
-		CHECK_FALSE(v.ends_with("world"sv));
-		CHECK_FALSE(v.contains("hello"sv));
-	}
-
-	SECTION("view from view")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		utf8::view   sub = v.subview(0, 5);
-		CHECK(sub.size() == 5);
-		CHECK(sub[0] == 'h');
-		CHECK(sub[4] == 'o');
-		CHECK(sub.valid());
-	}
-
-	SECTION("view assign")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		utf8::view   sub = v.subview(0, 5);
-		CHECK(sub.size() == 5);
-		CHECK(sub[0] == 'h');
-		CHECK(sub[4] == 'o');
-		CHECK(sub.valid());
-		sub = v.subview(6, 1);
-		CHECK(sub.size() == 1);
-		CHECK(sub[0] == 0x1'f30d);
-		CHECK(sub.valid());
-	}
-
-	SECTION("view from subspan")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str, 7);
-		CHECK(v.size() == 7);
-		CHECK(v[0] =='h');
-		CHECK(v[6] == 0x1'f30d);
-		CHECK(v.valid());
-	}
-
-	SECTION("view from subspan offset")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str, 6, 3);
-		CHECK(v.size() == 3);
-		CHECK(v[0] == U'🌍');
-		CHECK(v[1] == U' ');
-		CHECK(v[2] == U'w');
-
-		CHECK(v.valid());
-	}
-
-	SECTION("invalid view") {
-		std::array<u8, 2> err = {0xC3, 0x28}; 
-		utf8::view        v(err);
-		CHECK(v.size() == 0);
-		CHECK(v.size_in_bytes() == 2);
-		CHECK_FALSE(v.valid());
-	}
-
-	SECTION("at view")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		CHECK(v.at(0) == 'h');
-		CHECK(v.at(6) == 0x1'f30d);
-		CHECK(v.at(12) == 'd');
-	}
-
-	SECTION("view front / back")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		CHECK(v.front() == 'h');
-		CHECK(v.back() == 'd');
-	}
-
-	SECTION("view iterator")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		auto         it = v.begin();
-		CHECK(*it == 'h');
-		++it;
-		CHECK(*it == 'e');
-		it += 5;
-		CHECK(*it == 0x1'f30d);
-		it += 6;
-		CHECK(*it == 'd');
-	}
-
-	SECTION("view reverse iterator")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		auto         it = v.rbegin();
-		CHECK(*it == 'd');
-		++it;
-		CHECK(*it == 'l');
-		it += 5;
-		CHECK(*it == 0x1'f30d);
-		it += 6;
-		CHECK(*it == 'h');
-	}
-
-	SECTION("view iterator += / -=")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		auto         it = v.begin();
-		CHECK(*it == 'h');
-		it += 6;
-		CHECK(*it == 0x1'f30d);
-		it -= 6;
-		CHECK(*it == 'h');
-	}
-
-	SECTION("view iterator distance")
-	{
-		utf8::string str("hello 🌍 world");
-		utf8::view   v(str.data());
-		auto         it1 = v.begin();
-		auto         it2 = v.end();
-		CHECK(std::distance(it1, it2) == 13);
-	}
-
-
 
 
 	SECTION("valid")
@@ -2202,5 +1711,602 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 
 		CHECK(sentence_with_clusters.graphemes() == 16);
 		CHECK(sentence_with_clusters.size() == 33);
+	}
+}
+
+TEST_CASE("view", "[utf8][view]")
+{
+	SECTION("c-tors")
+	{
+		std::array<u8, 4> buffer{'A', 'B', 'C', 'D'};
+
+		utf8::view v(buffer);
+		CHECK(v.size() == 4);
+
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		//
+	}
+
+	SECTION("compare")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+
+		utf8::view w2(str.data());
+		CHECK(w2.size() == 7);
+
+		CHECK(w == w2);
+	}
+
+	SECTION("contains")
+	{
+		utf8::string str("🌍hello😊");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		CHECK(w.contains("hello"sv));
+		CHECK(w.contains("😊"sv));
+		CHECK(w.contains("🌍"sv));
+		CHECK_FALSE(w.contains("world"sv));
+	}
+
+	SECTION("starts_with")
+	{
+		utf8::string str("🌍hello😊");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		CHECK(w.starts_with("🌍"sv));
+		CHECK_FALSE(w.starts_with("😊"sv));
+	}
+
+	SECTION("starts_with string")
+	{
+		utf8::string str("🌍hello😊");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		CHECK(w.starts_with("🌍he"sv));
+		CHECK_FALSE(w.starts_with("😊it"sv));
+	}
+
+
+	SECTION("ends_with")
+	{
+		utf8::string str("🌍hello😊");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		CHECK(w.ends_with("😊"sv));
+		CHECK_FALSE(w.ends_with("🌍"sv));
+	}
+
+	SECTION("ends_with string")
+	{
+		utf8::string str("🌍hello😊");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+
+		CHECK(w.ends_with("lo😊"sv));
+		CHECK_FALSE(w.ends_with("he"sv));
+	}
+
+	SECTION("string find from span")
+	{
+		utf8::string      str("🌍hello🌍");
+		std::array<u8, 5> bytes = {'h', 'e', 'l', 'l', 'o'};
+
+		auto f = str.find({bytes.data(), bytes.size()});
+		CHECK(f == 1);
+	}
+
+
+	SECTION("view trim")
+	{
+		utf8::string str("  hello 🌍 world  ");
+		utf8::view   v(str.data());
+
+		auto tl = v.trim_left(); // "hello 🌍 world  "
+		CHECK(tl.size() == 15);
+		CHECK(tl[0] == 'h');
+		CHECK(tl[6] == 0x1'f30d);
+
+		auto tr = v.trim_right(); // "  hello 🌍 world"
+		CHECK(tr.size() == 15);
+		CHECK(tr[0] == ' ');
+		CHECK(tr[14] == 'd');
+
+		auto t = v.trim(); // "hello 🌍 world"
+		CHECK(t.size() == 13);
+		CHECK(t[0] == 'h');
+		CHECK(t[6] == 0x1'f30d);
+		CHECK(t[12] == 'd');
+	}
+
+	SECTION("view starts_with / ends_with")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		CHECK(v.starts_with("hello"sv));
+		CHECK_FALSE(v.starts_with("world"sv));
+		CHECK(v.ends_with("world"sv));
+		CHECK_FALSE(v.ends_with("hello"sv));
+	}
+
+	SECTION("view contains")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		CHECK(v.contains("hello"sv));
+		CHECK(v.contains("🌍"sv));
+		CHECK(v.contains("world"sv));
+		CHECK_FALSE(v.contains("test"sv));
+	}
+
+	SECTION("empty view")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str, 0);
+		CHECK(v.empty());
+		CHECK(v.size() == 0);
+		CHECK(v.valid());
+		CHECK_FALSE(v.starts_with("hello"sv));
+		CHECK_FALSE(v.ends_with("world"sv));
+		CHECK_FALSE(v.contains("hello"sv));
+	}
+
+	SECTION("view from view")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		utf8::view   sub = v.subview(0, 5);
+		CHECK(sub.size() == 5);
+		CHECK(sub[0] == 'h');
+		CHECK(sub[4] == 'o');
+		CHECK(sub.valid());
+	}
+
+	SECTION("view assign")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		utf8::view   sub = v.subview(0, 5);
+		CHECK(sub.size() == 5);
+		CHECK(sub[0] == 'h');
+		CHECK(sub[4] == 'o');
+		CHECK(sub.valid());
+		sub = v.subview(6, 1);
+		CHECK(sub.size() == 1);
+		CHECK(sub[0] == 0x1'f30d);
+		CHECK(sub.valid());
+	}
+
+	SECTION("ascii - operator- returns byte offset")
+	{
+		utf8::string str  = "hello"sv;
+		utf8::view   full = str;
+		utf8::view   rest = full;
+		rest.remove_prefix(3);
+
+		CHECK((rest - full) == 3uz);
+	}
+
+	SECTION("multibyte - operator- returns bytes not codepoints")
+	{
+		utf8::string str  = "café"sv;
+		utf8::view   full = str;
+		utf8::view   rest = full;
+		rest.remove_prefix(3);
+
+		CHECK((rest - full) == 3uz);
+
+		rest.remove_prefix(1);
+		CHECK((rest - full) == 5uz);
+	}
+
+	SECTION("multibyte - two-byte codepoints at start")
+	{
+		utf8::string str  = "éàü"sv;
+		utf8::view   full = str;
+		utf8::view   rest = full;
+		rest.remove_prefix(1);
+
+		CHECK((rest - full) == 2uz);
+
+		rest.remove_prefix(1);
+		CHECK((rest - full) == 4uz);
+
+		rest.remove_prefix(1);
+		CHECK((rest - full) == 6uz);
+	}
+
+	SECTION("view find")
+	{
+		utf8::string str("hello 🌍 world"sv);
+		utf8::view   v(str.data());
+		auto         pos = v.find("🌍"sv);
+		CHECK(pos == 6);
+
+		pos = v.find("world"sv);
+		CHECK(pos == 8);
+	}
+
+	SECTION("view find not found")
+	{
+		utf8::string str("hello 🌍 world"sv);
+		utf8::view   v(str.data());
+		auto         pos = v.find("test"sv);
+		CHECK(pos == utf8::view::npos);
+	}
+
+	SECTION("view rfind")
+	{
+		utf8::string str("hello 🌍 world 🌍"sv);
+		utf8::view   v(str.data());
+		auto         pos = v.rfind("🌍"sv);
+		CHECK(pos == 14);
+
+		pos = v.rfind("world"sv);
+		CHECK(pos == 8);
+	}
+
+	SECTION("view iterator operator []")
+	{
+		utf8::string str("hello 🌍 world"sv);
+		utf8::view   v(str.data());
+		CHECK(v[0] == 'h');
+		CHECK(v[6] == 0x1'f30d);
+		CHECK(v[12] == 'd');
+	}
+
+
+	SECTION("view from subspan")
+	{
+		utf8::string str("hello 🌍 world"sv);
+		utf8::view   v(str, 7);
+		CHECK(v.size() == 7);
+		CHECK(v[0] == 'h');
+		CHECK(v[6] == 0x1'f30d);
+		CHECK(v.valid());
+	}
+
+	SECTION("view, sub_str")
+	{
+		utf8::string str("hello 🌍 world"sv);
+		utf8::view   v(str);
+
+		utf8::string sub = v.sub_str(0, 5);
+		CHECK(sub == "hello");
+		CHECK(sub.size() == 5);
+
+		utf8::string sub2 = v.sub_str(6, 1);
+		CHECK(sub2 == "🌍");
+		CHECK(sub2.size() == 1);
+	}
+
+	SECTION("view from subspan offset")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str, 6, 3);
+		CHECK(v.size() == 3);
+		CHECK(v[0] == U'🌍');
+		CHECK(v[1] == U' ');
+		CHECK(v[2] == U'w');
+
+		CHECK(v.valid());
+	}
+
+	SECTION("invalid view")
+	{
+		std::array<u8, 2> err = {0xC3, 0x28};
+		utf8::view        v(err);
+		CHECK(v.size() == 0);
+		CHECK(v.size_in_bytes() == 2);
+		CHECK_FALSE(v.valid());
+	}
+
+	SECTION("at view")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		CHECK(v.at(0) == 'h');
+		CHECK(v.at(6) == 0x1'f30d);
+		CHECK(v.at(12) == 'd');
+	}
+
+	SECTION("view front / back")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		CHECK(v.front() == 'h');
+		CHECK(v.back() == 'd');
+	}
+
+	SECTION("view iterator")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		auto         it = v.begin();
+		CHECK(*it == 'h');
+		++it;
+		CHECK(*it == 'e');
+		it += 5;
+		CHECK(*it == 0x1'f30d);
+		it += 6;
+		CHECK(*it == 'd');
+	}
+
+	SECTION("view reverse iterator")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		auto         it = v.rbegin();
+		CHECK(*it == 'd');
+		++it;
+		CHECK(*it == 'l');
+		it += 5;
+		CHECK(*it == 0x1'f30d);
+		it += 6;
+		CHECK(*it == 'h');
+	}
+
+	SECTION("view iterator += / -=")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		auto         it = v.begin();
+		CHECK(*it == 'h');
+		it += 6;
+		CHECK(*it == 0x1'f30d);
+		it -= 6;
+		CHECK(*it == 'h');
+	}
+
+	SECTION("view iterator distance")
+	{
+		utf8::string str("hello 🌍 world");
+		utf8::view   v(str.data());
+		auto         it1 = v.begin();
+		auto         it2 = v.end();
+		CHECK(std::distance(it1, it2) == 13);
+	}
+}
+
+TEST_CASE("scanner", "[utf8][scanner]")
+{
+	SECTION("scanner")
+	{
+		utf8::string  str("🌍hello🌍");
+		utf8::scanner w{str};
+
+		CHECK(w.size() == 7);
+
+		CHECK(w.next() == U'🌍');
+		CHECK(w.next() == 'h');
+		CHECK(w.next() == 'e');
+		CHECK(w.next() == 'l');
+		CHECK(w.next() == 'l');
+		CHECK(w.next() == 'o');
+		CHECK(w.next() == U'🌍'); // w is now at the end
+
+		w--;
+		CHECK(*w == U'🌍');
+
+
+		w--; // o
+		w--; // l
+		w--; // l
+		w--; // e
+		w--; // h
+		CHECK(*w == 'h');
+
+
+		w += 5;
+		CHECK(*w == U'🌍');
+
+		w -= 6;
+		CHECK(*w == U'🌍');
+
+		w += 3;
+		CHECK(*w == 'l');
+		w -= 1;
+		CHECK(*w == 'e');
+	}
+
+	SECTION("scanner out of bounds")
+	{
+		utf8::string  str("hello");
+		utf8::scanner w{str};
+		CHECK(w.next() == 'h');
+		CHECK(w.next() == 'e');
+		CHECK(w.next() == 'l');
+		CHECK(w.next() == 'l');
+		CHECK(w.next() == 'o');
+		CHECK_FALSE(w.has_next());
+	}
+
+	SECTION("scanner take")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(utf8::view("hello"sv) == w.take(5));
+		w.skip_whitespace();
+		CHECK(utf8::view("world"sv) == w.take(5));
+	}
+
+	SECTION("scanner take until")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(utf8::view("hello"sv) == w.take_until(' '));
+		CHECK(w.next() == ' ');
+		CHECK(utf8::view("world"sv) == w.take_until(' '));
+	}
+
+	SECTION("scanner take while")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(utf8::view("hello"sv) == w.take_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
+		CHECK(w.next() == ' ');
+		CHECK(utf8::view("world"sv) == w.take_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
+	}
+
+	SECTION("scanner take while with multibyte")
+	{
+		utf8::string  str("hello 🌍");
+		utf8::scanner w{str};
+		CHECK(utf8::view("hello"sv) == w.take_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
+		CHECK(w.next() == ' ');
+		CHECK(utf8::view("🌍"sv) == w.take_while([](char32 c) { return not utf8::is_ascii(c); }));
+	}
+
+	SECTION("scanner take line")
+	{
+		utf8::string  str("hello world\nthis is a test");
+		utf8::scanner w{str};
+		CHECK(utf8::view("hello world"sv) == w.take_line());
+		CHECK(utf8::view("this is a test"sv) == w.take_line());
+		CHECK_FALSE(w.has_next());
+	}
+
+	SECTION("scanner remaining")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(w.next() == 'h');
+		CHECK(w.next() == 'e');
+		CHECK(utf8::view("llo world"sv) == w.remaining_view());
+		CHECK(w.remaining() == 9);
+	}
+
+	SECTION("scanner full view")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(utf8::view("hello world"sv) == w.full_view());
+	}
+
+	SECTION("scanner expect char")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(w.expect('h'));
+		CHECK(w.expect('e'));
+		CHECK_FALSE(w.expect('x'));
+	}
+
+	SECTION("scanner expect string")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(w.expect("hello"sv));
+		w.skip_whitespace();
+		CHECK(w.expect("world"sv));
+		CHECK_FALSE(w.expect("!"sv));
+	}
+
+	SECTION("scanner expect string with multibyte")
+	{
+		utf8::string  str("hello 🌍");
+		utf8::scanner w{str};
+		CHECK(w.expect("hello"sv));
+		w.skip_whitespace();
+		CHECK(w.expect("🌍"sv));
+		CHECK_FALSE(w.expect("!"sv));
+	}
+
+	SECTION("scanner skip")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(w.skip('h'));
+		CHECK(w.skip('e'));
+		CHECK_FALSE(w.skip('x'));
+		CHECK(w.skip_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
+		CHECK(w.next() == ' ');
+		CHECK(w.skip_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
+		CHECK_FALSE(w.has_next());
+	}
+
+	SECTION("scanner skip with multibyte")
+	{
+		utf8::string  str("hello 🌍");
+		utf8::scanner w{str};
+		CHECK(w.skip('h'));
+		CHECK(w.skip('e'));
+		CHECK_FALSE(w.skip('x'));
+		CHECK(w.skip_while([](char32 c) { return utf8::is_ascii_alphanumeric(c); }));
+		CHECK(w.next() == ' ');
+		CHECK(w.skip_while([](char32 c) { return not utf8::is_ascii(c); }));
+		CHECK_FALSE(w.has_next());
+	}
+
+	SECTION("scanner starts_with")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(w.starts_with("hello"sv));
+		CHECK_FALSE(w.starts_with("world"sv));
+	}
+
+	SECTION("scanner starts_with with multibyte")
+	{
+		utf8::string  str("hello 🌍");
+		utf8::scanner w{str};
+		CHECK(w.starts_with("hello"sv));
+		CHECK(w.starts_with("hello 🌍"sv));
+		CHECK_FALSE(w.starts_with("world"sv));
+	}
+
+	SECTION("scanner ends_with")
+	{
+		utf8::string  str("hello world");
+		utf8::scanner w{str};
+		CHECK(w.ends_with("world"sv));
+		CHECK_FALSE(w.ends_with("hello"sv));
+	}
+
+	SECTION("scanner ends_with with multibyte")
+	{
+		utf8::string  str("hello 🌍");
+		utf8::scanner w{str};
+		CHECK(w.ends_with("🌍"sv));
+		CHECK(w.ends_with("hello 🌍"sv));
+		CHECK_FALSE(w.ends_with("world"sv));
+	}
+
+	SECTION("scanner out of bounds on expect/skip")
+	{
+		utf8::string  str("hi");
+		utf8::scanner w{str};
+		CHECK(w.expect('h'));
+		CHECK(w.expect('i'));
+		CHECK_FALSE(w.expect('x'));
+		CHECK_FALSE(w.skip('x'));
+	}
+
+	SECTION("scanner out of bounds on take")
+	{
+		utf8::string  str("hi");
+		utf8::scanner w{str};
+		CHECK(w.take(1) == "h"sv);
+		CHECK(w.take(1) == "i"sv);
+		CHECK(w.take(1) == ""sv);
+	}
+
+	SECTION("scanner peek / peek_back")
+	{
+		utf8::string  str("hello 🌍");
+		utf8::scanner w{str};
+		CHECK(w.peek(0) == 'h');
+		CHECK(w.expect("hello"sv));
+		CHECK(w.peek(0) == ' ');
+		CHECK(w.peek_back() == 'o');
 	}
 }
