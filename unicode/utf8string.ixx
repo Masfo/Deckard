@@ -350,6 +350,21 @@ namespace deckard::utf8
 			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
 		}
 
+		string(const std::vector<char32>& codepoints)
+		{
+			std::vector<u8> tmp;
+			tmp.reserve(codepoints.size() * 4);
+
+			for (char32 cp : codepoints)
+			{
+				auto encoded = encode_codepoint(cp);
+				tmp.insert(tmp.end(), encoded.bytes.data(), encoded.bytes.data() + encoded.count);
+			}
+
+			buffer.assign(std::span<const u8>{tmp.data(), tmp.size()});
+		}
+
+
 		string& operator=(std::string_view input)
 		{
 			buffer.assign({as<u8*>(input.data()), input.size()});

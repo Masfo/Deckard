@@ -113,6 +113,18 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(std::string(str.as_string_view()) == "hello 🌍"sv);
 	}
 
+	SECTION("initialize from vector of codepoints")
+	{
+		utf8::string str(std::vector<char32>{'h', 'e', 'l', 'l', 'o', ' ', '🌍'});
+		CHECK(str.size() == 7);
+		CHECK(str.length() == 7);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 10);
+		CHECK(str.valid());
+		CHECK(std::string(str.as_string_view()) == "hello 🌍"sv);
+	}
+
+
 	SECTION("copy assignment")
 	{
 
