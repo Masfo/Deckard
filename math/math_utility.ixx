@@ -10,6 +10,7 @@ export module deckard.math.utils;
 import std;
 import deckard.types;
 import deckard.assert;
+import deckard.debug;
 
 export namespace deckard::math
 {
@@ -110,16 +111,17 @@ export namespace deckard::math
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(const T& a, const T& b, const T epsilon = T{1e-5})
 	{
-#ifdef _DEBUG
-		if (std::isnan(a) or std::isnan(b))
-			return false;
+		if constexpr (is_debug_build)
+		{
+			if (std::isnan(a) or std::isnan(b))
+				return false;
 
-		if (std::isinf(a) && std::isinf(b))
-			return (a > 0 && b > 0) or (a < 0 && b < 0);
+			if (std::isinf(a) && std::isinf(b))
+				return (a > 0 && b > 0) or (a < 0 && b < 0);
 
-		if (std::isinf(a) or std::isinf(b))
-			return false;
-#endif
+			if (std::isinf(a) or std::isinf(b))
+				return false;
+		}
 
 		if (a == T{0.0} or b == T{0.0})
 			return std::fabs(a - b) < epsilon;

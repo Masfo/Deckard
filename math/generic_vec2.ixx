@@ -93,12 +93,7 @@ namespace deckard::math
 		}
 
 		// unary
-		constexpr vec_type& operator-()
-		{
-			*this *= vec_type(T{-1});
-
-			return *this;
-		}
+		constexpr vec_type operator-() { return vec_type{-x, -y}; }
 
 		constexpr vec_type operator+() const { return *this; }
 
@@ -199,11 +194,11 @@ namespace deckard::math
 			T result{};
 
 			auto tmp = abs_diff(x, other.x);
-			result = tmp * tmp;
+			result   = tmp * tmp;
 
 			tmp = abs_diff(y, other.y);
 			result += tmp * tmp;
-			
+
 
 			return as<T>(std::sqrt(result));
 		}
@@ -343,14 +338,15 @@ namespace deckard::math
 			return result;
 		}
 
-		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const
+		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const 
 		{
-			vec_type result{*this * other};
-
-			return result.x + result.y;
+			return x * other.x + y * other.y;
 		}
 
-		[[nodiscard("Use the cross product")]] constexpr type cross(const vec_type& other) const { return (x * other.y) - (y * other.x); }
+		[[nodiscard("Use the cross product")]] constexpr type cross(const vec_type& other) const
+		{
+			return (x * other.y) - (y * other.x);
+		}
 
 		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const
 		requires(std::is_floating_point_v<T>)
@@ -541,13 +537,15 @@ namespace deckard::math
 	//
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum value")]] constexpr generic_vec2<T> min(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the maximum value")]] constexpr generic_vec2<T>
+	min(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.min(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum vector")]] constexpr generic_vec2<T> max(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the maximum vector")]] constexpr generic_vec2<T>
+	max(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.max(rhs);
 	}
@@ -565,13 +563,15 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the squared distance value")]] constexpr T
+	squared_distance(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.squared_distance(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the manhattan distance value")]] constexpr T
+	manhattan_distance(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.manhattan_distance(rhs);
 	}
@@ -583,7 +583,8 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T, arithmetic U, arithmetic R>
-	[[nodiscard("Use the clamped vector")]] constexpr generic_vec2<T> clamp(const generic_vec2<T>& v, const U cmin, const R cmax)
+	[[nodiscard("Use the clamped vector")]] constexpr generic_vec2<T>
+	clamp(const generic_vec2<T>& v, const U cmin, const R cmax)
 	{
 		return v.clamp(cmin, cmax);
 	}
@@ -620,7 +621,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the projected vector")]] constexpr generic_vec2<T> project(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the projected vector")]] constexpr generic_vec2<T>
+	project(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.project(rhs);
 	}
@@ -632,7 +634,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the reflected vector")]] constexpr generic_vec2<T> reflect(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
+	[[nodiscard("Use the reflected vector")]] constexpr generic_vec2<T>
+	reflect(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs)
 	{
 		return lhs.reflect(rhs);
 	}
@@ -640,7 +643,7 @@ namespace deckard::math
 	export template<arithmetic T>
 	[[nodiscard("Use the summed vector value")]] constexpr T sum(const generic_vec2<T>& lhs)
 	{
-		return lhs.x + lhs.y + lhs.z;
+		return lhs.x + lhs.y;
 	}
 
 	export template<std::floating_point T>

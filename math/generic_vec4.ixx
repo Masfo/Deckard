@@ -118,12 +118,7 @@ namespace deckard::math
 		}
 
 		// unary
-		constexpr vec_type& operator-()
-		{
-			*this *= vec_type(T{-1});
-
-			return *this;
-		}
+		constexpr vec_type operator-() const { return vec_type{-x, -y, -z, -w}; }
 
 		constexpr vec_type operator+() const { return *this; }
 
@@ -193,8 +188,8 @@ namespace deckard::math
 		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const
 		requires(std::is_integral_v<T>)
 		{
-			return std::abs(x - lhs.x) == epsilon and std::abs(y - lhs.y) == epsilon and std::abs(z - lhs.z) == epsilon and
-				   std::abs(w - lhs.w) == epsilon;
+			return std::abs(x - lhs.x) <= epsilon and std::abs(y - lhs.y) <= epsilon and std::abs(z - lhs.z) <= epsilon and
+				   std::abs(w - lhs.w) <= epsilon;
 		}
 
 		constexpr bool equals(const vec_type& other, const T epsilon = T{1e-5}) const
@@ -230,17 +225,17 @@ namespace deckard::math
 		{
 			T result{};
 
-			auto T = abs_diff(x, other.x);
-			result = T * T;
+			auto d = abs_diff(x, other.x);
+			result = d * d;
 
-			T = abs_diff(y, other.y);
-			result += T * T;
+			d = abs_diff(y, other.y);
+			result += d * d;
 
-			T = abs_diff(z, other.z);
-			result += T * T;
+			d = abs_diff(z, other.z);
+			result += d * d;
 
-			T = abs_diff(w, other.w);
-			result += T * T;
+			d = abs_diff(w, other.w);
+			result += d * d;
 
 			return result;
 		}
@@ -271,17 +266,17 @@ namespace deckard::math
 		{
 			T result{};
 
-			auto T = abs_diff(x, other.x);
-			result = T * T;
+			auto tmp = abs_diff(x, other.x);
+			result  = tmp * tmp;
 
-			T = abs_diff(y, other.y);
-			result += T * T;
+			tmp = abs_diff(y, other.y);
+			result += tmp * tmp;
 
-			T = abs_diff(z, other.z);
-			result += T * T;
+			tmp = abs_diff(z, other.z);
+			result += tmp * tmp;
 
-			T = abs_diff(w, other.w);
-			result += T * T;
+			tmp = abs_diff(w, other.w);
+			result += tmp * tmp;
 
 			return std::sqrt(result);
 		}
@@ -342,7 +337,7 @@ namespace deckard::math
 			tmp = abs_diff(z, other.z);
 			result += tmp;
 
-			tmp = as<T>(abs_diff(w, other.w));
+			tmp = abs_diff(w, other.w);
 			result += tmp;
 			return result;
 		}
@@ -383,7 +378,9 @@ namespace deckard::math
 		constexpr void normalize()
 		requires(std::is_floating_point_v<T>)
 		{
-			*this /= length();
+			const T len = length();
+			if (not math::is_close_enough_zero(len))
+				*this /= len;
 		}
 
 		[[nodiscard("Use the normalized vector")]] constexpr vec_type normalized() const
@@ -436,15 +433,14 @@ namespace deckard::math
 			if (low > hi)
 				std::swap(low, hi);
 
-			vec_type result{std::clamp<T>(x, low, hi), std::clamp<T>(y, low, hi), std::clamp<T>(z, low, hi), std::clamp<T>(w, low, hi)};
+			vec_type result{
+			  std::clamp<T>(x, low, hi), std::clamp<T>(y, low, hi), std::clamp<T>(z, low, hi), std::clamp<T>(w, low, hi)};
 			return result;
 		}
 
 		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const
 		{
-			vec_type result{*this * other};
-
-			return result.x + result.y + result.z + result.w;
+			return x * other.x + y * other.y + z * other.z + w * other.w;
 		}
 
 		[[nodiscard("Use the cross product")]] constexpr generic_vec3<T> cross(const vec_type& other) const
@@ -468,7 +464,12 @@ namespace deckard::math
 	export template<arithmetic T, arithmetic U>
 	constexpr void operator+=(generic_vec4<T>& lhs, const U& scalar)
 	{
-		lhs += generic_vec4<T>(as<T>(scalar));
+		const auto s = as<T>(scalar);
+		lhs.x += s;
+		lhs.y += s;
+		lhs.z += s;
+		lhs.w += s;
+
 	}
 
 	export template<arithmetic T, arithmetic U>
@@ -500,7 +501,11 @@ namespace deckard::math
 	export template<arithmetic T, arithmetic U>
 	constexpr void operator-=(generic_vec4<T>& lhs, const U& scalar)
 	{
-		lhs -= generic_vec4<T>(as<T>(scalar));
+		const auto s = as<T>(scalar);
+		lhs.x -= s;
+		lhs.y -= s;
+		lhs.z -= s;
+		lhs.w -= s;
 	}
 
 	export template<arithmetic T, arithmetic U>
@@ -611,8 +616,8 @@ namespace deckard::math
 	{
 		lhs.x = mod(lhs.x, rhs.x);
 		lhs.y = mod(lhs.y, rhs.y);
-		lhs.z = mod(lhs.y, rhs.z);
-		lhs.w = mod(lhs.y, rhs.w);
+		lhs.z = mod(lhs.z, rhs.z);
+		lhs.w = mod(lhs.w, rhs.w);
 	}
 
 	export template<arithmetic T>
@@ -621,8 +626,8 @@ namespace deckard::math
 	{
 		lhs.x = std::fmodf(lhs.x, rhs.x);
 		lhs.y = std::fmodf(lhs.y, rhs.y);
-		lhs.z = std::fmodf(lhs.y, rhs.z);
-		lhs.w = std::fmodf(lhs.y, rhs.w);
+		lhs.z = std::fmodf(lhs.z, rhs.z);
+		lhs.w = std::fmodf(lhs.w, rhs.w);
 	}
 
 	export template<arithmetic T>
@@ -642,13 +647,15 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum value")]] constexpr generic_vec4<T> min(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the maximum value")]] constexpr generic_vec4<T>
+	min(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.min(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum vector")]] constexpr generic_vec4<T> max(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the maximum vector")]] constexpr generic_vec4<T>
+	max(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.max(rhs);
 	}
@@ -660,7 +667,8 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the squared distance value")]] constexpr T
+	squared_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.squared_distance(rhs);
 	}
@@ -671,14 +679,16 @@ namespace deckard::math
 		return lhs.distance(rhs);
 	}
 
-		export template<arithmetic T>
-	[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	export template<arithmetic T>
+	[[nodiscard("Use the manhattan distance value")]] constexpr T
+	manhattan_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.manhattan_distance(rhs);
 	}
 
 	export template<arithmetic T, arithmetic U, arithmetic R>
-	[[nodiscard("Use the clamped vector")]] constexpr generic_vec4<T> clamp(const generic_vec4<T>& v, const U cmin, const R cmax)
+	[[nodiscard("Use the clamped vector")]] constexpr generic_vec4<T>
+	clamp(const generic_vec4<T>& v, const U cmin, const R cmax)
 	{
 		return v.clamp(cmin, cmax);
 	}
@@ -690,7 +700,8 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the cross product vector")]] constexpr generic_vec3<T> cross(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the cross product vector")]] constexpr generic_vec3<T>
+	cross(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.cross(rhs);
 	}
@@ -708,7 +719,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the projected vector")]] constexpr generic_vec4<T> project(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the projected vector")]] constexpr generic_vec4<T>
+	project(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.project(rhs);
 	}
@@ -720,7 +732,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the reflected vector")]] constexpr generic_vec4<T> reflect(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the reflected vector")]] constexpr generic_vec4<T>
+	reflect(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.reflect(rhs);
 	}
@@ -740,7 +753,7 @@ namespace deckard::math
 	export template<std::floating_point T>
 	[[nodiscard("Use the sin vector")]] constexpr generic_vec4<T> sin(const generic_vec4<T>& lhs)
 	{
-		return generic_vec4<T>(std::sin(lhs.x), std::sin(lhs.y), std::sin(lhs.z), std::sin(lhs.z));
+		return generic_vec4<T>(std::sin(lhs.x), std::sin(lhs.y), std::sin(lhs.z), std::sin(lhs.w));
 	}
 
 } // namespace deckard::math
@@ -753,7 +766,10 @@ export namespace std
 	template<arithmetic T>
 	struct hash<generic_vec4<T>>
 	{
-		size_t operator()(const generic_vec4<T>& value) const { return deckard::utils::hash_values(value.x, value.y, value.z, value.w); }
+		size_t operator()(const generic_vec4<T>& value) const
+		{
+			return deckard::utils::hash_values(value.x, value.y, value.z, value.w);
+		}
 	};
 
 	template<arithmetic T>
