@@ -1,22 +1,23 @@
-﻿#include <catch2/catch_all.hpp>
-
-
-/*
-#include <catch2/catch_test_macros.hpp>
-
+#include <catch2/catch_all.hpp>
 
 import std;
+import deckard.logger;
 
-
-TEST_CASE("", "[tag]")
+int main(int argc, char* argv[])
 {
-	SECTION("")
+	// Suppress logger initialization during test discovery
+	bool is_test_discovery = false;
+	for (int i = 1; i < argc; ++i)
 	{
-		//
-		CHECK(1==1);
+		if (std::string_view(argv[i]) == "--list-tests")
+		{
+			is_test_discovery = true;
+			break;
+		}
 	}
 
+	if (is_test_discovery)
+		deckard::logger.set_suppress_init(true);
 
+	return Catch::Session().run(argc, argv);
 }
-
-*/

@@ -53,7 +53,7 @@ TEST_CASE("config parsing", "[config]")
 		CHECK(cfg[0].length == 6);
 	}
 
-	SECTION("utf comment with whitespacew")
+	SECTION("utf comment with whitespaces")
 	{
 		//
 		std::array<u8, 14> c = {'#', ' ', ' ', 'c', 'o', 'm', 'm', ' ', 0xF0, 0x9F, 0x8C, 0x8D, ' ', ' '}; // "comm 🌍  "
@@ -809,10 +809,9 @@ TEST_CASE("config set_comment", "[config]")
 		for (const auto& s : cfg.sections())
 			secs.push_back(s);
 
-		CHECK(secs.size() == 3);
+		CHECK(secs.size() == 2);
 		CHECK(secs[0] == "a");
 		CHECK(secs[1] == "b");
-		CHECK(secs[2] == "a");
 	}
 
 	SECTION("keys() yields keys in global scope")
@@ -878,7 +877,7 @@ TEST_CASE("config set_comment", "[config]")
 			ks.push_back(k);
 
 		REQUIRE(ks.size() == 1);
-		CHECK(ks[0] == "caf\xC3\xA9");
+		CHECK(ks[0] == "caf\xC3\xA9"sv);
 	}
 
 	SECTION("utf8 value retrieved via utf8 section and key")

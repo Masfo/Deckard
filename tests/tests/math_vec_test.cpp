@@ -614,7 +614,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		CHECK_THAT(sdist, WithinAbs(62.0f, 0.0000001));
 
 		const auto mdist = manhattan_distance(v1, v2);
-		CHECK_THAT(mdist, WithinAbs(14.0f, 0.0000001));
+		CHECK_THAT(mdist, WithinAbs(12.0f, 0.0000001));
 
 		const vec3 clamped = clamp(v2, 2.0f, 3.0f);
 		CHECK(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));

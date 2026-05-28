@@ -9,11 +9,8 @@ using namespace deckard;
 TEST_CASE("parser", "[parser]")
 {
 
-	//
-	// CHECK_EQ(1, 1);
 	SECTION("no tokens")
 	{
-		//
-		CHECK(1 == 1);
+
 	}
 }
