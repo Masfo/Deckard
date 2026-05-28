@@ -350,10 +350,14 @@ namespace deckard::utf8
 			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
 		}
 
-		string(const std::vector<char32>& codepoints)
+		template<std::ranges::input_range R>
+		requires std::convertible_to<std::ranges::range_value_t<R>, char32>
+		explicit string(R&& codepoints)
 		{
 			std::vector<u8> tmp;
-			tmp.reserve(codepoints.size() * 4);
+
+			if constexpr (std::ranges::sized_range<R>)
+				tmp.reserve(std::ranges::size(codepoints) * 4);
 
 			for (char32 cp : codepoints)
 			{
@@ -363,7 +367,6 @@ namespace deckard::utf8
 
 			buffer.assign(std::span<const u8>{tmp.data(), tmp.size()});
 		}
-
 
 		string& operator=(std::string_view input)
 		{
@@ -463,10 +466,7 @@ namespace deckard::utf8
 		}
 
 		//
-		void assign(const char* str)
-		{
-			buffer.assign(std::span<const u8>{as<const u8*>(str), std::strlen(str)});
-		}
+		void assign(const char* str) { buffer.assign(std::span<const u8>{as<const u8*>(str), std::strlen(str)}); }
 
 		void assign(std::span<const u8> input)
 		{
@@ -769,7 +769,6 @@ namespace deckard::utf8
 			return {};
 		}
 
-
 		bool contains(std::span<const u8> input) const
 		{
 			if (input.empty() || input.size() > buffer.size())
@@ -1012,7 +1011,7 @@ namespace deckard::utf8
 			auto start_byte = start.byteindex();
 
 			if (count == npos)
-				return string(buffer.subspan(start_byte)); 
+				return string(buffer.subspan(start_byte));
 
 			auto end_it = start;
 			for (size_t i = 0; i < count && end_it != end(); ++i)
@@ -1321,8 +1320,6 @@ namespace deckard::utf8
 			}
 			return npos;
 		}
-
-
 
 		auto trim_right()
 		{

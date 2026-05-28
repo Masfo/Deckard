@@ -847,6 +847,8 @@ namespace deckard
 			return std::span<value_type>(rawptr() + start, N);
 		}
 
+		auto subspan(size_t start) const -> std::span<value_type> { return subspan(start, size() - start); }
+
 		auto subsbo(size_t start, size_t count) const -> sbo<SIZE> { return {sbo<SIZE>(subspan(start, count))}; }
 	};
 

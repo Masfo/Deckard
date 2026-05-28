@@ -1249,6 +1249,7 @@ TEST_CASE("sbo", "[sbo]")
 
 		ss.insert(ss.begin(), ss.data());
 		CHECK(ss.size() == 16);
+		CHECK(ss.max_size() == 31);
 		CHECK(ss[0] == 'A');
 		CHECK(ss[1] == 'B');
 		CHECK(ss[2] == 'C');
@@ -1269,6 +1270,7 @@ TEST_CASE("sbo", "[sbo]")
 		// self insert: small -> large (triggers resize)
 		ss.insert(ss.begin(), ss.data());
 		CHECK(ss.size() == 32);
+		CHECK(ss.max_size() == 0xFFFF'FFFF);
 		CHECK(ss[0] == 'A');
 		CHECK(ss[1] == 'B');
 		CHECK(ss[2] == 'C');
@@ -1480,13 +1482,12 @@ TEST_CASE("sbo", "[sbo]")
 
 		// replaced E
 		CHECK(ss[2] == 'X');
-		CHECK(ss[3] == 'Y'); 
+		CHECK(ss[3] == 'Y');
 		CHECK(ss[4] == 'Z');
 
 		CHECK(ss[5] == 'R');
 		CHECK(ss[6] == 'T');
 		CHECK(ss[7] == 'Y');
-
 	}
 
 	SECTION("replace smaller size (small)")
@@ -2606,7 +2607,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(vec.size() == 1);
 		CHECK(vec[0].size() == 6);
 		CHECK(vec[0] == ss);
-		
+
 		vec.push_back(ss);
 
 		CHECK(vec.size() == 2);
@@ -2614,7 +2615,19 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(vec[0] == ss);
 		CHECK(vec[1].size() == 6);
 		CHECK(vec[1] == ss);
+	}
 
+	SECTION("subspan of a subspan")
+	{
+		sbo<32> ss{'A', 'B', 'C', 'D', 'E', 'F'};
+		auto    sub1 = ss.subspan(1, 4);   // BCDE
+		auto    sub2 = sub1.subspan(1, 2); // CD
+		CHECK(sub2.size() == 2);
+		CHECK(sub2[0] == 'C');
+		CHECK(sub2[1] == 'D');
 
+		auto sub3 = sub2.subspan(1); // D
+		CHECK(sub3.size() == 1);
+		CHECK(sub3[0] == 'D');
 	}
 }
