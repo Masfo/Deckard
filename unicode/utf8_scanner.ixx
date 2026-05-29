@@ -6,6 +6,8 @@ import :utf8_span;
 import :view;
 
 import std;
+import deckard.types;
+import deckard.assert;
 
 namespace deckard::utf8
 {
@@ -18,7 +20,7 @@ namespace deckard::utf8
 	public:
 		scanner() = default;
 
-		explicit scanner(v2::view v) noexcept
+		explicit scanner(view v) noexcept
 			: m_data{v.data()}
 			, m_pos{0}
 		{
@@ -56,6 +58,78 @@ namespace deckard::utf8
 		}
 
 		// positions
+
+		constexpr void seek_to_byte_position(size_t pos) noexcept
+		{
+			assert::check(pos <= m_data.size(), "scanner::seek_to_byte_position out of bounds");
+			m_pos = pos;
+		}
+
+		constexpr scanner& operator--() noexcept
+		{
+			if (m_pos > 0)
+			{
+				--m_pos;
+				while (m_pos > 0 and utf8::is_continuation_byte(m_data[m_pos]))
+					--m_pos;
+			}
+			return *this;
+		}
+
+		constexpr scanner operator--(int) noexcept
+		{
+			scanner temp = *this;
+			--(*this);
+			return temp;
+		}
+
+		constexpr scanner& operator-=(ptrdiff_t n) noexcept
+		{
+			assert::check(n >= 0, "scanner::operator-= does not support negative step");
+
+			for (ptrdiff_t i = 0; i < n and m_pos > 0; ++i)
+				--(*this);
+
+			return *this;
+		}
+
+		constexpr auto operator+=(size_t n) noexcept
+		{
+			skip(n);
+			return *this;
+		}
+
+		[[nodiscard]] constexpr scanner operator+(size_t n) const noexcept
+		{
+			scanner temp = *this;
+			temp += n;
+			return temp;
+		}
+
+		[[nodiscard]] constexpr scanner operator-(ptrdiff_t n) const noexcept
+		{
+			scanner temp = *this;
+			temp -= n;
+			return temp;
+		}
+
+		[[nodiscard]] constexpr std::ptrdiff_t operator-(const scanner& other) const noexcept
+		{
+			assert::check(m_data.data() == other.m_data.data(), "Scanners must share the same underlying buffer");
+			return static_cast<std::ptrdiff_t>(m_pos) - static_cast<std::ptrdiff_t>(other.m_pos);
+		}
+
+		[[nodiscard]] constexpr size_t operator-(const view& other) const noexcept
+		{
+			const u8* current_ptr = m_data.data() + m_pos;
+			assert::check(
+			  current_ptr >= other.data().data() and current_ptr <= other.data().data() + other.data().size_bytes(),
+			  "scanner::operator-(view): scanner position does not point into the view's span");
+			return static_cast<size_t>(current_ptr - other.data().data());
+		}
+
+		[[nodiscard]] friend constexpr scanner operator+(size_t n, const scanner& s) noexcept { return s + n; }
+
 		[[nodiscard]] bool has_next() const noexcept { return m_pos < m_data.size(); }
 
 		[[nodiscard]] explicit operator bool() const noexcept { return has_next(); }
@@ -64,7 +138,17 @@ namespace deckard::utf8
 
 		[[nodiscard]] size_t remaining_bytes() const noexcept { return m_data.size() - m_pos; }
 
-		[[nodiscard]] size_t remaining() const noexcept // codepoint count to end
+		// total codepoints in the whole buffer
+		[[nodiscard]] size_t size() const noexcept
+		{
+			size_t count{0};
+			for (size_t i = 0; i < m_data.size(); ++i)
+				count += utf8::is_start_byte(m_data[i]) ? 1 : 0;
+			return count;
+		}
+
+		// codepoints remaining from current position to end
+		[[nodiscard]] size_t remaining() const noexcept
 		{
 			size_t count{0};
 			for (size_t i = m_pos; i < m_data.size(); ++i)
@@ -80,17 +164,31 @@ namespace deckard::utf8
 
 		[[nodiscard]] char32 operator*() const noexcept { return current(); }
 
+		[[nodiscard]] constexpr char32 peek_back() const noexcept
+		{
+			if (m_pos == 0)
+				return REPLACEMENT_CHARACTER;
+
+			size_t back_pos = m_pos;
+
+			do
+			{
+				--back_pos;
+			} while (back_pos > 0 and not utf8::is_start_byte(m_data[back_pos]));
+
+			auto [cp, _] = utf8::decode_unchecked(m_data, back_pos);
+			return cp;
+		}
+
 		[[nodiscard]] std::optional<char32> peek(size_t n = 1) const noexcept
 		{
 			size_t idx = m_pos;
-			for (size_t i = 0; i < n; ++i)
-			{
-				if (idx >= m_data.size())
-					return std::nullopt;
+			for (size_t i = 0; i < n and idx < m_data.size(); ++i)
 				idx += width_at(idx);
-			}
+
 			if (idx >= m_data.size())
 				return std::nullopt;
+
 			return decode_at(idx);
 		}
 
@@ -128,10 +226,21 @@ namespace deckard::utf8
 			return codepoint;
 		}
 
-		void skip()
+		void skip() noexcept
 		{
 			assert::check(has_next(), "scanner::skip() called at end of input");
 			m_pos += width_at(m_pos);
+		}
+
+		template<character_type T>
+		bool skip(T c) noexcept
+		{
+			if (is(c))
+			{
+				skip();
+				return true;
+			}
+			return false;
 		}
 
 		void skip(size_t n) noexcept
@@ -148,6 +257,7 @@ namespace deckard::utf8
 
 		char32 operator++(int)
 		{
+			assert::check(has_next(), "scanner::operator++(int) called at end of input");
 			const char32 cp = current();
 			skip();
 			return cp;
@@ -215,29 +325,38 @@ namespace deckard::utf8
 			return take_while([&pred](char32 cp) { return not pred(cp); });
 		}
 
+		// Takes line, skips newline characters
 		[[nodiscard]] view take_line() noexcept
 		{
-			const size_t start = m_pos;
-			while (has_next())
+			using namespace utf8::basic_characters;
+			const size_t        start     = m_pos;
+			std::span<const u8> remaining = m_data.subspan(m_pos);
+
+			auto it = std::ranges::find_if(remaining, [](u8 b) { return b == u8'\n' || b == u8'\r'; });
+
+			if (it == remaining.end())
 			{
-				const auto [codepoint, width] = utf8::decode_unchecked(m_data, m_pos);
+				m_pos = m_data.size();
+				return view{m_data.subspan(start)};
+			}
 
-				assert::check(width > 0, "Should never be zero");
+			size_t newline_pos = start + std::distance(remaining.begin(), it);
+			view   result{m_data.subspan(start, newline_pos - start)};
 
-				m_pos += width;
-				if (codepoint == U'\n')
-					return view{m_data.subspan(start, m_pos - width - start)};
-				if (codepoint == U'\r')
+			if (*it == LINE_FEED)
+			{
+				m_pos = newline_pos + 1; // \n
+			}
+			else                         // *it == u8'\r'
+			{
+				m_pos = newline_pos + 1; // \r (CARRIAGE_RETURN)
+				if (m_pos < m_data.size() && m_data[m_pos] == LINE_FEED)
 				{
-
-					const size_t line_end = m_pos - width;
-					if (has_next() and decode_at(m_pos) == U'\n')
-						m_pos += width_at(m_pos);
-
-					return view{m_data.subspan(start, line_end - start)};
+					m_pos += 1;          // trailing \n
 				}
 			}
-			return view{m_data.subspan(start, m_pos - start)};
+
+			return result;
 		}
 
 		// views
@@ -267,7 +386,7 @@ namespace deckard::utf8
 			return true;
 		}
 
-		[[nodiscard]] bool expect(v2::view v) noexcept
+		[[nodiscard]] bool expect(view v) noexcept
 		{
 			if (v.empty())
 				return true;
@@ -282,9 +401,63 @@ namespace deckard::utf8
 			{
 				m_pos += v.size_in_bytes();
 				assert::check(m_pos >= m_data.size() or utf8::is_start_byte(m_data[m_pos]),
-							  "expect(v2::view) advanced m_pos to mid-codepoint");
+							  "expect(view) advanced m_pos to mid-codepoint");
 			}
 			return match;
+		}
+
+		[[nodiscard]] constexpr bool starts_with(std::string_view prefix) const noexcept
+		{
+			if (remaining_bytes() < prefix.size())
+				return false;
+
+			std::string_view window{reinterpret_cast<const char*>(m_data.data() + m_pos), remaining_bytes()};
+			return window.starts_with(prefix);
+		}
+
+		[[nodiscard]] constexpr bool starts_with(view prefix) const noexcept
+		{
+			if (remaining_bytes() < prefix.size_in_bytes())
+				return false;
+
+			std::span<const u8> window = m_data.subspan(m_pos, prefix.size_in_bytes());
+			return std::ranges::equal(window, prefix.data());
+		}
+
+		[[nodiscard]] constexpr bool starts_with(char32 codepoint) const noexcept
+		{
+			return has_next() and current() == codepoint;
+		}
+
+		[[nodiscard]] constexpr bool ends_with(std::string_view suffix) const noexcept
+		{
+			if (remaining_bytes() < suffix.size())
+				return false;
+
+			std::string_view window{reinterpret_cast<const char*>(m_data.data() + m_pos), remaining_bytes()};
+			return window.ends_with(suffix);
+		}
+
+		[[nodiscard]] constexpr bool ends_with(view suffix) const noexcept
+		{
+			if (remaining_bytes() < suffix.size_in_bytes())
+				return false;
+
+			std::span<const u8> window =
+			  m_data.subspan(m_pos + remaining_bytes() - suffix.size_in_bytes(), suffix.size_in_bytes());
+			return std::ranges::equal(window, suffix.data());
+		}
+
+		[[nodiscard]] constexpr bool ends_with(char32 codepoint) const noexcept
+		{
+			if (not has_next())
+				return false;
+
+			size_t back_pos = m_data.size() - 1;
+			while (back_pos > m_pos and utf8::is_continuation_byte(m_data[back_pos]))
+				--back_pos;
+
+			return decode_at(back_pos) == codepoint;
 		}
 	};
 } // namespace deckard::utf8

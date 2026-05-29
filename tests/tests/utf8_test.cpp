@@ -1681,6 +1681,7 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 
 	SECTION("grapheme cluster")
 	{
+
 		// https://hsivonen.fi/string-length/
 		utf8::string man("🤦🏼‍♂️");
 		// U + 1F926  🤦 FACE PALM
