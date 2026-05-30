@@ -907,6 +907,235 @@ void process_core_properties()
 	write_lines(tables, "XID_Continue", "xid_continue.ixx");
 }
 
+void generate_trie_tables(std::map<u32, u32> const &ccc_map)
+{
+	constexpr u32 BLOCK_SIZE       = 64;
+	constexpr u32 TOTAL_CODEPOINTS = 0x11'0000;
+	constexpr u32 DIRECTORY_SIZE   = TOTAL_CODEPOINTS / BLOCK_SIZE;
+
+	using CccBlock = std::array<u8, BLOCK_SIZE>;
+
+
+	std::vector<CccBlock> raw_blocks(DIRECTORY_SIZE, CccBlock{});
+
+	u32 min_codepoint{TOTAL_CODEPOINTS};
+	u32 max_codepoint{0};
+
+	for (auto const &[codepoint, value] : ccc_map)
+	{
+		if (codepoint >= TOTAL_CODEPOINTS)
+			continue;
+
+		u32 index              = codepoint / BLOCK_SIZE;
+		u32 low                = codepoint % BLOCK_SIZE;
+		raw_blocks[index][low] = static_cast<u8>(value);
+
+		min_codepoint = std::min(min_codepoint, codepoint);
+		max_codepoint = std::max(max_codepoint, codepoint);
+	}
+
+
+	std::vector<CccBlock> unique_blocks;
+	std::vector<u8>       directory(DIRECTORY_SIZE, 0);
+
+	unique_blocks.emplace_back(CccBlock{});
+
+	for (size_t i = 0; i < raw_blocks.size(); ++i)
+	{
+		auto const &current_block = raw_blocks[i];
+
+		if (std::ranges::all_of(current_block, [](u8 v) { return v == 0; }))
+		{
+			directory[i] = 0;
+			continue;
+		}
+
+		auto it = std::ranges::find(unique_blocks, current_block);
+		if (it != unique_blocks.end())
+		{
+			directory[i] = static_cast<u8>(std::distance(unique_blocks.begin(), it));
+		}
+		else
+		{
+			directory[i] = static_cast<u8>(unique_blocks.size());
+			unique_blocks.push_back(current_block);
+		}
+	}
+
+	std::println("// Generated Meta-Information");
+	std::println("// min: U+{:06X}, max: U+{:06X}", min_codepoint, max_codepoint);
+	std::println("inline constexpr size_t BLOCK_SIZE     = {};", BLOCK_SIZE);
+	std::println("inline constexpr size_t UNIQUE_BLOCKs  = {};\n", unique_blocks.size());
+
+	auto last_nonzero = std::ranges::find_if(directory | std::views::reverse, [](u16 id) { return id != 0; });
+
+	size_t truncated_size = directory.size();
+	if (last_nonzero != directory.rend())
+		truncated_size = std::distance(directory.begin(), last_nonzero.base());
+
+
+	std::println("// directory size: {} bytes", truncated_size);
+	std::println("inline constexpr std::array<u8, {}> trie_directory = {{", truncated_size);
+	for (size_t i = 0; i < truncated_size; i += 16)
+	{
+		std::print("    ");
+		for (size_t j = 0; j < 16 and (i + j) < truncated_size; ++j)
+		{
+			std::print("{}, ", directory[i + j]);
+		}
+		std::println("");
+	}
+	std::println("}};");
+
+	std::println("// data size: {} bytes", unique_blocks.size() * BLOCK_SIZE);
+	std::println("inline constexpr std::array<u8, {}> trie_data = {{", unique_blocks.size() * BLOCK_SIZE);
+	for (size_t b = 0; b < unique_blocks.size(); ++b)
+	{
+		std::println("    // Block {}", b);
+		for (size_t i = 0; i < BLOCK_SIZE; i += 16)
+		{
+			std::print("    ");
+			for (size_t j = 0; j < 16; ++j)
+			{
+				std::print("{:3}, ", unique_blocks[b][i + j]);
+			}
+			std::println("");
+		}
+	}
+	std::println("}};");
+
+	std::println("// total table sizes: {} bytes + {} bytes  = {} bytes",
+				 truncated_size,
+				 unique_blocks.size() * BLOCK_SIZE,
+				 truncated_size + unique_blocks.size() * BLOCK_SIZE);
+
+ww	std::string ccc_generator = std::format("[[nodiscard]] constexpr auto get_ccc(u32 cp) noexcept -> u8\n"
+											"{{\n"
+											"	if (cp < {:#0x})\n"
+											"		return 0;\n"
+											"\n"
+											"	if( cp > {:#0x})\n"
+											"		return 0;\n"
+											"\n"
+											"	const u32 block_idx = cp >> 6;\n"
+											"	const u32 low_idx   = cp & 63;\n"
+											"\n"
+											"	if (block_idx >= detail::trie_directory.size()) \n"
+											"		return 0;\n"
+											"\n"
+											"	const u16    block_id = trie_directory[block_idx];\n"
+											"	const size_t offset   = (static_cast<size_t>(block_id) << 6) + low_idx;\n"
+											"\n"
+											"	return trie_data[offset];\n"
+											"}}",
+											min_codepoint,
+											max_codepoint);
+
+	std::println("{}", ccc_generator);
+}
+
+// ##########################################
+
+struct TrieTables
+{
+	std::vector<u32> stage2;
+	std::vector<u32> stage1;
+	u32              page_size;
+	u32              cp_min; // first codepoint covered
+	u32              cp_max; // last codepoint covered (inclusive)
+};
+
+[[nodiscard]]
+auto build_trie(std::map<u32, u32> const &ccc, u32 page_size = 256) -> TrieTables
+{
+	if (ccc.empty())
+		return {};
+
+	u32 const cp_min    = ccc.begin()->first;
+	u32 const cp_max    = ccc.rbegin()->first;
+	u32 const pg_first  = cp_min / page_size;
+	u32 const pg_last   = cp_max / page_size;
+	u32 const num_pages = pg_last - pg_first + 1;
+
+	// --- build raw pages (only the covered range) ---
+	std::vector<std::vector<u32>> raw(num_pages, std::vector<u32>(page_size, 0));
+
+	for (auto const &[cp, val] : ccc)
+		raw[cp / page_size - pg_first][cp % page_size] = val;
+
+	// --- deduplicate ---
+	std::vector<u32>                stage2;
+	std::vector<u32>                stage1(num_pages);
+	std::map<std::vector<u32>, u32> seen;
+
+	for (u32 p = 0; p < num_pages; ++p)
+	{
+		auto [it, inserted] = seen.emplace(raw[p], static_cast<u32>(stage2.size() / page_size));
+		if (inserted)
+			stage2.insert(stage2.end(), raw[p].begin(), raw[p].end());
+		stage1[p] = it->second;
+	}
+
+	return {std::move(stage2), std::move(stage1), page_size, cp_min, cp_max};
+}
+
+void emit_cpp_tables(TrieTables const &t, std::string_view name)
+{
+	u32 const pg_first     = t.cp_min / t.page_size;
+	u32 const unique_pages = static_cast<u32>(t.stage2.size()) / t.page_size;
+
+	// --- constants ---
+	std::println("constexpr u32 {}_page_size   = {};", name, t.page_size);
+	std::println("constexpr u32 {}_cp_min      = 0x{:X};", name, t.cp_min);
+	std::println("constexpr u32 {}_cp_max      = 0x{:X};", name, t.cp_max);
+	std::println("constexpr u32 {}_pg_first    = {};", name, pg_first);
+	std::println("");
+
+	// --- stage1 ---
+	std::println("constexpr u32 {}_stage1[{}] = {{", name, t.stage1.size());
+	for (u32 i = 0; i < t.stage1.size(); ++i)
+	{
+		if (i % 16 == 0)
+			std::print("    ");
+		std::print("{:3}", t.stage1[i]);
+		if (i + 1 < t.stage1.size())
+			std::print(", ");
+		if (i % 16 == 15)
+			std::println("");
+	}
+	std::println("\n}};");
+	std::println("");
+
+	// --- stage2 ---
+	std::println("constexpr u32 {}_stage2[{}] = {{  // {} unique pages", name, t.stage2.size(), unique_pages);
+	for (u32 i = 0; i < t.stage2.size(); ++i)
+	{
+		if (i % t.page_size == 0)
+			std::println("    // page {}", i / t.page_size);
+		if (i % 16 == 0)
+			std::print("    ");
+		std::print("{:3}", t.stage2[i]);
+		if (i + 1 < t.stage2.size())
+			std::print(", ");
+		if (i % 16 == 15)
+			std::println("");
+	}
+	std::println("\n}};");
+	std::println("");
+
+	// --- lookup ---
+	std::println("[[nodiscard]] auto {}_lookup(u32 cp) -> u32 {{", name);
+	std::println("    if (cp < {0}_cp_min || cp > {0}_cp_max) [[unlikely]] return 0;", name);
+	std::println("    constexpr u32 shift = std::countr_zero({}_page_size);", name);
+	std::println("    constexpr u32 mask  = {}_page_size - 1;", name);
+	std::println("    u32 const page   = {0}_stage1[(cp >> shift) - {0}_pg_first];", name);
+	std::println("    u32 const offset = cp & mask;", name);
+	std::println("    return {}_stage2[page * {}_page_size + offset];", name, name);
+	std::println("}}");
+}
+
+// ##########################################
+
 void process_unicode_data()
 {
 	std::vector<UnicodeDataField> fields;
@@ -962,6 +1191,7 @@ void process_unicode_data()
 	u32 longest_decomposition = 0;
 	i64 first = 0, last = 0;
 
+	std::map<u32, u32> ccc;
 
 	for (const auto &line : lines)
 	{
@@ -982,7 +1212,12 @@ void process_unicode_data()
 
 		longest_decomposition = std::max(longest_decomposition, (u32)field.character_decomposed.size());
 
+		if (field.canonical_combining_classes > 0)
+			ccc[(u32)field.code_value] = (u32)field.canonical_combining_classes;
 
+		//
+		// TODO: collect all non-zero CCC,
+		//
 		// ---------------------------------------------------------------------------------
 
 		decomposetable[field.code_value] = {.to = field.character_decomposed, .ccc = field.canonical_combining_classes};
@@ -1064,12 +1299,49 @@ void process_unicode_data()
 		//
 	}
 
+
 	std::println("Longest decomposition: {}", longest_decomposition);
 
 	// ASSERT: Check whats changes, as of Unicode 17, it been 2, in Unicode Canonical Decomposition.
 	assert(longest_decomposition <= 2);
 	// -----------------------------------
 
+	std::vector<u32> ccc_blocks;
+	for (const auto &[codepoint, cc] : ccc)
+	{
+		ccc_blocks.push_back(codepoint);
+		//		std::println("codepoint: {:#0x}, ccc: {}", codepoint, cc);
+	}
+	std::println("ccc count: {}", ccc.size());
+
+
+	generate_trie_tables(ccc);
+
+	std::println();
+	std::println();
+	std::println();
+	std::println();
+
+
+	auto trie = build_trie(ccc);
+	emit_cpp_tables(trie, "ccc");
+
+
+#if 0
+	for (const auto chunk : ccc | std::views::values| std::views::chunk_by([](u32 a, u32 b) { return b == a + 1; }))
+	{
+		std::println("{:#0x}, {:#0x}", *chunk.begin(), *std::prev(chunk.end()));
+		chunks++;
+	}
+
+	int x = 0;
+	// TODO: ccc chunks wrong, should be chunk be ccc
+	for (const auto chunk : ccc_blocks | std::views::chunk_by([](u32 a, u32 b) { return b == a + 1; }))
+	{
+		std::println("{:#0x}, {:#0x}", *chunk.begin(), *std::prev(chunk.end()));
+		++chunks;
+	}
+#endif
 	write_lines(decomposetable, longest_decomposition, "decompose_table.ixx");
 
 
