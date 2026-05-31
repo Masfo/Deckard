@@ -18,15 +18,37 @@ using namespace deckard;
 
 using namespace deckard::lexer;
 
-namespace detail
+namespace details
 {
-	std::unordered_set<TokenType> token_counts;
+	std::unordered_map<TokenKind, u32> token_counts;
 }
 
-void CHECK_TOKEN(const utf8::view str, const Token& token, TokenType expected_type, u32 expected_line, u32 expected_column,
+void CHECK_TOKEN(const utf8::view str, const Token& token, TokenKind expected_type, u32 expected_line, u32 expected_column,
 				 utf8::view correct_str, TokenError expected_error = TokenError::None)
 {
-	detail::token_counts.insert(token.type);
+	details::token_counts[token.type]++;
+
+	if (token.group == TokenGroup::Literal or token.group == TokenGroup::Identifier or token.group == TokenGroup::Keyword)
+	{
+		CHECK(correct_str == detail::pool.get(token.id));
+	}
+	else
+	{
+		// CHECK(token.id == limits::max<u32>);
+	}
+
+	if (token.line != expected_line || token.column != expected_column)
+	{
+		// Show visual layout on failure
+		dbg::eprintln("Token layout mismatch at line {}, column {}:", token.line, token.column);
+		//	// Display the line with column markers
+		//	auto lines = str.split('\n');
+		//	if (token.line <= lines.size())
+		//	{
+		//		dbg::eprintln("{}", lines[token.line - 1]);
+		//		dbg::eprintln("{}^", std::string(token.column - 1, ' '));
+		//	}
+	}
 
 	CHECK(token.type == expected_type);
 	CHECK(token.line == expected_line);
@@ -49,6 +71,19 @@ void CHECK_TOKEN(const utf8::view str, const Token& token, TokenType expected_ty
 TEST_CASE("tokens", "[lexer]")
 {
 
+	SECTION("single ident")
+	{
+		utf8::string       str = "abc"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("abc"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 4, utf8::view(""));
+	}
+
 	SECTION("stringview initialize")
 	{
 		// line 1: abc\n
@@ -59,11 +94,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 3);
+		CHECK(tokens.size() == 4);
 
-		CHECK_TOKEN(str, tokens[0], TokenType::Identifier, 1, 1, utf8::view("abc"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Identifier, 2, 1, utf8::view("qwerty"));
-		CHECK_TOKEN(str, tokens[2], TokenType::Identifier, 3, 1, utf8::view("hjkl"));
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("abc"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Identifier, 2, 1, utf8::view("qwerty"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Identifier, 3, 1, utf8::view("hjkl"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::EOF, 3, 5, utf8::view(""));
 	}
 
 	SECTION("integer")
@@ -73,20 +109,36 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::Integer, 1, 1, utf8::view("123"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Integer, 1, 5, utf8::view("456_789"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("123"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Integer, 1, 5, utf8::view("456_789"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 12, utf8::view(""));
+	}
+
+
+	SECTION("negative integer")
+	{
+		utf8::string       str = "-42"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+		CHECK(tokens.size() == 3);
+
+		CHECK_TOKEN(str, tokens[0], TokenKind::Minus, 1, 1, utf8::view("-"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Integer, 1, 2, utf8::view("42"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 4, utf8::view(""));
 	}
 
 	SECTION("invalid integer")
 	{
 		utf8::string       str = "666a"sv;
 		std::vector<Token> tokens;
-		for (const auto& token : tokenize(str) | std::views::take(1))
+		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Integer, 1, 1, utf8::view("666a"), TokenError::InvalidInteger);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("666a"), TokenError::InvalidInteger);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
 	}
 
 	SECTION("hex integer")
@@ -96,20 +148,22 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::Integer, 1, 1, utf8::view("0x29A"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Integer, 1, 7, utf8::view("0xbad"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("0x29A"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Integer, 1, 7, utf8::view("0xbad"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 12, utf8::view(""));
 	}
 
 	SECTION("invalid hex integer")
 	{
 		utf8::string       str = "0xG"sv;
 		std::vector<Token> tokens;
-		for (const auto& token : tokenize(str) | std::views::take(1))
+		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Integer, 1, 1, utf8::view("0xG"), TokenError::InvalidHex);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("0xG"), TokenError::InvalidHex);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 4, utf8::view(""));
 	}
 
 
@@ -120,19 +174,33 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Integer, 1, 1, utf8::view("0b101010"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("0b101010"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 9, utf8::view(""));
+	}
+
+	SECTION("binary integer trailing underscore")
+	{
+		utf8::string       str = "0b10_"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("0b10_"), TokenError::InvalidBinary);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 6, utf8::view(""));
 	}
 
 	SECTION("invalid binary integer")
 	{
 		utf8::string       str = "0b2"sv;
 		std::vector<Token> tokens;
-		for (const auto& token : tokenize(str) | std::views::take(1))
+		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Integer, 1, 1, utf8::view("0b2"), TokenError::InvalidBinary);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("0b2"), TokenError::InvalidBinary);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 4, utf8::view(""));
 	}
 
 
@@ -143,9 +211,48 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("3.1415"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 8, utf8::view("1."));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 10, utf8::view(""));
+	}
+
+	SECTION("floating point trailing underscore")
+	{
+		utf8::string       str = "3.14_15_"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
 		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::FloatingPoint, 1, 1, utf8::view("3.1415"));
-		CHECK_TOKEN(str, tokens[1], TokenType::FloatingPoint, 1, 8, utf8::view("1."));
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("3.14_15_"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 9, utf8::view(""));
+	}
+
+	
+	SECTION("hex integer trailing underscore")
+	{
+		utf8::string       str = "0x10_"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("0x10_"), TokenError::InvalidHex);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 6, utf8::view(""));
+	}
+
+
+	SECTION("negative floating point")
+	{
+		utf8::string       str = "-3.14"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Minus, 1, 1, utf8::view("-"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 2, utf8::view("3.14"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 6, utf8::view(""));
 	}
 
 	SECTION("invalid floating point")
@@ -155,9 +262,10 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::FloatingPoint, 1, 1, utf8::view("1.2.3"), TokenError::InvalidFloatingPoint);
-		CHECK_TOKEN(str, tokens[1], TokenType::FloatingPoint, 1, 7, utf8::view("1.a"), TokenError::InvalidFloatingPoint);
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("1.2.3"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 7, utf8::view("1.a"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 10, utf8::view(""));
 	}
 
 	SECTION("floating point with exponent")
@@ -167,12 +275,13 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 5);
-		CHECK_TOKEN(str, tokens[0], TokenType::FloatingPoint, 1, 1, utf8::view("1e5"));
-		CHECK_TOKEN(str, tokens[1], TokenType::FloatingPoint, 1, 5, utf8::view("3.14e10"));
-		CHECK_TOKEN(str, tokens[2], TokenType::FloatingPoint, 1, 13, utf8::view("1.e-3"));
-		CHECK_TOKEN(str, tokens[3], TokenType::FloatingPoint, 1, 19, utf8::view("2.5e+7"));
-		CHECK_TOKEN(str, tokens[4], TokenType::FloatingPoint, 1, 26, utf8::view("1_000.5e-2"));
+		CHECK(tokens.size() == 6);
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("1e5"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 5, utf8::view("3.14e10"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::FloatingPoint, 1, 13, utf8::view("1.e-3"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::FloatingPoint, 1, 19, utf8::view("2.5e+7"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::FloatingPoint, 1, 26, utf8::view("1_000.5e-2"));
+		CHECK_TOKEN(str, tokens[5], TokenKind::EOF, 1, 36, utf8::view(""));
 	}
 
 	SECTION("invalid floating point with exponent")
@@ -182,11 +291,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::FloatingPoint, 1, 1, utf8::view("1e"), TokenError::InvalidFloatingPoint);
-		CHECK_TOKEN(str, tokens[1], TokenType::FloatingPoint, 1, 4, utf8::view("1e+"), TokenError::InvalidFloatingPoint);
-		CHECK_TOKEN(str, tokens[2], TokenType::FloatingPoint, 1, 8, utf8::view("1e-"), TokenError::InvalidFloatingPoint);
-		CHECK_TOKEN(str, tokens[3], TokenType::FloatingPoint, 1, 12, utf8::view("1ea"), TokenError::InvalidFloatingPoint);
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("1e"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 4, utf8::view("1e+"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[2], TokenKind::FloatingPoint, 1, 8, utf8::view("1e-"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[3], TokenKind::FloatingPoint, 1, 12, utf8::view("1ea"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 15, utf8::view(""));
 	}
 
 	SECTION("floating point comprehensive")
@@ -196,11 +306,116 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::FloatingPoint, 1, 1, utf8::view("1.5e-10"));
-		CHECK_TOKEN(str, tokens[1], TokenType::FloatingPoint, 1, 9, utf8::view("5."));
-		CHECK_TOKEN(str, tokens[2], TokenType::FloatingPoint, 1, 12, utf8::view("5.5e1"));
-		CHECK_TOKEN(str, tokens[3], TokenType::FloatingPoint, 1, 18, utf8::view("1_2_3.4_5e-6_7"));
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("1.5e-10"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 9, utf8::view("5."));
+		CHECK_TOKEN(str, tokens[2], TokenKind::FloatingPoint, 1, 12, utf8::view("5.5e1"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::FloatingPoint, 1, 18, utf8::view("1_2_3.4_5e-6_7"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 32, utf8::view(""));
+	}
+
+	SECTION("identifier intern")
+	{
+		utf8::string       str = "привет"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+		CHECK(tokens.size() == 2);
+
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("привет"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 7, utf8::view(""));
+	}
+
+	SECTION("underscore start")
+	{
+		utf8::string       str = "_foo"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("_foo"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
+	}
+
+	SECTION("digit cannot start identifier")
+	{
+		utf8::string       str = "1abc"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Integer, 1, 1, utf8::view("1abc"), TokenError::InvalidInteger);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
+	}
+
+	SECTION("dollar start")
+	{
+		utf8::string       str = "$bar"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("$bar"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
+	}
+
+	SECTION("identifier")
+	{
+		utf8::string       str = "hello _world _123abc $dollar привет 東京 café π"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+		CHECK(tokens.size() == 9);
+
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("hello"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Identifier, 1, 7, utf8::view("_world"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Identifier, 1, 14, utf8::view("_123abc"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::Identifier, 1, 22, utf8::view("$dollar"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::Identifier, 1, 30, utf8::view("привет"));
+		CHECK_TOKEN(str, tokens[5], TokenKind::Identifier, 1, 37, utf8::view("東京"));
+		CHECK_TOKEN(str, tokens[6], TokenKind::Identifier, 1, 40, utf8::view("café"));
+		CHECK_TOKEN(str, tokens[7], TokenKind::Identifier, 1, 45, utf8::view("π"));
+
+		CHECK_TOKEN(str, tokens[8], TokenKind::EOF, 1, 46, utf8::view(""));
+	}
+
+	SECTION("single character")
+	{
+		utf8::string       str = R"('c')"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('c')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 4, utf8::view(""));
+	}
+
+	SECTION("single character unicode")
+	{
+		utf8::string       str = R"('🌍')"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('🌍')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 4, utf8::view(""));
+	}
+
+	SECTION("single hex character ")
+	{
+		utf8::string       str = R"('\x42')"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\x42')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 7, utf8::view(""));
 	}
 
 	SECTION("character")
@@ -210,12 +425,13 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 5);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('c')"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Character, 1, 5, utf8::view(R"('🌍')"));
-		CHECK_TOKEN(str, tokens[2], TokenType::Character, 1, 9, utf8::view(R"('\'')"));
-		CHECK_TOKEN(str, tokens[3], TokenType::Character, 1, 14, utf8::view(R"('\xff')"));
-		CHECK_TOKEN(str, tokens[4], TokenType::Character, 1, 21, utf8::view(R"('\n')"));
+		CHECK(tokens.size() == 6);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('c')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Character, 1, 5, utf8::view(R"('🌍')"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Character, 1, 9, utf8::view(R"('\'')"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::Character, 1, 14, utf8::view(R"('\xff')"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::Character, 1, 21, utf8::view(R"('\n')"));
+		CHECK_TOKEN(str, tokens[5], TokenKind::EOF, 1, 25, utf8::view(""));
 	}
 
 	SECTION("invalid character (unterminated)")
@@ -225,8 +441,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view("'x"), TokenError::InvalidCharacter);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view("'x"), TokenError::InvalidCharacter);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 3, utf8::view(""));
 	}
 
 	SECTION("invalid character")
@@ -236,8 +453,26 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('\xfff')"), TokenError::InvalidCharacter);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\xfff')"), TokenError::InvalidCharacter);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 8, utf8::view(""));
+	}
+
+
+	SECTION("newline in character literal")
+	{
+		utf8::string       str = R"('a
+', ident)"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		//  REQUIRE(tokens.size() == 5);
+		// CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view("'a"), TokenError::InvalidCharacterNewline);
+		// CHECK_TOKEN(str, tokens[1], TokenKind::Character, 2, 1, utf8::view("'"));
+		// CHECK_TOKEN(str, tokens[2], TokenKind::Comma, 2, 2, utf8::view(","));
+		// CHECK_TOKEN(str, tokens[3], TokenKind::Identifier, 2, 4, utf8::view("ident"));
+		// CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 2, 9, utf8::view(""));
 	}
 
 
@@ -248,9 +483,10 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("hello")"));
-		CHECK_TOKEN(str, tokens[1], TokenType::String, 1, 9, utf8::view(R"("hel\nlo")"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("hello")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::String, 1, 9, utf8::view(R"("hel\nlo")"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 18, utf8::view(""));
 	}
 
 	SECTION("invalid string (unterminated)")
@@ -260,8 +496,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view("\"invalid"), TokenError::InvalidString);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"invalid"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 9, utf8::view(""));
 	}
 
 	SECTION("escaped string - basic")
@@ -271,10 +508,11 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 3);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\n")"));
-		CHECK_TOKEN(str, tokens[1], TokenType::String, 1, 6, utf8::view(R"("\r")"));
-		CHECK_TOKEN(str, tokens[2], TokenType::String, 1, 11, utf8::view(R"("\t")"));
+		CHECK(tokens.size() == 4);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\n")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::String, 1, 6, utf8::view(R"("\r")"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::String, 1, 11, utf8::view(R"("\t")"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::EOF, 1, 15, utf8::view(""));
 	}
 
 	SECTION("escaped string - hex")
@@ -284,9 +522,10 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\xFF")"));
-		CHECK_TOKEN(str, tokens[1], TokenType::String, 1, 8, utf8::view(R"("\xB")"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\xFF")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::String, 1, 8, utf8::view(R"("\xB")"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 13, utf8::view(""));
 	}
 
 	SECTION("escaped string - invalid hex (invalid char)")
@@ -296,8 +535,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\xG")"), TokenError::InvalidString);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\xG")"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 6, utf8::view(""));
 	}
 
 	SECTION("escaped string - invalid hex (too long)")
@@ -307,8 +547,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\xAABB")"), TokenError::InvalidString);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\xAABB")"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 9, utf8::view(""));
 	}
 
 	SECTION("escaped string - invalid hex (missing digits)")
@@ -318,8 +559,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\x")"), TokenError::InvalidString);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\x")"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
 	}
 
 	SECTION("string with newline")
@@ -329,8 +571,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		REQUIRE(tokens.size() >= 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view("\"first line"), TokenError::InvalidString);
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"first line"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::Identifier, 2, 1, utf8::view("second"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Identifier, 2, 8, utf8::view("line"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::String, 2, 12, utf8::view("\""), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 2, 13, utf8::view(""));
 	}
 
 	SECTION("string with trailing backslash")
@@ -340,8 +586,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("trailing \)"), TokenError::InvalidString);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("trailing \)"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 12, utf8::view(""));
 	}
 
 	SECTION("string with escaped newline")
@@ -351,7 +598,33 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view("\"escaped \\\nnewline\""));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"escaped \\\nnewline\""));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 2, 9, utf8::view(""));
+	}
+
+	SECTION("string with escaped carriage return")
+	{
+		utf8::string       str = "\"escaped \\\rnewline\""sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"escaped \\\rnewline\""));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 2, 9, utf8::view(""));
+	}
+
+	SECTION("string with escaped mixed line ending")
+	{
+		utf8::string       str = "\"escaped \\\r\nnewline\""sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"escaped \\\r\nnewline\""));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 2, 9, utf8::view(""));
 	}
 
 	SECTION("unicode escape string")
@@ -361,11 +634,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\u41")"));
-		CHECK_TOKEN(str, tokens[1], TokenType::String, 1, 8, utf8::view(R"("\U0041")"));
-		CHECK_TOKEN(str, tokens[2], TokenType::String, 1, 17, utf8::view(R"("\uFFFDzxc")"));
-		CHECK_TOKEN(str, tokens[3], TokenType::String, 1, 29, utf8::view(R"("\U000012345")"));
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\u41")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::String, 1, 8, utf8::view(R"("\U0041")"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::String, 1, 17, utf8::view(R"("\uFFFDzxc")"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::String, 1, 29, utf8::view(R"("\U000012345")"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 42, utf8::view(""));
 	}
 
 	SECTION("hex escape case sensitivity")
@@ -375,11 +649,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\xAb")"));
-		CHECK_TOKEN(str, tokens[1], TokenType::String, 1, 8, utf8::view(R"("\xaB")"));
-		CHECK_TOKEN(str, tokens[2], TokenType::String, 1, 15, utf8::view(R"("\xab")"));
-		CHECK_TOKEN(str, tokens[3], TokenType::String, 1, 22, utf8::view(R"("\xAB")"));
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\xAb")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::String, 1, 8, utf8::view(R"("\xaB")"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::String, 1, 15, utf8::view(R"("\xab")"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::String, 1, 22, utf8::view(R"("\xAB")"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 28, utf8::view(""));
 	}
 
 	SECTION("empty character literal")
@@ -389,8 +664,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('')"), TokenError::None);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('')"), TokenError::InvalidCharacterEmpty);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 3, utf8::view(""));
 	}
 
 	SECTION("character with multiple codepoints")
@@ -400,8 +676,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('ab')"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('ab')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
 	}
 
 	SECTION("character with multiple hex escapes")
@@ -411,8 +688,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('\x41\x42')"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\x41\x42')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 11, utf8::view(""));
 	}
 
 	SECTION("character hex escape boundary - incomplete at end")
@@ -422,8 +700,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('\x)"), TokenError::InvalidCharacter);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\x)"), TokenError::InvalidCharacter);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 4, utf8::view(""));
 	}
 
 	SECTION("character with escaped quote")
@@ -433,8 +712,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('\'')"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\'')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
 	}
 
 	SECTION("character with escaped backslash")
@@ -444,8 +724,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('\\')"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\\')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 5, utf8::view(""));
 	}
 
 	SECTION("string with escaped quote")
@@ -455,8 +736,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("hello\"world")"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("hello\"world")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 15, utf8::view(""));
 	}
 
 	SECTION("string with escaped backslash")
@@ -466,8 +748,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("path\\to\\file")"));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("path\\to\\file")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 17, utf8::view(""));
 	}
 
 	SECTION("character and string adjacent without space")
@@ -477,9 +760,10 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('c')"));
-		CHECK_TOKEN(str, tokens[1], TokenType::String, 1, 4, utf8::view(R"("string")"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('c')"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::String, 1, 4, utf8::view(R"("string")"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 12, utf8::view(""));
 	}
 
 	SECTION("string and character adjacent without space")
@@ -489,9 +773,10 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("string")"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Character, 1, 9, utf8::view(R"('c')"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("string")"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Character, 1, 9, utf8::view(R"('c')"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 12, utf8::view(""));
 	}
 
 	SECTION("hex escape with non-hex adjacent")
@@ -501,8 +786,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view(R"("\x0g")"), TokenError::None);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view(R"("\x0g")"), TokenError::None);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 7, utf8::view(""));
 	}
 
 	SECTION("hex escape in character with non-hex adjacent")
@@ -512,8 +798,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Character, 1, 1, utf8::view(R"('\x0Z')"), TokenError::None);
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Character, 1, 1, utf8::view(R"('\x0Z')"), TokenError::None);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 7, utf8::view(""));
 	}
 
 	SECTION("carriage return in string")
@@ -523,8 +810,11 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		REQUIRE(tokens.size() >= 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view("\"line1"), TokenError::InvalidString);
+		REQUIRE(tokens.size() == 4);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"line1"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::Identifier, 2, 1, utf8::view("line2"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::String, 2, 6, utf8::view("\""), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[3], TokenKind::EOF, 2, 7, utf8::view(""));
 	}
 
 	SECTION("mixed line endings in string")
@@ -534,8 +824,11 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		REQUIRE(tokens.size() >= 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::String, 1, 1, utf8::view("\"line1"), TokenError::InvalidString);
+		REQUIRE(tokens.size() == 4);
+		CHECK_TOKEN(str, tokens[0], TokenKind::String, 1, 1, utf8::view("\"line1"), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[1], TokenKind::Identifier, 2, 1, utf8::view("line2"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::String, 2, 6, utf8::view("\""), TokenError::InvalidString);
+		CHECK_TOKEN(str, tokens[3], TokenKind::EOF, 2, 7, utf8::view(""));
 	}
 
 	//
@@ -547,11 +840,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::Plus, 1, 1, utf8::view("+"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Minus, 1, 3, utf8::view("-"));
-		CHECK_TOKEN(str, tokens[2], TokenType::Star, 1, 5, utf8::view("*"));
-		CHECK_TOKEN(str, tokens[3], TokenType::Slash, 1, 7, utf8::view("/"));
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Plus, 1, 1, utf8::view("+"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Minus, 1, 3, utf8::view("-"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Star, 1, 5, utf8::view("*"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::Slash, 1, 7, utf8::view("/"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 8, utf8::view(""));
 	}
 
 	SECTION("basic symbols++")
@@ -561,9 +855,10 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenType::PlusPlus, 1, 1, utf8::view("++"));
-		CHECK_TOKEN(str, tokens[1], TokenType::MinusMinus, 1, 4, utf8::view("--"));
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(str, tokens[0], TokenKind::PlusPlus, 1, 1, utf8::view("++"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::MinusMinus, 1, 4, utf8::view("--"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 6, utf8::view(""));
 	}
 
 	SECTION("slash")
@@ -574,14 +869,15 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 7);
-		CHECK_TOKEN(str, tokens[0], TokenType::Slash, 1, 1, utf8::view("/"));
-		CHECK_TOKEN(str, tokens[1], TokenType::SlashSlash, 1, 3, utf8::view("//"));
-		CHECK_TOKEN(str, tokens[2], TokenType::SlashStar, 1, 6, utf8::view("/*"));
-		CHECK_TOKEN(str, tokens[3], TokenType::StarSlash, 1, 9, utf8::view("*/"));
-		CHECK_TOKEN(str, tokens[4], TokenType::BackSlash, 1, 12, utf8::view("\\"));
-		CHECK_TOKEN(str, tokens[5], TokenType::BackSlashBackSlash, 1, 14, utf8::view("\\\\"));
-		CHECK_TOKEN(str, tokens[6], TokenType::SlashEqual, 1, 17, utf8::view("/="));
+		CHECK(tokens.size() == 8);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Slash, 1, 1, utf8::view("/"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::SlashSlash, 1, 3, utf8::view("//"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::SlashStar, 1, 6, utf8::view("/*"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::StarSlash, 1, 9, utf8::view("*/"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::BackSlash, 1, 12, utf8::view("\\"));
+		CHECK_TOKEN(str, tokens[5], TokenKind::BackSlashBackSlash, 1, 14, utf8::view("\\\\"));
+		CHECK_TOKEN(str, tokens[6], TokenKind::SlashEqual, 1, 17, utf8::view("/="));
+		CHECK_TOKEN(str, tokens[7], TokenKind::EOF, 1, 19, utf8::view(""));
 	}
 
 	SECTION("shifts")
@@ -591,11 +887,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::ShiftLeft, 1, 1, utf8::view("<<"));
-		CHECK_TOKEN(str, tokens[1], TokenType::ShiftRight, 1, 4, utf8::view(">>"));
-		CHECK_TOKEN(str, tokens[2], TokenType::ShiftLeftEqual, 1, 7, utf8::view("<<="));
-		CHECK_TOKEN(str, tokens[3], TokenType::ShiftRightEqual, 1, 11, utf8::view(">>="));
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::ShiftLeft, 1, 1, utf8::view("<<"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::ShiftRight, 1, 4, utf8::view(">>"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::ShiftLeftEqual, 1, 7, utf8::view("<<="));
+		CHECK_TOKEN(str, tokens[3], TokenKind::ShiftRightEqual, 1, 11, utf8::view(">>="));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 14, utf8::view(""));
 	}
 
 	SECTION("compares")
@@ -605,12 +902,13 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 5);
-		CHECK_TOKEN(str, tokens[0], TokenType::LessThan, 1, 1, utf8::view("<"));
-		CHECK_TOKEN(str, tokens[1], TokenType::GreaterThan, 1, 3, utf8::view(">"));
-		CHECK_TOKEN(str, tokens[2], TokenType::LessThanEqual, 1, 5, utf8::view("<="));
-		CHECK_TOKEN(str, tokens[3], TokenType::GreaterThanEqual, 1, 8, utf8::view(">="));
-		CHECK_TOKEN(str, tokens[4], TokenType::EqualEqual, 1, 11, utf8::view("=="));
+		CHECK(tokens.size() == 6);
+		CHECK_TOKEN(str, tokens[0], TokenKind::LessThan, 1, 1, utf8::view("<"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::GreaterThan, 1, 3, utf8::view(">"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::LessThanEqual, 1, 5, utf8::view("<="));
+		CHECK_TOKEN(str, tokens[3], TokenKind::GreaterThanEqual, 1, 8, utf8::view(">="));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EqualEqual, 1, 11, utf8::view("=="));
+		CHECK_TOKEN(str, tokens[5], TokenKind::EOF, 1, 13, utf8::view(""));
 	}
 
 
@@ -621,11 +919,12 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 4);
-		CHECK_TOKEN(str, tokens[0], TokenType::Percent, 1, 1, utf8::view("%"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Question, 1, 2, utf8::view("?"));
-		CHECK_TOKEN(str, tokens[2], TokenType::Bang, 1, 3, utf8::view("!"));
-		CHECK_TOKEN(str, tokens[3], TokenType::At, 1, 4, utf8::view("@"));
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Percent, 1, 1, utf8::view("%"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Question, 1, 2, utf8::view("?"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Bang, 1, 3, utf8::view("!"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::At, 1, 4, utf8::view("@"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 5, utf8::view(""));
 	}
 
 	SECTION("brackets and braces")
@@ -635,19 +934,17 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 8);
-		CHECK_TOKEN(str, tokens[0], TokenType::LeftBrace, 1, 1, utf8::view("{"));
-		CHECK_TOKEN(str, tokens[1], TokenType::RightBrace, 1, 2, utf8::view("}"));
-		CHECK_TOKEN(str, tokens[2], TokenType::LeftParen, 1, 3, utf8::view("("));
-		CHECK_TOKEN(str, tokens[3], TokenType::RightParen, 1, 4, utf8::view(")"));
-		CHECK_TOKEN(str, tokens[4], TokenType::LeftBracket, 1, 5, utf8::view("["));
-		CHECK_TOKEN(str, tokens[5], TokenType::RightBracket, 1, 6, utf8::view("]"));
+		CHECK(tokens.size() == 9);
+		CHECK_TOKEN(str, tokens[0], TokenKind::LeftBrace, 1, 1, utf8::view("{"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::RightBrace, 1, 2, utf8::view("}"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::LeftParen, 1, 3, utf8::view("("));
+		CHECK_TOKEN(str, tokens[3], TokenKind::RightParen, 1, 4, utf8::view(")"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::LeftBracket, 1, 5, utf8::view("["));
+		CHECK_TOKEN(str, tokens[5], TokenKind::RightBracket, 1, 6, utf8::view("]"));
 
-		CHECK_TOKEN(str, tokens[6], TokenType::LeftAngleBracket, 1, 7, utf8::view("<"));
-		CHECK_TOKEN(str, tokens[7], TokenType::RightAngleBracket, 1, 8, utf8::view(">"));
-
-		CHECK_TOKEN(str, tokens[6], TokenType::LessThan, 1, 7, utf8::view("<"));
-		CHECK_TOKEN(str, tokens[7], TokenType::GreaterThan, 1, 8, utf8::view(">"));
+		CHECK_TOKEN(str, tokens[6], TokenKind::LessThan, 1, 7, utf8::view("<"));
+		CHECK_TOKEN(str, tokens[7], TokenKind::GreaterThan, 1, 8, utf8::view(">"));
+		CHECK_TOKEN(str, tokens[8], TokenKind::EOF, 1, 9, utf8::view(""));
 	}
 
 	SECTION("symbols")
@@ -657,8 +954,9 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 1);
-		CHECK_TOKEN(str, tokens[0], TokenType::Equal, 1, 1, utf8::view("="));
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Equal, 1, 1, utf8::view("="));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 2, utf8::view(""));
 	}
 
 	SECTION("blank equals")
@@ -668,14 +966,15 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 7);
-		CHECK_TOKEN(str, tokens[0], TokenType::BangEqual, 1, 1, utf8::view("!="));
-		CHECK_TOKEN(str, tokens[1], TokenType::PlusEqual, 1, 4, utf8::view("+="));
-		CHECK_TOKEN(str, tokens[2], TokenType::MinusEqual, 1, 7, utf8::view("-="));
-		CHECK_TOKEN(str, tokens[3], TokenType::StarEqual, 1, 10, utf8::view("*="));
-		CHECK_TOKEN(str, tokens[4], TokenType::SlashEqual, 1, 13, utf8::view("/="));
-		CHECK_TOKEN(str, tokens[5], TokenType::PercentEqual, 1, 16, utf8::view("%="));
-		CHECK_TOKEN(str, tokens[6], TokenType::EqualEqual, 1, 19, utf8::view("=="));
+		CHECK(tokens.size() == 8);
+		CHECK_TOKEN(str, tokens[0], TokenKind::BangEqual, 1, 1, utf8::view("!="));
+		CHECK_TOKEN(str, tokens[1], TokenKind::PlusEqual, 1, 4, utf8::view("+="));
+		CHECK_TOKEN(str, tokens[2], TokenKind::MinusEqual, 1, 7, utf8::view("-="));
+		CHECK_TOKEN(str, tokens[3], TokenKind::StarEqual, 1, 10, utf8::view("*="));
+		CHECK_TOKEN(str, tokens[4], TokenKind::SlashEqual, 1, 13, utf8::view("/="));
+		CHECK_TOKEN(str, tokens[5], TokenKind::PercentEqual, 1, 16, utf8::view("%="));
+		CHECK_TOKEN(str, tokens[6], TokenKind::EqualEqual, 1, 19, utf8::view("=="));
+		CHECK_TOKEN(str, tokens[7], TokenKind::EOF, 1, 21, utf8::view(""));
 	}
 
 	SECTION("dots")
@@ -685,10 +984,11 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 3);
-		CHECK_TOKEN(str, tokens[0], TokenType::Dot, 1, 1, utf8::view("."));
-		CHECK_TOKEN(str, tokens[1], TokenType::DotDot, 1, 3, utf8::view(".."));
-		CHECK_TOKEN(str, tokens[2], TokenType::Ellipsis, 1, 6, utf8::view("..."));
+		CHECK(tokens.size() == 4);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Dot, 1, 1, utf8::view("."));
+		CHECK_TOKEN(str, tokens[1], TokenKind::DotDot, 1, 3, utf8::view(".."));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Ellipsis, 1, 6, utf8::view("..."));
+		CHECK_TOKEN(str, tokens[3], TokenKind::EOF, 1, 9, utf8::view(""));
 	}
 
 	SECTION("extra symbols")
@@ -698,12 +998,13 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 5);
-		CHECK_TOKEN(str, tokens[0], TokenType::Hash, 1, 1, utf8::view("#"));
-		CHECK_TOKEN(str, tokens[1], TokenType::Arrow, 1, 3, utf8::view("->"));
-		CHECK_TOKEN(str, tokens[2], TokenType::Semicolon, 1, 6, utf8::view(";"));
-		CHECK_TOKEN(str, tokens[3], TokenType::Colon, 1, 8, utf8::view(":"));
-		CHECK_TOKEN(str, tokens[4], TokenType::Comma, 1, 10, utf8::view(","));
+		CHECK(tokens.size() == 6);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Hash, 1, 1, utf8::view("#"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::Arrow, 1, 3, utf8::view("->"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Semicolon, 1, 6, utf8::view(";"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::Colon, 1, 8, utf8::view(":"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::Comma, 1, 10, utf8::view(","));
+		CHECK_TOKEN(str, tokens[5], TokenKind::EOF, 1, 11, utf8::view(""));
 	}
 
 	SECTION("bit operators")
@@ -713,13 +1014,14 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 6);
-		CHECK_TOKEN(str, tokens[0], TokenType::Or, 1, 1, utf8::view("|"));
-		CHECK_TOKEN(str, tokens[1], TokenType::And, 1, 3, utf8::view("&"));
-		CHECK_TOKEN(str, tokens[2], TokenType::Xor, 1, 5, utf8::view("^"));
-		CHECK_TOKEN(str, tokens[3], TokenType::Tilde, 1, 7, utf8::view("~"));
-		CHECK_TOKEN(str, tokens[4], TokenType::OrOr, 1, 9, utf8::view("||"));
-		CHECK_TOKEN(str, tokens[5], TokenType::AndAnd, 1, 12, utf8::view("&&"));
+		CHECK(tokens.size() == 7);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Or, 1, 1, utf8::view("|"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::And, 1, 3, utf8::view("&"));
+		CHECK_TOKEN(str, tokens[2], TokenKind::Xor, 1, 5, utf8::view("^"));
+		CHECK_TOKEN(str, tokens[3], TokenKind::Tilde, 1, 7, utf8::view("~"));
+		CHECK_TOKEN(str, tokens[4], TokenKind::OrOr, 1, 9, utf8::view("||"));
+		CHECK_TOKEN(str, tokens[5], TokenKind::AndAnd, 1, 12, utf8::view("&&"));
+		CHECK_TOKEN(str, tokens[6], TokenKind::EOF, 1, 14, utf8::view(""));
 	}
 
 	SECTION("bit equal operators")
@@ -729,64 +1031,315 @@ TEST_CASE("tokens", "[lexer]")
 		for (const auto& token : tokenize(str))
 			tokens.emplace_back(token);
 
-		CHECK(tokens.size() == 3);
-		CHECK_TOKEN(str, tokens[0], TokenType::OrEqual, 1, 1, utf8::view("|="));
-		CHECK_TOKEN(str, tokens[1], TokenType::AndEqual, 1, 4, utf8::view("&="));
-		CHECK_TOKEN(str, tokens[2], TokenType::XorEqual, 1, 7, utf8::view("^="));
-		// CHECK_TOKEN(str, tokens[3], TokenType::QuestionEqual, 1, 9, utf8::view("?="));
+		CHECK(tokens.size() == 4);
+		CHECK_TOKEN(str, tokens[0], TokenKind::OrEqual, 1, 1, utf8::view("|="));
+		CHECK_TOKEN(str, tokens[1], TokenKind::AndEqual, 1, 4, utf8::view("&="));
+		CHECK_TOKEN(str, tokens[2], TokenKind::XorEqual, 1, 7, utf8::view("^="));
+		CHECK_TOKEN(str, tokens[3], TokenKind::EOF, 1, 9, utf8::view(""));
 	}
 
 	SECTION("pseudo code test")
 	{
-		utf8::string script = R"(
-fn calc(a: i32, b: i32) -> i32 {
-    return a*2;
+		utf8::string   script = R"(
+fn calc(a: i32, b: i32) -> i32 { # this is a comment
+    return a*2; # this is a comment
 }
 )"sv;
-
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		};
 		std::vector<Token> tokens;
-		for (const auto& token : tokenize(script))
+		for (const auto& token : tokenize(script, cfg))
 			tokens.emplace_back(token);
 
-		REQUIRE(tokens.size() == 20);
+		REQUIRE(tokens.size() == 21);
 
 		u32 idx = 0;
 		// line 2
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 1, utf8::view("fn"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 4, utf8::view("calc"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::LeftParen, 2, 8, utf8::view("("));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 9, utf8::view("a"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Colon, 2, 10, utf8::view(":"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 12, utf8::view("i32"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Comma, 2, 15, utf8::view(","));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 17, utf8::view("b"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Colon, 2, 18, utf8::view(":"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 20, utf8::view("i32"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::RightParen, 2, 23, utf8::view(")"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Arrow, 2, 25, utf8::view("->"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 2, 28, utf8::view("i32"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::LeftBrace, 2, 32, utf8::view("{"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 1, utf8::view("fn"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 4, utf8::view("calc"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::LeftParen, 2, 8, utf8::view("("));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 9, utf8::view("a"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Colon, 2, 10, utf8::view(":"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 12, utf8::view("i32"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Comma, 2, 15, utf8::view(","));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 17, utf8::view("b"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Colon, 2, 18, utf8::view(":"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 20, utf8::view("i32"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::RightParen, 2, 23, utf8::view(")"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Arrow, 2, 25, utf8::view("->"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 2, 28, utf8::view("i32"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::LeftBrace, 2, 32, utf8::view("{"));
 
 		// line 3
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 3, 5, utf8::view("return"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Identifier, 3, 12, utf8::view("a"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Star, 3, 13, utf8::view("*"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Integer, 3, 14, utf8::view("2"));
-		CHECK_TOKEN(script, tokens[idx++], TokenType::Semicolon, 3, 15, utf8::view(";"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 3, 5, utf8::view("return"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Identifier, 3, 12, utf8::view("a"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Star, 3, 13, utf8::view("*"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Integer, 3, 14, utf8::view("2"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::Semicolon, 3, 15, utf8::view(";"));
 
 		// line 4
-		CHECK_TOKEN(script, tokens[idx++], TokenType::RightBrace, 4, 1, utf8::view("}"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::RightBrace, 4, 1, utf8::view("}"));
+		CHECK_TOKEN(script, tokens[idx++], TokenKind::EOF, 5, 1, utf8::view(""));
+	}
+
+
+	SECTION("comment //")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "//"sv,
+		};
+
+		utf8::string       str = "a // comment"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("a"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 13, utf8::view(""));
+	}
+
+	SECTION("comment #")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		};
+
+		utf8::string       str = "a # comment"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("a"));
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 12, utf8::view(""));
+	}
+
+	SECTION("invalid line comment")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		  .block_comment_start       = "#"sv,
+		  .block_comment_end         = "#"sv,
+		};
+
+
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize("a"sv, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 1);
+		CHECK(tokens[0].error == TokenError::InvalidLineComment);
+	}
+
+	SECTION("invalid comment blocks")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "//"sv,
+		  .block_comment_start       = "#"sv,
+		  .block_comment_end         = "#"sv,
+		};
+
+
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize("a"sv, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 1);
+		CHECK(tokens[0].error == TokenError::InvalidCommentBlock);
+	}
+
+	SECTION("single comment block")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		  .block_comment_start       = "/*"sv,
+		  .block_comment_end         = "*/"sv,
+		};
+
+		utf8::string       script = R"(
+a /*
+    block comment
+   with multiple lines
+*/ b # comment
+c
+)"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(script, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 4);
+		CHECK_TOKEN(script, tokens[0], TokenKind::Identifier, 2, 1, utf8::view("a"));
+		CHECK_TOKEN(script, tokens[1], TokenKind::Identifier, 5, 4, utf8::view("b"));
+		CHECK_TOKEN(script, tokens[2], TokenKind::Identifier, 6, 1, utf8::view("c"));
+		CHECK_TOKEN(script, tokens[3], TokenKind::EOF, 7, 1, utf8::view(""));
+	}
+
+
+	SECTION("unclosed comment block")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		  .block_comment_start       = "/*"sv,
+		  .block_comment_end         = "*/"sv,
+		};
+
+		utf8::string       script = R"(
+a /*
+c
+)"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(script, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(script, tokens[0], TokenKind::Identifier, 2, 1, utf8::view("a"));
+		CHECK_TOKEN(script, tokens[1], TokenKind::Comment, 2, 3, utf8::view("/*"), TokenError::UnclosedCommentBlock);
+		CHECK_TOKEN(script, tokens[2], TokenKind::EOF, 4, 1, utf8::view(""));
+	}
+
+	SECTION("nested comment block")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		  .block_comment_start       = "/*"sv,
+		  .block_comment_end         = "*/"sv,
+		};
+
+		utf8::string       script = R"(
+a /*
+  block comment
+  with multiple lines
+/* nested comment */
+*/ b # comment
+/*
+
+*/
+  c
+*/
+)"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(script, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 5);
+		CHECK_TOKEN(script, tokens[0], TokenKind::Identifier, 2, 1, utf8::view("a"));
+		CHECK_TOKEN(script, tokens[1], TokenKind::Identifier, 6, 4, utf8::view("b"));
+		CHECK_TOKEN(script, tokens[2], TokenKind::Identifier, 10, 3, utf8::view("c"));
+		CHECK_TOKEN(script, tokens[3], TokenKind::Comment, 11, 1, utf8::view("*/"), TokenError::UnopenedCommentBlock);
+		CHECK_TOKEN(script, tokens[4], TokenKind::EOF, 12, 1, utf8::view(""));
+	}
+
+	SECTION("closing comment block without opening")
+	{
+		TokenizeConfig cfg{
+		  .single_line_comment_start = "#"sv,
+		  .block_comment_start       = "/*"sv,
+		  .block_comment_end         = "*/"sv,
+		};
+
+		utf8::string       script = R"(a */ b)"sv;
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(script, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 4);
+		CHECK_TOKEN(script, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("a"));
+		CHECK_TOKEN(script, tokens[1], TokenKind::Comment, 1, 3, utf8::view("*/"), TokenError::UnopenedCommentBlock);
+		CHECK_TOKEN(script, tokens[2], TokenKind::Identifier, 1, 6, utf8::view("b"));
+		CHECK_TOKEN(script, tokens[3], TokenKind::EOF, 1, 7, utf8::view(""));
+	}
+
+	SECTION("ZWJ identifier - admin reject")
+	{
+		utf8::string admin = "admin a\u200Ddmin"sv; // "admin a<ZWJ>dmin"
+
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(admin))
+			tokens.emplace_back(token);
+		CHECK(tokens.size() == 3);
+
+		CHECK_TOKEN(admin, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("admin"));
+		CHECK_TOKEN(
+		  admin,
+		  tokens[1],
+		  TokenKind::Identifier,
+		  1,
+		  7,
+		  utf8::view("a\u200Ddmin"),
+		  TokenError::InvalidIdentifierZeroWidthJoiner);
+		CHECK_TOKEN(admin, tokens[2], TokenKind::EOF, 1, 13, utf8::view(""));
+	}
+
+	SECTION("identifier with zero-width joiner")
+	{
+		utf8::string       str = "id\u200Dent id\u200Cent"sv; // id<ZWJ>ent and id<ZWNJ>ent
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 3);
+		CHECK_TOKEN(
+		  str,
+		  tokens[0],
+		  TokenKind::Identifier,
+		  1,
+		  1,
+		  utf8::view("id\u200Dent"),
+		  TokenError::InvalidIdentifierZeroWidthJoiner);
+
+		CHECK_TOKEN(
+		  str,
+		  tokens[1],
+		  TokenKind::Identifier,
+		  1,
+		  8,
+		  utf8::view("id\u200Cent"),
+		  TokenError::InvalidIdentifierZeroWidthJoiner);
+
+		CHECK_TOKEN(str, tokens[2], TokenKind::EOF, 1, 14, utf8::view(""));
+	}
+
+	SECTION("identifier with non-ASCII forbidden")
+	{
+		TokenizeConfig cfg{
+		  .forbid_non_ascii_in_identifiers = true,
+		};
+
+		utf8::string       str = "π"sv; // Greek letter pi (non-ASCII)
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str, cfg))
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("π"), TokenError::InvalidIdentifierNonASCII);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 2, utf8::view(""));
+	}
+
+	SECTION("identifier with non-ASCII allowed (default)")
+	{
+		utf8::string       str = "π"sv;         // Greek letter pi (non-ASCII)
+		std::vector<Token> tokens;
+		for (const auto& token : tokenize(str)) // forbid_non_ascii_in_identifiers = false by default
+			tokens.emplace_back(token);
+
+		CHECK(tokens.size() == 2);
+		CHECK_TOKEN(str, tokens[0], TokenKind::Identifier, 1, 1, utf8::view("π"), TokenError::None);
+		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 2, utf8::view(""));
 	}
 
 	// ###################################################################################################################
 
+
 	SECTION("unique tokens tested")
 	{
-		// -3 for Newline, EOF, Unknown
-		// -2 for aliased tokens RightAngleBracket, LeftAngleBracket
-		// -1 for keywords (not tested here)
-		constexpr u32 expected_token_count = static_cast<u32>(TokenType::TokenCount) - 3 - 2 - 1;
+		// skip unknown and keyword
+		details::token_counts[TokenKind::Unknown]++;
+		details::token_counts[TokenKind::Keyword]++;
 
-		CHECK(detail::token_counts.size() == expected_token_count);
+		// detail::pool.dump();
+
+		CHECK(details::token_counts.size() == static_cast<u32>(TokenKind::TokenCount));
 	}
 }

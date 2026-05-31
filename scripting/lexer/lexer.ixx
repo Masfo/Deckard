@@ -9,6 +9,7 @@ import deckard.types;
 import deckard.file;
 import deckard.sbo;
 import deckard.utils.hash;
+import deckard.stringpool;
 
 namespace fs = std::filesystem;
 using namespace std::string_view_literals;
@@ -52,34 +53,35 @@ namespace deckard::lexer
 
 	 */
 
-	export enum class TokenType : u8 {
+	export enum class TokenKind : u8 {
 		// Types
-		Integer,       // -1, 1
-		FloatingPoint, // -3.14, 3.14
-		Identifier,    // x, color, UP
+		Integer,       // -1, 1, 0x1_23_4
+		FloatingPoint, // -3.14, 3.14,
+		Identifier,    // x, color, UP, _Under, $dollar, café, π
 		Character,     // 'a', '🌍'
 		String,        // "abc", "🌍🌍"
+		Comment,       // user defined
 
-					   // TODO
-		Keyword, // if, for, fn, return
-
+		Keyword,       // if, for, fn, return
 
 		// Symbols
-		Plus,               // +
-		PlusPlus,           // ++
-		Minus,              // -
-		MinusMinus,         // --
-		Star,               // *
-		Percent,            // %
-		Question,           // ?
-		Bang,               // !
-		At,                 // @
-		Dollar,             // $^
-		ShiftLeft,          // <<
-		ShiftRight,         // >>
-		ShiftLeftEqual,     // <<=
-		ShiftRightEqual,    // >>=
-		//Underscore,         // _
+		Plus,       // +
+		PlusPlus,   // ++
+		Minus,      // -
+		MinusMinus, // --
+		Star,       // *
+		Percent,    // %
+		Question,   // ?
+		Bang,       // !
+		At,         // @
+
+					//	Dollar,          // $ - part of identifier
+
+		ShiftLeft,       // <<
+		ShiftRight,      // >>
+		ShiftLeftEqual,  // <<=
+		ShiftRightEqual, // >>=
+		// Underscore,         // _
 		BackSlash,          // '\'
 		BackSlashBackSlash, // '\\'
 		Slash,              // /
@@ -102,16 +104,16 @@ namespace deckard::lexer
 		// LesserEqualGreater,  // <=>
 		// EqualEqualEqual,     // ===
 
-		PlusEqual,     // +=
-		MinusEqual,    // -=
-		StarEqual,     // *=
-		SlashEqual,    // /=
-		PercentEqual,  // %=
-		BangEqual,     // !=
-		XorEqual,      // ^=
-		QuestionEqual, // ?=
-		AndEqual,      // &=
-		OrEqual,       // |=
+		PlusEqual,    // +=
+		MinusEqual,   // -=
+		StarEqual,    // *=
+		SlashEqual,   // /=
+		PercentEqual, // %=
+		BangEqual,    // !=
+		XorEqual,     // ^=
+		// QuestionEqual, // ?=
+		AndEqual, // &=
+		OrEqual,  // |=
 
 
 		//
@@ -131,27 +133,130 @@ namespace deckard::lexer
 		OrOr,      // ||
 		AndAnd,    // &&
 
-		// brackets
-		LeftParen,                       // (
-		RightParen,                      // )
-		LeftBrace,                       // {
-		RightBrace,                      // }
-		LeftBracket,                     // [
-		RightBracket,                    // ]
-		LeftAngleBracket  = LessThan,    // <
-		RightAngleBracket = GreaterThan, // >
 
-		// LeftBracketLeftBracket,   // [[
-		// RightBracketRightBracket, // ]]
+		// brackets
+		LeftParen,    // (
+		RightParen,   // )
+		LeftBrace,    // {
+		RightBrace,   // }
+		LeftBracket,  // [
+		RightBracket, // ]
 
 		//
-		NEWLINE = RightBracket + 1, // continue from last symbol
 		EOF,
-		UNKNOWN,
+		Unknown,
 
 		// always last
 		TokenCount
 	};
+	static_assert(static_cast<int>(TokenKind::TokenCount) == 63, "Token count changed, update to_string");
+
+	export enum class TokenGroup : u8 {
+		Literal,     // Integer, FloatingPoint, Character, String
+		Identifier,  // Identifier
+		Keyword,     // Keyword
+		Comment,     // Comment
+		Operator,    // Arithmetic, comparison, bitwise, assignment operators
+		Punctuation, // Dot, DotDot, Ellipsis, Comma, Colon, Semicolon, Hash, Arrow
+		Bracket,     // LeftParen, RightParen, LeftBrace, RightBrace, LeftBracket, RightBracket
+		Unknown      // Unknown, EOF
+	};
+
+	export std::string_view to_string(TokenGroup group)
+	{
+		switch (group)
+		{
+			case TokenGroup::Literal: return "Literal"sv;
+			case TokenGroup::Identifier: return "Identifier"sv;
+			case TokenGroup::Keyword: return "Keyword"sv;
+			case TokenGroup::Comment: return "Comment"sv;
+			case TokenGroup::Operator: return "Operator"sv;
+			case TokenGroup::Punctuation: return "Punctuation"sv;
+			case TokenGroup::Bracket: return "Bracket"sv;
+			case TokenGroup::Unknown: return "Unknown"sv;
+		}
+		return "Invalid group"sv;
+	}
+
+	export constexpr TokenGroup kind_to_group(TokenKind kind) noexcept
+	{
+		switch (kind)
+		{
+			case TokenKind::Integer: [[fallthrough]];
+			case TokenKind::FloatingPoint: [[fallthrough]];
+			case TokenKind::Character: [[fallthrough]];
+			case TokenKind::String: return TokenGroup::Literal;
+
+			case TokenKind::Identifier: return TokenGroup::Identifier;
+
+			case TokenKind::Keyword: return TokenGroup::Keyword;
+
+			case TokenKind::Comment: return TokenGroup::Comment;
+
+			case TokenKind::Plus: [[fallthrough]];
+			case TokenKind::PlusPlus: [[fallthrough]];
+			case TokenKind::Minus: [[fallthrough]];
+			case TokenKind::MinusMinus: [[fallthrough]];
+			case TokenKind::Star: [[fallthrough]];
+			case TokenKind::Percent: [[fallthrough]];
+			case TokenKind::Question: [[fallthrough]];
+			case TokenKind::Bang: [[fallthrough]];
+			case TokenKind::At: [[fallthrough]];
+			case TokenKind::ShiftLeft: [[fallthrough]];
+			case TokenKind::ShiftRight: [[fallthrough]];
+			case TokenKind::ShiftLeftEqual: [[fallthrough]];
+			case TokenKind::ShiftRightEqual: [[fallthrough]];
+			case TokenKind::BackSlash: [[fallthrough]];
+			case TokenKind::BackSlashBackSlash: [[fallthrough]];
+			case TokenKind::Slash: [[fallthrough]];
+			case TokenKind::SlashSlash: [[fallthrough]];
+			case TokenKind::SlashStar: [[fallthrough]];
+			case TokenKind::StarSlash: [[fallthrough]];
+			case TokenKind::Equal: [[fallthrough]];
+			case TokenKind::LessThan: [[fallthrough]];
+			case TokenKind::GreaterThan: [[fallthrough]];
+			case TokenKind::LessThanEqual: [[fallthrough]];
+			case TokenKind::GreaterThanEqual: [[fallthrough]];
+			case TokenKind::EqualEqual: [[fallthrough]];
+			case TokenKind::PlusEqual: [[fallthrough]];
+			case TokenKind::MinusEqual: [[fallthrough]];
+			case TokenKind::StarEqual: [[fallthrough]];
+			case TokenKind::SlashEqual: [[fallthrough]];
+			case TokenKind::PercentEqual: [[fallthrough]];
+			case TokenKind::BangEqual: [[fallthrough]];
+			case TokenKind::XorEqual: [[fallthrough]];
+			case TokenKind::AndEqual: [[fallthrough]];
+			case TokenKind::OrEqual: [[fallthrough]];
+			case TokenKind::Or: [[fallthrough]];
+			case TokenKind::And: [[fallthrough]];
+			case TokenKind::Xor: [[fallthrough]];
+			case TokenKind::Tilde: [[fallthrough]];
+			case TokenKind::OrOr: [[fallthrough]];
+			case TokenKind::AndAnd: return TokenGroup::Operator;
+
+			case TokenKind::Dot: [[fallthrough]];
+			case TokenKind::DotDot: [[fallthrough]];
+			case TokenKind::Ellipsis: [[fallthrough]];
+			case TokenKind::Comma: [[fallthrough]];
+			case TokenKind::Colon: [[fallthrough]];
+			case TokenKind::Semicolon: [[fallthrough]];
+			case TokenKind::Hash: [[fallthrough]];
+			case TokenKind::Arrow: return TokenGroup::Punctuation;
+
+			case TokenKind::LeftParen: [[fallthrough]];
+			case TokenKind::RightParen: [[fallthrough]];
+			case TokenKind::LeftBrace: [[fallthrough]];
+			case TokenKind::RightBrace: [[fallthrough]];
+			case TokenKind::LeftBracket: [[fallthrough]];
+			case TokenKind::RightBracket: return TokenGroup::Bracket;
+
+			case TokenKind::EOF: [[fallthrough]];
+			case TokenKind::Unknown: [[fallthrough]];
+			case TokenKind::TokenCount: return TokenGroup::Unknown;
+
+			default: return TokenGroup::Unknown;
+		}
+	}
 
 	export enum class TokenError {
 		None,
@@ -159,172 +264,149 @@ namespace deckard::lexer
 		InvalidHex,
 		InvalidFloatingPoint,
 		InvalidBinary,
-		InvalidString,
-		InvalidCharacter,
-		InvalidStringEscape,
 
+		InvalidCharacter,
+		InvalidCharacterNewline,
+		InvalidCharacterEmpty,
+
+		InvalidString,
+		InvalidStringEscape,
+		InvalidStringZeroWidthJoiner,
+
+		InvalidIdentifierZeroWidthJoiner,
+		InvalidIdentifierNonASCII,
+
+		UnclosedCommentBlock,
+		UnopenedCommentBlock,
+
+		InvalidCommentBlock,
+		InvalidLineComment,
 
 		// Must be last
 		TokenErrorCount
 	};
 
-	static_assert(static_cast<int>(TokenType::TokenCount) == 65, "Token count changed, update to_string");
-
-	export std::string_view to_string(TokenType type)
+	export std::string_view to_string(TokenKind type)
 	{
 		switch (type)
 		{
-			case TokenType::Integer: return "Integer"sv;
-			case TokenType::FloatingPoint: return "FloatingPoint"sv;
-			case TokenType::Identifier: return "Identifier"sv;
-			case TokenType::Character: return "Character"sv;
-			case TokenType::String: return "String"sv;
-			case TokenType::Keyword: return "Keyword"sv;
+			case TokenKind::Integer: return "Integer"sv;
+			case TokenKind::FloatingPoint: return "FloatingPoint"sv;
+			case TokenKind::Identifier: return "Identifier"sv;
+			case TokenKind::Character: return "Character"sv;
+			case TokenKind::String: return "String"sv;
+			case TokenKind::Keyword: return "Keyword"sv;
+			case TokenKind::Comment: return "Comment"sv;
 
-			case TokenType::Plus: return "Plus"sv;
-			case TokenType::PlusPlus: return "PlusPlus"sv;
-			case TokenType::Minus: return "Minus"sv;
-			case TokenType::MinusMinus: return "MinusMinus"sv;
-			case TokenType::Star: return "Star"sv;
-			case TokenType::Percent: return "Percent"sv;
-			case TokenType::Question: return "Question"sv;
-			case TokenType::Bang: return "Bang"sv;
-			case TokenType::At: return "At"sv;
-			case TokenType::Dollar: return "Dollar"sv;
-			case TokenType::ShiftLeft: return "ShiftLeft"sv;
-			case TokenType::ShiftRight: return "ShiftRight"sv;
-			case TokenType::ShiftLeftEqual: return "ShiftLeftEqual"sv;
-			case TokenType::ShiftRightEqual: return "ShiftRightEqual"sv;
+			case TokenKind::Plus: return "Plus"sv;
+			case TokenKind::PlusPlus: return "PlusPlus"sv;
+			case TokenKind::Minus: return "Minus"sv;
+			case TokenKind::MinusMinus: return "MinusMinus"sv;
+			case TokenKind::Star: return "Star"sv;
+			case TokenKind::Percent: return "Percent"sv;
+			case TokenKind::Question: return "Question"sv;
+			case TokenKind::Bang: return "Bang"sv;
+			case TokenKind::At: return "At"sv;
+			case TokenKind::ShiftLeft: return "ShiftLeft"sv;
+			case TokenKind::ShiftRight: return "ShiftRight"sv;
+			case TokenKind::ShiftLeftEqual: return "ShiftLeftEqual"sv;
+			case TokenKind::ShiftRightEqual:
+				return "ShiftRightEqual"sv;
 
-			//case TokenType::Underscore: return "Underscore"sv;
-			case TokenType::BackSlash: return "BackSlash"sv;
-			case TokenType::BackSlashBackSlash: return "BackSlashBackSlash"sv;
-			case TokenType::Slash: return "Slash"sv;
-			case TokenType::SlashSlash: return "SlashSlash"sv;
-			case TokenType::SlashStar: return "SlashStar"sv;
-			case TokenType::StarSlash:
+				// case TokenKind::Dollar: return "Dollar"sv;
+				// case TokenKind::Underscore: return "Underscore"sv;
+
+			case TokenKind::BackSlash: return "BackSlash"sv;
+			case TokenKind::BackSlashBackSlash: return "BackSlashBackSlash"sv;
+			case TokenKind::Slash: return "Slash"sv;
+			case TokenKind::SlashSlash: return "SlashSlash"sv;
+			case TokenKind::SlashStar: return "SlashStar"sv;
+			case TokenKind::StarSlash:
 				return "StarSlash"sv;
 
-				//	case TokenType::TripleQuote: return "TripleQuote"sv;
+				//	case TokenKind::TripleQuote: return "TripleQuote"sv;
 
-			case TokenType::Equal: return "Equal"sv;
+			case TokenKind::Equal: return "Equal"sv;
 
-			case TokenType::LessThan: return "LessThan"sv;
-			case TokenType::GreaterThan: return "GreaterThan"sv;
-			case TokenType::LessThanEqual: return "LessThanEqual"sv;
-			case TokenType::GreaterThanEqual: return "GreaterThanEqual"sv;
-			case TokenType::EqualEqual: return "EqualEqual"sv;
+			case TokenKind::LessThan: return "LessThan"sv;
+			case TokenKind::GreaterThan: return "GreaterThan"sv;
+			case TokenKind::LessThanEqual: return "LessThanEqual"sv;
+			case TokenKind::GreaterThanEqual: return "GreaterThanEqual"sv;
+			case TokenKind::EqualEqual: return "EqualEqual"sv;
 
-			case TokenType::PlusEqual: return "PlusEqual"sv;
-			case TokenType::MinusEqual: return "MinusEqual"sv;
-			case TokenType::StarEqual: return "StarEqual"sv;
-			case TokenType::SlashEqual: return "SlashEqual"sv;
-			case TokenType::PercentEqual: return "PercentEqual"sv;
-			case TokenType::BangEqual: return "BangEqual"sv;
-			case TokenType::XorEqual: return "XorEqual"sv;
-			case TokenType::QuestionEqual: return "QuestionEqual"sv;
-			case TokenType::AndEqual: return "AndEqual"sv;
-			case TokenType::OrEqual: return "OrEqual"sv;
+			case TokenKind::PlusEqual: return "PlusEqual"sv;
+			case TokenKind::MinusEqual: return "MinusEqual"sv;
+			case TokenKind::StarEqual: return "StarEqual"sv;
+			case TokenKind::SlashEqual: return "SlashEqual"sv;
+			case TokenKind::PercentEqual: return "PercentEqual"sv;
+			case TokenKind::BangEqual: return "BangEqual"sv;
+			case TokenKind::XorEqual:
+				return "XorEqual"sv;
+				//	case TokenKind::QuestionEqual: return "QuestionEqual"sv;
+			case TokenKind::AndEqual: return "AndEqual"sv;
+			case TokenKind::OrEqual: return "OrEqual"sv;
 
-			case TokenType::Dot: return "Dot"sv;
-			case TokenType::DotDot: return "DotDot"sv;
-			case TokenType::Ellipsis: return "Ellipsis"sv;
-			case TokenType::Comma: return "Comma"sv;
-			case TokenType::Colon: return "Colon"sv;
-			case TokenType::Semicolon: return "Semicolon"sv;
-			case TokenType::Hash: return "Hash"sv;
-			case TokenType::Arrow: return "Arrow"sv;
+			case TokenKind::Dot: return "Dot"sv;
+			case TokenKind::DotDot: return "DotDot"sv;
+			case TokenKind::Ellipsis: return "Ellipsis"sv;
+			case TokenKind::Comma: return "Comma"sv;
+			case TokenKind::Colon: return "Colon"sv;
+			case TokenKind::Semicolon: return "Semicolon"sv;
+			case TokenKind::Hash: return "Hash"sv;
+			case TokenKind::Arrow: return "Arrow"sv;
 
-			case TokenType::Or: return "Or"sv;
-			case TokenType::And: return "And"sv;
-			case TokenType::Xor: return "Xor"sv;
-			case TokenType::Tilde: return "Tilde"sv;
-			case TokenType::OrOr: return "OrOr"sv;
-			case TokenType::AndAnd: return "AndAnd"sv;
+			case TokenKind::Or: return "Or"sv;
+			case TokenKind::And: return "And"sv;
+			case TokenKind::Xor: return "Xor"sv;
+			case TokenKind::Tilde: return "Tilde"sv;
+			case TokenKind::OrOr: return "OrOr"sv;
+			case TokenKind::AndAnd: return "AndAnd"sv;
 
-			case TokenType::LeftParen: return "LeftParen"sv;
-			case TokenType::RightParen: return "RightParen"sv;
-			case TokenType::LeftBrace: return "LeftBrace"sv;
-			case TokenType::RightBrace: return "RightBrace"sv;
-			case TokenType::LeftBracket: return "LeftBracket"sv;
-			case TokenType::RightBracket:
-				return "RightBracket"sv;
-				// case TokenType::LeftAngleBracket: return "LeftAngleBracket"sv;
-				// case TokenType::RightAngleBracket: return "RightAngleBracket"sv;
+			case TokenKind::LeftParen: return "LeftParen"sv;
+			case TokenKind::RightParen: return "RightParen"sv;
+			case TokenKind::LeftBrace: return "LeftBrace"sv;
+			case TokenKind::RightBrace: return "RightBrace"sv;
+			case TokenKind::LeftBracket: return "LeftBracket"sv;
+			case TokenKind::RightBracket: return "RightBracket"sv;
 
-			case TokenType::NEWLINE: return "Newline"sv;
-			case TokenType::EOF: return "EOF"sv;
-			case TokenType::UNKNOWN: return "Unknown token"sv;
+			case TokenKind::EOF: return "EOF"sv;
+			case TokenKind::Unknown: return "Unknown token"sv;
 		}
 
 		return "Invalid token"sv;
 	}
 
-	using Lexeme = std::span<const u8>;
-
 	struct LexemeHash
 	{
 		using is_transparent = void;
 
-		size_t operator()(Lexeme s) const { return utils::hash_values(s); }
+		size_t operator()(const utf8::view s) const { return utils::hash_values(s); }
 	};
 
 	struct LexemeEqual
 	{
 		using is_transparent = void;
 
-		bool operator()(Lexeme a, Lexeme b) const { return std::ranges::equal(a, b); }
+		bool operator()(const utf8::view a, const utf8::view b) const { return a == b; }
 	};
 
-	// Deduplicated storage for lexemes (identifiers, keywords, string literals)
-	export struct lexemepool
-	{
-		std::deque<std::vector<u8>>                              storage;
-		std::unordered_map<Lexeme, u32, LexemeHash, LexemeEqual> lookup;
+	// TODO: extract string_pool to own module
 
-		lexemepool() { lookup.reserve(1024); }
 
-		u32 add(Lexeme view)
-		{
-			auto it = lookup.find(view);
-			if (it != lookup.end())
-				return it->second;
-
-			u32 id = as<u32>(storage.size());
-			storage.emplace_back(view.begin(), view.end());
-
-			Lexeme key{storage.back().data(), storage.back().size()};
-			lookup[key] = id;
-
-			return id;
-		}
-
-		u32 add(std::string_view str) { return add(Lexeme{as<const u8*>(str.data()), str.size()}); }
-
-		u32 add(utf8::string str) { return add(Lexeme{str.data().data(), str.data().size()}); }
-
-		Lexeme get(u32 id) const
-		{
-			if (id >= storage.size())
-				return {};
-
-			assert::check(not storage[id].empty(), std::format("Lexeme ID {} is empty", id));
-
-			return {storage[id].data(), storage[id].size()};
-		}
-
-		Lexeme operator[](u32 id) const { return get(id); }
-
-		u32 size() const { return as<u32>(storage.size()); }
-	};
-
+	// TODO: only use lexeme pool id for identifiers etc, instead of offset and length
 	export struct Token
 	{
-		u32        line;
-		u32        column;
-		u32        offset; // Byte offset into the buffer
-		u32        length; // Length in codepoints
-		TokenType  type{TokenType::TokenCount};
+		u32 line;
+		u32 column;
+
+		// TODO: remove offset+length, use id
+		// calculated from the lexeme in pool
+		u32 offset;                      // Byte offset into the buffer
+		u32 length;                      // Length in codepoints
+
+		u64        id{limits::max<u64>}; // pool index for identifiers, keywords, string literals
+		TokenKind  type{TokenKind::TokenCount};
+		TokenGroup group{TokenGroup::Unknown};
 		TokenError error{TokenError::None};
 	};
 
@@ -335,45 +417,123 @@ namespace deckard::lexer
 
 	export std::expected<utf8::view, std::string_view> extract_token(utf8::view buffer, Token t)
 	{
-		if (t.offset >= buffer.size_in_bytes())
+		if (t.offset > buffer.size_in_bytes())
 			return std::unexpected("Token offset is out of bounds");
 
-		u32 available_bytes = as<u32>(buffer.size_in_bytes()) - t.offset;
+		if (t.offset == buffer.size_in_bytes() and t.length > 0)
+			return std::unexpected("Token offset is at end but length > 0");
 
-		if (t.length > available_bytes)
-			return std::unexpected("Token length exceeds available bytes in buffer");
-
-		return buffer.subview_bytes(t.offset, buffer.size_in_bytes() - t.offset).subview(t.length);
+		return buffer.subview_bytes(t.offset, buffer.size_in_bytes() - t.offset).subview(0, t.length);
 	}
 
-
-
 	// ########################################################################
 
-	struct TokenizeConfig
+	export struct TokenizeConfig
 	{
-		utf8::string single_line_comment_start{"//"};
+		utf8::string single_line_comment_start{};
+		utf8::string block_comment_start{};
+		utf8::string block_comment_end{};
+		bool         forbid_non_ascii_in_identifiers{false};
+
+		std::vector<utf8::string> keywords{};
 	};
 
-
-
-
 	// ########################################################################
+	/* TODO: put extracted token string to lexemepool, and assign to Token::Id
+	 * CheckToken(..) - check against the pool id
+	 *
+	 *  if ', then try to get codepoint (insert that to pool) from
+	 *		\xHHHHHH - hex codepoint
+	 *
+	 *
+	 */
+
+
+	export namespace detail
+	{
+		string_pool pool;
+	};
 
 	export std::generator<Token> tokenize(utf8::view buffer, const TokenizeConfig config = {})
 	{
 		using namespace deckard::utf8::basic_characters;
-		utf8::view cursor = buffer;
-		u32        line   = 1;
-		u32        column = 1;
-		TokenType  type   = TokenType::EOF;
+		utf8::scanner cursor{buffer};
+		u32           line   = 1;
+		u32           column = 1;
+		size_t        id     = limits::max<size_t>;
+		TokenKind     type   = TokenKind::EOF;
 
+		if (detail::pool.empty())
+		{
+			(void)detail::pool.add("__INVALID_TOKEN__"sv);
+		}
 
-		auto give_token = [&](TokenType type, u32 length = 1, TokenError error = TokenError::None)
+		if (not config.single_line_comment_start.empty() and
+			(config.single_line_comment_start == config.block_comment_start or
+			 config.single_line_comment_start == config.block_comment_end))
+		{
+			dbg::println("Single line comment start cannot be the same as block comment start or end");
+			co_yield Token{
+			  .line   = line,
+			  .column = column,
+			  .offset = 0,
+			  .length = 0,
+			  .type   = TokenKind::Comment,
+			  .error  = TokenError::InvalidLineComment};
+			co_return;
+		}
+
+		if (not config.block_comment_start.empty() and not config.block_comment_end.empty() and
+			config.block_comment_end == config.block_comment_start)
+		{
+			dbg::println("Block comment start and end cannot be the same");
+			co_yield Token{
+			  .line   = line,
+			  .column = column,
+			  .offset = 0,
+			  .length = 0,
+			  .type   = TokenKind::Comment,
+			  .error  = TokenError::InvalidCommentBlock};
+			co_return;
+		}
+
+		auto consume_newline = [&]() noexcept -> bool
+		{
+			if (not cursor.has_next())
+				return false;
+
+			const char32 cp = *cursor;
+			if (cp == LINE_FEED)
+			{
+				++cursor;
+				line += 1;
+				column = 1;
+				return true;
+			}
+			if (cp == CARRIAGE_RETURN)
+			{
+				++cursor;
+				cursor.skip_if(LINE_FEED);
+				line += 1;
+				column = 1;
+				return true;
+			}
+			return false;
+		};
+
+		auto is_newline = [](char32 cp) noexcept { return cp == LINE_FEED or cp == CARRIAGE_RETURN; };
+
+		auto give_token = [&](TokenKind type, u32 length = 1, TokenError error = TokenError::None)
 		{
 			u32  offset = as<u32>(cursor - buffer);
-			auto ret =
-			  Token{.line = line, .column = column, .offset = offset, .length = length, .type = type, .error = error};
+			auto ret    = Token{
+			  .line   = line,
+			  .column = column,
+			  .offset = offset,
+			  .length = length,
+			  .type   = type,
+			  .group  = kind_to_group(type),
+			  .error  = error};
 			column += length;
 			cursor += length;
 			return ret;
@@ -381,454 +541,520 @@ namespace deckard::lexer
 
 		while (cursor.has_next())
 		{
-			TokenError error   = TokenError::None;
-			char32     current = *cursor;
-			u32        offset  = as<u32>(cursor - buffer);
+			TokenError error     = TokenError::None;
+			char32     current   = *cursor;
+			u32        offset    = as<u32>(cursor - buffer);
+			u32        line_init = line;
 
-			if (current == LINE_FEED)
+			if (is_newline(current))
 			{
-				line += 1;
-				column = 1;
-				++cursor;
-				continue;
-			}
-			else if (current == CARRIAGE_RETURN)
-			{
-				++cursor;
-				if (cursor.has_next() and *cursor == LINE_FEED)
-					++cursor;
-
-				line += 1;
-				column = 1;
+				consume_newline();
 				continue;
 			}
 
 			if (utf8::is_whitespace(current))
 			{
-				++cursor;
-				column += 1;
+				const u32 skipped = as<u32>(
+				  cursor.skip_while([&is_newline](char32 cp) { return utf8::is_whitespace(cp) and not is_newline(cp); }));
+				column += skipped;
 				continue;
 			}
 
+			// Comments
+			if (not config.single_line_comment_start.empty() and cursor.starts_with(config.single_line_comment_start))
+			{
+				const u32 skipped = as<u32>(cursor.skip_while([&is_newline](char32 cp) { return not is_newline(cp); }));
+				column += skipped;
+				continue;
+			}
 
-			// ###########################################################################################################
-			// ###########################################################################################################
-			// ###########################################################################################################
+			if (not config.block_comment_end.empty() and cursor.starts_with(config.block_comment_end))
+			{
+				co_yield give_token(
+				  TokenKind::Comment, as<u32>(config.block_comment_end.length()), TokenError::UnopenedCommentBlock);
+				continue;
+			}
 
+			if (not config.block_comment_start.empty() and not config.block_comment_end.empty() and
+				cursor.starts_with(config.block_comment_start))
+			{
+				u32 nest_level   = 1;
+				u32 start_line   = line;
+				u32 start_column = column;
+				u32 codepoints   = as<u32>(config.block_comment_start.length());
 
+				column += as<u32>(config.block_comment_start.length());
+				cursor += as<int>(config.block_comment_start.length());
+
+				while (cursor.has_next() and nest_level > 0)
+				{
+					if (cursor.starts_with(config.block_comment_start))
+					{
+						nest_level += 1;
+						column += as<u32>(config.block_comment_start.length());
+						cursor += as<int>(config.block_comment_start.length());
+						continue;
+					}
+					if (cursor.starts_with(config.block_comment_end))
+					{
+						nest_level -= 1;
+						column += as<u32>(config.block_comment_end.length());
+						cursor += as<int>(config.block_comment_end.length());
+						continue;
+					}
+					if (is_newline(*cursor))
+					{
+						consume_newline();
+						continue;
+					}
+					++cursor;
+					++column;
+				}
+
+				if (nest_level > 0)
+				{
+					co_yield Token{
+					  .line   = start_line,
+					  .column = start_column,
+					  .offset = offset,
+					  .length = codepoints,
+					  .type   = TokenKind::Comment,
+					  .error  = TokenError::UnclosedCommentBlock};
+				}
+
+				continue;
+			}
+
+			// Character literal  '...'
 			if (current == APOSTROPHE)
 			{
 				u32  start_column  = column;
 				u32  codepoints    = 1;
 				bool found_closing = false;
 				bool is_invalid    = false;
+				bool found_newline = false;
 
 				++cursor;
+				++column; // Track opening apostrophe
 
 				while (cursor.has_next() and *cursor != APOSTROPHE)
 				{
-					if (*cursor == REVERSE_SOLIDUS)
+					if (is_newline(*cursor))
 					{
-						++cursor;
-						codepoints += 1;
-						if (cursor.has_next())
-						{
-							if (*cursor == LATIN_SMALL_LETTER_X)
-							{
-								++cursor;
-								codepoints += 1;
-								int hex_count = 0;
-								while (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
-								{
-									++cursor;
-									codepoints += 1;
-									++hex_count;
-								}
-								if (hex_count == 0 or hex_count > 2)
-									is_invalid = true;
-							}
-							else
-							{
-								++cursor;
-								codepoints += 1;
-							}
-						}
-					}
-					else
-					{
-						++cursor;
-						codepoints += 1;
-					}
-				}
-
-				if (cursor.has_next() and *cursor == APOSTROPHE)
-				{
-					++cursor;
-					codepoints += 1;
-					found_closing = true;
-				}
-
-				type = TokenType::Character;
-				if (is_invalid or not found_closing)
-					error = TokenError::InvalidCharacter;
-
-				co_yield Token{
-				  .line   = line,
-				  .column = start_column,
-				  .offset = offset,
-				  .length = codepoints,
-				  .type   = type,
-				  .error  = error};
-
-				column += codepoints;
-				continue;
-			}
-
-			// ###########################################################################################################
-			// ###########################################################################################################
-
-
-			if (current == QUOTATION_MARK)
-			{
-				u32  start_column = column;
-				u32  codepoints   = 1;
-				bool is_invalid   = false;
-
-				++cursor;
-
-				while (cursor.has_next() and *cursor != QUOTATION_MARK)
-				{
-					if (*cursor == LINE_FEED or *cursor == CARRIAGE_RETURN)
-					{
-						is_invalid = true;
+						found_newline = true;
+						id            = detail::pool.add(buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset));
+						co_yield Token{
+						  .line   = line,
+						  .column = start_column,
+						  .offset = offset,
+						  .length = codepoints,
+						  .id     = id,
+						  .type   = TokenKind::Character,
+						  .group  = TokenGroup::Literal,
+						  .error  = TokenError::InvalidCharacterNewline};
 						break;
 					}
 
 					if (*cursor == REVERSE_SOLIDUS)
 					{
 						++cursor;
+						++column;
 						codepoints += 1;
+
 						if (cursor.has_next())
 						{
 							if (*cursor == LATIN_SMALL_LETTER_X)
 							{
 								++cursor;
+								++column;
 								codepoints += 1;
-								int hex_count = 0;
-
-								while (cursor.has_next() and utf8::is_ascii_hex_digit(*cursor))
-								{
-									++cursor;
-									codepoints += 1;
-									++hex_count;
-								}
+								const u32 hex_count = as<u32>(cursor.skip_while(utf8::is_ascii_hex_digit));
+								column += hex_count;
+								codepoints += hex_count;
 								if (hex_count == 0 or hex_count > 2)
 									is_invalid = true;
 							}
 							else
 							{
 								++cursor;
+								++column;
 								codepoints += 1;
 							}
 						}
-						else
-							is_invalid = true;
 					}
 					else
 					{
 						++cursor;
+						++column;
 						codepoints += 1;
 					}
 				}
 
-				bool found_closing = false;
-				if (cursor.has_next() and *cursor == QUOTATION_MARK)
+				if (not found_newline)
 				{
-					++cursor;
-					codepoints += 1;
-					found_closing = true;
+					if (cursor.has_next() and *cursor == APOSTROPHE)
+					{
+						++cursor;
+						++column;
+						codepoints += 1;
+						found_closing = true;
+					}
+
+					type = TokenKind::Character;
+					if (codepoints == 2 and found_closing)
+						error = TokenError::InvalidCharacterEmpty;
+					else if (codepoints == 1)
+						error = TokenError::None;
+					else if (is_invalid or not found_closing)
+						error = TokenError::InvalidCharacter;
+
+					const utf8::view content = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+					id                       = detail::pool.add(content);
+					co_yield Token{
+					  .line   = line,
+					  .column = start_column,
+					  .offset = offset,
+					  .length = codepoints,
+					  .id     = id,
+					  .type   = type,
+					  .error  = error};
 				}
 
-				TokenType token_type = TokenType::String;
-				if (is_invalid or not found_closing)
+				continue;
+			}
+
+			// String literal  "..."
+			if (current == QUOTATION_MARK)
+			{
+				const u32 start_line   = line_init;
+				const u32 start_column = column;
+				u32       codepoints   = 1;
+				bool      is_invalid   = false;
+
+				++cursor;
+				column += 1;
+				while (cursor.has_next() and *cursor != QUOTATION_MARK)
+				{
+					if (*cursor == REVERSE_SOLIDUS)
+					{
+						++cursor;
+						column += 1;
+						codepoints += 1;
+
+						if (not cursor.has_next())
+						{
+							is_invalid = true;
+							break;
+						}
+
+						if (*cursor == LINE_FEED)
+						{
+							line += 1;
+							column = 1;
+							++cursor;
+							codepoints += 1;
+							continue;
+						}
+						if (*cursor == CARRIAGE_RETURN)
+						{
+							++cursor;
+							if (cursor.has_next() and *cursor == LINE_FEED)
+							{
+								++cursor;
+								codepoints += 1;
+							}
+							line += 1;
+							column = 1;
+							codepoints += 1;
+							continue;
+						}
+						if (*cursor == LATIN_SMALL_LETTER_X)
+						{
+							++cursor;
+							column += 1;
+							codepoints += 1;
+							const u32 hex_count = as<u32>(cursor.skip_while(utf8::is_ascii_hex_digit));
+							column += hex_count;
+							codepoints += hex_count;
+							if (hex_count == 0 or hex_count > 2)
+								is_invalid = true;
+						}
+						else
+						{
+							++cursor;
+							column += 1;
+							codepoints += 1;
+						}
+					}
+					else if (is_newline(*cursor))
+					{
+						is_invalid = true;
+						break;
+					}
+					else
+					{
+						++cursor;
+						column += 1;
+						codepoints += 1;
+					}
+				}
+
+				const bool found_closing = cursor.skip_if(QUOTATION_MARK);
+				if (found_closing)
+				{
+					column += 1;
+					codepoints += 1;
+				}
+				else if (not is_invalid)
+				{
+					is_invalid = true;
+				}
+
+				if (is_invalid)
 					error = TokenError::InvalidString;
 
+				const utf8::view content = buffer.subview_bytes(offset, as<u32>(cursor - buffer) - offset);
+				id                       = detail::pool.add(content);
 				co_yield Token{
-				  .line   = line,
+				  .line   = start_line,
 				  .column = start_column,
 				  .offset = offset,
 				  .length = codepoints,
-				  .type   = token_type,
+				  .id     = id,
+				  .type   = TokenKind::String,
+				  .group  = TokenGroup::Literal,
 				  .error  = error};
-
-				column += codepoints;
 				continue;
 			}
 
 			// ###########################################################################################################
-			// ###########################################################################################################
-
+			// Numeric literals
 
 			if (utf8::is_ascii_digit(current))
 			{
-				u32       start_column = column;
-				u32       start_offset = offset;
+				const u32 start_column = column;
+				const u32 start_offset = offset;
 				u32       codepoints   = 0;
-				type         = TokenType::Integer;
+				type                   = TokenKind::Integer;
 
-				if (current == DIGIT_ZERO and cursor.peek(1))
+				auto scan_digits = [&](auto pred) noexcept -> u32
 				{
-					auto next = cursor.peek(1);
+					u32 digits = 0;
+					while (cursor.has_next() and (pred(*cursor) or *cursor == LOW_LINE))
+					{
+						if (*cursor != LOW_LINE)
+							++digits;
+						++cursor;
+						++codepoints;
+						++column;
+					}
+					return digits;
+				};
+
+				if (current == DIGIT_ZERO)
+				{
+					const auto next = cursor.peek(1);
 					if (next and (*next == LATIN_SMALL_LETTER_X or *next == LATIN_CAPITAL_LETTER_X))
 					{
-						// hex
+						// Hex: 0x / 0X
 						cursor += 2;
 						column += 2;
 						codepoints += 2;
 
-						u32 digits = 0;
-						while (cursor.has_next() and (utf8::is_ascii_hex_digit(*cursor) or *cursor == LOW_LINE))
-						{
-							if (*cursor != LOW_LINE)
-								digits += 1;
-
-							codepoints += 1;
-							column += 1;
-							++cursor;
-						}
-
+						const u32 digits = scan_digits(utf8::is_ascii_hex_digit);
 						if (digits == 0)
 						{
-							// greedy, better error messages
-							while (cursor.has_next() and utf8::is_xid_continue(*cursor))
-							{
-								codepoints += 1;
-								column += 1;
-								++cursor;
-							}
+							// Greedy scan for better error messages
+							const u32 garbage = as<u32>(cursor.skip_while(utf8::is_xid_continue));
+							codepoints += garbage;
+							column += garbage;
 
-							[[maybe_unused]] auto number_view =
-							  buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
-
+							auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
+							id               = detail::pool.add(number_view);
 							co_yield Token{
 							  .line   = line,
 							  .column = start_column,
 							  .offset = start_offset,
 							  .length = codepoints,
-							  .type   = TokenType::Integer,
+							  .id     = id,
+							  .type   = TokenKind::Integer,
+							  .group  = TokenGroup::Literal,
 							  .error  = TokenError::InvalidHex};
 						}
 						else
 						{
+							if (cursor.peek_back() == LOW_LINE)
+								error = TokenError::InvalidHex;
+
+							auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
+							id               = detail::pool.add(number_view);
 							co_yield Token{
 							  .line   = line,
 							  .column = start_column,
 							  .offset = start_offset,
 							  .length = codepoints,
-							  .type   = TokenType::Integer,
-							  .error  = TokenError::None};
+							  .id     = id,
+							  .type   = TokenKind::Integer,
+							  .group  = TokenGroup::Literal,
+							  .error  = error};
 						}
-
 						continue;
 					}
-					else if (*next == LATIN_SMALL_LETTER_B or *next == LATIN_CAPITAL_LETTER_B)
+
+					if (next and (*next == LATIN_SMALL_LETTER_B or *next == LATIN_CAPITAL_LETTER_B))
 					{
-						// binary
+						// Binary: 0b / 0B
 						cursor += 2;
 						column += 2;
 						codepoints += 2;
 
-						u32 digits = 0;
-
-						while (cursor.has_next() and (*cursor == DIGIT_ZERO or *cursor == DIGIT_ONE or *cursor == LOW_LINE))
-						{
-							if (*cursor != LOW_LINE)
-								digits += 1;
-
-							codepoints += 1;
-							column += 1;
-							++cursor;
-						}
-
-						[[maybe_unused]] auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
-
+						const u32 digits =
+						  scan_digits([](char32 cp) noexcept { return cp == DIGIT_ZERO or cp == DIGIT_ONE; });
 						if (digits == 0)
 						{
+							error             = TokenError::InvalidBinary;
+							const u32 garbage = as<u32>(cursor.skip_while(utf8::is_xid_continue));
+							codepoints += garbage;
+							column += garbage;
+						}
+						else if (cursor.peek_back() == LOW_LINE)
+						{
 							error = TokenError::InvalidBinary;
-
-							// greedy, better error messages
-							while (cursor.has_next() and utf8::is_xid_continue(*cursor))
-							{
-								codepoints += 1;
-								column += 1;
-								++cursor;
-							}
 						}
 
+						auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
+						id               = detail::pool.add(number_view);
 						co_yield Token{
 						  .line   = line,
 						  .column = start_column,
 						  .offset = start_offset,
 						  .length = codepoints,
+						  .id     = id,
 						  .type   = type,
+						  .group  = TokenGroup::Literal,
 						  .error  = error};
 						continue;
 					}
 				}
 
-				// integer part
-				type = TokenType::Integer;
-				while (cursor.has_next() and (utf8::is_ascii_digit(*cursor) or *cursor == LOW_LINE))
-				{
-					codepoints += 1;
-					column += 1;
-					++cursor;
-				}
+				scan_digits(utf8::is_ascii_digit);
 
 				// fractional part
-				if (cursor.has_next() and *cursor == FULL_STOP)
+				if (cursor.has_next() and *cursor == FULL_STOP and cursor.peek(1) != FULL_STOP)
 				{
-					if (cursor.peek(1) != FULL_STOP)
-					{
-
-						type = TokenType::FloatingPoint;
-						codepoints += 1;
-						column += 1;
-						++cursor;
-
-						// u32 fraction_digits = 0;
-						while (cursor.has_next() and (utf8::is_ascii_digit(*cursor) or *cursor == LOW_LINE))
-						{
-							// if (*cursor != LOW_LINE)
-							//	fraction_digits += 1;
-
-							codepoints += 1;
-							column += 1;
-							++cursor;
-						}
-
-						// if (fraction_digits == 0)
-						//	type = TokenType::InvalidFloatingPoint;
-					}
+					type = TokenKind::FloatingPoint;
+					++cursor;
+					++codepoints;
+					++column;
+					scan_digits(utf8::is_ascii_digit);
 				}
 
-				// Exponent part
+				// exponent part
 				if (cursor.has_next() and (*cursor == LATIN_SMALL_LETTER_E or *cursor == LATIN_CAPITAL_LETTER_E))
 				{
-					type = TokenType::FloatingPoint;
-					codepoints += 1;
-					column += 1;
+					type = TokenKind::FloatingPoint;
 					++cursor;
+					++codepoints;
+					++column;
 					if (cursor.has_next() and (*cursor == PLUS_SIGN or *cursor == HYPHEN_MINUS))
 					{
-						codepoints += 1;
-						column += 1;
 						++cursor;
+						++codepoints;
+						++column;
 					}
 
-					u32 exponent_digits = 0;
-
-					while (cursor.has_next() and (utf8::is_ascii_digit(*cursor) or *cursor == LOW_LINE))
-					{
-						if (*cursor != LOW_LINE)
-							exponent_digits += 1;
-
-						codepoints += 1;
-						column += 1;
-						++cursor;
-					}
-
+					const u32 exponent_digits = scan_digits(utf8::is_ascii_digit);
 					if (exponent_digits == 0)
 						error = TokenError::InvalidFloatingPoint;
 				}
 
-				// TODO: check for trailing types (ull, f)
+				// Check if literal terminates on a trailing digit separator
+				if (cursor.peek_back() == LOW_LINE)
+				{
+					error = (type == TokenKind::Integer) ? TokenError::InvalidInteger : TokenError::InvalidFloatingPoint;
+				}
 
-				bool has_garbage = false;
+				// suffix check
 				if (cursor.has_next())
 				{
-					char32 peek = *cursor;
+					const char32 peek = *cursor;
 					if (utf8::is_xid_start(peek) or (peek == FULL_STOP and cursor.peek(1) != FULL_STOP))
 					{
-						has_garbage = true;
-						while (cursor.has_next() and (utf8::is_xid_continue(*cursor) or *cursor == FULL_STOP))
-						{
-							codepoints += 1;
-							column += 1;
-							++cursor;
-						}
+						const u32 garbage = as<u32>(cursor.skip_while(
+						  [](char32 cp) noexcept { return utf8::is_xid_continue(cp) or cp == FULL_STOP; }));
+						codepoints += garbage;
+						column += garbage;
+
+						error = (type == TokenKind::Integer) ? TokenError::InvalidInteger : TokenError::InvalidFloatingPoint;
 					}
 				}
 
-				if (has_garbage)
-				{
-					if (type == TokenType::Integer)
-						error = TokenError::InvalidInteger;
-					else if (type == TokenType::FloatingPoint)
-						error = TokenError::InvalidFloatingPoint;
-				}
-
-
-				[[maybe_unused]] auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
-
+				auto number_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
+				id               = detail::pool.add(number_view);
 				co_yield Token{
 				  .line   = line,
 				  .column = start_column,
 				  .offset = start_offset,
 				  .length = codepoints,
+				  .id     = id,
 				  .type   = type,
+				  .group  = TokenGroup::Literal,
 				  .error  = error};
 				continue;
 			}
 
-			// ###########################################################################################################
-			// ###########################################################################################################
-
-
-			// Identifier/keyword
+			// Identifier / keyword
 			if (utf8::is_xid_start(current))
 			{
-				u32 start_column = column;
-				u32 start_offset = offset;
-				u32 codepoints   = 1;
-				++cursor;
-				column += 1;
+				error                  = TokenError::None;
+				type                   = TokenKind::Identifier;
+				const u32 start_column = column;
+				const u32 start_offset = offset;
 
-				while (cursor.has_next() and utf8::is_xid_continue(*cursor))
-				{
-					++cursor;
-					column += 1;
-					codepoints += 1;
-				}
+				if (config.forbid_non_ascii_in_identifiers and not utf8::is_ascii(current))
+					error = TokenError::InvalidIdentifierNonASCII;
 
+				const utf8::view ident_view = cursor.take_while(
+				  [&](char32 cp) noexcept -> bool
+				  {
+					  if (not utf8::is_xid_continue(cp))
+						  return false;
 
-				[[maybe_unused]] auto identifier_view = buffer.subview_bytes(start_offset, as<u32>(cursor - buffer) - start_offset);
+					  if (utf8::is_zero_width_codepoint(cp) and error == TokenError::None)
+						  error = TokenError::InvalidIdentifierZeroWidthJoiner;
 
-				bool is_keyword = false;
+					  if (config.forbid_non_ascii_in_identifiers and not utf8::is_ascii(cp) and error == TokenError::None)
+						  error = TokenError::InvalidIdentifierNonASCII;
 
+					  return true;
+				  });
+				const u32 codepoints = as<u32>(ident_view.length());
+				column += codepoints;
+
+				id = detail::pool.add(ident_view);
+
+				const bool is_keyword = false;
+				if (is_keyword)
+					type = TokenKind::Keyword;
 
 				co_yield Token{
 				  .line   = line,
 				  .column = start_column,
 				  .offset = start_offset,
 				  .length = codepoints,
-				  .type   = is_keyword ? TokenType::Keyword : TokenType::Identifier};
-
+				  .id     = id,
+				  .type   = type,
+				  .group  = is_keyword ? TokenGroup::Keyword : TokenGroup::Identifier,
+				  .error  = error};
 
 				continue;
 			}
 
-			// ###########################################################################################################
-			// ###########################################################################################################
 			// Symbols
-
 			switch (current)
 			{
-				using enum TokenType;
-				// #######################################################################################################
+				using enum TokenKind;
 
-
-				// #######################################################################################################
 				case HASH:
 				{
 					co_yield give_token(Hash, 1);
@@ -860,9 +1086,7 @@ namespace deckard::lexer
 
 				case ASTERISK:
 				{
-					if (cursor.peek(1) == ASTERISK)
-						co_yield give_token(SlashStar, 2);
-					else if (cursor.peek(1) == EQUALS_SIGN)
+					if (cursor.peek(1) == EQUALS_SIGN)
 						co_yield give_token(StarEqual, 2);
 					else if (cursor.peek(1) == SOLIDUS)
 						co_yield give_token(StarSlash, 2);
@@ -871,7 +1095,7 @@ namespace deckard::lexer
 					continue;
 				}
 
-				case SOLIDUS: // Slash
+				case SOLIDUS:
 				{
 					if (cursor.peek(1) == SOLIDUS)
 						co_yield give_token(SlashSlash, 2);
@@ -884,7 +1108,7 @@ namespace deckard::lexer
 					continue;
 				}
 
-				case REVERSE_SOLIDUS: // Backslash
+				case REVERSE_SOLIDUS:
 				{
 					if (cursor.peek(1) == REVERSE_SOLIDUS)
 						co_yield give_token(BackSlashBackSlash, 2);
@@ -893,9 +1117,6 @@ namespace deckard::lexer
 					continue;
 				}
 
-
-				// #######################################################################################################
-				// Extended symbols
 				case PERCENT_SIGN:
 				{
 					if (cursor.peek(1) == EQUALS_SIGN)
@@ -920,12 +1141,6 @@ namespace deckard::lexer
 					co_yield give_token(At, 1);
 					continue;
 				}
-					// Dollar sign can be used as identifier
-					// case DOLLAR_SIGN:
-					//{
-					//	co_yield give_token(Dollar, 1);
-					//	continue;
-					//}
 
 				case LESS_THAN_SIGN:
 				{
@@ -958,15 +1173,6 @@ namespace deckard::lexer
 						co_yield give_token(GreaterThan, 1);
 					continue;
 				}
-
-				//case LOW_LINE:
-				//{
-				//	co_yield give_token(Underscore, 1);
-				//	continue;
-				//}
-
-					// #######################################################################################################
-					// Brackets and braces
 
 				case LEFT_PARENTHESIS:
 				{
@@ -1002,7 +1208,6 @@ namespace deckard::lexer
 					continue;
 				}
 
-					// #######################################################################################################
 				case EQUALS_SIGN:
 				{
 					if (cursor.peek(1) == EQUALS_SIGN)
@@ -1080,18 +1285,31 @@ namespace deckard::lexer
 					continue;
 				}
 
-
-				// #######################################################################################################
 				default:
 				{
-					co_yield give_token(TokenType::UNKNOWN, 1);
+					co_yield give_token(TokenKind::Unknown, 1);
 					continue;
 				}
 			}
 		}
 
+		co_yield Token{
+		  .line   = line,
+		  .column = column,
+		  .offset = as<u32>(cursor - buffer),
+		  .length = 0,
+		  .id     = 0,
+		  .type   = TokenKind::EOF,
+		  .error  = TokenError::None};
 		co_return;
 	}
 
+	export std::vector<Token> tokenize_all(utf8::view buffer, const TokenizeConfig config = {})
+	{
+		std::vector<Token> tokens;
+		for (auto token : tokenize(buffer, config))
+			tokens.push_back(token);
+		return tokens;
+	}
 
 } // namespace deckard::lexer
