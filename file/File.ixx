@@ -44,7 +44,7 @@ namespace deckard::file
 	export struct options
 	{
 		fs::path      filename;
-		std::span<u8> buffer;
+		std::span<const u8> buffer;
 		u64           size{0};
 		u64           offset{0};
 		u64           chunk_size{4096}; // For read_chunks
@@ -223,7 +223,7 @@ namespace deckard::file
 				}
 			}
 
-			if (0 == ReadFile(handle, buffer.data(), as<DWORD>(buffer_size), &bytes_read, nullptr))
+			if (0 == ReadFile(handle,as<void*>(buffer.data()), as<DWORD>(buffer_size), &bytes_read, nullptr))
 			{
 				CloseHandle(handle);
 				return std::unexpected(std::format(
@@ -252,9 +252,9 @@ namespace deckard::file
 	// write
 
 	// return: bytes written
-	export auto write(const options& options)
+	export auto write(const options options)
 	{
-		return impl::write_impl<u8>(
+		return impl::write_impl<const u8>(
 		  options.filename,
 		  options.buffer,
 		  options.size == 0 ? options.buffer.size_bytes() : options.size,
@@ -266,9 +266,9 @@ namespace deckard::file
 	// append
 
 	// return: bytes written
-	export auto append(const options& options)
+	export auto append(const options options)
 	{
-		return impl::append_impl<u8>(
+		return impl::append_impl<const u8>(
 		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size);
 	}
 
@@ -278,7 +278,7 @@ namespace deckard::file
 	// return: bytes read
 	export auto read(const options options)
 	{
-		return impl::read_impl<u8>(
+		return impl::read_impl<const u8>(
 		  options.filename, options.buffer, options.size == 0 ? options.buffer.size_bytes() : options.size, options.offset);
 	}
 
@@ -827,39 +827,27 @@ namespace deckard::file
 	export auto read_text_file(fs::path path) -> std::vector<u8>
 	{
 		std::vector<u8> v = read_file(path);
-
 		if (v.empty())
-		{
-			dbg::println("read_text_file: file '{}' is empty", path.generic_string());
 			return v;
-		}
 
-		// remove bom
-		if (has_bom_utf8(v))
-			v.erase(v.begin(), v.begin() + 3);
+		// skip bom
+		size_t read  = (v.size() >= 3 and (v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)) ? 3 : 0;
 
-		std::vector<u8> out;
-		out.reserve(v.size());
+		size_t write = 0;
 
 		// normalize newlines
-		for (u64 i = 0; i < v.size(); ++i)
+		while (read < v.size())
 		{
-			u8 c = v[i];
-			if (c == '\r')
-			{
-				if (i + 1 < v.size() and v[i + 1] == '\n')
-					continue;
+			const u8 c = v[read++];
+			v[write++] = (c == '\r') ? '\n' : c;
 
-				out.push_back('\n');
-			}
-			else
-			{
-				out.push_back(c);
-			}
+			if (c == '\r' and read < v.size() and v[read] == '\n')
+				++read; // consume the \n of a \r\n pair without writing it
 		}
 
-		out.shrink_to_fit();
-		return out;
+		v.resize(write);
+		v.shrink_to_fit();
+		return v;
 	}
 
 	export auto read_text_file_as_utf8(fs::path path) -> utf8::string
@@ -876,7 +864,7 @@ namespace deckard::file
 	export std::string read_text_file_as_string(fs::path path)
 	{
 		auto v = read_text_file(path);
-		
+
 		return std::string(v.begin(), v.end());
 	}
 
@@ -976,7 +964,7 @@ namespace deckard::file
 		return try_read_lines_as<T>(path, delimiter, true);
 	}
 
-	std::vector<std::optional<std::string>>
+	export std::vector<std::optional<std::string>>
 	try_read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
