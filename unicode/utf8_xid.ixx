@@ -1,6 +1,6 @@
 export module deckard.utf8:xid;
 import :ascii;
-import :xid_tables;
+import :tables;
 
 import deckard.debug;
 import deckard.types;

@@ -258,7 +258,7 @@ set(DECKARD_SRCS
 		unicode/utf8_codepoints.ixx
 		unicode/utf8_decode.ixx
 		unicode/utf8_xid.ixx
-		unicode/utf8_xid_tables.ixx
+		
 		unicode/utf8_name_tables.ixx
 		unicode/utf8_tables.ixx
 		
@@ -266,7 +266,7 @@ set(DECKARD_SRCS
 		unicode/utf8string.ixx
 		unicode/utf8view.ixx
 		unicode/utf8_scanner.ixx
-		unicode/utf8_span.ixx
+		
 
 		# Graph
 		graphs/avltree.ixx
