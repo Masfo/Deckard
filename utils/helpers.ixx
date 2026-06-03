@@ -582,6 +582,57 @@ export namespace deckard
 		return slice_copy<Count, Offset>(std::span<const T>{bytes});
 	}
 
+	//
+
+	template<size_t N>
+	[[nodiscard]] constexpr auto as_ro_bytes(const std::array<u8, N>& a) -> std::span<const std::byte>
+	{
+		if constexpr (N == 0)
+			return {};
+		auto first = as<const std::byte*>(a.data());
+		return std::span<const std::byte>(first, first + N);
+	}
+
+	template<size_t N>
+	[[nodiscard]] constexpr auto as_ro_bytes(std::array<u8, N>& a) -> std::span<const std::byte>
+	{
+		return as_ro_bytes(static_cast<const std::array<u8, N>&>(a));
+	}
+
+	[[nodiscard]] constexpr auto as_ro_bytes(std::span<u8> s) -> std::span<const std::byte>
+	{
+		if (s.empty())
+			return {};
+		auto first = as<const std::byte*>(s.data());
+		return std::span<const std::byte>(first, first + s.size());
+	}
+
+	[[nodiscard]] constexpr auto as_ro_bytes(std::span<const u8> s) -> std::span<const std::byte>
+	{
+		if (s.empty())
+			return {};
+		auto first = as<const std::byte*>(s.data());
+		return std::span<const std::byte>(first, first + s.size());
+	}
+
+	[[nodiscard]] constexpr auto as_ro_bytes(std::string_view s) -> std::span<const std::byte>
+	{
+		if (s.empty())
+			return {};
+		auto first = as<const std::byte*>(s.data());
+		return std::span<const std::byte>(first, first + s.size());
+	}
+
+	[[nodiscard]] constexpr auto as_ro_bytes(const char* s, u32 len) -> std::span<const std::byte>
+	{
+		if (len == 0 or s == nullptr)
+			return {};
+		auto first = as<const std::byte*>(s);
+		return std::span<const std::byte>(first, first + static_cast<size_t>(len));
+	}
+
+
+
 	// epoch
 	template<typename T = std::chrono::seconds>
 	auto epoch() -> decltype(std::chrono::duration_cast<T>(std::chrono::system_clock::now().time_since_epoch()).count())

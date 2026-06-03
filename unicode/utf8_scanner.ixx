@@ -2,12 +2,12 @@ export module deckard.utf8:scanner;
 
 import :codepoints;
 import :decode;
-import :utf8_span;
 import :view;
 
 import std;
 import deckard.types;
 import deckard.assert;
+import deckard.helpers;
 
 namespace deckard::utf8
 {

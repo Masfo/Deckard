@@ -2,7 +2,6 @@ export module deckard.utf8:view;
 
 import :codepoints;
 import :decode;
-import :utf8_span;
 
 
 import std;
@@ -10,6 +9,7 @@ import deckard.types;
 import deckard.utils.hash;
 import deckard.assert;
 import deckard.as;
+import deckard.helpers;
 
 namespace deckard::utf8
 {

@@ -2,7 +2,7 @@ export module deckard.utf8:string;
 import :codepoints;
 import :decode;
 import :view;
-import :utf8_span;
+
 
 import std;
 import deckard.types;
@@ -10,6 +10,7 @@ import deckard.assert;
 import deckard.as;
 import deckard.sbo;
 import deckard.utils.hash;
+import deckard.helpers;
 
 namespace deckard::utf8
 {
@@ -350,23 +351,22 @@ namespace deckard::utf8
 			buffer.assign(std::span<const u8>{const_cast<u8*>(raw.data()), raw.size()});
 		}
 
-		template<std::ranges::input_range R>
-		requires std::convertible_to<std::ranges::range_value_t<R>, char32>
-		explicit string(R&& codepoints)
+		string(std::span<const char32> input)
 		{
-			std::vector<u8> tmp;
+			size_t total_bytes = 0;
+			for (char32 c : input)
+				total_bytes += utf8::codepoint_width(c);
 
-			if constexpr (std::ranges::sized_range<R>)
-				tmp.reserve(std::ranges::size(codepoints) * 4);
+			string result;
+			if (total_bytes)
+				result.buffer.reserve(total_bytes);
 
-			for (char32 cp : codepoints)
-			{
-				auto encoded = encode_codepoint(cp);
-				tmp.insert(tmp.end(), encoded.bytes.data(), encoded.bytes.data() + encoded.count);
-			}
+			for (char32 c : input)
+				result.append(c);
 
-			buffer.assign(std::span<const u8>{tmp.data(), tmp.size()});
+			buffer = std::move(result.buffer);
 		}
+
 
 		string& operator=(std::string_view input)
 		{
@@ -909,15 +909,9 @@ namespace deckard::utf8
 
 		size_t length() const
 		{
-			if (empty())
-				return 0;
-
-			auto status = valid();
-			if (not status.has_value())
-				return 0;
-
-			auto len = utf8::length(buffer.data());
-			return len ? *len : 0;
+			if (auto len = utf8::length(span()); len.has_value())
+				return *len;
+			return 0;
 		}
 
 		size_t graphemes() const

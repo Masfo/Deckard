@@ -6,9 +6,7 @@ export import :tables;
 export import :string;
 export import :view;
 export import :decode;
-export import :utf8_span;
 export import :basic_characters;
-export import :names;
 export import :scanner;
 
 export using namespace deckard::utf8::literals;
