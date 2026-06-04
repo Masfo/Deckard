@@ -1,6 +1,5 @@
 
 import std;
-#include <assert.h>
 using i64 = std::int64_t;
 
 using u8  = std::uint8_t;
@@ -1009,7 +1008,7 @@ void generate_trie_tables(std::map<u32, u32> const &ccc_map)
 				 unique_blocks.size() * BLOCK_SIZE,
 				 truncated_size + unique_blocks.size() * BLOCK_SIZE);
 
-ww	std::string ccc_generator = std::format("[[nodiscard]] constexpr auto get_ccc(u32 cp) noexcept -> u8\n"
+	std::string ccc_generator = std::format("[[nodiscard]] constexpr auto get_ccc(u32 cp) noexcept -> u8\n"
 											"{{\n"
 											"	if (cp < {:#0x})\n"
 											"		return 0;\n"
