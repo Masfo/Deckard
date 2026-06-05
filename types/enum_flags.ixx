@@ -1,8 +1,8 @@
-﻿export module deckard.enums;
+export module deckard.enums;
 
 import std;
 
-export namespace deckard
+namespace deckard
 {
 	// consteval void enable_bitmask_operations( <enum> );
 
@@ -10,83 +10,83 @@ export namespace deckard
 	concept EnumFlagType = requires {
 		requires std::is_scoped_enum_v<T>;
 		{ enable_bitmask_operations(std::declval<T>()) } -> std::same_as<void>; //
+
+		{ T::Count } -> std::convertible_to<T>;
 	};
 
 	// Bit indexes
-	template<typename T = unsigned char>
-	consteval T BIT(size_t index)
+	export template<std::unsigned_integral T = unsigned char>
+	[[nodiscard]] consteval T BIT(size_t index) noexcept
 	{
-		return static_cast<T>(1 << index);
+		return static_cast<T>(T{1} << index);
 	}
 
-	template<EnumFlagType T>
-	constexpr T operator|(const T lhs, const T rhs)
+	export template<EnumFlagType T>
+	[[nodiscard]] constexpr T operator|(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitor std::to_underlying(rhs));
 	}
 
-	template<EnumFlagType T>
-	constexpr T operator&(const T lhs, const T rhs)
+	export template<EnumFlagType T>
+	[[nodiscard]] constexpr T operator&(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
 	}
 
-	template<EnumFlagType T>
-	constexpr T operator^(const T lhs, const T rhs)
+	export template<EnumFlagType T>
+	[[nodiscard]] constexpr T operator^(const T lhs, const T rhs)
 	{
 		return static_cast<T>(std::to_underlying(lhs) xor std::to_underlying(rhs));
 	}
 
-	template<EnumFlagType T>
-	constexpr T operator~(const T lhs)
+	export template<EnumFlagType T>
+	[[nodiscard]] constexpr T operator~(const T lhs)
 	{
 		return static_cast<T>(~std::to_underlying(lhs));
 	}
 
-	template<EnumFlagType T>
+	export template<EnumFlagType T>
 	constexpr T operator|=(T& lhs, const T rhs)
 	{
-		lhs = lhs bitor rhs;
+		lhs = lhs | rhs;
 		return lhs;
 	}
 
-	template<EnumFlagType T>
+	export template<EnumFlagType T>
 	constexpr T operator&=(T& lhs, const T rhs)
 	{
-		lhs = static_cast<T>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
+		lhs = lhs & rhs;
 		return lhs;
 	}
 
-	template<EnumFlagType T>
+	export template<EnumFlagType T>
 	constexpr T operator^=(T& lhs, const T rhs)
 	{
-		lhs = lhs xor rhs;
+		lhs = lhs ^ rhs;
 		return lhs;
 	}
 
 	// Helpers for removing and setting flags
-	template<EnumFlagType T>
+	export template<EnumFlagType T>
 	constexpr T operator-=(T& lhs, const T rhs)
 	{
 		lhs &= ~rhs;
 		return lhs;
 	}
 
-	template<EnumFlagType T>
+	export template<EnumFlagType T>
 	constexpr T operator+=(T& lhs, const T rhs)
 	{
 		lhs |= rhs;
 		return lhs;
 	}
 
-	// check
-	template<EnumFlagType T>
-	constexpr bool operator&&(const T lhs, const T rhs)
+	export template<EnumFlagType T>
+	[[nodiscard]] constexpr bool has(T flags, T flag) noexcept
 	{
-		if (std::to_underlying(lhs) == std::to_underlying(rhs))
+		if (std::to_underlying(flags) == std::to_underlying(flag))
 			return true;
-
-		return static_cast<bool>(std::to_underlying(lhs) bitand std::to_underlying(rhs));
+		return static_cast<bool>(std::to_underlying(flags) & std::to_underlying(flag));
 	}
 
 	// P3070r0 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p3070r0.html
@@ -94,11 +94,12 @@ export namespace deckard
 	//		r2 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3070r2.html
 	//      r3 - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3070r3.html
 
-	template<EnumFlagType T>
+	export template<EnumFlagType T>
 	auto format_as(T f)
 	{
 		return std::to_underlying(f);
 	}
+
 
 	/*
 		namespace Filesystem
@@ -108,6 +109,8 @@ export namespace deckard
 				Read    = BIT(0),
 				Write   = BIT(1),
 				Execute = BIT(2),
+
+				Count = 3,
 			};
 			consteval void enable_bitmask_operations(Permission);
 
@@ -119,8 +122,7 @@ export namespace deckard
 
 				auto format(T f, format_context& ctx) const
 				{
-					//
-					return std::format_to(ctx.out(), "{:03b}", std::to_underlying(f));
+					return std::format_to(ctx.out(), "{}", std::to_underlying(f));
 				}
 			};
 
@@ -139,7 +141,7 @@ export namespace deckard
 		readAndWrite += Permission::Execute; // Read | Write | Execute
 
 		// Check
-		bool has_read = readAndWrite && Permission::Read;
+		bool has_read = has(readAndWrite, Permission::Read);
 
 	*/
 

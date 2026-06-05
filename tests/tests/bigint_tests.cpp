@@ -683,9 +683,9 @@ TEST_CASE("bigint", "[bigint]")
 
 
 		aaa = pow(bigint(-15), 2);
-		CHECK(aaa.to_string() == "-225");
-		CHECK(aaa.to_integer() == -225);
-		CHECK(aaa.signum() == Sign::negative);
+		CHECK(aaa.to_string() == "225");
+		CHECK(aaa.to_integer() == 225);
+		CHECK(aaa.signum() == Sign::positive);
 
 		aaa = pow(bigint(-455), 9);
 		CHECK(aaa.to_string() == "-835800390878492990234375");
