@@ -267,7 +267,7 @@ namespace deckard::math
 			T result{};
 
 			auto tmp = abs_diff(x, other.x);
-			result  = tmp * tmp;
+			result   = tmp * tmp;
 
 			tmp = abs_diff(y, other.y);
 			result += tmp * tmp;
@@ -469,7 +469,6 @@ namespace deckard::math
 		lhs.y += s;
 		lhs.z += s;
 		lhs.w += s;
-
 	}
 
 	export template<arithmetic T, arithmetic U>
@@ -755,6 +754,13 @@ namespace deckard::math
 	{
 		return generic_vec4<T>(std::sin(lhs.x), std::sin(lhs.y), std::sin(lhs.z), std::sin(lhs.w));
 	}
+
+	export template<typename T>
+	inline std::ostream& operator<<(std::ostream& os, const generic_vec4<T>& v)
+	{
+		return os << "vec4(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+	}
+
 
 } // namespace deckard::math
 

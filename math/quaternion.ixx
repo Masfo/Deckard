@@ -22,12 +22,14 @@ namespace deckard::math
 		friend f32  dot(const quat& a, const quat b);
 		friend quat cross(const quat& q1, const quat& q2);
 		friend quat conjugate(const quat& q);
-		friend quat normalize(quat q);
 		friend quat slerp(const quat& x, const quat& y, f32 t);
 		friend quat mix(const quat& x, const quat& y, f32 t);
+		friend vec3 operator*(const quat& q, const vec3& v) noexcept;
+		friend quat normalize(const quat& q) noexcept;
 
 
 	private:
+		// w, xyz
 		vec4 data{1.0f, 0.0f, 0.0f, 0.0f};
 
 	public:
@@ -64,6 +66,8 @@ namespace deckard::math
 			data.z = c.x * c.y * s.z - s.x * s.y * c.z;
 		}
 
+		quat(const mat4& m) { *this = from_mat4(m); }
+
 		quat operator-() const { return quat(-data.w, -data.x, -data.y, -data.z); }
 
 		quat operator+() const { return *this; }
@@ -74,7 +78,11 @@ namespace deckard::math
 			return data[index];
 		}
 
-		bool equals(const quat& lhs) const { return data == lhs.data; }
+		bool equals(const quat& lhs) const
+		{
+			return math::is_close_enough(data.w, lhs.data.w) and math::is_close_enough(data.x, lhs.data.x) and
+				   math::is_close_enough(data.y, lhs.data.y) and math::is_close_enough(data.z, lhs.data.z);
+		}
 
 		quat operator+(const quat& other) const
 		{
@@ -97,7 +105,10 @@ namespace deckard::math
 			return quat(w, x, y, z);
 		}
 
-		quat operator*(const f32 scalar) const { return quat(data.w * scalar, data.x * scalar, data.y * scalar, data.z * scalar); }
+		quat operator*(const f32 scalar) const
+		{
+			return quat(data.w * scalar, data.x * scalar, data.y * scalar, data.z * scalar);
+		}
 
 		quat operator/(const f32 scalar) const
 		{
@@ -131,11 +142,15 @@ namespace deckard::math
 		{
 			const quat temp(*this);
 
-			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y - temp.data.z * other.data.z;
+			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y -
+					 temp.data.z * other.data.z;
 
-			data.x = temp.data.w * other.data.x + temp.data.x * other.data.w + temp.data.y * other.data.z - temp.data.z * other.data.y;
-			data.y = temp.data.w * other.data.y + temp.data.y * other.data.w + temp.data.z * other.data.x - temp.data.x * other.data.z;
-			data.z = temp.data.w * other.data.z + temp.data.z * other.data.w + temp.data.x * other.data.y - temp.data.y * other.data.x;
+			data.x = temp.data.w * other.data.x + temp.data.x * other.data.w + temp.data.y * other.data.z -
+					 temp.data.z * other.data.y;
+			data.y = temp.data.w * other.data.y + temp.data.y * other.data.w + temp.data.z * other.data.x -
+					 temp.data.x * other.data.z;
+			data.z = temp.data.w * other.data.z + temp.data.z * other.data.w + temp.data.x * other.data.y -
+					 temp.data.y * other.data.x;
 
 			return *this;
 		}
@@ -173,8 +188,8 @@ namespace deckard::math
 
 			if (sum > 0.0f)
 			{
-				data.w = std::sqrt(sum + 1.0f) * 0.5f;
-				f32 f  = 0.25f / data.w;
+				data.w      = std::sqrt(sum + 1.0f) * 0.5f;
+				const f32 f = 0.25f / data.w;
 
 				data.x = (m[2, 1] - m[1, 2]) * f;
 				data.y = (m[0, 2] - m[2, 0]) * f;
@@ -182,17 +197,17 @@ namespace deckard::math
 			}
 			else if ((m00 > m11) and (m00 > m22))
 			{
-				data.w = std::sqrt(m00 - m11 - m22 + 1.0f) * 0.5f;
-				f32 f  = 0.25f / data.x;
+				data.x      = std::sqrt(m00 - m11 - m22 + 1.0f) * 0.5f;
+				const f32 f = 0.25f / data.x;
 
-				data.x = (m[1, 0] + m[0, 1]) * f;
-				data.z = (m[0, 2] + m[2, 0]) * f;
+				data.y = (m[1, 0] + m[0, 1]) * f;
+				data.z = (m[2, 0] + m[0, 2]) * f;
 				data.w = (m[2, 1] - m[1, 2]) * f;
 			}
 			else if (m11 > m22)
 			{
-				data.y = std::sqrt(m11 - m00 - m22 + 1.0f) * 0.5f;
-				f32 f  = 0.25f / data.y;
+				data.y      = std::sqrt(m11 - m00 - m22 + 1.0f) * 0.5f;
+				const f32 f = 0.25f / data.y;
 
 				data.x = (m[1, 0] + m[0, 1]) * f;
 				data.z = (m[2, 1] + m[1, 2]) * f;
@@ -200,51 +215,50 @@ namespace deckard::math
 			}
 			else
 			{
-				data.w = std::sqrt(m22 - m00 - m11 + 1.0f) * 0.5f;
-				f32 f  = 0.25f / data.w;
+				data.z      = std::sqrt(m22 - m00 - m11 + 1.0f) * 0.5f;
+				const f32 f = 0.25f / data.z;
 
-				data.x = (m[0, 2] + m[0, 1]) * f;
+				data.x = (m[2, 0] + m[0, 2]) * f;
 				data.y = (m[2, 1] + m[1, 2]) * f;
-				data.z = (m[1, 0] - m[0, 1]) * f;
+				data.w = (m[1, 0] - m[0, 1]) * f;
 			}
 
 			return *this;
 		}
 
-		mat4 to_mat4() const
+		mat4 to_mat4() const noexcept
 		{
 			const float x2 = data.x * data.x;
 			const float y2 = data.y * data.y;
 			const float z2 = data.z * data.z;
-
 			const float xz = data.x * data.z;
 			const float xy = data.x * data.y;
 			const float yz = data.y * data.z;
-
 			const float wx = data.w * data.x;
 			const float wy = data.w * data.y;
 			const float wz = data.w * data.z;
 
-			return mat4{
-			  0,
-			  0,
-			  0,
-			  1,
+			// row 0
+			const float r00 = 1.0f - 2.0f * (y2 + z2);
+			const float r01 = 2.0f * (xy + wz);
+			const float r02 = 2.0f * (xz - wy);
 
-			  1.0f - 2.0f * (y2 + z2),
-			  2.0f * (xy + wz),
-			  2.0f * (xz - wy),
+			// row 1
+			const float r10 = 2.0f * (xy - wz);
+			const float r11 = 1.0f - 2.0f * (x2 + z2);
+			const float r12 = 2.0f * (yz + wx);
 
-			  0,
-			  2.0f * (xy - wz),
-			  1.0f - 2.0f * (x2 + z2),
-			  2.0f * (yz + wx),
+			// row 2
+			const float r20 = 2.0f * (xz + wy);
+			const float r21 = 2.0f * (yz - wx);
+			const float r22 = 1.0f - 2.0f * (x2 + y2);
 
-			  0,
-			  2.0f * (xz + wy),
-			  2.0f * (yz - wx),
-			  1.0f - 2.0f * (x2 + y2),
-			  0};
+			return mat4{r00, r01, r02, 0.0f, r10, r11, r12, 0.0f, r20, r21, r22, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+		}
+
+		std::string to_string() const
+		{
+			return std::format("quat(w: {:.5f}, x: {:.5f}, y: {:.5f}, z: {:.5f})", data.w, data.x, data.y, data.z);
 		}
 	};
 
@@ -286,29 +300,16 @@ namespace deckard::math
 				q1.data.w * q2.data.z + q1.data.z * q2.data.w + q1.data.x * q2.data.y - q1.data.y * q2.data.x};
 	}
 
-	export quat normalize(const quat q)
+	export [[nodiscard]] quat normalize(const quat& q) noexcept
 	{
-		f32 x = q.data.x;
-		f32 y = q.data.y;
-		f32 z = q.data.z;
-		f32 w = q.data.w;
+		const f32 len_sq = q.data.w * q.data.w + q.data.x * q.data.x + q.data.y * q.data.y + q.data.z * q.data.z;
 
-		f32 d = q.data.w * q.data.w + q.data.x * q.data.x + q.data.y * q.data.y + q.data.z * q.data.z;
+		if (not (len_sq > std::numeric_limits<f32>::epsilon()))
+			return quat(1.0f, 0.0f, 0.0f, 0.0f);
 
-		if (math::is_close_enough_zero(d))
-			w = 1.0f;
+		const f32 inv_len = 1.0f / std::sqrt(len_sq);
 
-		d = 1.0f / std::sqrt(d);
-
-
-		if (d > f32(1.0e-8))
-		{
-			w *= d;
-			x *= d;
-			y *= d;
-			z *= d;
-		}
-		return quat(w, x, y, z);
+		return q * inv_len;
 	}
 
 	export quat rotate(const quat& q, const f32 radians, const vec3& v)
@@ -349,7 +350,10 @@ namespace deckard::math
 
 		if (theta > (1.0f - 0.000001f))
 		{
-			return quat(mix(x.data.w, y.data.w, t), mix(x.data.x, y.data.x, t), mix(x.data.y, y.data.y, t), mix(x.data.z, y.data.z, t));
+			return quat(mix(x.data.w, y.data.w, t),
+						mix(x.data.x, y.data.x, t),
+						mix(x.data.y, y.data.y, t),
+						mix(x.data.z, y.data.z, t));
 		}
 
 		f32 angle = std::acos(theta);
@@ -376,13 +380,25 @@ namespace deckard::math
 
 		if (theta > (1.0f - 0.000001f))
 		{
-			return quat(mix(x.data.w, z.data.w, t), mix(x.data.x, z.data.x, t), mix(x.data.y, z.data.y, t), mix(x.data.z, z.data.z, t));
+			return quat(mix(x.data.w, z.data.w, t),
+						mix(x.data.x, z.data.x, t),
+						mix(x.data.y, z.data.y, t),
+						mix(x.data.z, z.data.z, t));
 		}
 
 
 		f32 angle = std::acos(theta);
 		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * z) / std::sin(angle);
 	}
+
+	export [[nodiscard]] vec3 operator*(const quat& q, const vec3& v) noexcept
+	{
+		const vec3 qv(q.data.x, q.data.y, q.data.z);
+		const vec3 t = 2.0f * cross(qv, v);
+		return v + q.data.w * t + cross(qv, t);
+	}
+
+	export inline std::ostream& operator<<(std::ostream& os, const quat& s) { return os << s.to_string(); }
 
 
 } // namespace deckard::math
@@ -392,7 +408,7 @@ namespace std
 	template<>
 	struct hash<quat>
 	{
-		size_t operator()(const quat& q) const { return deckard::utils::hash_values(q[3], q[0], q[1], q[1]); }
+		size_t operator()(const quat& q) const { return deckard::utils::hash_values(q[3], q[0], q[1], q[2]); }
 	};
 
 	template<>

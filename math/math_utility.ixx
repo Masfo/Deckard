@@ -109,24 +109,23 @@ export namespace deckard::math
 
 	// is_close_enough
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(const T& a, const T& b, const T epsilon = T{1e-5})
+	[[nodiscard]] constexpr bool is_close_enough(T a, T b, T epsilon = T{1e-4}) noexcept
 	{
+		if (a == b)
+			return true;
+
 		if constexpr (is_debug_build)
 		{
-			if (std::isnan(a) or std::isnan(b))
-				return false;
-
-			if (std::isinf(a) && std::isinf(b))
-				return (a > 0 && b > 0) or (a < 0 && b < 0);
-
-			if (std::isinf(a) or std::isinf(b))
+			if (std::isnan(a) or std::isnan(b) or std::isinf(a) or std::isinf(b))
 				return false;
 		}
 
-		if (a == T{0.0} or b == T{0.0})
-			return std::fabs(a - b) < epsilon;
+		const T diff = std::abs(a - b);
 
-		return std::fabs(a - b) <= epsilon;
+		if (a == T{0.0} or b == T{0.0})
+			return diff < epsilon;
+
+		return diff <= epsilon * std::max(std::abs(a), std::abs(b));
 	}
 
 	template<std::floating_point T>

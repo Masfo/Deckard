@@ -5,7 +5,6 @@ import std;
 import deckard.assert;
 import deckard.types;
 import deckard.debug;
-import deckard.assert;
 import deckard.utils.hash;
 import deckard.vec;
 import deckard.math.utils;
@@ -19,19 +18,15 @@ namespace deckard::math
 		using type = vec4;
 		std::array<type, 4> mat;
 
-		struct fill
-		{
-		} inline static fill;
-
 		// identity
 
 
-		mat4_generic()
+		mat4_generic() noexcept
 			: mat4_generic(1.0f)
 		{
 		}
 
-		explicit mat4_generic(f32 scalar) // identity
+		explicit mat4_generic(f32 scalar) noexcept
 		{
 			mat[0].x = scalar;
 			mat[1].y = scalar;
@@ -39,16 +34,8 @@ namespace deckard::math
 			mat[3].w = scalar;
 		}
 
-		mat4_generic(const f32 v, struct fill)
-		{
-			mat[0] = {v, v, v, v};
-			mat[1] = {v, v, v, v};
-			mat[2] = {v, v, v, v};
-			mat[3] = {v, v, v, v};
-		}
-
-		mat4_generic(f32 e00, f32 e01, f32 e02, f32 e03, f32 e04, f32 e05, f32 e06, f32 e07, f32 e08, f32 e09, f32 e10, f32 e11, f32 e12,
-					 f32 e13, f32 e14, f32 e15)
+		mat4_generic(f32 e00, f32 e01, f32 e02, f32 e03, f32 e04, f32 e05, f32 e06, f32 e07, f32 e08, f32 e09, f32 e10,
+					 f32 e11, f32 e12, f32 e13, f32 e14, f32 e15)
 		{
 			mat[0] = {e00, e01, e02, e03};
 			mat[1] = {e04, e05, e06, e07};
@@ -56,7 +43,7 @@ namespace deckard::math
 			mat[3] = {e12, e13, e14, e15};
 		}
 
-		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3)
+		mat4_generic(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3) noexcept
 		{
 			mat[0] = v0;
 			mat[1] = v1;
@@ -64,37 +51,31 @@ namespace deckard::math
 			mat[3] = v3;
 		}
 
-		vec4& operator[](size_t index)
+		vec4& operator[](size_t index) noexcept
 		{
 			assert::check(index < mat.size(), "mat4: indexing out-of-bounds");
 			return mat[index];
 		}
 
-		const vec4& operator[](size_t index) const
+		const vec4& operator[](size_t index) const noexcept
 		{
 			assert::check(index < mat.size(), "mat4: indexing out-of-bounds");
 			return mat[index];
 		}
 
 		//
-		f32 operator[](size_t x, size_t y)
+		f32 operator[](size_t x, size_t y) const noexcept
 		{
 			assert::check(x < 4 and y < 4, "mat4: indexing out-of-bounds");
 			return mat[y][x];
 		}
 
-		const f32 operator[](size_t x, size_t y) const
-		{
-			assert::check(x < 4 and y < 4, "mat4: indexing out-of-bounds");
-			return mat[y][x];
-		}
-
-		mat4_generic operator*(const f32 scalar) const
+		mat4_generic operator*(const f32 scalar) const noexcept
 		{
 			return mat4_generic(mat[0] * scalar, mat[1] * scalar, mat[2] * scalar, mat[3] * scalar);
 		}
 
-		mat4_generic operator*(const mat4_generic& rhs) const
+		mat4_generic operator*(const mat4_generic& rhs) const noexcept
 		{
 			mat4_generic result;
 
@@ -106,7 +87,7 @@ namespace deckard::math
 			return result;
 		}
 
-		mat4_generic operator+(const mat4_generic& rhs) const
+		mat4_generic operator+(const mat4_generic& rhs) const noexcept
 		{
 			mat4_generic result;
 
@@ -130,14 +111,11 @@ namespace deckard::math
 			return result;
 		}
 
-		mat4_generic operator-() const
-		{
-			return *this * -1.0f;
-		}
+		mat4_generic operator-() const noexcept { return *this * -1.0f; }
 
-		mat4_generic operator+() const { return *this; }
+		mat4_generic operator+() const noexcept { return *this; }
 
-		mat4_generic operator/(const f32 scalar) const
+		mat4_generic operator/(const f32 scalar) const noexcept
 		{
 			if (math::is_close_enough_zero(scalar))
 				dbg::panic("divide by zero: {} / {}", *this, scalar);
@@ -152,16 +130,14 @@ namespace deckard::math
 			return result;
 		}
 
-		bool operator==(const mat4_generic& lhs) const { return is_close_enough(lhs); }
+		bool operator==(const mat4_generic& lhs) const noexcept { return is_close_enough(lhs); }
 
-		bool equals(const mat4_generic& lhs) const { return is_close_enough(lhs); }
-
-		bool is_close_enough(const mat4_generic& lhs) const
+		bool is_close_enough(const mat4_generic& lhs) const noexcept
 		{
 			return mat[0] == lhs[0] and mat[1] == lhs[1] and mat[2] == lhs[2] and mat[3] == lhs[3];
 		}
 
-		mat4_generic scale(const vec3& scale) const
+		mat4_generic scale(const vec3& scale) const noexcept
 		{
 			const vec4 XS(scale.x);
 			const vec4 YS(scale.y);
@@ -170,7 +146,7 @@ namespace deckard::math
 			return mat4_generic(mat[0] * XS, mat[1] * YS, mat[2] * ZS, mat[3]);
 		}
 
-		mat4_generic rotate(f32 radians, const vec3& v) const
+		mat4_generic rotate(f32 radians, const vec3& v) const noexcept
 		{
 			const f32 a = radians;
 			const f32 c = std::cos(a);
@@ -202,19 +178,19 @@ namespace deckard::math
 			return result;
 		}
 
-		mat4_generic translate(const vec3& translate) const
+		mat4_generic translate(const vec3& translate) const noexcept
 		{
 			mat4_generic result(*this);
 			result[3] = mat[0] * translate.x + mat[1] * translate.y + mat[2] * translate.z + mat[3];
 			return result;
 		}
 
-		f32 determinant() const
+		f32 determinant() const noexcept
 		{
 
 			f32 SubFactor00 = mat[2].z * mat[3].w - mat[3].z * mat[2].w;
 			f32 SubFactor01 = mat[2].y * mat[3].w - mat[3].y * mat[2].w;
-			f32 SubFactor02 = mat[2].y * mat[3].w - mat[3].y * mat[2].z;
+			f32 SubFactor02 = mat[2].y * mat[3].z - mat[3].y * mat[2].z;
 			f32 SubFactor03 = mat[2].x * mat[3].w - mat[3].x * mat[2].w;
 			f32 SubFactor04 = mat[2].x * mat[3].z - mat[3].x * mat[2].z;
 			f32 SubFactor05 = mat[2].x * mat[3].y - mat[3].x * mat[2].y;
@@ -227,7 +203,7 @@ namespace deckard::math
 			return mat[0].x * DetCof.x + mat[0].y * DetCof.y + mat[0].z * DetCof.z + mat[0].w * DetCof.w;
 		}
 
-		mat4_generic inverse() const
+		mat4_generic inverse() const noexcept
 		{
 			f32 Coef00 = mat[2].z * mat[3].w - mat[3].z * mat[2].w;
 			f32 Coef02 = mat[1].z * mat[3].w - mat[3].z * mat[1].w;
@@ -279,24 +255,34 @@ namespace deckard::math
 
 			vec4 Dot0(mat[0] * Row0);
 			f32  Dot1 = (Dot0.x + Dot0.y) + (Dot0.z + Dot0.w);
+			assert::check(not math::is_close_enough_zero(Dot1), "matrix is not invertible");
 
 			f32 OneOverDeterminant = 1.0f / Dot1;
 
 			return Inverse * OneOverDeterminant;
 		}
 
-		static mat4_generic identity() { return mat4_generic(1.0f); }
+		[[nodiscard]] static constexpr mat4_generic filled(f32 v) noexcept
+		{
+			mat4_generic mat;
+			vec4         v4 = {v, v, v, v};
+			mat[0]          = v4;
+			mat[1]          = v4;
+			mat[2]          = v4;
+			mat[3]          = v4;
+			return mat;
+		}
 	};
 
-	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs * rhs; }
+	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs * rhs; }
 
-	export void operator/=(mat4_generic& lhs, const f32 rhs) { lhs = lhs / rhs; }
+	export void operator/=(mat4_generic& lhs, const f32 rhs) noexcept { lhs = lhs / rhs; }
 
-	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs + rhs; }
+	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs + rhs; }
 
-	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) { lhs = lhs - rhs; }
+	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs - rhs; }
 
-	export vec4 operator*(const vec4& lhs, const mat4_generic& rhs)
+	export vec4 operator*(const vec4& lhs, const mat4_generic& rhs) noexcept
 	{
 		return vec4(rhs[0].x * lhs.x + rhs[0].y * lhs.y + rhs[0].z * lhs.z + rhs[0].w * lhs.w,
 					rhs[1].x * lhs.x + rhs[1].y * lhs.y + rhs[1].z * lhs.z + rhs[1].w * lhs.w,
@@ -304,7 +290,7 @@ namespace deckard::math
 					rhs[3].x * lhs.x + rhs[3].y * lhs.y + rhs[3].z * lhs.z + rhs[3].w * lhs.w);
 	}
 
-	export vec4 operator*(const mat4_generic& lhs, const vec4& rhs)
+	export vec4 operator*(const mat4_generic& lhs, const vec4& rhs) noexcept
 	{
 		vec4 const Mov0(rhs.x);
 		vec4 const Mov1(rhs.y);
@@ -320,7 +306,7 @@ namespace deckard::math
 		return Add2;
 	}
 
-	export mat4_generic transpose(const mat4_generic& mat)
+	export mat4_generic transpose(const mat4_generic& mat) noexcept
 	{
 		const vec4 col0(mat[0].x, mat[1].x, mat[2].x, mat[3].x);
 		const vec4 col1(mat[0].y, mat[1].y, mat[2].y, mat[3].y);
@@ -330,13 +316,16 @@ namespace deckard::math
 		return mat4_generic(col0, col1, col2, col3);
 	}
 
-	export mat4_generic scale(const mat4_generic& mat, const vec3& scale) { return mat.scale(scale); }
+	export mat4_generic scale(const mat4_generic& mat, const vec3& scale) noexcept { return mat.scale(scale); }
 
-	export mat4_generic translate(const mat4_generic& mat, const vec3& translate) { return mat.translate(translate); }
+	export mat4_generic translate(const mat4_generic& mat, const vec3& translate) noexcept
+	{
+		return mat.translate(translate);
+	}
 
-	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v) { return m.rotate(radians, v); }
+	export mat4_generic rotate(const mat4_generic& m, f32 radians, const vec3& v) noexcept { return m.rotate(radians, v); }
 
-	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up)
+	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up) noexcept
 	{
 		//
 		vec3 f = normalized(center - eye);
@@ -350,7 +339,7 @@ namespace deckard::math
 		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 	}
 
-	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far)
+	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far) noexcept
 	{
 		f32 const tanHalfFovy = std::tan(fov / 2.0f);
 
@@ -361,7 +350,7 @@ namespace deckard::math
 		  vec4(0.0f, 0.0f, -(2.0f * far * near) / (far - near), 0.0f));
 	}
 
-	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
+	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) noexcept
 	{
 		return mat4_generic(
 		  vec4(2 / (right - left), 0.0f, 0.0f, 0.0f),
@@ -370,7 +359,7 @@ namespace deckard::math
 		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
 	}
 
-	export mat4_generic ortho(f32 width, f32 height, f32 near = -1.0f, f32 far = 1.0f)
+	export mat4_generic ortho(f32 width, f32 height, f32 near = -1.0f, f32 far = 1.0f) noexcept
 	{
 #if 1
 		// y grows down
@@ -382,9 +371,9 @@ namespace deckard::math
 #endif
 	}
 
-	export mat4_generic inverse(const mat4_generic& mat) { return mat.inverse(); }
+	export mat4_generic inverse(const mat4_generic& mat) noexcept { return mat.inverse(); }
 
-	export vec3 project(const vec3& obj, const mat4_generic model, const mat4_generic& proj, const vec4& viewport)
+	export vec3 project(const vec3& obj, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport) noexcept
 	{
 		vec4 tmp(obj, 1.0f);
 		tmp = model * tmp;
@@ -398,7 +387,8 @@ namespace deckard::math
 		return vec3(tmp);
 	}
 
-	export vec3 unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport)
+	export vec3
+	unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport) noexcept
 	{
 		mat4_generic inv = inverse(proj * model);
 
@@ -415,9 +405,9 @@ namespace deckard::math
 		return vec3{obj};
 	}
 
-	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
+	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) noexcept
 	{
-		mat4_generic result(0);
+		mat4_generic result(0.0f);
 
 		result[0].x = (2.0f * near) / (right - left);
 		result[1].y = (2.0f * near) / (top - bottom);
@@ -430,10 +420,17 @@ namespace deckard::math
 		return result;
 	}
 
-	export f32 determinant(const mat4_generic& mat) { return mat.determinant(); }
+	export f32 determinant(const mat4_generic& mat) noexcept { return mat.determinant(); }
 
 	export using mat4 = mat4_generic;
 
+	export inline std::ostream& operator<<(std::ostream& os, const mat4& m) 
+	{
+		return os << "mat4((" << m[0].x << ", " << m[0].y << ", " << m[0].z << ", " << m[0].w << "),\n"
+				  << "     (" << m[1].x << ", " << m[1].y << ", " << m[1].z << ", " << m[1].w << "),\n"
+				  << "     (" << m[2].x << ", " << m[2].y << ", " << m[2].z << ", " << m[2].w << "),\n"
+				  << "     (" << m[3].x << ", " << m[3].y << ", " << m[3].z << ", " << m[3].w << "))";
+	}
 
 	// TODO:	project_world_to_screen
 	//			project_screen_to_world
@@ -462,36 +459,37 @@ namespace deckard::math
 namespace std
 {
 	template<>
-       struct hash<deckard::math::mat4_generic>
+	struct hash<deckard::math::mat4_generic>
 	{
-           size_t operator()(const deckard::math::mat4_generic& value) const
+		size_t operator()(const deckard::math::mat4_generic& value) const
 		{
-			return deckard::utils::hash_values(value[0].x,
-									  value[0].y,
-									  value[0].z,
-									  value[0].w,
-									  value[1].x,
-									  value[1].y,
-									  value[1].z,
-									  value[1].w,
-									  value[2].x,
-									  value[2].y,
-									  value[2].z,
-									  value[2].w,
-									  value[3].x,
-									  value[3].y,
-									  value[3].z,
-									  value[3].w);
+			return deckard::utils::hash_values(
+			  value[0].x,
+			  value[0].y,
+			  value[0].z,
+			  value[0].w,
+			  value[1].x,
+			  value[1].y,
+			  value[1].z,
+			  value[1].w,
+			  value[2].x,
+			  value[2].y,
+			  value[2].z,
+			  value[2].w,
+			  value[3].x,
+			  value[3].y,
+			  value[3].z,
+			  value[3].w);
 		}
 	};
 
 	template<>
-      struct formatter<deckard::math::mat4_generic>
+	struct formatter<deckard::math::mat4_generic>
 	{
 		// TODO: Parse single or multi row?
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.end(); }
 
-          auto format(const deckard::math::mat4_generic& m, std::format_context& ctx) const
+		auto format(const deckard::math::mat4_generic& m, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "mat4(({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[0].x, m[0].y, m[0].z, m[0].w);
 			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[1].x, m[1].y, m[1].z, m[1].w);

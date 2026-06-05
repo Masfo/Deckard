@@ -713,6 +713,12 @@ namespace deckard::math
 		return generic_vec3<T>(std::sin(lhs.x), std::sin(lhs.y), std::sin(lhs.z));
 	}
 
+	export template<typename T>
+	std::ostream& operator<<(std::ostream& os, const generic_vec3<T>& s) 
+	{ 
+		return os << "vec3(" << s.x << ", " << s.y << ", " << s.z << ")";
+	}
+
 
 } // namespace deckard::math
 
