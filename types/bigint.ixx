@@ -89,7 +89,7 @@ namespace deckard
 			return divisor;
 		}
 
-		void shift_left(const bigint& lhs, type shift)
+		void shift_left(const bigint& lhs, size_t shift)
 		{
 			if (shift == 0)
 			{
@@ -136,7 +136,7 @@ namespace deckard
 			remove_trailing_zeros();
 		}
 
-		void shift_right(const bigint& lhs, type shift)
+		void shift_right(const bigint& lhs, size_t shift)
 		{
 			if (shift == 0)
 			{
@@ -1144,27 +1144,27 @@ namespace deckard
 		// Shifts
 		// -------------------------------------------------------------------------
 
-		[[nodiscard]] bigint operator<<(type shift) const
+		[[nodiscard]] bigint operator<<(size_t shift) const
 		{
 			bigint r;
 			r.shift_left(*this, shift);
 			return r;
 		}
 
-		[[nodiscard]] bigint operator>>(type shift) const
+		[[nodiscard]] bigint operator>>(size_t shift) const
 		{
 			bigint r;
 			r.shift_right(*this, shift);
 			return r;
 		}
 
-		bigint& operator<<=(type shift)
+		bigint& operator<<=(size_t shift)
 		{
 			shift_left(*this, shift);
 			return *this;
 		}
 
-		bigint& operator>>=(type shift)
+		bigint& operator>>=(size_t shift)
 		{
 			shift_right(*this, shift);
 			return *this;
@@ -1312,7 +1312,12 @@ namespace deckard
 				exp >>= 1;
 			}
 
-			result.sign = sign;
+
+			if (sign == Sign::negative && (exponent.digits[0] % 2 == 0))
+				result.sign = Sign::positive;
+			else
+				result.sign = sign;
+
 			return result;
 		}
 
@@ -1426,7 +1431,6 @@ namespace deckard
 		a.abs_in_place();
 		b.abs_in_place();
 
-		int iteration = 0;
 		while (true)
 		{
 			if (b.is_zero())
@@ -1443,11 +1447,6 @@ namespace deckard
 
 			b %= a;
 
-			iteration++;
-			if (iteration > 100)
-			{
-				break;
-			}
 		}
 		return a;
 	}
@@ -1508,7 +1507,7 @@ namespace deckard
 
 	export [[nodiscard]] bigint random_prime(size_t /*keysize*/ = 0) { return {}; }   // TODO
 
-	[[nodiscard]] bigint midpoint(const bigint& a, const bigint& b)
+	export [[nodiscard]] bigint midpoint(const bigint& a, const bigint& b)
 	{
 		if (a <= b)
 			return a + (b - a) / 2;
