@@ -1391,7 +1391,7 @@ export namespace std
 	template<>
 	struct formatter<utf8::string>
 	{
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.end(); }
 
 		auto format(const utf8::string& v, std::format_context& ctx) const
 		{

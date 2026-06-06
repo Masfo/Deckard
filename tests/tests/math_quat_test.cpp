@@ -1,12 +1,14 @@
-﻿#include <catch2/catch_all.hpp>
+#include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 
 import std;
+import deckard.types;
 import deckard.math;
 
 using namespace Catch::Matchers;
 
+using namespace deckard;
 using namespace deckard::math;
 using namespace std::string_literals;
 
@@ -26,7 +28,9 @@ TEST_CASE("quatertion", "[quaternion]")
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		CHECK(q == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		quat expected(0.43595284f, -0.71828705f, 0.31062245f, 0.44443506f);
+
+		CHECK(q == expected);
 	}
 
 	SECTION("vec3 neg/pos")
@@ -42,9 +46,9 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK((v1 + v2) == quat(1.18328f, -1.23312f, 0.14046f, 0.82849f));
-		CHECK((v1 - v2) == quat(-0.31137f, -0.20345f, 0.48078f, 0.06038f));
-		CHECK((v1 * v2) == quat(-0.16183f, -0.56632f, 0.20500f, 0.78171f));
+		CHECK((v1 + v2) == quat(1.1832786f, -1.2331222f, 0.14046498f, 0.8284862f));
+		CHECK((v1 - v2) == quat(-0.31137294f, -0.20345187f, 0.48077995f, 0.060383886f));
+		CHECK((v1 * v2) == quat(-0.1618317f, -0.5663194f, 0.20500372f, 0.7817072f));
 
 		CHECK((v1 / 0.75f) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
 		CHECK((0.75f / v1) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
@@ -58,8 +62,8 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat       v2 = v1;
 
-		CHECK(v1 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
-		CHECK(v2 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v1 == quat(0.43595284f, -0.71828705f, 0.31062245f, 0.44443506f));
+		CHECK(v2 == quat(0.43595284f, -0.71828705f, 0.31062245f, 0.44443506f));
 	}
 
 
@@ -69,7 +73,8 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 		quat       v3 = v1;
 
-		CHECK(v3 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
+		CHECK(v3 == quat(0.43595284f, -0.71828705f, 0.31062245f, 0.44443506f));
+
 
 		v3 *= 2.0f;
 		CHECK(v3 == quat(0.87191f, -1.43657f, 0.62124f, 0.88887f));
@@ -91,7 +96,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		CHECK(conjugate(q) == quat(0.43595f, 0.71828f, -0.31062f, -0.44443f));
+		CHECK(conjugate(q) == quat(0.43595284f, 0.71828705f, -0.31062245f, -0.44443506f));
 	}
 
 	SECTION("dot")
@@ -107,7 +112,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(inverse(v1 + v2) == quat(0.32625f, 0.34000f, -0.03873f, -0.22843f));
+		CHECK(inverse(v1 + v2) == quat(0.3262544f, 0.33999735f, -0.038729105f, -0.22843081f));
 	}
 
 	SECTION("cross")
@@ -115,7 +120,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(cross(v1, v2) == quat(-0.16183f, -0.56632f, 0.20500f, 0.78171f));
+		CHECK(cross(v1, v2) == quat(-0.1618317f, -0.5663194f, 0.20500372f, 0.7817072f));
 	}
 
 
@@ -124,7 +129,37 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat v1(vec3(1.0f, 2.0f, 3.0f));
 		quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(normalize(v1 + v2) == quat(0.62133f, -0.64750f, 0.07376f, 0.43503f));
+		CHECK(v1 == quat(0.43595284f, -0.71828705f, 0.31062245f, 0.44443506f));
+		CHECK(v2 == quat(0.7473258f, -0.5148352f, -0.17015748f, 0.38405117f));
+
+		quat v1v2 = v1 + v2;
+		CHECK(v1v2 == quat(1.1832786f, -1.2331222f, 0.14046498f, 0.8284862f));
+
+		quat norm = normalize(v1v2);
+		CHECK(norm == quat(0.6213291f, -0.6475016f, 0.07375692f, 0.4350308f));
+	}
+
+	SECTION("normalize degenenate")
+	{
+		quat degen(0.0f, 0.0f, 0.0f, 0.0f);
+		quat norm = normalize(degen);
+
+		CHECK(norm[0] == 0.0f);
+		CHECK(norm[1] == 0.0f);
+		CHECK(norm[2] == 0.0f);
+		CHECK(norm[3] == 1.0f);
+	}
+
+	SECTION("normalize nan")
+	{
+		f32  n = limits::nan<f32>;
+		quat degen(n, n, n, n);
+		quat result = normalize(degen);
+
+		CHECK(result[0] == 0.0f);
+		CHECK(result[1] == 0.0f);
+		CHECK(result[2] == 0.0f);
+		CHECK(result[3] == 1.0f);
 	}
 
 	SECTION("length")
@@ -168,11 +203,11 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(v1 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
-		CHECK(v2 == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
+		CHECK(v1 == quat(0.43595284f, -0.71828705f, 0.31062245f, 0.44443506f));
+		CHECK(v2 == quat(0.7473258f, -0.5148352f, -0.17015748f, 0.38405117f));
 
 		CHECK(lerp(v1, v2, 0.0f) == v1);
-		CHECK(lerp(v1, v2, 0.5f) == quat(0.59163f, -0.61656f, 0.07023f, 0.41424f));
+		CHECK(lerp(v1, v2, 0.5f) == quat(0.5916393f, -0.6165611f, 0.07023249f, 0.4142431f));
 		CHECK(lerp(v1, v2, 1.0f) == v2);
 	}
 
@@ -181,11 +216,11 @@ TEST_CASE("quatertion", "[quaternion]")
 		const quat v1(vec3(1.0f, 2.0f, 3.0f));
 		const quat v2(vec3(2.0f, 3.0f, 4.0f));
 
-		CHECK(v1 == quat(0.43595f, -0.71828f, 0.31062f, 0.44443f));
-		CHECK(v2 == quat(0.74732f, -0.51483f, -0.17015f, 0.38405f));
+		CHECK(v1 == quat(0.435952f, -0.718287f, 0.310622f, 0.444435f));
+		CHECK(v2 == quat(0.747325f, -0.514835f, -0.1701574f, 0.3840511f));
 
 		CHECK(slerp(v1, v2, 0.0f) == v1);
-		CHECK(slerp(v1, v2, 0.5f) == quat(0.62133f, -0.64750f, 0.07376f, 0.43503f));
+		CHECK(slerp(v1, v2, 0.5f) == quat(0.621329f, -0.647501f, 0.07375692f, 0.435030f));
 		CHECK(slerp(v1, v2, 1.0f) == v2);
 	}
 
@@ -194,28 +229,14 @@ TEST_CASE("quatertion", "[quaternion]")
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
 
-		mat4 result(
-		  0.00000f,
-		  0.00000f,
-		  0.00000f,
-		  1.00000f,
+		mat4 result(vec4(0.411982f, -0.0587267f, -0.909297f, 0.00000f),
+					vec4(-0.833738f, -0.426918f, -0.350176f, 0.00000f),
+					vec4(-0.36763f, 0.902382f, -0.224845f, 0.00000f),
+					vec4(0.00000f, 0.00000f, 0.00000f, 1.00000f));
 
-		  0.41198f,
-		  -0.05873f,
-		  -0.90930f,
-		  0.00000f,
+		mat4 qresult = q.to_mat4();
 
-		  -0.83374f,
-		  -0.42692f,
-		  -0.35018f,
-		  0.00000f,
-
-		  -0.36763f,
-		  0.90238f,
-		  -0.22485f,
-		  0.00000f);
-
-		CHECK(result == q.to_mat4());
+		CHECK(result == qresult);
 	}
 
 
@@ -226,6 +247,19 @@ TEST_CASE("quatertion", "[quaternion]")
 		mat4 m = q.to_mat4();
 		quat r = q.from_mat4(m);
 		CHECK(r == q);
+	}
+
+	SECTION("round-trip matrix")
+	{
+		vec3 v(1.0f, 2.0f, 3.0f);
+		quat q(v);
+		quat q2(q.to_mat4());
+
+		vec3 point(1.0f, 0.0f, 0.0f);
+		vec3 r1 = q * point;
+		vec3 r2 = q2 * point;
+
+		CHECK(r1 == r2);
 	}
 
 

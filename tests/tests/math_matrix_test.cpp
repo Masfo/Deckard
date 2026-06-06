@@ -17,7 +17,32 @@ TEST_CASE("matrix generic", "[matrix]")
 		CHECK(identity[1] == vec4{0.0f, 1.0f, 0.0f, 0.0f});
 		CHECK(identity[2] == vec4{0.0f, 0.0f, 1.0f, 0.0f});
 		CHECK(identity[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
+
+		CHECK(identity == mat4{});
+		CHECK_THAT(identity.determinant(), Catch::Matchers::WithinAbs(1.0f, 0.00001f));
 	}
+
+	SECTION("fill constructor")
+	{
+		mat4 filled = mat4::filled(0.0f);
+
+		CHECK(filled[0] == vec4{0.0f, 0.0f, 0.0f, 0.0f});
+		CHECK(filled[1] == vec4{0.0f, 0.0f, 0.0f, 0.0f});
+		CHECK(filled[2] == vec4{0.0f, 0.0f, 0.0f, 0.0f});
+		CHECK(filled[3] == vec4{0.0f, 0.0f, 0.0f, 0.0f});
+		CHECK_THAT(filled.determinant(), Catch::Matchers::WithinAbs(0.0f, 0.00001f));
+	}
+
+	SECTION("scalar identity")
+	{
+		mat4 identity(3.0f);
+		CHECK(identity[0] == vec4{3.0f, 0.0f, 0.0f, 0.0f});
+		CHECK(identity[1] == vec4{0.0f, 3.0f, 0.0f, 0.0f});
+		CHECK(identity[2] == vec4{0.0f, 0.0f, 3.0f, 0.0f});
+		CHECK(identity[3] == vec4{0.0f, 0.0f, 0.0f, 3.0f});
+		CHECK_THAT(identity.determinant(), Catch::Matchers::WithinAbs(81.0f, 0.00001f));
+	}
+
 
 	SECTION("constructors")
 	{
@@ -38,7 +63,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("multiply with identity")
 	{
 		const mat4 m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
-		mat4       mul = m * mat4::identity();
+		mat4       mul = m * mat4{};
 
 		CHECK(mul[0] == vec4{1.0f, 2.0f, 3.0f, 4.0f});
 		CHECK(mul[1] == vec4{5.0f, 6.0f, 7.0f, 8.0f});
@@ -108,8 +133,8 @@ TEST_CASE("matrix generic", "[matrix]")
 
 	SECTION("negate")
 	{
-		const mat4 a(-4, mat4::fill);
-		mat4       m(4, mat4::fill);
+		const mat4 a = mat4::filled(-4.0f);
+		mat4       m = mat4::filled(4.0f);
 
 
 		CHECK(a == -m);
@@ -118,7 +143,7 @@ TEST_CASE("matrix generic", "[matrix]")
 	SECTION("equals")
 	{
 		const mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0f};
-		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.0001f};
+		const mat4 m2{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.005f};
 
 		CHECK(m == m);
 		CHECK(m != m2);
@@ -133,9 +158,9 @@ TEST_CASE("matrix generic", "[matrix]")
 		);
 
 
-		CHECK(lat[0] == vec4{0.59999f, -0.71554f, 0.35777f, 0.0f});
+		CHECK(lat[0] == vec4{0.6f, -0.71554f, 0.357771f, 0.0f});
 		CHECK(lat[1] == vec4{0.0f, 0.44721f, 0.89442f, 0.0f});
-		CHECK(lat[2] == vec4{-0.80000f, -0.53665f, 0.26832f, 0.0f});
+		CHECK(lat[2] == vec4{-0.8f, -0.536656f, 0.268328f, 0.0f});
 		CHECK(lat[3] == vec4{0.0f, -0.0f, -11.18033f, 1.0f});
 	}
 
@@ -258,6 +283,36 @@ TEST_CASE("matrix generic", "[matrix]")
 		mat4 inv        = inverse(Projection);
 
 		CHECK_THAT(determinant(inv), Catch::Matchers::WithinAbs(-7.45620f, 0.00001f));
+
+		// clang-format off
+		const mat4 subfactor02 = mat4(
+			  5.0f, 2.0f, 6.0f, 1.0f,
+			  0.0f, 6.0f, 2.0f, 0.0f,
+			  3.0f, 8.0f, 1.0f, 4.0f,
+			  1.0f, 8.0f, 0.0f, 2.0f);
+
+		CHECK_THAT(determinant(subfactor02), Catch::Matchers::WithinAbs(118.0f, 0.00001f));
+
+		CHECK_THAT(determinant(subfactor02) * determinant(inverse(subfactor02)), Catch::Matchers::WithinAbs(1.0f, 0.00001f));
+
+		const mat4 m(
+        2.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 3.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 5.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 7.0f);
+
+		CHECK_THAT(m.determinant(), Catch::Matchers::WithinAbs(210.0f, 0.00001f));
+		CHECK_THAT(m.inverse().determinant(), Catch::Matchers::WithinAbs(0.0047619f, 0.00001f));
+
+
+		const mat4 m01(
+			1.0f, 2.0f, 3.0f, 4.0f,   // row 0
+			1.0f, 2.0f, 3.0f, 4.0f,   // row 1 — same -> det 0.0f
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f);
+		// clang-format on
+
+		CHECK_THAT(m01.determinant(), Catch::Matchers::WithinAbs(0.0f, 0.00001f));
 	}
 
 
@@ -283,9 +338,9 @@ TEST_CASE("matrix generic", "[matrix]")
 		CHECK(ViewRotateX[3] == vec4{0.0f, 0.0f, -5.0f, 1.0f});
 
 		mat4 View = rotate(ViewRotateX, -2.0f, vec3(0.0f, 1.0f, 0.0f));
-		CHECK(View[0] == vec4{-0.41614f, 0.54418f, -0.72847f, 0.0f});
+		CHECK(View[0] == vec4{-0.416147f, 0.544189f, -0.728478f, 0.0f});
 		CHECK(View[1] == vec4{0.0f, -0.80114f, -0.59847f, 0.0f});
-		CHECK(View[2] == vec4{-0.90929f, -0.24905f, 0.33339f, 0.0f});
+		CHECK(View[2] == vec4{-0.909297f, -0.249052f, 0.333393f, 0.0f});
 		CHECK(View[3] == vec4{0.0f, 0.0f, -5.0f, 1.0f});
 
 
@@ -296,15 +351,15 @@ TEST_CASE("matrix generic", "[matrix]")
 		CHECK(Model[3] == vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
 		mat4 MVP = Projection * View * Model;
-		CHECK(MVP[0] == vec4{-0.37675f, 0.65689f, 0.36496f, 0.36423f});
-		CHECK(MVP[1] == vec4{0.0f, -0.96706f, 0.29983f, 0.29923f});
-		CHECK(MVP[2] == vec4{-0.82321f, -0.30063f, -0.16703f, -0.16670f});
+		CHECK(MVP[0] == vec4{-0.37675f, 0.656894f, 0.364968f, 0.364239f});
+		CHECK(MVP[1] == vec4{0.0f, -0.967066f, 0.299835f, 0.299236f});
+		CHECK(MVP[2] == vec4{-0.823214f, -0.300633f, -0.16703f, -0.166697f});
 		CHECK(MVP[3] == vec4{0.0f, 0.0f, 4.80981f, 5.0f});
 
 
 		auto inv = inverse(MVP);
 		CHECK(inv[0] == vec4{-0.45966f, 0.0f, -1.00438f, 0.0f});
-		CHECK(inv[1] == vec4{0.450821f, -0.66368f, -0.20632f, 0.0f});
+		CHECK(inv[1] == vec4{0.450821f, -0.663689f, -0.206322f, 0.0f});
 		CHECK(inv[2] == vec4{36.38748f, 29.89369f, -16.65300f, -4.99500f});
 		CHECK(inv[3] == vec4{-35.00337f, -28.75659f, 16.01955f, 5.00500f});
 	}
@@ -363,7 +418,7 @@ TEST_CASE("matrix generic", "[matrix]")
 		CHECK(fmt == test);
 	}
 
-	SECTION("matrix hashing") 
+	SECTION("matrix hashing")
 	{
 		const mat4 a{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 		const mat4 b{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
