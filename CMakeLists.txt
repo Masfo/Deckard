@@ -259,7 +259,7 @@ set(DECKARD_SRCS
 		unicode/utf8_decode.ixx
 		unicode/utf8_xid.ixx
 		
-		unicode/utf8_name_tables.ixx
+		
 		unicode/utf8_tables.ixx
 		
 		unicode/utf8_normalization.ixx
