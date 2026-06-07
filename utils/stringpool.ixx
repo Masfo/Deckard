@@ -55,11 +55,22 @@ namespace deckard
 
 		[[nodiscard]] handle add(std::string_view str) noexcept { return add(utf8::view(str)); }
 
-		[[nodiscard]] bool contains(view_type str) const noexcept { return m_pool.contains(str.data()); }
+		[[nodiscard]] bool contains(const view_type str) const noexcept { return m_pool.contains(str.data()); }
 
 		[[nodiscard]] bool contains(std::string_view str) const noexcept { return contains(utf8::view(str)); }
 
-		void merge(string_pool& other) noexcept { m_pool.merge(other.m_pool); }
+		void merge(string_pool& other) noexcept
+		{
+			m_pool.merge(other.m_pool);
+			other.reset();
+		}
+
+
+		void combine(string_pool& other) noexcept
+		{
+			m_pool.combine(other.m_pool);
+		}
+
 
 		[[nodiscard]] bool empty() const noexcept { return m_pool.empty(); }
 
@@ -68,7 +79,7 @@ namespace deckard
 			if constexpr (is_debug_build)
 			{
 				dbg::println("String pool dump ({} entries):", size());
-				for (size_t i = 0; i < m_pool.size(); ++i)
+				for (handle i = 0; i < static_cast<handle>(m_pool.size()); ++i)
 				{
 					auto view = span_to_view(m_pool.get(i));
 					dbg::println("  [{}] '{}' - {}", i, view, view.data() | std::views::take(15));

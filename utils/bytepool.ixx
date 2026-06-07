@@ -25,8 +25,8 @@ namespace deckard
 	{
 	public:
 		using byte_span = std::span<const u8>;
-		using handle    = size_t;
-		static constexpr handle invalid_handle = std::numeric_limits<size_t>::max();
+		using handle    = u32;
+		static constexpr handle invalid_handle = std::numeric_limits<handle>::max();
 
 	private:
 		std::deque<std::vector<u8>>                                          m_storage;
@@ -41,14 +41,14 @@ namespace deckard
 			m_map.clear();
 		}
 
-		[[nodiscard]] byte_span get(handle h) const
+		[[nodiscard]] byte_span get(handle h) const noexcept
 		{
 			if (h >= m_storage.size())
 				return {};
 			return std::span(m_storage[h]);
 		}
 
-		[[nodiscard]] handle add(byte_span data)
+		[[nodiscard]] handle add(byte_span data) 
 		{
 			if (data.empty())
 				return invalid_handle;
@@ -56,7 +56,7 @@ namespace deckard
 			if (contains(data))
 				return m_map[data];
 
-			handle new_handle = m_storage.size();
+			handle new_handle = static_cast<handle>(m_storage.size());
 			m_storage.emplace_back(data.begin(), data.end());
 			m_map.emplace(std::span(m_storage.back()), new_handle);
 
@@ -67,14 +67,18 @@ namespace deckard
 
 		void merge(bytepool& other)
 		{
+			combine(other);
+			other.reset();
+		}
+
+		void combine(bytepool& other) noexcept
+		{
 			if (&other == this)
 				return;
-
 			if (other.empty())
 				return;
-
 			m_map.reserve(m_map.size() + other.size());
-
+		
 			for (const auto& data : other.m_storage)
 				(void)add(std::span(data));
 		}

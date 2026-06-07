@@ -16,7 +16,8 @@ export namespace deckard::string
 
 	constexpr std::string_view digit_string{alphanum_string.substr(0, 10)};
 	constexpr std::string_view lowercase_alphabet{alphanum_string.substr(digit_string.size(), 26)};
-	constexpr std::string_view uppercase_alphabet{alphanum_string.substr(digit_string.size() + lowercase_alphabet.size(), 26)};
+	constexpr std::string_view uppercase_alphabet{
+	  alphanum_string.substr(digit_string.size() + lowercase_alphabet.size(), 26)};
 	constexpr std::string_view alphabet{alphanum_string.substr(digit_string.size(), 52)};
 
 	static_assert(whitespace_string[0] == ' ');
@@ -54,6 +55,8 @@ export namespace deckard::string
 		an = a | d,
 		s  = special,
 
+		Count = 8
+
 	};
 
 	consteval void enable_bitmask_operations(option);
@@ -78,12 +81,10 @@ export namespace deckard::string
 		}
 
 
-//		dbg::panic("conversion not handled");
+		//		dbg::panic("conversion not handled");
 	}
 
 	// ###########################################################################
-
-
 
 
 	// count
@@ -141,22 +142,22 @@ export namespace deckard::string
 			return ret;
 
 
-		if (opt && whitespace)
+		if (has(opt, whitespace))
 		{
 			ret = strip(ret, '\t', '\r');
 			ret = strip(ret, ' ');
 		}
 
-		if (opt && digit)
+		if (has(opt, digit))
 			ret = strip(ret, '0', '9');
 
-		if (opt && lowercase)
+		if (has(opt, lowercase))
 			ret = strip(ret, 'a', 'z');
 
-		if (opt && uppercase)
+		if (has(opt, uppercase))
 			ret = strip(ret, 'A', 'Z');
 
-		if (opt && special)
+		if (has(opt, special))
 		{
 			ret = strip(ret, '!', '/');
 			ret = strip(ret, ':', '@');
@@ -176,31 +177,31 @@ export namespace deckard::string
 		ret.reserve(input.size());
 		for (const char& c : input)
 		{
-			if (opt && whitespace)
+			if (has(opt, whitespace))
 			{
 				if (in_range('\t', '\r', c) or c == ' ')
 					ret += c;
 			}
 
-			if (opt && digit)
+			if (has(opt, digit))
 			{
 				if (in_range('0', '9', c))
 					ret += c;
 			}
 
-			if (opt && lowercase)
+			if (has(opt, lowercase))
 			{
 				if (in_range('a', 'z', c))
 					ret += c;
 			}
 
-			if (opt && uppercase)
+			if (has(opt, uppercase))
 			{
 				if (in_range('A', 'Z', c))
 					ret += c;
 			}
 
-			if (opt && special)
+			if (has(opt, special))
 			{
 				if (in_range('!', '/', c))
 					ret += c;
@@ -379,8 +380,6 @@ export namespace deckard::string
 
 		return false;
 	}
-
-
 
 	// ints
 	template<size_t N, std::integral T = i64>
