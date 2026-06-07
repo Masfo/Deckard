@@ -258,7 +258,7 @@ namespace deckard::math
 
 		std::string to_string() const
 		{
-			return std::format("quat(w: {}, x: {}, y: {}, z: {})", data.w, data.x, data.y, data.z);
+			return std::format("quat(w: {:.5f}, x: {:.5f}, y: {:.5f}, z: {:.5f})", data.w, data.x, data.y, data.z);
 		}
 	};
 
