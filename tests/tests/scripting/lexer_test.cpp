@@ -30,7 +30,7 @@ void CHECK_TOKEN(const utf8::view str, const Token& token, TokenKind expected_ty
 
 	if (token.group == TokenGroup::Literal or token.group == TokenGroup::Identifier or token.group == TokenGroup::Keyword)
 	{
-		CHECK(correct_str == detail::pool.get(token.id));
+		CHECK(correct_str == detail::pool.get((u32)token.id));
 	}
 	else
 	{
