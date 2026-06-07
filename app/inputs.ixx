@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 export module deckard.app:inputs;
 
@@ -134,6 +134,8 @@ namespace deckard::app
 		Right  = BIT(2),
 		X1     = BIT(3),
 		X2     = BIT(4),
+
+		Count = 5
 	};
 
 	export enum class Controller : u8 {

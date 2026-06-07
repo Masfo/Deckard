@@ -92,7 +92,7 @@ namespace deckard::vulkan
 
 		VkResult submit(device device, VkSemaphore image_available, VkSemaphore rendering_finished, VkFence in_flight, u32 index)
 		{
-			VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 			VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
 

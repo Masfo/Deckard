@@ -133,6 +133,9 @@ export namespace deckard
 		template<arithmetic T>
 		constexpr T min = std::numeric_limits<T>::min();
 
+		template<arithmetic T>
+		constexpr T nan = std::numeric_limits<T>::quiet_NaN();
+
 		template<>
 		constexpr i64 min<bool> = 0;
 		template<>

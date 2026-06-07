@@ -27,7 +27,6 @@ namespace deckard
 		VALUE_BOOL,      // true / false
 	};
 
-
 #ifdef _DEBUG
 	constexpr std::array<std::string_view, 9> TokenStrings{
 	  "NEWLINE_POSIX",
@@ -69,7 +68,7 @@ namespace deckard
 		template<typename T>
 		std::vector<T> as_vector() const;
 
-		operator bool() const;
+				 operator bool() const;
 		explicit operator std::string() const;
 		explicit operator int() const;
 		explicit operator float() const;
@@ -90,7 +89,7 @@ namespace deckard
 		template<typename T>
 		mutable_value_proxy& operator=(T value);
 
-		operator bool() const;
+				 operator bool() const;
 		explicit operator std::string() const;
 		explicit operator int() const;
 		explicit operator float() const;
@@ -106,37 +105,17 @@ namespace deckard
 		std::vector<parse_error>                  m_errors;
 		fs::path                                  filename;
 
-		void skip_until_newline(utf8::view& view)
+		void skip_until_newline(utf8::scanner& scan)
 		{
-			while (view and (not utf8::is_newline(*view)))
-				view++;
+			while (scan and not utf8::is_newline(*scan))
+				scan++;
 		}
 
-		void skip_whitespace(utf8::view& view)
+		void skip_whitespace(utf8::scanner& scan)
 		{
 			using namespace utf8::basic_characters;
-
-			while (view and (*view == SPACE or *view == CHARACTER_TABULATION))
-				view++;
-		}
-
-		void trim_trailing_whitespace(utf8::view& end, u32& len)
-		{
-			using namespace utf8::basic_characters;
-
-			while (len > 0)
-			{
-				auto tmp = end;
-				--tmp;
-				const char32 ch = *tmp;
-				if (ch == SPACE or ch == CHARACTER_TABULATION)
-				{
-					--end;
-					--len;
-				}
-				else
-					break;
-			}
+			while (scan and (*scan == SPACE or *scan == CHARACTER_TABULATION))
+				scan++;
 		}
 
 		void build_index()
@@ -150,13 +129,12 @@ namespace deckard
 
 				if (tok.type == TokenType::SECTION)
 				{
-					auto sv = view.subview(tok.start, tok.length);
-					section.assign(sv.c_str(), sv.size_in_bytes());
+					section.assign(view.subview(tok.start, tok.length).as_string_view());
 				}
 				else if (tok.type == TokenType::KEY and i + 1 < tokens.size())
 				{
-					auto key_sv  = view.subview(tok.start, tok.length);
-					auto key_str = std::string{key_sv.c_str(), key_sv.size_in_bytes()};
+					auto key_sv  = view.subview(tok.start, tok.length).as_string_view();
+					auto key_str = std::string{key_sv};
 
 					auto full_key = section.empty() ? key_str : section + '.' + key_str;
 					auto hash     = utils::stringhash(full_key);
@@ -169,34 +147,29 @@ namespace deckard
 		{
 			if (sv.empty())
 				return TokenType::VALUE_STRING;
-
 			if (sv == "true" or sv == "false")
 				return TokenType::VALUE_BOOL;
 
 			const char* p   = sv.data();
 			const char* end = p + sv.size();
 
-			// leading sign
 			if (p != end and (*p == '+' or *p == '-'))
 				++p;
 
-			// integer digits
 			const char* int_start = p;
 			while (p != end and *p >= '0' and *p <= '9')
 				++p;
 
 			if (p == int_start)
-				return TokenType::VALUE_STRING; // no digits
+				return TokenType::VALUE_STRING;
 
 			if (p == end)
 				return TokenType::VALUE_INTEGER;
 
-			//
 			if (*p != '.')
 				return TokenType::VALUE_STRING;
 			++p;
 
-			// fractional
 			const char* frac_start = p;
 			while (p != end and *p >= '0' and *p <= '9')
 				++p;
@@ -204,7 +177,6 @@ namespace deckard
 			if (p == frac_start)
 				return TokenType::VALUE_STRING;
 
-			// exponent
 			if (p != end and (*p == 'e' or *p == 'E'))
 			{
 				++p;
@@ -220,110 +192,185 @@ namespace deckard
 			return (p == end) ? TokenType::VALUE_FLOAT : TokenType::VALUE_STRING;
 		}
 
-		void parse_key(utf8::view& view)
+		void parse_key(utf8::scanner& scan)
 		{
 			using namespace utf8::basic_characters;
 
-			skip_whitespace(view);
+			skip_whitespace(scan);
 
-			auto copyview = view;
-			u32  start    = as<u32>(copyview.index());
-			while (copyview and utf8::is_xid_continue(*copyview))
-				copyview++;
-			u32 len = as<u32>(copyview.index() - start);
-			trim_trailing_whitespace(copyview, len);
-			skip_whitespace(copyview);
-			if (not copyview or *copyview != EQUALS_SIGN)
+			u32 char_start = 0;
 			{
-				skip_until_newline(view);
-				return;
+				utf8::scanner counting_scan(m_data);
+				while (counting_scan and counting_scan.byte_position() < scan.byte_position())
+				{
+					counting_scan++;
+					char_start++;
+				}
 			}
 
-			view += len;
-			skip_whitespace(view);
-			tokens.push_back({TokenType::KEY, start, len});
+			u32  char_len          = 0;
+			auto is_valid_key_char = [](char32 cp)
+			{
+				if (cp == EQUALS_SIGN or cp == LEFT_SQUARE_BRACKET or cp == HASH)
+					return false;
+				if (utf8::is_whitespace(cp) or utf8::is_newline(cp))
+					return false;
+				return utf8::is_xid_continue(cp);
+			};
+
+			while (scan and is_valid_key_char(*scan))
+			{
+				scan++;
+				char_len++;
+			}
+
+			tokens.push_back({TokenType::KEY, char_start, char_len});
+
+			skip_whitespace(scan);
+			if (not scan.expect(EQUALS_SIGN))
+			{
+				skip_until_newline(scan);
+				return;
+			}
 		}
 
-		void parse_value(utf8::view& view)
+		void parse_value(utf8::scanner& scan)
 		{
 			using namespace utf8::basic_characters;
 
-			skip_whitespace(view);
-			if (not view)
+			skip_whitespace(scan);
+			if (not scan)
 				return;
 
-			if (*view == QUOTATION_MARK)
+			u32 start = 0;
 			{
-				view++; // skip opening "
-				auto copyview = view;
-				u32  start    = as<u32>(copyview.index());
-				while (copyview and *copyview != QUOTATION_MARK and not utf8::is_newline(*copyview))
-					copyview++;
-				u32 len = as<u32>(copyview.index() - start);
-				view += len;
-				if (view and *view == QUOTATION_MARK)
-					view++; // skip closing "
-				tokens.push_back({TokenType::VALUE_STRING, start, len});
+				utf8::scanner counting_scan(m_data);
+				while (counting_scan and counting_scan.byte_position() < scan.byte_position())
+				{
+					counting_scan++;
+					start++;
+				}
+			}
+
+			if (*scan == QUOTATION_MARK)
+			{
+				scan++;
+				start++;
+
+				u32 codepoints = 0;
+				while (scan and *scan != QUOTATION_MARK and not utf8::is_newline(*scan))
+				{
+					scan++;
+					codepoints++;
+				}
+
+				if (scan and *scan == QUOTATION_MARK)
+					scan++;
+				else
+					m_errors.push_back({"missing closing quotation mark for value string"});
+
+				tokens.push_back({TokenType::VALUE_STRING, start, codepoints});
 				return;
 			}
 
-			// boolean, integers...
-			auto copyview = view;
-			u32  start    = as<u32>(copyview.index());
-			while (copyview and not utf8::is_newline(*copyview))
+			u32 codepoints     = 0;
+			u32 trailing_space = 0;
+
+			while (scan and not utf8::is_newline(*scan))
 			{
-				if (*copyview == HASH)
+				if (*scan == HASH)
 					break;
-				copyview++;
-			}
-			u32 len = as<u32>(copyview.index() - start);
-			trim_trailing_whitespace(copyview, len);
 
-			auto             val_sub = view.subview(start, len);
-			std::string_view sv{val_sub.c_str(), val_sub.size_in_bytes()};
-			view += len;
-			tokens.push_back({classify_value(sv), start, len});
+				if (*scan == SPACE or *scan == CHARACTER_TABULATION)
+					trailing_space++;
+				else
+					trailing_space = 0;
+
+				scan++;
+				codepoints++;
+			}
+
+			u32 len = codepoints - trailing_space;
+
+			utf8::view       view(m_data);
+			std::string_view val_sv = view.subview(start, len).as_string_view();
+			TokenType        type   = classify_value(val_sv);
+
+			tokens.push_back({type, start, len});
 		}
 
-		void parse_comment(utf8::view& view)
+		void parse_comment(utf8::scanner& scan)
 		{
 			using namespace utf8::basic_characters;
 
-			view++; // eat hash
-			skip_whitespace(view);
+			if (not scan.expect(HASH))
+				return;
 
-			auto copyview = view;
-			u32  start    = as<u32>(copyview.index());
+			skip_whitespace(scan);
 
-			while (copyview and (not utf8::is_newline(*copyview)))
-				copyview++;
+			u32 start = 0;
+			{
+				utf8::scanner counting_scan(m_data);
+				while (counting_scan and counting_scan.byte_position() < scan.byte_position())
+				{
+					counting_scan++;
+					start++;
+				}
+			}
 
-			u32 len = as<u32>(copyview.index() - start);
-			trim_trailing_whitespace(copyview, len);
+			u32 codepoints     = 0;
+			u32 trailing_space = 0;
 
-			view += len;
+			while (scan and not utf8::is_newline(*scan))
+			{
+				char32 ch = *scan;
+				if (ch == SPACE or ch == CHARACTER_TABULATION)
+					trailing_space++;
+				else
+					trailing_space = 0;
 
+				scan++;
+				codepoints++;
+			}
+
+			u32 len = codepoints - trailing_space;
 			tokens.push_back({TokenType::COMMENT, start, len});
 		}
 
-		void parse_section(utf8::view& view)
+		void parse_section(utf8::scanner& scan)
 		{
 			using namespace utf8::basic_characters;
-			view++; // eat left square bracket
 
-			u32 start = as<u32>(view.index());
+			if (not scan.expect(LEFT_SQUARE_BRACKET))
+				return;
 
-			while (view and *view != RIGHT_SQUARE_BRACKET and not utf8::is_newline(*view))
-				view++;
-			u32 len = as<u32>(view.index() - start);
+			u32 start = 0;
+			{
+				utf8::scanner counting_scan(m_data);
+				while (counting_scan and counting_scan.byte_position() < scan.byte_position())
+				{
+					counting_scan++;
+					start++;
+				}
+			}
 
-			// Trim on a copy so view stays positioned at ']'
-			auto copyview = view;
-			trim_trailing_whitespace(copyview, len);
+			u32 codepoints     = 0;
+			u32 trailing_space = 0;
 
-			const bool has_closing_bracket = view and *view == RIGHT_SQUARE_BRACKET;
-			if (has_closing_bracket)
-				view++; // eat right square bracket
+			while (scan and *scan != RIGHT_SQUARE_BRACKET and not utf8::is_newline(*scan))
+			{
+				char32 ch = *scan;
+				if (ch == SPACE or ch == CHARACTER_TABULATION)
+					trailing_space++;
+				else
+					trailing_space = 0;
+
+				scan++;
+				codepoints++;
+			}
+
+			u32        len                 = codepoints - trailing_space;
+			const bool has_closing_bracket = scan.expect(RIGHT_SQUARE_BRACKET);
 
 			if (len == 0)
 			{
@@ -345,77 +392,83 @@ namespace deckard
 			using namespace utf8::basic_characters;
 			using namespace std::string_view_literals;
 
-
 			if (m_data.empty())
 				return;
 
-			utf8::view view(m_data);
+			utf8::scanner scan(m_data);
+			u32           current_cp_index = 0;
 
-
-			while (view)
+			while (scan)
 			{
 				// New lines
-				if (*view == LINE_FEED) // \n
+				if (*scan == LINE_FEED) // \n
 				{
-					u32 current_index = as<u32>(view.index());
-					tokens.push_back({TokenType::NEWLINE_POSIX, current_index, 1});
-					view++;
+					tokens.push_back({TokenType::NEWLINE_POSIX, current_cp_index, 1});
+					scan++;
+					current_cp_index++;
 					continue;
 				}
 
-				if (*view == CARRIAGE_RETURN) // \r
+				if (*scan == CARRIAGE_RETURN) // \r
 				{
-					u32 current_index = as<u32>(view.index());
-					view++;
+					u32 start_idx = current_cp_index;
+					scan++;
+					current_cp_index++;
 
-					if (view and *view == LINE_FEED) // \r\n
+					if (scan and *scan == LINE_FEED) // \r\n
 					{
-						tokens.push_back({TokenType::NEWLINE_WINDOWS, current_index, 2});
-						view++;
+						tokens.push_back({TokenType::NEWLINE_WINDOWS, start_idx, 2});
+						scan++;
+						current_cp_index++;
 						continue;
 					}
 
-					tokens.push_back({TokenType::NEWLINE_POSIX, current_index, 1});
-					continue;
-				}
-
-				// section
-				if (*view == LEFT_SQUARE_BRACKET)
-				{
-					parse_section(view);
-					continue;
-				}
-
-				// whitespace before key is ignored
-				if (utf8::is_whitespace(*view))
-				{
-					view++;
+					tokens.push_back({TokenType::NEWLINE_POSIX, start_idx, 1});
 					continue;
 				}
 
 				// Comment
-				if (*view == HASH)
+				if (*scan == HASH)
 				{
-					parse_comment(view);
+					parse_comment(scan);
+
+					u32 total_cps    = as<u32>(utf8::view(m_data).length());
+					current_cp_index = total_cps - as<u32>(scan.remaining());
 					continue;
 				}
 
-				// key
-				if (utf8::is_xid_start(*view))
+				// Section
+				if (*scan == LEFT_SQUARE_BRACKET)
 				{
-					parse_key(view);
+					parse_section(scan);
+
+					u32 total_cps    = as<u32>(utf8::view(m_data).length());
+					current_cp_index = total_cps - as<u32>(scan.remaining());
 					continue;
 				}
 
-				// equals
-				if (*view == EQUALS_SIGN)
+				// Whitespace before key is ignored
+				if (utf8::is_whitespace(*scan))
 				{
-					view++;
-					parse_value(view);
+					scan++;
+					current_cp_index++;
 					continue;
 				}
-				dbg::println("config: unrecognized token starting with '{}'", static_cast<char>(*view));
-				view++;
+
+				// Key followed by its value string
+				if (utf8::is_xid_start(*scan))
+				{
+					parse_key(scan);
+					parse_value(scan);
+
+					u32 total_cps    = as<u32>(utf8::view(m_data).length());
+					current_cp_index = total_cps - as<u32>(scan.remaining());
+					continue;
+				}
+
+				dbg::println("config: unrecognized token starting with '{}'", static_cast<char>(*scan));
+				scan++;
+				current_cp_index++;
 			}
 
 			build_index();
@@ -443,10 +496,6 @@ namespace deckard
 			parse();
 		}
 
-#ifdef __cpp_deleted_function
-#error "Use this one"
-		config(const char* input) = delete("lets avoid old char*");
-#endif
 		config(const char* input) = delete;
 
 		~config() { (void)save(); }
@@ -455,7 +504,6 @@ namespace deckard
 		void dump() const
 		{
 			utf8::view view(m_data);
-
 			for (const auto& token : tokens)
 			{
 				dbg::println(
@@ -475,23 +523,20 @@ namespace deckard
 			for (u64 i = 0; i < tokens.size(); ++i)
 			{
 				const auto& tok = tokens[i];
-
 				if (tok.type == TokenType::SECTION)
 				{
 					auto sv = view.subview(tok.start, tok.length);
-					section.assign(sv.c_str(), sv.size_in_bytes());
+					section.assign(sv.as_string_view());
 				}
 				else if (tok.type == TokenType::KEY and i + 1 < tokens.size())
 				{
 					auto key_sv   = view.subview(tok.start, tok.length);
-					auto key_str  = std::string{key_sv.c_str(), key_sv.size_in_bytes()};
+					auto key_str  = std::string{key_sv.as_string_view()};
 					auto full_key = section.empty() ? key_str : section + '.' + key_str;
-
-					auto hash = utils::stringhash(full_key);
-					auto it   = key_hash_to_token_index.find(hash);
+					auto hash     = utils::stringhash(full_key);
+					auto it       = key_hash_to_token_index.find(hash);
 					if (it == key_hash_to_token_index.end())
 						continue;
-
 					for (u64 val_idx : it->second)
 					{
 						const auto& val_tok = tokens[val_idx];
@@ -508,8 +553,6 @@ namespace deckard
 
 		std::span<const parse_error> errors() const { return m_errors; }
 
-		//
-
 		template<typename T>
 		T get(std::string_view key) const
 		{
@@ -519,8 +562,7 @@ namespace deckard
 
 			const auto&      tok = tokens[it->second.front()];
 			utf8::view       view(m_data);
-			auto             val_view = view.subview(tok.start, tok.length);
-			std::string_view sv{val_view.c_str(), val_view.size_in_bytes()};
+			std::string_view sv = view.subview(tok.start, tok.length).as_string_view();
 
 			if constexpr (std::is_same_v<T, bool>)
 				return sv == "true";
@@ -541,7 +583,6 @@ namespace deckard
 
 				const auto port = try_to_number<u16>(host_and_port[1]);
 				return net::endpoint(host_and_port[0], port.value_or(0));
-
 			}
 			else
 				return T{};
@@ -557,12 +598,10 @@ namespace deckard
 			std::vector<T> results;
 			results.reserve(it->second.size());
 			utf8::view view(m_data);
-
 			for (u64 idx : it->second)
 			{
-				const auto&      tok      = tokens[idx];
-				auto             val_view = view.subview(tok.start, tok.length);
-				std::string_view sv{val_view.c_str(), val_view.size_in_bytes()};
+				const auto&      tok = tokens[idx];
+				std::string_view sv  = view.subview(tok.start, tok.length).as_string_view();
 
 				if constexpr (std::is_same_v<T, bool>)
 					results.push_back(sv == "true");
@@ -580,8 +619,7 @@ namespace deckard
 						continue;
 
 					auto host_and_port = string::split_once(sv, ":");
-
-					auto port = try_to_number<u16>(host_and_port[1]);
+					auto port          = try_to_number<u16>(host_and_port[1]);
 					results.push_back(net::endpoint(host_and_port[0], port.value_or(0)));
 				}
 			}
@@ -597,7 +635,6 @@ namespace deckard
 		template<typename T>
 		void set(std::string_view key, T value)
 		{
-			// Plain content (no quotes) — used for in-place token replacement
 			std::string content;
 			if constexpr (std::is_same_v<T, bool>)
 				content = value ? "true" : "false";
@@ -609,29 +646,46 @@ namespace deckard
 			auto it = key_hash_to_token_index.find(utils::stringhash(key));
 			if (it != key_hash_to_token_index.end() and not it->second.empty())
 			{
-				// Update: replace the first occurrence's content only
-				auto& val_tok   = tokens[it->second.front()];
-				u32   old_start = val_tok.start;
-				u32   old_len   = val_tok.length;
-				u32   new_len   = as<u32>(utf8::view{std::string_view{content}}.size());
+				auto& val_tok = tokens[it->second.front()];
 
-				m_data.replace(old_start, old_len, content);
-				val_tok.length = new_len;
+				utf8::scanner scan(m_data);
+				u32           cp_idx     = 0;
+				u32           byte_start = 0;
+				u32           byte_end   = 0;
 
-				i64 delta = as<i64>(new_len) - as<i64>(old_len);
+				while (scan)
+				{
+					if (cp_idx == val_tok.start)
+						byte_start = as<u32>(scan.byte_position());
+
+					scan++;
+					cp_idx++;
+
+					if (cp_idx == val_tok.start + val_tok.length)
+					{
+						byte_end = as<u32>(scan.byte_position());
+						break;
+					}
+				}
+
+				m_data.replace(byte_start, byte_end - byte_start, content);
+
+				u32 new_cp_len = as<u32>(utf8::view(content).length());
+				i64 delta      = as<i64>(new_cp_len) - as<i64>(val_tok.length);
+				val_tok.length = new_cp_len;
+
 				if (delta != 0)
 				{
 					u64 val_idx = it->second.front();
 					for (u64 i = val_idx + 1; i < tokens.size(); ++i)
 					{
-						if (tokens[i].start >= old_start + old_len)
+						if (tokens[i].start >= val_tok.start + val_tok.length)
 							tokens[i].start = as<u32>(as<i64>(tokens[i].start) + delta);
 					}
 				}
 				return;
 			}
 
-			// Add: string values are written with double quotes; others bare
 			std::string written_value;
 			if constexpr (std::is_convertible_v<T, std::string_view>)
 				written_value = std::format("\"{}\"", content);
@@ -644,27 +698,27 @@ namespace deckard
 				auto section_name = key.substr(0, dot);
 				auto key_name     = key.substr(dot + 1);
 
-				utf8::view view(m_data);
+				std::string_view base_view = m_data.as_string_view();
 				for (u64 i = 0; i < tokens.size(); ++i)
 				{
 					const auto& tok = tokens[i];
 					if (tok.type != TokenType::SECTION)
 						continue;
 
-					auto sv     = view.subview(tok.start, tok.length);
-					auto sv_str = std::string_view{sv.c_str(), sv.size_in_bytes()};
+					auto sv_str = base_view.substr(tok.start, tok.length);
 					if (sv_str != section_name)
 						continue;
 
-					// Found matching section; locate last newline before next section or EOF
 					u32       last_nl_start  = 0;
 					u32       last_nl_length = 0;
 					TokenType last_nl_type   = TokenType::NEWLINE_POSIX;
 					bool      found_nl       = false;
+
 					for (u64 j = i + 1; j < tokens.size(); ++j)
 					{
 						if (tokens[j].type == TokenType::SECTION)
 							break;
+
 						if (tokens[j].type == TokenType::NEWLINE_POSIX or tokens[j].type == TokenType::NEWLINE_WINDOWS)
 						{
 							last_nl_start  = tokens[j].start;
@@ -691,45 +745,37 @@ namespace deckard
 				}
 			}
 
-			// Section not found or key has no section
 			if (dot != std::string_view::npos)
 			{
-				// New section block: append after existing content
 				std::string entry = std::format("\n[{}]\n{} = {}\n", key.substr(0, dot), key.substr(dot + 1), written_value);
 				m_data.append(entry);
 			}
 			else
 			{
-				// Global key: insert after existing globals, before first section
 				auto first_section =
 				  std::ranges::find_if(tokens, [](const TokenValue& t) { return t.type == TokenType::SECTION; });
 
 				if (first_section == tokens.end())
 				{
-					// No sections: append to end
 					m_data.append(std::format("\n{} = {}\n", key, written_value));
 				}
 				else
 				{
-					// Insert before '[', maintaining exactly one blank line before the section
-					u32         bracket_pos = first_section->start - 1;
-					const char* raw         = m_data.c_str();
+					u32              bracket_pos = first_section->start - 1;
+					std::string_view raw         = m_data.as_string_view();
+					u32              nl_count    = 0;
 
-					// Count consecutive '\n' immediately before '['
-					u32 nl_count = 0;
 					while (nl_count < bracket_pos and raw[bracket_pos - 1 - nl_count] == '\n')
 						nl_count++;
 
 					std::string entry = std::format("\n{} = {}\n\n", key, written_value);
-
 					if (nl_count == 0)
 					{
-						// Nothing before '[': prepend with leading newline + blank line
-						m_data.insert(m_data.begin(), entry);
+						auto updated_buffer = entry + std::string{raw};
+						m_data              = updated_buffer;
 					}
 					else
 					{
-						// Replace existing newlines with: separator + entry + blank line
 						u32 nl_start = bracket_pos - nl_count;
 						m_data.replace(nl_start, nl_count, entry);
 					}
@@ -754,19 +800,14 @@ namespace deckard
 			auto&      val_tok = tokens[val_idx];
 			utf8::view view(m_data);
 
-			// Check if there's a COMMENT token immediately after the VALUE
 			u64 comment_idx = val_idx + 1;
 			while (comment_idx < tokens.size() and (tokens[comment_idx].type == TokenType::NEWLINE_POSIX or
 													tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
 				comment_idx++;
-
 			if (comment_idx < tokens.size() and tokens[comment_idx].type == TokenType::COMMENT)
 			{
-				// Replace existing comment
 				auto& comment_tok = tokens[comment_idx];
 				m_data.replace(comment_tok.start, comment_tok.length, comment);
-
-				// Update token positions after current comment
 				i64 delta          = as<i64>(comment.size()) - as<i64>(comment_tok.length);
 				comment_tok.length = as<u32>(comment.size());
 				if (delta != 0)
@@ -777,12 +818,9 @@ namespace deckard
 			}
 			else
 			{
-				// Insert new comment after value token
 				u32         insert_pos = val_tok.start + val_tok.length;
 				std::string entry      = std::format(" # {}", comment);
 				m_data.insert(m_data.begin() + insert_pos, entry);
-
-				// Reparse to update all token positions
 				tokens.clear();
 				key_hash_to_token_index.clear();
 				m_errors.clear();
@@ -792,17 +830,17 @@ namespace deckard
 
 		std::generator<std::string> sections() const
 		{
-			utf8::view  view(m_data);
-			std::string last;
+			utf8::view                      view(m_data);
+			std::unordered_set<std::string> seen;
+
 			for (const auto& tok : tokens)
 			{
 				if (tok.type != TokenType::SECTION)
 					continue;
-				auto sv = view.subview(tok.start, tok.length);
-				auto s  = std::string{sv.c_str(), sv.size_in_bytes()};
-				if (s != last)
+
+				auto s = std::string{view.subview(tok.start, tok.length).as_string_view()};
+				if (seen.insert(s).second)
 				{
-					last = s;
 					co_yield s;
 				}
 			}
@@ -818,9 +856,8 @@ namespace deckard
 			{
 				if (tok.type == TokenType::SECTION)
 				{
-					auto sv         = view.subview(tok.start, tok.length);
-					current_section = std::string{sv.c_str(), sv.size_in_bytes()};
-					in_target       = (current_section == section);
+					current_section.assign(view.subview(tok.start, tok.length).as_string_view());
+					in_target = (current_section == section);
 					continue;
 				}
 
@@ -829,8 +866,7 @@ namespace deckard
 
 				if (tok.type == TokenType::KEY)
 				{
-					auto sv = view.subview(tok.start, tok.length);
-					co_yield std::string{sv.c_str(), sv.size_in_bytes()};
+					co_yield std::string{view.subview(tok.start, tok.length).as_string_view()};
 				}
 			}
 		}
@@ -853,8 +889,6 @@ namespace deckard
 		auto cend() const { return tokens.cend(); }
 
 		utf8::string to_string() const { return m_data; }
-
-		std::span<u8> data() { return m_data.data(); }
 
 		std::span<const u8> data() const { return m_data.data(); }
 
@@ -914,8 +948,6 @@ namespace deckard
 		cfg.set(key, value);
 		return *this;
 	}
-
-#warning "Add ip address parsing support and test with config files containing IP addresses, url:port"
 
 	inline mutable_value_proxy::operator bool() const { return as<bool>(); }
 

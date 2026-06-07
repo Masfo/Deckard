@@ -307,10 +307,10 @@ TEST_CASE("tokens", "[lexer]")
 			tokens.emplace_back(token);
 
 		CHECK(tokens.size() == 5);
-		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("1.5e-10"));
-		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 9, utf8::view("5."));
-		CHECK_TOKEN(str, tokens[2], TokenKind::FloatingPoint, 1, 12, utf8::view("5.5e1"));
-		CHECK_TOKEN(str, tokens[3], TokenKind::FloatingPoint, 1, 18, utf8::view("1_2_3.4_5e-6_7"));
+		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("1.5e-10"sv));
+		CHECK_TOKEN(str, tokens[1], TokenKind::FloatingPoint, 1, 9, utf8::view("5."sv));
+		CHECK_TOKEN(str, tokens[2], TokenKind::FloatingPoint, 1, 12, utf8::view("5.5e1"sv));
+		CHECK_TOKEN(str, tokens[3], TokenKind::FloatingPoint, 1, 18, utf8::view("1_2_3.4_5e-6_7"sv));
 		CHECK_TOKEN(str, tokens[4], TokenKind::EOF, 1, 32, utf8::view(""));
 	}
 

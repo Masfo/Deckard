@@ -52,6 +52,32 @@ TEST_CASE("utf8::ascii", "[utf8]")
 		CHECK(utf8::codepoint_width(U'💴') == 4);
 		CHECK(utf8::codepoint_width(U'💷') == 4);
 	}
+
+	SECTION("encode codepoint")
+	{ 
+		auto ecp = utf8::encode_codepoint(U'$');
+
+		CHECK(ecp.count == 1);
+		CHECK(ecp.bytes[0] == 0x24);
+
+		ecp = utf8::encode_codepoint(U'£');
+		CHECK(ecp.count == 2);
+		CHECK(ecp.bytes[0] == 0xC2);
+		CHECK(ecp.bytes[1] == 0xA3);
+
+		ecp = utf8::encode_codepoint(U'€');
+		CHECK(ecp.count == 3);
+		CHECK(ecp.bytes[0] == 0xE2);
+		CHECK(ecp.bytes[1] == 0x82);
+		CHECK(ecp.bytes[2] == 0xAC);
+
+		ecp = utf8::encode_codepoint(U'💶');
+		CHECK(ecp.count == 4);
+		CHECK(ecp.bytes[0] == 0xF0);
+		CHECK(ecp.bytes[1] == 0x9F);
+		CHECK(ecp.bytes[2] == 0x92);
+		CHECK(ecp.bytes[3] == 0xB6);
+	}
 }
 
 // Additional sections for utf8::string tests
@@ -115,11 +141,11 @@ TEST_CASE("utf8::string", "[utf8]")
 
 	SECTION("initialize from vector of codepoints")
 	{
-		utf8::string str(std::vector<char32>{'h', 'e', 'l', 'l', 'o', ' ', '🌍'});
-		CHECK(str.size() == 7);
+		utf8::string str(std::vector<char32>{'h', 'e', 'l', 'l', 'o', ' ', U'🌍'});
+		REQUIRE(str.size() == 7);
 		CHECK(str.length() == 7);
 		CHECK(str.empty() == false);
-		CHECK(str.size_in_bytes() == 10);
+		REQUIRE(str.size_in_bytes() == 10);
 		CHECK(str.valid());
 		CHECK(std::string(str.as_string_view()) == "hello 🌍"sv);
 	}
@@ -1460,17 +1486,17 @@ TEST_CASE("utf8::iterator::try_codepoint", "[utf8]")
 
 		auto cp = it.try_codepoint();
 		CHECK(cp.has_value());
-		CHECK(cp.value() == U'\u00e9');
+		CHECK(cp.value() == U'\u00e9'); // é
 
 		++it;
 		cp = it.try_codepoint();
 		CHECK(cp.has_value());
-		CHECK(cp.value() == U'\u00e0');
+		CHECK(cp.value() == U'\u00e0'); // à
 
 		++it;
 		cp = it.try_codepoint();
 		CHECK(cp.has_value());
-		CHECK(cp.value() == U'\u00fc');
+		CHECK(cp.value() == U'\u00fc'); // ü
 
 		++it;
 		CHECK(it.try_codepoint().has_value() == false);

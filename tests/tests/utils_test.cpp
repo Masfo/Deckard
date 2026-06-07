@@ -120,7 +120,7 @@ TEST_CASE("bytepool", "[bytepool]")
 
 		std::array<u8, 5> data{1, 2, 3, 4, 5};
 
-		u64 index = pool.add(data);
+		auto index = pool.add(data);
 
 		CHECK(index == 0);
 		CHECK(pool.size() == 1);
@@ -147,16 +147,47 @@ TEST_CASE("bytepool", "[bytepool]")
 
 		CHECK(pool2.size() == 1);
 
-		pool2.merge(pool);
+		pool.merge(pool2);
 
-		CHECK_FALSE(pool.empty());
-		CHECK(pool2.size() == 2);
+		CHECK(pool.size() == 2);
+		CHECK(pool2.empty());
 
-		const auto retrieved0 = pool2.get(0);
-		const auto retrieved1 = pool2.get(1);
+		const auto retrieved0 = pool.get(0);
+		const auto retrieved1 = pool.get(1);
 
-		CHECK(is_equal(retrieved0, data2));
-		CHECK(is_equal(retrieved1, data));
+		CHECK(is_equal(retrieved0, data));
+		CHECK(is_equal(retrieved1, data2));
+	}
+
+	SECTION("combine") 
+	{
+		bytepool pool(1024);
+
+		std::array<u8, 5> data{1, 2, 3, 4, 5};
+
+		(void)pool.add(data);
+
+		CHECK(pool.size() == 1);
+
+		// pool 2
+		bytepool pool2(1024);
+		std::array<u8, 5> data2{5, 6, 7, 8, 9};
+		(void)pool2.add(data2);
+		CHECK(pool2.size() == 1);
+
+		// combine pool2 into pool
+		pool.combine(pool2);
+
+		CHECK(pool.size() == 2);
+		CHECK(pool2.size() == 1);
+
+		auto retrieved0 = pool.get(0);
+		auto retrieved1 = pool.get(1);
+		auto retrieved2 = pool2.get(0);
+		CHECK(is_equal(retrieved0,data));
+		CHECK(is_equal(retrieved1,data2));
+		CHECK(is_equal(retrieved2, data2));
+
 	}
 
 	SECTION("contains")
@@ -197,7 +228,7 @@ TEST_CASE("stringpool", "[stringpool]")
 	{
 		string_pool      pool(1024);
 		std::string_view str   = "hello world";
-		u64              index = pool.add(str);
+		auto              index = pool.add(str);
 		CHECK(index == 0);
 		CHECK(pool.size() == 1);
 
@@ -211,7 +242,7 @@ TEST_CASE("stringpool", "[stringpool]")
 		string_pool pool(1024);
 		utf8::view  str = "привет мир"sv;
 
-		u64 index = pool.add(str);
+		auto index = pool.add(str);
 		CHECK(index == 0);
 		CHECK(pool.size() == 1);
 
@@ -232,11 +263,34 @@ TEST_CASE("stringpool", "[stringpool]")
 
 		pool.merge(pool2);
 
-		CHECK_FALSE(pool2.empty());
+		CHECK(pool2.empty());
 
 		CHECK(pool.size() == 2);
 		CHECK(pool.get(0) == str);
 		CHECK(pool.get(1) == "hello world"sv);
+	}
+
+	SECTION("combine")
+	{
+		string_pool pool(1024);
+		utf8::view  str = "привет мир"sv;
+		(void)pool.add(str);
+
+		string_pool pool2(1024);
+		(void)pool2.add("hello world"sv);
+
+		CHECK(pool2.size() == 1);
+
+		pool.combine(pool2);
+
+		CHECK(pool.size() == 2);
+		CHECK(pool2.size() == 1);
+
+		auto retrieved0 = pool.get(0);
+		auto retrieved1 = pool.get(1);
+		CHECK(retrieved0 == str);
+		CHECK(retrieved1 == "hello world"sv);
+
 	}
 
 

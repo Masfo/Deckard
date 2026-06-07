@@ -44,6 +44,8 @@ namespace deckard::app
 		pad5 = BIT(5),
 		pad6 = BIT(6),
 		pad7 = BIT(7),
+
+		Count = 8
 	};
 
 	export consteval void enable_bitmask_operations(Attribute);
@@ -139,7 +141,8 @@ namespace deckard::app
 			if (dwStyle & WS_OVERLAPPEDWINDOW)
 			{
 				MONITORINFO mi = {sizeof(mi)};
-				if (GetWindowPlacement(handle, &wp) && GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
+				if (GetWindowPlacement(handle, &wp) &&
+					GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
 				{
 					const DWORD old_style = dwStyle & ~WS_OVERLAPPEDWINDOW;
 					SetWindowLong(handle, GWL_STYLE, old_style);
@@ -161,7 +164,8 @@ namespace deckard::app
 
 				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
 				SetWindowLong(handle, GWL_STYLE, old_style);
-				SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				SetWindowPos(
+				  handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				SetWindowPlacement(handle, &wp);
 			}
 
@@ -540,7 +544,7 @@ namespace deckard::app
 
 				case Attribute::vsync:
 				{
-					bool vsync = not(m_properties.flags && Attribute::vsync);
+					bool vsync = not has(m_properties.flags, Attribute::vsync);
 
 					set(Attribute::vsync, vsync);
 
@@ -580,7 +584,7 @@ namespace deckard::app
 			}
 		}
 
-		//void set(Attribute flags, u32 value)
+		// void set(Attribute flags, u32 value)
 		//{
 		//	switch (flags)
 		//	{
@@ -591,16 +595,16 @@ namespace deckard::app
 		//		}
 		//		default: break;
 		//	}
-		//}
+		// }
 		//
-		//auto get(Attribute flags) const
+		// auto get(Attribute flags) const
 		//{
 		//	switch (flags)
 		//	{
 		//		case Attribute::gameticks: return game_ticks_per_second;
 		//		default: return 0u;
 		//	}
-		//}
+		// }
 
 		// ####################################################################################
 		// ####################################################################################
@@ -631,7 +635,8 @@ namespace deckard::app
 
 			if (IsWindows7OrGreater())
 			{
-				DwmSetWindowAttribute = platform::get_dynamic_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
+				DwmSetWindowAttribute =
+				  platform::get_dynamic_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
 				// DwmExtendFrameIntoClientArea = system::get_address<DwmExtendFrameIntoClientAreaPtr*>("dwmapi.dll",
 				// "DwmExtendFrameIntoClientArea");
 				//
@@ -643,7 +648,8 @@ namespace deckard::app
 			if (IsWindows8Point1OrGreater())
 			{
 				using SetProcessDpiAwarenessFunc = HRESULT(PROCESS_DPI_AWARENESS);
-				auto SetProcessDpiAwareness      = platform::get_dynamic_address<SetProcessDpiAwarenessFunc*>("Shcore.dll", "SetProcessDpiAwareness");
+				auto SetProcessDpiAwareness =
+				  platform::get_dynamic_address<SetProcessDpiAwarenessFunc*>("Shcore.dll", "SetProcessDpiAwareness");
 
 				if (SetProcessDpiAwareness)
 					SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
@@ -700,7 +706,7 @@ namespace deckard::app
 				return;
 			}
 
-			if (not(m_properties.flags && Attribute::resizable))
+			if (not(has(m_properties.flags, Attribute::resizable)))
 				style &= ~WS_SIZEBOX;
 
 
@@ -752,7 +758,7 @@ namespace deckard::app
 
 			SetTimer(handle, 0, 16, 0);
 
-			bool vsync = m_properties.flags && Attribute::vsync;
+			bool vsync = has(m_properties.flags, Attribute::vsync);
 
 			if (not vulkan.initialize(handle, vsync, VK_API_VERSION_1_3))
 			{
@@ -773,7 +779,7 @@ namespace deckard::app
 		{
 			// input_deinitialize();
 
-			if (m_properties.flags && Attribute::fullscreen)
+			if (has(m_properties.flags, Attribute::fullscreen))
 				toggle_fullscreen();
 			vulkan.deinitialize();
 
@@ -811,7 +817,13 @@ namespace deckard::app
 
 
 			SetWindowPos(
-			  handle, nullptr, 0, 0, adjusted.width, adjusted.height, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+			  handle,
+			  nullptr,
+			  0,
+			  0,
+			  adjusted.width,
+			  adjusted.height,
+			  SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 		}
 
 		f32 time() const
@@ -905,11 +917,11 @@ namespace deckard::app
 
 				if (timers[FPS] > 1.0f)
 				{
-					fps         = frames / timers[FPS];
-					max_fps     = std::max(fps, max_fps);
-					update_tick = 0;
-					frames      = 0;
-					timers[FPS] = 0;
+					fps                = frames / timers[FPS];
+					max_fps            = std::max(fps, max_fps);
+					update_tick        = 0;
+					frames             = 0;
+					timers[FPS]        = 0;
 					timers[FPS_FLICKS] = fps_from_flicks;
 				}
 
@@ -1079,8 +1091,10 @@ namespace deckard::app
 				const bool focused   = LOWORD(wParam) != WA_INACTIVE;
 				const bool iconified = HIWORD(wParam) ? true : false;
 
-				dbg::trace(
-				  "WM_ACTIVATE: {} focused = {}, iconified = {}", "DeckardApp", focused ? "true" : "false", iconified ? "true" : "false");
+				dbg::trace("WM_ACTIVATE: {} focused = {}, iconified = {}",
+						   "DeckardApp",
+						   focused ? "true" : "false",
+						   iconified ? "true" : "false");
 
 				return 0;
 			}
@@ -1119,8 +1133,11 @@ namespace deckard::app
 				int orientation = (int)(90 * devmode.dmDisplayOrientation);
 
 
-				dbg::trace(
-				  "Display change: {}° {}x{}, {} BPP", orientation, devmode.dmPelsWidth, devmode.dmPelsHeight, devmode.dmBitsPerPel);
+				dbg::trace("Display change: {}° {}x{}, {} BPP",
+						   orientation,
+						   devmode.dmPelsWidth,
+						   devmode.dmPelsHeight,
+						   devmode.dmBitsPerPel);
 
 				return 0;
 			}
@@ -1151,6 +1168,8 @@ namespace deckard::app
 				{
 					return 1;
 				}
+				if (is_running)
+					vulkan.resize();
 				return 0;
 			}
 
@@ -1159,6 +1178,8 @@ namespace deckard::app
 			{
 				is_sizing = false;
 				resize();
+				if (is_running and not is_minimized)
+					vulkan.resize();
 				return 0;
 			}
 
@@ -1179,7 +1200,11 @@ namespace deckard::app
 				if (wParam == SIZE_MINIMIZED)
 					is_minimized = true;
 				if (wParam == SIZE_RESTORED or wParam == SIZE_MAXIMIZED)
+				{
 					is_minimized = false;
+					if (is_running)
+						vulkan.resize();
+				}
 				return 0;
 			}
 

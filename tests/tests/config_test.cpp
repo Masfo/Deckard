@@ -314,7 +314,7 @@ active  = true
 		cfg["dup"] = 99;
 
 		CHECK(cfg["dup"].as<i32>() == 99);
-		CHECK(cfg.to_string() == "dup = 99\ndup = 2\n");
+		CHECK(cfg.to_string() == utf8::view("dup = 99\ndup = 2\n"));
 	}
 
 	SECTION("modify key value, not comment")
@@ -322,12 +322,12 @@ active  = true
 		config cfg = config("width = 1 # only modify value"sv);
 
 		CHECK(cfg["width"].as<i32>() == 1);
-		CHECK(cfg.to_string() == "width = 1 # only modify value");
+		CHECK(cfg.to_string() == "width = 1 # only modify value"sv);
 
 		cfg["width"] = 99;
 		CHECK(cfg["width"].as<i32>() == 99);
 
-		CHECK(cfg.to_string() == "width = 99 # only modify value");
+		CHECK(cfg.to_string() == "width = 99 # only modify value"sv);
 	}
 
 	SECTION("modify key value, with section, not comment")
@@ -350,7 +350,7 @@ TEST_CASE("serialize", "[config]")
 	SECTION("serialize empty config")
 	{
 		config cfg;
-		CHECK(cfg.to_string() == "");
+		CHECK(cfg.to_string() == ""sv);
 	}
 
 	SECTION("serialize simple key-value pair")
@@ -363,14 +363,14 @@ TEST_CASE("serialize", "[config]")
 	SECTION("serialize section with key-value pairs")
 	{
 		config cfg;
-		cfg["section.key1"] = "value1";
+		cfg["section.key1"] = "value1"sv;
 		cfg["section.key2"] = 42;
 		cfg["section.key3"] = true;
 
 		CHECK(cfg[1].type == TokenType::SECTION);
 
 
-		CHECK(cfg.to_string() == "\n[section]\nkey1 = \"value1\"\nkey2 = 42\nkey3 = true\n");
+		CHECK(cfg.to_string() == "\n[section]\nkey1 = \"value1\"\nkey2 = 42\nkey3 = true\n"sv);
 
 		config cfg2(cfg.to_string());
 	}
