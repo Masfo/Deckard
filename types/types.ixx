@@ -65,7 +65,6 @@ export namespace deckard
 		return std::filesystem::path(std::string_view(str, len));
 	}
 
-
 	template<class... Ts>
 	struct overloads : Ts...
 	{
@@ -82,7 +81,7 @@ export namespace deckard
 // C++26: deleted functions can carry a diagnostic message
 #error "Use this one"
 	template<typename T>
-	T* ptr_to(const T&&) = delete("ptr_to() requires an lvalue — taking a pointer to a temporary would dangle");
+	T* ptr_to(const T&&) = delete ("ptr_to() requires an lvalue — taking a pointer to a temporary would dangle");
 #else
 	template<typename T>
 	T* ptr_to(const T&&) = delete;
@@ -132,6 +131,9 @@ export namespace deckard
 
 		template<arithmetic T>
 		constexpr T min = std::numeric_limits<T>::min();
+
+		template<arithmetic T>
+		constexpr T nan = std::numeric_limits<T>::quiet_NaN();
 
 
 		template<>
