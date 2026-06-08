@@ -31,8 +31,8 @@ namespace deckard::utf8
 			class iterator
 			{
 			public:
-				using iterator_concept  = std::random_access_iterator_tag;
-				using iterator_category = std::random_access_iterator_tag;
+				using iterator_concept  = std::bidirectional_iterator_tag;
+				using iterator_category = std::bidirectional_iterator_tag;
 				using value_type        = char32;
 				using difference_type   = std::ptrdiff_t;
 				using pointer           = void;
@@ -866,7 +866,7 @@ namespace deckard::utf8
 				auto it = begin() + pos;
 				while (true)
 				{
-					for (char32 ch : sv)
+					for (char32 ch : view(sv))
 					{
 						if (*it == ch)
 							return std::distance(begin(), it);
@@ -886,13 +886,14 @@ namespace deckard::utf8
 
 			[[nodiscard]] size_t find_last_not_of(char32 c, size_t pos = npos) const
 			{
-				size_t total_cp = size();
+				const size_t total_cp = size();
 				if (total_cp == 0)
 					return npos;
 
 				size_t current_cp = std::min(pos, total_cp - 1);
 				size_t byte_idx   = 0;
 
+				// Advance to starting codepoint
 				for (size_t i = 0; i < current_cp; ++i)
 				{
 					auto [_, bytes] = utf8::decode_unchecked(m_data, byte_idx);
@@ -901,27 +902,22 @@ namespace deckard::utf8
 
 				while (true)
 				{
-					auto [codepoint, _] = utf8::decode_unchecked(m_data, byte_idx);
+					auto [codepoint, bytes] = utf8::decode_unchecked(m_data, byte_idx);
 					if (codepoint != c)
 						return current_cp;
 
 					if (current_cp == 0)
 						break;
 
-					if (byte_idx > 0)
-					{
-						byte_idx--;
-						while (byte_idx > 0 and utf8::is_continuation_byte(m_data[byte_idx]))
-							byte_idx--;
-					}
-					current_cp--;
+					byte_idx = prev_codepoint_start(m_data, byte_idx);
+					--current_cp;
 				}
 				return npos;
 			}
 
 			[[nodiscard]] size_t find_last_not_of(view v, size_t pos = npos) const
 			{
-				size_t total_cp = size();
+				const size_t total_cp = size();
 				if (total_cp == 0)
 					return npos;
 
@@ -936,20 +932,15 @@ namespace deckard::utf8
 
 				while (true)
 				{
-					auto [codepoint, _] = utf8::decode_unchecked(m_data, byte_idx);
+					auto [codepoint, bytes] = utf8::decode_unchecked(m_data, byte_idx);
 					if (not v.contains(codepoint))
 						return current_cp;
 
 					if (current_cp == 0)
 						break;
 
-					if (byte_idx > 0)
-					{
-						byte_idx--;
-						while (byte_idx > 0 and utf8::is_continuation_byte(m_data[byte_idx]))
-							byte_idx--;
-					}
-					current_cp--;
+					byte_idx = prev_codepoint_start(m_data, byte_idx);
+					--current_cp;
 				}
 				return npos;
 			}
@@ -971,6 +962,15 @@ namespace deckard::utf8
 			// ###################################
 
 			//[[nodiscard]] string to_utf8_string() const;
+
+		private:
+			[[nodiscard]] static constexpr size_t prev_codepoint_start(std::span<const u8> data, size_t byte_idx) noexcept
+			{
+				--byte_idx;
+				while (byte_idx > 0 and utf8::is_continuation_byte(data[byte_idx]))
+					--byte_idx;
+				return byte_idx;
+			}
 		};
 
 	} // namespace v1
@@ -980,28 +980,20 @@ namespace deckard::utf8
 
 } // namespace deckard::utf8
 
-export namespace std
-
+template<>
+struct std::hash<deckard::utf8::view>
 {
-	using namespace deckard;
+	size_t operator()(const deckard::utf8::view& value) const { return deckard::utils::hash_values(value.data()); }
+};
 
-	template<>
-	struct hash<utf8::view>
+template<>
+struct std::formatter<deckard::utf8::v1::view>
+{
+	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+	auto format(const deckard::utf8::v1::view& v, std::format_context& ctx) const
 	{
-		size_t operator()(const utf8::view& value) const { return utils::hash_values(value.data()); }
-	};
-
-	template<>
-	struct formatter<utf8::v1::view>
-	{
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-
-		auto format(const utf8::v1::view& v, std::format_context& ctx) const
-		{
-			std::string_view sv{reinterpret_cast<const char*>(v.data().data()), v.size_in_bytes()};
-			return std::format_to(ctx.out(), "{}", sv);
-		}
-	};
-
-
-} // namespace std
+		std::string_view sv{reinterpret_cast<const char*>(v.data().data()), v.size_in_bytes()};
+		return std::format_to(ctx.out(), "{}", sv);
+	}
+};
