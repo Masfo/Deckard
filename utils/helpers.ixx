@@ -631,8 +631,6 @@ export namespace deckard
 		return std::span<const std::byte>(first, first + static_cast<size_t>(len));
 	}
 
-
-
 	// epoch
 	template<typename T = std::chrono::seconds>
 	auto epoch() -> decltype(std::chrono::duration_cast<T>(std::chrono::system_clock::now().time_since_epoch()).count())
@@ -1174,6 +1172,21 @@ export namespace deckard
 	template<arithmetic T = i32>
 	auto try_to_number(std::string_view input, int base = 10) -> std::expected<T, std::string>
 	{
+		auto is_valid_for_base = [](std::string_view s, int base) -> bool
+		{
+			if (s.empty())
+				return false;
+			for (char c : s)
+			{
+				int digit = std::isdigit(c)   ? (c - '0')
+							: std::isalpha(c) ? (std::tolower(c) - 'a' + 10)
+											  : base; // invalid char → force fail
+				if (digit >= base)
+					return false;
+			}
+			return true;
+		};
+
 		if (input.empty())
 			return std::unexpected("Empty string");
 
@@ -1181,20 +1194,29 @@ export namespace deckard
 			input.remove_prefix(1);
 
 		int parse_base = base;
-		if (input.starts_with("0x") or input.starts_with("0X"))
+		if (input.starts_with("0x") || input.starts_with("0X"))
 		{
-			input.remove_prefix(2);
-			parse_base = 16;
+			if (is_valid_for_base(input.substr(2), 16))
+			{
+				input.remove_prefix(2);
+				parse_base = 16;
+			}
 		}
-		else if (input.starts_with("0b") or input.starts_with("0B"))
+		else if (input.starts_with("0b") || input.starts_with("0B"))
 		{
-			input.remove_prefix(2);
-			parse_base = 2;
+			if (is_valid_for_base(input.substr(2), 2))
+			{
+				input.remove_prefix(2);
+				parse_base = 2;
+			}
 		}
 		else if (input.starts_with('#'))
 		{
-			input.remove_prefix(1);
-			parse_base = 16;
+			if (is_valid_for_base(input.substr(1), 16))
+			{
+				input.remove_prefix(1);
+				parse_base = 16;
+			}
 		}
 
 		T val{};
