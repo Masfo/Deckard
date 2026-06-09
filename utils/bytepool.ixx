@@ -3,6 +3,7 @@ export module deckard.bytepool;
 import std;
 import deckard.types;
 import deckard.as;
+import deckard.assert;
 import deckard.utils.hash;
 
 namespace deckard
@@ -53,19 +54,20 @@ namespace deckard
 			if (data.empty())
 				return invalid_handle;
 
-			if (contains(data))
-				return m_map[data];
+			if (auto it = m_map.find(data); it != m_map.end())
+				return it->second;
+
+			assert::check(m_storage.size() < invalid_handle, "Bytepool capacity exceeded");
 
 			handle new_handle = static_cast<handle>(m_storage.size());
 			m_storage.emplace_back(data.begin(), data.end());
 			m_map.emplace(std::span(m_storage.back()), new_handle);
-
 			return new_handle;
 		}
 
 		[[nodiscard]] bool contains(byte_span data) const noexcept { return m_map.contains(data); }
 
-		void merge(bytepool& other)
+		void merge(bytepool& other) noexcept
 		{
 			combine(other);
 			other.reset();
