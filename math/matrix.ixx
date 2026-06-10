@@ -487,7 +487,7 @@ namespace std
 	struct formatter<deckard::math::mat4_generic>
 	{
 		// TODO: Parse single or multi row?
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.end(); }
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 		auto format(const deckard::math::mat4_generic& m, std::format_context& ctx) const
 		{

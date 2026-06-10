@@ -6,7 +6,6 @@ import deckard.as;
 import deckard.vec;
 import deckard.math.utils;
 
-
 //      - cube, cylinder, cone, pyramid, torus, prism, frustum
 //		- curve (bezier, hermite, catmull-rom)
 
@@ -18,9 +17,6 @@ namespace deckard::math
 		f32  distance{0.0f};
 		vec3 point{0.0f, 0.0f, 0.0f};
 	};
-
-
-	
 
 	export struct line
 	{
@@ -41,15 +37,13 @@ namespace deckard::math
 		}
 	};
 
-
-
 	export struct plane
 	{
 
 		vec3 normal{0.0f, 0.0f, 1.0f};
 		f32  d{0.0f};
 
-		 
+
 		plane() = default;
 
 		plane(const vec3& n, f32 distance)
@@ -64,6 +58,8 @@ namespace deckard::math
 		vec3 origin{0.0f, 0.0f, 0.0f};
 		vec3 direction{0.0f, 0.0f, 1.0f};
 		ray() = default;
+
+		[[nodiscard]] static ray from_origin(vec3 o, vec3 direction) noexcept { return {o, direction.normalized()}; }
 
 		ray(const vec3& o, const vec3& d)
 			: origin(o)
@@ -84,27 +80,19 @@ namespace deckard::math
 		intersection_result intersect(const plane& p) const
 		{
 			intersection_result result;
-
-			// Check if ray and plane are parallel
-			f32 denom = dot(p.normal, direction);
-
-			if (math::is_close_enough_zero(denom))
+			f32                 denom = dot(p.normal, direction);
+			if (not math::is_close_enough_zero(denom))
 			{
-				// Calculate distance along ray
-				//result.distance = (dot(p.normal, origin) + p.normal) / denom;
-
-				// Check if intersection is in front of ray origin
+				result.distance = -(dot(p.normal, origin) + p.d) / denom;
 				if (result.distance >= 0.0f)
 				{
 					result.hit   = true;
 					result.point = at(result.distance);
 				}
 			}
-
 			return result;
 		}
 	};
-
 
 	export struct sphere
 	{
@@ -112,7 +100,7 @@ namespace deckard::math
 		f32  radius{0.0f};
 		sphere() = default;
 
-		sphere( const vec3& c, f32 r)
+		sphere(const vec3& c, f32 r)
 			: center(c)
 			, radius(r)
 		{
@@ -130,26 +118,23 @@ namespace deckard::math
 			return d < r * r;
 		}
 
-		 bool intersect(const vec3& ray_position, const vec3& ray_direction, f32& t) const
+		std::optional<f32> intersect(const vec3& ray_position, const vec3& ray_direction) const noexcept
 		{
-			vec3  v = ray_position - center;
-			f32 h = -v.dot(ray_direction);
-			f32 d = h * h + radius * radius - v.length2();
+			vec3 v = ray_position - center;
+			f32  h = -v.dot(ray_direction);
+			f32  d = h * h - v.length2() + radius * radius; // ← was: + radius*radius - v.length2()
 
 			if (d > 0.0f)
 			{
-				d          = std::sqrtf(d);
+				d        = std::sqrt(d);
 				f32 tMin = h - d;
 				f32 tMax = h + d;
 				if (tMax > 0.0f)
 				{
-					if (tMin < 0.0f)
-						tMin = 0.0f;
-					t = tMin;
-					return true;
+					return tMin < 0.0f ? 0.0f : tMin;
 				}
 			}
-			return false;
+			return {};
 		}
 	};
 
