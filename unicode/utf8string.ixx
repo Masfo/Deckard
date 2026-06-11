@@ -972,7 +972,7 @@ namespace deckard::utf8
 			if (start == size())
 				return {};
 
-			assert::check(start < size(), "Indexing out-of-bounds");
+			assert::check(start < size(), std::format("Indexing out-of-bounds: {} < {}",start,size()));
 
 			if (empty())
 				return std::span<const u8>{};
@@ -1371,6 +1371,19 @@ namespace deckard::utf8
 	export inline std::ostream& operator<<(std::ostream& os, const utf8::string& s) { return os << s.to_string(); }
 
 
+
+	export utf8::string encode_codepoints(std::span<const char32> codepoints)
+	{
+		string result;
+		for (char32 c : codepoints)
+		{
+			if (c == 0)
+				break;
+			result.append(c);
+		}
+		return result;
+	}
+
 } // namespace deckard::utf8
 
 export namespace deckard::utf8::literals
@@ -1391,12 +1404,13 @@ export namespace std
 	template<>
 	struct formatter<utf8::string>
 	{
-		constexpr auto parse(std::format_parse_context& ctx) { return ctx.end(); }
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 		auto format(const utf8::string& v, std::format_context& ctx) const
 		{
-			const auto bytes = v.data();
-			return std::format_to(ctx.out(), "{}", std::string_view{as<const char*>(bytes.data()), bytes.size()});
+			const auto  bytes = v.data();
+			const char* data  = reinterpret_cast<const char*>(bytes.data());
+			return std::copy_n(data, bytes.size(), ctx.out());
 		}
 	};
 
