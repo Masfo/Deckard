@@ -36,63 +36,6 @@ namespace fs = std::filesystem;
  *
  */
 
-namespace std
-{
-	template<>
-	struct formatter<char32>
-	{
-		// Optional format spec: {:x} prints hex codepoint, {:d} prints decimal,
-		// default prints the UTF-8 character itself
-		enum class mode
-		{
-			character,
-			hex,
-			decimal
-		};
-		mode m{mode::character};
-
-		constexpr auto parse(std::format_parse_context& ctx)
-		{
-			auto it = ctx.begin();
-			if (it == ctx.end() || *it == '}')
-				return it;
-
-			switch (*it)
-			{
-				case 'x':
-					m = mode::hex;
-					++it;
-					break;
-				case 'd':
-					m = mode::decimal;
-					++it;
-					break;
-				case 'c':
-					m = mode::character;
-					++it;
-					break;
-				default: break;
-			}
-			return it;
-		}
-
-		auto format(char32 cp, std::format_context& ctx) const
-		{
-			using namespace deckard::utf8;
-
-			if (m == mode::hex)
-				return std::format_to(ctx.out(), "U+{:04X}", static_cast<u32>(cp));
-
-			if (m == mode::decimal)
-				return std::format_to(ctx.out(), "{}", static_cast<u32>(cp));
-
-			// Default: encode to UTF-8 and write raw bytes
-			auto encoded = encode_codepoint(cp);
-			return std::format_to(
-			  ctx.out(), "{}", std::string_view{reinterpret_cast<const char*>(encoded.bytes.data()), encoded.count});
-		}
-	};
-} // namespace std
 
 struct DeckardNetHeader
 {
@@ -224,7 +167,7 @@ struct TCP
 
 struct UDP
 {
-	bool open([[maybe_unused]] u16 port, Address inet = Address::V6)
+	bool open([[maybe_unused]]u16 port, Address inet = Address::V6)
 	{
 		u32 type = (inet == Address::V6) ? AF_INET6 : AF_INET;
 
@@ -844,7 +787,7 @@ public:
 	}
 };
 
-auto ip_query(std::string_view host, [[maybe_unused]] int version = 4) -> std::pair<std::string, std::chrono::milliseconds>
+auto ip_query(std::string_view host, [[maybe_unused]]int version = 4) -> std::pair<std::string, std::chrono::milliseconds>
 {
 	const std::string req = std::format("GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n", host);
 
@@ -880,70 +823,12 @@ auto ipify_query(int version = 4)
 	return ip_query(host, version);
 }
 
+
+
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
-	auto p   = std::make_unique<int>(42);
-	int* raw = p.get();
-	p.reset();                // memory freed here
-
-	std::println("{}", *raw); // ← reads freed memory
-
-	auto cvc = [](u32 i)
-	{
-		switch (i)
-		{
-			case 0: return 250;
-			case 1: return 250;
-			case 2: return 7;
-			case 3: return 0;
-			case 4: return 9;
-			case 5: return 230;
-			case 6: return 230;
-			case 7: return 230;
-			case 8: return 220;
-			case 9: return 220;
-		}
-	};
-	std::vector<u32> vz = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-	std::ranges::stable_sort(vz, std::less{}, [&](u32 n) { return cvc(n); });
-
-
-	utf8::string kstr("🌍ABC🌍"sv);
-	utf8::view   v{kstr};
-
-	dbg::println("v2::view: {}", v);
-
-	dbg::println("graphemes: {}", v.graphemes());
-	dbg::println("len: {}", v.length());
-	dbg::println("size(): {}", v.size_in_bytes());
-
-	dbg::println("starts with: 'A': {}", v.starts_with('A'));
-	dbg::println("starts with: '👋🏻': {}"sv, v.starts_with("👋🏻"sv));
-
-
-	v.remove_prefix(1);
-
-	dbg::println("removed prefix 1: {}", v);
-
-	auto vstr2 = v.sub_str(1, 3);
-	dbg::println("sub_str: {}", vstr2);
-
-	dbg::println("\n\n");
-
-	utf8::string  scanthis{"✅ABC❌"sv};
-	utf8::scanner scanner{scanthis};
-	while (scanner.has_next())
-	{
-		char32 cp   = scanner.next();
-		auto   peek = scanner.peek();
-
-
-		dbg::println("{:>7} - {:c} - {:|OHNO} - {:|no value}", cp, utf8::as_utf8{cp}, peek, peek);
-	}
-
-
-	_ = 0;
-
 #if 0
 	u64        lines = 0;
 	ScopeTimer timer("File writing");
@@ -968,14 +853,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	keywords.insert("ident"sv);
 
 
-	std::vector<utf8::string> test_strings = {"if"sv, "else"sv, "fn"sv, "while"sv};
+	std::vector<utf8::string> test_strings= {"if"sv, "else"sv, "fn"sv, "while"sv};
 
 
 	for (const auto& test : test_strings)
-		if (keywords.contains(test))
-			info("'{}' is a keyword", test);
-		else
-			info("'{}' is not a keyword", test);
+	if (keywords.contains(test))
+		info("'{}' is a keyword", test);
+	else
+		info("'{}' is not a keyword", test);
 
 	_ = 0;
 
@@ -1004,6 +889,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	*/
+
+
 
 
 	auto [body, rtt] = ip_query();

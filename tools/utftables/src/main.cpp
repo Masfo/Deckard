@@ -1301,10 +1301,11 @@ void process_unicode_data()
 
 	std::println("Longest decomposition: {}", longest_decomposition);
 
+	// ASSERT: Check whats changes, as of Unicode 17, it been 2, in Unicode Canonical Decomposition.
 	if (longest_decomposition > 2)
 	{
-		std::println(std::cerr, "Unexpected decomposition length: {}, should be 2", longest_decomposition);
-		return; // or std::terminate(), depending on how fatal this is
+		std::println(std::cerr, "Warning: longest decomposition is greater than 2, actual: {}", longest_decomposition);
+		std::terminate();
 	}
 	// -----------------------------------
 
