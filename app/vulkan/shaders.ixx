@@ -21,7 +21,7 @@ namespace deckard::vulkan
 
 	constexpr u32 SPIRV_MAGIC_HEADER = 0x0723'0203;
 
-	export class shader
+	class shader
 	{
 	private:
 		VkShaderModule shader_module{VK_NULL_HANDLE};
@@ -85,15 +85,6 @@ namespace deckard::vulkan
 		}
 
 		operator VkShaderModule() const { return shader_module; }
-
-		void deinitialize(VkDevice device)
-		{
-			if (shader_module != VK_NULL_HANDLE)
-			{
-				vkDestroyShaderModule(device, shader_module, nullptr);
-				shader_module = VK_NULL_HANDLE;
-			}
-		}
 	};
 
 	// cache compiled to

@@ -21,8 +21,6 @@ export import :images;
 export import :core;
 export import :texture;
 export import :shaders;
-export import :buffer;
-export import :pipeline;
 
 /*
 module;
@@ -116,17 +114,9 @@ namespace deckard::vulkan
 		swapchain            m_swapchain;
 		images               m_images;
 
-		static constexpr u32 MAX_FRAMES_IN_FLIGHT = 2;
-
-		std::array<semaphore, MAX_FRAMES_IN_FLIGHT> image_available;    // one per frame-in-flight
-		std::vector<semaphore>                      rendering_finished; // one per swapchain image
-		std::array<fence,     MAX_FRAMES_IN_FLIGHT> in_flight;
-		u32 current_frame{0};
-
-		shader            m_vert;
-		shader            m_frag;
-		graphics_pipeline m_pipeline;
-		vertex_buffer     m_vertex_buffer;
+		semaphore image_available;
+		semaphore rendering_finished;
+		fence     in_flight;
 
 		bool is_initialized{false};
 		bool m_vsync{true};
@@ -160,65 +150,21 @@ namespace deckard::vulkan
 		is_initialized &= m_command_buffer.initialize(m_device, m_swapchain);
 		is_initialized &= m_images.initialize(m_device, m_swapchain);
 
-		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-		{
-			is_initialized &= image_available[i].initialize(m_device);
-			is_initialized &= in_flight[i].initialize(m_device);
-		}
-
-		const u32 swapchain_image_count = m_swapchain.count(m_device);
-		rendering_finished.resize(swapchain_image_count);
-		for (u32 i = 0; i < swapchain_image_count; ++i)
-			is_initialized &= rendering_finished[i].initialize(m_device);
+		is_initialized &= image_available.initialize(m_device);
+		is_initialized &= rendering_finished.initialize(m_device);
+		is_initialized &= in_flight.initialize(m_device);
 
 		record_commands();
 
-		if (auto r = m_vert.load(m_device, "data01/triangle.vert.spv"); not r)
-		{
-			dbg::println(r.error());
-			return false;
-		}
+		// Test shader
+		shader vert;
+		shader frag;
 
-		if (auto r = m_frag.load(m_device, "data01/triangle.frag.spv"); not r)
-		{
-			dbg::println(r.error());
-			return false;
-		}
+		if (auto result = vert.load(m_device, "data01/vert.spv"); not result)
+			dbg::println(result.error());
 
-		const VkFormat color_format = m_swapchain.desired_format().format;
-
-		struct vertex
-		{
-			float x, y;
-			float r, g, b;
-		};
-
-		constexpr std::array<vertex, 3> triangle_vertices{{
-		  {0.0f, -0.5f, 1.0f, 0.0f, 0.0f},
-		  {0.5f,  0.5f, 0.0f, 1.0f, 0.0f},
-		  {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f},
-		}};
-
-		const std::span<const std::byte> vertex_data{
-		  reinterpret_cast<const std::byte*>(triangle_vertices.data()),
-		  triangle_vertices.size() * sizeof(vertex)};
-		is_initialized &= m_vertex_buffer.initialize(m_device, vertex_data);
-
-		constexpr VkVertexInputBindingDescription binding{
-		  .binding   = 0,
-		  .stride    = sizeof(vertex),
-		  .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-		};
-
-		constexpr std::array<VkVertexInputAttributeDescription, 2> attributes{{
-		  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT,       .offset = offsetof(vertex, x)},
-		  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT,    .offset = offsetof(vertex, r)},
-		}};
-
-		is_initialized &= m_pipeline.initialize(m_device, m_vert, m_frag, color_format,
-		  std::span{&binding, 1}, std::span{attributes});
-
-		record_commands();
+		if (auto result = frag.load(m_device, "data01/frag.spv"); not result)
+			dbg::println(result.error());
 
 		return is_initialized;
 	}
@@ -231,20 +177,9 @@ namespace deckard::vulkan
 		vkDeviceWaitIdle(m_device);
 
 
-		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-		{
-			in_flight[i].deinitialize(m_device);
-			image_available[i].deinitialize(m_device);
-		}
-
-		for (auto& sem : rendering_finished)
-			sem.deinitialize(m_device);
-		rendering_finished.clear();
-
-		m_pipeline.deinitialize(m_device);
-		m_vertex_buffer.deinitialize(m_device);
-		m_vert.deinitialize(m_device);
-		m_frag.deinitialize(m_device);
+		in_flight.deinitialize(m_device);
+		rendering_finished.deinitialize(m_device);
+		image_available.deinitialize(m_device);
 
 		m_images.deinitialize(m_device);
 		m_command_buffer.deinitialize(m_device);
@@ -364,27 +299,7 @@ namespace deckard::vulkan
 
 			vkCmdBeginRenderingKHR(m_command_buffer[i], &render_info);
 
-			if (m_pipeline.valid() and m_vertex_buffer.valid())
-			{
-				const VkViewport viewport{
-				  .x        = 0.0f,
-				  .y        = 0.0f,
-				  .width    = (f32)current_extent.width,
-				  .height   = (f32)current_extent.height,
-				  .minDepth = 0.0f,
-				  .maxDepth = 1.0f,
-				};
-				const VkRect2D scissor{{0, 0}, {current_extent.width, current_extent.height}};
-
-				vkCmdBindPipeline(m_command_buffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-				vkCmdSetViewport(m_command_buffer[i], 0, 1, &viewport);
-				vkCmdSetScissor(m_command_buffer[i], 0, 1, &scissor);
-
-				const VkBuffer     vb      = m_vertex_buffer;
-				const VkDeviceSize offset  = 0;
-				vkCmdBindVertexBuffers(m_command_buffer[i], 0, 1, &vb, &offset);
-				vkCmdDraw(m_command_buffer[i], 3, 1, 0, 0);
-			}
+			// draw here
 
 			vkCmdEndRenderingKHR(m_command_buffer[i]);
 
@@ -455,11 +370,12 @@ namespace deckard::vulkan
 	bool vulkan::draw()
 	{
 
-		in_flight[current_frame].wait(m_device);
+		in_flight.wait(m_device);
 		bool resized{false};
 		u32  image_index{0};
 
-		VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, image_available[current_frame], nullptr, &image_index);
+		// image_available multiple?
+		VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, image_available, nullptr, &image_index);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			resize();
@@ -471,11 +387,14 @@ namespace deckard::vulkan
 			return false;
 		}
 
-		in_flight[current_frame].reset(m_device);
 
-		m_command_buffer.submit(m_device, image_available[current_frame], rendering_finished[image_index], in_flight[current_frame], image_index);
+		in_flight.reset(m_device);
 
-		result = m_device.present(rendering_finished[image_index], image_index, m_swapchain);
+
+		m_command_buffer.submit(m_device, image_available, rendering_finished, in_flight, image_index);
+
+
+		result = m_device.present(rendering_finished, image_index, m_swapchain);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or resized)
 		{
 			resize();
@@ -487,7 +406,6 @@ namespace deckard::vulkan
 			return false;
 		}
 
-		current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 		return true;
 	}
 

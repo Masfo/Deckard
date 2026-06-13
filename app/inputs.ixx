@@ -135,7 +135,7 @@ namespace deckard::app
 		X1     = BIT(3),
 		X2     = BIT(4),
 
-		Count = 5
+		Count = 5,
 	};
 
 	export enum class Controller : u8 {
