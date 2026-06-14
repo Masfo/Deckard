@@ -261,6 +261,8 @@ namespace deckard::random
 	constexpr std::string_view dict_digits{dict_alphanum_special.substr(52, 10)};
 	constexpr std::string_view dict_id{R"(123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz)"};
 
+	constexpr std::string_view human_readable_password_dict{R"(ACDEFHJKLMNPQRTUVWXYabcdefghjkmnprtuvwxy3467)"};
+
 	export template<integral_or_bool T = i32>
 	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
 	{
@@ -461,6 +463,29 @@ namespace deckard::random
 			buffer.resize(len);
 
 		generate_with_dictionary<char>(std::span<char>(as<char*>(buffer.data()), buffer.size()), len, dict_alphanum_special);
+	}
+
+	// human readable password #########################################################################################
+
+	export std::string human_password(u32 len = 12) { return generate_with_dictionary(len, human_readable_password_dict); }
+
+	export void human_password(std::span<u8> buffer, u32 len)
+	{
+		generate_with_dictionary<u8>(buffer, len, human_readable_password_dict);
+	}
+
+	export void human_password(std::span<char> buffer, u32 len)
+	{
+		generate_with_dictionary<char>(buffer, len, human_readable_password_dict);
+	}
+
+	export void human_password(std::string& buffer, u32 len)
+	{
+		if (buffer.size() < len)
+			buffer.resize(len);
+
+		generate_with_dictionary<char>(
+		  std::span<char>(as<char*>(buffer.data()), buffer.size()), len, human_readable_password_dict);
 	}
 
 	// filename ########################################################################################################
