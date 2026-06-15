@@ -338,7 +338,7 @@ namespace deckard::math
 			return result;
 		}
 
-		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const 
+		[[nodiscard("Use the dot product value")]] constexpr type dot(const vec_type& other) const
 		{
 			return x * other.x + y * other.y;
 		}
@@ -348,17 +348,21 @@ namespace deckard::math
 			return (x * other.y) - (y * other.x);
 		}
 
-		[[nodiscard("Use the rotated vector")]] constexpr vec_type rotate(const vec_type& axis, const T rad) const
+		[[nodiscard]] constexpr vec_type rotate(const T rad, const vec_type& pivot = vec_type{}) const
 		requires(std::is_floating_point_v<T>)
 		{
-			const vec_type axis_norm = axis.normalized();
-			const vec_type v         = *this;
+			const vec_type d = *this - pivot;
+			const T        c = std::cos(rad);
+			const T        s = std::sin(rad);
+			return vec_type{pivot.x + c * d.x - s * d.y, pivot.y + s * d.x + c * d.y};
+		}
 
-			T cosTheta         = std::cos(rad);
-			T sinTheta         = std::sin(rad);
-			T oneMinusCosTheta = T{1.0} - cosTheta;
-
-			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
+		[[nodiscard]] constexpr vec_type rotate(const T rad) const
+		requires(std::is_floating_point_v<T>)
+		{
+			const T c = std::cos(rad);
+			const T s = std::sin(rad);
+			return vec_type{c * x - s * y, s * x + c * y};
 		}
 
 		// static
@@ -442,6 +446,12 @@ namespace deckard::math
 		generic_vec2<T> result(lhs);
 		result *= generic_vec2<T>(as<T>(scalar));
 		return result;
+	}
+
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec2<T> operator*(const U& scalar, const generic_vec2<T>& rhs)
+	{
+		return rhs * scalar;
 	}
 
 	export template<arithmetic T>
