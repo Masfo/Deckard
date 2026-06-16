@@ -547,6 +547,12 @@ namespace deckard::math
 		return result;
 	}
 
+	export template<arithmetic T, arithmetic U>
+	constexpr generic_vec4<T> operator*(const U& scalar, const generic_vec4<T>& rhs)
+	{
+		return rhs * scalar;
+	}
+
 	export template<arithmetic T>
 	constexpr generic_vec4<T> operator*(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{

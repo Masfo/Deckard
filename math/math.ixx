@@ -1,4 +1,4 @@
-﻿export module deckard.math;
+export module deckard.math;
 
 
 export import deckard.vec;
@@ -7,7 +7,6 @@ export import deckard.math.utils;
 
 export import :quaternion;
 export import :easing;
-export import :primitives;
 export import :curves;
 
 import deckard.types;

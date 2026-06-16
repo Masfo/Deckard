@@ -107,6 +107,13 @@ export namespace deckard::math
 		return converted_value >= lower and converted_value <= upper;
 	}
 
+	// zero_clamp
+	template<std::floating_point T>
+	[[nodiscard]] constexpr T clamp_zero(T value, T epsilon = T{1e-6}) noexcept
+	{
+		return std::abs(value) < epsilon ? T{0} : value;
+	}
+
 	// is_close_enough
 	template<std::floating_point T>
 	[[nodiscard]] constexpr bool is_close_enough(T a, T b, T epsilon = T{1e-4}) noexcept
@@ -168,6 +175,17 @@ export namespace deckard::math
 	f32 operator""_rad(long double deg) { return to_radians<f32>(static_cast<f32>(deg)); }
 
 	f32 operator""_deg(long double rad) { return to_degrees<f32>(static_cast<f32>(rad)); }
+
+	f32 normalize_radians(f32 radian)
+	{
+		constexpr f32 pi    = std::numbers::pi_v<f32>;
+		constexpr f32 twoPi = pi * 2.0f;
+
+		radian = std::fmod(radian + pi, twoPi);
+		if (radian < 0.0f)
+			radian += twoPi;
+		return radian - pi;
+	}
 
 	namespace sse
 	{
