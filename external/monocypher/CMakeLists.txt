@@ -10,7 +10,7 @@ if(MSVC)
     string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 endif()
 
-set(MONOCYPHER_ZIP_URL https://github.com/LoupVaillant/Monocypher/archive/refs/tags/4.0.2.zip)
+set(MONOCYPHER_ZIP_URL https://github.com/LoupVaillant/Monocypher/archive/refs/tags/4.0.3.zip)
 set(MONOCYPHER_ZIP_NAME_NO_EXT Monocypher-4.0.2)
 
 get_filename_component(MONOCYPHER_ZIP_NAME ${MONOCYPHER_ZIP_URL} NAME)
