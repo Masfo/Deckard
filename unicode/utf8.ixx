@@ -8,6 +8,7 @@ export import :view;
 export import :decode;
 export import :basic_characters;
 export import :scanner;
+export import :normalization;
 
 export using namespace deckard::utf8::literals;
 

@@ -226,8 +226,7 @@ export namespace deckard::utf8
 					return std::nullopt;
 				}
 
-				codepoint =
-				  (((c & 0x0F) << 12) | ((u8_at(buffer, i + 1) & 0x3F) << 6) | (u8_at(buffer, i + 2) & 0x3F));
+				codepoint = (((c & 0x0F) << 12) | ((u8_at(buffer, i + 1) & 0x3F) << 6) | (u8_at(buffer, i + 2) & 0x3F));
 				if (codepoint < 0x800)
 				{
 					dbg::println("Overlong 3-byte encoding at offset {}", i);
@@ -345,8 +344,7 @@ export namespace deckard::utf8
 					  std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
 				}
 
-				codepoint =
-				  (((c & 0x0F) << 12) | ((u8_at(buffer, i + 1) & 0x3F) << 6) | (u8_at(buffer, i + 2) & 0x3F));
+				codepoint = (((c & 0x0F) << 12) | ((u8_at(buffer, i + 1) & 0x3F) << 6) | (u8_at(buffer, i + 2) & 0x3F));
 				if (codepoint < 0x800)
 				{
 					auto [line, column] = location_at_index(i);
@@ -436,6 +434,7 @@ export namespace deckard::utf8
 	}
 
 	char32 decode_codepoint(std::string_view buffer) { return decode_codepoint(to_span(buffer)); }
+
 
 
 } // namespace deckard::utf8

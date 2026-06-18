@@ -977,6 +977,15 @@ namespace deckard::utf8
 
 	export inline std::ostream& operator<<(std::ostream& os, const utf8::view& s) { return os << s.to_string(); }
 
+	export std::vector<u32> to_codepoints(utf8::view v)
+	{
+		std::vector<u32> codepoints;
+
+		for (const auto& cp : v)
+			codepoints.push_back((u32)cp);
+
+		return codepoints;
+	}
 
 } // namespace deckard::utf8
 
