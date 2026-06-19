@@ -259,13 +259,7 @@ namespace deckard::utf8
 		auto nfd      = normalization::to_nfd_codepoints(s);
 		auto composed = normalization::compose_codepoints(std::move(nfd));
 
-		string result;
-		result.reserve(s.size_in_bytes());
-
-		result.assign(composed);
-		// for (char32 cp : composed)
-		//	result.append(cp);
-
+		string result(composed);
 		return result;
 	}
 
