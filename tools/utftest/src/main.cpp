@@ -1,9 +1,12 @@
 
 import std;
+
 import deckard;
 
 using namespace deckard;
 namespace fs = std::filesystem;
+
+using namespace std::chrono_literals;
 
 auto to_codepoints(std::string_view hexline)
 {
@@ -55,7 +58,7 @@ int main()
 		bool nfc = all_normalize_to(c2, toNFC, c1, c2, c3); //  c2 ==  toNFC(c1) ==  toNFC(c2) ==  toNFC(c3)
 		bool nfd = all_normalize_to(c3, toNFD, c1, c2, c3); //  c3 ==  toNFD(c1) ==  toNFD(c2) ==  toNFD(c3)
 
-		if (nfc == false)
+		if (nfc == false and false)
 		{
 			auto c1_nfc = toNFC(from_hex_to_utf8(columns[0]));
 			auto c2_nfc = toNFC(from_hex_to_utf8(columns[1]));
@@ -71,7 +74,7 @@ int main()
 			dbg::println("c2==nfc(c1): {}, c2==nfc(c2): {}, c2==nfc(c3): {}", c2 == c1_nfc, c2 == c2_nfc, c2 == c3_nfc);
 		}
 
-		if (nfd == false)
+		if (nfd == false and false)
 		{
 			auto c1_nfd = toNFD(from_hex_to_utf8(columns[0]));
 			auto c2_nfd = toNFD(from_hex_to_utf8(columns[1]));
@@ -87,11 +90,12 @@ int main()
 			dbg::println("c2==nfd(c1): {}, c2==nfd(c2): {}, c2==nfd(c3): {}", c2 == c1_nfd, c2 == c2_nfd, c2 == c3_nfd);
 		}
 
+
 		nfc_count += nfc ? 1 : 0;
 		nfd_count += nfd ? 1 : 0;
 	}
 
-
+	dbg::println();
 	dbg::println("NFC: {}/{} passed {}", nfc_count, test_count, nfc_count == test_count ? "✅" : "❌");
 	dbg::println("NFD: {}/{} passed {}", nfd_count, test_count, nfd_count == test_count ? "✅" : "❌");
 

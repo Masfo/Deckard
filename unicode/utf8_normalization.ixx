@@ -143,7 +143,7 @@ namespace deckard::utf8
 			}
 		}
 
-		[[nodiscard]] std::vector<char32> to_nfd_codepoints(const utf8::string& s)
+		[[nodiscard]] std::vector<char32> to_nfd_codepoints(const utf8::view s)
 		{
 			std::vector<char32> result;
 			result.reserve(s.size());
@@ -165,22 +165,22 @@ namespace deckard::utf8
 
 			result.push_back(nfd[0]);
 			size_t last_starter_idx = 0;
-			u8     max_ccc          = 0; // Tracks the highest CCC in the current combining sequence
+			u8     max_ccc          = 0;
 
 			for (size_t i = 1; i < nfd.size(); ++i)
 			{
 				char32_t&    L        = result[last_starter_idx];
-				const char32 C   = nfd[i];
-				const u8     ccc = get_ccc(C);
+				const char32 C        = nfd[i];
+				const u8     ccc      = get_ccc(C);
 				bool         composed = false;
 
 				if (ccc == 0)
 				{
 					const bool adjacent = (last_starter_idx == result.size() - 1);
-					composed = false;
+					composed            = false;
 					if (adjacent)
 					{
-						char32& L = result[last_starter_idx];
+						L = result[last_starter_idx];
 
 						if (is_hangul_leading(L) and is_hangul_vowel(C))
 						{
@@ -203,13 +203,11 @@ namespace deckard::utf8
 					{
 						last_starter_idx = result.size();
 						result.push_back(C);
-						max_ccc = 0; // Reset tracking for the new starter segment
+						max_ccc = 0;
 					}
 				}
 				else
 				{
-					// Character is blocked if any character seen since the last starter has a CCC >= ccc
-					// Exception: If they are structurally adjacent (no characters between them), it's never blocked.
 					const bool between = (last_starter_idx != result.size() - 1);
 					const bool blocked = between and (max_ccc >= ccc);
 
@@ -238,7 +236,7 @@ namespace deckard::utf8
 	// ############################################################################################
 	// Normalize functions ########################################################################
 
-	export [[nodiscard]] utf8::string to_nfd(const utf8::string& s)
+	export [[nodiscard]] utf8::string to_nfd(const utf8::view& s)
 	{
 		if (s.empty())
 			return {};
@@ -253,7 +251,7 @@ namespace deckard::utf8
 		return result;
 	}
 
-	export [[nodiscard]] string to_nfc(const string& s)
+	export [[nodiscard]] string to_nfc(const utf8::view& s)
 	{
 		if (s.empty())
 			return {};
@@ -263,8 +261,10 @@ namespace deckard::utf8
 
 		string result;
 		result.reserve(s.size_in_bytes());
-		for (char32 cp : composed)
-			result.append(cp);
+
+		result.assign(composed);
+		// for (char32 cp : composed)
+		//	result.append(cp);
 
 		return result;
 	}

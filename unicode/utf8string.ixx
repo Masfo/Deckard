@@ -367,7 +367,6 @@ namespace deckard::utf8
 			buffer = std::move(result.buffer);
 		}
 
-
 		string& operator=(std::string_view input)
 		{
 			buffer.assign({as<u8*>(input.data()), input.size()});
@@ -477,6 +476,21 @@ namespace deckard::utf8
 		{
 			auto encoded = encode_codepoint(u);
 			buffer.assign(std::span<const u8>{encoded.bytes.data(), encoded.count});
+		}
+
+		void assign(std::span<const char32> input)
+		{
+			buffer.clear();
+
+			size_t total_bytes = 0;
+			for (char32 c : input)
+				total_bytes += utf8::codepoint_width(c);
+
+			if (total_bytes)
+				buffer.reserve(total_bytes);
+
+			for (char32 c : input)
+				append(c);
 		}
 
 		// append
@@ -972,7 +986,7 @@ namespace deckard::utf8
 			if (start == size())
 				return {};
 
-			assert::check(start < size(), std::format("Indexing out-of-bounds: {} < {}",start,size()));
+			assert::check(start < size(), std::format("Indexing out-of-bounds: {} < {}", start, size()));
 
 			if (empty())
 				return std::span<const u8>{};
@@ -1369,8 +1383,6 @@ namespace deckard::utf8
 	static_assert(sizeof(string) == 32, "string size mismatch");
 
 	export inline std::ostream& operator<<(std::ostream& os, const utf8::string& s) { return os << s.to_string(); }
-
-
 
 	export utf8::string encode_codepoints(std::span<const char32> codepoints)
 	{
