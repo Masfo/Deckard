@@ -1323,7 +1323,6 @@ void process_unicode_data()
 	std::println();
 	std::println();
 	std::println();
-	std::println();
 
 
 	auto trie = build_trie(ccc);
