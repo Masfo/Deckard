@@ -66,7 +66,6 @@ namespace deckard
 		return lhs;
 	}
 
-	// Helpers for removing and setting flags
 	export template<EnumFlagType T>
 	constexpr T operator-=(T& lhs, const T rhs)
 	{
