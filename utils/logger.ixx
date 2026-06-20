@@ -25,6 +25,9 @@ namespace deckard
 		{
 		}
 
+		void set_suppress_init(bool) {  }
+
+
 		u64 size() const { return 0; }
 	};
 
