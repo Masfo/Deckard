@@ -188,32 +188,48 @@ set(DECKARD_SRCS
 
 		# Math
 		math/math.ixx
-		math/ease_functions.ixx
-		math/math_utility.ixx
-		math/primitives.ixx
+
 		math/curves.ixx
-		
-		math/matrix.ixx
-
-		math/vec4_sse.ixx
-
+		math/ease_functions.ixx
 		math/generic_vec.ixx
 		math/generic_vec2.ixx
 		math/generic_vec3.ixx
 		math/generic_vec4.ixx
-
+		math/math_utility.ixx
+		math/matrix.ixx
+		
 		math/quaternion.ixx
+		math/vec4_sse.ixx
+
+
+		# Geometry
+		geometry/geometry.ixx
+
+		geometry/aabb.ixx
+		geometry/frustum.ixx
+		geometry/intersection.ixx
+		geometry/line.ixx
+		geometry/plane.ixx
+		geometry/ray.ixx
+		geometry/rect.ixx
+		geometry/sphere.ixx
+
+		# Spatial
+		spatial/spatial.ixx
+
+		spatial/octree.ixx
+		spatial/quadtree.ixx
 
 		# Net
 		net/net.ixx
-		net/types.ixx
-		net/protocol.ixx
-		net/auth.ixx
-		net/socket.ixx
 		
-		net/server.ixx
+		net/auth.ixx
 		net/client.ixx
 		net/ip.ixx
+		net/protocol.ixx
+		net/server.ixx
+		net/socket.ixx
+		net/types.ixx
 	   
 		# threadpool
 		threadpool/threadpool.ixx
@@ -225,6 +241,9 @@ set(DECKARD_SRCS
 		# Utils
 		utils/arrays.ixx
 		utils/base_n.ixx
+		utils/bytepool.ixx
+		utils/circular_buffer.ixx
+		utils/colors.ixx
 		utils/commandline.ixx
 		utils/cpuid.ixx
 		utils/function_ref.ixx
@@ -232,6 +251,8 @@ set(DECKARD_SRCS
 		utils/hash.ixx
 		utils/helpers.ixx
 		utils/hmac.ixx
+		utils/logger.ixx
+		utils/lru.ixx
 		utils/random.ixx
 		utils/ringbuffer.ixx
 		utils/scope_exit.ixx
@@ -239,34 +260,27 @@ set(DECKARD_SRCS
 		utils/sha.ixx
 		utils/smallbufferobject.ixx
 		utils/stringhelper.ixx
+		utils/stringpool.ixx
 		utils/threadutils.ixx
 		utils/timers.ixx
 		utils/uuid.ixx
-		utils/logger.ixx
-		utils/colors.ixx
-		utils/circular_buffer.ixx
-		utils/lru.ixx
-		utils/bytepool.ixx
-		utils/stringpool.ixx
 		
 
 
 		# Unicode
 		unicode/utf8.ixx
+		
 		unicode/utf8_ascii.ixx
 		unicode/utf8_basic_characters.ixx
 		unicode/utf8_codepoints.ixx
 		unicode/utf8_decode.ixx
-		unicode/utf8_xid.ixx
-		
-		
-		unicode/utf8_tables.ixx
-		
 		unicode/utf8_normalization.ixx
+		unicode/utf8_scanner.ixx
+		unicode/utf8_xid.ixx
 		unicode/utf8string.ixx
 		unicode/utf8view.ixx
-		unicode/utf8_scanner.ixx
 		
+		unicode/utf8_tables.ixx
 
 		# Graph
 		graphs/avltree.ixx
@@ -274,11 +288,6 @@ set(DECKARD_SRCS
 		
 		graphs/graph.ixx
 		
-
-
-
-		
-
 		# Scripting
 		scripting/lexer/lexer.ixx
 		scripting/parser/parser.ixx
@@ -291,6 +300,7 @@ set(DECKARD_SRCS
 		# Vulkan
 		app/vulkan.ixx
 
+		app/vulkan/buffer.ixx
 		app/vulkan/command_buffer.ixx
 		app/vulkan/core.ixx
 		app/vulkan/debug.ixx
@@ -299,25 +309,24 @@ set(DECKARD_SRCS
 		app/vulkan/helpers.ixx
 		app/vulkan/images.ixx
 		app/vulkan/instance.ixx
+		app/vulkan/pipeline.ixx
 		app/vulkan/semaphore.ixx
 		app/vulkan/shader.ixx
+		app/vulkan/shaders.ixx
 		app/vulkan/surface.ixx
 		app/vulkan/swapchain.ixx
 		app/vulkan/texture.ixx
-		app/vulkan/shaders.ixx
-		app/vulkan/buffer.ixx
-		app/vulkan/pipeline.ixx
 
 
 		# Types
+		types/allocator.ixx
 		types/as.ixx
 		types/bigint.ixx
 		types/enum_flags.ixx
 		types/helpertypes.ixx
-		types/types.ixx
-		types/int128.ixx
-		types/allocator.ixx
 		types/image.ixx
+		types/int128.ixx
+		types/types.ixx
 
 		# External helpers
 		compress/zstd.ixx
@@ -334,7 +343,7 @@ set(DECKARD_SRCS
 
 
 		std.ixx
-)
+     )
 
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
@@ -433,9 +442,10 @@ if(DECKARD_BUILD_EXAMPLES)
 endif()
 
 if(DECKARD_BUILD_TOOLS)
+	add_subdirectory(tools/utftest)
 	add_subdirectory(tools/dbc)
 	add_subdirectory(tools/utftables)
-	add_subdirectory(tools/normalization)
+
 endif()
 
 
