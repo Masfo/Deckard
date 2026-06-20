@@ -299,7 +299,7 @@ namespace deckard::random
 	}
 
 	export template<integral_or_bool T = i32, std::uniform_random_bit_generator Engine>
-	T rnd(Engine& engine, T minimum = limits::min<T>, T maximum = limits::max<T>)
+	T rnd(Engine& engine, T minimum, T maximum)
 	{
 
 		if constexpr (std::is_same_v<T, unsigned char> or std::is_same_v<T, char>)
@@ -325,7 +325,7 @@ namespace deckard::random
 	}
 
 	export template<std::floating_point T = f32, std::uniform_random_bit_generator Engine>
-	T rnd(Engine& engine, T minimum = T{0}, T maximum = T{1})
+	T rnd(Engine& engine, T minimum , T maximum)
 	{
 		assert::check(minimum <= maximum, "minimum >= maximum");
 
