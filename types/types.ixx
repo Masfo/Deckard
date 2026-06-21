@@ -208,28 +208,32 @@ export namespace deckard
 
 	// using Kilo = StrongType<double, struct Kilo_>;
 
-	template<typename T, typename Parameter>
-	class StrongType
+	template<typename T>
+	concept strong_type_value = std::is_object_v<T> and not std::is_reference_v<T> and std::is_destructible_v<T>;
+
+	template<strong_type_value T, typename P>
+	class strongtype
 	{
 	public:
-		explicit StrongType(T const& value)
-			: value(value)
+		constexpr explicit strongtype(T const& value)
+			: m_value(value)
 		{
 		}
 
-		explicit StrongType(T&& value)
-			: value(std::move(value))
+		constexpr explicit strongtype(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+			: m_value(std::move(value))
 		{
 		}
 
-		// explicit operator T() const { return value; }
+		[[nodiscard]] constexpr T& get() noexcept { return m_value; }
 
-		T& get() { return value; }
+		[[nodiscard]] constexpr T const& get() const noexcept { return m_value; }
 
-		T const& get() const { return value; }
+		friend constexpr auto operator<=>(strongtype const&, strongtype const&) = default;
+		friend constexpr bool operator==(strongtype const&, strongtype const&)  = default;
 
 	private:
-		T value;
+		T m_value;
 	};
 
 	// ###########################################################################
