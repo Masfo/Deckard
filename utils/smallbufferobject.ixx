@@ -134,28 +134,34 @@ namespace deckard
 		void reset() noexcept
 		{
 			if (is_large() and packed.large.ptr)
-				delete[] packed.large.ptr;
+				deallocate(packed.large.ptr);
 
 			std::memset(&packed, 0, sizeof(packed));
 		}
 
+		static pointer allocate(size_t count) { return new value_type[count]; }
+
+		static void deallocate(pointer ptr) noexcept { delete[] ptr; }
+
 		void clone(const sbo& from)
 		{
-			reset();
 			if (from.is_small())
 			{
+				reset();
 				set_size(from.small_size());
 				std::memcpy(&packed.small.data[0], &from.packed.small.data[0], from.small_size());
 			}
 			else
 			{
+				const size_t newcap = from.large_capacity();
+				pointer      newptr = allocate(newcap);
+				std::copy_n(from.packed.large.ptr, from.large_size(), newptr);
+
+				reset();
 				set_large(true);
+				packed.large.ptr = newptr;
 				set_size(from.large_size());
-				set_capacity(from.large_capacity());
-
-				packed.large.ptr = new value_type[packed.large.capacity];
-
-				std::copy_n(from.packed.large.ptr, large_size(), packed.large.ptr);
+				set_capacity(newcap);
 			}
 		}
 
@@ -446,14 +452,14 @@ namespace deckard
 				push_back(i);
 		}
 
-		auto operator+(const sbo<SIZE>& other)
+		[[nodiscard]] sbo operator+(const sbo<SIZE>& other) const noexcept
 		{
 			auto ret(*this);
 			ret.append(other);
 			return ret;
 		}
 
-		auto operator+=(const sbo<SIZE>& other)
+		sbo& operator+=(const sbo<SIZE>& other)
 		{
 			append(other);
 			return *this;
@@ -541,7 +547,7 @@ namespace deckard
 		void fill(const value_type& v)
 		{
 			const pointer ptr = rawptr();
-			const auto    max = capacity();
+			const auto    max = size();
 
 			for (auto i = 0ull; i < max; ++i)
 				ptr[i] = v;
@@ -582,14 +588,14 @@ namespace deckard
 
 			const size_t oldsize         = size();
 			const size_t actual_capacity = std::max(new_capacity, newcapacity_size(capacity()));
-			auto         newptr          = new value_type[actual_capacity];
+
+			pointer newptr = allocate(actual_capacity);
 
 			std::ranges::fill_n(newptr, actual_capacity, 0_u8);
-
 			std::ranges::copy_n(rawptr(), oldsize, newptr);
 
 			if (is_large())
-				delete[] packed.large.ptr;
+				deallocate(packed.large.ptr);
 
 			packed.large.ptr = newptr;
 			set_large(true);
@@ -629,16 +635,14 @@ namespace deckard
 			{
 				const pointer old_heap_ptr = packed.large.ptr;
 
-				std::array<value_type, SIZE - 1> tmp;
+				std::array<value_type, SIZE - 1> tmp{};
 				if (current_size > 0)
 					std::ranges::copy_n(old_heap_ptr, current_size, tmp.begin());
 
-				delete[] old_heap_ptr;
+				deallocate(old_heap_ptr);
 				std::memset(&packed, 0, sizeof(packed));
 
 				std::ranges::copy_n(tmp.begin(), current_size, packed.small.data.begin());
-				if (current_size > 0)
-					std::ranges::copy_n(tmp.begin(), current_size, packed.small.data.begin());
 
 				set_large(false);
 				set_size(current_size);
@@ -652,7 +656,7 @@ namespace deckard
 					return;
 
 				std::ranges::copy_n(old_heap_ptr, current_size, new_heap_ptr);
-				delete[] old_heap_ptr;
+				deallocate(old_heap_ptr);
 
 				packed.large.ptr = new_heap_ptr;
 				set_capacity(current_size);
@@ -666,7 +670,6 @@ namespace deckard
 
 		// contains
 		bool contains(const value_type& value) const { return find(value) != cend(); }
-
 
 		// find
 		iterator find(const value_type& value)
@@ -812,7 +815,7 @@ namespace deckard
 
 		//
 
-		iterator find_first_of(const std::span<value_type>& buffer)
+		iterator find_first_of(std::span<const value_type> buffer)
 		{
 			if (buffer.empty() or empty())
 				return end();
@@ -849,7 +852,7 @@ namespace deckard
 
 		auto subspan(size_t start) const -> std::span<value_type> { return subspan(start, size() - start); }
 
-		auto subsbo(size_t start, size_t count) const -> sbo<SIZE> { return {sbo<SIZE>(subspan(start, count))}; }
+		auto subsbo(size_t start, size_t count) const -> sbo<SIZE> { return sbo<SIZE>(subspan(start, count)); }
 	};
 
 	// TODO: self insert check
