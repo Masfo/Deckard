@@ -10,6 +10,12 @@ using namespace deckard;
 using namespace deckard::utf8;
 using namespace std::string_view_literals;
 
+TEST_CASE("utf8", "[utf8]") 
+{
+	//
+	REQUIRE(utf8::table_version() == "17.0.0"sv); 
+}
+
 TEST_CASE("utf8::ascii", "[utf8]")
 {
 	//
@@ -54,7 +60,7 @@ TEST_CASE("utf8::ascii", "[utf8]")
 	}
 
 	SECTION("encode codepoint")
-	{ 
+	{
 		auto ecp = utf8::encode_codepoint(U'$');
 
 		CHECK(ecp.count == 1);

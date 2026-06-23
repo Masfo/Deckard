@@ -155,7 +155,7 @@ namespace deckard::utf8
 			return result;
 		}
 
-		[[nodiscard]] std::vector<char32> compose_codepoints(std::vector<char32> nfd)
+		[[nodiscard]] std::vector<char32> to_nfc_codepoints(std::vector<char32> nfd)
 		{
 			if (nfd.empty())
 				return {};
@@ -243,10 +243,8 @@ namespace deckard::utf8
 
 		auto nfd = normalization::to_nfd_codepoints(s);
 
-		string result;
-		result.reserve(s.size_in_bytes());
-		for (char32 cp : nfd)
-			result.append(cp);
+
+		string result(nfd);
 
 		return result;
 	}
@@ -257,7 +255,7 @@ namespace deckard::utf8
 			return {};
 
 		auto nfd      = normalization::to_nfd_codepoints(s);
-		auto composed = normalization::compose_codepoints(std::move(nfd));
+		auto composed = normalization::to_nfc_codepoints(std::move(nfd));
 
 		string result(composed);
 		return result;

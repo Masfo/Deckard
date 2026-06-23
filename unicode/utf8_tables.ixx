@@ -5,6 +5,10 @@ import deckard.types;
 
 namespace deckard::utf8
 {
+	using namespace std::string_literals;
+
+	export std::string table_version() { return "17.0.0"s; }
+
 	// https://www.unicode.org/Public/UNIDATA/UnicodeData.txt
 	// https://www.unicode.org/Public/UNIDATA/DerivedGeneralCategory.txt
 	// https://www.unicode.org/Public/UNIDATA/DerivedCoreProperties.txt
