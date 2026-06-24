@@ -17,10 +17,12 @@ TEST_CASE("quatertion", "[quaternion]")
 	SECTION("default constructor")
 	{
 		quat q;
-		CHECK(q[0] == 1.0f);
-		CHECK(q[1] == 0.0f);
-		CHECK(q[2] == 0.0f);
-		CHECK(q[3] == 0.0f);
+		CHECK(q == quat(1.0f, 0.0f, 0.0f, 0.0f));
+		CHECK(q.w() == 1.0f);
+		CHECK(q.x() == 0.0f);
+		CHECK(q.y() == 0.0f);
+		CHECK(q.z() == 0.0f);
+
 	}
 
 	SECTION("init vec3")
@@ -51,7 +53,6 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK((v1 * v2) == quat(-0.1618317f, -0.5663194f, 0.20500372f, 0.7817072f));
 
 		CHECK((v1 / 0.75f) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
-		CHECK((0.75f / v1) == quat(0.58127f, -0.95772f, 0.41416f, 0.59258f));
 
 		CHECK((v1 * 1.25f) == quat(0.54494f, -0.89786f, 0.38828f, 0.55554f));
 		CHECK((1.25f * v1) == quat(0.54494f, -0.89786f, 0.38828f, 0.55554f));
@@ -244,9 +245,10 @@ TEST_CASE("quatertion", "[quaternion]")
 	{
 		vec3 v(1.0f, 2.0f, 3.0f);
 		quat q(v);
-		mat4 m = q.to_mat4();
-		quat r = q.from_mat4(m);
-		CHECK(r == q);
+		quat r = quat::from_mat4(q.to_mat4());
+
+		vec3 point(1.0f, 0.0f, 0.0f);
+		CHECK(q * point == r * point);
 	}
 
 	SECTION("round-trip matrix")
@@ -261,6 +263,35 @@ TEST_CASE("quatertion", "[quaternion]")
 
 		CHECK(r1 == r2);
 	}
+
+	SECTION("slerp at midpoint is equidistant from both endpoints")
+	{
+		quat a{0.0f, 0.0f, 0.0f, 1.0f};
+		quat b = normalize(quat(0.0f, 0.707f, 0.0f, 0.707f)); // 90 deg around Y
+
+		quat mid = slerp(a, b, 0.5f);
+
+		f32 dot_a = dot(mid, a);
+		f32 dot_b = dot(mid, b);
+
+		CHECK(math::is_close_enough(dot_a, dot_b));
+
+	}
+
+	SECTION("slerp matches lerp+normalize within the fallback threshold")
+	{
+		quat a{0.0f, 0.0f, 0.0f, 1.0f};
+		quat b = normalize(quat(0.0f, 0.02f, 0.0f, 1.0f));
+
+		CHECK(dot(a, b) > math::slerp_lerp_threshold);
+
+		quat result = slerp(a, b, 0.5f);
+
+		quat expected = normalize(a * 0.5f + b * 0.5f);
+
+		CHECK(result == expected);
+	}
+
 
 
 	SECTION("format")

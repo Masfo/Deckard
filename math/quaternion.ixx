@@ -16,10 +16,12 @@ import std;
 namespace deckard::math
 {
 
+	export inline constexpr f32 slerp_lerp_threshold = 0.9995f;
+
 	export class quat
 	{
 	private:
-		friend f32  dot(const quat& a, const quat b);
+		friend f32  dot(const quat& a, const quat& b);
 		friend quat cross(const quat& q1, const quat& q2);
 		friend quat conjugate(const quat& q);
 		friend quat slerp(const quat& x, const quat& y, f32 t);
@@ -29,8 +31,8 @@ namespace deckard::math
 
 
 	private:
-		// w, xyz
-		vec4 data{1.0f, 0.0f, 0.0f, 0.0f};
+		// xyz, w
+		vec4 data{0.0f, 0.0f, 0.0f, 1.0f};
 
 	public:
 		quat() = default;
@@ -77,6 +79,14 @@ namespace deckard::math
 			assert::check(index < 4, "out-of-bounds, quat has 4 elements");
 			return data[index];
 		}
+
+		f32 w() const { return data.w; }
+
+		f32 x() const { return data.x; }
+
+		f32 y() const { return data.y; }
+
+		f32 z() const { return data.z; }
 
 		bool equals(const quat& lhs) const
 		{
@@ -179,8 +189,10 @@ namespace deckard::math
 			return *this;
 		}
 
-		quat from_mat4(const mat4& m)
+		static quat from_mat4(const mat4& m)
 		{
+			quat result;
+
 			const f32 m00 = m[0, 0];
 			const f32 m11 = m[1, 1];
 			const f32 m22 = m[2, 2];
@@ -188,70 +200,70 @@ namespace deckard::math
 
 			if (sum > 0.0f)
 			{
-				data.w      = std::sqrt(sum + 1.0f) * 0.5f;
-				const f32 f = 0.25f / data.w;
+				result.data.w = std::sqrt(sum + 1.0f) * 0.5f;
+				const f32 f   = 0.25f / result.data.w;
 
-				data.x = (m[2, 1] - m[1, 2]) * f;
-				data.y = (m[0, 2] - m[2, 0]) * f;
-				data.z = (m[1, 0] - m[0, 1]) * f;
+				result.data.x = (m[2, 1] - m[1, 2]) * f;
+				result.data.y = (m[0, 2] - m[2, 0]) * f;
+				result.data.z = (m[1, 0] - m[0, 1]) * f;
 			}
 			else if ((m00 > m11) and (m00 > m22))
 			{
-				data.x      = std::sqrt(m00 - m11 - m22 + 1.0f) * 0.5f;
-				const f32 f = 0.25f / data.x;
+				result.data.x = std::sqrt(m00 - m11 - m22 + 1.0f) * 0.5f;
+				const f32 f   = 0.25f / result.data.x;
 
-				data.y = (m[1, 0] + m[0, 1]) * f;
-				data.z = (m[2, 0] + m[0, 2]) * f;
-				data.w = (m[2, 1] - m[1, 2]) * f;
+				result.data.y = (m[1, 0] + m[0, 1]) * f;
+				result.data.z = (m[2, 0] + m[0, 2]) * f;
+				result.data.w = (m[2, 1] - m[1, 2]) * f;
 			}
 			else if (m11 > m22)
 			{
-				data.y      = std::sqrt(m11 - m00 - m22 + 1.0f) * 0.5f;
-				const f32 f = 0.25f / data.y;
+				result.data.y = std::sqrt(m11 - m00 - m22 + 1.0f) * 0.5f;
+				const f32 f   = 0.25f / result.data.y;
 
-				data.x = (m[1, 0] + m[0, 1]) * f;
-				data.z = (m[2, 1] + m[1, 2]) * f;
-				data.w = (m[0, 2] - m[2, 0]) * f;
+				result.data.x = (m[1, 0] + m[0, 1]) * f;
+				result.data.z = (m[2, 1] + m[1, 2]) * f;
+				result.data.w = (m[0, 2] - m[2, 0]) * f;
 			}
 			else
 			{
-				data.z      = std::sqrt(m22 - m00 - m11 + 1.0f) * 0.5f;
-				const f32 f = 0.25f / data.z;
+				result.data.z = std::sqrt(m22 - m00 - m11 + 1.0f) * 0.5f;
+				const f32 f   = 0.25f / result.data.z;
 
-				data.x = (m[2, 0] + m[0, 2]) * f;
-				data.y = (m[2, 1] + m[1, 2]) * f;
-				data.w = (m[1, 0] - m[0, 1]) * f;
+				result.data.x = (m[2, 0] + m[0, 2]) * f;
+				result.data.y = (m[2, 1] + m[1, 2]) * f;
+				result.data.w = (m[1, 0] - m[0, 1]) * f;
 			}
 
-			return *this;
+			return result;
 		}
 
 		mat4 to_mat4() const noexcept
 		{
-			const float x2 = data.x * data.x;
-			const float y2 = data.y * data.y;
-			const float z2 = data.z * data.z;
-			const float xz = data.x * data.z;
-			const float xy = data.x * data.y;
-			const float yz = data.y * data.z;
-			const float wx = data.w * data.x;
-			const float wy = data.w * data.y;
-			const float wz = data.w * data.z;
+			const f32 x2 = data.x * data.x;
+			const f32 y2 = data.y * data.y;
+			const f32 z2 = data.z * data.z;
+			const f32 xz = data.x * data.z;
+			const f32 xy = data.x * data.y;
+			const f32 yz = data.y * data.z;
+			const f32 wx = data.w * data.x;
+			const f32 wy = data.w * data.y;
+			const f32 wz = data.w * data.z;
 
 			// row 0
-			const float r00 = 1.0f - 2.0f * (y2 + z2);
-			const float r01 = 2.0f * (xy + wz);
-			const float r02 = 2.0f * (xz - wy);
+			const f32 r00 = 1.0f - 2.0f * (y2 + z2);
+			const f32 r01 = 2.0f * (xy + wz);
+			const f32 r02 = 2.0f * (xz - wy);
 
 			// row 1
-			const float r10 = 2.0f * (xy - wz);
-			const float r11 = 1.0f - 2.0f * (x2 + z2);
-			const float r12 = 2.0f * (yz + wx);
+			const f32 r10 = 2.0f * (xy - wz);
+			const f32 r11 = 1.0f - 2.0f * (x2 + z2);
+			const f32 r12 = 2.0f * (yz + wx);
 
 			// row 2
-			const float r20 = 2.0f * (xz + wy);
-			const float r21 = 2.0f * (yz - wx);
-			const float r22 = 1.0f - 2.0f * (x2 + y2);
+			const f32 r20 = 2.0f * (xz + wy);
+			const f32 r21 = 2.0f * (yz - wx);
+			const f32 r22 = 1.0f - 2.0f * (x2 + y2);
 
 			return mat4{r00, r01, r02, 0.0f, r10, r11, r12, 0.0f, r20, r21, r22, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 		}
@@ -264,33 +276,26 @@ namespace deckard::math
 
 	export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
 
-	export quat operator*(f32 scalar, const quat& q) { return q * scalar; }
-
-	export quat operator*=(f32 scalar, quat& q)
-	{
-		q *= scalar;
-		return q;
-	}
-
-	export quat operator/(f32 scalar, const quat& q) { return q / scalar; }
-
-	export quat operator/=(f32 scalar, quat& q)
-	{
-		q /= scalar;
-		return q;
-	}
-
-	export f32 dot(const quat& a, const quat b)
+	export f32 dot(const quat& a, const quat& b)
 	{
 		vec4 tmp(a.data.w * b.data.w, a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z);
 		return (tmp.x + tmp.y) + (tmp.z + tmp.w);
 	}
 
-	export f32 length(const quat& q) { return std::sqrt(dot(q, q)); };
+	export f32 length(const quat& q) { return std::sqrt(dot(q, q)); }
 
 	export quat conjugate(const quat& q) { return quat(q.data.w, -q.data.x, -q.data.y, -q.data.z); }
 
-	export quat inverse(const quat& q) { return conjugate(q) / dot(q, q); }
+	export quat inverse(const quat& q)
+	{
+		const f32 d = dot(q, q);
+		assert::check(d > 0.0f, "Cannot invert a quaternion with zero length");
+
+		return conjugate(q) / d;
+	}
+
+	export quat operator*(f32 scalar, const quat& q) { return q * scalar; }
+
 
 	export quat cross(const quat& q1, const quat& q2)
 	{
@@ -304,7 +309,7 @@ namespace deckard::math
 	{
 		const f32 len_sq = q.data.w * q.data.w + q.data.x * q.data.x + q.data.y * q.data.y + q.data.z * q.data.z;
 
-		if (not (len_sq > std::numeric_limits<f32>::epsilon()))
+		if (not(len_sq > std::numeric_limits<f32>::epsilon()))
 			return quat(1.0f, 0.0f, 0.0f, 0.0f);
 
 		const f32 inv_len = 1.0f / std::sqrt(len_sq);
@@ -331,7 +336,7 @@ namespace deckard::math
 	export quat rotate_y(const quat& q, f32 radians)
 	{
 		const float half     = radians * 0.5f;
-		quat        rotation = quat(std::cos(half), 0, std::sin(half), 0);
+		quat        rotation = quat(std::cos(half), 0.0f, std::sin(half), 0.0f);
 		return q * rotation;
 	}
 
@@ -342,22 +347,29 @@ namespace deckard::math
 		return q * rotation;
 	}
 
-	f32 mix(f32 x, f32 y, f32 t) { return (x * (1.0f - t) + y * t); }
-
-	quat mix(const quat& x, const quat& y, f32 t)
+	export quat mix(const quat& x, const quat& y, f32 t)
 	{
 		f32 theta = dot(x, y);
 
-		if (theta > (1.0f - 0.000001f))
+		quat to = y;
+		if (theta < 0.0f)
 		{
-			return quat(mix(x.data.w, y.data.w, t),
-						mix(x.data.x, y.data.x, t),
-						mix(x.data.y, y.data.y, t),
-						mix(x.data.z, y.data.z, t));
+			theta = -theta;
+			to    = -y;
 		}
 
-		f32 angle = std::acos(theta);
-		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * y) / std::sin(angle);
+		if (theta > slerp_lerp_threshold)
+		{
+			return normalize(quat(
+			  mix(x.data.w, to.data.w, t),
+			  mix(x.data.x, to.data.x, t),
+			  mix(x.data.y, to.data.y, t),
+			  mix(x.data.z, to.data.z, t)));
+		}
+
+		f32 angle = std::acos(std::clamp(theta, -1.0f, 1.0f));
+
+		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * to) / std::sin(angle);
 	}
 
 	export quat lerp(const quat& x, const quat& y, f32 t)
@@ -378,7 +390,7 @@ namespace deckard::math
 			theta = -theta;
 		}
 
-		if (theta > (1.0f - 0.000001f))
+		if (theta > slerp_lerp_threshold)
 		{
 			return quat(mix(x.data.w, z.data.w, t),
 						mix(x.data.x, z.data.x, t),
@@ -387,7 +399,7 @@ namespace deckard::math
 		}
 
 
-		f32 angle = std::acos(theta);
+		f32 angle = std::acos(std::clamp(theta, -1.0f, 1.0f));
 		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * z) / std::sin(angle);
 	}
 

@@ -91,6 +91,13 @@ export namespace deckard::math
 		return static_cast<T>((x % N + N) % N);
 	}
 
+	// mix
+	template<std::floating_point T>
+	[[nodiscard]] constexpr T mix(T x, T y, T t) noexcept
+	{
+		return x * (T{1} - t) + y * t;
+	}
+
 	// absolute difference
 	template<arithmetic T, arithmetic U>
 	T abs_diff(T x, U y)
@@ -101,10 +108,13 @@ export namespace deckard::math
 	// between values
 	[[nodiscard]] constexpr auto is_between(arithmetic auto value, arithmetic auto lo, arithmetic auto hi) noexcept -> bool
 	{
-		using common_t       = std::common_type_t<decltype(value), decltype(lo), decltype(hi)>;
-		auto [lower, upper]  = std::minmax<common_t>(static_cast<common_t>(lo), static_cast<common_t>(hi));
-		auto converted_value = static_cast<common_t>(value);
-		return converted_value >= lower and converted_value <= upper;
+		using common_t = std::common_type_t<decltype(value), decltype(lo), decltype(hi)>;
+
+		const auto v = static_cast<common_t>(value);
+		const auto l = static_cast<common_t>(lo);
+		const auto h = static_cast<common_t>(hi);
+
+		return v >= l and v <= h;
 	}
 
 	// zero_clamp
