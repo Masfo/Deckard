@@ -34,7 +34,12 @@ TEST_CASE("random", "[random]")
 		CHECK(math::is_between(random::randi32(-1'000'000, 1'000'000), -1'000'000_i32, 1'000'000_i32));
 		CHECK(
 		  math::is_between(random::randi64(-1'000'000'000'000, 1'000'000'000'000), -1'000'000'000'000_i64, 1'000'000'000'000_i64));
-		CHECK(math::is_between(random::float01(), 0.0f, 1.0f));
-		CHECK(math::is_between(random::float11(), -1.0f, 1.0f));
+		f32 v01 = random::float01();
+		CHECK(v01 >= 0.0f);
+		CHECK(v01 <= 1.0f);
+
+		f32 v11 = random::float11();
+		CHECK(v11 >= -1.0f);
+		CHECK(v11 <= 1.0f);
 	}
 }

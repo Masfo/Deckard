@@ -64,7 +64,7 @@ target_sources(tests PUBLIC
     tests/math_matrix_test.cpp
     tests/math_quat_test.cpp
     tests/math_tests.cpp
-    tests/math_primitives_test.cpp
+    
 
     # Utils
     tests/ringbuffer_test.cpp
@@ -106,6 +106,11 @@ target_sources(tests PUBLIC
     # Random
     tests/random_test.cpp
 
+    # Geometry
+    tests/geometry_test.cpp 
+    
+    # Memory
+    tests/memory_test.cpp
 )
 
 

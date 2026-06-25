@@ -1,4 +1,4 @@
-export module deckard.memory;
+export module deckard.memory:pool;
 
 import std;
 import deckard.types;

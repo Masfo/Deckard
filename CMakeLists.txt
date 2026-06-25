@@ -235,7 +235,11 @@ set(DECKARD_SRCS
 		threadpool/threadpool.ixx
 
 		# memorypool
-		memory/memorypool.ixx
+		memory/memory.ixx
+
+		memory/arena.ixx
+		memory/helpers.ixx
+		memory/pool.ixx
 
 
 		# Utils
