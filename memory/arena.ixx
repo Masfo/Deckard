@@ -16,6 +16,7 @@ namespace deckard::memory
 		u64       m_offset{0};
 		u64       m_capacity{0};
 
+
 	public:
 		explicit arena(u64 capacity_in_bytes)
 			: m_buffer(make_bytearray(capacity_in_bytes))
@@ -36,12 +37,11 @@ namespace deckard::memory
 			return aligned;
 		}
 
+
 		template<trivially_destructible T>
 		[[nodiscard]] std::span<T> allocate_block(u64 count)
 		{
-			u64   size_in_bytes = sizeof(T) * count;
-			
-			void* mem           = allocate(size_in_bytes, alignof(T));
+			void* mem = allocate(sizeof(T) * count, alignof(T));
 			if (not mem)
 				return {};
 

@@ -22,7 +22,7 @@ TEST_CASE("arena", "[arena][memory]")
 	SECTION("arena reset")
 	{
 		memory::arena frame(1024);
-		void*         ptr1 = frame.allocate(128);
+		auto          ptr1 = frame.allocate(128);
 		CHECK(ptr1 != nullptr);
 		CHECK(frame.used() == 128);
 		CHECK(frame.free() == 896);
@@ -93,6 +93,7 @@ TEST_CASE("arena", "[arena][memory]")
 		CHECK(frame.free() == 1024);
 	}
 
+
 	SECTION("allocate block")
 	{
 		memory::arena frame(1024);
@@ -132,12 +133,13 @@ TEST_CASE("arena", "[arena][memory]")
 		CHECK(p->z == 3.0f);
 	}
 
+	struct Particle
+	{
+		f32 x, y, z;
+	};
+
 	SECTION("create array of particles")
 	{
-		struct Particle
-		{
-			f32 x, y, z;
-		};
 
 		memory::arena frame(1024);
 		CHECK(frame.capacity() == 1024);
@@ -170,11 +172,6 @@ TEST_CASE("arena", "[arena][memory]")
 
 	SECTION("create array of particles with initial values")
 	{
-		struct Particle
-		{
-			f32 x, y, z;
-		};
-
 		memory::arena frame(1024);
 		auto          particles = frame.create_array<Particle>(5, 1.0f, 2.0f, 3.0f);
 
