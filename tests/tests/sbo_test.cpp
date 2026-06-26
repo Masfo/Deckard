@@ -2252,7 +2252,7 @@ TEST_CASE("sbo", "[sbo]")
 		CHECK(ss.size() == 7);
 		CHECK(ss.capacity() == 31);
 
-		std::array<u8, 2> search{'C', 'D'};
+		std::array<const u8, 2> search{'C', 'D'};
 
 		auto it = ss.find_first_of(search);
 		CHECK(std::distance(ss.begin(), it) == 2);

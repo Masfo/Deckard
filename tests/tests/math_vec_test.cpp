@@ -108,6 +108,10 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		CHECK(sres.equals(ivec2(3)));
 
 
+		sres = 2 * sres;
+		CHECK(sres == ivec2(6));
+
+
 		// ++ --
 		ivec2 ppv(1, 2);
 		CHECK(ppv == ivec2(1, 2));
@@ -345,6 +349,10 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 		CHECK(sres.equals(vec2(0.5f)));
 
 
+		sres = 2.0f * sres;
+		CHECK(sres == vec2(1.0f));
+
+
 		// ++ --
 		vec2 ppv(1, 2);
 		CHECK(ppv == vec2(1, 2));
@@ -548,6 +556,9 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		CHECK(sres.equals(vec3(7.0f)));
 		sres -= 5.0f;
 		CHECK(sres.equals(vec3(2.0f)));
+
+		sres = 2.0f * sres;
+		CHECK(sres == vec3(4.0f));
 
 		// ++ --
 		vec3 ppv(1, 2, 3);
@@ -785,6 +796,10 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		CHECK(sres.equals(vec4(7.0f)));
 		sres -= 5.0f;
 		CHECK(sres.equals(vec4(2.0f)));
+
+
+		sres = 2.0f * sres;
+		CHECK(sres == vec4(4.0f));
 
 		// scalar
 		const vec4 add_scalar = v1 + 4;

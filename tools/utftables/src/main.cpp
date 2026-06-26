@@ -208,6 +208,9 @@ BiDirectionalCategory to_BiDirectionalCategory(std::string_view input)
 	return BiDirectionalCategory::Unknown;
 }
 
+
+
+
 std::optional<unsigned int> to_char32(std::string_view str)
 {
 	if (str.empty())
@@ -393,6 +396,9 @@ UnicodeDataField parse_field(std::string_view line)
 
 	return field;
 }
+
+
+
 
 struct decompose_table
 {
@@ -1133,6 +1139,33 @@ void emit_cpp_tables(TrieTables const &t, std::string_view name)
 	std::println("}}");
 }
 
+
+// ##########################################
+
+
+std::string parse_version()
+{
+	auto lines = read_lines("utf/readme.txt");
+
+	for (const auto &line : lines)
+	{
+		if (line[0] == '#')
+			continue;
+
+		if (line.contains("for Version"))
+		{
+
+			if (auto words = split(line, " "); words.size() >= 2)
+			{
+				return words[2];
+			}
+		}
+	}
+
+
+	return "unknown version"s;
+}
+
 // ##########################################
 
 void process_unicode_data()
@@ -1388,6 +1421,10 @@ void process_ascii_character_list()
 
 int main()
 {
+	auto version = parse_version();
+
+
+	std::println("Parsing Unicode {}", version);
 
 	process_core_properties();
 	process_unicode_data();

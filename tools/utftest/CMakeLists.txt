@@ -232,7 +232,8 @@ download_file(https://www.unicode.org/Public/UCD/latest/ucd/NormalizationTest.tx
 #               
 # download_file(https://www.unicode.org/Public/UCD/latest/ucd/NamesList.txt
 #               ${CMAKE_CURRENT_LIST_DIR}/bin/utf/NamesList.txt)
-
+download_file(https://www.unicode.org/Public/UCD/latest/ReadMe.txt
+                ${CMAKE_CURRENT_LIST_DIR}/bin/utf/readme.txt)
 
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
