@@ -52,7 +52,7 @@ namespace deckard::memory
 		}
 
 		template<trivially_destructible T, typename... Args>
-		[[nodiscard]] std::span<T> create_array(u64 count, Args&&... args)
+		[[nodiscard]] std::span<T> create_array(u64 count, const Args&... args)
 		{
 			void* mem = raw_allocate(sizeof(T) * count, alignof(T));
 			if (not mem)
@@ -67,11 +67,11 @@ namespace deckard::memory
 
 		void reset() { m_offset = 0; }
 
-		u64 capacity() const { return N; }
+		[[nodiscard]] u64 capacity() const { return N; }
 
-		u64 used() const { return m_offset; }
+		[[nodiscard]] u64 used() const { return m_offset; }
 
-		u64 free() const { return N - m_offset; }
+		[[nodiscard]] u64 free() const { return N - m_offset; }
 	};
 
 	// ###########################################################################
