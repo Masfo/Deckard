@@ -167,7 +167,7 @@ struct TCP
 
 struct UDP
 {
-	bool open([[maybe_unused]]u16 port, Address inet = Address::V6)
+	bool open([[maybe_unused]] u16 port, Address inet = Address::V6)
 	{
 		u32 type = (inet == Address::V6) ? AF_INET6 : AF_INET;
 
@@ -787,7 +787,7 @@ public:
 	}
 };
 
-auto ip_query(std::string_view host, [[maybe_unused]]int version = 4) -> std::pair<std::string, std::chrono::milliseconds>
+auto ip_query(std::string_view host, [[maybe_unused]] int version = 4) -> std::pair<std::string, std::chrono::milliseconds>
 {
 	const std::string req = std::format("GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n", host);
 
@@ -823,12 +823,300 @@ auto ipify_query(int version = 4)
 	return ip_query(host, version);
 }
 
+constexpr std::array<std::string_view, 128> koremutake_syllables = {
+  {"BA",  "BE",  "BI",  "BO",  "BU",  "BY",  "DA",  "DE",  "DI",  "DO",  "DU",  "DY",  "FA",  "FE",  "FI",  "FO",
+   "FU",  "FY",  "GA",  "GE",  "GI",  "GO",  "GU",  "GY",  "HA",  "HE",  "HI",  "HO",  "HU",  "HY",  "JA",  "JE",
+   "JI",  "JO",  "JU",  "JY",  "KA",  "KE",  "KI",  "KO",  "KU",  "KY",  "LA",  "LE",  "LI",  "LO",  "LU",  "LY",
+   "MA",  "ME",  "MI",  "MO",  "MU",  "MY",  "NA",  "NE",  "NI",  "NO",  "NU",  "NY",  "PA",  "PE",  "PI",  "PO",
+   "PU",  "PY",  "RA",  "RE",  "RI",  "RO",  "RU",  "RY",  "SA",  "SE",  "SI",  "SO",  "SU",  "SY",  "TA",  "TE",
+   "TI",  "TO",  "TU",  "TY",  "VA",  "VE",  "VI",  "VO",  "VU",  "VY",  "BRA", "BRE", "BRI", "BRO", "BRU", "BRY",
+   "DRA", "DRE", "DRI", "DRO", "DRU", "DRY", "FRA", "FRE", "FRI", "FRO", "FRU", "FRY", "GRA", "GRE", "GRI", "GRO",
+   "GRU", "GRY", "PRA", "PRE", "PRI", "PRO", "PRU", "PRY", "STA", "STE", "STI", "STO", "STU", "STY", "TRA", "TRE"}};
+
+[[nodiscard]] auto koremutake_encode(uint64_t value) -> std::string
+{
+	if (value == 0)
+		return std::string{koremutake_syllables[0]};
+
+	std::string result;
+	result.reserve(3 * 7);
+	while (value--)
+	{
+		result = std::string{koremutake_syllables[random::randu8() & 0x7F]} + result;
+	}
+	return result;
+
+	while (value > 0)
+	{
+		result = std::string{koremutake_syllables[value & 0x7F]} + result;
+		value >>= 7;
+	}
+	return result;
+}
+
+[[nodiscard]] auto generate_human_name(std::mt19937& rng, std::size_t parts = 3) -> std::string
+{
+#if 0
+	static constexpr std::array onset = {
+	  "KAL"sv, "VER"sv, "TER"sv, "MAR"sv, "SOL"sv, "CEN"sv, "ARC"sv, "VAN"sv, "ORI"sv, "CAS"sv, "LEG"sv, "FOR"sv,
+	  "IMP"sv, "COR"sv, "FAB"sv, "GAL"sv, "HAD"sv, "LAC"sv, "MAX"sv, "NAV"sv, "OPT"sv, "PAX"sv, "QUI"sv, "REG"sv,
+	  "SEN"sv, "TIT"sv, "URB"sv, "VAL"sv, "XAN"sv, "ZEN"sv, "ALB"sv, "BEL"sv, "CAP"sv, "DEC"sv, "EQU"sv, "FEL"sv,
+	  "GEN"sv, "HEL"sv, "INV"sv, "JUL"sv, "LAT"sv, "MER"sv, "NOM"sv, "OCT"sv, "POM"sv, "QUA"sv, "ROM"sv, "SAT"sv,
+	  "TRO"sv, "ULP"sv, "VIC"sv, "WAR"sv, "XER"sv, "YOR"sv, "ZAC"sv, "ACQ"sv, "BRU"sv, "DOM"sv, "EXP"sv, "CLAv"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "IA"sv,  "IO"sv,  "AN"sv,  "EN"sv,  "ON"sv,  "AL"sv,  "EL"sv,  "IN"sv,  "UN"sv,  "ER"sv,  "AE"sv,  "OE"sv,
+	  "AU"sv,  "EU"sv,  "UI"sv,  "IE"sv,  "UA"sv,  "UE"sv,  "OI"sv,  "ARI"sv, "ORI"sv, "ANI"sv, "ENI"sv, "ONI"sv,
+	  "ALI"sv, "ELI"sv, "INI"sv, "UNI"sv, "ERI"sv, "AVA"sv, "EVE"sv, "IVI"sv, "OVO"sv, "UVU"sv, "ALA"sv, "ELE"sv,
+	  "ILI"sv, "OLO"sv, "ULU"sv, "ANA"sv, "ENE"sv, "INI"sv, "ONO"sv, "UNU"sv, "ARA"sv, "ERE"sv, "IRI"sv, "ORO"sv,
+	  "URU"sv, "AMA"sv, "EME"sv, "IMI"sv, "OMO"sv, "UMU"sv, "APA"sv, "EPE"sv, "IPI"sv, "OPO"sv, "UPU"sv, "OAE"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "US"sv,  "IX"sv,  "AN"sv,  "OR"sv,  "IS"sv,  "AR"sv,  "ON"sv,  "UM"sv,  "AX"sv,  "EN"sv,  "IUS"sv, "AUS"sv,
+	  "EUS"sv, "OUS"sv, "UUS"sv, "INS"sv, "ANS"sv, "ENS"sv, "ONS"sv, "UNS"sv, "TOR"sv, "SOR"sv, "XOR"sv, "NOR"sv,
+	  "COR"sv, "TUS"sv, "SUS"sv, "XUS"sv, "NUS"sv, "CUS"sv, "TIS"sv, "SIS"sv, "XIS"sv, "NIS"sv, "CIS"sv, "TUM"sv,
+	  "SUM"sv, "XUM"sv, "NUM"sv, "LUM"sv, "TAX"sv, "SAX"sv, "XAX"sv, "NAX"sv, "CAX"sv, "TON"sv, "SON"sv, "XON"sv,
+	  "NON"sv, "CON"sv, "TAN"sv, "SAN"sv, "XAN"sv, "NAN"sv, "CAN"sv, "TEN"sv, "SEN"sv, "XEN"sv, "NEN"sv, "CEN"sv,
+	};
+#endif
+
+#if 0
+	static constexpr std::array onset = {
+	  "AET"sv, "CYR"sv, "DAX"sv, "ELY"sv, "EXO"sv, "GAL"sv, "HEL"sv, "HYP"sv, "ION"sv, "IXO"sv, "KAI"sv, "KYN"sv,
+	  "LYR"sv, "NEX"sv, "NOV"sv, "NYX"sv, "ORB"sv, "ORN"sv, "OXY"sv, "PHO"sv, "PLX"sv, "POL"sv, "PRX"sv, "PSI"sv,
+	  "PYR"sv, "QUA"sv, "RAD"sv, "REL"sv, "RHO"sv, "RYX"sv, "SOL"sv, "SYN"sv, "TAU"sv, "TEC"sv, "TEL"sv, "TER"sv,
+	  "THY"sv, "TRX"sv, "VEC"sv, "VEG"sv, "VEL"sv, "VEN"sv, "VEX"sv, "VOI"sv, "VOL"sv, "VOR"sv, "XEN"sv, "XER"sv,
+	  "XYL"sv, "YON"sv, "ZEL"sv, "ZEN"sv, "ZEP"sv, "ZET"sv, "ZON"sv, "ZOR"sv, "ZYG"sv, "ZYN"sv, "ZYP"sv, "ZYX"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "AE"sv,  "AI"sv,  "AO"sv,  "AU"sv,  "AX"sv,  "EA"sv,  "EI"sv,  "EO"sv,  "EU"sv,  "EX"sv,  "IA"sv,  "IE"sv,
+	  "IO"sv,  "IU"sv,  "IX"sv,  "OA"sv,  "OE"sv,  "OI"sv,  "OU"sv,  "OX"sv,  "UA"sv,  "UE"sv,  "UI"sv,  "UO"sv,
+	  "UX"sv,  "YA"sv,  "YE"sv,  "YI"sv,  "YO"sv,  "YU"sv,  "AEI"sv, "AEO"sv, "AEU"sv, "AIU"sv, "AOE"sv, "EAI"sv,
+	  "EAO"sv, "EAU"sv, "EIO"sv, "EIU"sv, "IAE"sv, "IAO"sv, "IAU"sv, "IEA"sv, "IEO"sv, "OAE"sv, "OAI"sv, "OAU"sv,
+	  "OEA"sv, "OEI"sv, "UAI"sv, "UAE"sv, "UAO"sv, "UEA"sv, "UEI"sv, "YAE"sv, "YAI"sv, "YAO"sv, "YEA"sv, "YEI"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "AX"sv,  "EX"sv,  "IX"sv,  "OX"sv,  "UX"sv,  "YX"sv,  "ANX"sv, "ENX"sv, "INX"sv, "ONX"sv, "ARX"sv, "ERX"sv,
+	  "IRX"sv, "ORX"sv, "URX"sv, "ALX"sv, "ELX"sv, "ILX"sv, "OLX"sv, "ULX"sv, "ON"sv,  "AN"sv,  "EN"sv,  "IN"sv,
+	  "UN"sv,  "YN"sv,  "AON"sv, "EON"sv, "ION"sv, "UON"sv, "OR"sv,  "AR"sv,  "ER"sv,  "IR"sv,  "UR"sv,  "YR"sv,
+	  "AOR"sv, "EOR"sv, "IOR"sv, "UOR"sv, "OS"sv,  "AS"sv,  "ES"sv,  "IS"sv,  "US"sv,  "YS"sv,  "AOS"sv, "EOS"sv,
+	  "IOS"sv, "UOS"sv, "OZ"sv,  "AZ"sv,  "EZ"sv,  "IZ"sv,  "UZ"sv,  "YZ"sv,  "AOZ"sv, "EOZ"sv, "IOZ"sv, "UOZ"sv,
+	};
+#endif
+
+#if 1
+	static constexpr std::array onset = {
+	  "AEL"sv, "AER"sv, "ALT"sv, "ARA"sv, "ARD"sv, "ARG"sv, "ASH"sv, "ATH"sv, "AVA"sv, "AYR"sv, "BEL"sv, "BOR"sv,
+	  "BRA"sv, "BRE"sv, "CAL"sv, "CER"sv, "DAL"sv, "DOR"sv, "DRA"sv, "DWA"sv, "ELD"sv, "ELF"sv, "ELM"sv, "ELR"sv,
+	  "EMB"sv, "ERE"sv, "ETH"sv, "EVA"sv, "FAL"sv, "FEN"sv, "GAL"sv, "GAR"sv, "GLA"sv, "GOR"sv, "HAL"sv, "HEL"sv,
+	  "ISH"sv, "IVA"sv, "KAL"sv, "KER"sv, "LAR"sv, "LOR"sv, "LYN"sv, "MAL"sv, "MIR"sv, "MOR"sv, "NAL"sv, "NOR"sv,
+	  "OAK"sv, "OHN"sv, "ORM"sv, "RAL"sv, "RAN"sv, "RIM"sv, "ROW"sv, "RYN"sv, "SAL"sv, "SIL"sv, "TAL"sv, "THR"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "AA"sv,  "AE"sv,  "AI"sv,  "AL"sv,  "AN"sv,  "AR"sv,  "EA"sv,  "EL"sv,  "EN"sv,  "ER"sv,  "IA"sv,  "IE"sv,
+	  "IL"sv,  "IN"sv,  "IR"sv,  "OA"sv,  "OE"sv,  "OI"sv,  "OL"sv,  "ON"sv,  "UA"sv,  "UE"sv,  "UI"sv,  "UL"sv,
+	  "UN"sv,  "YA"sv,  "YE"sv,  "YL"sv,  "YN"sv,  "YR"sv,  "AEL"sv, "AER"sv, "AIR"sv, "ALI"sv, "ANI"sv, "EAL"sv,
+	  "EAR"sv, "EIL"sv, "ELI"sv, "ENI"sv, "IAL"sv, "IAR"sv, "IEL"sv, "ILI"sv, "INI"sv, "OAL"sv, "OAR"sv, "OEL"sv,
+	  "OLI"sv, "ONI"sv, "UAL"sv, "UAR"sv, "UEL"sv, "ULI"sv, "UNI"sv, "YAL"sv, "YAR"sv, "YEL"sv, "YLI"sv, "YNI"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "AL"sv,  "AN"sv,  "AR"sv,  "AS"sv,  "ATH"sv, "EL"sv,  "EN"sv,  "ER"sv,  "ES"sv,  "ETH"sv, "IAL"sv, "IAN"sv,
+	  "IAR"sv, "IEL"sv, "IEN"sv, "IL"sv,  "IN"sv,  "IR"sv,  "IS"sv,  "ITH"sv, "OAL"sv, "OAN"sv, "OAR"sv, "OEL"sv,
+	  "OEN"sv, "OL"sv,  "ON"sv,  "OR"sv,  "OS"sv,  "OTH"sv, "UAL"sv, "UAN"sv, "UAR"sv, "UEL"sv, "UEN"sv, "UL"sv,
+	  "UN"sv,  "UR"sv,  "US"sv,  "UTH"sv, "AND"sv, "END"sv, "IND"sv, "OND"sv, "UND"sv, "ARD"sv, "ERD"sv, "IRD"sv,
+	  "ORD"sv, "URD"sv, "ALD"sv, "ELD"sv, "ILD"sv, "OLD"sv, "ULD"sv, "ANE"sv, "ENE"sv, "INE"sv, "ONE"sv, "UNE"sv,
+	};
+#endif
+
+#if 0
+	static constexpr std::array onset = {
+	  "AQU"sv, "ARG"sv, "AST"sv, "AUR"sv, "AXI"sv, "AZU"sv, "CAE"sv, "CAL"sv, "CAS"sv, "CER"sv, "COR"sv, "CRU"sv,
+	  "CYG"sv, "DRA"sv, "ERI"sv, "EUX"sv, "FOR"sv, "GAL"sv, "GEM"sv, "GLA"sv, "HEL"sv, "HYD"sv, "HYP"sv, "IGN"sv,
+	  "ION"sv, "KAL"sv, "KEP"sv, "KET"sv, "KOI"sv, "KRO"sv, "LYR"sv, "MAG"sv, "MAR"sv, "MER"sv, "MOR"sv, "NAB"sv,
+	  "NEP"sv, "NOV"sv, "NUB"sv, "OBE"sv, "OPH"sv, "ORB"sv, "ORI"sv, "ORP"sv, "PAL"sv, "PER"sv, "PHO"sv, "PLU"sv,
+	  "POL"sv, "PUL"sv, "RAD"sv, "RHO"sv, "RIG"sv, "SAG"sv, "SEL"sv, "SER"sv, "SOL"sv, "TAU"sv, "TER"sv, "THA"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "AA"sv,  "AE"sv,  "AI"sv,  "AO"sv,  "AU"sv,  "EA"sv,  "EI"sv,  "EO"sv,  "EU"sv,  "IA"sv,  "IE"sv,  "IO"sv,
+	  "IU"sv,  "OA"sv,  "OE"sv,  "OI"sv,  "OU"sv,  "UA"sv,  "UE"sv,  "UI"sv,  "ABI"sv, "ADI"sv, "AKI"sv, "ALI"sv,
+	  "AMI"sv, "ANI"sv, "API"sv, "ARI"sv, "ASI"sv, "ATI"sv, "EBI"sv, "EDI"sv, "EKI"sv, "ELI"sv, "EMI"sv, "ENI"sv,
+	  "EPI"sv, "ERI"sv, "ESI"sv, "ETI"sv, "IBA"sv, "IDA"sv, "IKA"sv, "ILA"sv, "IMA"sv, "INA"sv, "IPA"sv, "IRA"sv,
+	  "ISA"sv, "ITA"sv, "OBA"sv, "ODA"sv, "OKA"sv, "OLA"sv, "OMA"sv, "ONA"sv, "OPA"sv, "ORA"sv, "OSA"sv, "OTA"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "AX"sv,  "IX"sv,  "OX"sv,   "UX"sv,   "YX"sv,   "ION"sv,  "EON"sv,  "AON"sv,  "UON"sv,  "YON"sv,  "ARA"sv,  "ERA"sv,
+	  "IRA"sv, "ORA"sv, "URA"sv,  "ALA"sv,  "ELA"sv,  "ILA"sv,  "OLA"sv,  "ULA"sv,  "ANE"sv,  "ENE"sv,  "INE"sv,  "ONE"sv,
+	  "UNE"sv, "ARE"sv, "ERE"sv,  "IRE"sv,  "ORE"sv,  "URE"sv,  "AND"sv,  "END"sv,  "IND"sv,  "OND"sv,  "UND"sv,  "ANT"sv,
+	  "ENT"sv, "INT"sv, "ONT"sv,  "UNT"sv,  "ARS"sv,  "ERS"sv,  "IRS"sv,  "ORS"sv,  "URS"sv,  "ALS"sv,  "ELS"sv,  "ILS"sv,
+	  "OLS"sv, "ULS"sv, "ARIA"sv, "ERIA"sv, "IRIA"sv, "ORIA"sv, "URIA"sv, "ALIS"sv, "ELIS"sv, "ILIS"sv, "OLIS"sv, "ULIS"sv,
+	};
+#endif
+
+#if 0
+	// Japanese-inspired
+	static constexpr std::array onset = {
+	  "AKA"sv, "AKI"sv, "AKO"sv, "AKU"sv, "AMA"sv, "AMI"sv, "AMO"sv, "AMU"sv, "ANA"sv, "ANI"sv, "AOI"sv, "ARA"sv,
+	  "ARI"sv, "ARU"sv, "ASA"sv, "ASI"sv, "ASO"sv, "ASU"sv, "ATA"sv, "ATO"sv, "EKA"sv, "EKI"sv, "EMA"sv, "EMI"sv,
+	  "ENA"sv, "ENI"sv, "ERA"sv, "ERI"sv, "ESA"sv, "ETA"sv, "IKA"sv, "IKI"sv, "IKO"sv, "IKU"sv, "IMA"sv, "IMI"sv,
+	  "INA"sv, "INI"sv, "IRA"sv, "IRI"sv, "OKA"sv, "OKI"sv, "OKO"sv, "OKU"sv, "OMA"sv, "OMI"sv, "ONA"sv, "ONI"sv,
+	  "ORA"sv, "ORI"sv, "UKA"sv, "UKI"sv, "UMA"sv, "UMI"sv, "UNA"sv, "UNI"sv, "URA"sv, "URI"sv, "USA"sv, "UTA"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "A"sv,  "I"sv,  "U"sv,  "E"sv,  "O"sv,  "AI"sv, "AU"sv, "IE"sv, "IO"sv, "IU"sv, "OA"sv, "OE"sv, "OI"sv, "UA"sv, "UE"sv,
+	  "UI"sv, "UO"sv, "AE"sv, "AO"sv, "EI"sv, "KA"sv, "KI"sv, "KU"sv, "KE"sv, "KO"sv, "MA"sv, "MI"sv, "MU"sv, "ME"sv, "MO"sv,
+	  "NA"sv, "NI"sv, "NU"sv, "NE"sv, "NO"sv, "RA"sv, "RI"sv, "RU"sv, "RE"sv, "RO"sv, "SA"sv, "SI"sv, "SU"sv, "SE"sv, "SO"sv,
+	  "TA"sv, "TI"sv, "TU"sv, "TE"sv, "TO"sv, "WA"sv, "WI"sv, "WU"sv, "WE"sv, "WO"sv, "YA"sv, "YI"sv, "YU"sv, "YE"sv, "YO"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "KA"sv,  "KI"sv,  "KO"sv,  "KU"sv,  "KE"sv,  "MA"sv,  "MI"sv,  "MO"sv,  "MU"sv,  "ME"sv,  "NA"sv,  "NI"sv,
+	  "NO"sv,  "NU"sv,  "NE"sv,  "RA"sv,  "RI"sv,  "RO"sv,  "RU"sv,  "RE"sv,  "SHA"sv, "SHI"sv, "SHO"sv, "SHU"sv,
+	  "SHE"sv, "CHI"sv, "CHA"sv, "CHO"sv, "CHU"sv, "CHE"sv, "TSA"sv, "TSI"sv, "TSO"sv, "TSU"sv, "TSE"sv, "ZHA"sv,
+	  "ZHI"sv, "ZHO"sv, "ZHU"sv, "ZHE"sv, "RYA"sv, "RYI"sv, "RYO"sv, "RYU"sv, "RYE"sv, "MYA"sv, "MYI"sv, "MYO"sv,
+	  "MYU"sv, "MYE"sv, "NYA"sv, "NYI"sv, "NYO"sv, "NYU"sv, "NYE"sv, "KYA"sv, "KYI"sv, "KYO"sv, "KYU"sv, "KYE"sv,
+	};
+#endif
+
+#if 0
+	// Korean-inspired
+	static constexpr std::array onset = {
+	  "BAE"sv, "BAK"sv, "BAL"sv, "BAM"sv, "BAN"sv, "BAP"sv, "BAR"sv, "BAS"sv, "BAT"sv, "BAU"sv, "BEO"sv, "BEU"sv,
+	  "BEY"sv, "BIN"sv, "BOM"sv, "BON"sv, "BOP"sv, "BOR"sv, "BOT"sv, "BOU"sv, "BUK"sv, "BUL"sv, "BUM"sv, "BUN"sv,
+	  "BUP"sv, "BUR"sv, "BUS"sv, "BUT"sv, "BUY"sv, "BYE"sv, "CHA"sv, "CHE"sv, "CHO"sv, "CHU"sv, "DAE"sv, "DAK"sv,
+	  "DAL"sv, "DAM"sv, "DAN"sv, "DAP"sv, "DEO"sv, "DEU"sv, "DEY"sv, "DIN"sv, "DOM"sv, "DON"sv, "DOP"sv, "DOR"sv,
+	  "DOT"sv, "DOU"sv, "DUK"sv, "DUL"sv, "DUM"sv, "DUN"sv, "DUP"sv, "DUR"sv, "DUS"sv, "DUT"sv, "GAE"sv, "GAK"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "AE"sv,  "AK"sv,  "AL"sv,  "AM"sv,  "AN"sv,  "AP"sv,  "AR"sv,  "AS"sv,  "AT"sv,  "AU"sv,  "EO"sv,  "EU"sv,
+	  "EY"sv,  "IN"sv,  "OM"sv,  "ON"sv,  "OP"sv,  "OR"sv,  "OT"sv,  "OU"sv,  "UK"sv,  "UL"sv,  "UM"sv,  "UN"sv,
+	  "UP"sv,  "UR"sv,  "US"sv,  "UT"sv,  "UY"sv,  "YE"sv,  "ANG"sv, "ENG"sv, "ING"sv, "ONG"sv, "UNG"sv, "ANK"sv,
+	  "ENK"sv, "INK"sv, "ONK"sv, "UNK"sv, "AEO"sv, "AEU"sv, "EON"sv, "EOU"sv, "OEA"sv, "OEU"sv, "UAE"sv, "UAO"sv,
+	  "UEA"sv, "UEO"sv, "YAE"sv, "YAK"sv, "YAL"sv, "YAM"sv, "YAN"sv, "YAP"sv, "YAR"sv, "YAS"sv, "YAT"sv, "YAU"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "AK"sv,  "AL"sv,  "AM"sv,  "AN"sv,  "AP"sv,  "AR"sv,  "AS"sv,  "AT"sv,  "ANG"sv, "ANK"sv, "EK"sv,   "EL"sv,
+	  "EM"sv,  "EN"sv,  "EP"sv,  "ER"sv,  "ES"sv,  "ET"sv,  "ENG"sv, "ENK"sv, "IK"sv,  "IL"sv,  "IM"sv,   "IN"sv,
+	  "IP"sv,  "IR"sv,  "IS"sv,  "IT"sv,  "ING"sv, "INK"sv, "OK"sv,  "OL"sv,  "OM"sv,  "ON"sv,  "OP"sv,   "OR"sv,
+	  "OS"sv,  "OT"sv,  "ONG"sv, "ONK"sv, "UK"sv,  "UL"sv,  "UM"sv,  "UN"sv,  "UP"sv,  "UR"sv,  "US"sv,   "UT"sv,
+	  "UNG"sv, "UNK"sv, "YAK"sv, "YAL"sv, "YAM"sv, "YAN"sv, "YAP"sv, "YAR"sv, "YAS"sv, "YAT"sv, "YANG"sv, "YANK"sv,
+	};
+#endif
+
+#if 0
+	// Mandarin-inspired
+	static constexpr std::array onset = {
+	  "BAI"sv, "BEI"sv, "BIN"sv, "CAI"sv, "CAN"sv, "CAO"sv, "CEI"sv, "CEN"sv, "CHA"sv, "CHE"sv, "CHI"sv, "CHO"sv,
+	  "CHU"sv, "DAI"sv, "DAN"sv, "DAO"sv, "DEI"sv, "DEN"sv, "DIA"sv, "DIE"sv, "DIN"sv, "DON"sv, "DOU"sv, "DUA"sv,
+	  "DUI"sv, "DUN"sv, "DUO"sv, "FAI"sv, "FAN"sv, "FAO"sv, "FEI"sv, "FEN"sv, "FIA"sv, "GAI"sv, "GAN"sv, "GAO"sv,
+	  "GEI"sv, "GEN"sv, "GOU"sv, "GUA"sv, "GUI"sv, "GUN"sv, "GUO"sv, "HAI"sv, "HAN"sv, "HAO"sv, "HEI"sv, "HEN"sv,
+	  "HOU"sv, "HUA"sv, "HUI"sv, "HUN"sv, "HUO"sv, "JIA"sv, "JIE"sv, "JIN"sv, "JOU"sv, "JUA"sv, "JUI"sv, "JUN"sv,
+	};
+
+	static constexpr std::array nucleus = {
+	  "AI"sv,  "AN"sv,  "AO"sv,  "EI"sv,  "EN"sv,  "IA"sv,  "IE"sv,  "IN"sv,  "IU"sv,  "OU"sv,  "UA"sv,  "UE"sv,
+	  "UI"sv,  "UN"sv,  "UO"sv,  "YA"sv,  "YE"sv,  "YI"sv,  "YO"sv,  "YU"sv,  "ANG"sv, "ENG"sv, "ING"sv, "ONG"sv,
+	  "UNG"sv, "AIN"sv, "EIN"sv, "IAN"sv, "UAN"sv, "YAN"sv, "IAO"sv, "IOU"sv, "UAI"sv, "UEI"sv, "UAO"sv, "YAO"sv,
+	  "YOU"sv, "WAI"sv, "WEI"sv, "WAN"sv, "ANG"sv, "ENG"sv, "ING"sv, "ONG"sv, "UNG"sv, "YNG"sv, "ANR"sv, "ENR"sv,
+	  "INR"sv, "ONR"sv, "IAR"sv, "IER"sv, "UAR"sv, "UER"sv, "YAR"sv, "YER"sv, "AIR"sv, "EIR"sv, "UIR"sv, "UOR"sv,
+	};
+
+	static constexpr std::array coda = {
+	  "AN"sv,   "EN"sv,  "IN"sv,  "ON"sv,  "UN"sv,  "ANG"sv, "ENG"sv,  "ING"sv, "ONG"sv,  "UNG"sv,  "AI"sv,   "EI"sv,
+	  "UI"sv,   "AO"sv,  "OU"sv,  "IA"sv,  "IE"sv,  "UA"sv,  "UE"sv,   "UO"sv,  "LI"sv,   "LIN"sv,  "LING"sv, "LAN"sv,
+	  "LANG"sv, "LEI"sv, "LOU"sv, "LUN"sv, "LUO"sv, "LYU"sv, "MEI"sv,  "MEN"sv, "MIN"sv,  "MING"sv, "MOU"sv,  "MUA"sv,
+	  "MUI"sv,  "MUN"sv, "MUO"sv, "MYU"sv, "NAN"sv, "NEI"sv, "NEN"sv,  "NIN"sv, "NING"sv, "NOU"sv,  "NUA"sv,  "NUI"sv,
+	  "NUN"sv,  "NUO"sv, "RAN"sv, "REI"sv, "REN"sv, "RIN"sv, "RING"sv, "ROU"sv, "RUA"sv,  "RUI"sv,  "RUN"sv,  "RUO"sv,
+	};
+#endif
+
+#if 0
+	// Cyber / Hacking
+static constexpr std::array onset = {
+    "BIN"sv, "BIT"sv, "BUF"sv, "BYT"sv, "CMD"sv, "COD"sv, "COR"sv, "CPU"sv, "CRC"sv, "CRY"sv,
+    "DAT"sv, "DEC"sv, "DEF"sv, "DEX"sv, "DIF"sv, "DIG"sv, "DMA"sv, "DNS"sv, "DOM"sv, "DYN"sv,
+    "ENC"sv, "ENT"sv, "EXE"sv, "EXP"sv, "EXT"sv, "FAT"sv, "FLO"sv, "FLX"sv, "FMT"sv, "FUZ"sv,
+    "GDB"sv, "GLB"sv, "GPU"sv, "GRF"sv, "GRP"sv, "HAX"sv, "HEX"sv, "HOP"sv, "HTM"sv, "HUB"sv,
+    "INJ"sv, "INT"sv, "INX"sv, "IOC"sv, "IPC"sv, "IRQ"sv, "ISR"sv, "JAV"sv, "JIT"sv, "JSN"sv,
+    "KER"sv, "KEY"sv, "KNL"sv, "LAT"sv, "LIN"sv, "LNK"sv, "LOG"sv, "LOP"sv, "LSB"sv, "LUT"sv,
+};
+
+static constexpr std::array nucleus = {
+    "0X"sv,  "1N"sv,  "2D"sv,  "3R"sv,  "4T"sv,  "5K"sv,  "6L"sv,  "7M"sv,  "8S"sv,  "9V"sv,
+    "AC"sv,  "AL"sv,  "AN"sv,  "AR"sv,  "AT"sv,  "AX"sv,  "EC"sv,  "EL"sv,  "EN"sv,  "ER"sv,
+    "EX"sv,  "IC"sv,  "IL"sv,  "IN"sv,  "IR"sv,  "IX"sv,  "OC"sv,  "OL"sv,  "ON"sv,  "OR"sv,
+    "OX"sv,  "UC"sv,  "UL"sv,  "UN"sv,  "UR"sv,  "UX"sv,  "ACK"sv, "ALT"sv, "ANT"sv, "ARP"sv,
+    "ASM"sv, "AST"sv, "ATM"sv, "AXE"sv, "ECH"sv, "EDG"sv, "EKT"sv, "ELT"sv, "EMU"sv, "ENT"sv,
+    "ERR"sv, "ESC"sv, "ETH"sv, "EXT"sv, "IFK"sv, "IGN"sv, "IKT"sv, "ILT"sv, "IMT"sv, "INT"sv,
+};
+
+static constexpr std::array coda = {
+    "ASM"sv, "BUS"sv, "CMD"sv, "COR"sv, "CPU"sv, "CRC"sv, "CTL"sv, "DLL"sv, "DMP"sv, "DNS"sv,
+    "EXE"sv, "EXT"sv, "FAT"sv, "FMT"sv, "FSB"sv, "GPU"sv, "GRP"sv, "HAL"sv, "HEX"sv, "HTM"sv,
+    "INT"sv, "IPC"sv, "IRQ"sv, "ISR"sv, "JIT"sv, "JSN"sv, "KNL"sv, "LNK"sv, "LOG"sv, "LSB"sv,
+    "MMU"sv, "MOD"sv, "MSB"sv, "MTX"sv, "MUX"sv, "NET"sv, "NIC"sv, "NOP"sv, "NUL"sv, "OBJ"sv,
+    "OOM"sv, "OPT"sv, "ORB"sv, "OVF"sv, "PCB"sv, "PID"sv, "PKT"sv, "PLT"sv, "POP"sv, "PTR"sv,
+    "RAM"sv, "REG"sv, "ROM"sv, "RPC"sv, "RST"sv, "RTT"sv, "SIG"sv, "SMP"sv, "SQL"sv, "SYS"sv,
+};
+#endif
 
 
+#if 0
+// Nanotech / Biotech
+static constexpr std::array onset = {
+    "ACT"sv, "ADN"sv, "ALG"sv, "AMI"sv, "AMN"sv, "AMP"sv, "AMY"sv, "ANT"sv, "APO"sv, "AQU"sv,
+    "ARG"sv, "ASP"sv, "ATP"sv, "AXN"sv, "AZT"sv, "BIO"sv, "CAT"sv, "CEL"sv, "CHR"sv, "CLA"sv,
+    "CLO"sv, "COD"sv, "COR"sv, "CRY"sv, "CYT"sv, "DEN"sv, "DIF"sv, "DIG"sv, "DIN"sv, "DNA"sv,
+    "DOP"sv, "DYN"sv, "ELT"sv, "EMB"sv, "ENC"sv, "ENZ"sv, "EPG"sv, "ERY"sv, "EVO"sv, "EXO"sv,
+    "FAG"sv, "FER"sv, "FIB"sv, "FLU"sv, "GAM"sv, "GEN"sv, "GLU"sv, "GLY"sv, "GON"sv, "GYR"sv,
+    "HAP"sv, "HEL"sv, "HEM"sv, "HEP"sv, "HET"sv, "HEX"sv, "HIB"sv, "HIS"sv, "HOL"sv, "HOM"sv,
+};
 
+static constexpr std::array nucleus = {
+    "ACE"sv, "ACI"sv, "ACO"sv, "ACU"sv, "ADE"sv, "ADI"sv, "ADO"sv, "ADU"sv, "AGE"sv, "AGI"sv,
+    "AGO"sv, "AGU"sv, "AKE"sv, "AKI"sv, "AKO"sv, "AKU"sv, "ALE"sv, "ALI"sv, "ALO"sv, "ALU"sv,
+    "AME"sv, "AMI"sv, "AMO"sv, "AMU"sv, "ANE"sv, "ANI"sv, "ANO"sv, "ANU"sv, "APE"sv, "API"sv,
+    "APO"sv, "APU"sv, "ARE"sv, "ARI"sv, "ARO"sv, "ARU"sv, "ASE"sv, "ASI"sv, "ASO"sv, "ASU"sv,
+    "ATE"sv, "ATI"sv, "ATO"sv, "ATU"sv, "AVE"sv, "AVI"sv, "AVO"sv, "AVU"sv, "AXE"sv, "AXI"sv,
+    "AXO"sv, "AXU"sv, "AYE"sv, "AYI"sv, "AYO"sv, "AYU"sv, "AZE"sv, "AZI"sv, "AZO"sv, "AZU"sv,
+};
+
+static constexpr std::array coda = {
+    "ASE"sv, "ATE"sv, "ENE"sv, "IDE"sv, "INE"sv, "ION"sv, "IRE"sv, "ISE"sv, "ITE"sv, "IVE"sv,
+    "OID"sv, "OIN"sv, "OIS"sv, "OIT"sv, "OIV"sv, "OKE"sv, "OKI"sv, "OKO"sv, "OKU"sv, "OLE"sv,
+    "OLI"sv, "OLO"sv, "OLU"sv, "OME"sv, "OMI"sv, "OMO"sv, "OMU"sv, "ONE"sv, "ONI"sv, "ONO"sv,
+    "ONU"sv, "OPE"sv, "OPI"sv, "OPO"sv, "OPU"sv, "ORE"sv, "ORI"sv, "ORO"sv, "ORU"sv, "OSE"sv,
+    "OSI"sv, "OSO"sv, "OSU"sv, "OTE"sv, "OTI"sv, "OTO"sv, "OTU"sv, "OVE"sv, "OVI"sv, "OVO"sv,
+    "OVU"sv, "OXE"sv, "OXI"sv, "OXO"sv, "OXU"sv, "OYE"sv, "OYI"sv, "OYO"sv, "OYU"sv, "OZE"sv,
+};
+#endif
+
+	auto pick = [&](std::span<const std::string_view> t) -> std::string_view
+	{ return t[std::uniform_int_distribution<std::size_t>{0, t.size() - 1}(rng)]; };
+
+	std::string result;
+	for (auto i : std::views::iota(0uz, parts))
+	{
+		const bool last = (i == parts - 1);
+		result += last ? pick(coda) : (i % 2 == 0) ? pick(onset) : pick(nucleus);
+	}
+	return result;
+}
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
+	dbg::println("cmd: {}", commandline);
+
 #if 0
 	u64        lines = 0;
 	ScopeTimer timer("File writing");
@@ -846,6 +1134,26 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	timer.now();
 #endif
 
+
+
+	
+	std::mt19937 rng(random::seed<u32>());
+
+	for ([[maybe_unused]] const auto i : range(0, 100))
+	{
+		auto pss1 = koremutake_encode(random::randu8(2, 7));
+
+		dbg::println("Koremutake: {: >21}", pss1);
+	}
+
+	for ([[maybe_unused]] const auto i : range(0, 100))
+	{
+		auto pss = generate_human_name(rng, random::randu8(2, 3));
+
+		dbg::println("Human Name: {: >16}", pss);
+	}
+
+
 	std::unordered_set<utf8::string> keywords;
 
 	keywords.insert("if"sv);
@@ -853,14 +1161,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	keywords.insert("ident"sv);
 
 
-	std::vector<utf8::string> test_strings= {"if"sv, "else"sv, "fn"sv, "while"sv};
+	std::vector<utf8::string> test_strings = {"if"sv, "else"sv, "fn"sv, "while"sv};
 
 
 	for (const auto& test : test_strings)
-	if (keywords.contains(test))
-		info("'{}' is a keyword", test);
-	else
-		info("'{}' is not a keyword", test);
+		if (keywords.contains(test))
+			info("'{}' is a keyword", test);
+		else
+			info("'{}' is not a keyword", test);
 
 	_ = 0;
 
@@ -889,8 +1197,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	*/
-
-
 
 
 	auto [body, rtt] = ip_query();
