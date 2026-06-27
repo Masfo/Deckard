@@ -141,6 +141,23 @@ export namespace deckard
 
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
+
+	export template<u64 Alignment>
+	[[nodiscard]] bool is_pointer_aligned(const void* ptr)
+	{
+		static_assert(std::has_single_bit(Alignment), "Alignment must be power of two");
+		return (reinterpret_cast<std::uintptr_t>(ptr) & (Alignment-1)) == 0;
+	}
+
+	export template<pointer T>
+	[[nodiscard]]constexpr bool is_pointer_aligned(const T ptr, u64 alignment)
+	{
+		return std::has_single_bit(alignment) and (reinterpret_cast<std::uintptr_t>(ptr) & (alignment -1)) == 0;
+	}
+
+
+
+
 	export template<std::integral T>
 	constexpr T read_le(std::span<const u8> buffer, u64 offset = 0)
 	{

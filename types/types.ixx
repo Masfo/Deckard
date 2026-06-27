@@ -32,8 +32,8 @@ export namespace deckard
 	using i64 = std::int64_t;
 
 	using char32 = char32_t;
-	using usize  = u64;
-	using isize  = i64;
+	using usize  = std::uintptr_t;
+	using isize  = std::intptr_t;
 
 	using f32 = float;
 	using f64 = double;
@@ -306,6 +306,10 @@ export namespace deckard
 
 		requires not string_container<T>;
 	};
+
+	export template<typename T>
+	concept pointer = std::is_pointer_v<T>;
+
 
 	/* Formatter
 		template <>
