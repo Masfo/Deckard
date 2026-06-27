@@ -6,6 +6,8 @@
 import std;
 import deckard.types;
 import deckard.memory;
+import deckard.helpers;
+import deckard.as;
 
 TEST_CASE("stack arena", "[arena][memory]")
 {
@@ -54,6 +56,30 @@ TEST_CASE("stack arena", "[arena][memory]")
 		CHECK(frame.used() == 0);
 		CHECK(frame.free() == 1024);
 	}
+
+	SECTION("stackarea allocate aligned")
+	{
+		memory::stackarena<1024> frame;
+		const usize               base = as<usize>(frame.data().data());
+
+		auto ptr1 = frame.allocate(128, 32);
+		CHECK(not ptr1.empty());
+		CHECK(is_pointer_aligned(ptr1.data(), 32));
+		CHECK(frame.used() == as<usize>(ptr1.data()) - base + 128);
+		CHECK(frame.used() + frame.free() == 1024);
+
+		auto ptr2 = frame.allocate(256, 64);
+		CHECK(not ptr2.empty());
+		CHECK(is_pointer_aligned(ptr2.data(), 64));
+		CHECK(frame.used() == as<usize>(ptr2.data()) - base + 256);
+		CHECK(frame.used() + frame.free() == 1024);
+		CHECK(ptr1.data() != ptr2.data());
+
+		frame.reset();
+		CHECK(frame.used() == 0);
+		CHECK(frame.free() == 1024);
+	}
+
 
 	SECTION("stackarena create particles")
 	{
@@ -128,6 +154,30 @@ TEST_CASE("arena", "[arena][memory]")
 		auto ptr3 = frame.allocate(700); // Should fail
 		CHECK(frame.used() == 384);
 		CHECK(frame.free() == 640);
+
+		frame.reset();
+		CHECK(frame.used() == 0);
+		CHECK(frame.free() == 1024);
+	}
+
+	SECTION("arena allocate aligned")
+	{
+		memory::arena frame(1024);
+		const auto    base = as<usize>(frame.data().data());
+
+		auto ptr1 = frame.allocate(128, 32);
+		CHECK(not ptr1.empty());
+		CHECK(is_pointer_aligned(ptr1.data(), 32));
+		CHECK(frame.used() == as<usize>(ptr1.data()) - base + 128u);
+		CHECK(frame.used() + frame.free() == 1024);
+
+		auto ptr2 = frame.allocate(256, 64);
+		CHECK(not ptr2.empty());
+		CHECK(is_pointer_aligned(ptr2.data(), 64));
+		CHECK(frame.used() == as<usize>(ptr2.data()) - base + 256);
+		CHECK(frame.used() + frame.free() == 1024);
+
+		CHECK(ptr1.data() != ptr2.data());
 
 		frame.reset();
 		CHECK(frame.used() == 0);

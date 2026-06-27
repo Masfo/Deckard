@@ -3,6 +3,8 @@ import :helpers;
 
 import std;
 import deckard.types;
+import deckard.assert;
+import deckard.helpers;
 
 namespace deckard::memory
 {
@@ -23,7 +25,11 @@ namespace deckard::memory
 		{
 			void* base    = m_buffer.data() + m_offset;
 			u64   space   = N - m_offset;
+			
 			void* aligned = std::align(align, size_in_bytes, base, space);
+
+			assert::check(is_pointer_aligned(aligned, align), "Aligned pointer is not aligned to the requested alignment");
+
 			if (not aligned)
 				return nullptr;
 
@@ -33,11 +39,15 @@ namespace deckard::memory
 
 	public:
 		template<trivially_destructible T = std::byte>
-		[[nodiscard]] std::span<T> allocate(u64 count = 1)
+		[[nodiscard]] std::span<T> allocate(u64 count = 1, u64 alignment = alignof(T))
 		{
-			void* mem = raw_allocate(sizeof(T) * count, alignof(T));
+			void* mem = raw_allocate(sizeof(T) * count, alignment);
 			if (not mem)
 				return {};
+
+			assert::check(is_pointer_aligned(mem, alignment), "Aligned pointer is not aligned to the requested alignment");
+
+
 			return {static_cast<T*>(mem), count};
 		}
 
@@ -48,6 +58,9 @@ namespace deckard::memory
 			if (not mem)
 				return nullptr;
 
+			assert::check(is_pointer_aligned(mem, alignof(T)), "Aligned pointer is not aligned to the requested alignment");
+
+
 			return std::construct_at(static_cast<T*>(mem), std::forward<Args>(args)...);
 		}
 
@@ -57,6 +70,9 @@ namespace deckard::memory
 			void* mem = raw_allocate(sizeof(T) * count, alignof(T));
 			if (not mem)
 				return {};
+
+			assert::check(is_pointer_aligned(mem, alignof(T)), "Aligned pointer is not aligned to the requested alignment");
+
 
 			std::span<T> result(static_cast<T*>(mem), count);
 			for (auto& elem : result)
@@ -72,6 +88,9 @@ namespace deckard::memory
 		[[nodiscard]] u64 used() const { return m_offset; }
 
 		[[nodiscard]] u64 free() const { return N - m_offset; }
+
+		[[nodiscard]] auto data() const { return std::span<const std::byte>(m_buffer.data(), m_offset); }
+
 	};
 
 	// ###########################################################################
@@ -85,10 +104,15 @@ namespace deckard::memory
 
 		[[nodiscard]] void* raw_allocate(u64 size_in_bytes, u64 align = alignof(std::max_align_t))
 		{
+			assert::check(std::has_single_bit(align), "Alignment must be a power of two");
+
 			void* base  = m_buffer.get() + m_offset;
 			u64   space = m_capacity - m_offset;
 
 			void* aligned = std::align(align, size_in_bytes, base, space);
+
+			assert::check(is_pointer_aligned(aligned, align), "Aligned pointer is not aligned to the requested alignment");
+
 			if (not aligned)
 				return nullptr;
 
@@ -104,11 +128,14 @@ namespace deckard::memory
 		}
 
 		template<trivially_destructible T = std::byte>
-		[[nodiscard]] std::span<T> allocate(u64 count = 1)
+		[[nodiscard]] std::span<T> allocate(u64 count = 1, u64 alignment = alignof(T))
 		{
-			void* mem = raw_allocate(sizeof(T) * count, alignof(T));
+			void* mem = raw_allocate(sizeof(T) * count, alignment);
 			if (not mem)
 				return {};
+
+			assert::check(is_pointer_aligned(mem, alignment), "Aligned pointer is not aligned to the requested alignment");
+
 			return {static_cast<T*>(mem), count};
 		}
 
@@ -119,6 +146,8 @@ namespace deckard::memory
 			if (not mem)
 				return nullptr;
 
+			assert::check(is_pointer_aligned(mem, alignof(T)), "Aligned pointer is not aligned to the requested alignment");
+
 			return std::construct_at(static_cast<T*>(mem), std::forward<Args>(args)...);
 		}
 
@@ -128,6 +157,8 @@ namespace deckard::memory
 			void* mem = raw_allocate(sizeof(T) * count, alignof(T));
 			if (not mem)
 				return {};
+
+			assert::check(is_pointer_aligned(mem, alignof(T)), "Aligned pointer is not aligned to the requested alignment");
 
 			std::span<T> result(static_cast<T*>(mem), count);
 			for (auto& elem : result)
@@ -146,4 +177,5 @@ namespace deckard::memory
 
 		[[nodiscard]] auto data() const { return std::span<const std::byte>(m_buffer.get(), m_offset); }
 	};
+
 } // namespace deckard::memory
