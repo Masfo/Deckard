@@ -10,7 +10,7 @@ if(MSVC)
     string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 endif()
 
-set(SQLITE_ZIP_URL https://www.sqlite.org/2026/sqlite-amalgamation-3530200.zip)
+set(SQLITE_ZIP_URL https://www.sqlite.org/2026/sqlite-amalgamation-3530300.zip)
 get_filename_component(SQLITE_ZIP_NAME ${SQLITE_ZIP_URL} NAME)
 get_filename_component(SQLITE_ZIP_NAME_NOEXT ${SQLITE_ZIP_URL} NAME_WLE)
 
