@@ -2,8 +2,9 @@
 <NonUserCode xmlns="http://schemas.microsoft.com/vstudio/debugger/jmc/2015">
 
 	<!-- Files -->
-	<File Name="types.ixx"/>
 	<File Name="as.ixx"/>
+	
+	<File Name="types.ixx"/>
 	<File Name="enum_flags.ixx"/>
 	<File Name="scope_exit.ixx"/>
 

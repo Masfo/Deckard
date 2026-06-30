@@ -48,7 +48,7 @@ namespace deckard
 #pragma warning(disable : 4172) // returning address of local
 
 	export template<typename Ret = void*, bool give_warning = true, typename U>
-	constexpr Ret
+	[[nodiscard]] constexpr Ret
 	as(U u, i32 base = 10, [[maybe_unused]] const std::source_location& loc = std::source_location::current()) noexcept
 	{
 		U value = u;
@@ -75,6 +75,11 @@ namespace deckard
 		{
 			// integer -> float
 			return static_cast<Ret>(u);
+		}
+		else if constexpr (std::is_pointer_v<U> and std::is_same_v<Ret, usize>)
+		{
+			// pointer -> usize
+			return reinterpret_cast<Ret>(u);
 		}
 		else if constexpr (std::is_floating_point_v<U> and std::is_floating_point_v<Ret>)
 		{
