@@ -15,6 +15,7 @@ build
 *.cmd
 std.ixx
 scratch.txt
+log.*.txt
 
 *.lnk
 /Testing/Temporary

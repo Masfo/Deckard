@@ -46,7 +46,7 @@ TEST_CASE("stack arena", "[arena][memory]")
 		auto ptr2 = frame.allocate(256);
 		CHECK(frame.used() == 384);
 		CHECK(frame.free() == 640);
-		
+
 		auto ptr3 = frame.allocate(700); // Should fail
 		CHECK(ptr3.size() == 0);
 		CHECK(frame.used() == 384);
@@ -60,7 +60,7 @@ TEST_CASE("stack arena", "[arena][memory]")
 	SECTION("stackarea allocate aligned")
 	{
 		memory::stackarena<1024> frame;
-		const usize               base = as<usize>(frame.data().data());
+		const usize              base = as<usize>(frame.data().data());
 
 		auto ptr1 = frame.allocate(128, 32);
 		CHECK(not ptr1.empty());
@@ -221,12 +221,15 @@ TEST_CASE("arena", "[arena][memory]")
 		CHECK(data[3] == 0xDE_byte);
 	}
 
+	struct Particle
+	{
+		f32 x, y, z;
+
+		bool operator==(const Particle& other) const { return x == other.x && y == other.y && z == other.z; }
+	};
+
 	SECTION("create particles")
 	{
-		struct Particle
-		{
-			f32 x, y, z;
-		};
 
 		memory::arena frame(1024);
 		CHECK(frame.capacity() == 1024);
@@ -243,10 +246,6 @@ TEST_CASE("arena", "[arena][memory]")
 		CHECK(p->z == 3.0f);
 	}
 
-	struct Particle
-	{
-		f32 x, y, z;
-	};
 
 	SECTION("create array of particles")
 	{
@@ -323,5 +322,40 @@ TEST_CASE("arena", "[arena][memory]")
 		CHECK(particles3[1].x == 0.0f);
 		CHECK(particles3[1].y == 0.0f);
 		CHECK(particles3[1].z == 0.0f);
+	}
+
+	SECTION("allocate multiple types")
+	{
+		memory::arena frame(1024);
+
+		auto intptr      = frame.create<int>(42);
+		auto doubleptr   = frame.create<f64>(3.14);
+		auto u16ptr      = frame.create<u16>(65535);
+		auto particleptr = frame.create<Particle>(1.0f, 2.0f, 3.0f);
+
+		CHECK(frame.used() == 8 + 8 + 2 + sizeof(Particle) + 2); // + 2 for alignment padding
+		CHECK(frame.free() == 1024 - (8 + 8 + 2 + sizeof(Particle) + 2));
+		CHECK(*intptr == 42);
+		CHECK(*doubleptr == 3.14);
+		CHECK(*u16ptr == 65535);
+		CHECK(*particleptr == Particle{1.0f, 2.0f, 3.0f});
+	}
+
+	SECTION("allocate bytes") {
+
+		memory::arena frame(1024);
+
+		auto b1 = frame.create<std::byte>(0x10_byte);
+		auto b2 = frame.create<std::byte>(0x20_byte);
+		auto b3 = frame.create<std::byte>(0x30_byte);
+		auto b4 = frame.create<std::byte>(0x40_byte);
+
+		auto data = frame.data();
+		CHECK(data[0] == 0x10_byte);
+		CHECK(data[1] == 0x20_byte);
+		CHECK(data[2] == 0x30_byte);
+		CHECK(data[3] == 0x40_byte);
+
+
 	}
 }
