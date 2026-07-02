@@ -265,6 +265,7 @@ set(DECKARD_SRCS
 		utils/smallbufferobject.ixx
 		utils/stringhelper.ixx
 		utils/stringpool.ixx
+		utils/tagged_ptr.ixx
 		utils/threadutils.ixx
 		utils/timers.ixx
 		utils/uuid.ixx

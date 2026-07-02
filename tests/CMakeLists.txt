@@ -111,6 +111,9 @@ target_sources(tests PUBLIC
     
     # Memory
     tests/memory_test.cpp
+
+    # Tagged Pointer
+    tests/tagged_ptr_test.cpp
 )
 
 
