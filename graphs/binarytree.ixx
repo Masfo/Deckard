@@ -3,6 +3,7 @@ export module deckard.graph:binarytree;
 import std;
 import deckard.debug;
 import deckard.types;
+import deckard.assert;
 import deckard.function_ref;
 
 namespace deckard::graph::binary
@@ -415,4 +416,143 @@ namespace deckard::graph::binary
 			print(prefix + (isleft ? "│   " : "    "), node->right, false);
 		}
 	};
+
+
+	// #################################
+
+	export template<typename T, std::unsigned_integral U=u16>
+	class flat_tree
+	{
+	private:
+		struct node
+		{
+			T value{};
+			U left{};
+			U right{};
+		};
+
+		static constexpr U null_index = 0;
+		std::vector<node>  nodes;
+	public:
+
+		explicit flat_tree(size_t capacity = 0)
+		{
+			nodes.reserve(capacity+1);
+			nodes.push_back(node{}); // index 0 is reserved for null
+		}
+
+		[[nodiscard]] auto insert(const T value) -> U
+		{
+			auto const index = static_cast<u32>(nodes.size());
+
+			assert::check(index < std::numeric_limits<U>::max(), "flat_tree: index overflow");
+
+			nodes.emplace_back(value);
+
+			if (index == 1)
+				return index; 
+
+			u32 cur = 1;
+			while (true)
+			{
+				auto& n = nodes[cur];
+				if (value < n.value)
+				{
+					if (n.left == null_index)
+					{
+						n.left = index;
+						break;
+					}
+					else
+						cur = n.left;
+				}
+				else
+				{
+					if (n.right == null_index)
+					{
+						n.right = index;
+						break;
+					}
+					else
+						cur = n.right;
+				}
+			}
+
+			return index;
+		}
+
+		[[nodiscard]] auto find(int value) const noexcept -> u32
+		{
+			u32 cur = size() == 0 ? null_index : 1;
+			while (cur != null_index)
+			{
+				auto const& n = nodes[cur];
+				if (value == n.value)
+					return cur;
+				else if (value < n.value)
+					cur = n.left;
+				else
+					cur = n.right;
+			}
+			return null_index;
+		}
+
+		[[nodiscard]] auto contains(int value) const noexcept -> bool { return find(value) != null_index; }
+
+		[[nodiscard]] auto min() const noexcept -> std::optional<int>
+		{
+			if (size() == 0)
+				return std::nullopt;
+			u32 cur = 1;
+			while (nodes[cur].left != null_index)
+				cur = nodes[cur].left;
+			return nodes[cur].value;
+		}
+
+		[[nodiscard]] auto max() const noexcept -> std::optional<int>
+		{
+			if (size() == 0)
+				return std::nullopt;
+			u32 cur = 1;
+			while (nodes[cur].right != null_index)
+				cur = nodes[cur].right;
+			return nodes[cur].value;
+		}
+
+		[[nodiscard]] auto height(u32 idx = 1) const noexcept -> u32
+		{
+			if (idx == null_index or size() == 0)
+				return 0;
+			auto const& n = nodes[idx];
+			return 1 + std::max(height(n.left), height(n.right));
+		}
+
+
+		[[nodiscard]] auto get(u32 index) const -> const node&
+		{
+			assert::check(index < nodes.size(), "flat_tree: index out of bounds");
+			return nodes[index];
+		}
+
+		[[nodiscard]] bool empty() const noexcept { return size() == 0; }
+
+		void clear() noexcept
+		{
+			nodes.clear();
+			nodes.emplace_back(); // null_index
+		}
+
+		[[nodiscard]] auto size() const -> size_t
+		{
+			return nodes.size() - 1; // exclude the null node
+		}
+
+		[[nodiscard]] auto capacity() const -> size_t
+		{
+			return nodes.capacity() - 1; // exclude the null node
+		}
+	};
+
+
+
 } // namespace deckard::graph::binary

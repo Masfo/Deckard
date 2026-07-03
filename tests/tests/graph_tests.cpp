@@ -1141,3 +1141,30 @@ TEST_CASE("AVL", "[avl]")
 		CHECK(v[3] == 80);
 	}
 }
+
+
+TEST_CASE("flat_tree", "[flat_tree][graph]")
+{
+	using namespace deckard::graph::binary;
+	SECTION("empty") 
+	{ 
+		flat_tree<int> f(16);
+		CHECK(f.size() == 0);
+		CHECK(f.empty() == true);
+		CHECK(f.capacity() == 16);
+
+	}
+	SECTION("insert") 
+	{
+		flat_tree<int> f(16);
+		CHECK(f.size() == 0);
+		CHECK(f.empty() == true);
+		CHECK(f.capacity() == 16);
+
+		f.insert(10);
+
+		CHECK(f.size() == 1);
+		CHECK(f.empty() == false);
+		CHECK(f.capacity() == 16);
+	}
+}
