@@ -22,8 +22,8 @@ namespace deckard::utils
 	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
 	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
 
-	template<typename T>
-	constexpr T distribute(T x)
+	template<std::unsigned_integral T>
+	constexpr T distribute(T x) noexcept
 	{
 		if constexpr (sizeof(T) == 8)
 		{
@@ -39,38 +39,9 @@ namespace deckard::utils
 			x ^= x >> 5;
 			return x * 0x85eb'ca6bU;
 		}
-		else if constexpr (sizeof(T) == 2)
-		{
-			x ^= x >> 7;
-			x ^= x << 9;
-			x ^= x >> 3;
-			return x * 0x1b87'0bcdU;
-		}
 		else
 		{
-			x ^= x >> 3;
-			x ^= x << 5;
-			x ^= x >> 2;
-			return x * 0x27d4'eb2dU;
-		}
-	}
-
-	template<std::unsigned_integral T>
-	constexpr T distribute(T x)
-	{
-		if constexpr (sizeof(T) == 8)
-		{
-			x ^= x >> 12;
-			x ^= x << 25;
-			x ^= x >> 27;
-			return x * 0x2545'F491'4F6C'DD1DULL;
-		}
-		else
-		{
-			x ^= x >> 13;
-			x ^= x << 17;
-			x ^= x >> 5;
-			return x * 0x85eb'ca6bU;
+			static_assert(sizeof(T) == 8 || sizeof(T) == 4, "distribute: add a branch if you need 16/8-bit support");
 		}
 	}
 
@@ -88,6 +59,10 @@ namespace deckard::utils
 			using ftype = std::conditional_t<sizeof(T) == 4, u32, u64>;
 			seed =
 			  std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^ distribute(static_cast<u64>(std::bit_cast<ftype>(v)));
+		}
+		else if constexpr (requires { std::hash<T>{}(v); })
+		{
+			seed = std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^ distribute(static_cast<u64>(std::hash<T>{}(v)));
 		}
 
 		if constexpr (sizeof...(rest) > 0)
