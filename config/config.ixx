@@ -902,6 +902,8 @@ namespace deckard
 			}
 			return file::write({.filename = file, .buffer = data()});
 		}
+
+		[[nodiscard]] bool empty() const { return m_data.empty(); }
 	};
 
 	// ###############################################################################################
