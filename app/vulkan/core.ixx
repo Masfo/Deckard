@@ -34,6 +34,7 @@ import deckard.types;
 			- Intel Arc A380:		4294967295
 * 
 * 
+*  https://vulkan.gpuinfo.org/compare.php?devices[]=NVIDIA%20GeForce%20RTX%204060&os=all&devices[]=AMD%20Radeon%20RX%209060%20XT&os=all&devices[]=Intel(R)%20Arc(tm)%20A380%20Graphics%20(DG2)&os=all
 * 
 *	Vertex Pulling
 * 

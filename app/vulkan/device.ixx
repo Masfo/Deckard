@@ -24,6 +24,34 @@ import deckard.helpers;
 namespace deckard::vulkan
 {
 
+	struct driver_version
+	{
+		u32 major{};
+		u32 minor{};
+		u32 patch{};
+		u32 rev{};
+	};
+
+	[[nodiscard]] driver_version decode_driver_version(u32 vendor, u32 ver)
+	{
+		if (vendor == VENDOR_NVIDIA)
+		{
+			return driver_version{
+			  .major = (ver >> 22) & 0x3ffu,
+			  .minor = (ver >> 14) & 0x0ffu,
+			  .patch = (ver >> 6) & 0x0ffu,
+			  .rev   = (ver >> 0) & 0x03fu,
+			};
+		}
+
+		// AMD / Intel / Vulkan default: 10 / 10 / 12, no variant bits
+		return driver_version{
+		  .major = (ver >> 22) & 0x3ffu,
+		  .minor = (ver >> 12) & 0x3ffu,
+		  .patch = ver & 0xfffu,
+		  .rev   = 0,
+		};
+	}
 
 	bool core::initialize_device()
 	{
@@ -114,7 +142,8 @@ namespace deckard::vulkan
 			dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
 
 			if (api_major < VK_API_VERSION_MAJOR(minimum_apiversion) or
-				(api_major == VK_API_VERSION_MAJOR(minimum_apiversion) and api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
+				(api_major == VK_API_VERSION_MAJOR(minimum_apiversion) and
+				 api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
 			{
 				dbg::println(
 				  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
@@ -339,11 +368,10 @@ namespace deckard::vulkan
 				}
 
 
-				
-				dbg::println("Max UBO size: {}",           human_readable_bytes(prop.limits.maxUniformBufferRange));
+				dbg::println("Max UBO size: {}", human_readable_bytes(prop.limits.maxUniformBufferRange));
 				dbg::println("Max UBO alignment: {}", human_readable_bytes(prop.limits.minUniformBufferOffsetAlignment));
 
-				dbg::println("Max SSBO size: {}",          human_readable_bytes(prop.limits.maxStorageBufferRange));
+				dbg::println("Max SSBO size: {}", human_readable_bytes(prop.limits.maxStorageBufferRange));
 				dbg::println("Max SSBO alignment: {}", human_readable_bytes(prop.limits.minStorageBufferOffsetAlignment));
 
 				dbg::println("Max push constant size: {}", human_readable_bytes(prop.limits.maxPushConstantsSize));
@@ -443,9 +471,12 @@ namespace deckard::vulkan
 			//
 
 			// ########
-			VkPhysicalDeviceVulkan12Properties vulkan12Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES};
-			VkPhysicalDeviceVulkan13Properties vulkan13Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES};
-			VkPhysicalDeviceVulkan14Properties vulkan14Properties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES};
+			VkPhysicalDeviceVulkan12Properties vulkan12Properties = {
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES};
+			VkPhysicalDeviceVulkan13Properties vulkan13Properties = {
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES};
+			VkPhysicalDeviceVulkan14Properties vulkan14Properties = {
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES};
 
 			VkPhysicalDeviceProperties2 properties2 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
 			properties2.pNext                       = &vulkan12Properties;
@@ -471,6 +502,39 @@ namespace deckard::vulkan
 
 
 			// ########
+			// Device limits
+			VkPhysicalDeviceLimits limits = properties2.properties.limits;
+			dbg::println("Max 1D image dimension: {}", limits.maxImageDimension1D);
+			dbg::println("Max 2D image dimension: {}", limits.maxImageDimension2D);
+			dbg::println("Max 3D image dimension: {}", limits.maxImageDimension3D);
+
+			VkImageFormatProperties2         image_format_properties{.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2};
+			VkPhysicalDeviceImageFormatInfo2 image_format_info{
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2};
+			image_format_info.format = VK_FORMAT_R8G8B8A8_UNORM;
+			image_format_info.type   = VK_IMAGE_TYPE_2D;
+			image_format_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+			image_format_info.usage  = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			image_format_info.flags  = 0;
+
+
+			result =
+			  vkGetPhysicalDeviceImageFormatProperties2(m_physical_device, &image_format_info, &image_format_properties);
+
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("vkGetPhysicalDeviceImageFormatProperties2 failed: {}", string_VkResult(result));
+				return false;
+			}
+
+			dbg::println("Max 2D image array layers: {}", image_format_properties.imageFormatProperties.maxArrayLayers);
+			dbg::println("Max 2D image mip levels: {}", image_format_properties.imageFormatProperties.maxMipLevels);
+			dbg::println("Max 2D image sample counts: {}", image_format_properties.imageFormatProperties.sampleCounts);
+			dbg::println("Max 2D image resource size: {}",
+						 human_readable_bytes(image_format_properties.imageFormatProperties.maxResourceSize));
+			dbg::println("Max 2D image extent: {} x {}",
+						 image_format_properties.imageFormatProperties.maxExtent.width,
+						 image_format_properties.imageFormatProperties.maxExtent.height);
 
 
 			const auto& prop = device_properties[best_gpu_index];
@@ -478,25 +542,10 @@ namespace deckard::vulkan
 			dbg::println("Device: {}", prop.deviceName);
 
 
-			// NVidia versioning 10/8/8/6
-			// AMD, Intel, vulkan default 10/10/12
-			if (prop.vendorID == VENDOR_NVIDIA)
-			{
-				u32 major = (prop.driverVersion >> 22) & 0x3ff;
-				u32 minor = (prop.driverVersion >> 14) & 0x0ff;
-				u32 patch = (prop.driverVersion >> 6) & 0x0ff;
-				u32 rev   = (prop.driverVersion) & 0x003f;
+			auto driverversion = decode_driver_version(prop.vendorID, prop.driverVersion);
 
-				dbg::println("Driver: {}.{}.{}.{}", major, minor, patch, rev);
-			}
-			else
-			{
-
-				dbg::println("Driver v{}.{}.{}",
-							 VK_API_VERSION_MAJOR(prop.driverVersion),
-							 VK_API_VERSION_MINOR(prop.driverVersion),
-							 VK_API_VERSION_PATCH(prop.driverVersion));
-			}
+			dbg::println(
+			  "Internal Driver Version: {}.{}.{}.{}", driverversion.major, driverversion.minor, driverversion.patch, driverversion.rev);
 
 			dbg::println("Vulkan API v{}.{}.{}",
 						 VK_API_VERSION_MAJOR(prop.apiVersion),
@@ -596,7 +645,7 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
 				}
 
-	
+
 				if (name.compare(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) == 0)
 				{
 					marked = true;
@@ -621,6 +670,12 @@ namespace deckard::vulkan
 					extensions.emplace_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
 				}
 
+				if (name.compare(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+				}
+
 
 				dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
 			}
@@ -640,7 +695,8 @@ namespace deckard::vulkan
 			features12.descriptorIndexing  = VK_TRUE;
 
 
-			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
+			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT};
 			shader_features.shaderObject = VK_TRUE;
 
 			features13.pNext = &features12;
@@ -669,16 +725,53 @@ namespace deckard::vulkan
 			assert::check(m_queue != nullptr);
 
 
-			VkPhysicalDeviceDriverProperties driverProperties = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES};
-			_                                                 = 0;
+			VkPhysicalDeviceDriverProperties driverProperties = {
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES};
+			_ = 0;
 			VkPhysicalDeviceProperties2 pdp{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
 			pdp.pNext = &driverProperties;
 
 			vkGetPhysicalDeviceProperties2(m_physical_device, &pdp);
 			dbg::println("Driver name: {}", pdp.properties.deviceName);
-			dbg::println(
-			  "Driver version: {}.0.{}", VK_VERSION_MAJOR(pdp.properties.driverVersion), VK_VERSION_PATCH(pdp.properties.driverVersion));
+			dbg::println("Driver version: {}.0.{}",
+						 VK_VERSION_MAJOR(pdp.properties.driverVersion),
+						 VK_VERSION_PATCH(pdp.properties.driverVersion));
 			// ########
+
+			while (1)
+			{
+
+				VkPhysicalDeviceMemoryBudgetPropertiesEXT budget_props{
+				  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+				};
+
+				VkPhysicalDeviceMemoryProperties2 mem_props2{
+				  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+				  .pNext = &budget_props,
+				};
+
+				vkGetPhysicalDeviceMemoryProperties2(m_physical_device, &mem_props2);
+
+				for (u32 i = 0; i < mem_props2.memoryProperties.memoryHeapCount; i++)
+				{
+					auto heap = mem_props2.memoryProperties.memoryHeaps[i];
+					if ((heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == 0)
+						continue;
+
+					dbg::println(
+					  "Heap {}. {}, {} bytes, budget: {}, usage: {}",
+					  i,
+					  heap.flags,
+					  human_readable_bytes(heap.size),
+					  human_readable_bytes(budget_props.heapBudget[i]),
+					  human_readable_bytes(budget_props.heapUsage[i]));
+
+					// explain flags
+					// dbg::print("Flags: ");
+					// dbg::println(heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ? "DEVICE LOCAL, " : "");
+				}
+				std::this_thread::sleep_for(std::chrono::seconds(2));
+			}
 
 
 			return true;
@@ -742,11 +835,13 @@ namespace deckard::vulkan
 			i32                                  queue_index{-1};
 			std::vector<VkQueueFamilyProperties> queue_family_properties(queue_families_count);
 
-			vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_families_count, queue_family_properties.data());
+			vkGetPhysicalDeviceQueueFamilyProperties(
+			  m_physical_device, &queue_families_count, queue_family_properties.data());
 
 			for (u32 i = 0; i < queue_families_count; i++)
 			{
-				if ((queue_family_properties[i].queueCount > 0) and (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+				if ((queue_family_properties[i].queueCount > 0) and
+					(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
 				{
 					queue_index = i;
 					break;
