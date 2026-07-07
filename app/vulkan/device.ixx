@@ -53,6 +53,51 @@ namespace deckard::vulkan
 		};
 	}
 
+	struct memory_usage
+	{
+		u64 size{};
+		u64 heap_budget{};
+		u64 heap_usage{};
+	};
+
+	memory_usage get_memory_usage(VkPhysicalDevice physical_device)
+	{
+
+		VkPhysicalDeviceMemoryBudgetPropertiesEXT budget_props{
+		  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+		};
+
+		VkPhysicalDeviceMemoryProperties2 props{
+		  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+		  .pNext = &budget_props,
+		};
+
+		vkGetPhysicalDeviceMemoryProperties2(physical_device, &props);
+
+		u32 best_index = 0;
+		u32 best_size  = 0;
+
+		for (u32 i = 0; i < props.memoryProperties.memoryHeapCount; i++)
+		{
+			auto heap = props.memoryProperties.memoryHeaps[i];
+			if ((heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == 0)
+				continue;
+
+			if (heap.size > best_size)
+			{
+				best_size  = heap.size;
+				best_index = i;
+			}
+		}
+		if (best_index == props.memoryProperties.memoryHeapCount)
+			return {};
+
+
+		return {.size        = props.memoryProperties.memoryHeaps[best_index].size,
+				.heap_budget = budget_props.heapBudget[best_index],
+				.heap_usage  = budget_props.heapUsage[best_index]};
+	}
+
 	bool core::initialize_device()
 	{
 		assert::check(instance != nullptr);
@@ -545,7 +590,11 @@ namespace deckard::vulkan
 			auto driverversion = decode_driver_version(prop.vendorID, prop.driverVersion);
 
 			dbg::println(
-			  "Internal Driver Version: {}.{}.{}.{}", driverversion.major, driverversion.minor, driverversion.patch, driverversion.rev);
+			  "Internal Driver Version: {}.{}.{}.{}",
+			  driverversion.major,
+			  driverversion.minor,
+			  driverversion.patch,
+			  driverversion.rev);
 
 			dbg::println("Vulkan API v{}.{}.{}",
 						 VK_API_VERSION_MAJOR(prop.apiVersion),
@@ -738,40 +787,11 @@ namespace deckard::vulkan
 						 VK_VERSION_PATCH(pdp.properties.driverVersion));
 			// ########
 
-			while (1)
-			{
-
-				VkPhysicalDeviceMemoryBudgetPropertiesEXT budget_props{
-				  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
-				};
-
-				VkPhysicalDeviceMemoryProperties2 mem_props2{
-				  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
-				  .pNext = &budget_props,
-				};
-
-				vkGetPhysicalDeviceMemoryProperties2(m_physical_device, &mem_props2);
-
-				for (u32 i = 0; i < mem_props2.memoryProperties.memoryHeapCount; i++)
-				{
-					auto heap = mem_props2.memoryProperties.memoryHeaps[i];
-					if ((heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == 0)
-						continue;
-
-					dbg::println(
-					  "Heap {}. {}, {} bytes, budget: {}, usage: {}",
-					  i,
-					  heap.flags,
-					  human_readable_bytes(heap.size),
-					  human_readable_bytes(budget_props.heapBudget[i]),
-					  human_readable_bytes(budget_props.heapUsage[i]));
-
-					// explain flags
-					// dbg::print("Flags: ");
-					// dbg::println(heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ? "DEVICE LOCAL, " : "");
-				}
-				std::this_thread::sleep_for(std::chrono::seconds(2));
-			}
+			auto mem_usage = get_memory_usage(m_physical_device);
+			dbg::println("Device memory: {} bytes, budget: {}, usage: {}",
+						 human_readable_bytes(mem_usage.size),
+						 human_readable_bytes(mem_usage.heap_budget),
+						 human_readable_bytes(mem_usage.heap_usage));
 
 
 			return true;
