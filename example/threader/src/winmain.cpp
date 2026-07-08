@@ -1113,6 +1113,9 @@ static constexpr std::array coda = {
 	return result;
 }
 
+// tagged_ptr
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 	dbg::println("cmd: {}", commandline);
@@ -1134,6 +1137,34 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	timer.now();
 #endif
 
+	// ####
+
+	 char        buffer[128]{0};
+	void*       ptr   = buffer;
+	std::size_t space = sizeof(buffer);
+
+	// Request alignment to 6 (non-power of two)
+	constexpr u64 alignment   = 16;
+	void* aligned_ptr = std::align(alignment, sizeof(int), ptr, space);
+
+	if (aligned_ptr)
+	{
+		dbg::println("Original       : {}", ptr);
+		dbg::println("Aligned to {: <4}: {}", alignment, aligned_ptr);
+		dbg::println("Remainder space: {}",space);
+		dbg::println("has single bit : {}", std::has_single_bit((u64)aligned_ptr));
+
+		// Verify
+		auto addr = reinterpret_cast<std::uintptr_t>(aligned_ptr);
+		dbg::println("Address % {} == {}", alignment, (addr % alignment));
+	}
+	else
+	{
+		dbg::println("Failed to align.");
+	}
+
+
+	// ####
 
 
 	

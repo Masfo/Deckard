@@ -53,6 +53,23 @@ namespace deckard::vulkan
 		};
 	}
 
+	[[nodiscard]] auto find_memory_type(VkPhysicalDevice physical_device, u32 type_filter, VkMemoryPropertyFlags properties)
+	  -> std::optional<u32>
+	{
+		VkPhysicalDeviceMemoryProperties mem_props{};
+		vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_props);
+
+		for (u32 i = 0; i < mem_props.memoryTypeCount; ++i)
+		{
+			const bool type_ok  = (type_filter & (1u << i)) != 0;
+			const bool props_ok = (mem_props.memoryTypes[i].propertyFlags & properties) == properties;
+
+			if (type_ok and props_ok)
+				return i;
+		}
+		return {};
+	}
+
 	struct memory_usage
 	{
 		u64 size{};
@@ -75,7 +92,7 @@ namespace deckard::vulkan
 		vkGetPhysicalDeviceMemoryProperties2(physical_device, &props);
 
 		u32 best_index = 0;
-		u32 best_size  = 0;
+		u64 best_size  = 0;
 
 		for (u32 i = 0; i < props.memoryProperties.memoryHeapCount; i++)
 		{
@@ -96,6 +113,59 @@ namespace deckard::vulkan
 		return {.size        = props.memoryProperties.memoryHeaps[best_index].size,
 				.heap_budget = budget_props.heapBudget[best_index],
 				.heap_usage  = budget_props.heapUsage[best_index]};
+	}
+
+	// Reserve a safety margin below the reported budget so allocations stop before actually exhausting it
+	constexpr u64 memory_budget_safety_percent = 90;
+
+	[[nodiscard]] auto allocate_device_memory(VkDevice device, VkPhysicalDevice physical_device, u64 alloc_size)
+	  -> std::expected<VkDeviceMemory, std::string>
+	{
+		const auto usage = get_memory_usage(physical_device);
+
+		if (usage.heap_budget != 0)
+		{
+			const u64 safe_budget = (usage.heap_budget * memory_budget_safety_percent) / 100;
+			const u64 available   = safe_budget > usage.heap_usage ? safe_budget - usage.heap_usage : 0;
+
+			if (alloc_size > available)
+			{
+				return std::unexpected(std::format(
+				  "not enough memory budget: requested {}, available {} ({}% of budget {}, usage {})",
+				  human_readable_bytes(alloc_size),
+				  human_readable_bytes(available),
+				  memory_budget_safety_percent,
+				  human_readable_bytes(usage.heap_budget),
+				  human_readable_bytes(usage.heap_usage)));
+			}
+		}
+
+		VkPhysicalDeviceMemoryProperties mem_props{};
+		vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_props);
+
+		u32 type_filter = 0;
+		for (u32 i = 0; i < mem_props.memoryTypeCount; ++i)
+			type_filter |= (1u << i);
+
+		const auto mem_type_index = find_memory_type(physical_device, type_filter, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		if (not mem_type_index)
+			return std::unexpected("no suitable device-local memory type found");
+
+		const VkMemoryAllocateInfo alloc_info{
+		  .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		  .pNext           = nullptr,
+		  .allocationSize  = alloc_size,
+		  .memoryTypeIndex = *mem_type_index,
+		};
+
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+		if (const auto result = vkAllocateMemory(device, &alloc_info, nullptr, &memory); result != VK_SUCCESS)
+		{
+			return std::unexpected(std::format("vkAllocateMemory failed: {}", static_cast<int>(result)));
+		}
+
+		return memory;
 	}
 
 	bool core::initialize_device()
@@ -753,7 +823,7 @@ namespace deckard::vulkan
 
 			VkDeviceCreateInfo device_create{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
-			device_create.pNext = &features13; // add features to chain
+			device_create.pNext = &features13;
 
 			device_create.queueCreateInfoCount = 1;
 			device_create.pQueueCreateInfos    = &queue_create;
@@ -787,12 +857,32 @@ namespace deckard::vulkan
 						 VK_VERSION_PATCH(pdp.properties.driverVersion));
 			// ########
 
-			auto mem_usage = get_memory_usage(m_physical_device);
-			dbg::println("Device memory: {} bytes, budget: {}, usage: {}",
-						 human_readable_bytes(mem_usage.size),
-						 human_readable_bytes(mem_usage.heap_budget),
-						 human_readable_bytes(mem_usage.heap_usage));
+			u32  loop = 40;
 
+			std::vector<VkDeviceMemory> mems;
+			while (loop--)
+			{
+				auto mem_usage = get_memory_usage(m_physical_device);
+				dbg::println(
+				  "Device memory: {} bytes, budget: {}, usage: {} - {}",
+				  human_readable_bytes(mem_usage.size),
+				  human_readable_bytes(mem_usage.heap_budget),
+				  human_readable_bytes(mem_usage.heap_usage),
+				  loop);
+
+				auto mem = allocate_device_memory(m_device, m_physical_device, 1024_MiB);
+				if (mem)
+					mems.push_back(*mem);
+				else
+				{
+					dbg::println("Failed to allocate device memory: {}", mem.error());
+					break;
+				}
+				// allocate buffer, check how memory is used after that allocation
+			}
+
+			for (auto& m : mems)
+				vkFreeMemory(m_device, m, nullptr);
 
 			return true;
 		}
