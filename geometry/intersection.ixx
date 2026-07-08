@@ -16,7 +16,6 @@ namespace deckard::geometry
 		vec3 point{0.0f, 0.0f, 0.0f};
 	};
 
-
 	// ray - rect
 
 	// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection

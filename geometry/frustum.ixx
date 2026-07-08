@@ -6,7 +6,6 @@ import deckard.types;
 import deckard.math.utils;
 import deckard.vec;
 
-
 namespace deckard::geometry
 {
 	using namespace deckard::math;
@@ -24,8 +23,8 @@ namespace deckard::geometry
 	struct frustum
 	{
 		std::array<plane, 6> planes; // left, right, bottom, top, near, far
-		
-		 [[nodiscard]] constexpr bool contains(vec3 const& point) const noexcept
+
+		[[nodiscard]] constexpr bool contains(vec3 const& point) const noexcept
 		{
 			for (const auto& p : planes)
 			{
@@ -37,4 +36,4 @@ namespace deckard::geometry
 			return true;
 		}
 	};
-}
+} // namespace deckard::geometry

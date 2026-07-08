@@ -10,4 +10,3 @@ export import :rect;
 
 // TODO: cube, cuboid, cylinder, cone, pyramic, torus, prism
 //		 quad, triangle
-

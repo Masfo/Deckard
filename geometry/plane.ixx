@@ -28,7 +28,6 @@ namespace deckard::geometry
 		{
 		}
 
-
 		plane& normalize()
 		{
 			f32 length = normal.length();
@@ -40,13 +39,10 @@ namespace deckard::geometry
 			return *this;
 		}
 
-		   [[nodiscard]] constexpr float distance_to(vec3 const& point) const noexcept { return normal.dot(point) + distance; }
+		[[nodiscard]] constexpr float distance_to(vec3 const& point) const noexcept { return normal.dot(point) + distance; }
 	};
 
 	static_assert(sizeof(plane) == 4 * sizeof(f32), "plane should be tightly packed");
-
-
-	
 
 
 } // namespace deckard::geometry
