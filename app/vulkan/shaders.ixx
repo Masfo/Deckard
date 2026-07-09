@@ -26,43 +26,23 @@ namespace deckard::vulkan
 	private:
 		VkShaderModule shader_module{VK_NULL_HANDLE};
 
-	public:
-		// TODO: have fs::path member, have a reload method
-
-		std::expected<bool, std::string> load(device device, fs::path shader_file)
+		std::expected<bool, std::string> create_from_bytes(VkDevice device, std::span<const u8> bytes)
 		{
-			if (not fs::exists(shader_file))
-				return std::unexpected(std::format("Shader '{}' not found", shader_file.string()));
+			if (bytes.size() % sizeof(u32) != 0)
+				return std::unexpected(std::format("Shader module size not a multiple of {}", sizeof(u32)));
 
-			auto fsize = file::filesize(shader_file);
-			if (fsize and *fsize % sizeof(u32) != 0)
-				return std::unexpected(std::format("Shader '{}' module size not a multiple of {}", shader_file.string(), sizeof(u32)));
-
-		u64 size = *fsize;
-
-		//
-		std::vector<u8> bytes;
-		bytes.resize(size);
-
-		auto content = file::read({.filename = shader_file, .buffer = bytes, .size = size});
-		if (not content)
-			return std::unexpected(content.error());
-
-
-			//
 			std::vector<u32> spirv;
-			spirv.reserve(size / 4);
+			spirv.reserve(bytes.size() / 4);
 
-			for (u64 i = 0; i < size; i += 4)
+			for (size_t i = 0; i < bytes.size(); i += 4)
 			{
 				std::array<u8, 4> chunk{bytes[i + 0], bytes[i + 1], bytes[i + 2], bytes[i + 3]};
 				spirv.push_back(std::bit_cast<u32>(chunk));
 			}
 
-
 			// Check header
-			if (spirv[0] != SPIRV_MAGIC_HEADER)
-				return std::unexpected(std::format("Shader '{}' header is invalid", shader_file.string()));
+			if (spirv.empty() or spirv[0] != SPIRV_MAGIC_HEADER)
+				return std::unexpected(std::string("Shader header is invalid"));
 
 			u8 major = (spirv[1] >> 16) & 0xFF;
 			u8 minor = (spirv[1] >> 8) & 0xFF;
@@ -72,16 +52,51 @@ namespace deckard::vulkan
 			dbg::println("SPIR-V bound: 0x{:X}", spirv[3]);
 			dbg::println("SPIR-V schema: 0x{:X}", spirv[4]);
 
-
 			VkShaderModuleCreateInfo createInfo = {};
 			createInfo.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 			createInfo.codeSize                 = spirv.size() * sizeof(u32);
 			createInfo.pCode                    = spirv.data();
 
 			if (vkCreateShaderModule(device, &createInfo, nullptr, &shader_module) != VK_SUCCESS)
-				return std::unexpected(std::format("Failed to create shader module '{}'", shader_file.string()));
+				return std::unexpected(std::string("Failed to create shader module"));
 
 			return true;
+		}
+
+	public:
+		// TODO: have fs::path member, have a reload method
+
+		std::expected<bool, std::string> load(device device, fs::path shader_file)
+		{
+			if (not fs::exists(shader_file))
+				return std::unexpected(std::format("Shader '{}' not found", shader_file.string()));
+
+			auto bytes = file::read(shader_file);
+			if (bytes.empty())
+				return std::unexpected(std::format("Shader '{}' could not be read", shader_file.string()));
+
+			auto result = create_from_bytes(device, bytes);
+			if (not result)
+				return std::unexpected(std::format("Shader '{}': {}", shader_file.string(), result.error()));
+
+			return true;
+		}
+
+		std::expected<bool, std::string> load_from_memory(device device, std::span<const u8> spirv_bytes)
+		{
+			if (spirv_bytes.empty())
+				return std::unexpected(std::string("Shader bytes are empty"));
+
+			return create_from_bytes(device, spirv_bytes);
+		}
+
+		void deinitialize(VkDevice device)
+		{
+			if (shader_module != VK_NULL_HANDLE)
+			{
+				vkDestroyShaderModule(device, shader_module, nullptr);
+				shader_module = VK_NULL_HANDLE;
+			}
 		}
 
 		operator VkShaderModule() const { return shader_module; }
