@@ -168,6 +168,10 @@ namespace deckard::vulkan
 		return memory;
 	}
 
+
+
+
+
 	bool core::initialize_device()
 	{
 		assert::check(instance != nullptr);
@@ -736,6 +740,12 @@ namespace deckard::vulkan
 					marked = true;
 				}
 
+				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+				{
+					extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+					marked = true;
+				}
+
 
 				if (name.compare(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME) == 0)
 				{
@@ -857,6 +867,7 @@ namespace deckard::vulkan
 						 VK_VERSION_PATCH(pdp.properties.driverVersion));
 			// ########
 
+			/*
 			u32  loop = 40;
 
 			std::vector<VkDeviceMemory> mems;
@@ -883,6 +894,7 @@ namespace deckard::vulkan
 
 			for (auto& m : mems)
 				vkFreeMemory(m_device, m, nullptr);
+				*/
 
 			return true;
 		}
