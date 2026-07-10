@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
@@ -19,11 +19,50 @@ import deckard.assert;
 
 namespace deckard::vulkan
 {
+
+
 	export class swapchain
 	{
 	private:
-		VkSwapchainKHR m_swapchain{nullptr};
-		bool           m_vsync{true};
+		VkSwapchainKHR     m_swapchain{nullptr};
+		bool               m_vsync{true};
+		VkSurfaceFormatKHR m_surfaceformat;
+
+		[[nodiscard]] VkSurfaceFormatKHR select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface) const
+		{
+			u32      format_count{0};
+			VkResult result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &format_count, nullptr);
+			if (result != VK_SUCCESS or format_count == 0)
+			{
+				dbg::println("Vulkan surface formats query failed: {}", string_VkResult(result));
+				return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}; // fallback, unchecked
+			}
+
+			std::vector<VkSurfaceFormatKHR> formats(format_count);
+			result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &format_count, formats.data());
+			if (result != VK_SUCCESS)
+			{
+				dbg::println("Vulkan surface formats query failed: {}", string_VkResult(result));
+				return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+			}
+
+			// Driver has no preference -> anything goes, prefer our default
+			if (formats.size() == 1 and formats[0].format == VK_FORMAT_UNDEFINED)
+				return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+
+			constexpr std::array<VkSurfaceFormatKHR, 2> preferred{{
+			  {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
+			  {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
+			}};
+
+			for (const auto& want : preferred)
+				for (const auto& have : formats)
+					if (have.format == want.format and have.colorSpace == want.colorSpace)
+						return have;
+
+			// Otherwise, first supported format wins
+			return formats[0];
+		}
 
 	public:
 		bool initialize(device device, presentation_surface surface, bool vsync)
@@ -35,19 +74,21 @@ namespace deckard::vulkan
 
 			VkSwapchainCreateInfoKHR create_swapchain{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 
-			auto surface_capabilities     = surface.capabilities();
-			u32  desired_number_of_images = std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount);
+			auto surface_capabilities = surface.capabilities();
+			u32  desired_number_of_images =
+			  surface_capabilities.maxImageCount == 0
+				? surface_capabilities.minImageCount + 1
+				: std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount);
 
 			create_swapchain.surface       = surface;
 			create_swapchain.minImageCount = desired_number_of_images;
 
-			// TODO: query desired format somehow
-			VkFormat   swapchain_format;
-			const auto format            = desired_format();
-			swapchain_format             = format.format;
-			create_swapchain.imageFormat = swapchain_format;
-
-			create_swapchain.imageColorSpace = format.colorSpace;
+			//
+			VkFormat swapchain_format;
+			m_surfaceformat                  = select_surface_format(device.physical_device(), surface);
+			swapchain_format                 = m_surfaceformat.format;
+			create_swapchain.imageFormat     = swapchain_format;
+			create_swapchain.imageColorSpace = m_surfaceformat.colorSpace;
 
 			// extent
 			create_swapchain.imageExtent      = surface_capabilities.currentExtent;
@@ -57,7 +98,7 @@ namespace deckard::vulkan
 			if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 				usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-			if(surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+			if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 				usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
 			create_swapchain.imageUsage = usage;
@@ -82,7 +123,7 @@ namespace deckard::vulkan
 			if (m_vsync == true)
 			{
 				try_order[0] = VK_PRESENT_MODE_FIFO_KHR;      // is preferred as it does not drop frames and lacks tearing.
-				try_order[1] = VK_PRESENT_MODE_FIFO_RELAXED_KHR; 
+				try_order[1] = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 				try_order[2] = VK_PRESENT_MODE_MAILBOX_KHR;   // may offer lower latency, but frames might be dropped.
 				try_order[3] = VK_PRESENT_MODE_IMMEDIATE_KHR; // or VSync off.
 			}
@@ -98,7 +139,8 @@ namespace deckard::vulkan
 
 			std::vector<VkPresentModeKHR> presentmodes;
 			u32                           presentmode_count{0};
-			VkResult result = vkGetPhysicalDeviceSurfacePresentModesKHR(device.physical_device(), surface, &presentmode_count, nullptr);
+			VkResult                      result =
+			  vkGetPhysicalDeviceSurfacePresentModesKHR(device.physical_device(), surface, &presentmode_count, nullptr);
 			if (result != VK_SUCCESS)
 			{
 				dbg::println("Vulkan swapchain present mode query failed: {}", string_VkResult(result));
@@ -106,7 +148,8 @@ namespace deckard::vulkan
 			}
 
 			presentmodes.resize(presentmode_count);
-			result = vkGetPhysicalDeviceSurfacePresentModesKHR(device.physical_device(), surface, &presentmode_count, presentmodes.data());
+			result = vkGetPhysicalDeviceSurfacePresentModesKHR(
+			  device.physical_device(), surface, &presentmode_count, presentmodes.data());
 			if (result != VK_SUCCESS)
 			{
 				dbg::println("Vulkan swapchain present mode query failed: {}", string_VkResult(result));
@@ -172,11 +215,7 @@ namespace deckard::vulkan
 			return result == VK_SUCCESS ? image_count : 0;
 		}
 
-		VkSurfaceFormatKHR desired_format() const
-		{
-			// TODO: better
-			return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-		}
+		VkSurfaceFormatKHR desired_format() const { return m_surfaceformat; }
 
 		VkResult acquire_next_image() const { return VK_SUCCESS; }
 

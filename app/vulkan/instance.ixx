@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 #include <vulkan/vk_enum_string_helper.h>
 #define VK_USE_PLATFORM_WIN32_KHR
