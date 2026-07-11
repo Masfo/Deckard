@@ -73,78 +73,45 @@ namespace deckard::vulkan
 #ifdef _DEBUG
 		dbg::println("Vulkan instance extensions({}):", instance_extensions.size());
 #endif
-		for (const auto extension : instance_extensions)
+
+		std::array<const char*, 6> required_exts = {
+		  VK_KHR_SURFACE_EXTENSION_NAME,
+		  VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+		  VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+		 // VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+		  VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+		  VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+		for (const auto &ext : required_exts)
+			required_extensions.push_back(ext);
+
+		for (auto req : required_exts)
 		{
-
-			const std::string_view name = extension.extensionName;
-
-			bool marked = false;
-
-			if (name.compare(VK_KHR_SURFACE_EXTENSION_NAME) == 0)
+			bool found =
+			  std::ranges::any_of(instance_extensions, [&](auto& e) { return std::string_view(e.extensionName) == req; });
+			if (not found)
 			{
-				marked = true;
-				required_extensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+				dbg::println("Required instance extension missing: {}", req);
+				return false;
 			}
-
-			if (name.compare(VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-			}
-
-			if (name.compare(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-			}
-
-			if (name.compare(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
-			}
-
-#if 0
-			if (name.compare(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
-			}
-#endif
-
-#ifdef _DEBUG
-#if 0
-				if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-				}
-#endif
-
-			if (name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-			}
-
-			if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-			}
-
-
-			dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
-
-#endif
 		}
-#ifdef _DEBUG
-		dbg::println();
-#endif
 
 
 		// validator layers
 		std::vector<const char*> required_layers;
+		required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
+		required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
+
+		for (auto req : {"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_crash_diagnostic"})
+		{
+			bool found =
+			  std::ranges::any_of(validator_layers, [&](auto& l) { return std::string_view(l.layerName) == req; });
+			if (not found)
+			{
+				dbg::println("Required validator layer missing: {}", req);
+				return false;
+			}
+		}
 
 #ifdef _DEBUG
 		dbg::println("Vulkan validators({}):", validator_layers.size());
@@ -284,76 +251,48 @@ namespace deckard::vulkan
 			// extensions
 
 			std::vector<const char*> required_extensions;
-#ifdef _DEBUG
-			dbg::println("Vulkan instance extensions({}):", instance_extensions.size());
-#endif
-			for (const auto extension : instance_extensions)
+
+			
+		std::array<const char*, 6> required_exts = {
+			  VK_KHR_SURFACE_EXTENSION_NAME,
+			  VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+			  VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+			  //VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+			VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+			  VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			  VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+			for (const auto& ext : required_exts)
+				required_extensions.push_back(ext);
+
+			for (auto req : required_exts)
 			{
-
-				const std::string_view name = extension.extensionName;
-
-				bool marked = false;
-
-				if (name.compare(VK_KHR_SURFACE_EXTENSION_NAME) == 0)
+				bool found = std::ranges::any_of(
+				  instance_extensions, [&](auto& e) { return std::string_view(e.extensionName) == req; });
+				if (not found)
 				{
-					marked = true;
-					required_extensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+					dbg::println("Required instance extension missing: {}", req);
+					return false;
 				}
-
-				if (name.compare(VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					required_extensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-				}
-
-				if (name.compare(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					required_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-				}
-
-
-#if 0
-			if (name.compare(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME) == 0)
-			{
-				marked = true;
-				required_extensions.emplace_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
 			}
-#endif
-
-#ifdef _DEBUG
-#if 0
-				if (name.compare(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					required_extensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-				}
-#endif
-
-				if (name.compare(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					required_extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-				}
-
-				if (name.compare(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-				{
-					marked = true;
-					required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-				}
-
-
-				dbg::println("{:>48}{} (rev {})", name, marked ? "*" : " ", VK_API_VERSION_PATCH(extension.specVersion));
-
-#endif
-			}
-#ifdef _DEBUG
-			dbg::println();
-#endif
 
 
 			// validator layers
 			std::vector<const char*> required_layers;
+			required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
+			required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
+
+			for (auto req : {"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_crash_diagnostic"})
+			{
+				bool found =
+				  std::ranges::any_of(validator_layers, [&](auto& l) { return std::string_view(l.layerName) == req; });
+				if (not found)
+				{
+					dbg::println("Required validator layer missing: {}", req);
+					return false;
+				}
+			}
+
 
 #ifdef _DEBUG
 			dbg::println("Vulkan validators({}):", validator_layers.size());
