@@ -43,12 +43,12 @@ namespace deckard::file
 
 	export struct options
 	{
-		fs::path      filename;
+		fs::path            filename;
 		std::span<const u8> buffer;
-		u64           size{0};
-		u64           offset{0};
-		u64           chunk_size{4096}; // For read_chunks
-		filemode      mode{filemode::overwrite};
+		u64                 size{0};
+		u64                 offset{0};
+		u64                 chunk_size{4096}; // For read_chunks
+		filemode            mode{filemode::overwrite};
 	};
 
 	// ##################################################################################################################
@@ -223,7 +223,7 @@ namespace deckard::file
 				}
 			}
 
-			if (0 == ReadFile(handle,as<void*>(buffer.data()), as<DWORD>(buffer_size), &bytes_read, nullptr))
+			if (0 == ReadFile(handle, as<void*>(buffer.data()), as<DWORD>(buffer_size), &bytes_read, nullptr))
 			{
 				CloseHandle(handle);
 				return std::unexpected(std::format(
@@ -802,6 +802,53 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 
+	export std::expected<u64, std::string> read_file_header(fs::path file, std::span<u8> out)
+	{
+		HANDLE handle = CreateFileW(
+		  file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+		if (handle == INVALID_HANDLE_VALUE)
+		{
+			CloseHandle(handle);
+			return std::unexpected(
+			  std::format("read_memorymapped_file: could not open file '{}'", platform::string_from_wide(file.wstring())));
+		}
+
+		if (auto size = filesize(file); size and *size == 0)
+		{
+			CloseHandle(handle);
+			return std::unexpected(std::format(
+			  "read_memorymapped_file: cannot map a empty file '{}'", platform::string_from_wide(file.wstring())));
+		}
+
+
+		HANDLE mapping = CreateFileMappingW(handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
+		if (mapping == nullptr)
+		{
+			CloseHandle(handle);
+			return std::unexpected(std::format(
+			  "read_memorymapped_file: could not create file mapping for '{}'", platform::string_from_wide(file.wstring())));
+		}
+
+
+		auto* source = as<const u8*>(MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, out.size()));
+
+		if (source == nullptr)
+		{
+			CloseHandle(mapping);
+			CloseHandle(handle);
+			return std::unexpected(std::format(
+			  "read_memorymapped_file: could not map view of file '{}'", platform::string_from_wide(file.wstring())));
+		}
+
+		std::ranges::copy_n(source, out.size(), out.begin());
+
+		UnmapViewOfFile(source);
+		CloseHandle(mapping);
+		CloseHandle(handle);
+
+		return out.size();
+	}
 
 	// simple api
 
@@ -831,7 +878,7 @@ namespace deckard::file
 			return v;
 
 		// skip bom
-		size_t read  = (v.size() >= 3 and (v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)) ? 3 : 0;
+		size_t read = (v.size() >= 3 and (v[0] == 0xEF and v[1] == 0xBB and v[2] == 0xBF)) ? 3 : 0;
 
 		size_t write = 0;
 
