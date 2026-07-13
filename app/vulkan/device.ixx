@@ -514,17 +514,19 @@ namespace deckard::vulkan
 			gpu_score.resize(device_count);
 			// TODO: u32 score, add points for best score, d-gpu +10, i-gpu, +5
 
-			u32 best_gpu_index{0xFFFF'FFFF};
+			u32 best_gpu_index{0};
 			if (not discrete_gpus.empty())
 			{
 				// just take first discrete
 				// TODO: maybe better way
 				best_gpu_index = discrete_gpus[0];
+				dbg::println("Found discrete GPU: {}", device_properties[best_gpu_index].deviceName);
 			}
 			else if (not integrated_gpus.empty())
 			{
 				// fallback on integrated
 				best_gpu_index = integrated_gpus[0];
+				dbg::println("Found integrated GPU: {}", device_properties[best_gpu_index].deviceName);
 			}
 			else
 			{
@@ -791,6 +793,12 @@ namespace deckard::vulkan
 				{
 					marked = true;
 					extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+				}
+
+				if (name.compare(VK_KHR_MAINTENANCE2_EXTENSION_NAME) == 0)
+				{
+					marked = true;
+					extensions.emplace_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
 				}
 
 				if (name.compare(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME) == 0)
