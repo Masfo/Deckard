@@ -19,7 +19,7 @@ namespace deckard::vulkan
 {
 #define SPV_SPIRV_VERSION_WORD(MAJOR, MINOR) ((uint32_t(uint8_t(MAJOR)) << 16) | (uint32_t(uint8_t(MINOR)) << 8))
 
-	constexpr u32 SPIRV_MAGIC_HEADER = 0x0723'0203;
+	constexpr u32 SPIRV_HEADER_MAGIC = 0x0723'0203;
 
 	class shader
 	{
@@ -41,7 +41,7 @@ namespace deckard::vulkan
 			}
 
 			// Check header
-			if (spirv.empty() or spirv[0] != SPIRV_MAGIC_HEADER)
+			if (spirv.empty() or spirv[0] != SPIRV_HEADER_MAGIC)
 				return std::unexpected(std::string("Shader header is invalid"));
 
 			u8 major = (spirv[1] >> 16) & 0xFF;
@@ -111,8 +111,50 @@ namespace deckard::vulkan
 		std::chrono::time_point<std::chrono::system_clock> last_modified;
 	};
 
-	// Global cache for compiled shaders
-	// TODO: implement
+
+	void clear_old_spirv_caches(fs::path cache_dir, std::chrono::seconds max_age)
+	{
+		if (not fs::exists(cache_dir))
+			return;
+
+		auto now = std::chrono::system_clock::now();
+
+		u32 delete_count = 0;
+
+		for (const auto& entry : fs::directory_iterator(cache_dir))
+		{
+
+			if (entry.path().extension() != ".spv")
+				continue;
+
+
+			// skip non spirv
+			std::array<u8, 4> header{};
+			if (auto result = file::read_file_header(entry.path(), header);
+				not result and header != SPIRV_HEADER_MAGIC)
+			{
+				continue;
+			}
+
+
+			auto ftime = fs::last_write_time(entry.path());
+
+			auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+			  ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+			auto age = now - sctp;
+			if (age > max_age)
+			{
+				delete_count += 1;
+
+				dbg::println("Removing old shader cache: {} (age: {}s)",
+							 entry.path().string(),
+							 std::chrono::duration_cast<std::chrono::seconds>(age).count());
+				fs::remove(entry.path());
+			}
+		}
+
+		dbg::println("Removed {} old shader cache files", delete_count);
+	}
 
 	export std::vector<u8> compile_spirv13(fs::path source_file)
 	{
@@ -126,10 +168,15 @@ namespace deckard::vulkan
 				fs::create_directories(cache_dir);
 
 
+			// delete week old caches
+			clear_old_spirv_caches(cache_dir, std::chrono::days{7});
+
+
 			source_file = std::filesystem::absolute(source_file);
 
 			fs::path cache_file =
-			  cache_dir / fs::path(std::format("{}_{}.spv", source_file.filename().string(), file::hash_file_contents(source_file)));
+			  cache_dir /
+			  fs::path(std::format("{}_{}.spv", source_file.filename().string(), file::hash_file_contents(source_file)));
 
 			if (fs::exists(cache_file))
 			{
@@ -153,43 +200,18 @@ namespace deckard::vulkan
 				return {};
 			}
 
-			dbg::println("Compiled shader '{}' ({}) to '{}'", source_file.string(), result.elapsed_time, cache_file.string());
+			dbg::println(
+			  "Compiled shader '{}' ({}) to '{}'", source_file.string(), result.elapsed_time, cache_file.string());
 
 
-			auto spirv_data = file::read(cache_file);
-
-			// delete 24 hour old cache files
-			auto now = std::chrono::system_clock::now();
-			for (const auto& entry : fs::directory_iterator(cache_dir))
-			{
-				auto ftime = fs::last_write_time(entry.path());
-				auto sctp  = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-                  ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
-
-
-				if (not entry.path().filename().string().starts_with(source_file.filename().string() + "_"))
-					continue;
-
-
-				auto age = now - sctp;
-				if (age > 24h)
-				{
-					dbg::println("remove old shader: {} (age: {}s)",
-								 entry.path().string(),
-								 std::chrono::duration_cast<std::chrono::seconds>(age).count());
-					fs::remove(entry.path());
-				}
-			}
-
-			return spirv_data;
+			return file::read(cache_file);
 		}
 		dbg::eprintln("glslc.exe not found in PATH, cannot compile shader '{}'", source_file.string());
 
 		return {};
 	}
 
-	export std::optional<std::vector<u8>> read_spirv_shader_from_cache(fs::path ) { return {}; }
+	export std::optional<std::vector<u8>> read_spirv_shader_from_cache(fs::path) { return {}; }
 
 
 } // namespace deckard::vulkan
-
