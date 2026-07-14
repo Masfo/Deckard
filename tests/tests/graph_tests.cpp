@@ -1161,7 +1161,7 @@ TEST_CASE("flat_tree", "[flat_tree][graph]")
 		CHECK(f.empty() == true);
 		CHECK(f.capacity() == 16);
 
-		f.insert(10);
+		(void)f.insert(10);
 
 		CHECK(f.size() == 1);
 		CHECK(f.empty() == false);

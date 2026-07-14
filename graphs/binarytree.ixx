@@ -443,7 +443,7 @@ namespace deckard::graph::binary
 
 		[[nodiscard]] auto insert(const T value) -> U
 		{
-			auto const index = static_cast<u32>(nodes.size());
+			auto const index = static_cast<U>(nodes.size());
 
 			assert::check(index < std::numeric_limits<U>::max(), "flat_tree: index overflow");
 
