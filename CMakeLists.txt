@@ -310,7 +310,7 @@ set(DECKARD_SRCS
 		app/vulkan/core.ixx
 		app/vulkan/debug.ixx
 		app/vulkan/device.ixx
-		app/vulkan/fence.ixx
+		
 		app/vulkan/helpers.ixx
 		app/vulkan/images.ixx
 		app/vulkan/instance.ixx
