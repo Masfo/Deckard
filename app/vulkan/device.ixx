@@ -168,10 +168,6 @@ namespace deckard::vulkan
 		return memory;
 	}
 
-
-
-
-
 	bool core::initialize_device()
 	{
 		assert::check(instance != nullptr);
@@ -724,6 +720,8 @@ namespace deckard::vulkan
 
 			dbg::println("Vulkan device extensions({}):", device_extensions.size());
 
+			std::ranges::sort(device_extensions, {}, [](VkExtensionProperties const& e) { return std::string_view{e.extensionName}; });
+
 			for (const auto& extension : device_extensions)
 			{
 				std::string_view name   = extension.extensionName;
@@ -830,6 +828,7 @@ namespace deckard::vulkan
 			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 			features12.bufferDeviceAddress = VK_TRUE;
 			features12.descriptorIndexing  = VK_TRUE;
+			features12.timelineSemaphore   = VK_TRUE;
 
 
 			VkPhysicalDeviceShaderObjectFeaturesEXT shader_features{
@@ -984,11 +983,7 @@ namespace deckard::vulkan
 			return queue_index;
 		}
 
-		void wait() const
-		{
-			assert::check(m_device != nullptr);
-			vkDeviceWaitIdle(m_device);
-		}
+		void wait() const { vkDeviceWaitIdle(m_device); }
 
 		operator VkDevice() const { return m_device; }
 

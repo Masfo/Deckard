@@ -81,6 +81,20 @@ namespace deckard::vulkan
 			return true;
 		}
 
+		bool update(VkDevice dev, std::span<const std::byte> data)
+		{
+			if (m_memory == VK_NULL_HANDLE)
+				return false;
+
+			void* mapped{nullptr};
+			if (vkMapMemory(dev, m_memory, 0, data.size_bytes(), 0, &mapped) != VK_SUCCESS)
+				return false;
+
+			std::memcpy(mapped, data.data(), data.size_bytes());
+			vkUnmapMemory(dev, m_memory);
+			return true;
+		}
+
 		void deinitialize(VkDevice dev)
 		{
 			if (m_buffer != VK_NULL_HANDLE)

@@ -127,6 +127,7 @@ namespace deckard::vulkan
 			  .pColorBlendState    = &blend,
 			  .pDynamicState       = &dynamic_state,
 			  .layout              = m_layout,
+			  .renderPass          = VK_NULL_HANDLE,
 			};
 
 			if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_pipeline) != VK_SUCCESS)
