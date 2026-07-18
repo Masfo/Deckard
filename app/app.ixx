@@ -28,11 +28,8 @@ import deckard.assert;
 import deckard.enums;
 import deckard.threadutil;
 
-namespace deckard::app
+namespace deckard
 {
-	using flicks = std::chrono::duration<std::chrono::nanoseconds::rep, std::ratio<1, 705'600'000>>;
-
-
 	export enum class Attribute : u8 {
 		fullscreen       = BIT(0),
 		togglefullscreen = BIT(1),
@@ -47,22 +44,26 @@ namespace deckard::app
 
 		Count = 8
 	};
-
 	export consteval void enable_bitmask_operations(Attribute);
+} // namespace deckard
 
+namespace deckard::app
+{
+	using flicks = std::chrono::duration<std::chrono::nanoseconds::rep, std::ratio<1, 705'600'000>>;
 
 	// callback
 	class vulkanapp;
 
-	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, Action action, i32 mods);
-	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
 
-	export using initialize_callback_ptr = void(vulkanapp & app);
-	export using close_callback_ptr      = void(vulkanapp & app);
+	export using input_keyboard_callback_ptr = void(vulkanapp * app, i32 key, i32 scancode, bool action, i32 mods);
+	export using input_mouse_callback_ptr    = void(vulkanapp * app, i32 x, i32 y);
 
-	export using fixed_update_callback_ptr = void(vulkanapp & app, f32 fixed_dt);
-	export using update_callback_ptr       = void(vulkanapp & app, f32 dt);
-	export using render_callback_ptr       = void(vulkanapp & app);
+	export using initialize_callback_ptr = void(vulkanapp * app);
+	export using close_callback_ptr      = void(vulkanapp * app);
+
+	export using fixed_update_callback_ptr = void(vulkanapp * app, f32 fixed_dt);
+	export using update_callback_ptr       = void(vulkanapp * app, f32 dt);
+	export using render_callback_ptr       = void(vulkanapp * app);
 
 	enum RawInputType : u32
 	{
@@ -107,8 +108,8 @@ namespace deckard::app
 		HWND        handle{nullptr};
 		extent<u16> min_extent{640, 480};
 		extent<u16> normalized_client_size{0, 0};
-		DWORD       style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS};
-		DWORD       ex_style{WS_EX_NOREDIRECTIONBITMAP};
+		DWORD       style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SIZEBOX};
+		DWORD       ex_style{0};
 
 		inputs m_inputs;
 
@@ -122,55 +123,17 @@ namespace deckard::app
 		std::chrono::steady_clock::time_point start_time;
 		f32                                   m_deltatime{0.0f};
 
+		static constexpr UINT_PTR RESIZE_TIMER_ID = 1;
 
 		bool renderer_initialized{false};
 		bool is_running{false};
 		bool is_sizing{false};
 		bool is_minimized{false};
-		bool show_cursor{false};
+		bool show_cursor{true};
 
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-		void toggle_fullscreen()
-		{
-			static WINDOWPLACEMENT wp{};
-
-			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
-
-			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
-			if (dwStyle & WS_OVERLAPPEDWINDOW)
-			{
-				MONITORINFO mi = {sizeof(mi)};
-				if (GetWindowPlacement(handle, &wp) &&
-					GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
-				{
-					const DWORD old_style = dwStyle & ~WS_OVERLAPPEDWINDOW;
-					SetWindowLong(handle, GWL_STYLE, old_style);
-					SetWindowPos(
-					  handle,
-					  HWND_TOP,
-					  mi.rcMonitor.left,
-					  mi.rcMonitor.top,
-					  mi.rcMonitor.right - mi.rcMonitor.left,
-					  mi.rcMonitor.bottom - mi.rcMonitor.top,
-					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-				}
-				set(Attribute::fullscreen, true);
-			}
-			else
-			{
-				set(Attribute::fullscreen, false);
-
-
-				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
-				SetWindowLong(handle, GWL_STYLE, old_style);
-				SetWindowPos(
-				  handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-				SetWindowPlacement(handle, &wp);
-			}
-
-			extent<u16> size = get_clientsize();
-		}
+		
 
 		extent<u16> adjust_to_current_dpi(extent<u16> old)
 		{
@@ -454,9 +417,9 @@ namespace deckard::app
 
 			// u32 key = (scancode << 16) | ((flags & RI_KEY_E0) << 24);
 
-			if (vkey or scancode)
+			if (keyboard_callback and (vkey or scancode))
 			{
-				keyboard_callback(*this, vkey, scancode, up ? Action::Up : Action::Down, flags);
+				keyboard_callback(this, vkey, scancode, up ? Action::Up : Action::Down, flags);
 			}
 		}
 
@@ -493,6 +456,57 @@ namespace deckard::app
 		// ####################################################################################
 		// ####################################################################################
 		// ####################################################################################>
+	public:
+
+		bool is_vsync() const { return vulkan.is_vsync(); }
+		void enable_vsync(bool enable) 
+		{
+			vulkan.vsync(enable);
+			vulkan.resize();
+		}
+
+		void toggle_vsync() { enable_vsync(not is_vsync()); }
+
+		void toggle_fullscreen()
+		{
+			static WINDOWPLACEMENT wp{};
+
+			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
+
+			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
+			if (dwStyle & WS_OVERLAPPEDWINDOW)
+			{
+				MONITORINFO mi = {sizeof(mi)};
+				if (GetWindowPlacement(handle, &wp) &&
+					GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
+				{
+					const DWORD old_style = dwStyle & ~WS_OVERLAPPEDWINDOW;
+					SetWindowLong(handle, GWL_STYLE, old_style);
+					SetWindowPos(
+					  handle,
+					  HWND_TOP,
+					  mi.rcMonitor.left,
+					  mi.rcMonitor.top,
+					  mi.rcMonitor.right - mi.rcMonitor.left,
+					  mi.rcMonitor.bottom - mi.rcMonitor.top,
+					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				}
+				set(Attribute::fullscreen, true);
+			}
+			else
+			{
+				set(Attribute::fullscreen, false);
+
+
+				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
+				SetWindowLong(handle, GWL_STYLE, old_style);
+				SetWindowPos(
+				  handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				SetWindowPlacement(handle, &wp);
+			}
+
+			extent<u16> size = get_clientsize();
+		}
 
 	public:
 		void set_title(std::string_view title)
@@ -550,6 +564,8 @@ namespace deckard::app
 
 					break;
 				}
+
+
 				default: break;
 			}
 		}
@@ -580,24 +596,53 @@ namespace deckard::app
 
 					break;
 				}
+
+				case Attribute::resizable:
+				{
+					if (value)
+						m_properties.flags += Attribute::resizable;
+					else
+						m_properties.flags -= Attribute::resizable;
+
+					if (value)
+						style |= WS_SIZEBOX;
+					else
+						style &= ~WS_SIZEBOX;
+
+					if (handle != nullptr)
+					{
+						SetWindowLong(handle, GWL_STYLE, style);
+						SetWindowPos(
+						  handle,
+						  nullptr,
+						  0,
+						  0,
+						  0,
+						  0,
+						  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+					}
+
+					break;
+				}
+
 				default: break;
 			}
 		}
 
-		// void set(Attribute flags, u32 value)
-		//{
-		//	switch (flags)
-		//	{
-		//		case Attribute::gameticks:
-		//		{
-		//			game_ticks_per_second = std::clamp(value, 1u, 0xFFFF'FFFFu);
-		//			break;
-		//		}
-		//		default: break;
-		//	}
-		// }
-		//
-		// auto get(Attribute flags) const
+		void set(Attribute flags, u32 value)
+		{
+			switch (flags)
+			{
+				case Attribute::gameticks:
+				{
+					game_ticks_per_second = std::clamp(value, 1u, 0xFFFF'FFFFu);
+					break;
+				}
+				default: break;
+			}
+		}
+
+		// u32 get(Attribute flags) const
 		//{
 		//	switch (flags)
 		//	{
@@ -605,6 +650,11 @@ namespace deckard::app
 		//		default: return 0u;
 		//	}
 		// }
+
+	public:
+		void toggle_fullscreen2() { toggle_fullscreen(); }
+
+		void toggle(deckard::Attribute flags) { set(flags); }
 
 		// ####################################################################################
 		// ####################################################################################
@@ -893,7 +943,7 @@ namespace deckard::app
 					if (fixed_update_callback)
 					{
 						fixed_update_count += 1;
-						fixed_update_callback(*this, fixed_timestep);
+						fixed_update_callback(this, fixed_timestep);
 					}
 
 					{
@@ -968,11 +1018,11 @@ namespace deckard::app
 
 				// Update
 				if (update_callback)
-					update_callback(*this, deltatime());
+					update_callback(this, deltatime());
 
 				// Render
 				if (render_callback)
-					render_callback(*this);
+					render_callback(this);
 
 				render();
 			}
@@ -1157,7 +1207,7 @@ namespace deckard::app
 
 				RECT* new_rect = reinterpret_cast<RECT*>(lParam);
 
-				if (!SetWindowPos(
+				if (not SetWindowPos(
 					  handle,
 					  nullptr,
 					  new_rect->left,
@@ -1173,15 +1223,44 @@ namespace deckard::app
 				return 0;
 			}
 
+			case WM_ENTERSIZEMOVE:
+			{
+				is_sizing = true;
+				SetTimer(handle,
+						 RESIZE_TIMER_ID,
+						 USER_TIMER_MINIMUM,
+						 nullptr); // Windows still delivers WM_TIMER inside the modal loop
+				return 0;
+			}
+
+			case WM_TIMER:
+			{
+				if (wParam == RESIZE_TIMER_ID and is_sizing)
+				{
+					// pull the live client size, update+draw one frame right here
+					vulkan.draw();
+				}
+				return 0;
+			}
 
 			case WM_EXITSIZEMOVE:
 			{
 				is_sizing = false;
+				KillTimer(handle, RESIZE_TIMER_ID);
 				resize();
 				if (is_running and not is_minimized)
-					vulkan.resize();
+					vulkan.resize(); // final, authoritative swapchain rebuild
 				return 0;
 			}
+
+				// case WM_EXITSIZEMOVE:
+				//{
+				//	is_sizing = false;
+				//	resize();
+				//	if (is_running and not is_minimized)
+				//		vulkan.resize();
+				//	return 0;
+				// }
 
 			case WM_SIZING:
 			{
@@ -1353,7 +1432,7 @@ namespace deckard::app
 				dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
 
 				if (keyboard_callback)
-					keyboard_callback(*this, vk, scancode, Action::Down, 0);
+					keyboard_callback(this, vk, scancode, false, 0);
 
 				return 0;
 			}
@@ -1379,7 +1458,7 @@ namespace deckard::app
 				// bool isDown  = (lParam & (1 << 31)) == 0;
 
 				if (keyboard_callback)
-					keyboard_callback(*this, vk, scancode, Action::Up, 0);
+					keyboard_callback(this, vk, scancode, true, 0);
 
 
 				return 0;

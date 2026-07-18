@@ -16,6 +16,9 @@ namespace deckard::app
 
 	export enum class Action { Up, Down };
 
+	export consteval void enable_bitmask_operations(Action);
+
+
 	export enum Key : u32 {
 
 
