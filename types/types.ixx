@@ -204,6 +204,11 @@ export namespace deckard
 
 	// ###########################################################################
 
+	constexpr bool operator==(std::array<u8, 4> lhs, u32 rhs) noexcept { return std::bit_cast<u32>(lhs) == rhs; }
+
+	constexpr bool operator==(std::array<u8, 8> lhs, u64 rhs) noexcept { return std::bit_cast<u64>(lhs) == rhs; }
+
+
 
 	// ###########################################################################
 
