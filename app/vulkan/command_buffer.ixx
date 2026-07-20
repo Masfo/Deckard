@@ -10,7 +10,6 @@ export module deckard.vulkan:command_buffer;
 import :device;
 import :swapchain;
 import :semaphore;
-import :fence;
 
 import deckard.vulkan_helpers;
 
@@ -32,7 +31,7 @@ namespace deckard::vulkan
 			// command buffers
 			VkCommandPoolCreateInfo cmd_pool_create{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
 			cmd_pool_create.queueFamilyIndex = device.select_queue();
-			cmd_pool_create.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+			cmd_pool_create.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult result = vkCreateCommandPool(device, &cmd_pool_create, nullptr, &m_command_pool);
 			if (result != VK_SUCCESS)
@@ -90,24 +89,33 @@ namespace deckard::vulkan
 			}
 		}
 
-		VkResult submit(device device, VkSemaphore image_available, VkSemaphore rendering_finished, VkFence in_flight, u32 index)
+		VkResult submit(device device, VkSemaphore image_available, VkSemaphore rendering_finished,
+						VkSemaphore in_flight_timeline, u64 signal_value, u32 index)
 		{
-			VkPipelineStageFlags wait_dest_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			VkPipelineStageFlags             wait_dest_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			const std::array<VkSemaphore, 2> signal_semaphores{rendering_finished, in_flight_timeline};
+			const std::array<u64, 2>         signal_values{0, signal_value}; // entry for the binary semaphore is ignored
 
-			VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
+
+			VkTimelineSemaphoreSubmitInfo timeline_info{
+			  .sType                     = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+			  .signalSemaphoreValueCount = as<u32>(signal_values.size()),
+			  .pSignalSemaphoreValues    = signal_values.data(),
+			};
+
+			VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .pNext = &timeline_info};
 
 			submit_info.waitSemaphoreCount = 1;
 			submit_info.pWaitSemaphores    = &image_available;
-
 			submit_info.pWaitDstStageMask  = &wait_dest_stage_mask;
+
 			submit_info.commandBufferCount = 1;
 			submit_info.pCommandBuffers    = &m_command_buffers[index];
 
-			submit_info.signalSemaphoreCount = 1;
-			submit_info.pSignalSemaphores    = &rendering_finished;
+			submit_info.signalSemaphoreCount = as<u32>(signal_semaphores.size());
+			submit_info.pSignalSemaphores    = signal_semaphores.data();
 
-
-			return vkQueueSubmit(device.queue(), 1, &submit_info, in_flight);
+			return vkQueueSubmit(device.queue(), 1, &submit_info, VK_NULL_HANDLE);
 		}
 
 		VkCommandBuffer& operator[](size_t index) { return m_command_buffers[index]; }
