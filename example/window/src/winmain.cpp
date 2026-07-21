@@ -28,11 +28,12 @@ import window;
 std::array<unsigned char, 256> previous_state{0};
 std::array<unsigned char, 256> current_state{0};
 
-void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32 mods)
-{
-	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action == Action::Up ? "UP" : "DOWN", mods);
 
-	bool up = action == Action::Up;
+void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 mods)
+{
+	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action  ? "UP" : "DOWN", mods);
+
+	bool up = action;
 
 
 	// ★☆
@@ -59,7 +60,12 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (key == Key::F1 and up)
 	{
-		// app.set(Attribute::vsync);
+		app.toggle_vsync();
+	}
+
+	if (key == Key::V and up)
+	{
+		app.toggle_vsync();
 	}
 
 	if (key == Key::F2 and up)
@@ -69,7 +75,8 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (up and (key == Key::F11 or key == Key::F))
 	{
-		// app.set(Attribute::togglefullscreen);
+	//	app.set(Attribute::togglefullscreen);
+		app.toggle_fullscreen();
 	}
 
 	if (key == Key::Numpad1 and up)
@@ -79,13 +86,13 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 	}
 	if (key == Key::Numpad2 and up)
 	{
-		// app.set(Attribute::gameticks, 30u);
+		 //app.set(Attribute::gameticks, 30u);
 		dbg::println("ticks 30");
 	}
 
 	if (key == Key::Numpad3 and up)
 	{
-		// app.set(Attribute::gameticks, 5u);
+		 //app.set(Attribute::gameticks, 5u);
 		dbg::println("ticks 5");
 	}
 
@@ -98,23 +105,23 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, Action action, i32
 
 	if (key == Key::Subtract and up)
 	{
-		// u32 newticks = app.get(Attribute::gameticks) / 2;
-		// app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
-		// dbg::println("ticks {}", newticks);
+		 //u32 newticks = app.get(Attribute::gameticks) / 2;
+		 //app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
+		 //dbg::println("ticks {}", newticks);
 	}
 }
 
-void fixed_update(vulkanapp&, f32 /*fixed_delta*/)
+void fixed_update( vulkanapp&, f32 /*fixed_delta*/)
 {
 	//
 }
 
-void update(vulkanapp&, f32 /*delta*/)
+void update( vulkanapp&, f32 /*delta*/)
 {
 	//
 }
 
-void render(vulkanapp&)
+void render( vulkanapp&)
 {
 	//
 }
@@ -495,10 +502,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	dbg::println("{}", __cpp_structured_bindings);
 
 	auto [x, y, z] = tupfunc();
-	//auto [xq, rest] = tupfunc();
+	// auto [xq, rest] = tupfunc();
 
 
-	#if 0
+#if 0
 	for (const auto& path : fs::recursive_directory_iterator(R"(.)"))
 	{
 		if (path.is_regular_file())
@@ -514,7 +521,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	random::bytes(rnsdo);
 
 	dbg::println("rng:\n{:.5f}", binary_percentage(rnsdo));
-	#endif
+#endif
 	_ = 0;
 
 
@@ -527,10 +534,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 	std::array<u8, 10> encoded{};
-	//u64                value = 1'234'567'890'123'456'789ULL;
-	//u64                len   = encode_integer(value, encoded);
+	// u64                value = 1'234'567'890'123'456'789ULL;
+	// u64                len   = encode_integer(value, encoded);
 
-	//u64 decoded = decode_integer(encoded);
+	// u64 decoded = decode_integer(encoded);
 
 
 	test_cmdliner();
@@ -585,18 +592,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	_ = 0;
 	// ########################################################################
 
-
-	auto frag = vulkan::compile_spirv13("data//example.frag");
-	auto vert = vulkan::compile_spirv13("data//example.vert");
-
-
-	auto glslc_path = platform::find_file("glslc.exe");
-	if (glslc_path)
-		info("found glslc at: {}", glslc_path.value().string());
-
-
-	_ = 0;
-	// ########################################################################
 
 	std::array<u8, 128> buf128{};
 	for (const auto& [i, c] : buf128 | std::views::enumerate)
@@ -810,6 +805,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 		_ = 0;
+		if (not servers.empty())
 		{
 			u8          hostname_index = random::randu8(0, as<u8>(servers.size() - 1));
 			std::string hostname       = servers[hostname_index].hostname ? *servers[hostname_index].hostname : "";
@@ -1414,165 +1410,165 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			config    ntpservers("ntp.txt"_path);
 			const u16 default_port = ntpservers["servers.port"].as<u16>();
 			auto      ntp_servers  = ntpservers["servers.host"].as_vector<net::endpoint>();
-			u8        server_index = random::randu8(0, as<u8>(ntp_servers.size() - 1));
+			u8        server_index = random::randu8(0, as<u8>(std::min(0ull, ntp_servers.size() - 1)));
 
-
-			if (ntpservers["servers.index"].as<i8>() >= 0)
-				server_index = std::clamp(ntpservers["servers.index"].as<u8>(), 0_u8, as<u8>(ntp_servers.size() - 1));
-			// server_index = 0;
-
-			auto&       ntp_server = ntp_servers[server_index];
-			u16         ntp_port   = (ntp_server.port != 0) ? ntp_server.port : default_port;
-			std::string hostname   = ntp_server.hostname ? *ntp_server.hostname : "";
-
-			// ----------------------- Resolve host ---------------------------------
-			dbg::println("Resolving '{}'...", hostname);
-			auto resolved = net::resolve_ips(hostname);
-			if (not resolved or resolved->empty())
+			if (not ntp_servers.empty())
 			{
-				dbg::println("Failed to resolve '{}'", hostname);
-				return 1;
-			}
+
+				if (ntpservers["servers.index"].as<i8>() >= 0)
+					server_index = std::clamp(ntpservers["servers.index"].as<u8>(), 0_u8, as<u8>(ntp_servers.size() - 1));
+				// server_index = 0;
+
+				auto&       ntp_server = ntp_servers[server_index];
+				u16         ntp_port   = (ntp_server.port != 0) ? ntp_server.port : default_port;
+				std::string hostname   = ntp_server.hostname ? *ntp_server.hostname : "";
+
+				// ----------------------- Resolve host ---------------------------------
+				dbg::println("Resolving '{}'...", hostname);
+				auto resolved = net::resolve_ips(hostname);
+				if (not resolved or resolved->empty())
+				{
+					dbg::println("Failed to resolve '{}'", hostname);
+					return 1;
+				}
 
 
-			for (const auto& ip : *resolved)
-				dbg::println("  {} (IPv{})", ip, ip.version());
+				for (const auto& ip : *resolved)
+					dbg::println("  {} (IPv{})", ip, ip.version());
 
-			auto [ntp_storage, ntp_addrlen] = resolved->front().to_sockaddr();
+				auto [ntp_storage, ntp_addrlen] = resolved->front().to_sockaddr();
 
-			if (resolved->front().is_ipv6())
-				reinterpret_cast<sockaddr_in6&>(ntp_storage).sin6_port = htons(ntp_port);
-			else
-				reinterpret_cast<sockaddr_in&>(ntp_storage).sin_port = htons(ntp_port);
+				if (resolved->front().is_ipv6())
+					reinterpret_cast<sockaddr_in6&>(ntp_storage).sin6_port = htons(ntp_port);
+				else
+					reinterpret_cast<sockaddr_in&>(ntp_storage).sin_port = htons(ntp_port);
 
-			// ----------------------- Create socket ---------------------------------
-			SOCKET sock = socket(ntp_storage.ss_family, SOCK_DGRAM, IPPROTO_UDP);
-			if (sock == INVALID_SOCKET)
-			{
-				dbg::println("socket() failed: {}", WSAGetLastError());
-			}
+				// ----------------------- Create socket ---------------------------------
+				SOCKET sock = socket(ntp_storage.ss_family, SOCK_DGRAM, IPPROTO_UDP);
+				if (sock == INVALID_SOCKET)
+				{
+					dbg::println("socket() failed: {}", WSAGetLastError());
+				}
 
-			DWORD timeoutMs = 5000;
-			setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
-
-
-			// ----------------------- Build NTP request packet -----------------------
-			std::array<u8, NTP_PACKET_SIZE> packet{};
-
-			// clang-format off
-		//                                2   3   3   
-		//                               LI  VN   Mode
-		//                                |   |   |   
-		constexpr u8 ntp_config_byte = 0b00'100'011;
-			// clang-format on
-
-			// LI  : 0
-			// VN  : 011 v3, 100 v4
-			// Mode: 011 (3) client
-			//
+				DWORD timeoutMs = 5000;
+				setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
 
 
-			auto chrono_to_poll = [](std::chrono::seconds duration) -> u8
-			{
-				if (duration.count() <= 0)
-					return 0;
+				// ----------------------- Build NTP request packet -----------------------
+				std::array<u8, NTP_PACKET_SIZE> packet{};
 
-				auto poll = static_cast<int>(std::floor(std::log2(static_cast<f64>(duration.count()))));
-				return static_cast<u8>(std::clamp(poll, 0, 10));
-			};
+				//                               2  3  3
+				//                              LI VN  Mode
+				//                               | |   |
+				constexpr u8 ntp_config_byte = 0b0010'0011;
 
-			packet[0] = ntp_config_byte;
-			packet[1] = 1; // stratum
-			packet[2] = chrono_to_poll(8s);
-			// packet[3] = static_cast<u8>(-20) & 0xFF; // Precision
-
-
-			auto t1 = std::chrono::system_clock::now();
-
-			u64 t1_packet = chrono_to_ntp(t1);
+				// LI  : 0
+				// VN  : 011 v3, 100 v4
+				// Mode: 011 (3) client
+				//
 
 
-			// Origin timestamp
-			write_be<u64>(packet, 24, t1_packet);
+				auto chrono_to_poll = [](std::chrono::seconds duration) -> u8
+				{
+					if (duration.count() <= 0)
+						return 0;
 
-			// Transmit timestamp (optional)
-			write_be<u64>(packet, 40, t1_packet);
+					auto poll = static_cast<int>(std::floor(std::log2(static_cast<f64>(duration.count()))));
+					return static_cast<u8>(std::clamp(poll, 0, 10));
+				};
+
+				packet[0] = ntp_config_byte;
+				packet[1] = 1; // stratum
+				packet[2] = chrono_to_poll(8s);
+				// packet[3] = static_cast<u8>(-20) & 0xFF; // Precision
 
 
-			// ----------------------- Send request ----------------------------------
-			int sent = sendto(
-			  sock,
-			  reinterpret_cast<const char*>(packet.data()),
-			  static_cast<int>(packet.size()),
-			  0,
-			  reinterpret_cast<sockaddr*>(&ntp_storage),
-			  static_cast<int>(ntp_addrlen));
+				auto t1 = std::chrono::system_clock::now();
 
-			if (sent == SOCKET_ERROR)
-			{
-				dbg::println("sendto() failed: {}", WSAGetLastError());
+				u64 t1_packet = chrono_to_ntp(t1);
+
+
+				// Origin timestamp
+				write_be<u64>(packet, 24, t1_packet);
+
+				// Transmit timestamp (optional)
+				write_be<u64>(packet, 40, t1_packet);
+
+
+				// ----------------------- Send request ----------------------------------
+				int sent = sendto(
+				  sock,
+				  reinterpret_cast<const char*>(packet.data()),
+				  static_cast<int>(packet.size()),
+				  0,
+				  reinterpret_cast<sockaddr*>(&ntp_storage),
+				  static_cast<int>(ntp_addrlen));
+
+				if (sent == SOCKET_ERROR)
+				{
+					dbg::println("sendto() failed: {}", WSAGetLastError());
+					closesocket(sock);
+					WSACleanup();
+					return 1;
+				}
+				dbg::println("send = {}", sent);
+
+				// ----------------------- Set receive timeout (5 seconds) ---------------
+				// ----------------------- Receive reply ---------------------------------
+				int recvLen = recvfrom(
+				  sock, reinterpret_cast<char*>(packet.data()), static_cast<int>(packet.size()), 0, nullptr, nullptr);
+
+				auto t4 = std::chrono::system_clock::now();
+
+				if (recvLen == SOCKET_ERROR)
+				{
+					dbg::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
+					closesocket(sock);
+					WSACleanup();
+				}
+
+				if (recvLen < static_cast<int>(NTP_PACKET_SIZE))
+				{
+					dbg::println("Received packet too short ({}) bytes", recvLen);
+					closesocket(sock);
+				}
+
+				if (recvLen == NTP_PACKET_SIZE)
+				{
+
+
+					auto ntp = parse_ntp(packet, t1, t4);
+
+					dbg::println("{:<20}: {}", "Leap", ntp.leapIndicator);
+
+					dbg::println("{:<20}: {}", "Precision", ntp.precision);
+					dbg::println("{:<20}: {}", "Root delay", ntp.root_delay);
+					dbg::println("{:<20}: {}", "Reference ID", ntp.ref_id_string);
+					dbg::println("{:<20}: {}", "Root dispersion", ntp.root_dispersion);
+					dbg::println("{:<20}: {}", "Reference time", ntp.refTimestamp);
+					dbg::println("{:<20}: {}", "Origin time", ntp.origTimestamp);
+					dbg::println("{:<20}: {}", "Receive time", ntp.rxTimestamp);
+					dbg::println("{:<20}: {}", "Transmit time", ntp.txTimestamp);
+
+					dbg::println("{:<20}: {}", "Round trip", ntp.roundtrip_delay);
+					dbg::println("{:<20}: {}", "Clock offset", ntp.local_clock_offset);
+					dbg::println("{:<20}: {}", "Unix Epoch", ntp.unix_epoch);
+					dbg::println("{:<20}: {}", "Local Epoch", epoch());
+					dbg::println();
+					dbg::println("NTP from {}", hostname);
+					dbg::println("{:<20}: {}", "Version", ntp.version);
+					dbg::println("{:<20}: {}", "Mode", ntp.mode);
+					dbg::println("{:<20}: {}", "Stratum", ntp.stratum);
+					dbg::println("{:<20}: {}", "Poll", ntp.poll);
+				}
+				_ = 0;
+
+				// ---------------------
+
+
 				closesocket(sock);
-				WSACleanup();
-				return 1;
 			}
-			dbg::println("send = {}", sent);
-
-			// ----------------------- Set receive timeout (5 seconds) ---------------
-			// ----------------------- Receive reply ---------------------------------
-			int recvLen =
-			  recvfrom(sock, reinterpret_cast<char*>(packet.data()), static_cast<int>(packet.size()), 0, nullptr, nullptr);
-
-			auto t4 = std::chrono::system_clock::now();
-
-			if (recvLen == SOCKET_ERROR)
-			{
-				dbg::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
-				closesocket(sock);
-				WSACleanup();
-			}
-
-			if (recvLen < static_cast<int>(NTP_PACKET_SIZE))
-			{
-				dbg::println("Received packet too short ({}) bytes", recvLen);
-				closesocket(sock);
-			}
-
-			if (recvLen == NTP_PACKET_SIZE)
-			{
-
-
-				auto ntp = parse_ntp(packet, t1, t4);
-
-				dbg::println("{:<20}: {}", "Leap", ntp.leapIndicator);
-
-				dbg::println("{:<20}: {}", "Precision", ntp.precision);
-				dbg::println("{:<20}: {}", "Root delay", ntp.root_delay);
-				dbg::println("{:<20}: {}", "Reference ID", ntp.ref_id_string);
-				dbg::println("{:<20}: {}", "Root dispersion", ntp.root_dispersion);
-				dbg::println("{:<20}: {}", "Reference time", ntp.refTimestamp);
-				dbg::println("{:<20}: {}", "Origin time", ntp.origTimestamp);
-				dbg::println("{:<20}: {}", "Receive time", ntp.rxTimestamp);
-				dbg::println("{:<20}: {}", "Transmit time", ntp.txTimestamp);
-
-				dbg::println("{:<20}: {}", "Round trip", ntp.roundtrip_delay);
-				dbg::println("{:<20}: {}", "Clock offset", ntp.local_clock_offset);
-				dbg::println("{:<20}: {}", "Unix Epoch", ntp.unix_epoch);
-				dbg::println("{:<20}: {}", "Local Epoch", epoch());
-				dbg::println();
-				dbg::println("NTP from {}", hostname);
-				dbg::println("{:<20}: {}", "Version", ntp.version);
-				dbg::println("{:<20}: {}", "Mode", ntp.mode);
-				dbg::println("{:<20}: {}", "Stratum", ntp.stratum);
-				dbg::println("{:<20}: {}", "Poll", ntp.poll);
-			}
-			_ = 0;
-
-			// ---------------------
-
-
-			closesocket(sock);
 		}
-
 
 		// ########################################################################
 
@@ -1822,7 +1818,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		   .flags  = Attribute::vsync | Attribute::resizable});
 
 
-		// app01.set_keyboard_callback(keyboard_callback);
+		app01.set_keyboard_callback(keyboard_callback);
 		app01.set_fixed_update_callback(fixed_update);
 		app01.set_update_callback(update);
 		app01.set_render_callback(render);

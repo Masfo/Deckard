@@ -55,15 +55,15 @@ namespace deckard::app
 	class vulkanapp;
 
 
-	export using input_keyboard_callback_ptr = void(vulkanapp * app, i32 key, i32 scancode, bool action, i32 mods);
-	export using input_mouse_callback_ptr    = void(vulkanapp * app, i32 x, i32 y);
+	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, bool action, i32 mods);
+	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
 
-	export using initialize_callback_ptr = void(vulkanapp * app);
-	export using close_callback_ptr      = void(vulkanapp * app);
+	export using initialize_callback_ptr = void(vulkanapp & app);
+	export using close_callback_ptr      = void(vulkanapp & app);
 
-	export using fixed_update_callback_ptr = void(vulkanapp * app, f32 fixed_dt);
-	export using update_callback_ptr       = void(vulkanapp * app, f32 dt);
-	export using render_callback_ptr       = void(vulkanapp * app);
+	export using fixed_update_callback_ptr = void(vulkanapp & app, f32 fixed_dt);
+	export using update_callback_ptr       = void(vulkanapp & app, f32 dt);
+	export using render_callback_ptr       = void(vulkanapp & app);
 
 	enum RawInputType : u32
 	{
@@ -132,8 +132,6 @@ namespace deckard::app
 		bool show_cursor{true};
 
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-		
 
 		extent<u16> adjust_to_current_dpi(extent<u16> old)
 		{
@@ -457,9 +455,9 @@ namespace deckard::app
 		// ####################################################################################
 		// ####################################################################################>
 	public:
-
 		bool is_vsync() const { return vulkan.is_vsync(); }
-		void enable_vsync(bool enable) 
+
+		void enable_vsync(bool enable)
 		{
 			vulkan.vsync(enable);
 			vulkan.resize();
@@ -943,7 +941,7 @@ namespace deckard::app
 					if (fixed_update_callback)
 					{
 						fixed_update_count += 1;
-						fixed_update_callback(this, fixed_timestep);
+						fixed_update_callback(*this, fixed_timestep);
 					}
 
 					{
@@ -1018,11 +1016,11 @@ namespace deckard::app
 
 				// Update
 				if (update_callback)
-					update_callback(this, deltatime());
+					update_callback(*this, deltatime());
 
 				// Render
 				if (render_callback)
-					render_callback(this);
+					render_callback(*this);
 
 				render();
 			}
@@ -1432,7 +1430,7 @@ namespace deckard::app
 				dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
 
 				if (keyboard_callback)
-					keyboard_callback(this, vk, scancode, false, 0);
+					keyboard_callback(*this, vk, scancode, false, 0);
 
 				return 0;
 			}
@@ -1458,7 +1456,7 @@ namespace deckard::app
 				// bool isDown  = (lParam & (1 << 31)) == 0;
 
 				if (keyboard_callback)
-					keyboard_callback(this, vk, scancode, true, 0);
+					keyboard_callback(*this, vk, scancode, true, 0);
 
 
 				return 0;

@@ -154,8 +154,10 @@ endif()
 
 # Vulkan
 find_package(Vulkan REQUIRED)
+#find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 target_include_directories(deckard PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(deckard PRIVATE Vulkan::Vulkan)
+
 
 # find_program(GLSLC_EXECUTABLE glslc HINTS $ENV{VULKAN_SDK}/Bin)
 # if(NOT GLSLC_EXECUTABLE)
