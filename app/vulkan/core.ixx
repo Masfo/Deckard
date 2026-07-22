@@ -6,11 +6,11 @@ module;
 #include <vulkan/vulkan_win32.h>
 
 
-
 export module deckard.vulkan:core;
 
 import std;
 import deckard.debug;
+import deckard.as;
 import deckard.types;
 
 /*
@@ -32,18 +32,20 @@ import deckard.types;
  *			- AMD RX 5700 XT:		4294967295
 			- Nvidia RTX 5060 Ti:	4294967295
 			- Intel Arc A380:		4294967295
-* 
-* 
-*  https://vulkan.gpuinfo.org/compare.php?devices[]=NVIDIA%20GeForce%20RTX%204060&os=all&devices[]=AMD%20Radeon%20RX%209060%20XT&os=all&devices[]=Intel(R)%20Arc(tm)%20A380%20Graphics%20(DG2)&os=all
-* 
+*
+*
+*
+https://vulkan.gpuinfo.org/compare.php?devices[]=NVIDIA%20GeForce%20RTX%204060&os=all&devices[]=AMD%20Radeon%20RX%209060%20XT&os=all&devices[]=Intel(R)%20Arc(tm)%20A380%20Graphics%20(DG2)&os=all
+*
 *	Vertex Pulling
-* 
-*/ 
-
+*
+*/
 
 
 namespace deckard::vulkan
 {
+	using namespace deckard;
+
 	constexpr u32 VENDOR_NVIDIA   = 0x10DE;
 	constexpr u32 VENDOR_AMD      = 0x1002;
 	constexpr u32 VENDOR_INTEL    = 0x8086;
@@ -52,14 +54,13 @@ namespace deckard::vulkan
 
 	struct GPUInfo
 	{
-		u64              vram_size_mb{0};
-		VkPhysicalDevice physical_device{nullptr};
+		u64                  vram_size_mb{0};
+		VkPhysicalDevice     physical_device{nullptr};
 		VkPhysicalDeviceType type{VK_PHYSICAL_DEVICE_TYPE_OTHER}; // Discrete, Integrated
 		int                  score{0};
 		bool                 dynamic_rendering{false};
 
 		bool operator<(const GPUInfo& other) const { return score > other.score; } // High to low
-
 	};
 
 	// Dynamic renderer
@@ -70,8 +71,18 @@ namespace deckard::vulkan
 	PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT{nullptr};
 	PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
 	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT{nullptr};
-	bool                                debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
-													   const VkDebugUtilsMessengerCallbackDataEXT*, void*);
+	bool debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
+						const VkDebugUtilsMessengerCallbackDataEXT*, void*);
+
+	struct frameresource
+	{
+		u32             last_frame{0};
+		VkCommandPool   command_pool{nullptr};
+		VkCommandBuffer command_buffer{nullptr};
+		VkSemaphore     image_available_semaphore{nullptr};
+		VkSemaphore     render_finished_semaphore{nullptr};
+	};
+
 
 	export class core
 	{
@@ -79,16 +90,108 @@ namespace deckard::vulkan
 
 	private:
 		// instance
-		std::vector<VkLayerProperties>     validator_layers;
-		std::vector<VkExtensionProperties> instance_extensions;
 		VkInstance                         instance{nullptr};
 
-		[[nodiscard("Check the instance status")]] bool initialize_instance();
-		bool                                            enumerate_instance_extensions(std::vector<VkExtensionProperties>&);
-		bool                                            enumerate_validator_layers(std::vector<VkLayerProperties>&);
+
+		// Instance
+		[[nodiscard("Check the instance status")]] std::expected<void, std::string>
+		create_instance(std::string_view application_name = "Default")
+		{
+			#if 0
+			// Instance extensions
+			std::vector<VkExtensionProperties> extensions;
+			u32                                count{0};
+			if (vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr) != VK_SUCCESS)
+				return std::unexpected("Failed to enumerate instance extension properties");
+
+			extensions.resize(count);
+
+			if (vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data()) != VK_SUCCESS)
+				return std::unexpected("Failed to enumerate instance extension properties");
+
+			// Validator layers
+			if (vkEnumerateInstanceLayerProperties(&count, nullptr) != VK_SUCCESS)
+				return std::unexpected("Failed to enumerate instance layer properties");
+
+
+			std::vector<VkLayerProperties> layers;
+			layers.resize(count);
+
+			if (vkEnumerateInstanceLayerProperties(&count, layers.data()) != VK_SUCCESS)
+				return std::unexpected("Failed to enumerate instance layer properties");
+
+
+			// Required extensions and layers
+			std::vector<const char*> required_extensions{
+			  VK_KHR_SURFACE_EXTENSION_NAME,
+			  VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+			  VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+			  // VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+			  VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			  VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+			for (const auto& ext : required_extensions)
+			{
+				bool found = std::ranges::any_of(
+				  instance_extensions, [&](auto& e) { return std::string_view(e.extensionName) == ext; });
+				if (not found)
+					return std::unexpected(std::format("Required instance extension missing: {}", ext));
+			}
+
+
+			// Validator layers
+			std::vector<const char*> required_layers{"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_crash_diagnostic"};
+			for (const auto& layer : required_layers)
+			{
+				bool found =
+				  std::ranges::any_of(validator_layers, [&](auto& l) { return std::string_view(l.layerName) == layer; });
+				if (not found)
+					return std::unexpected(std::format("Required validator layer missing: {}", layer));
+			}
+
+			// Instance creation
+
+			// Application info
+			VkApplicationInfo app_info{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO};
+			app_info.apiVersion = minimum_apiversion;
+
+			app_info.pApplicationName   = application_name.data();
+			app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+			app_info.pEngineName        = "Deckard";
+#ifndef _DEBUG
+			app_info.engineVersion =
+			  VK_MAKE_VERSION(deckard_build::build::major, deckard_build::build::minor, deckard_build::build::patch);
+#endif
+
+			VkInstanceCreateInfo instance_create{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+			instance_create.pApplicationInfo = &app_info;
+			// extensions
+			instance_create.enabledExtensionCount   = as<u32>(required_extensions.size());
+			instance_create.ppEnabledExtensionNames = required_extensions.data();
+			// layers
+			instance_create.enabledLayerCount   = as<u32>(required_layers.size());
+			instance_create.ppEnabledLayerNames = required_layers.data();
+
+			VkResult result = vkCreateInstance(&instance_create, nullptr, &instance);
+			if (result == VK_ERROR_INCOMPATIBLE_DRIVER)
+			{
+				return std::unexpected("Vulkan driver is incompatible with the application.");
+			}
+			else if (result == VK_ERROR_EXTENSION_NOT_PRESENT)
+			{
+				return std::unexpected("Vulkan extension not present.");
+			}
+			else if (result != VK_SUCCESS or instance == nullptr)
+			{
+				return std::unexpected(std::format("Failed to create Vulkan instance: {}", string_VkResult(result)));
+			}
+			#endif
+			return {};
+		}
 
 		// Device
 		std::vector<VkExtensionProperties> device_extensions;
+
 		// VkDevice                           device{nullptr};
 		VkPhysicalDevice physical_device{nullptr};
 		VkQueue          queue{nullptr};
@@ -111,21 +214,11 @@ namespace deckard::vulkan
 	private:
 		u32 minimum_apiversion{VK_API_VERSION_1_3};
 
-		void initialize()
+		void initialize(void* native_window_handle)
 		{
-			if (not initialize_instance())
+			if (auto init = create_instance(); not init)
 			{
-				dbg::println("Vulkan instance initialization failed");
-				return;
-			}
-			if (not initialize_debug_functions(this))
-			{
-				dbg::println("Vulkan debug functions initialization failed");
-				return;
-			}
-			if (not initialize_device())
-			{
-				dbg::println("Vulkan device initialization failed");
+				dbg::println("Vulkan instance initialization failed: {}", init.error());
 				return;
 			}
 		}
@@ -146,7 +239,6 @@ namespace deckard::vulkan
 		}
 
 	public:
-		core() { initialize(); }
 
 		~core() { deinitialize(); }
 	};

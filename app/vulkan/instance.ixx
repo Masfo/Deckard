@@ -23,6 +23,7 @@ import deckard_build;
 namespace deckard::vulkan
 {
 
+	#if 0
 	bool core::enumerate_instance_extensions(std::vector<VkExtensionProperties>& extensions)
 	{
 		u32      count{0};
@@ -49,148 +50,9 @@ namespace deckard::vulkan
 		}
 		return result == VK_SUCCESS;
 	}
+	#endif
 
 
-	bool core::initialize_instance()
-	{
-		if (bool ext_init = enumerate_instance_extensions(instance_extensions); not ext_init)
-			return false;
-		if (bool layer_init = enumerate_validator_layers(validator_layers); not layer_init)
-			return false;
-
-			VkApplicationInfo app_info{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO};
-		app_info.apiVersion = minimum_apiversion;
-
-		app_info.pApplicationName   = "Deckard";
-		app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
-		app_info.pEngineName        = "Deckard";
-#ifndef _DEBUG
-		app_info.engineVersion = VK_MAKE_VERSION(deckard_build::build::major, deckard_build::build::minor, deckard_build::build::patch);
-#endif
-		// extensions
-
-		std::vector<const char*> required_extensions;
-#ifdef _DEBUG
-		dbg::println("Vulkan instance extensions({}):", instance_extensions.size());
-#endif
-
-		std::array<const char*, 6> required_exts = {
-		  VK_KHR_SURFACE_EXTENSION_NAME,
-		  VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-		  VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-		 // VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
-		  VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-		  VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
-
-		for (const auto &ext : required_exts)
-			required_extensions.push_back(ext);
-
-		for (auto req : required_exts)
-		{
-			bool found =
-			  std::ranges::any_of(instance_extensions, [&](auto& e) { return std::string_view(e.extensionName) == req; });
-			if (not found)
-			{
-				dbg::println("Required instance extension missing: {}", req);
-				return false;
-			}
-		}
-
-
-		// validator layers
-		std::vector<const char*> required_layers;
-		required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
-		required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
-
-		for (auto req : {"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_crash_diagnostic"})
-		{
-			bool found =
-			  std::ranges::any_of(validator_layers, [&](auto& l) { return std::string_view(l.layerName) == req; });
-			if (not found)
-			{
-				dbg::println("Required validator layer missing: {}", req);
-				return false;
-			}
-		}
-
-#ifdef _DEBUG
-		dbg::println("Vulkan validators({}):", validator_layers.size());
-
-		for (const auto& layer : validator_layers)
-		{
-			std::string_view name   = layer.layerName;
-			bool             marked = false;
-			if (name.compare("VK_LAYER_KHRONOS_validation") == 0)
-			{
-				marked = true;
-				required_layers.emplace_back("VK_LAYER_KHRONOS_validation");
-			}
-
-
-			if (name.compare("VK_LAYER_LUNARG_crash_diagnostic") == 0)
-			{
-				marked = true;
-				required_layers.emplace_back("VK_LAYER_LUNARG_crash_diagnostic");
-			}
-#if 0
-				if (name.compare("VK_LAYER_LUNARG_monitor") == 0)
-				{
-					marked = true;
-					required_layers.emplace_back("VK_LAYER_LUNARG_monitor");
-				}
-#endif
-
-			dbg::println(
-			  "{:>48}{} ({}.{}.{})",
-			  layer.layerName,
-			  marked ? "*" : " ",
-			  VK_API_VERSION_MAJOR(layer.specVersion),
-			  VK_API_VERSION_MINOR(layer.specVersion),
-			  VK_API_VERSION_PATCH(layer.specVersion));
-		}
-		dbg::println();
-#endif
-
-
-		// Instance
-		VkInstanceCreateInfo instance_create{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
-
-
-		// instance_create.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-		instance_create.pApplicationInfo = &app_info;
-		// extensions
-		instance_create.enabledExtensionCount   = as<u32>(required_extensions.size());
-		instance_create.ppEnabledExtensionNames = required_extensions.data();
-		// layers
-		instance_create.enabledLayerCount   = as<u32>(required_layers.size());
-		instance_create.ppEnabledLayerNames = required_layers.data();
-
-		VkResult result = vkCreateInstance(&instance_create, nullptr, &instance);
-
-		if (result == VK_ERROR_INCOMPATIBLE_DRIVER)
-		{
-			dbg::println("Vulkan driver is incompatible with the application.");
-			return false;
-		}
-		else if (result == VK_ERROR_EXTENSION_NOT_PRESENT)
-		{
-			dbg::println("Vulkan extension not present.");
-			return false;
-		}
-		else if (result == VK_ERROR_LAYER_NOT_PRESENT)
-		{
-			dbg::println("Vulkan layer not present.");
-			return false;
-		}
-		else if (result != VK_SUCCESS or instance == nullptr)
-		{
-			dbg::println("Create vulkan instance failed: {}", string_VkResult(result));
-			return false;
-		}
-
-
-		return true;
-	}
 
 	// core ------------------------------
 
