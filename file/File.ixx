@@ -789,6 +789,116 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 	// ##################################################################################################################
+	export struct filemap_view
+	{
+		const u8* address{nullptr};
+		u64       size{0};
+
+		operator bool() const { return address != nullptr; }
+
+		u8 operator[](u64 index) const
+		{
+			assert::check(address != nullptr && index < size, "filemap_view: invalid access");
+			return address[index];
+		}
+
+		std::span<const u8> data() const
+		{
+			assert::check(address != nullptr, "filemap_view: invalid view");
+			return std::span<const u8>(address, size);
+		}
+
+		filemap_view()                               = default;
+		filemap_view(const filemap_view&)            = delete;
+		filemap_view& operator=(const filemap_view&) = delete;
+
+		filemap_view(filemap_view&& other) noexcept
+			: address(std::exchange(other.address, nullptr))
+			, size(std::exchange(other.size, 0))
+		{
+		}
+
+		filemap_view& operator=(filemap_view&& other) noexcept
+		{
+			if (this != &other)
+			{
+				reset();
+				address = std::exchange(other.address, nullptr);
+				size    = std::exchange(other.size, 0);
+			}
+			return *this;
+		}
+
+		~filemap_view() { reset(); }
+
+		void close() { reset(); }
+
+
+	private:
+		void reset()
+		{
+			if (address)
+			{
+				UnmapViewOfFile(address);
+				address = nullptr;
+			}
+		}
+	};
+
+	export filemap_view map(const fs::path& file, u64 offset = 0, u64 size = 0)
+	{
+		filemap_view view{};
+
+		HANDLE handle =
+		  CreateFileW(file.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (handle == INVALID_HANDLE_VALUE)
+		{
+			dbg::println("filemap: could not open file '{}'", file.string());
+			return view;
+		}
+
+		u64 file_size = filesize(file).value_or(0);
+		if (file_size == 0 or offset >= file_size)
+		{
+			CloseHandle(handle);
+			dbg::println("filemap: invalid range for file '{}'", file.string());
+			return view;
+		}
+
+		if (size == 0)
+			size = file_size - offset;
+
+		HANDLE mapping = CreateFileMappingW(handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
+		CloseHandle(handle);
+		if (mapping == nullptr)
+		{
+			dbg::println("filemap: could not create mapping for file '{}'", file.string());
+			return view;
+		}
+
+		auto* address = static_cast<const u8*>(MapViewOfFile(
+		  mapping,
+		  FILE_MAP_READ,
+		  static_cast<DWORD>(offset >> 32),
+		  static_cast<DWORD>(offset & 0xFFFF'FFFF),
+		  static_cast<SIZE_T>(size)));
+
+		CloseHandle(mapping);
+
+		if (address == nullptr)
+		{
+			dbg::println("filemap: could not map file '{}'", file.string());
+			return view;
+		}
+
+		view.address = address;
+		view.size    = size;
+		return view;
+	}
+
+	// ##################################################################################################################
+	// ##################################################################################################################
+	// ##################################################################################################################
 
 	export u64 hash_file_contents(fs::path file)
 	{

@@ -28,10 +28,9 @@ import window;
 std::array<unsigned char, 256> previous_state{0};
 std::array<unsigned char, 256> current_state{0};
 
-
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 mods)
 {
-	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action  ? "UP" : "DOWN", mods);
+	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action ? "UP" : "DOWN", mods);
 
 	bool up = action;
 
@@ -75,7 +74,7 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 m
 
 	if (up and (key == Key::F11 or key == Key::F))
 	{
-	//	app.set(Attribute::togglefullscreen);
+		//	app.set(Attribute::togglefullscreen);
 		app.toggle_fullscreen();
 	}
 
@@ -86,13 +85,13 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 m
 	}
 	if (key == Key::Numpad2 and up)
 	{
-		 //app.set(Attribute::gameticks, 30u);
+		// app.set(Attribute::gameticks, 30u);
 		dbg::println("ticks 30");
 	}
 
 	if (key == Key::Numpad3 and up)
 	{
-		 //app.set(Attribute::gameticks, 5u);
+		// app.set(Attribute::gameticks, 5u);
 		dbg::println("ticks 5");
 	}
 
@@ -105,23 +104,23 @@ void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 m
 
 	if (key == Key::Subtract and up)
 	{
-		 //u32 newticks = app.get(Attribute::gameticks) / 2;
-		 //app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
-		 //dbg::println("ticks {}", newticks);
+		// u32 newticks = app.get(Attribute::gameticks) / 2;
+		// app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
+		// dbg::println("ticks {}", newticks);
 	}
 }
 
-void fixed_update( vulkanapp&, f32 /*fixed_delta*/)
+void fixed_update(vulkanapp&, f32 /*fixed_delta*/)
 {
 	//
 }
 
-void update( vulkanapp&, f32 /*delta*/)
+void update(vulkanapp&, f32 /*delta*/)
 {
 	//
 }
 
-void render( vulkanapp&)
+void render(vulkanapp&)
 {
 	//
 }
@@ -601,6 +600,19 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	std::array<u8, 64> buf64{};
 	(void)file::read({.filename = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
+
+		auto vi = file::map("bin128.dat");
+
+		for (const auto& [i, c] : vi.data() | std::views::enumerate)
+		{
+			dbg::print("{:02X} ", c);
+			if ((i + 1) % 16 == 0)
+				dbg::println();
+		}
+
+		auto dvi = vi.data();
+
+		vi.close();
 
 
 	_ = 0;
