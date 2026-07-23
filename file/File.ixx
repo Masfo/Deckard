@@ -802,6 +802,12 @@ namespace deckard::file
 			return address[index];
 		}
 
+		const u8* raw_data() const
+		{
+			assert::check(address != nullptr, "filemap_view: invalid view");
+			return address;
+		}
+
 		std::span<const u8> data() const
 		{
 			assert::check(address != nullptr, "filemap_view: invalid view");
@@ -842,10 +848,11 @@ namespace deckard::file
 				UnmapViewOfFile(address);
 				address = nullptr;
 			}
+			size = 0;
 		}
 	};
 
-	export filemap_view map(const fs::path& file, u64 offset = 0, u64 size = 0)
+	export filemap_view map(const fs::path& file, u64 size = 0)
 	{
 		filemap_view view{};
 
@@ -858,7 +865,7 @@ namespace deckard::file
 		}
 
 		u64 file_size = filesize(file).value_or(0);
-		if (file_size == 0 or offset >= file_size)
+		if (file_size == 0)
 		{
 			CloseHandle(handle);
 			dbg::println("filemap: invalid range for file '{}'", file.string());
@@ -866,7 +873,13 @@ namespace deckard::file
 		}
 
 		if (size == 0)
-			size = file_size - offset;
+			size = file_size;
+		else if (size > file_size)
+		{
+			CloseHandle(handle);
+			dbg::println("filemap: requested size {} exceeds file '{}' (size {})", size, file.string(), size);
+			return view;
+		}
 
 		HANDLE mapping = CreateFileMappingW(handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
 		CloseHandle(handle);
@@ -876,12 +889,7 @@ namespace deckard::file
 			return view;
 		}
 
-		auto* address = static_cast<const u8*>(MapViewOfFile(
-		  mapping,
-		  FILE_MAP_READ,
-		  static_cast<DWORD>(offset >> 32),
-		  static_cast<DWORD>(offset & 0xFFFF'FFFF),
-		  static_cast<SIZE_T>(size)));
+		auto* address = static_cast<const u8*>(MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, static_cast<SIZE_T>(size)));
 
 		CloseHandle(mapping);
 
@@ -912,52 +920,24 @@ namespace deckard::file
 	// ##################################################################################################################
 	// ##################################################################################################################
 
-	export std::expected<u64, std::string> read_file_header(fs::path file, std::span<u8> out)
+	export std::expected<void, std::string> read_file_header(fs::path file, std::span<u8> out)
 	{
-		HANDLE handle = CreateFileW(
-		  file.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-		if (handle == INVALID_HANDLE_VALUE)
+		if (not fs::exists(file))
 		{
-			CloseHandle(handle);
 			return std::unexpected(
-			  std::format("read_memorymapped_file: could not open file '{}'", platform::string_from_wide(file.wstring())));
+			  std::format("read_memorymapped_file: file '{}' does not exist", platform::string_from_wide(file.wstring())));
 		}
 
 		if (auto size = filesize(file); size and *size == 0)
 		{
-			CloseHandle(handle);
 			return std::unexpected(std::format(
 			  "read_memorymapped_file: cannot map a empty file '{}'", platform::string_from_wide(file.wstring())));
 		}
 
+		auto view = map(file);
+		std::ranges::copy_n(view.raw_data(), out.size(), out.begin());
 
-		HANDLE mapping = CreateFileMappingW(handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
-		if (mapping == nullptr)
-		{
-			CloseHandle(handle);
-			return std::unexpected(std::format(
-			  "read_memorymapped_file: could not create file mapping for '{}'", platform::string_from_wide(file.wstring())));
-		}
-
-
-		auto* source = as<const u8*>(MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, out.size()));
-
-		if (source == nullptr)
-		{
-			CloseHandle(mapping);
-			CloseHandle(handle);
-			return std::unexpected(std::format(
-			  "read_memorymapped_file: could not map view of file '{}'", platform::string_from_wide(file.wstring())));
-		}
-
-		std::ranges::copy_n(source, out.size(), out.begin());
-
-		UnmapViewOfFile(source);
-		CloseHandle(mapping);
-		CloseHandle(handle);
-
-		return out.size();
+		return {};
 	}
 
 	// simple api
