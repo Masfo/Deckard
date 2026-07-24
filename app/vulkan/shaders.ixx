@@ -130,8 +130,8 @@ namespace deckard::vulkan
 
 			// skip non spirv
 			std::array<u8, 4> header{};
-			if (auto result = file::read_file_header(entry.path(), header);
-				not result and header != SPIRV_HEADER_MAGIC)
+			if (auto bytes_read = file::read_file_header(entry.path(), header);
+				bytes_read and header != SPIRV_HEADER_MAGIC)
 			{
 				continue;
 			}
