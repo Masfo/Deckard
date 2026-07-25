@@ -16,7 +16,7 @@ TEST_CASE("zstd", "[zstd]")
 
 		// Compress
 		auto result = zstd::compress(buffer, comp);
-		CHECK(result != std::nullopt);
+		CHECK(not result.has_value());
 		CHECK(*result <= buffer.size());
 		comp.resize(*result);
 
@@ -34,9 +34,9 @@ TEST_CASE("zstd", "[zstd]")
 			CHECK(s != std::nullopt);
 
 
-		result = zstd::decompress(comp, uncompressed);
+		auto decomp_result = zstd::decompress(comp, uncompressed);
 
-		CHECK(result != std::nullopt);
-		CHECK(*result == buffer.size());
+		CHECK(decomp_result != std::nullopt);
+		CHECK(*decomp_result == buffer.size());
 	}
 }

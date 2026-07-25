@@ -117,33 +117,23 @@ namespace deckard::zstd
 
 	// compress in buffer to out buffer only if compresses to smaller size
 	// return: compressed size
-	export [[nodiscard]] std::expected<u64, std::string>
+	export [[nodiscard]] std::optional<u64>
 	compress_if_smaller(std::span<const u8> in, std::span<u8> out, u64 threshold_bytes = 1)
 	{
 		if (out.size() < in.size())
-		{
-			return std::unexpected(std::format(
-			  "compress_if_smaller: out buffer is smaller ({}) than in buffer ({})",
-			  human_readable_bytes(out.size()),
-			  human_readable_bytes(in.size())));
-		}
+			return {};
 
 		auto compressed_size = unbound_compress(in, out);
-		if (not compressed_size.has_value() )
-		{
-			return std::unexpected(std::format("compress_if_smaller: compression failed: {}", compressed_size.error()));
-		}
+		if(not compressed_size)
+			return {};
 
-		if (*compressed_size + threshold_bytes >= in.size())
+		if (compressed_size and ((*compressed_size + threshold_bytes) >= in.size()))
 		{
-			return std::unexpected(std::format(
-			  "compress_if_smaller: compressed size ({}) is not smaller than input size ({})",
-			  human_readable_bytes(*compressed_size),
-			  human_readable_bytes(in.size())));
+			std::ranges::fill(out, 0_u8);
+			return {};
 		}
 
 		return *compressed_size;
-
 	}
 
 
