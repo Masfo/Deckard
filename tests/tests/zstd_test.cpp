@@ -10,33 +10,39 @@ TEST_CASE("zstd", "[zstd]")
 {
 	SECTION("api")
 	{
-		std::vector<u8> buffer(256);
-		std::vector<u8> comp;
-		comp.resize(zstd::bound(buffer));
+		std::vector<u8> input(256);
+		std::ranges::fill(input, 'A');
+
+		std::vector<u8> output;
+		output.resize(zstd::bound(input));
 
 		// Compress
-		auto result = zstd::compress(buffer, comp);
-		CHECK(not result.has_value());
-		CHECK(*result <= buffer.size());
-		comp.resize(*result);
+		auto result = zstd::compress(input, output);
+		CHECK(result.has_value());
+		CHECK(*result <= input.size());
+		output.resize(*result);
 
 
 		// Uncompressed size
-		auto uncompressed_size = zstd::decompressed_size(comp);
-		CHECK(uncompressed_size != std::nullopt);
-		CHECK(*uncompressed_size == buffer.size());
+		auto uncompressed_size = zstd::decompressed_size(output);
+		CHECK(uncompressed_size.has_value());
+		CHECK(*uncompressed_size == input.size());
 
 		// Uncompress
-		std::vector<u8> uncompressed;
-		if (auto s = zstd::decompressed_size(comp); s)
+		std::vector<u8> uncompressed{};
+		if (auto s = zstd::decompressed_size(output); s)
+		{
 			uncompressed.resize(*s);
+			CHECK(uncompressed.size() == input.size());
+		}
 		else
-			CHECK(s != std::nullopt);
+			CHECK(s.has_value());
 
 
-		auto decomp_result = zstd::decompress(comp, uncompressed);
+		auto decompressed_size = zstd::decompress(output, uncompressed);
 
-		CHECK(decomp_result != std::nullopt);
-		CHECK(*decomp_result == buffer.size());
+		CHECK(decompressed_size.has_value());
+		CHECK(*decompressed_size == input.size());
+		CHECK(uncompressed == input);
 	}
 }

@@ -14,11 +14,11 @@ namespace fs = std::filesystem;
 namespace deckard::zstd
 {
 
-	export u64 bound(const u64 input_size) { return ZSTD_compressBound(input_size); }
+	export [[nodiscard]] u64 bound(const u64 input_size) { return ZSTD_compressBound(input_size); }
 
-	export u64 bound(std::span<const u8> input) { return ZSTD_compressBound(input.size()); }
+	export [[nodiscard]] u64 bound(std::span<const u8> input) { return ZSTD_compressBound(input.size()); }
 
-	export std::optional<u64> decompressed_size(std::span<const u8> compressed_input)
+	export [[nodiscard]] std::optional<u64> decompressed_size(std::span<const u8> compressed_input)
 	{
 
 		u64 result = ZSTD_getFrameContentSize(compressed_input.data(), compressed_input.size());
@@ -72,7 +72,7 @@ namespace deckard::zstd
 			return {};
 		}
 
-		u64 r = r = ZSTD_decompress(output.data(), output.size(), input.data(), input.size());
+		u64 r = ZSTD_decompress(output.data(), output.size(), input.data(), input.size());
 		if (ZSTD_isError(r))
 		{
 			dbg::println("ZSTD_decompress failed to decompress");
@@ -82,13 +82,13 @@ namespace deckard::zstd
 	}
 
 	export [[nodiscard]] std::optional<u64>
-	compress_file_to(const fs::path path1, const fs::path path2, i32 compression_level = -1)
+	compress_file_to(const fs::path& path1, const fs::path& path2, i32 compression_level = -1)
 	{
 		// read file and compress it, save to path2
 		auto file_data = file::read_file(path1);
 		if (file_data.empty())
 		{
-			dbg::println("recompress_file: could not read file '{}'", path1.string());
+			dbg::println("compress_file_to: could not read file '{}'", path1.string());
 			return {};
 		}
 		std::vector<u8> compressed_data;
@@ -99,7 +99,7 @@ namespace deckard::zstd
 				   compression_level);
 		if (not compressed_size)
 		{
-			dbg::println("recompress_file: compression failed for file '{}'", path1.string());
+			dbg::println("compress_file_to: compression failed for file '{}'", path1.string());
 			return {};
 		}
 
@@ -109,7 +109,7 @@ namespace deckard::zstd
 		  file::write({.filename = path2, .buffer = std::span{compressed_data.data(), compressed_data.size()}});
 		if (!write_result || *write_result != compressed_data.size())
 		{
-			dbg::println("recompress_file: could not write compressed data to file '{}'", path2.string());
+			dbg::println("compress_file_to: could not write compressed data to file '{}'", path2.string());
 			return {};
 		}
 		return *compressed_size;
@@ -118,13 +118,13 @@ namespace deckard::zstd
 	// compress in buffer to out buffer only if compresses to smaller size
 	// return: compressed size
 	export [[nodiscard]] std::optional<u64>
-	compress_if_smaller(std::span<const u8> in, std::span<u8> out, u64 threshold_bytes = 1)
+	compress_if_smaller(std::span<const u8> in, std::span<u8> out, u64 threshold_bytes = 0, i32 compression_level=-1)
 	{
 		if (out.size() < in.size())
 			return {};
 
-		auto compressed_size = unbound_compress(in, out);
-		if(not compressed_size)
+		auto compressed_size = unbound_compress(in, out, compression_level);
+		if (not compressed_size)
 			return {};
 
 		if (compressed_size and ((*compressed_size + threshold_bytes) >= in.size()))
@@ -137,4 +137,4 @@ namespace deckard::zstd
 	}
 
 
-}; // namespace deckard::zstd
+} // namespace deckard::zstd
