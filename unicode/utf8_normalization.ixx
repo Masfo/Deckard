@@ -81,15 +81,15 @@ namespace deckard::utf8
 		}
 
 		// Hangul
-		inline constexpr char32 SBase  = 0xAC00;
-		inline constexpr char32 LBase  = 0x1100;
-		inline constexpr char32 VBase  = 0x1161;
-		inline constexpr char32 TBase  = 0x11A7;
-		inline constexpr char32 LCount = 19;
-		inline constexpr char32 VCount = 21;
-		inline constexpr char32 TCount = 28;
-		inline constexpr char32 NCount = VCount * TCount; // 588
-		inline constexpr char32 SCount = LCount * NCount; // 11172
+		constexpr char32 SBase  = 0xAC00;
+		constexpr char32 LBase  = 0x1100;
+		constexpr char32 VBase  = 0x1161;
+		constexpr char32 TBase  = 0x11A7;
+		constexpr char32 LCount = 19;
+		constexpr char32 VCount = 21;
+		constexpr char32 TCount = 28;
+		constexpr char32 NCount = VCount * TCount; // 588
+		constexpr char32 SCount = LCount * NCount; // 11172
 
 		[[nodiscard]] constexpr bool is_hangul_syllable(char32 cp) noexcept { return cp >= SBase and cp < SBase + SCount; }
 
@@ -260,5 +260,8 @@ namespace deckard::utf8
 		string result(composed);
 		return result;
 	}
+
+	// simple api
+	export [[nodiscard]] string normalize(const utf8::view& s) { return to_nfc(s); }
 
 } // namespace deckard::utf8
