@@ -12,6 +12,7 @@ import deckard.net;
 import deckard.utils.hash;
 
 namespace fs = std::filesystem;
+using namespace std::string_view_literals;
 
 namespace deckard
 {
@@ -480,7 +481,7 @@ namespace deckard
 		explicit config(fs::path file)
 		{
 			filename = file;
-			m_data.assign(file::read_text_file(file));
+			m_data   = file::read_text_file_as_utf8(file);
 			parse();
 		}
 
@@ -558,14 +559,23 @@ namespace deckard
 		{
 			auto it = key_hash_to_token_index.find(utils::stringhash(key));
 			if (it == key_hash_to_token_index.end() or it->second.empty())
+			{
+				dbg::println("config: key '{}' not found", key);
 				return T{};
+			}
 
 			const auto&      tok = tokens[it->second.front()];
 			utf8::view       view(m_data);
 			std::string_view sv = view.subview(tok.start, tok.length).as_string_view();
 
 			if constexpr (std::is_same_v<T, bool>)
-				return sv == "true";
+			{
+				if (sv == "true"sv)
+					return true;
+				else if (sv == "false"sv)
+					return false;
+				dbg::panic("config: value for key '{}' is not a valid boolean: '{}'", key, sv);
+			}
 			else if constexpr (std::is_same_v<T, std::string>)
 				return std::string{sv};
 			else if constexpr (std::is_arithmetic_v<T>)
@@ -584,8 +594,15 @@ namespace deckard
 				const auto port = try_to_number<u16>(host_and_port[1]);
 				return net::endpoint(host_and_port[0], port.value_or(0));
 			}
+			else if constexpr (std::is_same_v<T, deckard::utf8::string>)
+			{
+				return utf8::string(view.subview(tok.start, tok.length));
+			}
 			else
+			{
+				dbg::println("config: unsupported type for key '{}'", key);
 				return T{};
+			}
 		}
 
 		template<typename T>
@@ -803,7 +820,10 @@ namespace deckard
 			u64 comment_idx = val_idx + 1;
 			while (comment_idx < tokens.size() and (tokens[comment_idx].type == TokenType::NEWLINE_POSIX or
 													tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
+			{
 				comment_idx++;
+			}
+
 			if (comment_idx < tokens.size() and tokens[comment_idx].type == TokenType::COMMENT)
 			{
 				auto& comment_tok = tokens[comment_idx];
@@ -818,8 +838,16 @@ namespace deckard
 			}
 			else
 			{
-				u32         insert_pos = val_tok.start + val_tok.length;
-				std::string entry      = std::format(" # {}", comment);
+				u32 insert_pos = val_tok.start + val_tok.length;
+
+				if (val_tok.type == TokenType::VALUE_STRING)
+				{
+					std::string_view raw = m_data.as_string_view();
+					if (insert_pos < raw.size() and raw[insert_pos] == '"')
+						insert_pos++;
+				}
+
+				std::string entry = std::format(" # {}", comment);
 				m_data.insert(m_data.begin() + insert_pos, entry);
 				tokens.clear();
 				key_hash_to_token_index.clear();

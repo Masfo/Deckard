@@ -16,7 +16,9 @@ TEST_CASE("config parsing", "[config]")
 	SECTION("newlines")
 	{
 		//
-		std::array<u8, 4> c{'\n', '\r', '\n', '\r'}; // LF (\n) posix, CRLF (\r\n) windows, CR (\r) old mac
+		std::array<u8, 4> c{'\n', '\r', '\n', '\r'}; // LF (\n) posix
+													 // CRLF (\r\n) windows
+													 // CR (\r) old mac
 
 		config cfg(c);
 
@@ -39,6 +41,19 @@ TEST_CASE("config parsing", "[config]")
 		CHECK(c[1].type == TokenType::NEWLINE_POSIX);
 		CHECK(c[1].start == 1);
 		CHECK(c[1].length == 1);
+	}
+
+	SECTION("parse boolean value")
+	{ 
+		config cfg(utf8::string("value = true"));
+		CHECK(cfg["value"].as<bool>() == true);
+
+		cfg = config(utf8::string("value = false"));
+		CHECK(cfg["value"].as<bool>() == false);
+
+		cfg = config(utf8::string("value = false#comment"));
+		CHECK(cfg["value"].as<bool>() == false);
+
 	}
 
 	SECTION("utf comment without newline")
@@ -252,7 +267,7 @@ TEST_CASE("config getters/setters", "[config]")
 global = true
 [init]
 local = true
-blob = false;
+blob = false
 )"sv);
 
 		CHECK(cfg["global"].as<bool>() == true);
@@ -626,6 +641,51 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(cfg.to_string().to_string().find("count = 42 # answer to everything") != std::string::npos);
 	}
 
+	SECTION("string is preserved when updating comment")
+	{
+		config cfg("[global]\ncount = \"42\" # old"sv);
+
+
+		auto serialized = cfg.to_string().to_string();
+		CHECK(serialized == "[global]\ncount = \"42\" # old"sv);
+
+		cfg.set_comment("global.count", "answer to everything");
+
+		CHECK(cfg["global.count"].as<std::string>() == std::string("42"));
+
+		serialized = cfg.to_string().to_string();
+		CHECK(serialized == "[global]\ncount = \"42\" # answer to everything");
+	}
+
+	SECTION("string is preserved when updating comment on a new value")
+	{
+		config cfg(""sv);
+
+
+		auto serialized = cfg.to_string().to_string();
+		CHECK(serialized == ""sv);
+
+		// The bug was:
+		// 
+		// adding a new string value and then new comment to it,
+		// overwrote the ending quote.
+		// 
+		// cfg["version"] = "123";
+		// cfg.set_comment("version", "random");
+		// 
+		// Resulting serialised as: version = "123 # random
+		// should be: version = "123" # random
+
+		cfg["global.count"] = "42"sv;
+		cfg.set_comment("global.count", "answer to everything");
+
+		CHECK(cfg["global.count"].as<std::string>() == std::string("42"));
+
+		serialized = cfg.to_string().to_string();
+		CHECK(serialized == "\n[global]\ncount = \"42\" # answer to everything\n");
+	}
+
+
 	SECTION("has_multiple is false for unique key")
 	{
 		config cfg = config("key = one\n"sv);
@@ -791,7 +851,6 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(values.size() == 2);
 		CHECK(values[0] == 3.14);
 		CHECK(values[1] == 6.28);
-		
 	}
 
 	SECTION("value as endpoint, localhost:port")
@@ -916,8 +975,6 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(collected["\xCE\xB2"].size() == 1);
 		CHECK(collected["\xCE\xB2"][0] == "z");
 	}
-
-
 }
 
 TEST_CASE("config data export", "[config]")
@@ -983,7 +1040,8 @@ TEST_CASE("config data export", "[config]")
 		auto span = cfg.data();
 		auto sv   = std::string_view(reinterpret_cast<const char*>(span.data()), span.size());
 
-		CHECK(sv.find("donn\xC3\xA9" "es") != std::string_view::npos);
+		CHECK(sv.find("donn\xC3\xA9"
+					  "es") != std::string_view::npos);
 		CHECK(sv.find("cl\xC3\xA9") != std::string_view::npos);
 		CHECK(sv.find("valeur") != std::string_view::npos);
 	}
