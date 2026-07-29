@@ -961,7 +961,7 @@ namespace deckard::file
 		return {};
 	}
 
-	export auto read_text_file(fs::path path) -> std::vector<u8>
+	export auto read_text_file_as_vector(fs::path path) -> std::vector<u8>
 	{
 		std::vector<u8> v = read_file(path);
 		if (v.empty())
@@ -989,18 +989,20 @@ namespace deckard::file
 
 	export auto read_text_file_as_utf8(fs::path path) -> utf8::string
 	{
-		auto v = read_text_file(path);
+		auto v = read_text_file_as_vector(path);
 
 		utf8::string ret(v);
 		if (auto result = ret.valid(); not result)
 			dbg::println("Warning: file '{}' with invalid UTF-8 data: {}", path, result.error());
+
+		ret = utf8::normalize(ret);
 
 		return ret;
 	}
 
 	export std::string read_text_file_as_string(fs::path path)
 	{
-		auto v = read_text_file(path);
+		auto v = read_text_file_as_vector(path);
 
 		return std::string(v.begin(), v.end());
 	}
