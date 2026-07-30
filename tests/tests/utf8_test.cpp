@@ -5,15 +5,18 @@ import std;
 import deckard.utf8;
 import deckard.as;
 import deckard.types;
+import deckard.stringhelper;
+import deckard.helpers;
+import deckard.file;
 
 using namespace deckard;
 using namespace deckard::utf8;
 using namespace std::string_view_literals;
 
-TEST_CASE("utf8", "[utf8]") 
+TEST_CASE("utf8", "[utf8]")
 {
 	//
-	REQUIRE(utf8::table_version() == "17.0.0"sv); 
+	REQUIRE(utf8::table_version() == "17.0.0"sv);
 }
 
 TEST_CASE("utf8::ascii", "[utf8]")
@@ -2354,4 +2357,77 @@ TEST_CASE("scanner", "[utf8][scanner]")
 		CHECK(w.peek(0) == ' ');
 		CHECK(w.peek_back() == 'o');
 	}
+}
+
+auto to_codepoints(std::string_view hexline)
+{
+	using namespace deckard;
+	auto codepoints =
+	  deckard::string::split(hexline, " ") |
+	  std::views::transform([](std::string_view hex) { return to_number<u32>(hex, 16); }) |
+	  std::ranges::to<std::vector<char32>>();
+	return codepoints;
+}
+
+utf8::string from_hex_to_utf8(std::string_view hexline) { return utf8::string{to_codepoints(hexline)}; }
+
+TEST_CASE("normalization", "[utf8][normalization]")
+{
+	SECTION("normalization test")
+	{
+		REQUIRE(utf8::table_version() == "17.0.0"sv);
+
+		 if (true and utf8::table_version() == "17.0.0"sv)
+			SKIP("run only for new table versions");
+
+
+		auto lines = file::read_lines("utf\\NormalizationTest.txt");
+		REQUIRE(lines.size() > 0);
+		REQUIRE(lines[0].starts_with("# NormalizationTest-17.0.0.txt"));
+
+		u32 nfc_count  = 0;
+		u32 nfd_count  = 0;
+		u32 test_count = 0;
+
+		const auto all_normalize_to = [&](const auto& target, auto fn, const auto&... inputs)
+		{ return ((target == fn(inputs)) and ...); };
+
+
+		for (const auto& [index, line] : lines | std::views::enumerate)
+		{
+			if (line.empty() or line[0] == '#' or line[0] == '@')
+				continue;
+
+			auto columns = deckard::string::split(line, ";") | std::views::take(5) | std::ranges::to<std::vector>();
+
+			REQUIRE(columns.size() == 5);
+
+			++test_count;
+
+			auto c1 = from_hex_to_utf8(columns[0]);
+			auto c2 = from_hex_to_utf8(columns[1]);
+			auto c3 = from_hex_to_utf8(columns[2]);
+			auto c4 = from_hex_to_utf8(columns[3]);
+			auto c5 = from_hex_to_utf8(columns[4]);
+
+			// NFC:
+			//   c2 == toNFC(c1) == toNFC(c2) == toNFC(c3)
+			//   c4 == toNFC(c4) == toNFC(c5)
+			bool nfc = all_normalize_to(c2, utf8::to_nfc, c1, c2, c3) and all_normalize_to(c4, utf8::to_nfc, c4, c5);
+
+			// NFD:
+			//   c3 == toNFD(c1) == toNFD(c2) == toNFD(c3)
+			//   c5 == toNFD(c4) == toNFD(c5)
+			bool nfd = all_normalize_to(c3, utf8::to_nfd, c1, c2, c3) and all_normalize_to(c5, utf8::to_nfd, c4, c5);
+
+			nfc_count += nfc ? 1 : 0;
+			nfd_count += nfd ? 1 : 0;
+		}
+
+		REQUIRE(nfc_count == test_count);
+		REQUIRE(nfd_count == test_count);
+		CHECK(test_count == 20034); // 17.0.0
+	}
+
+	SECTION("tests") { }
 }

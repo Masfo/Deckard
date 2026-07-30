@@ -225,3 +225,26 @@ target_compile_options(tests PRIVATE
     /wd4273 # inconsistent dll linkage
 )
 
+function(download_file)
+    set(url ${ARGV0})
+    set(output ${ARGV1})
+    if(NOT EXISTS ${output})
+        file(DOWNLOAD ${url} ${output})
+        message(STATUS "Downloaded latest ${output}")
+    endif()
+endfunction()
+
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt 
+              ${CMAKE_SOURCE_DIR}/bin/utf/DerivedCoreProperties.txt)
+ 
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
+              ${CMAKE_SOURCE_DIR}/bin/utf/UnicodeData.txt)
+
+download_file(https://www.unicode.org/Public/UCD/latest/ucd/NormalizationTest.txt
+              ${CMAKE_SOURCE_DIR}/bin/utf/NormalizationTest.txt)
+
+download_file(https://www.unicode.org/Public/UCD/latest/ReadMe.txt
+                ${CMAKE_SOURCE_DIR}/bin/utf/readme.txt)
+
+
+set(CMAKE_DISABLE_SOURCE_CHANGES ON)

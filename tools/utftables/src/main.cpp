@@ -1195,14 +1195,14 @@ void process_unicode_data()
 	// 2060;WORD JOINER			;Cf;0;BN;;;;;N;;;;;
 	auto lines = read_lines("utf/UnicodeData.txt");
 
+	if (lines.empty())
+		return;
+
 	// https://mothereff.in/utf-8
 
 	// proplist: Pattern_White_Space
 
 	fields.reserve(lines.size());
-
-	if (lines.empty())
-		return;
 
 	Tables whitespaces;
 	Tables dashes;
@@ -1406,18 +1406,12 @@ void process_unicode_data()
 	write_lines(character_names, "character_names.ixx");
 }
 
-void process_casefolding()
-{
-	auto lines = read_lines("utf/CaseFolding.txt");
 
-	if (lines.empty())
-		return;
+void process_normalization_tables()
+{
+
 }
 
-void process_ascii_character_list()
-{
-	//
-}
 
 int main()
 {
@@ -1428,7 +1422,6 @@ int main()
 
 	process_core_properties();
 	process_unicode_data();
-	process_casefolding();
-
+	process_normalization_tables();
 	return 0;
 }
