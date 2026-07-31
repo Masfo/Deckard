@@ -685,3 +685,40 @@ struct std::formatter<std::filesystem::path> : std::formatter<std::string_view>
 	}
 };
 #endif
+
+
+template<deckard::not_builtin T>
+struct std::formatter<std::optional<T>>
+{
+	std::formatter<T> underlying;
+
+	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+	auto format(const std::optional<T>& opt, std::format_context& ctx) const
+	{
+		if (opt)
+			return underlying.format(*opt, ctx);
+
+		return std::format_to(ctx.out(), "nullopt");
+	}
+};
+
+template<deckard::not_builtin T, typename E>
+struct std::formatter<std::expected<T, E>>
+{
+	std::formatter<T> underlying;
+
+	constexpr auto parse(std::format_parse_context& ctx) { return underlying.parse(ctx); }
+
+	auto format(const std::expected<T, E>& exp, std::format_context& ctx) const
+	{
+		if (exp.has_value())
+		{
+			if constexpr (std::is_void_v<T>)
+				return std::format_to(ctx.out(), "void");
+			else
+				return underlying.format(*exp, ctx);
+		}
+		return std::format_to(ctx.out(), "{}", exp.error());
+	}
+};
