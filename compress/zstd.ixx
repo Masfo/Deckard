@@ -85,18 +85,21 @@ namespace deckard::zstd
 	compress_file_to(const fs::path& path1, const fs::path& path2, i32 compression_level = -1)
 	{
 		// read file and compress it, save to path2
-		auto file_data = file::read_file(path1);
-		if (file_data.empty())
+		auto fmap = file::map(path1);
+		if (not fmap)
 		{
-			dbg::println("compress_file_to: could not read file '{}'", path1.string());
+			dbg::println("compress_file_to: could not map file '{}'", path1.string());
 			return {};
 		}
+
 		std::vector<u8> compressed_data;
-		compressed_data.resize(bound(file_data.size()));
+		compressed_data.resize(bound(fmap.size));
+
 		auto compressed_size =
-		  compress(std::span{file_data.data(), file_data.size()},
+		  compress(std::span{fmap.raw_data(), fmap.size},
 				   std::span{compressed_data.data(), compressed_data.size()},
 				   compression_level);
+
 		if (not compressed_size)
 		{
 			dbg::println("compress_file_to: compression failed for file '{}'", path1.string());
@@ -107,7 +110,7 @@ namespace deckard::zstd
 
 		auto write_result =
 		  file::write({.filename = path2, .buffer = std::span{compressed_data.data(), compressed_data.size()}});
-		if (!write_result || *write_result != compressed_data.size())
+		if (not write_result and *write_result != compressed_data.size())
 		{
 			dbg::println("compress_file_to: could not write compressed data to file '{}'", path2.string());
 			return {};
