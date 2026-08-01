@@ -32,7 +32,8 @@ TEST_CASE("stringhash", "[hash]")
 						 "The quick brown fox jumps over the lazy dog"sv,
 						 "The quick brown fox jumps over the lazy dog"sv,
 						 "The quick brown fox jumps over the lazy dog"sv) ==
-			  stringhash("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
+			  stringhash("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick "
+						 "brown fox jumps "
 						 "over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
 						 "over the lazy dogThe quick brown fox jumps over the lazy dog"));
 	}
@@ -65,13 +66,43 @@ TEST_CASE("xxhasher", "[hash][xxhash]")
 		auto hash3 = std::hash<xxhash64_hasher>{}(hasher3);
 
 		CHECK(hash1 != hash3);
+
+		xxhash64_hasher hasher4;
+		hasher4.update("a");
+
+		CHECK(hasher4.digest() == 0xD24E'C4F1'A98C'6E5Bull);
+
+		hasher4.reset();
+		hasher4.update("The quick brown fox jumps over the lazy dog");
+		CHECK(hasher4.digest() == 0x0B24'2D36'1FDA'71BCull);
+
+
+		std::array<u8, 4096> data{};
+		for (u32 i = 0; i < data.size(); ++i)
+			data[i] = static_cast<u8>((i * 251 + 7) & 0xFF);
+
+		// 
+		constexpr u64   expected_hash = 0x7A97'0F60'46DE'A36Dull;
+		xxhash64_hasher hasher5;
+		hasher5.update(data);
+		CHECK(hasher5.digest() == expected_hash); 
+
+
+		xxhash64_hasher chunked;
+		u64             offset = 0;
+		for (const auto size : std::array{33uz, 7uz, 1000uz, 3056uz})
+		{
+			chunked.update(std::span{data}.subspan(offset, size));
+			offset += size;
+		}
+		CHECK(chunked.digest() == expected_hash);
 	}
 }
 
 TEST_CASE("HMAC-SHA1 digests", "[hmac][sha1][hash]")
 {
 	SECTION("null key")
-	{ 
+	{
 		auto digest = hmac::sha1::quickhash(""sv, ""sv);
 		CHECK(digest == "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d"s);
 	}
@@ -180,7 +211,9 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 	SECTION("null key")
 	{
 		auto digest = hmac::sha512::quickhash(""sv, ""sv);
-		CHECK(digest == "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47"sv);
+		CHECK(
+		  digest ==
+		  "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47"sv);
 	}
 
 	SECTION("Jefe key")
@@ -200,8 +233,9 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 
 		auto digest = hmac::sha512::hash(key, data);
 
-		sha512::digest correct_digest("80b24263c7c1a3ebb71493c1dd7be8b49b46d1f41b4aeec1121b013783f8f3526b56d037e05f2598bd0fd2215d6a1e5295e6"
-									  "4f73f63f0aec8b915a985d786598");
+		sha512::digest correct_digest(
+		  "80b24263c7c1a3ebb71493c1dd7be8b49b46d1f41b4aeec1121b013783f8f3526b56d037e05f2598bd0fd2215d6a1e5295e6"
+		  "4f73f63f0aec8b915a985d786598");
 
 		CHECK(digest == correct_digest);
 	}
@@ -216,8 +250,9 @@ TEST_CASE("HMAC-SHA512 digests", "[hmac][sha512][hash]")
 
 		auto digest = hmac::sha512::hash(key, data);
 
-		sha512::digest correct_digest("e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de151346"
-									  "76fb6de0446065c97440fa8c6a58");
+		sha512::digest correct_digest(
+		  "e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de151346"
+		  "76fb6de0446065c97440fa8c6a58");
 
 		CHECK(digest == correct_digest);
 	}
@@ -237,8 +272,8 @@ TEST_CASE("SHA1 digests", "[sha1][hash]")
 {
 	SECTION("empty")
 	{
-		const sha1::digest correct_abc_digest{
-		  0xda, 0x39, 0xa3, 0xee, 0x5e, 0x6b, 0x4b, 0x0d, 0x32, 0x55, 0xbf, 0xef, 0x95, 0x60, 0x18, 0x90, 0xaf, 0xd8, 0x07, 0x09};
+		const sha1::digest correct_abc_digest{0xda, 0x39, 0xa3, 0xee, 0x5e, 0x6b, 0x4b, 0x0d, 0x32, 0x55,
+											  0xbf, 0xef, 0x95, 0x60, 0x18, 0x90, 0xaf, 0xd8, 0x07, 0x09};
 
 		sha1::hasher h;
 		h.update(""sv);
@@ -260,8 +295,8 @@ TEST_CASE("SHA1 digests", "[sha1][hash]")
 
 	SECTION("abc")
 	{
-		const sha1::digest correct_abc_digest{
-		  0xa9, 0x99, 0x3e, 0x36, 0x47, 0x06, 0x81, 0x6a, 0xba, 0x3e, 0x25, 0x71, 0x78, 0x50, 0xc2, 0x6c, 0x9c, 0xd0, 0xd8, 0x9d};
+		const sha1::digest correct_abc_digest{0xa9, 0x99, 0x3e, 0x36, 0x47, 0x06, 0x81, 0x6a, 0xba, 0x3e,
+											  0x25, 0x71, 0x78, 0x50, 0xc2, 0x6c, 0x9c, 0xd0, 0xd8, 0x9d};
 
 		sha1::hasher h;
 		h.update("abc"sv);
@@ -290,7 +325,8 @@ TEST_CASE("SHA256 digests", "[sha][hash]")
 
 
 	sha512::digest correct_512_digest{
-	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"};
+	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff831"
+	  "8d2877eec2f63b931bd47417a81a538327af927da3e"};
 
 	sha512::digest hash512_str(
 	  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"sv);
@@ -353,8 +389,9 @@ TEST_CASE("SHA512 Cryptographic Hash Function", "[sha512][sha][hash]")
 	{
 		//
 		CHECK(
-		  sha512::quickhash("ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643c"
-							"e80e2a9ac94fa54ca49f") ==
+		  sha512::quickhash(
+			"ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643c"
+			"e80e2a9ac94fa54ca49f") ==
 		  "ee02b3dd5b2c06e4e61888d141998abac194d57692f77ae7a28d748fdf9b9f28f756d980687f7290f1306857edf3fe01f8ebf4626880d49a33e029399cb2d700"s);
 	}
 
@@ -416,20 +453,18 @@ TEST_CASE("SHA1/SHA256/SHA512 digest formatting", "[sha1][sha256][sha512][hash]"
 		CHECK(std::format("{}", abc_digest) == std::format("{}", correct_abc_digest));
 	}
 
-	SECTION("formatters") 
-	{ 
+	SECTION("formatters")
+	{
 		sha1::digest d1{"a9993e364706816aba3e25717850c26c9cd0d89d"};
 		CHECK(std::format("{}", d1) == "a9993e364706816aba3e25717850c26c9cd0d89d");
 
 		sha256::digest d2{"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"};
 		CHECK(std::format("{}", d2) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 
-		sha512::digest d3{
-		  "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
+		sha512::digest d3{"ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
 						  "454d4423643ce80e2a9ac94fa54ca49f"};
 		CHECK(std::format("{}", d3) ==
 			  "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd"
-									   "454d4423643ce80e2a9ac94fa54ca49f");
-
+			  "454d4423643ce80e2a9ac94fa54ca49f");
 	}
 }

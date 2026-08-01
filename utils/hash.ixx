@@ -115,7 +115,7 @@ namespace deckard::utils
 	// Siphash
 
 
-	export u64 siphash(const std::span<const u8, 16> key, const std::span<u8> m)
+	export u64 siphash(std::span<const u8, 16> key, std::span<const u8> m)
 	{
 		u64    mi{0};
 		size_t i{0}, blocks{0};
@@ -130,60 +130,72 @@ namespace deckard::utils
 
 		u64 last7 = (u64)(m.size() & 0xff) << 56;
 
-#define sipcompress()                                                                                                       \
-	v0 += v1;                                                                                                               \
-	v2 += v3;                                                                                                               \
-	v1 = std::rotl(v1, 13);                                                                                                 \
-	v3 = std::rotl(v3, 16);                                                                                                 \
-	v1 ^= v0;                                                                                                               \
-	v3 ^= v2;                                                                                                               \
-	v0 = std::rotl(v0, 32);                                                                                                 \
-	v2 += v1;                                                                                                               \
-	v0 += v3;                                                                                                               \
-	v1 = std::rotl(v1, 17);                                                                                                 \
-	v3 = std::rotl(v3, 21);                                                                                                 \
-	v1 ^= v2;                                                                                                               \
-	v3 ^= v0;                                                                                                               \
-	v2 = std::rotl(v2, 32);
+		auto sipcompress = [&]
+		{
+			v0 += v1;
+			v2 += v3;
+			v1 = std::rotl(v1, 13);
+			v3 = std::rotl(v3, 16);
+			v1 ^= v0;
+			v3 ^= v2;
+			v0 = std::rotl(v0, 32);
+			v2 += v1;
+			v0 += v3;
+			v1 = std::rotl(v1, 17);
+			v3 = std::rotl(v3, 21);
+			v1 ^= v2;
+			v3 ^= v0;
+			v2 = std::rotl(v2, 32);
+		};
 
 		for (i = 0, blocks = (m.size() & ~7); i < blocks; i += 8)
 		{
-			mi = as<u64>(m.subspan(i));
+			mi = as<u64>(m.subspan(i, 8));
 			v3 ^= mi;
-			sipcompress() sipcompress() v0 ^= mi;
+			sipcompress();
+			sipcompress();
+			v0 ^= mi;
 		}
 
 		switch (m.size() - blocks)
 		{
-			case 7: last7 |= (u64)m[i + 6] << 48;
-			case 6: last7 |= (u64)m[i + 5] << 40;
-			case 5: last7 |= (u64)m[i + 4] << 32;
-			case 4: last7 |= (u64)m[i + 3] << 24;
-			case 3: last7 |= (u64)m[i + 2] << 16;
-			case 2: last7 |= (u64)m[i + 1] << 8;
+			case 7: last7 |= (u64)m[i + 6] << 48; [[fallthrough]];
+			case 6: last7 |= (u64)m[i + 5] << 40; [[fallthrough]];
+			case 5: last7 |= (u64)m[i + 4] << 32; [[fallthrough]];
+			case 4: last7 |= (u64)m[i + 3] << 24; [[fallthrough]];
+			case 3: last7 |= (u64)m[i + 2] << 16; [[fallthrough]];
+			case 2: last7 |= (u64)m[i + 1] << 8; [[fallthrough]];
 			case 1: last7 |= (u64)m[i + 0];
 			case 0:
 			default:;
 		};
+
 		v3 ^= last7;
-		sipcompress() sipcompress() v0 ^= last7;
+		sipcompress();
+		sipcompress();
+		v0 ^= last7;
 		v2 ^= 0xff;
-		sipcompress() sipcompress() sipcompress() sipcompress() return static_cast<size_t>(v0 ^ v1 ^ v2 ^ v3);
-#undef sipcompress
+		sipcompress();
+		sipcompress();
+		sipcompress();
+		sipcompress();
+
+		return v0 ^ v1 ^ v2 ^ v3;
 	}
 
-	export u64 siphash(std::span<u8> buffer)
+	export u64 siphash(std::span<const u8> buffer)
 	{
 #ifdef _DEBUG
 
 		// key from random.org
 		constexpr static std::array<u8, 16> key = {
 		  0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
-		return siphash(std::span<u8, 16>{(u8*)key.data(), key.size()}, buffer);
+		return siphash(key, buffer);
 
 #else
-
-		return siphash(std::span<u8, 16>{(u8*)deckard_build::build::rng_buffer, 16}, buffer);
+		constexpr static std::array<u8, 16> key = {
+		  0x5A, 0x90, 0x6D, 0x41, 0xBC, 0xBA, 0xEC, 0xDF, 0x6E, 0x64, 0xE6, 0x5C, 0x3A, 0x71, 0xD9, 0xA1};
+		return siphash(key, buffer);
 #endif
 	}
 
@@ -213,7 +225,7 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export constexpr u32 fnv1a_32(const std::span<u8> buffer)
+	export constexpr u32 fnv1a_32(const std::span<const u8> buffer)
 	{
 		u32 hash = val_32_const;
 
@@ -226,7 +238,7 @@ namespace deckard::utils
 		return hash;
 	}
 
-	export constexpr u64 fnv1a_64(const std::span<u8> buffer)
+	export constexpr u64 fnv1a_64(const std::span<const u8> buffer)
 	{
 		u64 hash = val_64_const;
 
@@ -419,7 +431,7 @@ namespace deckard::utils
 		return x;
 	}
 
-	export u64 constexpr chibihash64(std::span<u8> buffer, const u64 seed = CHIBI_SEED)
+	export u64 constexpr chibihash64(std::span<const u8> buffer, const u64 seed = CHIBI_SEED)
 	{
 		return chibihash64(buffer.data(), buffer.size_bytes(), seed);
 	}
@@ -559,6 +571,8 @@ namespace deckard::utils
 			buffer_size_ = 0;
 			total_len_   = 0;
 		}
+
+		void clear() noexcept { reset(); }
 
 	private:
 		void process_block(const u8* block) noexcept
