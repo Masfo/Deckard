@@ -196,7 +196,7 @@ namespace deckard
 			}
 			dbg::panic(std::format("Could not convert integral to string: {}", value));
 		}
-		else if constexpr (std::is_same_v<std::span<const u8>, U> or std::is_same_v<std::span<u8>, U>)
+		else if constexpr (std::is_same_v<std::span<u8>, U> or std::is_same_v<std::span<const u8>, U>)
 		{
 			assert::check(value.size() <= sizeof(Ret),
 						  std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
