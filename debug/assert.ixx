@@ -21,9 +21,9 @@ export namespace deckard::assert
 	void equal([[maybe_unused]] const T& a, const U& b, [[maybe_unused]] std::string_view message = "",
 			   [[maybe_unused]] const std::source_location& loc = std::source_location::current())
 	{
-		if constexpr(std::integral<T> and std::integral<U>)
+		if constexpr (std::integral<T> and std::integral<U>)
 		{
-			if(std::cmp_not_equal(a,b))
+			if (std::cmp_not_equal(a, b))
 			{
 				dbg::println("\n***** EQUAL ASSERT *****\n");
 				dbg::println("Assertion failed: '{}' != '{}'", a, b);
@@ -62,6 +62,8 @@ export namespace deckard::assert
 			dbg::panic("assert");
 		}
 	}
+
+
 
 
 } // namespace deckard::assert

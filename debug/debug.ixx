@@ -209,6 +209,8 @@ export namespace deckard::dbg
 	void trace(FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
 
 	// Panic
+
+
 	template<typename... Args>
 	[[noreturn]] void panic(std::string_view fmt, Args&&... args)
 	{
@@ -226,7 +228,6 @@ export namespace deckard::dbg
 	}
 
 	[[noreturn]] void panic() { panic(""); }
-
 
 } // namespace deckard::dbg
 
