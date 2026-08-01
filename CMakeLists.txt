@@ -5,8 +5,7 @@ cmake_minimum_required (VERSION 4.4)
 # if ( NOT "${CMAKE_GENERATOR}" MATCHES "Visual Studio.*" )
 #   set(CMAKE_CXX_MODULE_STD 1)
 # endif ()
-
-project(deckard LANGUAGES CXX ASM_MASM)
+project(deckard LANGUAGES CXX)
 
 
 add_library(deckard STATIC)
@@ -16,17 +15,15 @@ option(DECKARD_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_BUILD_TOOLS "Build tools" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 
-#find_program(SCCACHE_PROGRAM sccache)
-
-# if(SCCACHE_PROGRAM)
-# 	message(STATUS "sccache found: ${SCCACHE_PROGRAM}")
-# 	set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
-# 	set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}" CACHE STRING "" FORCE)
-# else()
-# 	message(STATUS "sccache not found — building without compiler cache")
-# endif()
-
-
+#find_program(SCCACHE sccache REQUIRED)
+#if(SCCACHE)
+#set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE})
+#set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE})
+#set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+#cmake_policy(SET CMP0141 NEW)
+#else()
+#	message(STATUS "sccache not found — building without compiler cache")
+#endif()
 
 
 
@@ -93,6 +90,16 @@ if(MSVC)
 
 	#set_target_properties(deckard PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
+	set(RELEASE_FLAGS 
+		/O2
+		/Ob2
+		/Oi
+		/GL
+		/Gy
+		/GF
+		/GT
+	)
+
 	target_compile_options(deckard PRIVATE
 		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:
 			/JMC
@@ -103,13 +110,7 @@ if(MSVC)
 		>
 
 		$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:
-			/O2
-			/Ob2
-			/Oi
-			/GL
-			/Gy
-			/GF
-			/GT
+		${RELEASE_FLAGS}
 		>
 	)
 
@@ -159,13 +160,13 @@ target_include_directories(deckard PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(deckard PRIVATE Vulkan::Vulkan)
 
 
-# find_program(GLSLC_EXECUTABLE glslc HINTS $ENV{VULKAN_SDK}/Bin)
-# if(NOT GLSLC_EXECUTABLE)
-#     message(FATAL_ERROR "glslc not found! Please install the Vulkan SDK or set GLSLC_EXECUTABLE manually.")
-# endif()
+find_program(GLSLC_EXECUTABLE glslc HINTS $ENV{VULKAN_SDK}/Bin)
+if(NOT GLSLC_EXECUTABLE)
+    message(FATAL_ERROR "glslc not found! Please install the Vulkan SDK or set GLSLC_EXECUTABLE manually.")
+endif()
 
 
-set(DECKARD_SRCS
+set(DECKARD_MODULES
 		deckard.ixx
 		$<$<CONFIG:RelWithDebInfo,Release>:buildnumber.ixx>
 
@@ -350,7 +351,7 @@ set(DECKARD_SRCS
 
 
 		std.ixx
-     )
+)
 
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
@@ -366,8 +367,8 @@ target_sources(deckard PRIVATE
 
 target_sources(deckard
 	PUBLIC
-	FILE_SET CXX_MODULES 
-	FILES ${DECKARD_SRCS}
+	FILE_SET CXX_MODULES FILES 
+	${DECKARD_MODULES}
 )
 
 #target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
@@ -449,7 +450,6 @@ if(DECKARD_BUILD_EXAMPLES)
 endif()
 
 if(DECKARD_BUILD_TOOLS)
-	add_subdirectory(tools/utftest)
 	add_subdirectory(tools/dbc)
 	add_subdirectory(tools/utftables)
 

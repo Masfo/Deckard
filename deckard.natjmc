@@ -2,7 +2,7 @@
 <NonUserCode xmlns="http://schemas.microsoft.com/vstudio/debugger/jmc/2015">
 
 	<!-- Files -->
-	<File Name="as.ixx"/>
+	<File Name="_as.ixx"/>
 	
 	<File Name="types.ixx"/>
 	<File Name="enum_flags.ixx"/>
@@ -40,7 +40,7 @@
 
 	<File Name="_win32.ixx"/>
 
-	<File Name="zstd.ixx"/>
+	<File Name="_zstd.ixx"/>
 	<File Name="smallbufferobject.ixx"/>
 
 
