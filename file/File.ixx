@@ -794,13 +794,15 @@ namespace deckard::file
 		const u8* address{nullptr};
 		u64       size{0};
 
-		operator bool() const { return address != nullptr; }
-
 		u8 operator[](u64 index) const
 		{
-			assert::check(address != nullptr && index < size, "filemap_view: invalid access");
+			assert::check(address != nullptr and index < size, "filemap_view: invalid access");
 			return address[index];
 		}
+
+		bool empty() const { return address == nullptr or size == 0; }
+
+		operator bool() const { return empty(); }
 
 		const u8* raw_data() const
 		{
@@ -812,6 +814,16 @@ namespace deckard::file
 		{
 			assert::check(address != nullptr, "filemap_view: invalid view");
 			return std::span<const u8>(address, size);
+		}
+
+		std::span<const u8> subspan(u64 offset, u64 length) const
+		{
+			assert::check(address != nullptr, "filemap_view: invalid view");
+			if (offset > size)
+				return {};
+
+			length = std::min(length, size - offset);
+			return std::span<const u8>(address + offset, length);
 		}
 
 		filemap_view()                               = default;
