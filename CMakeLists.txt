@@ -376,7 +376,6 @@ target_sources(deckard
 
 
 set(THIRD_PARTY_LIBS
-	sqlite3
 	ZSTD
 	monocypher
 	opengl32.lib
@@ -457,6 +456,5 @@ endif()
 
 
 
-add_subdirectory(external/sqlite3)
 add_subdirectory(external/zstd)
 add_subdirectory(external/monocypher)
