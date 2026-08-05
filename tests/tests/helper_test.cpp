@@ -11,6 +11,8 @@ import deckard.enums;
 
 using namespace deckard;
 using namespace deckard::string;
+using namespace deckard::literals;
+
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;

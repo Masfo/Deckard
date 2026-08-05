@@ -15,6 +15,8 @@ import std;
 namespace deckard::net
 {
 	using namespace std::string_literals;
+	using namespace deckard::literals;
+
 
 	static constexpr u8          MAX_IPV4_ADDRESS_STR_LEN = 15;
 	static constexpr u8          MAX_IPV6_ADDRESS_STR_LEN = 39;

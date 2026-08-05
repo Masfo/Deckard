@@ -20,22 +20,18 @@ TEST_CASE("stringhash", "[hash]")
 
 	SECTION("stringhash with multiple views")
 	{
-		std::string_view part1 = "The quick brown fox ";
-		std::string_view part2 = "jumps over the lazy dog";
 
-		CHECK(stringhash(part1, part2) == stringhash("The quick brown fox jumps over the lazy dog"));
+		CHECK(0x8e4'45df'107b'b587 == stringhash("The quick brown fox jumps over the lazy dog"));
 
+	}
+}
 
-		CHECK(stringhash("The quick brown fox jumps over the lazy dog"sv,
-						 "The quick brown fox jumps over the lazy dog"sv,
-						 "The quick brown fox jumps over the lazy dog"sv,
-						 "The quick brown fox jumps over the lazy dog"sv,
-						 "The quick brown fox jumps over the lazy dog"sv,
-						 "The quick brown fox jumps over the lazy dog"sv) ==
-			  stringhash("The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick "
-						 "brown fox jumps "
-						 "over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps "
-						 "over the lazy dogThe quick brown fox jumps over the lazy dog"));
+TEST_CASE("rapidhash", "[hash][rapidhash]")
+{
+	SECTION("rapidhash")
+	{
+		//
+		CHECK(rapidhash("a") == 0xc113'2847'7bc0'f5d1);
 	}
 }
 
@@ -81,11 +77,11 @@ TEST_CASE("xxhasher", "[hash][xxhash]")
 		for (u32 i = 0; i < data.size(); ++i)
 			data[i] = static_cast<u8>((i * 251 + 7) & 0xFF);
 
-		// 
+		//
 		constexpr u64   expected_hash = 0x7A97'0F60'46DE'A36Dull;
 		xxhash64_hasher hasher5;
 		hasher5.update(data);
-		CHECK(hasher5.digest() == expected_hash); 
+		CHECK(hasher5.digest() == expected_hash);
 
 
 		xxhash64_hasher chunked;

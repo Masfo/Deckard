@@ -12,6 +12,7 @@ import deckard.as;
 TEST_CASE("stack arena", "[arena][memory]")
 {
 	using namespace deckard;
+	using namespace deckard::literals;
 
 	struct Particle
 	{
@@ -120,6 +121,8 @@ TEST_CASE("stack arena", "[arena][memory]")
 TEST_CASE("arena", "[arena][memory]")
 {
 	using namespace deckard;
+	using namespace deckard::literals;
+
 	SECTION("arena ctor")
 	{
 		memory::arena frame(1024);

@@ -18,6 +18,8 @@ import deckard.utf8;
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
+using namespace deckard::literals;
+
 
 namespace deckard::file
 {

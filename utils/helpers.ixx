@@ -7,6 +7,7 @@ import deckard.assert;
 import deckard.debug;
 
 using namespace std::string_view_literals;
+using namespace deckard::literals;
 
 export namespace deckard
 {
@@ -210,6 +211,16 @@ export namespace deckard
 		for (size_t i = 0; i < data.size(); ++i)
 			write_be<T>(buffer, offset + i * sizeof(T), data[i]);
 	}
+
+	//
+	template<typename T>
+	requires std::is_trivially_copyable_v<T>
+	[[nodiscard]] auto to_bytes(const T& value) -> std::vector<u8>
+	{
+		auto byte_view = std::as_bytes(std::span{std::addressof(value), 1});
+		return std::vector<u8>(byte_view.begin(), byte_view.end());
+	}
+
 
 	//
 

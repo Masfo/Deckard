@@ -10,6 +10,7 @@ import deckard.utils.hash;
 
 namespace deckard
 {
+	using namespace deckard::literals;
 
 
 	export template<size_t SIZE = 32>

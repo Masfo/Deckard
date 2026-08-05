@@ -38,32 +38,47 @@ export namespace deckard
 	using f32 = float;
 	using f64 = double;
 
-	constexpr std::byte operator""_byte(const u64 value) { return static_cast<std::byte>(value & 0xFF); }
-
-	constexpr u8 operator""_u8(const u64 value) { return static_cast<u8>(value & 0xFF); }
-
-	constexpr i8 operator""_i8(const u64 value) { return static_cast<i8>(value & 0xFF); }
-
-	constexpr u16 operator""_u16(const u64 value) { return static_cast<u16>(value & 0xFFFF); }
-
-	constexpr i16 operator""_i16(const u64 value) { return static_cast<i16>(value & 0xFFFF); }
-
-	constexpr u32 operator""_u32(const u64 value) { return static_cast<u32>(value & 0xFFFF'FFFF); }
-
-	constexpr i32 operator""_i32(const u64 value) { return static_cast<i32>(value & 0xFFFF'FFFF); }
-
-	constexpr u64 operator""_u64(const u64 value) { return static_cast<u64>(value); }
-
-	constexpr i64 operator""_i64(const u64 value) { return static_cast<i64>(value); }
-
-	constexpr f32 operator""_f32(const u64 value) { return static_cast<f32>(value); }
-
-	constexpr f64 operator""_f64(const u64 value) { return static_cast<f64>(value); }
-
-	constexpr std::filesystem::path operator""_path(const char* str, size_t len)
+	template<std::integral T>
+	struct Padding
 	{
-		return std::filesystem::path(std::string_view(str, len));
-	}
+		T value{};
+
+		constexpr operator T() const { return value; }
+	};
+
+	static_assert(sizeof(Padding<u8>) == 1);
+	static_assert(sizeof(Padding<i64>) == 8);
+
+	namespace literals
+	{
+		constexpr std::byte operator""_byte(const u64 value) { return static_cast<std::byte>(value & 0xFF); }
+
+		constexpr u8 operator""_u8(const u64 value) { return static_cast<u8>(value & 0xFF); }
+
+		constexpr i8 operator""_i8(const u64 value) { return static_cast<i8>(value & 0xFF); }
+
+		constexpr u16 operator""_u16(const u64 value) { return static_cast<u16>(value & 0xFFFF); }
+
+		constexpr i16 operator""_i16(const u64 value) { return static_cast<i16>(value & 0xFFFF); }
+
+		constexpr u32 operator""_u32(const u64 value) { return static_cast<u32>(value & 0xFFFF'FFFF); }
+
+		constexpr i32 operator""_i32(const u64 value) { return static_cast<i32>(value & 0xFFFF'FFFF); }
+
+		constexpr u64 operator""_u64(const u64 value) { return static_cast<u64>(value); }
+
+		constexpr i64 operator""_i64(const u64 value) { return static_cast<i64>(value); }
+
+		constexpr f32 operator""_f32(const u64 value) { return static_cast<f32>(value); }
+
+		constexpr f64 operator""_f64(const u64 value) { return static_cast<f64>(value); }
+
+		constexpr std::filesystem::path operator""_path(const char* str, size_t len)
+		{
+			return std::filesystem::path(std::string_view(str, len));
+		}
+
+	} // namespace literals
 
 	template<class... Ts>
 	struct overloads : Ts...
@@ -207,8 +222,6 @@ export namespace deckard
 	constexpr bool operator==(std::array<u8, 4> lhs, u32 rhs) noexcept { return std::bit_cast<u32>(lhs) == rhs; }
 
 	constexpr bool operator==(std::array<u8, 8> lhs, u64 rhs) noexcept { return std::bit_cast<u64>(lhs) == rhs; }
-
-
 
 	// ###########################################################################
 

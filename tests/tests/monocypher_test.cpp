@@ -7,6 +7,8 @@ import deckard.monocypher;
 import deckard.helpers;
 
 using namespace deckard;
+using namespace deckard::literals;
+
 using namespace deckard::monocypher;
 
 TEST_CASE("monocypher", "[monocypher]")

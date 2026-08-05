@@ -7,6 +7,7 @@ import deckard.random;
 import deckard.math.utils;
 import deckard.types;
 using namespace deckard;
+using namespace deckard::literals;
 
 
 

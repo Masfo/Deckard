@@ -13,6 +13,8 @@ namespace fs = std::filesystem;
 
 namespace deckard::zstd
 {
+	using namespace deckard::literals;
+
 
 	export [[nodiscard]] u64 bound(const u64 input_size) { return ZSTD_compressBound(input_size); }
 
@@ -81,6 +83,7 @@ namespace deckard::zstd
 		return r;
 	}
 
+
 	export [[nodiscard]] std::optional<u64>
 	compress_file_to(const fs::path& path1, const fs::path& path2, i32 compression_level = -1)
 	{
@@ -139,5 +142,40 @@ namespace deckard::zstd
 		return *compressed_size;
 	}
 
+
+
+	export [[nodiscard]] std::vector<u8> compress_easy(std::span<const u8> input, i32 compression_level = -1)
+	{
+		std::vector<u8> output;
+		output.resize(bound(input));
+		auto compressed_size = compress(input, output, compression_level);
+		if (not compressed_size)
+		{
+			dbg::println("compress_easy: compression failed");
+			return {};
+		}
+		output.resize(*compressed_size);
+		return output;
+	}
+
+	export [[nodiscard]] std::vector<u8> decompress_easy(std::span<const u8> input)
+	{
+		auto content_size = decompressed_size(input);
+		if (not content_size)
+		{
+			dbg::println("decompress_easy: failed to get decompressed size");
+			return {};
+		}
+		std::vector<u8> output;
+		output.resize(*content_size);
+		auto decompressed_size = decompress(input, output);
+		if (not decompressed_size)
+		{
+			dbg::println("decompress_easy: decompression failed");
+			return {};
+		}
+		output.resize(*decompressed_size);
+		return output;
+	}
 
 } // namespace deckard::zstd

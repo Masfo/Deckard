@@ -11,6 +11,8 @@ import deckard.utils.hash;
 import std;
 
 using namespace deckard;
+using namespace deckard::literals;
+
 
 namespace deckard
 {

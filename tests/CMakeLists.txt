@@ -114,6 +114,9 @@ target_sources(tests PUBLIC
 
     # Tagged Pointer
     tests/tagged_ptr_test.cpp
+
+    # Archive
+    tests/archive_test.cpp
 )
 
 
