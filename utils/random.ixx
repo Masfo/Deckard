@@ -325,7 +325,7 @@ namespace deckard::random
 	}
 
 	export template<std::floating_point T = f32, std::uniform_random_bit_generator Engine>
-	T rnd(Engine& engine, T minimum , T maximum)
+	T rnd(Engine& engine, T minimum, T maximum)
 	{
 		assert::check(minimum <= maximum, "minimum >= maximum");
 
@@ -363,12 +363,81 @@ namespace deckard::random
 
 	export void cryptographic_random_bytes(std::span<u8> buffer)
 	{
-		std::uniform_int_distribution<i16> dist(0, limits::max<u8>);
+		std::uniform_int_distribution<u64> dist;
 
-		std::ranges::generate(buffer, [&] { return static_cast<u8>(dist(random_device)); });
+		constexpr usize blocksize      = 64;
+		constexpr usize u64s_per_block = blocksize / sizeof(u64);
+
+		usize i = 0;
+		for (; i + blocksize <= buffer.size(); i += blocksize)
+		{
+			std::span<u64, u64s_per_block> block(std::bit_cast<u64*>(buffer.data() + i), u64s_per_block);
+
+			block[0] = dist(random_device);
+			block[1] = dist(random_device);
+			block[2] = dist(random_device);
+			block[3] = dist(random_device);
+			block[4] = dist(random_device);
+			block[5] = dist(random_device);
+			block[6] = dist(random_device);
+			block[7] = dist(random_device);
+		}
+
+		std::uniform_int_distribution<u16> tail_dist(0, limits::max<u8>);
+		for (; i < buffer.size(); ++i)
+			buffer[i] = static_cast<u8>(tail_dist(random_device));
 	}
 
-	export void bytes(std::span<u8> buffer) { cryptographic_random_bytes(buffer); }
+	export void bytes(std::span<u8> buffer)
+	{
+		/*
+			Chi-square: 263.10741
+			Mean: 127.49488
+			Std Dev: 73.89927
+			Monobit Z-score: -0.46917
+			Serial Correlation: 0.00003
+			Longest Run of Bits (normalized): 0.93939
+			Looks Uniform: Yes
+		*/
+		cryptographic_random_bytes(buffer);
+	}
+
+	//
+	export void bytes_quick(std::span<u8> buffer) noexcept
+	{
+		/*
+			Chi-square: 227.48471
+			Mean: 127.49967
+			Std Dev: 73.89977
+			Monobit Z-score: -0.12041
+			Serial Correlation: 0.00006
+			Longest Run of Bits (normalized): 1.00000
+			Looks Uniform: Yes
+		*/
+
+		constexpr usize blocksize      = 64;
+		constexpr usize u64s_per_block = blocksize / sizeof(u64);
+
+		usize i = 0;
+
+		for (; i + blocksize <= buffer.size(); i += blocksize)
+		{
+			std::span<u64, u64s_per_block> block(std::bit_cast<u64*>(buffer.data() + i), u64s_per_block);
+
+			block[0] = pcg::rand64();
+			block[1] = pcg::rand64();
+			block[2] = pcg::rand64();
+			block[3] = pcg::rand64();
+
+			block[4] = pcg::rand64();
+			block[5] = pcg::rand64();
+			block[6] = pcg::rand64();
+			block[7] = pcg::rand64();
+		}
+
+		for (; i < buffer.size(); ++i)
+			buffer[i] = static_cast<u8>(pcg::rand32() & 0xFF);
+	}
 
 	export std::vector<u8> bytes(size_t len)
 	{
