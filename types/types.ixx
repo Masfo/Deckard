@@ -102,12 +102,7 @@ export namespace deckard
 	T* ptr_to(const T&&) = delete;
 #endif
 
-	template<typename T>
-	auto as_ro_bytes(std::span<T> data) -> std::span<const u8>
-	{
-		auto byte_ptr = reinterpret_cast<const u8*>(data.data());
-		return {byte_ptr, data.size() * sizeof(T)};
-	}
+
 
 	template<typename T>
 	concept arithmetic = std::is_arithmetic_v<T>;

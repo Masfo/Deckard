@@ -205,6 +205,11 @@ namespace deckard
 			std::ranges::copy_n(value.begin(), value.size(), buffer.begin());
 			return std::bit_cast<Ret>(buffer);
 		}
+		else if constexpr (std::is_same_v<U, std::vector<u8>> and std::is_same_v<Ret, std::string>)
+		{
+			// std::vector<u8> -> std::string
+			return std::string(reinterpret_cast<const char*>(value.data()), value.size());
+		}
 		else
 		{
 			if constexpr (is_debug_build)
