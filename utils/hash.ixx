@@ -266,7 +266,20 @@ namespace deckard::utils
 
 	constexpr u64 rapid_secret[3] = {0x2d35'8dcc'aa6c'78a5ull, 0x8bb8'4b93'962e'acc9ull, 0x4b33'a62e'd433'd4a3ull};
 
-	void rapid_mum(u64* A, u64* B) { *A = _umul128(*A, *B, B); }
+	void rapid_mum(u64* A, u64* B)
+	{
+#if defined(_MSC_VER)
+		*A = _umul128(*A, *B, B);
+#else
+		uint64_t ha = *A >> 32, hb = *B >> 32, la = (uint32_t)*A, lb = (uint32_t)*B;
+		uint64_t rh = ha * hb, rm0 = ha * lb, rm1 = hb * la, rl = la * lb, t = rl + (rm0 << 32), c = t < rl;
+		uint64_t lo = t + (rm1 << 32);
+		c += lo < t;
+		uint64_t hi = rh + (rm0 >> 32) + (rm1 >> 32) + c;
+		*A          = lo;
+		*B          = hi;
+#endif
+	}
 
 	u64 rapid_read64(const u8* p)
 	{
@@ -347,7 +360,9 @@ namespace deckard::utils
 
 	export u64 rapidhash(const void* key, size_t len) { return rapidhash(key, len, RAPID_SEED); }
 
-	export u64 rapidhash(std::span<u8> buffer) { return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED); }
+	export u64 rapidhash(std::string_view str) { return rapidhash(str.data(), str.size(), RAPID_SEED); }
+
+	export u64 rapidhash(std::span<const u8> buffer) { return rapidhash(buffer.data(), buffer.size_bytes(), RAPID_SEED); }
 
 	// ########################################################################
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
@@ -444,6 +459,102 @@ namespace deckard::utils
 	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
 
 	// ########################################################
+
+	export u64 xxh64(std::span<const u8> buffer, u64 seed = 0)
+	{
+		static constexpr u64 prime1 = 0x9e37'79b1'85eb'ca87ULL;
+		static constexpr u64 prime2 = 0xc2b2'ae3d'27d4'eb4fULL;
+		static constexpr u64 prime3 = 0x1656'67b1'9e37'79f9ULL;
+		static constexpr u64 prime4 = 0x85eb'ca77'c2b2'ae63ULL;
+		static constexpr u64 prime5 = 0x27d4'eb2f'1656'67c5ULL;
+
+		const u8* p   = buffer.data();
+		size_t    len = buffer.size();
+		const u64 n   = len;
+		u64       h   = seed + prime5 + n;
+
+		if (n >= 32)
+		{
+			u64 v0 = seed + prime1 + prime2;
+			u64 v1 = seed + prime2;
+			u64 v2 = seed + 0;
+			u64 v3 = seed - prime1;
+
+			do
+			{
+				v0 += load_as<u64>(p + 0) * prime2;
+				v0 = std::rotl(v0, 31);
+				v0 *= prime1;
+				v1 += load_as<u64>(p + 8) * prime2;
+				v1 = std::rotl(v1, 31);
+				v1 *= prime1;
+				v2 += load_as<u64>(p + 16) * prime2;
+				v2 = std::rotl(v2, 31);
+				v2 *= prime1;
+				v3 += load_as<u64>(p + 24) * prime2;
+				v3 = std::rotl(v3, 31);
+				v3 *= prime1;
+
+				p += 32;
+				len -= 32;
+			} while (len >= 32);
+
+			h = std::rotl(v0, 1) + std::rotl(v1, 7) + std::rotl(v2, 12) + std::rotl(v3, 18);
+
+			for (u64 v : {v0, v1, v2, v3})
+			{
+				v *= prime2;
+				v = std::rotl(v, 31);
+				v *= prime1;
+				h ^= v;
+				h = h * prime1 + prime4;
+			}
+
+			h += n;
+		}
+
+		while (len >= 8)
+		{
+			u64 k1 = load_as<u64>(p) * prime2;
+			k1     = std::rotl(k1, 31);
+			k1 *= prime1;
+			h ^= k1;
+			h = std::rotl(h, 27) * prime1 + prime4;
+			p += 8;
+			len -= 8;
+		}
+
+		if (len >= 4)
+		{
+			h ^= load_as<u32>(p) * prime1;
+			h = std::rotl(h, 23) * prime2 + prime3;
+			p += 4;
+			len -= 4;
+		}
+
+		while (len > 0)
+		{
+			h ^= (*p) * prime5;
+			h = std::rotl(h, 11) * prime1;
+			++p;
+			--len;
+		}
+
+		h ^= h >> 33;
+		h *= prime2;
+		h ^= h >> 29;
+		h *= prime3;
+		h ^= h >> 32;
+
+		return h;
+	}
+
+	export u64 xxh64(std::string_view str, u64 seed = 0) { return xxh64(to_span(str), seed); }
+
+	export u64 operator""_xxh64(char const* buffer, size_t len) { return xxh64({buffer, len}); }
+
+	// ##########################
+
 	export class xxhash64_hasher
 	{
 		static constexpr u64 prime1 = 0x9E37'79B1'85EB'CA87ULL;
@@ -477,17 +588,31 @@ namespace deckard::utils
 
 				if (buffer_size_ == 32)
 				{
-					process_block(buffer_.data());
+					// pull into locals, process, write back once — same
+					// register-residency trick as the bulk loop below
+					u64 v0 = state_[0], v1 = state_[1], v2 = state_[2], v3 = state_[3];
+					process_block_into(buffer_.data(), v0, v1, v2, v3);
+					state_[0] = v0, state_[1] = v1, state_[2] = v2, state_[3] = v3;
 					buffer_size_ = 0;
 				}
 			}
 
-			// Process full 32-byte blocks
-			while (len >= 32)
+			// Process full 32-byte blocks: state lives in locals for the
+			// *entire* loop, only spilled back to the member array once at
+			// the end. This is the part that was costing you the loads/
+			// stores per block in the original.
+			if (len >= 32)
 			{
-				process_block(ptr);
-				ptr += 32;
-				len -= 32;
+				u64 v0 = state_[0], v1 = state_[1], v2 = state_[2], v3 = state_[3];
+
+				do
+				{
+					process_block_into(ptr, v0, v1, v2, v3);
+					ptr += 32;
+					len -= 32;
+				} while (len >= 32);
+
+				state_[0] = v0, state_[1] = v1, state_[2] = v2, state_[3] = v3;
 			}
 
 			// Store remaining bytes in buffer
@@ -575,27 +700,30 @@ namespace deckard::utils
 		void clear() noexcept { reset(); }
 
 	private:
-		void process_block(const u8* block) noexcept
+		// Manually unrolled (no index loop) and forced inline, taking the
+		// 4 lanes by reference so callers keep them in locals/registers
+		// across many invocations instead of round-tripping through state_.
+		static void process_block_into(const u8* block, u64& v0, u64& v1, u64& v2, u64& v3) noexcept
 		{
-			for (size_t i = 0; i < 4; ++i)
-			{
-				u64 lane = load_as<u64>(block + i * 8);
-				state_[i] += lane * prime2;
-				state_[i] = std::rotl(state_[i], 31);
-				state_[i] *= prime1;
-			}
+			v0 += load_as<u64>(block + 0) * prime2;
+			v0 = std::rotl(v0, 31);
+			v0 *= prime1;
+			v1 += load_as<u64>(block + 8) * prime2;
+			v1 = std::rotl(v1, 31);
+			v1 *= prime1;
+			v2 += load_as<u64>(block + 16) * prime2;
+			v2 = std::rotl(v2, 31);
+			v2 *= prime1;
+			v3 += load_as<u64>(block + 24) * prime2;
+			v3 = std::rotl(v3, 31);
+			v3 *= prime1;
 		}
 	};
 
 	// ########################################################
 
 
-	export u64 xxhash64(std::string_view str)
-	{
-		xxhash64_hasher hasher;
-		hasher.update(str);
-		return hasher.digest();
-	}
+	export u64 xxhash64(std::string_view str) { return xxh64(str); }
 
 	export template<typename... Views>
 	u64 xxhash64(std::string_view first, Views... rest)
@@ -606,23 +734,164 @@ namespace deckard::utils
 		return hasher.digest();
 	}
 
-	export u64 xxhash64(std::span<const u8> buffer)
+	export u64 xxhash64(std::span<const u8> buffer) { return xxh64(buffer); }
+
+	// ########################################################
+	// default secret (wyhash "final4.3" reference constants)
+
+	namespace wyhash_detail
 	{
-		xxhash64_hasher hasher;
-		hasher.update(buffer);
-		return hasher.digest();
+		// portable 64x64->128 multiply, returning {low, high}
+		[[nodiscard]] inline std::pair<u64, u64> mul128(u64 a, u64 b) noexcept {
+#if defined(_MSC_VER) && defined(_M_X64)
+			u64 hi{};
+			u64 lo = _umul128(a, b, &hi);
+			return {lo, hi};
+#else
+			// manual 32-bit split multiply — portable fallback (e.g. MSVC on ARM)
+			const u64 a_lo = static_cast<u32>(a), a_hi = a >> 32;
+			const u64 b_lo = static_cast<u32>(b), b_hi = b >> 32;
+
+			const u64 ll = a_lo * b_lo;
+			const u64 lh = a_lo * b_hi;
+			const u64 hl = a_hi * b_lo;
+			const u64 hh = a_hi * b_hi;
+
+			const u64 mid = (ll >> 32) + static_cast<u32>(lh) + static_cast<u32>(hl);
+			const u64 lo  = (mid << 32) | static_cast<u32>(ll);
+			const u64 hi  = hh + (lh >> 32) + (hl >> 32) + (mid >> 32);
+			return {lo, hi};
+#endif
+		}
+
+
+		// 64x64->128 multiply-and-xor-fold ("MUM")
+		[[nodiscard]] inline u64 mix(u64 a, u64 b) noexcept
+		{
+			const auto [lo, hi] = mul128(a, b);
+			return lo ^ hi;
+		}
+
+		[[nodiscard]] inline u64 read_u64(const u8* p) noexcept
+		{
+			u64 v{0};
+			std::memcpy(&v, p, 8);
+			if constexpr (std::endian::native == std::endian::big)
+				v = std::byteswap(v);
+			return v;
+		}
+
+		[[nodiscard]] inline u64 read_u32(const u8* p) noexcept
+		{
+			u32 v{0};
+			std::memcpy(&v, p, 4);
+			if constexpr (std::endian::native == std::endian::big)
+				v = std::byteswap(v);
+			return v;
+		}
+
+		// reads 3 bytes for len in [1,3]: p[0], p[len/2], p[len-1]
+		[[nodiscard]] inline u64 read_short(const u8* p, size_t len) noexcept
+		{
+			return (static_cast<u64>(p[0]) << 16) | (static_cast<u64>(p[len >> 1]) << 8) | p[len - 1];
+		}
+	} // namespace detail
+
+
+
+	constexpr std::array<u64, 4> default_secret{
+	  0x2d35'8dcc'aa6c'78a5ull,
+	  0x8bb8'4b93'962e'acc9ull,
+	  0x4b33'a62e'd433'd4a3ull,
+	  0x4d5a'2da5'1de1'aa47ull,
+	};
+
+	export [[nodiscard]] u64
+	wyhash(std::span<const u8> data, u64 seed = 0, const std::array<u64, 4>& secret = default_secret) noexcept
+	{
+		using namespace wyhash_detail;
+
+		const u8*    p   = data.data();
+		const size_t len = data.size();
+
+		seed ^= mix(seed ^ secret[0], secret[1]);
+
+		u64 a{};
+		u64 b{};
+
+		if (len <= 16) [[likely]]
+		{
+			if (len >= 4) [[likely]]
+			{
+				a = (read_u32(p) << 32) | read_u32(p + ((len >> 3) << 2));
+				b = (read_u32(p + len - 4) << 32) | read_u32(p + len - 4 - ((len >> 3) << 2));
+			}
+			else if (len > 0) [[likely]]
+			{
+				a = read_short(p, len);
+				b = 0;
+			}
+			else
+			{
+				a = b = 0;
+			}
+		}
+		else
+		{
+			size_t i = len;
+			if (i >= 48) [[unlikely]]
+			{
+				u64 see1 = seed;
+				u64 see2 = seed;
+				do
+				{
+					seed = mix(read_u64(p) ^ secret[1], read_u64(p + 8) ^ seed);
+					see1 = mix(read_u64(p + 16) ^ secret[2], read_u64(p + 24) ^ see1);
+					see2 = mix(read_u64(p + 32) ^ secret[3], read_u64(p + 40) ^ see2);
+					p += 48;
+					i -= 48;
+				} while (i >= 48);
+				seed ^= see1 ^ see2;
+			}
+			while (i > 16) [[unlikely]]
+			{
+				seed = mix(read_u64(p) ^ secret[1], read_u64(p + 8) ^ seed);
+				i -= 16;
+				p += 16;
+			}
+			a = read_u64(p + i - 16);
+			b = read_u64(p + i - 8);
+		}
+
+		a ^= secret[1];
+		b ^= seed;
+
+		const auto [ha, hb] = mul128(a, b);
+		a                   = ha;
+		b                   = hb;
+
+		return mix(a ^ secret[0] ^ static_cast<u64>(len), b ^ secret[1]);
 	}
 
-	export u64 stringhash(std::string_view str) { return xxhash64(str); }
-
-	export template<typename... Views>
-	u64 stringhash(std::string_view first, Views... rest)
+	export template<typename R>
+	requires std::convertible_to<R, std::span<const u8>>
+	[[nodiscard]] inline u64 wyhash(const R& range, u64 seed = 0, const std::array<u64, 4>& secret = default_secret) noexcept
 	{
-		xxhash64_hasher hasher;
-		hasher.update(first);
-		(hasher.update(rest), ...);
-		return hasher.digest();
+		return wyhash(std::span<const u8>(range), seed, secret);
 	}
+
+	export u64 wyhash(std::string_view str, u64 seed = 0, const std::array<u64, 4>& secret = default_secret)
+	{
+		return wyhash(to_span(str), seed, secret);
+	}
+
+	// ########################################################
+
+
+	export u64 hash(std::string_view str, u64 seed=0) { return wyhash(str, seed); }
+
+	export u64 hash(std::span<const u8> buffer, u64 seed=0) { return wyhash(buffer, seed); }
+
 
 
 } // namespace deckard::utils

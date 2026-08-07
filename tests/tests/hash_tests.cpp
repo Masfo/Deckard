@@ -21,7 +21,7 @@ TEST_CASE("stringhash", "[hash]")
 	SECTION("stringhash with multiple views")
 	{
 
-		CHECK(0x8e4'45df'107b'b587 == stringhash("The quick brown fox jumps over the lazy dog"));
+		CHECK(0x8e4'45df'107b'b587 == hash("The quick brown fox jumps over the lazy dog"));
 
 	}
 }
