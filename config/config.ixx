@@ -138,7 +138,7 @@ namespace deckard
 					auto key_str = std::string{key_sv};
 
 					auto full_key = section.empty() ? key_str : section + '.' + key_str;
-					auto hash     = utils::stringhash(full_key);
+					auto hash     = utils::hash(full_key);
 					key_hash_to_token_index[hash].push_back(i + 1);
 				}
 			}
@@ -534,7 +534,7 @@ namespace deckard
 					auto key_sv   = view.subview(tok.start, tok.length);
 					auto key_str  = std::string{key_sv.as_string_view()};
 					auto full_key = section.empty() ? key_str : section + '.' + key_str;
-					auto hash     = utils::stringhash(full_key);
+					auto hash     = utils::hash(full_key);
 					auto it       = key_hash_to_token_index.find(hash);
 					if (it == key_hash_to_token_index.end())
 						continue;
@@ -557,7 +557,7 @@ namespace deckard
 		template<typename T>
 		T get(std::string_view key) const
 		{
-			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it == key_hash_to_token_index.end() or it->second.empty())
 			{
 				dbg::println("config: key '{}' not found", key);
@@ -608,7 +608,7 @@ namespace deckard
 		template<typename T>
 		std::vector<T> get_vector(std::string_view key) const
 		{
-			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it == key_hash_to_token_index.end())
 				return {};
 
@@ -645,7 +645,7 @@ namespace deckard
 
 		bool has_multiple(std::string_view key) const
 		{
-			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			auto it = key_hash_to_token_index.find(utils::hash(key));
 			return it != key_hash_to_token_index.end() and it->second.size() > 1;
 		}
 
@@ -660,7 +660,7 @@ namespace deckard
 			else
 				content = std::format("{}", value);
 
-			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it != key_hash_to_token_index.end() and not it->second.empty())
 			{
 				auto& val_tok = tokens[it->second.front()];
@@ -806,7 +806,7 @@ namespace deckard
 
 		void set_comment(std::string_view key, std::string_view comment)
 		{
-			auto it = key_hash_to_token_index.find(utils::stringhash(key));
+			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it == key_hash_to_token_index.end() or it->second.empty())
 			{
 				dbg::println("set_comment: key '{}' not found, cannot set comment", key);
