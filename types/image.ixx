@@ -768,6 +768,16 @@ namespace deckard
 		}
 	} // namespace detail
 
+
+	u64 bound_qoi(u32 width, u32 height, u8 channels)
+	{
+		if (width == 0 or height == 0)
+			return 0;
+
+		// 14 header + 5 bytes per pixel (worst case) + 8 end marker
+		return 14 + static_cast<u64>(width) * static_cast<u64>(height) * static_cast<u64>(channels) * 5 + 8;
+	}
+
 	// Encode as QOI (Quite OK Image) per https://qoiformat.org.
 	export std::expected<bool, std::string> encode_qoi(const image_rgb& img, std::span<u8> buffer)
 	{
@@ -778,7 +788,7 @@ namespace deckard
 
 		// Convert rgb to qoi_px format in-place
 		std::vector<detail::qoi_px> pixels;
-		pixels.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
+		pixels.reserve(bound_qoi(width, height, 3));
 
 		auto img_data = img.data();
 		for (const auto& c : img_data)
@@ -787,7 +797,7 @@ namespace deckard
 		}
 
 		deckard::serializer ser(deckard::padding::yes);
-		ser.reserve(14 + pixels.size() * 5 + 8);
+		ser.reserve(bound_qoi(width, height, 3));
 		detail::qoi_write_header(ser, width, height, 3, 0);
 		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
 		detail::qoi_write_end(ser);
@@ -927,7 +937,7 @@ namespace deckard
 
 		// Estimate max size: header (14) + pixels (worst case ~5 bytes each) + end (8)
 		std::vector<u8> out;
-		out.resize(14 + (width * height * 5) + 8);
+		out.resize(bound_qoi(width, height, 4));
 
 		auto encoded = encode_qoi(img, out);
 		if (not encoded)
@@ -936,7 +946,7 @@ namespace deckard
 		// Find actual size by re-encoding to get the data span
 		deckard::serializer         ser(deckard::padding::yes);
 		std::vector<detail::qoi_px> pixels;
-		pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
+		pixels.resize(bound_qoi(width, height, 4));
 		for (u32 y = 0; y < height; ++y)
 		{
 			for (u32 x = 0; x < width; ++x)
@@ -945,7 +955,7 @@ namespace deckard
 				pixels[static_cast<size_t>(y) * width + x] = detail::qoi_px{c.r, c.g, c.b, c.a};
 			}
 		}
-		ser.reserve(14 + pixels.size() * 5 + 8);
+		ser.reserve(bound_qoi(width, height, 4));
 		detail::qoi_write_header(ser, width, height, 4, 0);
 		detail::qoi_encode_pixels(ser, std::span<const detail::qoi_px>{pixels.data(), pixels.size()});
 		detail::qoi_write_end(ser);
