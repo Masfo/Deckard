@@ -1,9 +1,13 @@
+
 #include <windows.h>
 #include <Commctrl.h>
 #include <intrin.h>
 #include <time.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+#include <cstddef>
+
 
 import std;
 import deckard;
@@ -13,6 +17,8 @@ import deckard.helpers;
 import deckard.random;
 using namespace deckard;
 using namespace deckard::app;
+using namespace deckard::literals;
+
 using namespace deckard::random;
 // using namespace std::string_literals;
 namespace fs = std::filesystem;
@@ -448,17 +454,43 @@ struct STUNHeader
 };
 
 template<std::integral T = u64>
+[[nodiscard]] auto encode_integer_to_array(T value) -> std::pair<u8, std::array<u8, (sizeof(T) * 8 + 6) / 7>>
+{
+	static constexpr u64 capacity = (sizeof(T) * 8 + 6) / 7;
+
+	std::array<u8, capacity> temp{};
+
+	u8 len{};
+	while (value > 0x7Fu)
+	{
+		temp[len++] = static_cast<u8>((value & 0x7Fu) | 0x80u);
+		value >>= 7;
+	}
+	temp[len++] = static_cast<u8>(value);
+	return {len, temp};
+}
+
+template<std::integral T = u64>
 [[nodiscard]] auto encode_integer(T value, std::span<u8> output) -> u64
 {
-	assert::check(output.size() >= 10, "output buffer must be at least 10 bytes long to encode a 64-bit integer");
+	std::array<u8, 10> temp{};
+
 	u64 len{};
 
 	while (value > 0x7Fu)
 	{
-		output[len++] = static_cast<u8>((value & 0x7Fu) | 0x80u);
+		temp[len++] = static_cast<u8>((value & 0x7Fu) | 0x80u);
 		value >>= 7;
 	}
-	output[len++] = static_cast<u8>(value);
+	temp[len++] = static_cast<u8>(value);
+
+	assert::check(
+	  output.size() >= temp.size(),
+	  std::format(
+		"Output buffer too small for encoded integer ({} bytes needed, {} bytes available)", temp.size(), output.size()));
+
+	std::ranges::copy_n(temp.begin(), len, output.begin());
+
 	return len;
 }
 
@@ -475,33 +507,65 @@ T decode_integer(std::span<const u8> input)
 	return value;
 }
 
-struct X2
+void generate(std::span<u8> buffer, u64 percentage_how_compressable) noexcept
 {
+	percentage_how_compressable = std::min<u64>(percentage_how_compressable, 100);
+
+	std::mt19937_64                    rng{std::random_device{}()};
+	std::uniform_int_distribution<u32> byte_dist(0, 255);
+
+	constexpr usize block_size = 4096;
+
+	usize offset = 0;
+	while (offset < buffer.size())
+	{
+		const usize this_block         = std::min(block_size, buffer.size() - offset);
+		const usize compressible_bytes = (this_block * percentage_how_compressable) / 100;
+
+		auto block = buffer.subspan(offset, this_block);
+
+		std::ranges::fill(block.first(compressible_bytes), u8{0xAA});
+
+		for (u8& byte : block.subspan(compressible_bytes))
+			byte = static_cast<u8>(byte_dist(rng));
+
+		offset += this_block;
+	}
+}
+
+struct TestStruct
+{
+	u8  a{255};
+	i16 b{-16000};
+	u32 c{800'000};
+	i64 d{-999'999'999'999};
 };
 
-struct Y2
-{
-};
-
-struct Z2
-{
-};
-
-std::tuple<X2, Y2, Z2> tupfunc() { return {}; }
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
 	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
 	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
-	std::print("{} {}", big_text("DECKARD"), big_text(deckard_build::build::version_string));
+	std::print("{}\n{}\n", big_text("DECKARD"), big_text(deckard_build::build::version_string));
 #endif
 	// ########################################################################
 
-	dbg::println("{}", __cpp_structured_bindings);
+	
+	static_assert(offsetof(TestStruct,a) == 0);
+	static_assert(offsetof(TestStruct, b) == offsetof(TestStruct, a) + sizeof(u8) + Padding<u8>{1});
+	static_assert(offsetof(TestStruct, c) == offsetof(TestStruct, b) + sizeof(i16));
+	static_assert(offsetof(TestStruct, d) == offsetof(TestStruct, c) + sizeof(u32));
 
-	auto [x, y, z] = tupfunc();
-	// auto [xq, rest] = tupfunc();
+
+
+
+	TestStruct ts{};
+
+	auto tstr = as_byte_span(ts);
+
+	TestStruct ts2 = from_byte_array<TestStruct>(tstr);
+
 
 
 #if 0
@@ -521,20 +585,109 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	dbg::println("rng:\n{:.5f}", binary_percentage(rnsdo));
 #endif
+
+	constexpr u8  archive_version = 255;
+	constexpr u64 archive_magic   = std::byteswap(0x4445'434B'4152'4400 | archive_version); // "DECKARD" + version byte
+
+	(void)file::write({.filename = "archive_test.dat",
+					   .buffer   = std::span<const u8>(reinterpret_cast<const u8*>(&archive_magic), sizeof(archive_magic))});
+
+
+	// ##############################
+	std::vector<std::string> strings;
+
+	std::string stringtable;
+	stringtable.reserve(1024);
+
+	for (int j = 0; j < 5; ++j)
+	{
+		for (int i = 0; i < 7; ++i)
+			strings.push_back(std::format("data/level_{:02}/textures/texture{:02}.png\n", j, i));
+
+
+		for (int i = 0; i < 7; ++i)
+			strings.push_back(std::format("data/level_{:02}/models/model_{:02}.obj\n", j, i));
+
+		for (int i = 0; i < 3; ++i)
+			strings.push_back(std::format("data/level_{:02}/cripts/script_{:02}.txt\n", j, i));
+
+		for (int i = 0; i < 14; ++i)
+			strings.push_back(std::format("data/level_{:02}/audio/sound{:02}.wav\n", j, i));
+	}
+
+	// Original		: 5264
+	// sort	less	: 258
+	// sort greater : 254
+	// rnd			: 496
+	std::ranges::sort(strings);
+
+
+	auto compressed_stringtable = zstd::compress_easy(to_span(stringtable));
+
+	dbg::println("compressed size: {} to {} bytes", stringtable.size(), compressed_stringtable.size());
+
+	auto decompressed_stringtable = as<std::string>(zstd::decompress_easy(compressed_stringtable));
+
+	// ###############################
+
+	std::vector<u8> rnd_data;
+	rnd_data.resize(16_MiB);
+	{
+		ScopeTimer time("random data");
+
+		random::bytes_quick(rnd_data);
+	}
+
 	_ = 0;
 
 
-	// for (const auto& chunk : file::read_chunks({.filename = "bin128.dat", .chunk_size = 256}))
-	// {
-	// 	info("chunk ({:>4} bytes): \n{}", chunk.size(), to_hex_string(chunk, {.delimiter = ",", .max_width=32}));
-	// }
+	{
+		ScopeTimer time("chibihash");
+
+		u64 hash = utils::chibihash64(rnd_data);
+		dbg::println("chibihash64: {:0X}", hash);
+	}
+
+	{
+		ScopeTimer time("rapidhash");
+
+		u64 hash = utils::rapidhash(rnd_data);
+		dbg::println("rapidhash: {:0X}", hash);
+	}
+
+	{
+		ScopeTimer time("xxhash64");
+
+		u64 hash = utils::xxhash64(rnd_data);
+		dbg::println("xxhash64: {:0X}", hash);
+	}
+
+	{
+		ScopeTimer time("xxh64");
+
+		auto hash = utils::xxh64(rnd_data);
+		dbg::println("xxh64: {:0X}", hash);
+	}
+
+	file::write({.filename = "archive_test.dat", .buffer = rnd_data, .offset = sizeof(archive_magic)});
+
+	auto fview = file::map("archive_test.dat");
+
+	auto fview_sub = fview.subspan(0, 64);
 
 
+
+
+	_ = 0;
 	// ########################################################################
 
 	std::array<u8, 10> encoded{};
-	// u64                value = 1'234'567'890'123'456'789ULL;
-	// u64                len   = encode_integer(value, encoded);
+	// u64                value = 0xFFFF'FFFF'FFFF'FFFFu;
+	u32 value = 0x0000'1234;
+
+	auto [ilen, ibuf] = encode_integer_to_array(value);
+
+	_ = 0;
 
 	// u64 decoded = decode_integer(encoded);
 
@@ -561,7 +714,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	config cfg(fs::path{"config.txt"});
 
-	dbg::println("Version: {}", cfg["version"].as<std::string>());
+	//	dbg::println("Version: {}", cfg["version"].as<std::string>());
 	dbg::println("width: {}", cfg["window.width"].as<u32>());
 	dbg::println("height: {}", cfg["window.height"].as<u32>());
 	dbg::println("fullscreen: {}", cfg["window.fullscreen"].as<bool>());
@@ -570,11 +723,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	cfg["window.fullscreen"] = not cfg["window.fullscreen"].as<bool>();
 
 	cfg["version"] = random::id(6);
+	cfg.set_comment("version", std::format("This is the random id: '{}'", random::id(3)));
 
-	cfg.set_comment("version", "This is a comment for the config file. It will be preserved when saving.");
 
 	cfg.set_comment("window.width", "new comment for window.width");
 
+	dbg::println("id from config: {}", cfg["version"].as<std::string>());
 
 	// cfg[std::format("new_{}", random::id(3))] = "hello world";
 
@@ -601,18 +755,58 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	std::array<u8, 64> buf64{};
 	(void)file::read({.filename = "bin128.dat", .buffer = buf64, .size = buf64.size(), .offset = 64});
 
-		auto vi = file::map("bin128.dat");
+	auto vi = file::map("bin128.dat", 16);
 
-		for (const auto& [i, c] : vi.data() | std::views::enumerate)
-		{
-			dbg::print("{:02X} ", c);
-			if ((i + 1) % 16 == 0)
-				dbg::println();
-		}
+	for (const auto& [i, c] : vi.data() | std::views::enumerate)
+	{
+		dbg::print("{:02X} ", c);
+		if ((i + 1) % 16 == 0)
+			dbg::println();
+	}
 
-		auto dvi = vi.data();
+	auto dvi = vi.data();
 
-		vi.close();
+	vi.close();
+
+	config cfg2(fs::path{"config2.txt"});
+
+
+	dbg::println("window.fullscreen: {}", cfg2["window.fullscreen"].as<bool>());
+	dbg::println("window.hello: {}", cfg2["window.fullscreen"].as<utf8::string>());
+
+
+	(void)cfg2.save();
+
+
+	// ########################################################################
+
+	constexpr u64 buffer_size = 1_MiB;
+	f32           offset      = -1.0f;
+	for (int i = 100; i >= 0; i -= 10)
+	{
+		std::vector<u8> rnd_data{};
+		rnd_data.resize(buffer_size);
+
+		generate(rnd_data, i);
+
+		std::vector<u8> out_rnd{};
+		out_rnd.resize(buffer_size);
+
+		auto result = zstd::compress_if_smaller(rnd_data, out_rnd);
+
+		offset += result ? 0.0f : 1.0f;
+
+		f32 percent = 100.0f + offset - (static_cast<f32>(result.value_or(0)) / static_cast<f32>(rnd_data.size())) * 100.0f;
+
+		percent = result ? percent : 0.0f;
+
+		dbg::println(
+		  "compress_if_smaller: {}% compressible, result: {}, compressed size: {} bytes ({:.2f})",
+		  i,
+		  result.has_value() ? "compressed" : "not compressed",
+		  result.value_or(0),
+		  percent);
+	}
 
 
 	_ = 0;
@@ -819,11 +1013,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		_ = 0;
 		if (not servers.empty())
 		{
-			u8          hostname_index = random::randu8(0, as<u8>(servers.size() - 1));
-			std::string hostname       = servers[hostname_index].hostname ? *servers[hostname_index].hostname : "";
-			std::string service        = std::to_string(servers[hostname_index].port);
+			u8 hostname_index = random::randu8(0, as<u8>(servers.size() - 1));
 
+			if (stunservers["servers.index"].as<i8>() >= 0)
+				hostname_index = std::clamp(stunservers["servers.index"].as<u8>(), 0_u8, as<u8>(servers.size() - 1));
+			// server_index = 0;
 
+			std::string hostname = servers[hostname_index].hostname ? *servers[hostname_index].hostname : "";
+			std::string service  = std::to_string(servers[hostname_index].port);
 			// ----------------------- Resolve host ---------------------------------
 			const auto& domain = hostname;
 
@@ -838,10 +1035,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			for (const auto& ip : *resolved)
 				dbg::println("  {} (IPv{})", ip, ip.version());
 
-			auto [storage, addrlen] = resolved->front().to_sockaddr();
+			// auto [storage, addrlen] = resolved->front().to_sockaddr();
+
+			// select random resolved ip
+			u32 ip_index = random::randu32(0, as<u32>(resolved->size() - 1));
+
+			auto [storage, addrlen] = resolved->at(ip_index).to_sockaddr();
+
 
 			// Set the port on the storage
-			if (resolved->front().is_ipv6())
+			if (resolved->at(ip_index).is_ipv6())
 				reinterpret_cast<sockaddr_in6&>(storage).sin6_port = htons(servers[hostname_index].port);
 			else
 				reinterpret_cast<sockaddr_in&>(storage).sin_port = htons(servers[hostname_index].port);
@@ -907,7 +1110,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				WSACleanup();
 				return 1;
 			}
-			dbg::println("send = {}", sent);
+			dbg::println("STUN send = {}", sent);
 
 			// ----------------------- Set receive timeout (5 seconds) ---------------
 			// ----------------------- Receive reply ---------------------------------
@@ -921,11 +1124,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			if (len == SOCKET_ERROR)
 			{
 				dbg::println("recvfrom() failed: {}", WSAGetLastError());
+				incoming.clear();
 			}
 			else
 			{
 
-				dbg::println("received {} bytes:", len);
+				dbg::println("STUN received {} bytes:", len);
 				incoming.resize(len);
 
 				for (const auto& c : incoming)
@@ -939,84 +1143,21 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				dbg::println("STUN response too small: {}", incoming.size());
 			}
 
-			deckard::serializer packetx(incoming);
-
-			stun_header.type   = packetx.read<u16>();
-			stun_header.length = packetx.read<u16>();
-			stun_header.cookie = packetx.read<u32>();
-			packetx.read<u8, 12>(stun_header.transaction_id);
-
-			auto class_bits  = [](u16 type) -> u8 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
-			auto method_bits = [](u16 type) -> u16 { return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); };
-
-
-			switch (class_bits(stun_header.type))
+			if (incoming.size() >= 20)
 			{
-				case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
-				case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
-				case 0b10: dbg::println("  Attribute Class: Success Response (0b10)"); break;
-				case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
-				default: dbg::println("  Attribute Class: Unknown"); break;
-			}
+				deckard::serializer packetx(incoming);
 
-			switch (method_bits(stun_header.type))
-			{
-				case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
-				default: dbg::println("  Attribute Method: Unknown"); break;
-			}
+				stun_header.type   = packetx.read<u16>();
+				stun_header.length = packetx.read<u16>();
+				stun_header.cookie = packetx.read<u32>();
+				packetx.read<u8, 12>(stun_header.transaction_id);
+
+				auto class_bits  = [](u16 type) -> u8 { return ((type >> 4) & 0x02) | ((type >> 7) & 0x01); };
+				auto method_bits = [](u16 type) -> u16
+				{ return ((type >> 2) & 0xF80) | ((type >> 1) & 0x70) | (type & 0x0F); };
 
 
-			if (not stun_header.is_zero())
-			{
-				dbg::println("Invalid STUN message type (most significant 2 bits must be 0)");
-			}
-			// Validate message length
-			if (stun_header.length + 20 != incoming.size())
-			{
-				dbg::println("STUN message length mismatch: header length = {}, actual length = {}",
-							 stun_header.length,
-							 incoming.size() - 20);
-			}
-
-			// Validate magic cookie
-			if (stun_header.cookie != 0x2112'A442)
-			{
-				dbg::println("Invalid STUN magic cookie: 0x{:08X}", stun_header.cookie);
-			}
-
-			// Validate transaction ID matches what we sent
-			if (not std::ranges::equal(stun_header.transaction_id, std::span{stunpacket}.subspan<8, 12>()))
-			{
-				dbg::println("STUN transaction ID mismatch");
-			}
-
-
-			// Binding request: class 00, method 000000000001
-			// Binding response: class 10, method 000000000001
-
-			dbg::println("STUN Message Type: 0b{:014b}", as<u16>(stun_header.type));
-			dbg::println("  Class:    0b{:02b}", stun_header.class_bits());
-			dbg::println("  Method:   0b{:012b}", stun_header.method_bits());
-			dbg::println("Message Length: {}", stun_header.length);
-			dbg::println("Magic Cookie: 0x{:04X}", stun_header.cookie);
-			dbg::println("Transaction ID: {}",
-						 to_hex_string(std::span<u8>{stun_header.transaction_id}, {.delimiter = " ", .show_hex = false}));
-
-			std::span<u8> rest = std::span<u8>{incoming}.subspan(20, incoming.size() - 20);
-			dbg::println("Rest: {}", to_hex_string(rest, {.delimiter = " ", .show_hex = false}));
-
-			packetx.reset(rest);
-
-			while (packetx.remaining() >= 4)
-			{
-				u16 attr_type = packetx.read<u16>();
-
-
-				u8  class_encoding = class_bits(attr_type);
-				u16 method         = method_bits(attr_type);
-
-				dbg::println("  Attribute Class: 0b{:02b}", class_encoding);
-				switch (class_encoding)
+				switch (class_bits(stun_header.type))
 				{
 					case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
 					case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
@@ -1024,113 +1165,184 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
 					default: dbg::println("  Attribute Class: Unknown"); break;
 				}
-				dbg::println("  Attribute Method: 0b{:012b}", method);
-				switch (method)
+
+				switch (method_bits(stun_header.type))
 				{
 					case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
 					default: dbg::println("  Attribute Method: Unknown"); break;
 				}
 
-				u16 attr_length = packetx.read<u16>();
-				if (packetx.remaining() < attr_length)
+
+				if (not stun_header.is_zero())
 				{
-					dbg::println("Attribute length exceeds remaining packet size");
-					break;
+					dbg::println("Invalid STUN message type (most significant 2 bits must be 0)");
+				}
+				// Validate message length
+				if (stun_header.length + 20 != incoming.size())
+				{
+					dbg::println("STUN message length mismatch: header length = {}, actual length = {}",
+								 stun_header.length,
+								 incoming.size() - 20);
 				}
 
-				switch (attr_type)
+				// Validate magic cookie
+				if (stun_header.cookie != 0x2112'A442)
 				{
-
-					case 0x0001: dbg::println("Attribute Type: MAPPED-ADDRESS (0x0001)"); break;
-					case 0x0006: dbg::println("Attribute Type: USERNAME (0x0006)"); break;
-					case 0x0008: dbg::println("Attribute Type: MESSAGE-INTEGRITY (0x0008)"); break;
-					case 0x0009: dbg::println("Attribute Type: ERROR-CODE (0x0009)"); break;
-					case 0x000A: dbg::println("Attribute Type: UNKNOWN-ATTRIBUTES (0x000A)"); break;
-					case 0x0014: dbg::println("Attribute Type: REALM (0x0014)"); break;
-					case 0x0015: dbg::println("Attribute Type: NONCE (0x0015)"); break;
-
-					case 0x0020: dbg::println("Attribute Type: XOR-MAPPED-ADDRESS (0x0020)"); break;
-
-					// Optional
-					case 0x8022: dbg::println("Attribute Type: SOFTWARE (0x8022) "); break;
-					case 0x8023: dbg::println("Attribute Type: ALTERNATE-SERVER (0x8023)"); break;
-					case 0x8028: dbg::println("Attribute Type: FINGERPRINT (0x8028)"); break;
-					default: dbg::println("Unhandled type: {:02X}", attr_type); break;
+					dbg::println("Invalid STUN magic cookie: 0x{:08X}", stun_header.cookie);
 				}
 
-				packetx.read<u8>(); // PADDING
-				dbg::println("Attribute Type: 0x{:04X}, Length: {}", attr_type, attr_length);
-
-				u8  ip_version = packetx.read<u8>();
-				u16 port       = packetx.read<u16>();
-
-				dbg::println("  IP Version: {}, Port: {}", ip_version, port);
-
-				u32 ip = 0;
-				if (ip_version == 1)
-					ip = packetx.read<u32>();
-				std::array<u8, 16> ip6{};
-				if (ip_version == 2)
-					packetx.read<u8, 16>(ip6);
-
-				if (attr_type == 0x0001 and ip_version == 1)
+				// Validate transaction ID matches what we sent
+				if (not std::ranges::equal(stun_header.transaction_id, std::span{stunpacket}.subspan<8, 12>()))
 				{
-					// MAPPED-ADDRESS
-					// The port is in network byte order (big-endian).
-					// The IP address is also in network byte order.
-					// To get the actual port number, you may need to convert it from network byte order to host byte
-					// order. On most systems, you can use the ntohs function for this purpose.
-					u16 real_port = port;
-					dbg::println("Real Port: {}", real_port);
-					dbg::println("{}.{}.{}.{}", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
-				}
-
-				if (attr_type == 0x0001 and ip_version == 2)
-				{
-					u16 real_port = port;
-					dbg::println("Real Port: {}", real_port);
-					dbg::println("IPv6: {}", to_hex_string(std::span<u8>{ip6}, {.delimiter = ":", .show_hex = false}));
+					dbg::println("STUN transaction ID mismatch");
 				}
 
 
-				if (attr_type == 0x0020 and ip_version == 1)
-				{
-					u16 xport = port ^ (stun_header.cookie >> 16);
-					// XOR-MAPPED-ADDRESS
-					u32 xip = ip ^ stun_header.cookie;
-					dbg::println(
-					  "X-Port: {}, X-IP: {}.{}.{}.{}",
-					  xport,
-					  (xip >> 24) & 0xFF,
-					  (xip >> 16) & 0xFF,
-					  (xip >> 8) & 0xFF,
-					  xip & 0xFF);
-				}
+				// Binding request: class 00, method 000000000001
+				// Binding response: class 10, method 000000000001
 
-				if (attr_type == 0x0020 and ip_version == 2)
-				{
-					u16 xport = port ^ (stun_header.cookie >> 16);
+				dbg::println("STUN Message Type: 0b{:014b}", as<u16>(stun_header.type));
+				dbg::println("  Class:    0b{:02b}", stun_header.class_bits());
+				dbg::println("  Method:   0b{:012b}", stun_header.method_bits());
+				dbg::println("Message Length: {}", stun_header.length);
+				dbg::println("Magic Cookie: 0x{:04X}", stun_header.cookie);
+				dbg::println(
+				  "Transaction ID: {}",
+				  to_hex_string(std::span<u8>{stun_header.transaction_id}, {.delimiter = " ", .show_hex = false}));
 
-					std::array<u8, 16> xip6{};
-					for (size_t i = 0; i < 16; ++i)
+				std::span<u8> rest = std::span<u8>{incoming}.subspan(20, incoming.size() - 20);
+				dbg::println("Rest: {}", to_hex_string(rest, {.delimiter = " ", .show_hex = false}));
+
+				packetx.reset(rest);
+
+				u32 timeout = 0;
+				while (packetx.remaining() >= 4 or timeout > 10)
+				{
+					timeout++;
+
+					u16 attr_type = packetx.read<u16>();
+
+
+					u8  class_encoding = class_bits(attr_type);
+					u16 method         = method_bits(attr_type);
+
+					dbg::println("  Attribute Class: 0b{:02b}", class_encoding);
+					switch (class_encoding)
 					{
-						if (i < 4)
-							xip6[i] = ip6[i] ^ ((stun_header.cookie >> (24 - i * 8)) & 0xFF);
-						else
-							xip6[i] = ip6[i] ^ stun_header.transaction_id[i - 4];
+						case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
+						case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
+						case 0b10: dbg::println("  Attribute Class: Success Response (0b10)"); break;
+						case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
+						default: dbg::println("  Attribute Class: Unknown"); break;
 					}
-					dbg::println("X-Port: {}, X-IP6: {}",
-								 xport,
-								 to_hex_string(std::span<u8>{xip6}, {.delimiter = ":", .show_hex = false}));
-				}
+					dbg::println("  Attribute Method: 0b{:012b}", method);
+					switch (method)
+					{
+						case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
+						default: dbg::println("  Attribute Method: Unknown"); break;
+					}
 
-				dbg::println("Remaining: {}", packetx.remaining());
-				//// Align to 4-byte boundary
-				// size_t padding = (4 - (attr_length % 4)) % 4;
-				// if (padding > 0 && packetx.remaining() >= padding)
-				//{
-				//	packetx.read<u8>(padding);
-				// }
+					u16 attr_length = packetx.read<u16>();
+					if (packetx.remaining() < attr_length)
+					{
+						dbg::println("Attribute length exceeds remaining packet size");
+						break;
+					}
+
+					switch (attr_type)
+					{
+
+						case 0x0001: dbg::println("Attribute Type: MAPPED-ADDRESS (0x0001)"); break;
+						case 0x0006: dbg::println("Attribute Type: USERNAME (0x0006)"); break;
+						case 0x0008: dbg::println("Attribute Type: MESSAGE-INTEGRITY (0x0008)"); break;
+						case 0x0009: dbg::println("Attribute Type: ERROR-CODE (0x0009)"); break;
+						case 0x000A: dbg::println("Attribute Type: UNKNOWN-ATTRIBUTES (0x000A)"); break;
+						case 0x0014: dbg::println("Attribute Type: REALM (0x0014)"); break;
+						case 0x0015: dbg::println("Attribute Type: NONCE (0x0015)"); break;
+
+						case 0x0020: dbg::println("Attribute Type: XOR-MAPPED-ADDRESS (0x0020)"); break;
+
+						// Optional
+						case 0x8022: dbg::println("Attribute Type: SOFTWARE (0x8022) "); break;
+						case 0x8023: dbg::println("Attribute Type: ALTERNATE-SERVER (0x8023)"); break;
+						case 0x8028: dbg::println("Attribute Type: FINGERPRINT (0x8028)"); break;
+						default: dbg::println("Unhandled type: {:02X}", attr_type); break;
+					}
+
+					packetx.read<u8>(); // PADDING
+					dbg::println("Attribute Type: 0x{:04X}, Length: {}", attr_type, attr_length);
+
+					u8  ip_version = packetx.read<u8>();
+					u16 port       = packetx.read<u16>();
+
+					dbg::println("  IP Version: {}, Port: {}", ip_version, port);
+
+					u32 ip = 0;
+					if (ip_version == 1)
+						ip = packetx.read<u32>();
+					std::array<u8, 16> ip6{};
+					if (ip_version == 2)
+						packetx.read<u8, 16>(ip6);
+
+					if (attr_type == 0x0001 and ip_version == 1)
+					{
+						// MAPPED-ADDRESS
+						// The port is in network byte order (big-endian).
+						// The IP address is also in network byte order.
+						// To get the actual port number, you may need to convert it from network byte order to host byte
+						// order. On most systems, you can use the ntohs function for this purpose.
+						u16 real_port = port;
+						dbg::println("Real Port: {}", real_port);
+						dbg::println("{}.{}.{}.{}", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
+					}
+
+					if (attr_type == 0x0001 and ip_version == 2)
+					{
+						u16 real_port = port;
+						dbg::println("Real Port: {}", real_port);
+						dbg::println("IPv6: {}", to_hex_string(std::span<u8>{ip6}, {.delimiter = ":", .show_hex = false}));
+					}
+
+
+					if (attr_type == 0x0020 and ip_version == 1)
+					{
+						u16 xport = port ^ (stun_header.cookie >> 16);
+						// XOR-MAPPED-ADDRESS
+						u32 xip = ip ^ stun_header.cookie;
+						dbg::println(
+						  "X-Port: {}, X-IP: {}.{}.{}.{}",
+						  xport,
+						  (xip >> 24) & 0xFF,
+						  (xip >> 16) & 0xFF,
+						  (xip >> 8) & 0xFF,
+						  xip & 0xFF);
+					}
+
+					if (attr_type == 0x0020 and ip_version == 2)
+					{
+						u16 xport = port ^ (stun_header.cookie >> 16);
+
+						std::array<u8, 16> xip6{};
+						for (size_t i = 0; i < 16; ++i)
+						{
+							if (i < 4)
+								xip6[i] = ip6[i] ^ ((stun_header.cookie >> (24 - i * 8)) & 0xFF);
+							else
+								xip6[i] = ip6[i] ^ stun_header.transaction_id[i - 4];
+						}
+						dbg::println("X-Port: {}, X-IP6: {}",
+									 xport,
+									 to_hex_string(std::span<u8>{xip6}, {.delimiter = ":", .show_hex = false}));
+					}
+
+					dbg::println("Remaining: {}", packetx.remaining());
+					//// Align to 4-byte boundary
+					// size_t padding = (4 - (attr_length % 4)) % 4;
+					// if (padding > 0 && packetx.remaining() >= padding)
+					//{
+					//	packetx.read<u8>(padding);
+					// }
+				}
 			}
 
 			// Another packet
@@ -1422,7 +1634,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			config    ntpservers("ntp.txt"_path);
 			const u16 default_port = ntpservers["servers.port"].as<u16>();
 			auto      ntp_servers  = ntpservers["servers.host"].as_vector<net::endpoint>();
-			u8        server_index = random::randu8(0, as<u8>(std::min(0ull, ntp_servers.size() - 1)));
+			u8        server_index = random::randu8(0, as<u8>(ntp_servers.size() - 1));
 
 			if (not ntp_servers.empty())
 			{
