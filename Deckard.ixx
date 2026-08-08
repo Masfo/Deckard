@@ -100,7 +100,6 @@ export import deckard.taskpool;
 
 // DB
 export import deckard.archive;
-export import deckard.db;
 
 // ZSTD
 export import deckard.zstd;

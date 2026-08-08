@@ -341,7 +341,6 @@ set(DECKARD_MODULES
 		monocypher/monocypher.ixx
 
 		archive/archive.ixx
-		archive/db.ixx
 
 
 		# win32

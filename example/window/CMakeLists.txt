@@ -1,11 +1,14 @@
 
 
-cmake_minimum_required (VERSION 4.2)
+cmake_minimum_required (VERSION 4.4)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 set(PROJECT_NAME window)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 

@@ -1219,9 +1219,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	info("✅ ⚠️ ❌ ❗");
 
 	auto ips1 = net::resolve_ips("1.1.1.1", 4);
-	auto ips2 = net::resolve_ips("2606:4700:4700::1111", 6);
 
 	auto ips = net::resolve_ips("api.taboobuilder.com", 6);
+	auto ips2 = net::resolve_ips("2606:4700:4700::1111", 6);
 	for (const auto& ip : ips.value_or({}))
 		dbg::println("Resolved IP: {}", ip);
 
