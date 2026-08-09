@@ -780,7 +780,7 @@ export namespace std
 	template<>
 	struct hash<deckard::sha256::digest>
 	{
-		size_t operator()(const sha1::digest& value) const { return utils::hash_values(value.data()); }
+		size_t operator()(const sha256::digest& value) const { return utils::hash_values(value.data()); }
 	};
 
 	template<>
