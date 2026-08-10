@@ -157,19 +157,29 @@ export namespace deckard::math
 		return is_close_enough(A, T{1}, epsilon);
 	}
 
+	// is_close_enough
+	template<std::integral T>
+	[[nodiscard]] constexpr bool is_close_enough(const T A, const T B, const T error = T{0})
+	{
+		return (A > B ? A - B : B - A) == error;
+	}
 	template<std::integral T>
 	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A)
 	{
-		return std::abs(A) == T{0};
+		return is_close_enough<T>(A, T{0});
 	}
 
-	// is_close_enough
-	template<std::integral T>
-	[[nodiscard]] constexpr bool is_close_enough(const T& A, const T& B, const T error = T{0})
+
+	// safe_divide
+	template<std::integral T, std::integral U>
+	[[nodiscard]] constexpr f64 safe_divide(T x, U y, f64 default_value = f64{0}) noexcept
 	{
-		return std::abs(A - B) == error;
+		if (is_close_enough_zero(y))
+			return default_value;
+		return (static_cast<f64>(x) / static_cast<f64>(y));
 	}
 
+	//
 	template<arithmetic T>
 	[[nodiscard]] constexpr T to_radians(const T& v) noexcept
 	{
