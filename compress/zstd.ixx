@@ -50,6 +50,11 @@ namespace deckard::zstd
 	export [[nodiscard]] std::expected<u64, std::string>
 	compress(std::span<const u8> input, std::span<u8> output, i32 compression_level = -1)
 	{
+		if (input.empty())
+		{
+			return std::unexpected("ZSTD: input is empty");
+		}
+
 		if (output.size() < bound(input))
 		{
 			return std::unexpected(
