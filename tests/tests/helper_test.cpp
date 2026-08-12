@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include <catch2/catch_test_macros.hpp>
+
 
 
 import std;
@@ -16,6 +16,39 @@ using namespace deckard::literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
+
+TEST_CASE("float bits uint", "[float][bits][uint]")
+{
+	using namespace Catch;
+
+	SECTION("float_bits_to_uint")
+	{
+		CHECK(float_bits_to_uint(1.0f) == 0x3F80'0000_u32);
+		CHECK(float_bits_to_uint(-1.0f) == 0xBF80'0000_u32);
+		CHECK(float_bits_to_uint(0.0f) == 0x0000'0000_u32);
+		CHECK(float_bits_to_uint(-0.0f) == 0x8000'0000_u32);
+		CHECK(float_bits_to_uint(123.456f) == 0x42F6'E979_u32);
+		CHECK(float_bits_to_uint(1.0) == 0x3FF0'0000'0000'0000_u64);
+		CHECK(float_bits_to_uint(-1.0) == 0xBFF0'0000'0000'0000_u64);
+		CHECK(float_bits_to_uint(0.0) == 0x0000'0000'0000'0000_u64);
+		CHECK(float_bits_to_uint(-0.0) == 0x8000'0000'0000'0000_u64);
+		CHECK(float_bits_to_uint(123.456) == 0x405E'DD2F'1A9F'BE77_u64);
+	}
+
+	SECTION("uint_bits_to_float")
+	{
+		CHECK(uint_bits_to_float(0x3F80'0000_u32) == 1.0f);
+		CHECK(uint_bits_to_float(0xBF80'0000_u32) == -1.0f);
+		CHECK(uint_bits_to_float(0x0000'0000_u32) == 0.0f);
+		CHECK(uint_bits_to_float(0x8000'0000_u32) == -0.0f);
+		CHECK(uint_bits_to_float(0x42F6'E979_u32) == Approx(123.456f).margin(0.000001f));
+		CHECK(uint_bits_to_float(0x3FF0'0000'0000'0000_u64) == 1.0);
+		CHECK(uint_bits_to_float(0xBFF0'0000'0000'0000_u64) == -1.0);
+		CHECK(uint_bits_to_float(0x0000'0000'0000'0000_u64) == 0.0);
+		CHECK(uint_bits_to_float(0x8000'0000'0000'0000_u64) == -0.0);
+		CHECK(uint_bits_to_float(0x405E'DD2F'1A9F'BE77_u64) == Approx(123.456).margin(0.000001));
+	}
+}
 
 TEST_CASE("as", "[as]")
 {
@@ -1297,7 +1330,7 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(p == newp);
 	}
 
-	SECTION("to and from byte array") 
+	SECTION("to and from byte array")
 	{
 		// to_byte_array and from_byte_array should be inverses of each other
 		const u32 original_u32 = 0xDEAD'BEEFu;
@@ -1307,7 +1340,7 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(bytes_u32[1] == (std::byte)0xBE);
 		CHECK(bytes_u32[2] == (std::byte)0xAD);
 		CHECK(bytes_u32[3] == (std::byte)0xDE);
-		CHECK(from_byte_array<u32>(bytes_u32) == original_u32); 
+		CHECK(from_byte_array<u32>(bytes_u32) == original_u32);
 		u32 reconstructed_u32 = from_byte_array<u32>(bytes_u32);
 		CHECK(reconstructed_u32 == original_u32);
 

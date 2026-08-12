@@ -80,6 +80,14 @@ export namespace deckard
 
 	} // namespace literals
 
+	[[nodiscard]] u32 float_bits_to_uint(f32 value) noexcept { return std::bit_cast<u32>(value); }
+
+	[[nodiscard]] u64 float_bits_to_uint(f64 value) noexcept { return std::bit_cast<u64>(value); }
+
+	[[nodiscard]] f32 uint_bits_to_float(u32 value) noexcept { return std::bit_cast<f32>(value); }
+
+	[[nodiscard]] f64 uint_bits_to_float(u64 value) noexcept { return std::bit_cast<f64>(value); }
+
 	template<class... Ts>
 	struct overloads : Ts...
 	{
@@ -101,7 +109,6 @@ export namespace deckard
 	template<typename T>
 	T* ptr_to(const T&&) = delete;
 #endif
-
 
 
 	template<typename T>
