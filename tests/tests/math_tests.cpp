@@ -1,5 +1,4 @@
 #include <catch2/catch_all.hpp>
-#include <catch2/catch_test_macros.hpp>
 
 
 import std;
@@ -8,7 +7,9 @@ import deckard.helpers;
 using namespace deckard;
 
 using namespace deckard::math;
-using namespace Catch::Matchers;
+using namespace Catch;
+
+
 
 TEST_CASE("index from", "[index_from]")
 {
@@ -31,24 +32,25 @@ TEST_CASE("radians/degrees", "[radians][degrees]")
 {
 	SECTION("deg to radians")
 	{
-		CHECK_THAT(to_radians(360.0), Catch::Matchers::WithinAbs(2.0 * std::numbers::pi, 0.000001));
+		CHECK(to_radians(360.0) == Approx(2.0 * std::numbers::pi).margin(0.000001));
 
-		CHECK_THAT(to_radians(180.0), Catch::Matchers::WithinAbs(std::numbers::pi, 0.000001));
-		CHECK_THAT(to_radians(90.0), Catch::Matchers::WithinAbs(std::numbers::pi / 2.0, 0.000001));
-		CHECK_THAT(to_radians(0.0), Catch::Matchers::WithinAbs(0.0, 0.000001));
+		CHECK(to_radians(180.0) == Approx(std::numbers::pi).margin(0.000001));
+		CHECK(to_radians(90.0) == Approx(std::numbers::pi / 2.0).margin(0.000001));
+		CHECK(to_radians(0.0) == Approx(0.0).margin(0.000001));
 	}
 	SECTION("degree")
 	{
-		CHECK_THAT(to_degrees(2.0 * std::numbers::pi), Catch::Matchers::WithinAbs(360.00, 0.000001));
+		CHECK(to_degrees(2.0 * std::numbers::pi) == Approx(360.00).margin(0.000001));
 
-		CHECK_THAT(to_degrees(std::numbers::pi), Catch::Matchers::WithinAbs(180.0, 0.000001));
-		CHECK_THAT(to_degrees(std::numbers::pi / 2.0), Catch::Matchers::WithinAbs(90.0, 0.000001));
-		CHECK_THAT(to_degrees(1.0), Catch::Matchers::WithinAbs(57.29577951, 0.000001));
+		CHECK(to_degrees(std::numbers::pi) == Approx(180.0).margin(0.000001));
+		CHECK(to_degrees(std::numbers::pi / 2.0) == Approx(90.0).margin(0.000001));
+		CHECK(to_degrees(1.0) == Approx(57.29577951).margin(0.000001));
 	}
 }
 
 TEST_CASE("math.utility", "[math]")
 {
+
 	SECTION("align")
 	{ 
 		CHECK(align_integer(7, 8) == 8);
@@ -60,7 +62,7 @@ TEST_CASE("math.utility", "[math]")
 
 	SECTION("remap")
 	{
-		CHECK_THAT(remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f), Catch::Matchers::WithinAbs(30.0f, 0.0001));
+		CHECK(remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f) == Approx(30.0f).margin(0.0001));
 		CHECK(550 == remap(5, 0, 10, 100, 1'000));
 	}
 	SECTION("mod")
@@ -78,4 +80,24 @@ TEST_CASE("math.utility", "[math]")
 		CHECK(3 == count_digits(999));
 		CHECK(6 == count_digits(999999));
 	}
+
+	SECTION("safe divide")
+	{
+		CHECK(5 == safe_divide(10, 2));
+		CHECK(safe_divide(10.0f, 3.3f) == Approx(3.03030f).margin(0.000001f));
+		
+		CHECK(safe_divide(0, 10) == 0);
+		CHECK(safe_divide(0.0f, 2.0f) == 0);
+		CHECK(safe_divide(0.0, 4.4) == 0);
+
+
+
+		CHECK_FALSE(safe_divide(10, 0).has_value());
+		CHECK_FALSE(safe_divide(10.0f, 0.0f).has_value());
+		CHECK_FALSE(safe_divide(10.0, 0.0).has_value());
+
+
+
+	}
+
 }

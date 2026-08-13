@@ -126,7 +126,7 @@ export namespace deckard::math
 
 	// is_close_enough
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(T a, T b, T epsilon = T{1e-4}) noexcept
+	[[nodiscard]] constexpr bool is_close_enough(T a, T b, T epsilon = T{1e-6}) noexcept
 	{
 		if (a == b)
 			return true;
@@ -163,20 +163,32 @@ export namespace deckard::math
 	{
 		return (A > B ? A - B : B - A) == error;
 	}
+
 	template<std::integral T>
 	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A)
 	{
 		return is_close_enough<T>(A, T{0});
 	}
 
-
 	// safe_divide
 	template<std::integral T, std::integral U>
-	[[nodiscard]] constexpr f64 safe_divide(T x, U y, f64 default_value = f64{0}) noexcept
+	[[nodiscard]] constexpr std::optional<f64> safe_divide(T x, U y) noexcept
 	{
 		if (is_close_enough_zero(y))
-			return default_value;
-		return (static_cast<f64>(x) / static_cast<f64>(y));
+			return {};
+
+		if constexpr (sizeof(T) > sizeof(U))
+			return (static_cast<f64>(x) / static_cast<f64>(y));
+		else
+			return (static_cast<f32>(x) / static_cast<f32>(y));
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] constexpr std::optional<T> safe_divide(T x, T y) noexcept
+	{
+		if (is_close_enough_zero(y))
+			return {};
+		return x / y;
 	}
 
 	//
