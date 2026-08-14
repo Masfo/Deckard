@@ -769,8 +769,8 @@ namespace deckard
 			}
 			else
 			{
-				auto first_section =
-				  std::ranges::find_if(tokens, [](const TokenValue& t) { return t.type == TokenType::SECTION; });
+				auto first_section = std::ranges::find_if(
+				  tokens, [](const TokenValue& t) { return t.type == TokenType::SECTION; });
 
 				if (first_section == tokens.end())
 				{
@@ -818,8 +818,9 @@ namespace deckard
 			utf8::view view(m_data);
 
 			u64 comment_idx = val_idx + 1;
-			while (comment_idx < tokens.size() and (tokens[comment_idx].type == TokenType::NEWLINE_POSIX or
-													tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
+			while (comment_idx < tokens.size()
+				   and (tokens[comment_idx].type == TokenType::NEWLINE_POSIX
+						or tokens[comment_idx].type == TokenType::NEWLINE_WINDOWS))
 			{
 				comment_idx++;
 			}

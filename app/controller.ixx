@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <Windows.h>
 #include <Xinput.h>
 
@@ -26,9 +26,8 @@ namespace deckard::app
 	public:
 		pad()
 		{
-			//XINPUT_CAPABILITIES cap{};
-			//DWORD               err = XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &cap);
-
+			// XINPUT_CAPABILITIES cap{};
+			// DWORD               err = XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &cap);
 		}
 
 		void poll()

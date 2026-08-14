@@ -100,9 +100,9 @@ namespace deckard::app
 	private:
 		properties m_properties;
 
-		vulkan::vulkan vulkan;
-		// std::array<RAWINPUTDEVICE, 1> raw_inputs;
-		// std::vector<char>             rawinput_buffer;
+		vulkan::vulkan                vulkan;
+		std::array<RAWINPUTDEVICE, 1> raw_inputs;
+		std::vector<char>             rawinput_buffer;
 
 
 		HWND        handle{nullptr};
@@ -230,7 +230,7 @@ namespace deckard::app
 
 
 #pragma region !Input
-#if 0
+#if 1
 		void input_initialize()
 		{
 
@@ -277,7 +277,7 @@ namespace deckard::app
 				unsigned int size = 256;
 				char         deviceName[256]{};
 				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICENAME, &deviceName, &size);
-				// dbg::println("\nDevice name: {}", deviceName);
+				dbg::println("\nDevice name: {}", deviceName);
 
 				size = rdi.cbSize;
 				GetRawInputDeviceInfoA(i.hDevice, RIDI_DEVICEINFO, &rdi, &size);
@@ -301,7 +301,7 @@ namespace deckard::app
 					dbg::println("Mouse hori wheel: {}", rdi.mouse.fHasHorizontalWheel);
 				}
 
-#if 0
+#if 1
 				if (rdi.dwType == RIM_TYPEHID)
 				{
 					dbg::println("HID productID: {}", rdi.hid.dwProductId);
@@ -315,6 +315,7 @@ namespace deckard::app
 				dbg::println();
 			}
 		}
+
 		void input_deinitialize()
 		{
 //
@@ -386,15 +387,8 @@ namespace deckard::app
 
 
 			// dbg::println(
-			//   "{:4}{:4} - [MOUSE] flags: {:016b}, buttons flags: {:016b}, button data: {:016b}, extra: {:8x}, rawButtons: {:032b}, "
-			//   "buttons: {:032b}",
-			//   scrollDelta,
-			//   isScrollPage,
-			//   flags,
-			//   buttonflags,
-			//   buttonData,
-			//   extra,
-			//   rawButtons,
+			//   "{:4}{:4} - [MOUSE] flags: {:016b}, buttons flags: {:016b}, button data: {:016b}, extra: {:8x}, rawButtons:
+			//   {:032b}, " "buttons: {:032b}", scrollDelta, isScrollPage, flags, buttonflags, buttonData, extra, rawButtons,
 			//   buttons);
 		}
 
@@ -403,25 +397,25 @@ namespace deckard::app
 			unsigned short vkey     = kb.VKey;
 			unsigned short scancode = kb.MakeCode;
 			unsigned short flags    = kb.Flags;
-			unsigned int   message  = kb.Message;
 			// unsigned int   extra    = kb.ExtraInformation;
 
-
-			bool up    = ((flags & RI_KEY_BREAK) == RI_KEY_BREAK);
+			bool up = ((flags & RI_KEY_BREAK) == RI_KEY_BREAK);
+#if 0
+			unsigned int   message  = kb.Message;
 			bool down  = !up;
 			bool right = ((flags & RI_KEY_E0) == RI_KEY_E0);
 			bool e1    = ((flags & RI_KEY_E1) == RI_KEY_E1);
 			bool wm_up = (message == WM_KEYUP);
-
+#endif
 			// u32 key = (scancode << 16) | ((flags & RI_KEY_E0) << 24);
 
 			if (keyboard_callback and (vkey or scancode))
 			{
-				keyboard_callback(this, vkey, scancode, up ? Action::Up : Action::Down, flags);
+				keyboard_callback(*this, vkey, scancode, up, flags);
 			}
 		}
 
-		void handle_input(const HRAWINPUT input) 
+		void handle_input(const HRAWINPUT input)
 		{
 			u32 size = 0;
 			if (GetRawInputData(input, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0)
@@ -475,8 +469,8 @@ namespace deckard::app
 			if (dwStyle & WS_OVERLAPPEDWINDOW)
 			{
 				MONITORINFO mi = {sizeof(mi)};
-				if (GetWindowPlacement(handle, &wp) &&
-					GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
+				if (GetWindowPlacement(handle, &wp)
+					&& GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
 				{
 					const DWORD old_style = dwStyle & ~WS_OVERLAPPEDWINDOW;
 					SetWindowLong(handle, GWL_STYLE, old_style);
@@ -683,8 +677,8 @@ namespace deckard::app
 
 			if (IsWindows7OrGreater())
 			{
-				DwmSetWindowAttribute =
-				  platform::get_dynamic_address<DwmSetWindowAttributePtr*>("dwmapi.dll", "DwmSetWindowAttribute");
+				DwmSetWindowAttribute = platform::get_dynamic_address<DwmSetWindowAttributePtr*>(
+				  "dwmapi.dll", "DwmSetWindowAttribute");
 				// DwmExtendFrameIntoClientArea = system::get_address<DwmExtendFrameIntoClientAreaPtr*>("dwmapi.dll",
 				// "DwmExtendFrameIntoClientArea");
 				//
@@ -696,8 +690,8 @@ namespace deckard::app
 			if (IsWindows8Point1OrGreater())
 			{
 				using SetProcessDpiAwarenessFunc = HRESULT(PROCESS_DPI_AWARENESS);
-				auto SetProcessDpiAwareness =
-				  platform::get_dynamic_address<SetProcessDpiAwarenessFunc*>("Shcore.dll", "SetProcessDpiAwareness");
+				auto SetProcessDpiAwareness      = platform::get_dynamic_address<SetProcessDpiAwarenessFunc*>(
+				  "Shcore.dll", "SetProcessDpiAwareness");
 
 				if (SetProcessDpiAwareness)
 					SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
@@ -817,7 +811,7 @@ namespace deckard::app
 			set_title(m_properties.title);
 
 
-			//	input_initialize();
+			input_initialize();
 
 			is_running = true;
 			start_time = clock_now();
@@ -825,7 +819,7 @@ namespace deckard::app
 
 		void destroy()
 		{
-			// input_deinitialize();
+			input_deinitialize();
 
 			if (has(m_properties.flags, Attribute::fullscreen))
 				toggle_fullscreen();
@@ -1089,36 +1083,36 @@ namespace deckard::app
 		{
 
 #if 0
-				case WM_DEVICECHANGE:
-				{
-					auto                           lpDev = reinterpret_cast<PDEV_BROADCAST_HDR>(lParam);
-					PDEV_BROADCAST_DEVICEINTERFACE dev   = nullptr;
+			case WM_DEVICECHANGE:
+			{
+				auto                           lpDev = reinterpret_cast<PDEV_BROADCAST_HDR>(lParam);
+				PDEV_BROADCAST_DEVICEINTERFACE dev   = nullptr;
 
-					WCHAR tPayloadPath[MAX_PATH] = {0};
-					if (!lpDev)
-						break;
-					if (lpDev->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
-						dev = (PDEV_BROADCAST_DEVICEINTERFACE)lpDev;
-
-					switch (wParam)
-					{
-							//                     case DBT_DEVNODES_CHANGED:
-							//                     {
-							//                         Sleep(10);
-							//                         break;
-							//                     }
-						case DBT_DEVNODES_CHANGED:
-						{
-							break;
-						}
-						case DBT_DEVICEARRIVAL:
-						{
-
-							break;
-						}
-					}
+				WCHAR tPayloadPath[MAX_PATH] = {0};
+				if (!lpDev)
 					break;
+				if (lpDev->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
+					dev = (PDEV_BROADCAST_DEVICEINTERFACE)lpDev;
+
+				switch (wParam)
+				{
+						//                     case DBT_DEVNODES_CHANGED:
+						//                     {
+						//                         Sleep(10);
+						//                         break;
+						//                     }
+					case DBT_DEVNODES_CHANGED:
+					{
+						break;
+					}
+					case DBT_DEVICEARRIVAL:
+					{
+
+						break;
+					}
 				}
+				break;
+			}
 #endif
 
 			case WM_ACTIVATEAPP:
@@ -1181,11 +1175,12 @@ namespace deckard::app
 				int orientation = (int)(90 * devmode.dmDisplayOrientation);
 
 
-				dbg::trace("Display change: {}° {}x{}, {} BPP",
-						   orientation,
-						   devmode.dmPelsWidth,
-						   devmode.dmPelsHeight,
-						   devmode.dmBitsPerPel);
+				dbg::trace(
+				  "Display change: {}° {}x{}, {} BPP",
+				  orientation,
+				  devmode.dmPelsWidth,
+				  devmode.dmPelsHeight,
+				  devmode.dmBitsPerPel);
 
 				return 0;
 			}
@@ -1417,7 +1412,7 @@ namespace deckard::app
 
 
 				i32 vk       = static_cast<i32>(wParam);
-				i32 scancode = (lParam >> 16) & 0xff;
+				i32 scancode = (lParam >> 16) & 0xFF;
 
 				bool alt   = (GetKeyState(Key::Alt) & 0x8000);
 				bool shift = (GetKeyState(Key::Shift) & 0x8000);
@@ -1450,7 +1445,7 @@ namespace deckard::app
 			{
 
 				i32 vk       = static_cast<i32>(wParam);
-				i32 scancode = (lParam >> 16) & 0xff;
+				i32 scancode = (lParam >> 16) & 0xFF;
 
 				// bool wasDown = (lParam & (1 << 30)) != 0;
 				// bool isDown  = (lParam & (1 << 31)) == 0;

@@ -1,7 +1,6 @@
 #include <catch2/catch_all.hpp>
 
 
-
 import std;
 import deckard.helpers;
 import deckard.stringhelper;
@@ -1062,8 +1061,8 @@ TEST_CASE("helpers", "[helpers]")
 
 		CHECK("2min 8s 678ms"sv == pretty_time(std::chrono::duration<f64>(std::chrono::seconds{123} + 5678ms)));
 
-		CHECK("1d 23min 16s 213ms 741us"sv ==
-			  pretty_time(std::chrono::duration(std::chrono::days{1} + 23min + 16s + 213ms + 741us)));
+		CHECK("1d 23min 16s 213ms 741us"sv
+			  == pretty_time(std::chrono::duration(std::chrono::days{1} + 23min + 16s + 213ms + 741us)));
 	}
 
 	SECTION("human_readable_bytes")

@@ -18,9 +18,7 @@ namespace deckard::app
 
 	export consteval void enable_bitmask_operations(Action);
 
-
 	export enum Key : u32 {
-
 
 		Escape     = VK_ESCAPE,
 		Shift      = VK_SHIFT,

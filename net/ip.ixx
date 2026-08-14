@@ -241,8 +241,8 @@ namespace deckard::net
 	static_assert(sizeof(ip) == 16,
 				  "IP class should be exactly 16 bytes to fit both IPv4 and IPv6 addresses without extra padding");
 
-	export std::expected<std::vector<net::ip>, std::string>
-	resolve_ips(const std::string_view domain, u8 version = 0) noexcept
+	export std::expected<std::vector<net::ip>, std::string> resolve_ips(
+	  const std::string_view domain, u8 version = 0) noexcept
 	{
 		if (domain.empty())
 			return std::unexpected("Domain name cannot be empty");
@@ -312,17 +312,16 @@ namespace deckard::net
 			return std::unexpected(std::format("No IP addresses found for hostname: \"{}\"", input));
 		return resolved->front();
 	}
-	
 
 	export struct endpoint
 	{
-		ip                       address{};
-		u16                      port{};
+		ip                         address{};
+		u16                        port{};
 		std::optional<std::string> hostname;
 
 		endpoint() = default;
 
-		explicit endpoint(const ip& address, u16 port=80)
+		explicit endpoint(const ip& address, u16 port = 80)
 			: address(address)
 			, port(port)
 		{
@@ -332,7 +331,7 @@ namespace deckard::net
 			: port(port)
 		{
 			// handle hostname first
-			
+
 			if (ip addr{host_str}; addr.valid())
 			{
 				address = std::move(addr);
@@ -389,7 +388,6 @@ namespace std
 			return std::format_to(ctx.out(), "{}", address.to_string());
 		}
 	};
-
 
 	template<>
 	struct formatter<endpoint>

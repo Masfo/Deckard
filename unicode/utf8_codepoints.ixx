@@ -74,9 +74,9 @@ namespace deckard::utf8
 		if (codepoint <= 0x10'FFFF)
 			return 4;
 
-		//if (codepoint <= 0x3FF'FFFF)
+		// if (codepoint <= 0x3FF'FFFF)
 		//	return 5;
-		//if (codepoint <= 0x7FFF'FFFF)
+		// if (codepoint <= 0x7FFF'FFFF)
 		//	return 6;
 		return 0;
 	}
@@ -103,19 +103,19 @@ namespace deckard::utf8
 
 		return (
 		  (codepoint == 0x0020) or                             // space										White_Space / Pattern_White_Space
-		  ((codepoint >= 0x0009) and
-		   (codepoint <= 0x000D)) or                           // control									White_Space / Pattern_White_Space
+		  ((codepoint >= 0x0009) and (codepoint <= 0x000D))
+		  or                                                   // control									White_Space / Pattern_White_Space
 		  (codepoint == 0x0085) or                             // control									White_Space / Pattern_White_Space
 		  (codepoint == 0x00A0) or                             // no-break space							White_Space /
 		  (codepoint == 0x1680) or                             // Ogham space mark							White_Space /
 		  ((codepoint >= 0x2000) and (codepoint <= 0x200A)) or // EN QUAD..HAIR SPACE						White_Space /
-		  ((codepoint >= 0x200E) and
-		   (codepoint <= 0x200F)) or // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK                / Pattern_White_Space
-		  (codepoint == 0x2028) or   // LINE SEPARATOR							White_Space / Pattern_White_Space
-		  (codepoint == 0x2029) or   // PARAGRAPH SEPARATOR						White_Space / Pattern_White_Space
-		  (codepoint == 0x202F) or   // NARROW NO-BREAK SPACE						White_Space /
-		  (codepoint == 0x205F) or   // Medium Mathematical Space.				White_Space /
-		  (codepoint == 0x3000));    // IDEOGRAPHIC SPACE							White_Space /
+		  ((codepoint >= 0x200E) and (codepoint <= 0x200F))
+		  or                       // LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK                / Pattern_White_Space
+		  (codepoint == 0x2028) or // LINE SEPARATOR							White_Space / Pattern_White_Space
+		  (codepoint == 0x2029) or // PARAGRAPH SEPARATOR						White_Space / Pattern_White_Space
+		  (codepoint == 0x202F) or // NARROW NO-BREAK SPACE						White_Space /
+		  (codepoint == 0x205F) or // Medium Mathematical Space.				White_Space /
+		  (codepoint == 0x3000));  // IDEOGRAPHIC SPACE							White_Space /
 	}
 
 	export constexpr bool is_digit(char32 codepoint)
@@ -154,8 +154,8 @@ namespace deckard::utf8
 
 	export bool is_skintone_modifier(char32 codepoint)
 	{
-		return codepoint >= 0x1'F3FB and
-			   codepoint <= 0x1'F3FF; // EMOJI MODIFIER FITZPATRICK TYPE-1-2..EMOJI MODIFIER FITZPATRICK TYPE-6
+		return codepoint >= 0x1'F3FB
+			   and codepoint <= 0x1'F3FF; // EMOJI MODIFIER FITZPATRICK TYPE-1-2..EMOJI MODIFIER FITZPATRICK TYPE-6
 	}
 
 	export constexpr bool is_zero_width_non_joiner(char32 codepoint) { return codepoint == 0x200C; }
@@ -169,8 +169,8 @@ namespace deckard::utf8
 
 	export bool is_regional_indicator(char32 codepoint)
 	{
-		return codepoint >= 0x1'F1E6 and
-			   codepoint <= 0x1'F1FF; // REGIONAL INDICATOR SYMBOL LETTER A..REGIONAL INDICATOR SYMBOL LETTER Z
+		return codepoint >= 0x1'F1E6
+			   and codepoint <= 0x1'F1FF; // REGIONAL INDICATOR SYMBOL LETTER A..REGIONAL INDICATOR SYMBOL LETTER Z
 	}
 
 	export bool is_combining_mark(char32 codepoint)
@@ -194,8 +194,8 @@ namespace deckard::utf8
 	[[nodiscard]] constexpr auto is_spacing_mark(uint32_t cp) noexcept -> bool
 	{
 		return (cp >= 0x0900 && cp <= 0x097F &&                                    // Devanagari vowel signs
-				((cp >= 0x093E && cp <= 0x0940) || (cp >= 0x0949 && cp <= 0x094C) || cp == 0x094E || cp == 0x094F)) ||
-			   (cp >= 0x0982 && cp <= 0x0983)                                      // Bengali
+				((cp >= 0x093E && cp <= 0x0940) || (cp >= 0x0949 && cp <= 0x094C) || cp == 0x094E || cp == 0x094F))
+			   || (cp >= 0x0982 && cp <= 0x0983)                                   // Bengali
 			   || (cp >= 0x0A02 && cp <= 0x0A03)                                   // Gurmukhi
 			   || (cp >= 0x0A82 && cp <= 0x0A83)                                   // Gujarati
 			   || (cp >= 0x0B02 && cp <= 0x0B03)                                   // Oriya
@@ -209,8 +209,8 @@ namespace deckard::utf8
 
 	export bool is_grapheme_extend(char32 codepoint)
 	{
-		return is_combining_mark(codepoint) or is_zero_width_joiner(codepoint) or is_variation_selector(codepoint) or
-			   is_skintone_modifier(codepoint) or is_regional_indicator(codepoint);
+		return is_combining_mark(codepoint) or is_zero_width_joiner(codepoint) or is_variation_selector(codepoint)
+			   or is_skintone_modifier(codepoint) or is_regional_indicator(codepoint);
 	}
 
 	[[nodiscard]] constexpr bool is_tag_character(uint32_t cp) noexcept
@@ -274,7 +274,6 @@ namespace deckard::utf8
 		}
 		return ecp;
 	}
-
 
 
 } // namespace deckard::utf8

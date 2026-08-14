@@ -162,9 +162,9 @@ namespace deckard::monocypher
 	};
 
 	export template<typename T>
-	concept KeyType =
-	  std::is_same_v<std::remove_cvref_t<T>, privatekey> or std::is_same_v<std::remove_cvref_t<T>, sharedkey> or
-	  std::is_same_v<std::remove_cvref_t<T>, publickey> or std::is_same_v<std::remove_cvref_t<T>, sessionkey>;
+	concept KeyType
+	  = std::is_same_v<std::remove_cvref_t<T>, privatekey> or std::is_same_v<std::remove_cvref_t<T>, sharedkey>
+		or std::is_same_v<std::remove_cvref_t<T>, publickey> or std::is_same_v<std::remove_cvref_t<T>, sessionkey>;
 
 	export template<KeyType T>
 	void wipe(T& key)
@@ -237,9 +237,9 @@ namespace deckard::monocypher
 	// ###############################################################################################
 	// encrypt #######################################################################################
 
-	export [[nodiscard("Encrypt returns a MAC. You need it to decrypt the message.")]] mac
-	encrypt(const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const std::span<const u8> input,
-			std::span<u8> output)
+	export [[nodiscard("Encrypt returns a MAC. You need it to decrypt the message.")]] mac encrypt(
+	  const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const std::span<const u8> input,
+	  std::span<u8> output)
 	{
 		assert::equal(input.size(), output.size(), "input and output must be the same size");
 
@@ -260,9 +260,9 @@ namespace deckard::monocypher
 	// ###############################################################################################
 	// decrypt #######################################################################################
 
-	export [[nodiscard("Check if decrypt failed")]] std::expected<void, std::string>
-	decrypt(const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const mac& mac,
-			const std::span<const u8> input, std::span<u8> output)
+	export [[nodiscard("Check if decrypt failed")]] std::expected<void, std::string> decrypt(
+	  const key& key, const nonce& nonce, std::optional<std::span<const u8>> ad, const mac& mac,
+	  const std::span<const u8> input, std::span<u8> output)
 	{
 		assert::equal(input.size(), output.size(), "input and output must be the same size");
 

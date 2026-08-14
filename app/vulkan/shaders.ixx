@@ -111,7 +111,6 @@ namespace deckard::vulkan
 		std::chrono::time_point<std::chrono::system_clock> last_modified;
 	};
 
-
 	void clear_old_spirv_caches(fs::path cache_dir, std::chrono::seconds max_age)
 	{
 		if (not fs::exists(cache_dir))
@@ -130,8 +129,7 @@ namespace deckard::vulkan
 
 			// skip non spirv
 			std::array<u8, 4> header{};
-			if (auto bytes_read = file::read_file_header(entry.path(), header);
-				bytes_read and header != SPIRV_HEADER_MAGIC)
+			if (auto bytes_read = file::read_file_header(entry.path(), header); bytes_read and header != SPIRV_HEADER_MAGIC)
 			{
 				continue;
 			}
@@ -174,9 +172,9 @@ namespace deckard::vulkan
 
 			source_file = std::filesystem::absolute(source_file);
 
-			fs::path cache_file =
-			  cache_dir /
-			  fs::path(std::format("{}_{}.spv", source_file.filename().string(), file::hash_file_contents(source_file)));
+			fs::path cache_file
+			  = cache_dir
+				/ fs::path(std::format("{}_{}.spv", source_file.filename().string(), file::hash_file_contents(source_file)));
 
 			if (fs::exists(cache_file))
 			{
@@ -184,8 +182,8 @@ namespace deckard::vulkan
 				return file::read(cache_file);
 			}
 
-			std::string commandline =
-			  std::format("-Werror -O --target-env=vulkan1.3 \"{}\" -o \"{}\"", source_file.string(), cache_file.string());
+			std::string commandline = std::format(
+			  "-Werror -O --target-env=vulkan1.3 \"{}\" -o \"{}\"", source_file.string(), cache_file.string());
 
 			auto result = platform::execute_process(*glslc, commandline, 5s, fs::current_path());
 

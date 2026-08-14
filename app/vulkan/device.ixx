@@ -37,18 +37,18 @@ namespace deckard::vulkan
 		if (vendor == VENDOR_NVIDIA)
 		{
 			return driver_version{
-			  .major = (ver >> 22) & 0x3ffu,
-			  .minor = (ver >> 14) & 0x0ffu,
-			  .patch = (ver >> 6) & 0x0ffu,
-			  .rev   = (ver >> 0) & 0x03fu,
+			  .major = (ver >> 22) & 0x3FFu,
+			  .minor = (ver >> 14) & 0x0FFu,
+			  .patch = (ver >> 6) & 0x0FFu,
+			  .rev   = (ver >> 0) & 0x03Fu,
 			};
 		}
 
 		// AMD / Intel / Vulkan default: 10 / 10 / 12, no variant bits
 		return driver_version{
-		  .major = (ver >> 22) & 0x3ffu,
-		  .minor = (ver >> 12) & 0x3ffu,
-		  .patch = ver & 0xfffu,
+		  .major = (ver >> 22) & 0x3FFu,
+		  .minor = (ver >> 12) & 0x3FFu,
+		  .patch = ver & 0xFFFu,
 		  .rev   = 0,
 		};
 	}
@@ -256,9 +256,9 @@ namespace deckard::vulkan
 
 			dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
 
-			if (api_major < VK_API_VERSION_MAJOR(minimum_apiversion) or
-				(api_major == VK_API_VERSION_MAJOR(minimum_apiversion) and
-				 api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
+			if (api_major < VK_API_VERSION_MAJOR(minimum_apiversion)
+				or (api_major == VK_API_VERSION_MAJOR(minimum_apiversion)
+					and api_minor < VK_API_VERSION_MINOR(minimum_apiversion)))
 			{
 				dbg::println(
 				  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
@@ -467,8 +467,8 @@ namespace deckard::vulkan
 				u32 api_patch          = VK_API_VERSION_PATCH(device_api_version);
 				dbg::println("Device {}: {} - API Version: {}.{}.{}", i, prop.deviceName, api_major, api_minor, api_patch);
 
-				if (api_major < VK_API_VERSION_MAJOR(apiversion) or
-					(api_major == VK_API_VERSION_MAJOR(apiversion) and api_minor < VK_API_VERSION_MINOR(apiversion)))
+				if (api_major < VK_API_VERSION_MAJOR(apiversion)
+					or (api_major == VK_API_VERSION_MAJOR(apiversion) and api_minor < VK_API_VERSION_MINOR(apiversion)))
 				{
 					dbg::println(
 					  "Device {}: API version {}.{}.{} is lower than required {}.{}.{}",
@@ -635,8 +635,8 @@ namespace deckard::vulkan
 			image_format_info.flags  = 0;
 
 
-			result =
-			  vkGetPhysicalDeviceImageFormatProperties2(m_physical_device, &image_format_info, &image_format_properties);
+			result = vkGetPhysicalDeviceImageFormatProperties2(
+			  m_physical_device, &image_format_info, &image_format_properties);
 
 			if (result != VK_SUCCESS)
 			{
@@ -720,7 +720,8 @@ namespace deckard::vulkan
 
 			dbg::println("Vulkan device extensions({}):", device_extensions.size());
 
-			std::ranges::sort(device_extensions, {}, [](VkExtensionProperties const& e) { return std::string_view{e.extensionName}; });
+			std::ranges::sort(
+			  device_extensions, {}, [](VkExtensionProperties const& e) { return std::string_view{e.extensionName}; });
 
 			for (const auto& extension : device_extensions)
 			{
@@ -969,8 +970,8 @@ namespace deckard::vulkan
 
 			for (u32 i = 0; i < queue_families_count; i++)
 			{
-				if ((queue_family_properties[i].queueCount > 0) and
-					(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+				if ((queue_family_properties[i].queueCount > 0)
+					and (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
 				{
 					queue_index = i;
 					break;

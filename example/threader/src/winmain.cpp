@@ -291,8 +291,8 @@ public:
 			return std::unexpected(std::format("Socket creation failed: {}", net::wsa_error_string()));
 
 		DWORD timeout_ms = 2000;
-		if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout_ms), sizeof timeout_ms) ==
-			SOCKET_ERROR)
+		if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout_ms), sizeof timeout_ms)
+			== SOCKET_ERROR)
 			dbg::println("setsockopt failed: {}", net::wsa_error_string());
 
 		sockaddr_in6 dest{};
@@ -396,8 +396,8 @@ public:
 		// TCP DNS: 2-byte length prefix (RFC 1035 §4.2.2)
 		const u16 msg_len     = htons(static_cast<u16>(query_length));
 		const int prefix_sent = send(sockfd, reinterpret_cast<const char*>(&msg_len), sizeof(msg_len), 0);
-		const int body_sent =
-		  send(sockfd, reinterpret_cast<const char*>(query_buffer.data()), static_cast<int>(query_length), 0);
+		const int body_sent   = send(
+		  sockfd, reinterpret_cast<const char*>(query_buffer.data()), static_cast<int>(query_length), 0);
 		if (prefix_sent == SOCKET_ERROR or body_sent == SOCKET_ERROR)
 		{
 			closesocket(sockfd);
@@ -686,8 +686,8 @@ private:
 			u16         qtype{};
 			u16         qclass{};
 
-			if (not parse_name(offset, recv_len, qname) or not read_u16(offset, recv_len, qtype) or
-				not read_u16(offset, recv_len, qclass))
+			if (not parse_name(offset, recv_len, qname) or not read_u16(offset, recv_len, qtype)
+				or not read_u16(offset, recv_len, qclass))
 				return std::unexpected("Malformed DNS question section");
 		}
 
@@ -702,8 +702,8 @@ private:
 					return std::unexpected("Malformed DNS name in answer");
 
 				DNSAnswer answer;
-				if (not read_u16(offset, recv_len, answer.type) or not read_u16(offset, recv_len, answer.class_) or
-					not read_u32(offset, recv_len, answer.ttl) or not read_u16(offset, recv_len, answer.data_len))
+				if (not read_u16(offset, recv_len, answer.type) or not read_u16(offset, recv_len, answer.class_)
+					or not read_u32(offset, recv_len, answer.ttl) or not read_u16(offset, recv_len, answer.data_len))
 					return std::unexpected("Malformed DNS answer header");
 
 				if (offset + answer.data_len > recv_len)
@@ -1135,8 +1135,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 
 
-
-	
 	std::mt19937 rng(random::seed<u32>());
 
 	for ([[maybe_unused]] const auto i : range(0, 100))
@@ -1220,7 +1218,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	auto ips1 = net::resolve_ips("1.1.1.1", 4);
 
-	auto ips = net::resolve_ips("api.taboobuilder.com", 6);
+	auto ips  = net::resolve_ips("api.taboobuilder.com", 6);
 	auto ips2 = net::resolve_ips("2606:4700:4700::1111", 6);
 	for (const auto& ip : ips.value_or({}))
 		dbg::println("Resolved IP: {}", ip);
@@ -1555,14 +1553,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		bool is_active = (pAddresses->OperStatus == IfOperStatusUp) and (pAddresses->FirstUnicastAddress != nullptr);
 		dbg::println("Active: {}", is_active);
 
-		bool is_tunnel =
-		  (pAddresses->IfType == IF_TYPE_TUNNEL)                             // generic encapsulation (6to4, Teredo, ISATAP)
-		  or (pAddresses->IfType == IF_TYPE_PPP)                             // PPTP / dial-up VPNs
-		  or (pAddresses->IfType == IF_TYPE_PROP_VIRTUAL)                    // TAP-driver VPNs (OpenVPN, WireGuard, ...)
-		  or (pAddresses->IfType == IF_TYPE_MPLS_TUNNEL)                     // MPLS tunnels
-		  or (pAddresses->IfType == IF_TYPE_PPPMULTILINKBUNDLE)              // PPP multilink
-		  or (pAddresses->TunnelType != TUNNEL_TYPE_NONE)                    // explicit tunnel type from OS
-		  or (pAddresses->PhysicalAddressLength == 0 and not mtu_unlimited); // no MAC = virtual/tunnel (excludes loopback)
+		bool is_tunnel
+		  = (pAddresses->IfType == IF_TYPE_TUNNEL)                // generic encapsulation (6to4, Teredo, ISATAP)
+			or (pAddresses->IfType == IF_TYPE_PPP)                // PPTP / dial-up VPNs
+			or (pAddresses->IfType == IF_TYPE_PROP_VIRTUAL)       // TAP-driver VPNs (OpenVPN, WireGuard, ...)
+			or (pAddresses->IfType == IF_TYPE_MPLS_TUNNEL)        // MPLS tunnels
+			or (pAddresses->IfType == IF_TYPE_PPPMULTILINKBUNDLE) // PPP multilink
+			or (pAddresses->TunnelType != TUNNEL_TYPE_NONE)       // explicit tunnel type from OS
+			or (pAddresses->PhysicalAddressLength == 0 and not mtu_unlimited); // no MAC = virtual/tunnel (excludes loopback)
 		dbg::println("Tunnel: {}", is_tunnel);
 
 		//
@@ -1617,8 +1615,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		char ip_str[INET_ADDRSTRLEN]{};
 		inet_ntop(AF_INET, &non_tunnel_local_addr->sin_addr, ip_str, sizeof(ip_str));
 		dbg::println("Non-tunnel local IP: {}", ip_str);
-		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&non_tunnel_local_addr.value()), sizeof(sockaddr_in)) !=
-			SOCKET_ERROR)
+		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&non_tunnel_local_addr.value()), sizeof(sockaddr_in))
+			!= SOCKET_ERROR)
 		{
 			dbg::println("Socket bound to non-tunnel interface");
 		}
@@ -1636,8 +1634,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		// socket_old sock(transport::tcp, &ok);
 		//  bind() pins this socket to the tunnel interface — all traffic leaves via it
-		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(sockaddr_in)) !=
-			SOCKET_ERROR)
+		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(sockaddr_in))
+			!= SOCKET_ERROR)
 		{
 			dbg::println("Socket bound to tunnel interface");
 

@@ -13,7 +13,6 @@ import std;
 using namespace deckard;
 using namespace deckard::literals;
 
-
 namespace deckard
 {
 	export template<class H>
@@ -34,7 +33,8 @@ namespace deckard
 			assert::check(input.size() % 2 == 0, "Input must be even number of hex digits");
 			assert::check(
 			  input.size() == binary.size() * 2,
-			  std::format("Input is not correct size ({} bytes) for SHA256 digest ({} bytes)", std::floor(input.size() / 2), Size));
+			  std::format(
+				"Input is not correct size ({} bytes) for SHA256 digest ({} bytes)", std::floor(input.size() / 2), Size));
 
 			if (input.starts_with("0x") or input.starts_with("0X"))
 				input.remove_prefix(2);
@@ -43,7 +43,8 @@ namespace deckard
 			for (const auto& word : input | std::views::chunk(2))
 			{
 				bool valid = word.size() == 2 and utf8::is_ascii_hex_digit(word[0]) and utf8::is_ascii_hex_digit(word[1]);
-				assert::check(valid, std::format("Input contains invalid hex digit in SHA256 digest '{}' - Invalid '{}'", input, word));
+				assert::check(
+				  valid, std::format("Input contains invalid hex digit in SHA256 digest '{}' - Invalid '{}'", input, word));
 
 				if (not valid)
 				{
@@ -104,7 +105,8 @@ namespace deckard
 			std::string result;
 			result.resize(binary.size() * 2);
 
-			constexpr static std::array<char, 16> HEX_LUT{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+			constexpr static std::array<char, 16> HEX_LUT{
+			  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
 			// TODO: Generic to_hex
 
@@ -260,9 +262,10 @@ namespace deckard::sha1 // #####################################################
 			for (int i = 0; i < 16; ++i)
 			{
 				std::size_t idx = i * 4;
-				w[i] =
-				  (static_cast<u32>(std::to_integer<u8>(blk[idx])) << 24) | (static_cast<u32>(std::to_integer<u8>(blk[idx + 1])) << 16) |
-				  (static_cast<u32>(std::to_integer<u8>(blk[idx + 2])) << 8) | (static_cast<u32>(std::to_integer<u8>(blk[idx + 3])));
+				w[i]            = (static_cast<u32>(std::to_integer<u8>(blk[idx])) << 24)
+								  | (static_cast<u32>(std::to_integer<u8>(blk[idx + 1])) << 16)
+								  | (static_cast<u32>(std::to_integer<u8>(blk[idx + 2])) << 8)
+								  | (static_cast<u32>(std::to_integer<u8>(blk[idx + 3])));
 			}
 			for (int i = 16; i < ROUNDS; ++i)
 				w[i] = std::rotl(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
@@ -327,7 +330,10 @@ namespace deckard::sha1 // #####################################################
 		return digest.to_string();
 	}
 
-	export std::string quickhash(std::string_view input) { return quick_hash_generic({(const u8*)input.data(), input.size()}); }
+	export std::string quickhash(std::string_view input)
+	{
+		return quick_hash_generic({(const u8*)input.data(), input.size()});
+	}
 
 	export std::string quickhash(std::span<const u8> input) { return quick_hash_generic(input); }
 
@@ -354,7 +360,8 @@ namespace deckard::sha256 // ###################################################
 
 		void reset()
 		{
-			m_state      = {0x6A09'E667, 0xBB67'AE85, 0x3C6E'F372, 0xA54F'F53A, 0x510E'527F, 0x9B05'688C, 0x1F83'D9AB, 0x5BE0'CD19};
+			m_state = {
+			  0x6A09'E667, 0xBB67'AE85, 0x3C6E'F372, 0xA54F'F53A, 0x510E'527F, 0x9B05'688C, 0x1F83'D9AB, 0x5BE0'CD19};
 			m_block      = {};
 			m_bitlen     = 0ULL;
 			m_blockindex = 0ULL;
@@ -500,13 +507,14 @@ namespace deckard::sha256 // ###################################################
 		u32                        m_blockindex;
 
 		static constexpr std::array<u32, 64> K = {
-		  0x428a'2f98, 0x7137'4491, 0xb5c0'fbcf, 0xe9b5'dba5, 0x3956'c25b, 0x59f1'11f1, 0x923f'82a4, 0xab1c'5ed5, 0xd807'aa98, 0x1283'5b01,
-		  0x2431'85be, 0x550c'7dc3, 0x72be'5d74, 0x80de'b1fe, 0x9bdc'06a7, 0xc19b'f174, 0xe49b'69c1, 0xefbe'4786, 0x0fc1'9dc6, 0x240c'a1cc,
-		  0x2de9'2c6f, 0x4a74'84aa, 0x5cb0'a9dc, 0x76f9'88da, 0x983e'5152, 0xa831'c66d, 0xb003'27c8, 0xbf59'7fc7, 0xc6e0'0bf3, 0xd5a7'9147,
-		  0x06ca'6351, 0x1429'2967, 0x27b7'0a85, 0x2e1b'2138, 0x4d2c'6dfc, 0x5338'0d13, 0x650a'7354, 0x766a'0abb, 0x81c2'c92e, 0x9272'2c85,
-		  0xa2bf'e8a1, 0xa81a'664b, 0xc24b'8b70, 0xc76c'51a3, 0xd192'e819, 0xd699'0624, 0xf40e'3585, 0x106a'a070, 0x19a4'c116, 0x1e37'6c08,
-		  0x2748'774c, 0x34b0'bcb5, 0x391c'0cb3, 0x4ed8'aa4a, 0x5b9c'ca4f, 0x682e'6ff3, 0x748f'82ee, 0x78a5'636f, 0x84c8'7814, 0x8cc7'0208,
-		  0x90be'fffa, 0xa450'6ceb, 0xbef9'a3f7, 0xc671'78f2};
+		  0x428a'2f98, 0x7137'4491, 0xb5c0'fbcf, 0xe9b5'dba5, 0x3956'c25b, 0x59f1'11f1, 0x923f'82a4, 0xab1c'5ed5,
+		  0xd807'aa98, 0x1283'5b01, 0x2431'85be, 0x550c'7dc3, 0x72be'5d74, 0x80de'b1fe, 0x9bdc'06a7, 0xc19b'f174,
+		  0xe49b'69c1, 0xefbe'4786, 0x0fc1'9dc6, 0x240c'a1cc, 0x2de9'2c6f, 0x4a74'84aa, 0x5cb0'a9dc, 0x76f9'88da,
+		  0x983e'5152, 0xa831'c66d, 0xb003'27c8, 0xbf59'7fc7, 0xc6e0'0bf3, 0xd5a7'9147, 0x06ca'6351, 0x1429'2967,
+		  0x27b7'0a85, 0x2e1b'2138, 0x4d2c'6dfc, 0x5338'0d13, 0x650a'7354, 0x766a'0abb, 0x81c2'c92e, 0x9272'2c85,
+		  0xa2bf'e8a1, 0xa81a'664b, 0xc24b'8b70, 0xc76c'51a3, 0xd192'e819, 0xd699'0624, 0xf40e'3585, 0x106a'a070,
+		  0x19a4'c116, 0x1e37'6c08, 0x2748'774c, 0x34b0'bcb5, 0x391c'0cb3, 0x4ed8'aa4a, 0x5b9c'ca4f, 0x682e'6ff3,
+		  0x748f'82ee, 0x78a5'636f, 0x84c8'7814, 0x8cc7'0208, 0x90be'fffa, 0xa450'6ceb, 0xbef9'a3f7, 0xc671'78f2};
 	};
 
 	export sha256::digest hash(std::string_view input)

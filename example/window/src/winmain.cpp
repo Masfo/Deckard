@@ -243,10 +243,10 @@ std::chrono::system_clock::time_point ntp_to_chrono(u64 ntp_ts)
 {
 
 	using namespace std::chrono;
-	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800U;
+	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800u;
 
 	u32 seconds  = static_cast<u32>(ntp_ts >> 32);
-	u32 fraction = static_cast<u32>(ntp_ts & 0xFFFF'FFFFULL);
+	u32 fraction = static_cast<u32>(ntp_ts & 0xFFFF'FFFFull);
 
 
 	f64  frac_seconds = static_cast<f64>(fraction) / 4294967296.0;
@@ -261,7 +261,7 @@ std::chrono::system_clock::time_point ntp_to_chrono(u64 ntp_ts)
 u64 chrono_to_ntp(std::chrono::system_clock::time_point tp)
 {
 	using namespace std::chrono;
-	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800U;
+	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800u;
 
 	auto duration = tp.time_since_epoch();
 	auto secs     = duration_cast<seconds>(duration).count();
@@ -276,15 +276,15 @@ u64 chrono_to_ntp(std::chrono::system_clock::time_point tp)
 u32 to_unix_epoch(u64 ntp_ts)
 {
 	using namespace std::chrono;
-	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800U;
+	constexpr u32 NTP_UNIX_OFFSET = 2'208'988'800u;
 
 	u32 seconds = static_cast<u32>(ntp_ts >> 32);
 	u32 secs    = seconds - NTP_UNIX_OFFSET;
 	return secs;
 }
 
-NtpPacket
-parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_point t1, std::chrono::system_clock::time_point t4)
+NtpPacket parse_ntp(
+  std::span<const u8> raw, std::chrono::system_clock::time_point t1, std::chrono::system_clock::time_point t4)
 {
 	if (raw.size() < 48)
 		return {};
@@ -318,8 +318,8 @@ parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_point t1, std
 		f64 frac_seconds       = static_cast<f64>(frac_part) / 65536.0;
 		f64 root_delay_seconds = int_part + frac_seconds;
 
-		pkt.root_delay =
-		  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(root_delay_seconds));
+		pkt.root_delay = std::chrono::duration_cast<std::chrono::milliseconds>(
+		  std::chrono::duration<f64>(root_delay_seconds));
 	}
 
 
@@ -331,8 +331,8 @@ parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_point t1, std
 
 		f64 frac_seconds            = static_cast<f64>(frac_part) / 65536.0;
 		f64 root_dispersion_seconds = int_part + frac_seconds;
-		pkt.root_dispersion =
-		  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f64>(root_dispersion_seconds));
+		pkt.root_dispersion         = std::chrono::duration_cast<std::chrono::milliseconds>(
+		  std::chrono::duration<f64>(root_dispersion_seconds));
 	}
 
 
@@ -354,9 +354,9 @@ parse_ntp(std::span<const u8> raw, std::chrono::system_clock::time_point t1, std
 	}
 	else if (pkt.stratum >= 2 and pkt.stratum <= 15)
 	{
-		u32 ip = pkt.refId;
-		pkt.ref_id_string =
-		  std::format("{}.{}.{}.{} ({:X})", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, ip);
+		u32 ip            = pkt.refId;
+		pkt.ref_id_string = std::format(
+		  "{}.{}.{}.{} ({:X})", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, ip);
 	}
 	else if (pkt.stratum > 16)
 	{
@@ -541,6 +541,25 @@ struct TestStruct
 	i64 d{-999'999'999'999};
 };
 
+class test_class
+{
+public:
+	auto flag(int i)
+	{
+		current = i;
+		return *this;
+	};
+
+	auto option(int i)
+	{
+		m_option = i;
+		return *this;
+	};
+
+private:
+	int current{0};
+	int m_option{0};
+};
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -551,13 +570,38 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	
-	static_assert(offsetof(TestStruct,a) == 0);
+	test_class tc;
+
+	tc.flag(1).flag(2).flag(3).option(42).flag(4);
+
+
+	static_assert(offsetof(TestStruct, a) == 0);
 	static_assert(offsetof(TestStruct, b) == offsetof(TestStruct, a) + sizeof(u8) + Padding<u8>{1});
 	static_assert(offsetof(TestStruct, c) == offsetof(TestStruct, b) + sizeof(i16));
 	static_assert(offsetof(TestStruct, d) == offsetof(TestStruct, c) + sizeof(u32));
 
-
+	u64 secret = random::randu64();
+	for (int i = 12; i < 12; ++i)
+	{
+		auto start = std::chrono::high_resolution_clock::now();
+		for (u64 nonce = 0;; ++nonce)
+		{
+			u64 combined = secret + nonce;
+			u64 hash     = utils::chibihash64(&combined, sizeof(combined));
+			if (std::countl_zero(hash) == i)
+			{
+				auto end = std::chrono::high_resolution_clock::now();
+				dbg::println(
+				  "nonce: {} - hash: {:0X} ({} leading zeros) - elapsed: {:.5f} ms",
+				  nonce,
+				  hash,
+				  std::countl_zero(hash),
+				  std::chrono::duration<double, std::milli>(end - start).count());
+				dbg::println("{:064B}", hash);
+				break;
+			}
+		}
+	}
 
 
 	TestStruct ts{};
@@ -567,24 +611,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	TestStruct ts2 = from_byte_array<TestStruct>(tstr);
 
 
-
-#if 0
-	for (const auto& path : fs::recursive_directory_iterator(R"(.)"))
-	{
-		if (path.is_regular_file())
-		{
-			auto data = file::read(path);
-			dbg::println("file: {} ({} bytes) - {:.5f}", path.path().string(), path.file_size(), binary_percentage(data));
-		}
-	}
-
-
-	std::vector<u8> rnsdo;
-	rnsdo.resize(1024 * 1024);
-	random::bytes(rnsdo);
-
-	dbg::println("rng:\n{:.5f}", binary_percentage(rnsdo));
-#endif
+	// ###############################
 
 	constexpr u8  archive_version = 255;
 	constexpr u64 archive_magic   = std::byteswap(0x4445'434B'4152'4400 | archive_version); // "DECKARD" + version byte
@@ -593,40 +620,88 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					   .buffer   = std::span<const u8>(reinterpret_cast<const u8*>(&archive_magic), sizeof(archive_magic))});
 
 
-	// ##############################
-	std::vector<std::string> strings;
+	std::vector<fs::path> files_to_archive;
 
-	std::string stringtable;
-	stringtable.reserve(1024);
-
-	for (int j = 0; j < 5; ++j)
+	fs::path data_dir = "data";
+	for (const fs::directory_entry& path : fs::recursive_directory_iterator(data_dir))
 	{
-		for (int i = 0; i < 7; ++i)
-			strings.push_back(std::format("data/level_{:02}/textures/texture{:02}.png\n", j, i));
-
-
-		for (int i = 0; i < 7; ++i)
-			strings.push_back(std::format("data/level_{:02}/models/model_{:02}.obj\n", j, i));
-
-		for (int i = 0; i < 3; ++i)
-			strings.push_back(std::format("data/level_{:02}/cripts/script_{:02}.txt\n", j, i));
-
-		for (int i = 0; i < 14; ++i)
-			strings.push_back(std::format("data/level_{:02}/audio/sound{:02}.wav\n", j, i));
+		if (path.is_regular_file() or path.is_directory())
+			files_to_archive.push_back(path);
 	}
 
-	// Original		: 5264
-	// sort	less	: 258
-	// sort greater : 254
-	// rnd			: 496
-	std::ranges::sort(strings);
+	std::ranges::sort(files_to_archive, std::ranges::greater());
+	// std::ranges::sort(files_to_archive);
+
+	// greater: 585
+	//        : 596
+	// files_to_archive.clear();
 
 
-	auto compressed_stringtable = zstd::compress_easy(to_span(stringtable));
+	std::vector<u8> paths_buffer;
+	paths_buffer.reserve(1024 * 128);
 
-	dbg::println("compressed size: {} to {} bytes", stringtable.size(), compressed_stringtable.size());
+	auto gen_random_file = [&](const fs::path path)
+	{
+		u64             size = random::randu64(10_KiB, 1_MiB);
+		std::vector<u8> buffer(size);
 
-	auto decompressed_stringtable = as<std::string>(zstd::decompress_easy(compressed_stringtable));
+		generate(buffer, random::randu64(40, 100));
+		(void)file::write({.filename = path, .buffer = buffer});
+	};
+
+	u64 sizes_total = 0;
+
+	u64 compressed_total_bytes = 0;
+
+	for (const fs::path& file : files_to_archive)
+	{
+
+		if (fs::is_directory(file))
+			continue;
+
+		u64 file_size = fs::file_size(file);
+
+		sizes_total += file_size;
+
+		if (file_size == 0)
+		{
+			gen_random_file(file);
+		}
+
+		std::vector<u8> file_data;
+		file_data.resize(file_size);
+		(void)file::read({.filename = file, .buffer = file_data, .size = file_size});
+
+		std::vector<u8> compressed_data;
+		compressed_data.resize(zstd::bound(file_data.size()));
+		auto csize = zstd::compress(file_data, compressed_data);
+
+		compressed_total_bytes += csize.value_or(0);
+
+		std::string p = file.string();
+
+
+		paths_buffer.insert(paths_buffer.end(), p.begin(), p.end());
+		paths_buffer.push_back('\0');
+
+		dbg::println("file: {} ({} bytes)", p, fs::file_size(file));
+	}
+
+	std::vector<u8> compressed_paths_buffer;
+	compressed_paths_buffer.resize(zstd::bound(paths_buffer.size()));
+	auto size = zstd::compress(paths_buffer, compressed_paths_buffer);
+	compressed_paths_buffer.resize(size.value_or(0));
+	dbg::println("paths_buffer size: {}, compressed size: {}",
+				 human_readable_bytes(paths_buffer.size()),
+				 human_readable_bytes(size.value_or(0)));
+
+
+	dbg::println("Total size of files: {}", human_readable_bytes(sizes_total));
+	dbg::println("Total compressed size of files: {}", human_readable_bytes(compressed_total_bytes));
+	dbg::println(
+	  "Compressed ratio: {:.2f}%", 100.0 - (math::safe_divide(compressed_total_bytes, sizes_total).value_or(0) * 100.0));
+	_ = 0;
+
 
 	// ###############################
 
@@ -669,13 +744,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		dbg::println("xxh64: {:0X}", hash);
 	}
 
-	file::write({.filename = "archive_test.dat", .buffer = rnd_data, .offset = sizeof(archive_magic)});
+	(void)file::write({.filename = "archive_test.dat", .buffer = rnd_data, .offset = sizeof(archive_magic)});
 
 	auto fview = file::map("archive_test.dat");
 
 	auto fview_sub = fview.subspan(0, 64);
-
-
 
 
 	_ = 0;
@@ -777,6 +850,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	(void)cfg2.save();
 
+	// ########################################################################
+
+	u32 fbtui = float_bits_to_uint(1.0f);
+	_         = 0;
+
 
 	// ########################################################################
 
@@ -784,19 +862,19 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	f32           offset      = -1.0f;
 	for (int i = 100; i >= 0; i -= 10)
 	{
-		std::vector<u8> rnd_data{};
-		rnd_data.resize(buffer_size);
+		std::vector<u8> rnd{};
+		rnd.resize(buffer_size);
 
-		generate(rnd_data, i);
+		generate(rnd, i);
 
 		std::vector<u8> out_rnd{};
 		out_rnd.resize(buffer_size);
 
-		auto result = zstd::compress_if_smaller(rnd_data, out_rnd);
+		auto result = zstd::compress_if_smaller(rnd, out_rnd);
 
 		offset += result ? 0.0f : 1.0f;
 
-		f32 percent = 100.0f + offset - (static_cast<f32>(result.value_or(0)) / static_cast<f32>(rnd_data.size())) * 100.0f;
+		f32 percent = 100.0f + offset - (static_cast<f32>(result.value_or(0)) / static_cast<f32>(rnd.size())) * 100.0f;
 
 		percent = result ? percent : 0.0f;
 
@@ -1454,7 +1532,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 #if 0
 			{
-				std::array<u8, 16> key{0x84, 0x93, 0xfb, 0xc5, 0x3b, 0xa5, 0x82, 0xfb, 0x4c, 0x04, 0x4c, 0x45, 0x6b, 0xdc, 0x40, 0xeb};
+				std::array<u8, 16> key{0x84, 0x93, 0xFB, 0xC5, 0x3B, 0xA5, 0x82, 0xFB, 0x4C, 0x04, 0x4C, 0x45, 0x6B, 0xDC, 0x40, 0xEB};
 				uint16_t           keylen = static_cast<uint16_t>(key.size());
 
 				auto hmac = hmac::sha1::hash(key, std::span<u8>{packet});

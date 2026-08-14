@@ -32,12 +32,10 @@ namespace deckard::utf8
 		m_data = u8str.subspan(offset, length);
 	}
 
-
 	[[nodiscard]] string v1::view::sub_str(size_t codepoint_offset, size_t codepoint_count) const
 	{
 		return string{subview(codepoint_offset, codepoint_count)};
 	}
-
 
 	size_t v1::view::find_last_of(const string& view, size_t pos = npos) const
 	{
@@ -131,7 +129,7 @@ namespace std
 		}
 	};
 
-template<>
+	template<>
 	struct formatter<std::optional<char32_t>>
 	{
 		enum class mode

@@ -225,11 +225,12 @@ TEST_CASE("tokens", "[lexer]")
 			tokens.emplace_back(token);
 
 		CHECK(tokens.size() == 2);
-		CHECK_TOKEN(str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("3.14_15_"), TokenError::InvalidFloatingPoint);
+		CHECK_TOKEN(
+		  str, tokens[0], TokenKind::FloatingPoint, 1, 1, utf8::view("3.14_15_"), TokenError::InvalidFloatingPoint);
 		CHECK_TOKEN(str, tokens[1], TokenKind::EOF, 1, 9, utf8::view(""));
 	}
 
-	
+
 	SECTION("hex integer trailing underscore")
 	{
 		utf8::string       str = "0x10_"sv;

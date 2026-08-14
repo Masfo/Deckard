@@ -3,6 +3,7 @@ Language: Cpp
 Standard: Latest
 ColumnLimit: 125
 BreakBeforeBraces: Allman
+LineEnding: LF
 BasedOnStyle: WebKit
 PointerAlignment: Left
 ReferenceAlignment: Left
@@ -10,12 +11,22 @@ UseTab: ForContinuationAndIndentation
 TabWidth: 4
 
 AlignOperands: Align
-BreakBeforeBinaryOperators: None
+BreakBeforeBinaryOperators: All #NonAssignment
+PenaltyBreakBeforeMemberAccess: 0
+#BreakBinaryOperations: Respect
+PenaltyBreakAssignment: 50
+PenaltyReturnTypeOnItsOwnLine: 10000
+PenaltyBreakOpenParenthesis: 10
+#PenaltyBreakBeforeDot: 10
+
+QualifierAlignment: Custom
+QualifierOrder: [inline, static, const, type]
 
 MaxEmptyLinesToKeep: 2
 SeparateDefinitionBlocks: Always
 EmptyLineBeforeAccessModifier: LogicalBlock
 
+SortUsingDeclarations: Lexicographic 
 
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: Consecutive 
@@ -41,6 +52,12 @@ ContinuationIndentWidth: 2
 
 AllowShortCaseLabelsOnASingleLine: true
 IndentCaseLabels: true
+
+NumericLiteralCase:
+  ExponentLetter: Leave
+  HexDigit: Upper
+  Prefix: Lower
+  Suffix: Lower
 
 IntegerLiteralSeparator:
     Binary: 4
