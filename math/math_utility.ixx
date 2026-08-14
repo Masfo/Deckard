@@ -117,16 +117,22 @@ export namespace deckard::math
 		return v >= l and v <= h;
 	}
 
+	// default epsilon
+	template<std::floating_point T>
+	constexpr T default_epsilon = T{1e-6};
+
+
+
 	// zero_clamp
 	template<std::floating_point T>
-	[[nodiscard]] constexpr T clamp_zero(T value, T epsilon = T{1e-6}) noexcept
+	[[nodiscard]] constexpr T clamp_zero(T value, T epsilon = default_epsilon<T>) noexcept
 	{
 		return std::abs(value) < epsilon ? T{0} : value;
 	}
 
 	// is_close_enough
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough(T a, T b, T epsilon = T{1e-6}) noexcept
+	[[nodiscard]] constexpr bool is_close_enough(T a, T b, T epsilon = default_epsilon<T>) noexcept
 	{
 		if (a == b)
 			return true;
@@ -146,13 +152,13 @@ export namespace deckard::math
 	}
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T epsilon = T{1e-5})
+	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A, const T epsilon = default_epsilon<T>) noexcept
 	{
 		return is_close_enough(A, T{0}, epsilon);
 	}
 
 	template<std::floating_point T>
-	[[nodiscard]] constexpr bool is_close_enough_one(const T& A, const T epsilon = T{1e-5})
+	[[nodiscard]] constexpr bool is_close_enough_one(const T& A, const T epsilon = default_epsilon<T>) noexcept
 	{
 		return is_close_enough(A, T{1}, epsilon);
 	}

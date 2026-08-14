@@ -15,6 +15,7 @@ import std;
 
 namespace deckard::math
 {
+	constexpr f32 quat_epsilon = 5e-5f;
 
 	export inline constexpr f32 slerp_lerp_threshold = 0.9995f;
 
@@ -88,10 +89,11 @@ namespace deckard::math
 
 		f32 z() const { return data.z; }
 
-		bool equals(const quat& lhs) const
+		bool equals(const quat& lhs, f32 epsilon = quat_epsilon) const
 		{
-			return math::is_close_enough(data.w, lhs.data.w) and math::is_close_enough(data.x, lhs.data.x) and
-				   math::is_close_enough(data.y, lhs.data.y) and math::is_close_enough(data.z, lhs.data.z);
+			return math::is_close_enough(data.w, lhs.data.w, epsilon) and math::is_close_enough(data.x, lhs.data.x, epsilon)
+				   and math::is_close_enough(data.y, lhs.data.y, epsilon)
+				   and math::is_close_enough(data.z, lhs.data.z, epsilon);
 		}
 
 		quat operator+(const quat& other) const
@@ -152,15 +154,15 @@ namespace deckard::math
 		{
 			const quat temp(*this);
 
-			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y -
-					 temp.data.z * other.data.z;
+			data.w = temp.data.w * other.data.w - temp.data.x * other.data.x - temp.data.y * other.data.y
+					 - temp.data.z * other.data.z;
 
-			data.x = temp.data.w * other.data.x + temp.data.x * other.data.w + temp.data.y * other.data.z -
-					 temp.data.z * other.data.y;
-			data.y = temp.data.w * other.data.y + temp.data.y * other.data.w + temp.data.z * other.data.x -
-					 temp.data.x * other.data.z;
-			data.z = temp.data.w * other.data.z + temp.data.z * other.data.w + temp.data.x * other.data.y -
-					 temp.data.y * other.data.x;
+			data.x = temp.data.w * other.data.x + temp.data.x * other.data.w + temp.data.y * other.data.z
+					 - temp.data.z * other.data.y;
+			data.y = temp.data.w * other.data.y + temp.data.y * other.data.w + temp.data.z * other.data.x
+					 - temp.data.x * other.data.z;
+			data.z = temp.data.w * other.data.z + temp.data.z * other.data.w + temp.data.x * other.data.y
+					 - temp.data.y * other.data.x;
 
 			return *this;
 		}
@@ -296,7 +298,6 @@ namespace deckard::math
 
 	export quat operator*(f32 scalar, const quat& q) { return q * scalar; }
 
-
 	export quat cross(const quat& q1, const quat& q2)
 	{
 		return {q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z,
@@ -309,7 +310,7 @@ namespace deckard::math
 	{
 		const f32 len_sq = q.data.w * q.data.w + q.data.x * q.data.x + q.data.y * q.data.y + q.data.z * q.data.z;
 
-		if (not(len_sq > std::numeric_limits<f32>::epsilon()))
+		if (not(len_sq > deckard::math::default_epsilon<f32>))
 			return quat(1.0f, 0.0f, 0.0f, 0.0f);
 
 		const f32 inv_len = 1.0f / std::sqrt(len_sq);
