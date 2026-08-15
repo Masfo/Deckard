@@ -11,6 +11,39 @@ import deckard.helpers;
 
 namespace deckard::utf8
 {
+	/* Usage:
+	 *
+	 *	utf8::string  str("🌍hello🌍");
+	 *	utf8::scanner s{str};
+	 *
+	 *	// iterate
+	 *	while (s.has_next())
+	 *		dbg::println("{}", (u32)s.next());
+	 *
+	 *	// bidirectional movement
+	 *	s += 2;       // skip 2 codepoints forward
+	 *	s -= 1;       // step 1 codepoint back
+	 *	--s;          // previous codepoint
+	 *	char32 c = *s;  // current codepoint
+	 *
+	 *	// lookahead
+	 *	auto next_cp = s.peek();       // peek(n = 1)
+	 *	char32 prev  = s.peek_back();
+	 *
+	 *	// take views
+	 *	utf8::view word = s.take_while([](char32 cp) { return utf8::is_ascii_alphanumeric(cp); });
+	 *	utf8::view line = s.take_line();
+	 *
+	 *	// expect / skip
+	 *	if (s.expect("hello"sv)) { ... }
+	 *	s.skip_whitespace();
+	 *
+	 *	// starts/ends
+	 *	bool a = s.starts_with("hello"sv);
+	 *	bool b = s.ends_with(U'🌍');
+	 */
+
+
 	export class scanner
 	{
 	private:

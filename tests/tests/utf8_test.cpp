@@ -295,23 +295,23 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a.size() == 7);
 		CHECK(a.front() == 'h');
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.back() == 0x1'F30D);
 
 		a.append('b');
 		CHECK(a.size() == 8);
 		CHECK(a.front() == 'h');
 		CHECK(a.back() == 'b');
 
-		char32 w = 0x1'f30d;
+		char32 w = 0x1'F30D;
 		a.append(w);
 		CHECK(a.size() == 9);
 		CHECK(a.front() == 'h');
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.back() == 0x1'F30D);
 
 		auto c = a + b;
 		CHECK(c.size() == 10);
 		CHECK(c.front() == 'h');
-		CHECK(c.back() == 0x1'f30d);
+		CHECK(c.back() == 0x1'F30D);
 		CHECK(c == "hello 🌍b🌍🌍");
 
 		utf8::string heart("♥");
@@ -393,7 +393,7 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(d[5] == heart[0]);
 		CHECK(d[6] == 'X');
 
-		char32 q = 0x274c; // ❌
+		char32 q = 0x274C; // ❌
 		d.insert(d.begin(), q);
 		CHECK(d.size() == 8);
 		CHECK(d[0] == q);
@@ -415,11 +415,11 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string f("a");
 		f.insert(f.begin(), "🌍");
 		CHECK(f.size() == 2);
-		CHECK(f[0] == 0x1'f30d);
+		CHECK(f[0] == 0x1'F30D);
 		CHECK(f[1] == 'a');
 		f.insert(f.end(), "🌍");
 		CHECK(f.size() == 3);
-		CHECK(f[2] == 0x1'f30d);
+		CHECK(f[2] == 0x1'F30D);
 	}
 
 	SECTION("prepend")
@@ -429,27 +429,27 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a.size() == 7);
 		CHECK(a.front() == 'h');
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.back() == 0x1'F30D);
 
 
 		a.prepend("."sv);
 
 		CHECK(a.size() == 8);
 		CHECK(a.front() == '.');
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.back() == 0x1'F30D);
 
-		char32 q = 0x274c; // ❌
+		char32 q = 0x274C; // ❌
 
 		a.prepend(q);
 		CHECK(a.size() == 9);
-		CHECK(a.front() == 0x274c);
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.front() == 0x274C);
+		CHECK(a.back() == 0x1'F30D);
 
 		utf8::string b("a");
 		a.prepend(b);
 		CHECK(a.size() == 10);
 		CHECK(a.front() == 'a');
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.back() == 0x1'F30D);
 	}
 
 	SECTION("self insert/append")
@@ -472,8 +472,8 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string d("🌍");
 		d.append(d);
 		CHECK(d.size() == 2);
-		CHECK(d[0] == 0x1'f30d);
-		CHECK(d[1] == 0x1'f30d);
+		CHECK(d[0] == 0x1'F30D);
+		CHECK(d[1] == 0x1'F30D);
 	}
 
 	SECTION("length")
@@ -501,14 +501,14 @@ TEST_CASE("utf8::string", "[utf8]")
 		utf8::string b("hello 🌍");
 		auto         c = b.substr(6, 1);
 		CHECK(c.size() == 1);
-		CHECK(c.front() == 0x1'f30d);
-		CHECK(c.back() == 0x1'f30d);
+		CHECK(c.front() == 0x1'F30D);
+		CHECK(c.back() == 0x1'F30D);
 
 		utf8::string d("hello 🌍");
 		auto         e = b.substr(6, 25);
 		CHECK(e.size() == 1);
-		CHECK(e.front() == 0x1'f30d);
-		CHECK(e.back() == 0x1'f30d);
+		CHECK(e.front() == 0x1'F30D);
+		CHECK(e.back() == 0x1'F30D);
 
 
 		// utf8::string f("hello 🌍");
@@ -522,7 +522,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		CHECK(a.size() == 7);
 		CHECK(a.front() == 'h');
-		CHECK(a.back() == 0x1'f30d);
+		CHECK(a.back() == 0x1'F30D);
 
 		utf8::string b = a.substr(a.begin(), 5);
 		CHECK(b.size() == 5);
@@ -534,7 +534,7 @@ TEST_CASE("utf8::string", "[utf8]")
 
 		utf8::string c = a.substr(a.begin() + 6, 1);
 		CHECK(c.size() == 1);
-		CHECK(c[0] == 0x1'f30d);
+		CHECK(c[0] == 0x1'F30D);
 	}
 
 	SECTION("replace")
@@ -632,13 +632,13 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		utf8::string str("🌍hello🌍");
 		CHECK(str.size() == 7);
 
-		CHECK(str[0] == 0x1'f30d); // 🌍
+		CHECK(str[0] == 0x1'F30D); // 🌍
 		CHECK(str[1] == (u32)'h');
 		CHECK(str[2] == (u32)'e');
 		CHECK(str[3] == (u32)'l');
 		CHECK(str[4] == (u32)'l');
 		CHECK(str[5] == (u32)'o');
-		CHECK(str[6] == 0x1'f30d); // 🌍
+		CHECK(str[6] == 0x1'F30D); // 🌍
 	}
 
 	SECTION("iterator::operator[] by codepoint index")
@@ -647,15 +647,15 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(str.size() == 7);
 
 		auto it = str.begin();
-		CHECK(it[0] == 0x1'f30d); // 🌍
+		CHECK(it[0] == 0x1'F30D); // 🌍
 		CHECK(it[1] == (u32)'h');
 		CHECK(it[2] == (u32)'e');
 		CHECK(it[3] == (u32)'l');
 		CHECK(it[4] == (u32)'l');
 		CHECK(it[5] == (u32)'o');
-		CHECK(it[6] == 0x1'f30d); // 🌍
+		CHECK(it[6] == 0x1'F30D); // 🌍
 
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 
 		++it; // h
 		CHECK(it[0] == (u32)'h');
@@ -663,7 +663,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(it[2] == (u32)'l');
 		CHECK(it[3] == (u32)'l');
 		CHECK(it[4] == (u32)'o');
-		CHECK(it[5] == 0x1'f30d); // 🌍
+		CHECK(it[5] == 0x1'F30D); // 🌍
 
 		// still h
 		CHECK(*it == (u32)'h');
@@ -728,7 +728,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(std::distance(str.begin(), str.end()) == 14);
 
 		auto it = str.begin();
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 
 		auto pre = ++it;
 		CHECK(*pre == (u32)'h');
@@ -736,23 +736,23 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 
 		it        = str.begin();
 		auto post = it++;
-		CHECK(*post == 0x1'f30d);
+		CHECK(*post == 0x1'F30D);
 		CHECK(*it == (u32)'h');
 
 		post = --it;
-		CHECK(*post == 0x1'f30d);
-		CHECK(*it == 0x1'f30d);
+		CHECK(*post == 0x1'F30D);
+		CHECK(*it == 0x1'F30D);
 
 		it++;
 
 		post = it--;
 		CHECK(*post == (u32)'h');
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 
 
 		it = str.end();
 		it--;
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 		auto pre2 = --it;
 		CHECK(*pre2 == (u32)'d');
 		CHECK(*it == (u32)'d');
@@ -791,7 +791,7 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		CHECK(str_from_iter[2] == (u32)'l');
 		CHECK(str_from_iter[3] == (u32)'l');
 		CHECK(str_from_iter[4] == (u32)'o');
-		CHECK(str_from_iter[5] == 0x1'f30d);
+		CHECK(str_from_iter[5] == 0x1'F30D);
 	}
 
 
@@ -827,17 +827,17 @@ TEST_CASE("utf8::view", "[utf8][utf8view]")
 		auto tl = v.trim_left();
 		CHECK(tl.size() == 9);
 		CHECK(tl[0] == 'h');
-		CHECK(tl[6] == 0x1'f30d);
+		CHECK(tl[6] == 0x1'F30D);
 
 		auto tr = v.trim_right();
 		CHECK(tr.size() == 9);
 		CHECK(tr[0] == ' ');
-		CHECK(tr[8] == 0x1'f30d);
+		CHECK(tr[8] == 0x1'F30D);
 
 		auto t = v.trim();
 		CHECK(t.size() == 7);
 		CHECK(t[0] == 'h');
-		CHECK(t[6] == 0x1'f30d);
+		CHECK(t[6] == 0x1'F30D);
 	}
 
 
@@ -1862,7 +1862,7 @@ TEST_CASE("view", "[utf8][view]")
 		auto tl = v.trim_left(); // "hello 🌍 world  "
 		CHECK(tl.size() == 15);
 		CHECK(tl[0] == 'h');
-		CHECK(tl[6] == 0x1'f30d);
+		CHECK(tl[6] == 0x1'F30D);
 
 		auto tr = v.trim_right(); // "  hello 🌍 world"
 		CHECK(tr.size() == 15);
@@ -1872,7 +1872,7 @@ TEST_CASE("view", "[utf8][view]")
 		auto t = v.trim(); // "hello 🌍 world"
 		CHECK(t.size() == 13);
 		CHECK(t[0] == 'h');
-		CHECK(t[6] == 0x1'f30d);
+		CHECK(t[6] == 0x1'F30D);
 		CHECK(t[12] == 'd');
 	}
 
@@ -1930,7 +1930,7 @@ TEST_CASE("view", "[utf8][view]")
 		CHECK(sub.valid());
 		sub = v.subview(6, 1);
 		CHECK(sub.size() == 1);
-		CHECK(sub[0] == 0x1'f30d);
+		CHECK(sub[0] == 0x1'F30D);
 		CHECK(sub.valid());
 	}
 
@@ -2008,7 +2008,7 @@ TEST_CASE("view", "[utf8][view]")
 		utf8::string str("hello 🌍 world"sv);
 		utf8::view   v(str.data());
 		CHECK(v[0] == 'h');
-		CHECK(v[6] == 0x1'f30d);
+		CHECK(v[6] == 0x1'F30D);
 		CHECK(v[12] == 'd');
 	}
 
@@ -2019,7 +2019,7 @@ TEST_CASE("view", "[utf8][view]")
 		utf8::view   v(str, 7);
 		CHECK(v.size() == 7);
 		CHECK(v[0] == 'h');
-		CHECK(v[6] == 0x1'f30d);
+		CHECK(v[6] == 0x1'F30D);
 		CHECK(v.valid());
 	}
 
@@ -2063,7 +2063,7 @@ TEST_CASE("view", "[utf8][view]")
 		utf8::string str("hello 🌍 world");
 		utf8::view   v(str.data());
 		CHECK(v.at(0) == 'h');
-		CHECK(v.at(6) == 0x1'f30d);
+		CHECK(v.at(6) == 0x1'F30D);
 		CHECK(v.at(12) == 'd');
 	}
 
@@ -2084,7 +2084,7 @@ TEST_CASE("view", "[utf8][view]")
 		++it;
 		CHECK(*it == 'e');
 		it += 5;
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 		it += 6;
 		CHECK(*it == 'd');
 	}
@@ -2098,7 +2098,7 @@ TEST_CASE("view", "[utf8][view]")
 		++it;
 		CHECK(*it == 'l');
 		it += 5;
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 		it += 6;
 		CHECK(*it == 'h');
 	}
@@ -2110,7 +2110,7 @@ TEST_CASE("view", "[utf8][view]")
 		auto         it = v.begin();
 		CHECK(*it == 'h');
 		it += 6;
-		CHECK(*it == 0x1'f30d);
+		CHECK(*it == 0x1'F30D);
 		it -= 6;
 		CHECK(*it == 'h');
 	}
@@ -2362,10 +2362,9 @@ TEST_CASE("scanner", "[utf8][scanner]")
 auto to_codepoints(std::string_view hexline)
 {
 	using namespace deckard;
-	auto codepoints =
-	  deckard::string::split(hexline, " ") |
-	  std::views::transform([](std::string_view hex) { return to_number<u32>(hex, 16); }) |
-	  std::ranges::to<std::vector<char32>>();
+	auto codepoints = deckard::string::split(hexline, " ")
+					  | std::views::transform([](std::string_view hex) { return to_number<u32>(hex, 16); })
+					  | std::ranges::to<std::vector<char32>>();
 	return codepoints;
 }
 
@@ -2377,7 +2376,7 @@ TEST_CASE("normalization", "[utf8][normalization]")
 	{
 		REQUIRE(utf8::table_version() == "17.0.0"sv);
 
-		 if (true and utf8::table_version() == "17.0.0"sv)
+		if (true and utf8::table_version() == "17.0.0"sv)
 			SKIP("run only for new table versions");
 
 
