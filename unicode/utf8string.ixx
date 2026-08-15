@@ -315,6 +315,10 @@ namespace deckard::utf8
 	public:
 		string() = default;
 
+		auto data() const { return buffer.data(); }
+
+		auto span() const { return buffer.data(); }
+
 		string(iterator start, iterator end)
 		{
 			assert::check(start.ptr == end.ptr, "Not pointing to same data");
@@ -430,6 +434,7 @@ namespace deckard::utf8
 
 		bool operator==(std::string_view str) const { return operator==(view(str)); }
 
+	
 		// insert
 		iterator insert(iterator pos, std::span<const u8> input)
 		{
@@ -458,7 +463,7 @@ namespace deckard::utf8
 		{
 			if (this == &str)
 			{
-				auto tmp = str;
+				string tmp = str;
 				return insert(pos, tmp.data());
 			}
 			return insert(pos, str.data());
@@ -981,7 +986,7 @@ namespace deckard::utf8
 
 		// start index of character, count of characters
 		// returns raw bytes of the string
-		auto subspan(size_t start = 0, size_t count = npos) const -> std::span<const u8>
+		auto subspan(size_t start, size_t count) const -> std::span<const u8>
 		{
 			if (start == size())
 				return {};
@@ -1041,9 +1046,6 @@ namespace deckard::utf8
 			return v.subview_bytes(start_index, end_index - start_index);
 		}
 
-		auto data() const { return subspan(); }
-
-		auto span() const { return buffer.data(); }
 
 		[[nodiscard]] std::string_view as_string_view() const
 		{

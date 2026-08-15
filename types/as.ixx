@@ -147,7 +147,7 @@ namespace deckard
 				if constexpr (give_warning)
 					warn_cast_limit<Ret>(value, loc);
 			}
-			return static_cast<Ret>(u);
+			return static_cast<Ret>(value);
 		}
 		else if constexpr (std::is_arithmetic_v<Ret> and (std::is_same_v<U, char*> or std::is_same_v<U, const char*>))
 		{
