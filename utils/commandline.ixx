@@ -1,254 +1,145 @@
-module;
-#if defined(_WIN32)
-#include <Windows.h>
-#include <shellapi.h>
-#endif
-
 export module deckard.commandline;
 
 import std;
-import deckard.debug;
-import deckard.types;
 import deckard.utf8;
-import deckard.platform;
-import deckard.as;
-
-using namespace std::literals::string_view_literals;
 
 namespace deckard
 {
-	export std::vector<std::string> get_arguments([[maybe_unused]] int argc, [[maybe_unused]] const char* argv[])
+	export struct option
 	{
-		std::vector<std::string> args(std::next(argv, 1), std::next(argv, static_cast<std::ptrdiff_t>(argc)));
-		return args;
-	}
-
-	export std::string join_arguments(int argc, const char* argv[])
-	{
-		const auto ret = get_arguments(argc, argv);
-		return ret | std::views::join_with(' ') | std::ranges::to<std::string>();
-	}
-
-	/*
-	 *   -v  --verbose				- Flag
-	 *  -O1 -O2 -optimize=2			- Level, single (O1), clamped 0-3 (O0, O1, O2, O3)
-	 *  --log=debug.log				- Option, single value (no short)
-	 *  --path=path/to/file			- Option, single value (no short)
-	 *
-	 *
-	 *	-d, --debug					- Option, single value (no short)
-	 *	-v, --verbose				- Flag
-	 *  -dv (same as -d -v)			- Multiple flags
-	 *
-	 *  Key:
-	 *		-o --output
-	 *
-	 *  Value:
-	 *		--output=file
-	 *		--output file
-	 *
-	 *  Booleans:
-	 *		f,false,t,true, 0,1
-	 *
-	 *	bool verbose = false;
-	 *  cli.option("-v, --verbose", "Enable verbose output", verbose);
-	 *
-	 *  Validate in option:
-	 *  .validate, .range, is_directory, is_file, is_ipv4/6,
-	 *
-	 *
-	 *  Flag	- boolean
-	 *		-v			- short form
-	 *		--verbose	- long form
-	 *  Option	- some value
-	 *		-o <path>
-	 *      --output <path>
-	 *
-	 *		-o=<path>
-	 *		--output=<path>
-	 *
-	 *		-/o=<path>		slash to ignore/disable
-	 *		--/output=<path>
-	 *
-	 *  Subcommands:
-	 *		TODO
-	 *
-	 *	cli cli;
-	 *
-	 *
-	 */
-
-
-	using Value = std::variant<bool, char, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, std::string>;
-
-	template<class T>
-	auto try_to_value(const Value& v) -> std::optional<T>
-	{
-
-#define MACRO_TypeGet(TYPE)                                                                                                                \
-	if constexpr (std::is_same_v<T, TYPE>)                                                                                                 \
-	{                                                                                                                                      \
-		if (std::holds_alternative<TYPE>(v))                                                                                               \
-			return std::get<TYPE>(v);                                                                                                      \
-		return {};                                                                                                                         \
-	}
-
-#if defined(__cpp_reflection)
-		error "Native reflection supported. use it."
-#endif
-		  // TODO: reflection?
-
-		  MACRO_TypeGet(bool);
-		MACRO_TypeGet(char);
-
-		MACRO_TypeGet(i8);
-		MACRO_TypeGet(u8);
-		MACRO_TypeGet(i16);
-		MACRO_TypeGet(u16);
-		MACRO_TypeGet(i32);
-		MACRO_TypeGet(u32);
-		MACRO_TypeGet(i64);
-		MACRO_TypeGet(u64);
-		MACRO_TypeGet(f32);
-		MACRO_TypeGet(f64);
-		MACRO_TypeGet(std::string);
-#undef MACRO_TypeGet
-	}
-
-	struct option
-	{
-		Value       default_value;
-		std::string help_description;
+		// Public
+		utf8::view short_name;
+		utf8::view long_name;
+		utf8::view description;
+		bool       required{false};
 	};
 
-	class cli
+	void warn_duplicate(utf8::view short_name, utf8::view long_name)
+	{
+		std::println(
+		  std::cerr, "Warning: option {} already registered, skipping", short_name.empty() ? long_name : short_name);
+	}
+
+	template<typename T>
+	concept parsable = std::same_as<T, std::string> or std::integral<T> or std::floating_point<T>;
+
+	export class commandline
 	{
 	private:
-		std::string input;
-		u64         pos{0};
-
-		std::unordered_map<std::string, option>      options;
-		std::unordered_map<std::string, std::string> alias;
-		std::unordered_map<std::string, std::string> descriptions;
+		std::string program_name;
+		std::string version;
 
 
 	public:
-		void skip_whitespace()
+		explicit commandline(std::string_view name, std::string_view version)
+			: program_name(name)
+			, version(version)
 		{
-			while (pos < input.size() and utf8::is_whitespace(input[pos]))
-				++pos;
 		}
 
-		std::optional<char> peek() const { return pos < input.size() ? std::optional(input[pos]) : std::nullopt; }
+		commandline& add_flag(this auto& self, option opt, bool* target = nullptr) { return self; }
 
-		std::optional<char> consume() { return pos < input.size() ? std::optional(input[pos++]) : std::nullopt; }
-
-		std::expected<char, std::string> expect(char expected_char)
+		template<parsable T>
+		commandline& add_option(this auto& self, option opt, T* target = nullptr)
 		{
-			auto got = consume();
-			if (not got or *got != expected_char)
-				return std::unexpected(std::format(R"(Expected '{}', got '{}')", expected_char, *got));
 
-			return expected_char;
+			return self;
 		}
 
-		std::expected<std::string_view, std::string> expect(std::string_view expected_string)
+		// Compiler-style level flag (e.g. -O3). Bare "-O" (empty value) resolves to default_value.
+		template<std::integral T>
+		commandline& add_level_option(
+		  this auto& self, option opt, T* target = nullptr, T min_value = std::numeric_limits<T>::min(),
+		  T max_value = std::numeric_limits<T>::max(), T default_value = T{})
 		{
-			for (const auto& expected_char : expected_string)
+
+			return self;
+		}
+
+		bool parse(std::span<const std::string_view> args)
+		{
+			if (args.empty())
 			{
-				auto got = consume();
-				if (not got or *got != expected_char)
-					return std::unexpected(std::format(R"(Expected "{}", got "{}")", expected_char, *got));
+				help();
+				return false;
 			}
 
-			return expected_string;
-		}
-
-		cli(int argc, const char* argv[]) { input = join_arguments(argc, argv); }
-
-		cli(std::string_view sv)
-			: input(sv)
-		{
-		}
-
-		template<typename T>
-		void add_argument(std::string_view shortname, std::string_view longname, std::string_view description)
-		{
-			//
-		}
-
-		void add_option(const std::string_view shortname, std::string_view longname, std::string_view description, option o)
-		{
-			//
-			std::string ln{longname};
-			alias[ln]                     = shortname;
-			alias[std::string{shortname}] = ln;
-
-			options[ln] = o;
-
-			descriptions[ln] = description;
-		}
-
-		void add_flag(const std::string& shortname, const std::string& longname, const std::string& description)
-		{
-			// TODO: error expected
-			if (shortname.empty() and longname.empty())
-				return;
-			else if (not shortname.empty() and not longname.empty())
+			// override -h and -V
+			for (auto arg : args)
 			{
-				alias[shortname] = longname;
-				alias[longname]  = shortname;
-			}
-			else if (shortname.empty() and not longname.empty())
-			{
-				alias[longname] = longname;
-			}
-			else if (not shortname.empty() and longname.empty())
-			{
-				alias[shortname] = shortname;
+				if (arg == "-h" or arg == "--help")
+				{
+					help();
+					return false;
+				}
+				if (arg == "-V" or arg == "--version")
+				{
+					version_info();
+					return false;
+				}
 			}
 
-			option o{.default_value = false, .help_description = description};
-			options[longname] = o;
+			return true;
 		}
+
+		bool parse(int argc, char* argv[])
+		{
+			if (argc <= 1)
+			{
+				help();
+				return false;
+			}
+
+			std::vector<std::string_view> args;
+			args.reserve(static_cast<size_t>(argc) - 1);
+			for (int i = 1; i < argc; ++i)
+				args.emplace_back(argv[i]);
+
+			return parse(args);
+		}
+
+		bool parse(std::string_view command_line)
+		{
+			std::vector<std::string_view> args;
+			utf8::scanner                 s{command_line};
+
+			while (s.has_next())
+			{
+				s.skip_whitespace();
+				if (not s.has_next())
+					break;
+
+				if (s.is(U'"') or s.is(U'\''))
+				{
+					char32 quote = s.current();
+					s.skip();
+					auto value = s.take_until(quote);
+					if (not s.has_next())
+					{
+						std::println(std::cerr, "Error: Missing closing quote for {}", utf8::as_utf8(quote));
+						return false;
+					}
+
+					args.push_back(value.as_string_view());
+					s.skip();
+				}
+				else
+				{
+					args.push_back(s.take_while([](char32 cp) { return not utf8::is_whitespace(cp); }).as_string_view());
+				}
+			}
+
+			return parse(args);
+		}
+
+		void help() const
+		{
+			std::println("\nUsage: {} [options]\n\nOptions:", program_name);
+
+			std::println();
+		}
+
+		void version_info() const { std::println("{} version {}", program_name, version); }
 	};
-
-	export void test_cmdliner()
-	{
-		int         argc   = 3;
-		const char* argv[] = {"program", "-d", "-v"};
-
-		cli cliv(argc, argv);
-
-		//
-		std::string input(R"(-d -v -dv)");
-
-		cli cli(input);
-
-		cli.add_flag("d", "debug", "Debug output");
-		cli.add_flag("v", "verbose", "Verbose output");
-		cli.add_flag("r", "", "Rest");
-		cli.add_flag("", "east", "east");
-
-
-		while (cli.peek().has_value())
-		{
-			dbg::println("{}", utf8::string(*cli.consume()));
-		}
-
-		Value v = true;
-
-		auto new_bool = try_to_value<bool>(v);
-		auto new_str2 = try_to_value<std::string>(v);
-
-		v = "hello";
-
-		auto new_str   = try_to_value<std::string>(v);
-		auto new_bool2 = try_to_value<bool>(v);
-
-
-		_;
-	}
-
 
 } // namespace deckard
