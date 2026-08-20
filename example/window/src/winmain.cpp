@@ -765,9 +765,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// u64 decoded = decode_integer(encoded);
 
 
-	test_cmdliner();
-
-
 	_;
 	// ##############################
 
