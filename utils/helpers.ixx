@@ -1252,7 +1252,7 @@ export namespace deckard
 		if constexpr (std::is_floating_point_v<T>)
 		{
 			auto [ptr, ec] = std::from_chars(input.data(), input.data() + input.size(), val);
-			if (ec == std::errc())
+			if (ec == std::errc() and ptr == input.data() + input.size())
 				return val;
 
 			return std::unexpected(std::format("try_to_number: Failed to convert to float: {}", input));

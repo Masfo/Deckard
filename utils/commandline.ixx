@@ -9,7 +9,7 @@ namespace deckard
 {
 	using namespace std::string_view_literals;
 
-	using target
+	export using target
 	  = std::variant<bool*, i8*, u8*, i16*, u16*, i32*, u32*, i64*, u64*, f32*, f64*, std::string*, utf8::string*>;
 
 	export struct option_spec
@@ -21,13 +21,17 @@ namespace deckard
 		bool       required{false};
 
 		// Internal
-		bool               level_style{false};
-		bool               expects_value{false};
-		std::string        range_info;
-		target             target_value{};
-		std::optional<i64> level_min;
-		std::optional<i64> level_max;
-		std::optional<i64> level_default;
+		bool level_style{false};
+		u32  arity{0};
+
+		std::string         range_info;
+		target              target_value{}; // flag and level
+		std::vector<target> targets;
+
+
+		std::optional<std::variant<i64, u64>> level_min;
+		std::optional<std::variant<i64, u64>> level_max;
+		std::optional<std::variant<i64, u64>> level_default;
 	};
 
 	void warn_duplicate(utf8::view short_name, utf8::view long_name)
@@ -97,13 +101,13 @@ namespace deckard
 			return true;
 		}
 
-		bool apply_option_value(const option_spec& opt, utf8::view value) const
+		bool apply_single_value(const target& t, utf8::view value) const
 		{
 			return std::visit(
 			  [&value]<typename P>(P p) -> bool
 			  {
 				  if (p == nullptr)
-					  return false;
+					  return true; // no target, just validate
 
 				  using T = std::remove_pointer_t<P>;
 				  if constexpr (std::is_same_v<T, bool>)
@@ -129,28 +133,41 @@ namespace deckard
 					  return true;
 				  }
 			  },
-			  opt.target_value);
+			  t);
 		}
 
-		bool apply_level(const option_spec& opt, utf8::view value) const
+		bool apply_option_values(const option_spec& opt, std::span<const utf8::view> values) const
 		{
-			i64 parsed_value{};
+			if (values.size() != opt.targets.size())
+				return false;
+
+			for (size_t i = 0; i < values.size(); ++i)
+				if (not apply_single_value(opt.targets[i], values[i]))
+					return false;
+
+			return true;
+		}
+
+		template<std::integral V>
+		bool apply_level_value(const option_spec& opt, utf8::view value) const
+		{
+			V parsed_value{};
 
 			if (value.empty())
 			{
-				parsed_value = opt.level_default.value_or(0);
+				parsed_value = opt.level_default ? std::get<V>(*opt.level_default) : V{};
 			}
 			else
 			{
-				auto parsed = try_to_number<i64>(value.as_string_view());
+				auto parsed = try_to_number<V>(value.as_string_view());
 				if (not parsed)
 					return false;
 				parsed_value = *parsed;
 			}
 
-			const i64 min_value = opt.level_min.value_or(limits::min<i64>);
-			const i64 max_value = opt.level_max.value_or(limits::max<i64>);
-			const i64 clamped   = std::clamp(parsed_value, min_value, max_value);
+			const V min_value = opt.level_min ? std::get<V>(*opt.level_min) : limits::min<V>;
+			const V max_value = opt.level_max ? std::get<V>(*opt.level_max) : limits::max<V>;
+			const V clamped   = std::clamp(parsed_value, min_value, max_value);
 
 			if (clamped != parsed_value)
 				std::println(std::cerr, "Warning: {} value {} clamped to {}", opt.short_name, parsed_value, clamped);
@@ -159,7 +176,7 @@ namespace deckard
 			  [clamped]<typename P>(P p) -> bool
 			  {
 				  if (p == nullptr)
-					  return false;
+					  return true; // no target, just validate
 
 				  using T = std::remove_pointer_t<P>;
 				  if constexpr (std::integral<T>)
@@ -173,6 +190,14 @@ namespace deckard
 				  }
 			  },
 			  opt.target_value);
+		}
+
+		bool apply_level(const option_spec& opt, utf8::view value) const
+		{
+			if (opt.level_min and std::holds_alternative<u64>(*opt.level_min))
+				return apply_level_value<u64>(opt, value);
+
+			return apply_level_value<i64>(opt, value);
 		}
 
 	public:
@@ -191,44 +216,63 @@ namespace deckard
 
 		commandline& flag(this auto& self, option_spec opt, bool* target = nullptr)
 		{
-			opt.expects_value = false;
-			opt.level_style   = false;
-			opt.target_value  = target;
+			opt.level_style  = false;
+			opt.target_value = target;
+			opt.arity        = 0;
 			self.register_option(std::move(opt));
 			return self;
 		}
 
-		template<parsable T>
-		commandline& option(this auto& self, option_spec opt, T* target = nullptr)
+		template<parsable T, std::same_as<T>... Rest>
+		commandline& option(this auto& self, option_spec opt, T* target, Rest*... rest)
 		{
-			opt.expects_value = true;
-			opt.level_style   = false;
-			opt.target_value  = target;
+			std::array<T*, 1 + sizeof...(Rest)> ptrs{target, rest...};
+
+			std::set<T*> unique(ptrs.begin(), ptrs.end());
+			if (unique.contains(nullptr) or unique.size() != ptrs.size())
+			{
+				std::println(std::cerr, "Warning: option {} has null or duplicate targets, skipping", opt.short_name);
+				return self;
+			}
+
+			opt.level_style = false;
+			opt.arity       = static_cast<u32>(ptrs.size());
+			opt.targets.assign(ptrs.begin(), ptrs.end());
 			self.register_option(std::move(opt));
+
 			return self;
 		}
 
 		// -O[min,max], -O defaults to default_value
 		template<std::integral T>
 		commandline& level(this auto& self, option_spec opt, T* target = nullptr, T min_value = limits::min<T>,
-									  T max_value = limits::max<T>, T default_value = T{})
+						   T max_value = limits::max<T>, T default_value = T{})
 		{
 
 			bool has_range       = min_value != limits::min<T> or max_value != limits::max<T>;
 			T    clamped_default = std::clamp(default_value, min_value, max_value);
 
-			opt.expects_value = false;
-			opt.level_style   = true;
-			opt.range_info    = has_range ? std::format("[{}-{}]", min_value, max_value) : std::string{};
-			opt.target_value  = target;
-			opt.level_min     = static_cast<i64>(min_value);
-			opt.level_max     = static_cast<i64>(max_value);
-			opt.level_default = static_cast<i64>(clamped_default);
+			opt.arity        = 0;
+			opt.level_style  = true;
+			opt.range_info   = has_range ? std::format("[{}-{}]", min_value, max_value) : std::string{};
+			opt.target_value = target;
+			if constexpr (std::is_signed_v<T>)
+			{
+				opt.level_min     = static_cast<i64>(min_value);
+				opt.level_max     = static_cast<i64>(max_value);
+				opt.level_default = static_cast<i64>(clamped_default);
+			}
+			else
+			{
+				opt.level_min     = static_cast<u64>(min_value);
+				opt.level_max     = static_cast<u64>(max_value);
+				opt.level_default = static_cast<u64>(clamped_default);
+			}
 			self.register_option(std::move(opt));
 			return self;
 		}
 
-		bool parse(std::span<const utf8::view> args)
+		[[nodiscard]] bool parse(std::span<const utf8::view> args)
 		{
 			if (args.empty())
 			{
@@ -251,7 +295,7 @@ namespace deckard
 				}
 			}
 
-			std::vector<bool> seen(options.size(), false);
+			std::vector<u8> seen(options.size(), 0);
 
 			for (size_t i = 0; i < args.size(); ++i)
 			{
@@ -262,21 +306,23 @@ namespace deckard
 
 				if (it != options.end())
 				{
-					seen[std::distance(options.begin(), it)] = true;
+					seen[std::distance(options.begin(), it)] = 1;
 
-					if (it->expects_value)
+					if (it->arity > 0)
 					{
-						if (i + 1 >= args.size())
+						if (i + it->arity >= args.size())
 						{
-							std::println(std::cerr, "Error: Missing value for {}", arg);
+							std::println(std::cerr, "Error: Missing value(s) for {}", arg);
 							return false;
 						}
 
-						if (not apply_option_value(*it, args[++i]))
+						std::span<const utf8::view> vals{args.data() + i + 1, it->arity};
+						if (not apply_option_values(*it, vals))
 						{
 							std::println(std::cerr, "Error: Invalid value for {}", arg);
 							return false;
 						}
+						i += it->arity;
 					}
 					else if (it->level_style)
 					{
@@ -289,21 +335,13 @@ namespace deckard
 					continue;
 				}
 
-				auto level_it    = options.end();
-				auto level_value = std::optional<utf8::view>{};
-				for (auto candidate = options.begin(); candidate != options.end(); ++candidate)
-				{
-					if (auto value = match_level(arg, *candidate))
-					{
-						level_it    = candidate;
-						level_value = value;
-						break;
-					}
-				}
-
+				auto level_it = std::ranges::find_if(
+				  options, [&](const auto& o) { return match_level(arg, o).has_value(); });
 				if (level_it != options.end())
 				{
-					seen[std::distance(options.begin(), level_it)] = true;
+					auto level_value = match_level(arg, *level_it);
+
+					seen[std::distance(options.begin(), level_it)] = 1;
 
 					if (not apply_level(*level_it, *level_value))
 					{
@@ -313,6 +351,7 @@ namespace deckard
 					continue;
 				}
 
+
 				std::println(std::cerr, "Error: Unknown option {}", arg);
 				return false;
 			}
@@ -320,7 +359,7 @@ namespace deckard
 			bool missing_required = false;
 			for (size_t i = 0; i < options.size(); ++i)
 			{
-				if (options[i].required && !seen[i])
+				if (options[i].required and seen[i] == 0)
 				{
 					std::println(
 					  std::cerr, "Error: Missing required option {}/{}", options[i].short_name, options[i].long_name);
@@ -333,7 +372,7 @@ namespace deckard
 			return true;
 		}
 
-		bool parse(int argc, char* argv[])
+		[[nodiscard]] bool parse(int argc, char* argv[])
 		{
 			if (argc <= 1)
 			{
@@ -349,7 +388,7 @@ namespace deckard
 			return parse(args);
 		}
 
-		bool parse(std::string_view command_line)
+		[[nodiscard]] bool parse(std::string_view command_line)
 		{
 			std::vector<utf8::view> args;
 			utf8::scanner           s{command_line};
@@ -367,7 +406,13 @@ namespace deckard
 
 					auto token = s.take_until(quote);
 					if (not s.is(quote))
+					{
+						std::println(std::cerr,
+									 "Error: Unterminated quote {} in command line: {}",
+									 quote == U'"' ? "\"" : "'",
+									 command_line);
 						return false;
+					}
 
 					args.push_back(token.as_string_view());
 					s.skip();
@@ -388,8 +433,11 @@ namespace deckard
 			{
 				auto        short_sv = opt.short_name.as_string_view();
 				auto        long_sv  = opt.long_name.as_string_view();
-				std::string flag     = opt.level_style ? std::format("{}<N>", short_sv.empty() ? long_sv : short_sv)
-													   : std::format("{:<4} {:<15}", short_sv, long_sv);
+				std::string values;
+				for (u32 n = 0; n < opt.arity; ++n)
+					values += " <value>";
+				std::string flag = opt.level_style ? std::format("{}<N>", short_sv.empty() ? long_sv : short_sv)
+												   : std::format("{:<4} {:<15}{}", short_sv, long_sv, values);
 
 				std::println(
 				  "  {:<20} {}{}{}",
