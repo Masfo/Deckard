@@ -2376,6 +2376,7 @@ TEST_CASE("normalization", "[utf8][normalization]")
 	{
 		REQUIRE(utf8::table_version() == "17.0.0"sv);
 
+#if 0 // Run when new tables are generated
 		if (true and utf8::table_version() == "17.0.0"sv)
 			SKIP("run only for new table versions");
 
@@ -2426,6 +2427,7 @@ TEST_CASE("normalization", "[utf8][normalization]")
 		REQUIRE(nfc_count == test_count);
 		REQUIRE(nfd_count == test_count);
 		CHECK(test_count == 20034); // 17.0.0
+#endif
 	}
 
 	SECTION("tests") { }

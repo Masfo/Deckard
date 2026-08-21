@@ -859,6 +859,7 @@ namespace deckard::file
 		{
 			if (address)
 			{
+				FlushViewOfFile(address, 0);
 				UnmapViewOfFile(address);
 				address = nullptr;
 			}

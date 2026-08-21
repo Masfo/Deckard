@@ -351,7 +351,6 @@ namespace deckard
 					continue;
 				}
 
-
 				std::println(std::cerr, "Error: Unknown option {}", arg);
 				return false;
 			}
