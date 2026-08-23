@@ -41,6 +41,9 @@ namespace deckard::utf8
 	 *	// starts/ends
 	 *	bool a = s.starts_with("hello"sv);
 	 *	bool b = s.ends_with(U'🌍');
+	 * 
+	 *  // position
+	 *  size_t pos = s.byte_position();
 	 */
 
 
@@ -195,6 +198,13 @@ namespace deckard::utf8
 		//
 		[[nodiscard]] char32 current() const noexcept { return decode_at(m_pos); }
 
+		std::optional<char32> try_current() const noexcept
+		{
+			if (not has_next())
+				return std::nullopt;
+			return current();
+		}
+
 		[[nodiscard]] char32 operator*() const noexcept { return current(); }
 
 		[[nodiscard]] constexpr char32 peek_back() const noexcept
@@ -296,6 +306,9 @@ namespace deckard::utf8
 			return cp;
 		}
 
+
+		u64 position() const noexcept { return m_pos; }
+
 		//
 
 		bool skip_if(char32 c) noexcept
@@ -332,11 +345,18 @@ namespace deckard::utf8
 			return skip_while([](char32 cp) { return utf8::is_whitespace(cp); });
 		}
 
+
 		[[nodiscard]] view take(size_t n) noexcept
 		{
 			const size_t start = m_pos;
 			skip(n);
 			return view{m_data.subspan(start, m_pos - start)};
+		}
+
+
+		[[nodiscard]] view take_from(size_t start, size_t n) noexcept
+		{
+			return view{m_data.subspan(start, n)};
 		}
 
 		[[nodiscard]] view take_while(auto&& pred) noexcept
@@ -357,6 +377,8 @@ namespace deckard::utf8
 		{
 			return take_while([&pred](char32 cp) { return not pred(cp); });
 		}
+
+
 
 		// Takes line, skips newline characters
 		[[nodiscard]] view take_line() noexcept
