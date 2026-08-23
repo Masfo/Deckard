@@ -17,7 +17,7 @@ namespace deckard::utf8
 
 	inline namespace v1
 	{
-
+		
 		export class view
 		{
 		public:
