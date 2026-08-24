@@ -258,6 +258,7 @@ set(DECKARD_MODULES
 		utils/hash.ixx
 		utils/helpers.ixx
 		utils/hmac.ixx
+		utils/json.ixx
 		utils/logger.ixx
 		utils/lru.ixx
 		utils/random.ixx
