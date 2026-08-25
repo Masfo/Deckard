@@ -214,7 +214,7 @@ namespace deckard
 		commandline(commandline&&)                 = delete;
 		commandline& operator=(commandline&&)      = delete;
 
-		commandline& flag(this auto& self, option_spec opt, bool* target = nullptr)
+		commandline& flag(this auto& self, option_spec opt, bool* target = nullptr) 
 		{
 			opt.level_style  = false;
 			opt.target_value = target;
@@ -246,7 +246,7 @@ namespace deckard
 		// -O[min,max], -O defaults to default_value
 		template<std::integral T>
 		commandline& level(this auto& self, option_spec opt, T* target = nullptr, T min_value = limits::min<T>,
-						   T max_value = limits::max<T>, T default_value = T{})
+						   T max_value = limits::max<T>, T default_value = T{}) 
 		{
 
 			bool has_range       = min_value != limits::min<T> or max_value != limits::max<T>;

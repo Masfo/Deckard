@@ -83,6 +83,11 @@ namespace deckard::utf8
 
 	export constexpr bool is_bom(char32 codepoint) { return codepoint == 0xFEFF or codepoint == 0xFFFE; }
 
+	export constexpr bool is_control_character(char32 codepoint) noexcept
+	{
+		return (codepoint <= 0x1F) or (codepoint >= 0x7F and codepoint <= 0x9F);
+	}
+
 	export constexpr bool start_with_bom(const std::span<const u8> buffer)
 	{
 		return buffer.size() >= 3 and (buffer[0] == 0xEF and buffer[1] == 0xBB and buffer[2] == 0xBF);

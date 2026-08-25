@@ -36,14 +36,18 @@ export import deckard.math;
 export import deckard.arrays;
 export import deckard.base_encoding;
 export import deckard.bigint;
-export import deckard.commandline;
+export import deckard.bytepool;
 export import deckard.colors;
+export import deckard.commandline;
 export import deckard.cpuid;
 export import deckard.function_ref;
 export import deckard.grid;
 export import deckard.helpers;
 export import deckard.hmac;
+export import deckard.json;
+export import deckard.logger;
 export import deckard.lru;
+export import deckard.platform;
 export import deckard.random;
 export import deckard.ringbuffer;
 export import deckard.sbo;
@@ -51,14 +55,11 @@ export import deckard.scope_exit;
 export import deckard.serializer;
 export import deckard.sha;
 export import deckard.stringhelper;
-export import deckard.platform;
+export import deckard.stringpool;
 export import deckard.threadutil;
 export import deckard.timers;
 export import deckard.utils.hash;
 export import deckard.uuid;
-export import deckard.logger;
-export import deckard.bytepool;
-export import deckard.stringpool;
 
 
 #ifdef __cpp_pack_indexing

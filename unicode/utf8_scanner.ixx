@@ -41,7 +41,7 @@ namespace deckard::utf8
 	 *	// starts/ends
 	 *	bool a = s.starts_with("hello"sv);
 	 *	bool b = s.ends_with(U'🌍');
-	 * 
+	 *
 	 *  // position
 	 *  size_t pos = s.byte_position();
 	 */
@@ -52,6 +52,11 @@ namespace deckard::utf8
 	private:
 		std::span<const u8> m_data;
 		size_t              m_pos{0};
+		size_t              current_line{1};
+		size_t              current_column{1};
+		bool                m_prev_was_cr{false};
+
+
 
 	public:
 		scanner() = default;
@@ -95,9 +100,24 @@ namespace deckard::utf8
 
 		// positions
 
+		[[nodiscard]] constexpr size_t line() const { return current_line; }
+
+		[[nodiscard]] constexpr size_t column() const { return current_column; }
+
+		[[nodiscard]] constexpr auto position() const noexcept { return std::pair{line(), column()}; }
+
 		constexpr void seek_to_byte_position(size_t pos) noexcept
 		{
 			assert::check(pos <= m_data.size(), "scanner::seek_to_byte_position out of bounds");
+
+			if (pos >= m_pos)
+				advance_position_range(m_pos, pos);
+			else
+			{
+				m_pos = pos;
+				recompute_position();
+				return;
+			}
 			m_pos = pos;
 		}
 
@@ -109,6 +129,9 @@ namespace deckard::utf8
 				while (m_pos > 0 and utf8::is_continuation_byte(m_data[m_pos]))
 					--m_pos;
 			}
+
+			recompute_position();
+
 			return *this;
 		}
 
@@ -125,6 +148,8 @@ namespace deckard::utf8
 
 			for (ptrdiff_t i = 0; i < n and m_pos > 0; ++i)
 				--(*this);
+
+			recompute_position();
 
 			return *this;
 		}
@@ -196,7 +221,59 @@ namespace deckard::utf8
 		[[nodiscard]] bool at_end() const noexcept { return not has_next(); }
 
 		//
-		[[nodiscard]] char32 current() const noexcept { return decode_at(m_pos); }
+		constexpr void advance_position(char32 cp) noexcept
+		{
+			if (cp == U'\n')
+			{
+				if (not m_prev_was_cr)
+				{
+					++current_line;
+					current_column = 1;
+				}
+				m_prev_was_cr = false;
+			}
+			else if (cp == U'\r')
+			{
+				++current_line;
+				current_column = 1;
+				m_prev_was_cr  = true;
+			}
+			else
+			{
+				++current_column;
+				m_prev_was_cr = false;
+			}
+		}
+
+		constexpr void advance_position_range(size_t from, size_t to) noexcept
+		{
+			size_t pos = from;
+			while (pos < to)
+			{
+				auto [cp, width] = utf8::decode_unchecked(m_data, pos);
+				advance_position(cp);
+				pos += width;
+			}
+		}
+
+		constexpr void recompute_position() noexcept
+		{
+			current_line   = 1;
+			current_column = 1;
+			m_prev_was_cr  = false;
+			advance_position_range(0, m_pos);
+		}
+
+		//
+
+
+		[[nodiscard]] constexpr char32 current() const noexcept
+		{
+			if (m_pos >= m_data.size())
+				return REPLACEMENT_CHARACTER;
+			auto [cp, _] = utf8::decode_unchecked(m_data, m_pos);
+			return cp;
+		}
 
 		std::optional<char32> try_current() const noexcept
 		{
@@ -253,6 +330,7 @@ namespace deckard::utf8
 			assert::check(width > 0, "Should never be zero");
 
 			m_pos += width;
+			advance_position(codepoint);
 			return codepoint;
 		}
 
@@ -266,13 +344,17 @@ namespace deckard::utf8
 			assert::check(width > 0, "Should never be zero");
 
 			m_pos += width;
+			advance_position(codepoint);
 			return codepoint;
 		}
 
 		void skip() noexcept
 		{
 			assert::check(has_next(), "scanner::skip() called at end of input");
-			m_pos += width_at(m_pos);
+			
+			const auto [cp, width] = utf8::decode_unchecked(m_data, m_pos);
+			m_pos += width;
+			advance_position(cp);
 		}
 
 		template<character_type T>
@@ -289,7 +371,11 @@ namespace deckard::utf8
 		void skip(size_t n) noexcept
 		{
 			while (n-- > 0 and has_next())
-				m_pos += width_at(m_pos);
+			{
+				const auto [cp, width] = utf8::decode_unchecked(m_data, m_pos);
+				m_pos += width;
+				advance_position(cp);
+			}
 		}
 
 		scanner& operator++()
@@ -306,8 +392,7 @@ namespace deckard::utf8
 			return cp;
 		}
 
-
-		u64 position() const noexcept { return m_pos; }
+		u64 index() const noexcept { return m_pos; }
 
 		//
 
@@ -315,7 +400,9 @@ namespace deckard::utf8
 		{
 			if (not is(c))
 				return false;
-			m_pos += width_at(m_pos);
+			const auto [cp, width] = utf8::decode_unchecked(m_data, m_pos);
+			m_pos += width;
+			advance_position(cp);
 			return true;
 		}
 
@@ -324,7 +411,9 @@ namespace deckard::utf8
 		{
 			if (not is(pred))
 				return false;
-			m_pos += width_at(m_pos);
+			const auto [cp, width] = utf8::decode_unchecked(m_data, m_pos);
+			m_pos += width;
+			advance_position(cp);
 			return true;
 		}
 
@@ -332,9 +421,13 @@ namespace deckard::utf8
 		requires std::predicate<decltype(pred), char32>
 		{
 			size_t count = 0;
-			while (has_next() and pred(current()))
+			while (has_next())
 			{
+				const char32 cp = current();
+				if (not pred(cp))
+					break;
 				m_pos += width_at(m_pos);
+				advance_position(cp);
 				++count;
 			}
 			return count;
@@ -345,7 +438,6 @@ namespace deckard::utf8
 			return skip_while([](char32 cp) { return utf8::is_whitespace(cp); });
 		}
 
-
 		[[nodiscard]] view take(size_t n) noexcept
 		{
 			const size_t start = m_pos;
@@ -353,11 +445,7 @@ namespace deckard::utf8
 			return view{m_data.subspan(start, m_pos - start)};
 		}
 
-
-		[[nodiscard]] view take_from(size_t start, size_t n) noexcept
-		{
-			return view{m_data.subspan(start, n)};
-		}
+		[[nodiscard]] view take_from(size_t start, size_t n) noexcept { return view{m_data.subspan(start, n)}; }
 
 		[[nodiscard]] view take_while(auto&& pred) noexcept
 		requires std::predicate<decltype(pred), char32>
@@ -378,8 +466,6 @@ namespace deckard::utf8
 			return take_while([&pred](char32 cp) { return not pred(cp); });
 		}
 
-
-
 		// Takes line, skips newline characters
 		[[nodiscard]] view take_line() noexcept
 		{
@@ -392,6 +478,7 @@ namespace deckard::utf8
 			if (it == remaining.end())
 			{
 				m_pos = m_data.size();
+				advance_position_range(start, m_pos);
 				return view{m_data.subspan(start)};
 			}
 
@@ -400,17 +487,16 @@ namespace deckard::utf8
 
 			if (*it == LINE_FEED)
 			{
-				m_pos = newline_pos + 1; // \n
+				m_pos = newline_pos + 1;
 			}
-			else                         // *it == u8'\r'
+			else
 			{
-				m_pos = newline_pos + 1; // \r (CARRIAGE_RETURN)
+				m_pos = newline_pos + 1;
 				if (m_pos < m_data.size() && m_data[m_pos] == LINE_FEED)
-				{
-					m_pos += 1;          // trailing \n
-				}
+					m_pos += 1;
 			}
 
+			advance_position_range(start, m_pos);
 			return result;
 		}
 
@@ -426,7 +512,6 @@ namespace deckard::utf8
 		{
 			if (sv.empty())
 				return true;
-
 			if (remaining_bytes() < sv.size())
 				return false;
 
@@ -434,7 +519,9 @@ namespace deckard::utf8
 			if (target != sv)
 				return false;
 
+			const size_t old_pos = m_pos;
 			m_pos += sv.size();
+			advance_position_range(old_pos, m_pos);
 
 			assert::check(m_pos >= m_data.size() or utf8::is_start_byte(m_data[m_pos]),
 						  "expect(string_view) advanced m_pos to mid-codepoint");
@@ -445,7 +532,6 @@ namespace deckard::utf8
 		{
 			if (v.empty())
 				return true;
-
 			if (remaining_bytes() < v.size_in_bytes())
 				return false;
 
@@ -454,7 +540,10 @@ namespace deckard::utf8
 
 			if (match)
 			{
+				const size_t old_pos = m_pos;
 				m_pos += v.size_in_bytes();
+				advance_position_range(old_pos, m_pos);
+
 				assert::check(m_pos >= m_data.size() or utf8::is_start_byte(m_data[m_pos]),
 							  "expect(view) advanced m_pos to mid-codepoint");
 			}
@@ -498,8 +587,8 @@ namespace deckard::utf8
 			if (remaining_bytes() < suffix.size_in_bytes())
 				return false;
 
-			std::span<const u8> window =
-			  m_data.subspan(m_pos + remaining_bytes() - suffix.size_in_bytes(), suffix.size_in_bytes());
+			std::span<const u8> window = m_data.subspan(
+			  m_pos + remaining_bytes() - suffix.size_in_bytes(), suffix.size_in_bytes());
 			return std::ranges::equal(window, suffix.data());
 		}
 
