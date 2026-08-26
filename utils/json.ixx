@@ -134,28 +134,126 @@ namespace deckard::json
 
 		auto parse_string() -> std::expected<value, std::string>
 		{
+			if (not scanner.skip_if(U'"'))
+				return error("Expected '\"' at the beginning of string");
+
+			utf8::string result;
+
+			while (scanner.has_next())
+			{
+
+				if (scanner.is(U'"'))
+				{
+					scanner.skip(); // closing quote
+					return value{std::move(result)};
+				}
+
+				if (scanner.is(U'\\'))
+				{
+					scanner.skip();
+					if (not scanner.has_next())
+						return error("Unexpected end of input in string escape sequence");
+
+					char32_t escaped{};
+					switch (scanner.current())
+					{
+						case U'"': escaped = U'"'; break;
+						case U'\\': escaped = U'\\'; break;
+						case U'/': escaped = U'/'; break;
+						case U'b': escaped = U'\b'; break;
+						case U'f': escaped = U'\f'; break;
+						case U'n': escaped = U'\n'; break;
+						case U'r': escaped = U'\r'; break;
+						case U't': escaped = U'\t'; break;
+						case U'u':
+							scanner.skip(); // consume 'u'
+							// TODO: read 4 hex digits (and low surrogate for pairs outside the
+							// BMP), decode to a code point, append via result += codepoint.
+							return error("\\u escapes not yet implemented");
+						default: return error("Invalid escape sequence in string");
+					}
+
+					result += escaped;
+					scanner.skip();
+					continue;
+				}
+
+				auto chunk = scanner.take_until(
+				  [](char32_t cp) { return cp == U'"' or cp == U'\\' or utf8::is_control_character(cp); });
+
+				if (chunk.empty())
+				{
+					auto cp = scanner.current();
+					if (utf8::is_control_character(cp))
+						return error("Control character not allowed in string");
+
+					result += cp;
+					scanner.skip();
+					continue;
+				}
 	
-			return {};
+				result += chunk;
+			}
+			return error("Unexpected end of input in string");
 		}
 
 		auto parse_number() -> std::expected<value, std::string>
 		{
 
+			scanner.skip_whitespace();
 
-			return {};
+			if (scanner.is(U'-'))
+			{
+				if (not scanner.has_next() or not utf8::is_ascii_digit(scanner.peek().value_or(U'\0')))
+					return error("Expected digit after '-' in number");
+			}
+
+
+			auto text
+			  = scanner
+				  .take_until(
+					[](char32_t cp)
+					{
+						return not(
+						  utf8::is_ascii_digit(cp) or cp == U'.' or cp == U'e' or cp == U'E' or cp == U'+' or cp == U'-');
+					})
+				  .as_string_view();
+
+
+			auto val = try_to_number<f64>(text);
+			if (val)
+				return value{*val};
+
+			return error(std::format("Invalid number: {}", text));
 		}
 
 		auto parse_bool() -> std::expected<value, std::string>
 		{
+			scanner.skip_whitespace();
+			if (scanner.has_next() and scanner.peek(0) == U't')
+			{
+				if (not scanner.expect("true"))
+					return error("Invalid literal, expected 'true'");
+				return value{true};
+			}
+			else if (scanner.has_next() and scanner.peek(0) == U'f')
+			{
+				if (not scanner.expect("false"))
+					return error("Invalid literal, expected 'false'");
+				return value{false};
+			}
 
-
-			return {};
+			return error("Expected 'true' or 'false'");
 		}
 
 		auto parse_null() -> std::expected<value, std::string>
 		{
-
-			return {};
+			for (char c : std::string_view{"null"})
+			{
+				if (not scanner.skip_if(static_cast<char32_t>(c)))
+					return error("Invalid literal, expected 'null'");
+			}
+			return value{nullptr};
 		}
 	};
 
