@@ -2357,6 +2357,28 @@ TEST_CASE("scanner", "[utf8][scanner]")
 		CHECK(w.peek(0) == ' ');
 		CHECK(w.peek_back() == 'o');
 	}
+
+	SECTION("scanner line/column")
+	{
+		utf8::string  str("hello\nworld\n🌍");
+		utf8::scanner w{str};
+		CHECK(w.line() == 1);
+		CHECK(w.column() == 1);
+		CHECK(w.expect("hello"sv));
+		CHECK(w.line() == 1);
+		CHECK(w.column() == 6);
+		CHECK(w.expect('\n'));
+		CHECK(w.line() == 2);
+		CHECK(w.column() == 1);
+		CHECK(w.expect("world"sv));
+		CHECK(w.line() == 2);
+		CHECK(w.column() == 6);
+		CHECK(w.expect('\n'));
+		CHECK(w.line() == 3);
+		CHECK(w.column() == 1);
+		CHECK(w.expect("🌍"sv));
+		CHECK_FALSE(w.has_next());
+	}
 }
 
 auto to_codepoints(std::string_view hexline)
