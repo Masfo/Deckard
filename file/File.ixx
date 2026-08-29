@@ -976,7 +976,7 @@ namespace deckard::file
 		return {};
 	}
 
-	export auto read_text_file_as_vector(fs::path path) -> std::vector<u8>
+	export auto read_text_file_as_vector(fs::path path, bool normalize_new_lines=true) -> std::vector<u8>
 	{
 		std::vector<u8> v = read_file(path);
 		if (v.empty())
@@ -988,7 +988,7 @@ namespace deckard::file
 		size_t write = 0;
 
 		// normalize newlines
-		while (read < v.size())
+		while (normalize_new_lines and read < v.size())
 		{
 			const u8 c = v[read++];
 			v[write++] = (c == '\r') ? '\n' : c;
