@@ -353,6 +353,10 @@ set(DECKARD_MODULES
 		std.ixx
 )
 
+
+ find_package(gameinput CONFIG REQUIRED)
+ target_link_libraries(deckard PRIVATE Microsoft::GameInput)
+
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
 # $<$<NOT:$<PLATFORM_ID:Windows>>:file.cpp>
@@ -382,6 +386,7 @@ set(THIRD_PARTY_LIBS
 	ws2_32
 	xinput
 	Comctl32.lib
+	gameinput.lib
 	#cpuid
    # libcpmtd.lib
    # libcmtd.lib
