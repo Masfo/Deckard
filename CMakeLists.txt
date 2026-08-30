@@ -305,7 +305,7 @@ set(DECKARD_MODULES
 		app/app.ixx
 		app/controller.ixx
 		app/inputs.ixx
-
+		
 		app/app2.ixx
 		app/window.ixx
 		app/renderer.ixx
@@ -391,6 +391,7 @@ set(THIRD_PARTY_LIBS
 	xinput
 	Comctl32.lib
 	gameinput.lib
+	msimg32.lib # for GradientFill
 	#cpuid
    # libcpmtd.lib
    # libcmtd.lib
