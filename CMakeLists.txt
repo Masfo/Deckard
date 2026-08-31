@@ -306,6 +306,10 @@ set(DECKARD_MODULES
 		app/controller.ixx
 		app/inputs.ixx
 
+		app/app2.ixx
+		app/window.ixx
+		app/renderer.ixx
+
 		# Vulkan
 		app/vulkan.ixx
 
