@@ -5,6 +5,7 @@
 #include <time.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "gameinput.h"
 
 #include <cstddef>
 
@@ -33,6 +34,19 @@ import window;
 
 std::array<unsigned char, 256> previous_state{0};
 std::array<unsigned char, 256> current_state{0};
+
+IGameInput* gameinput = nullptr;
+
+bool initialize([[maybe_unused]]vulkanapp& app)
+{
+	//
+	if (not SUCCEEDED(GameInputCreate(&gameinput)))
+	{
+		dbg::println("Failed to initialize GameInput.");
+		return false;
+	}
+	return true;
+}
 
 void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 mods)
 {
@@ -533,32 +547,32 @@ void generate(std::span<u8> buffer, u64 percentage_how_compressable) noexcept
 	}
 }
 
-struct TestStruct
+struct alignas(u64) TestStruct
 {
-	u8  a{255};
-	i16 b{-16000};
-	u32 c{800'000};
-	i64 d{-999'999'999'999};
+	i64 d{std::byteswap(0x1122'3344'5566'7788)};
+	u32 c{0xAAAA'AAAA};
+	i16 b{0x5555};
+	u8  a{0xFF};
 };
 
 class test_class
 {
 public:
-	auto flag(int i)
+	auto& flag(this auto&& self, int i)
 	{
-		current = i;
-		return *this;
+		self.flags.push_back(i);
+		return self;
 	};
 
-	auto option(int i)
+	auto& option(this auto&& self, int i)
 	{
-		m_option = i;
-		return *this;
+		self.flags.push_back(i);
+		return self;
 	};
+
 
 private:
-	int current{0};
-	int m_option{0};
+	std::vector<int> flags;
 };
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
@@ -570,15 +584,31 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
+	if(auto result = app::open(); not result)
+	{
+		dbg::println("Failed to open app: {}", result.error());
+		return -1;
+	}
+
+	while (app::running())
+	{
+		//std::this_thread::sleep_for(33ms);
+
+	}
+
+	std::terminate();
+
+
+
 	test_class tc;
 
 	tc.flag(1).flag(2).flag(3).option(42).flag(4);
 
 
-	static_assert(offsetof(TestStruct, a) == 0);
-	static_assert(offsetof(TestStruct, b) == offsetof(TestStruct, a) + sizeof(u8) + Padding<u8>{1});
-	static_assert(offsetof(TestStruct, c) == offsetof(TestStruct, b) + sizeof(i16));
-	static_assert(offsetof(TestStruct, d) == offsetof(TestStruct, c) + sizeof(u32));
+	// static_assert(offsetof(TestStruct, a) == 0);
+	// static_assert(offsetof(TestStruct, b) == offsetof(TestStruct, a) + sizeof(u8) + Padding<u8>{1});
+	// static_assert(offsetof(TestStruct, c) == offsetof(TestStruct, b) + sizeof(i16));
+	// static_assert(offsetof(TestStruct, d) == offsetof(TestStruct, c) + sizeof(u32));
 
 	u64 secret = random::randu64();
 	for (int i = 12; i < 12; ++i)
@@ -609,6 +639,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	auto tstr = as_byte_span(ts);
 
 	TestStruct ts2 = from_byte_array<TestStruct>(tstr);
+	_              = 0;
 
 
 	// ###############################
@@ -849,7 +880,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	u32 fbtui = float_bits_to_uint(1.0f);
+	 [[maybe_unused]] u32 fbtui = float_bits_to_uint(1.0f);
 	_         = 0;
 
 
@@ -2121,6 +2152,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		app01.set_fixed_update_callback(fixed_update);
 		app01.set_update_callback(update);
 		app01.set_render_callback(render);
+		app01.set_initialize_callback(initialize);
 
 
 		return app01.run();

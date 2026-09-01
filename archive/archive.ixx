@@ -50,12 +50,19 @@ export namespace deckard::archive
 	{
 		u32 offset{};
 		u32 uncompressed_size{0};
-		u32 compressed_size{0}; // zstd
 	};
 
 	struct archive_data
 	{
 		std::vector<u8> compressed_data{};
+	};
+
+
+	class archivebuilder
+	{
+	private:
+		std::vector<fs::path> files{};
+	public:
 	};
 
 

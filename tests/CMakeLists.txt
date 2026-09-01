@@ -24,7 +24,6 @@ set_target_properties(tests PROPERTIES
 
 
 
-
 target_compile_options(tests PRIVATE /nologo)
 target_compile_options(tests PRIVATE -Zc:__cplusplus /Zc:alignedNew)
 target_compile_options(tests PRIVATE /utf-8)
@@ -37,6 +36,7 @@ target_compile_options(tests PRIVATE /std:c++latest)
 target_compile_options(tests PRIVATE /W4)
 
 
+#set_tests_properties(tests PROPERTIES PROCESSORS 6)
 
 target_sources(tests PUBLIC
     test-main.cpp
@@ -117,6 +117,9 @@ target_sources(tests PUBLIC
 
     # Archive
     tests/archive_test.cpp
+
+    # Json
+    tests/json_test.cpp
 )
 
 
