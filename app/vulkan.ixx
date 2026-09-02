@@ -91,8 +91,8 @@ namespace deckard::vulkan
 		~vulkan() { deinitialize(); };
 
 		// Copy
-		vulkan(vulkan const&)            = delete;
-		vulkan& operator=(vulkan const&) = delete;
+		vulkan(const vulkan&)            = delete;
+		vulkan& operator=(const vulkan&) = delete;
 
 		// Move
 		vulkan(vulkan&&)            = delete;
@@ -149,9 +149,9 @@ namespace deckard::vulkan
 		// single semaphore; each frame slot just remembers which counter value to wait for
 		timeline_semaphore in_flight_timeline;
 
-		std::vector<u64>   in_flight_values;    // per frame slot: last value submitted for that slot
-		u64                timeline_counter{0}; // next value to signal on submit
-		u32                current_frame{0};    // rotates over frame slots [0, frame count)
+		std::vector<u64> in_flight_values;    // per frame slot: last value submitted for that slot
+		u64              timeline_counter{0}; // next value to signal on submit
+		u32              current_frame{0};    // rotates over frame slots [0, frame count)
 
 
 		bool is_initialized{false};
@@ -193,7 +193,6 @@ namespace deckard::vulkan
 			is_initialized &= image.initialize(m_device);
 
 
-
 		in_flight_values.assign(m_swapchain.count(m_device), 0);
 		timeline_counter = 0;
 		current_frame    = 0;
@@ -201,7 +200,6 @@ namespace deckard::vulkan
 		rendering_finished.resize(m_swapchain.count(m_device));
 		for (auto& sem : rendering_finished)
 			is_initialized &= sem.initialize(m_device);
-
 
 
 		// Compile the hardcoded triangle shaders at runtime and build the pipeline
@@ -253,8 +251,8 @@ namespace deckard::vulkan
 			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = sizeof(math::vec2)},
 			}};
 
-			is_initialized &=
-			  m_pipeline2.initialize(m_device, vert2, frag2, m_swapchain.desired_format().format, bindings, attributes);
+			is_initialized &= m_pipeline2.initialize(
+			  m_device, vert2, frag2, m_swapchain.desired_format().format, bindings, attributes);
 
 			vert2.deinitialize(m_device);
 			frag2.deinitialize(m_device);
@@ -391,11 +389,6 @@ namespace deckard::vulkan
 
 		for (u32 i = 0; i < m_command_buffer.size(); ++i)
 		{
-
-
-			// VkCommandBufferBeginInfo cmd_buffer_begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = 0};
-			// result = vkBeginCommandBuffer(command_buffers[i], &cmd_buffer_begin);
-
 			VkResult result = m_command_buffer.begin(i);
 			if (result != VK_SUCCESS)
 			{
@@ -431,14 +424,18 @@ namespace deckard::vulkan
 			  .pColorAttachments    = &color_attachment_info,
 			};
 
-			VkImageMemoryBarrier top_image_memory_barrier{
-			  .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			  .srcAccessMask    = 0,
-			  .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-			  .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
-			  .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			  .image            = m_images.image(i),
-			  .subresourceRange = {
+			VkImageMemoryBarrier2 top_image_memory_barrier{
+			  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			  .srcStageMask        = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+			  .srcAccessMask       = VK_ACCESS_2_NONE,
+			  .dstStageMask        = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			  .dstAccessMask       = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			  .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
+			  .newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			  .image               = m_images.image(i),
+			  .subresourceRange    = {
 				.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
 				.baseMipLevel   = 0,
 				.levelCount     = 1,
@@ -446,18 +443,13 @@ namespace deckard::vulkan
 				.layerCount     = 1,
 			  }};
 
-			vkCmdPipelineBarrier(
-			  m_command_buffer[i],
-			  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
-			  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
-			  0,
-			  0,
-			  nullptr,
-			  0,
-			  nullptr,
-			  1,                        // imageMemoryBarrierCount
-			  &top_image_memory_barrier // pImageMemoryBarriers
-			);
+			const VkDependencyInfo top_dependency_info{
+			  .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			  .imageMemoryBarrierCount = 1,
+			  .pImageMemoryBarriers    = &top_image_memory_barrier,
+			};
+
+			vkCmdPipelineBarrier2(m_command_buffer[i], &top_dependency_info);
 
 
 			vkCmdBeginRenderingKHR(m_command_buffer[i], &render_info);
@@ -503,9 +495,12 @@ namespace deckard::vulkan
 			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
 			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
 
-			VkImageMemoryBarrier bottom_image_memory_barrier{
-			  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			  .srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			VkImageMemoryBarrier2 bottom_image_memory_barrier{
+			  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			  .srcStageMask        = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			  .srcAccessMask       = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			  .dstStageMask        = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+			  .dstAccessMask       = VK_ACCESS_2_NONE,
 			  .oldLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			  .newLayout           = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -519,18 +514,13 @@ namespace deckard::vulkan
 				.layerCount     = 1,
 			  }};
 
-			vkCmdPipelineBarrier(
-			  m_command_buffer[i],
-			  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
-			  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,          // dstStageMask
-			  0,
-			  0,
-			  nullptr,
-			  0,
-			  nullptr,
-			  1,                           // imageMemoryBarrierCount
-			  &bottom_image_memory_barrier // pImageMemoryBarriers
-			);
+			const VkDependencyInfo bottom_dependency_info{
+			  .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			  .imageMemoryBarrierCount = 1,
+			  .pImageMemoryBarriers    = &bottom_image_memory_barrier,
+			};
+
+			vkCmdPipelineBarrier2(m_command_buffer[i], &bottom_dependency_info);
 
 #endif
 
@@ -574,7 +564,8 @@ namespace deckard::vulkan
 		u32  image_index{0};
 
 		// image_available multiple?
-		VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, image_available[current_frame], nullptr, &image_index);
+		VkResult result = vkAcquireNextImageKHR(
+		  m_device, m_swapchain, UINT64_MAX, image_available[current_frame], nullptr, &image_index);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			resize();
