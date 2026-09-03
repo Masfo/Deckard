@@ -58,7 +58,7 @@ namespace deckard::app
 	export using input_keyboard_callback_ptr = void(vulkanapp & app, i32 key, i32 scancode, bool action, i32 mods);
 	export using input_mouse_callback_ptr    = void(vulkanapp & app, i32 x, i32 y);
 
-	export using initialize_callback_ptr = void(vulkanapp & app);
+	export using initialize_callback_ptr = bool(vulkanapp & app);
 	export using close_callback_ptr      = void(vulkanapp & app);
 
 	export using fixed_update_callback_ptr = void(vulkanapp & app, f32 fixed_dt);
@@ -118,6 +118,7 @@ namespace deckard::app
 		fixed_update_callback_ptr* fixed_update_callback{nullptr};
 		update_callback_ptr*       update_callback{nullptr};
 		render_callback_ptr*       render_callback{nullptr};
+		initialize_callback_ptr*   initialize_callback{nullptr};
 
 		u32                                   game_ticks_per_second{60};
 		std::chrono::steady_clock::time_point start_time;
@@ -507,6 +508,12 @@ namespace deckard::app
 			m_properties.title = title;
 			if (handle)
 				SetWindowTextA(handle, title.data());
+		}
+
+		void set_initialize_callback(initialize_callback_ptr* ptr)
+		{
+			if (ptr)
+				initialize_callback = ptr;
 		}
 
 		void set_fixed_update_callback(fixed_update_callback_ptr* ptr)
@@ -911,6 +918,17 @@ namespace deckard::app
 
 			// TODO: minimize and rendering
 
+			if (initialize_callback)
+			{
+
+				if (not initialize_callback(*this))
+				{
+					dbg::println("App not initialized");
+					is_running = false;
+					return;
+				}
+			}
+
 			while (handle_messages())
 			{
 
@@ -956,10 +974,11 @@ namespace deckard::app
 				auto deltaFlicks     = std::chrono::duration_cast<flicks>(flicks_delta);
 				f32  fps_from_flicks = as<f32>(flicks::period::den) / deltaFlicks.count();
 
+				fps = std::lerp(fps, 1.0f / m_deltatime, 0.1f);
 
 				if (timers[FPS] > 1.0f)
 				{
-					fps                = frames / timers[FPS];
+				//	fps                = frames / timers[FPS];
 					max_fps            = std::max(fps, max_fps);
 					update_tick        = 0;
 					frames             = 0;
@@ -1005,8 +1024,8 @@ namespace deckard::app
 
 				m_inputs.poll();
 
-				auto& pad = m_inputs.controller();
-				pad.vibrate(pad.left_trigger(), pad.right_trigger());
+				// auto& pad = m_inputs.controller();
+				// pad.vibrate(pad.left_trigger(), pad.right_trigger());
 
 				// Update
 				if (update_callback)
@@ -1120,6 +1139,13 @@ namespace deckard::app
 
 				return 0;
 			}
+
+			case WM_ERASEBKGND:
+			{
+				// Prevent flickering by not erasing the background
+				return 1;
+			}
+
 
 			case WM_SETCURSOR:
 			{
