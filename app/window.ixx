@@ -15,16 +15,8 @@ import deckard.debug;
 import deckard.types;
 import deckard.platform;
 
-import deckard.colors;
-
 namespace deckard::app
 {
-
-	constexpr COLORREF hsv_to_rgb(float h /*0..360*/, float s = 1.0f, float v = 1.0f) noexcept
-	{
-		auto rgb = to_rgb(h, s, v);
-		return RGB(rgb[0], rgb[1], rgb[2]);
-	}
 
 	constexpr std::wstring_view window_class_name = L"DeckardWindowClass";
 
@@ -49,7 +41,7 @@ namespace deckard::app
 		bool show_cursor{true};
 		bool invalidated{false};
 
-		f32 hue{0.0f};
+
 
 	private:
 		extent<u16> get_clientsize() const
@@ -175,9 +167,13 @@ namespace deckard::app
 
 		[[nodiscard]] bool is_invalidated() const { return invalidated; }
 
+		void set_title(std::string_view title) { SetWindowTextA(handle, title.data()); }
+
 		void clear_invalidated() { invalidated = false; }
 
 		void invalidate() { invalidated = true; }
+
+		[[nodiscard]] HWND get_handle() const { return handle; }
 
 		void toggle_fullscreen()
 		{
@@ -335,31 +331,7 @@ namespace deckard::app
 		{
 			case WM_CREATE:
 			{
-				SetTimer(handle, 1, 16, nullptr);
 				return 0;
-			}
-
-			case WM_TIMER:
-			{
-				hue += 1.5f;
-				if (hue > 360.0f)
-					hue -= 360.0f;
-				InvalidateRect(handle, nullptr, FALSE);
-
-				extent<u16> mon = get_current_monitor_size();
-
-				auto r = get_clientsize();
-				SetWindowTextA(
-				  handle,
-				  std::format(
-					"Deckard Window - Hue: {:.1f} - client {}x{}, current monitor {}x{}",
-					hue,
-					r.width,
-					r.height,
-					mon.width,
-					mon.height)
-					.c_str());
-				break;
 			}
 
 			case WM_ERASEBKGND:
@@ -368,78 +340,11 @@ namespace deckard::app
 				return 1;
 			}
 
-			case WM_PAINT:
-			{
-#if 0
-				PAINTSTRUCT ps;
-				HDC         hdc = BeginPaint(handle, &ps);
-				RECT        client_rect;
-				GetClientRect(handle, &client_rect);
-
-				auto     rgb   = to_rgb(hue, 1.0f, 1.0f);
-				COLORREF color = RGB(rgb[0], rgb[1], rgb[2]);
-
-				HBRUSH brush = CreateSolidBrush(color);
-				FillRect(hdc, &client_rect, brush);
-				DeleteObject(brush);
-				EndPaint(handle, &ps);
-				return 0;
-#endif
-#if 1
-				PAINTSTRUCT ps;
-				HDC         hdc = BeginPaint(handle, &ps);
-
-				RECT client_rect;
-				GetClientRect(handle, &client_rect);
-				const LONG w = client_rect.right - client_rect.left;
-				const LONG h = client_rect.bottom - client_rect.top;
-
-				if (w > 0 && h > 0)
-				{
-					// Calculate 4 offset hues (0°, 90°, 180°, 270°) around the color wheel
-					auto rgb0 = to_rgb(hue, 1.0f, 1.0f);
-					auto rgb1 = to_rgb(std::fmod(hue + 90.0f, 360.0f), 1.0f, 1.0f);
-					auto rgb2 = to_rgb(std::fmod(hue + 180.0f, 360.0f), 1.0f, 1.0f);
-					auto rgb3 = to_rgb(std::fmod(hue + 270.0f, 360.0f), 1.0f, 1.0f);
-
-					// TRIVERTEX color channels expect 16-bit values (0x0000 - 0xFF00)
-					TRIVERTEX vertices[4] = {
-					  {0,
-					   0,
-					   static_cast<COLOR16>(rgb0[0] << 8),
-					   static_cast<COLOR16>(rgb0[1] << 8),
-					   static_cast<COLOR16>(rgb0[2] << 8),
-					   0}, // Top-Left
-					  {w,
-					   0,
-					   static_cast<COLOR16>(rgb1[0] << 8),
-					   static_cast<COLOR16>(rgb1[1] << 8),
-					   static_cast<COLOR16>(rgb1[2] << 8),
-					   0}, // Top-Right
-					  {w,
-					   h,
-					   static_cast<COLOR16>(rgb2[0] << 8),
-					   static_cast<COLOR16>(rgb2[1] << 8),
-					   static_cast<COLOR16>(rgb2[2] << 8),
-					   0}, // Bottom-Right
-					  {0,
-					   h,
-					   static_cast<COLOR16>(rgb3[0] << 8),
-					   static_cast<COLOR16>(rgb3[1] << 8),
-					   static_cast<COLOR16>(rgb3[2] << 8),
-					   0} // Bottom-Left
-					};
-
-					// Split rectangle into 2 triangles for hardware-accelerated GDI mesh interpolation
-					GRADIENT_TRIANGLE g_triangle[2] = {{0, 1, 2}, {0, 2, 3}};
-
-					GradientFill(hdc, vertices, 4, g_triangle, 2, GRADIENT_FILL_TRIANGLE);
-				}
-
-				EndPaint(handle, &ps);
-				return 0;
-#endif
-			}
+			//case WM_PAINT:
+			//{
+			//	ValidateRect(handle, nullptr);
+			//	return 0;
+			//}
 
 			case WM_ACTIVATEAPP:
 			{
@@ -557,12 +462,9 @@ namespace deckard::app
 
 			case WM_DESTROY:
 			{
-
 				SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
 				is_running = false;
 				PostQuitMessage(0);
-
-				KillTimer(handle, 1);
 				return 0;
 			}
 			case WM_QUERYENDSESSION:
