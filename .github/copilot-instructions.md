@@ -25,15 +25,15 @@
 - State what you found, where, and the fix. One pass.
 - If cause is unclear: say so. Do not guess.
 
-
 ## Project
 - CMake project targeting Windows (Win32 APIs used) with Ninja generator.
 - Use C++23 and C++26 where available; keep code compatible with MSVC.
 - Prefer standard library facilities; avoid adding new external dependencies.
-
+- Do not attempt to build or run CMake builds in this workspace; the build environment cannot be completed by the agent and doing so wastes tokens. Stick to source edits, diagnostics, and instructions.
 
 ## Tests
 - 
+
 ## Coding style
 - Follow existing naming and formatting in the surrounding files (tabs/indentation, brace style).
 - Keep APIs minimal and consistent with existing modules.
@@ -87,4 +87,4 @@
 ## Build/test
 - Ensure changes build with CMake + Ninja.
 - If tests exist for a module, update/add tests when changing behavior.
-- Ignore IntelliSense module cache artifacts, you should not consider these as build errors. Only actual build errors from CMake/Ninja should be fixed.
+- Ignore IntelliSense module cache artifacts; you should not consider these as build errors. Only actual build errors from CMake/Ninja should be fixed.
