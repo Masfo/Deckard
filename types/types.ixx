@@ -187,10 +187,10 @@ export namespace deckard
 
 	// Sizes
 	using bytes = std::ratio<1, 1>;
-	using kibi  = std::ratio<1ULL << 10>;
-	using mebi  = std::ratio<1ULL << 20>;
-	using gibi  = std::ratio<1ULL << 30>;
-	using tebi  = std::ratio<1ULL << 40>;
+	using kibi  = std::ratio<1ull << 10>;
+	using mebi  = std::ratio<1ull << 20>;
+	using gibi  = std::ratio<1ull << 30>;
+	using tebi  = std::ratio<1ull << 40>;
 
 	constexpr u64 operator""_KB(const u64 value) { return value * std::kilo::num; }
 
@@ -238,7 +238,7 @@ export namespace deckard
 	class strongtype
 	{
 	public:
-		constexpr explicit strongtype(T const& value)
+		constexpr explicit strongtype(const T& value)
 			: m_value(value)
 		{
 		}
@@ -250,10 +250,10 @@ export namespace deckard
 
 		[[nodiscard]] constexpr T& get() noexcept { return m_value; }
 
-		[[nodiscard]] constexpr T const& get() const noexcept { return m_value; }
+		[[nodiscard]] constexpr const T& get() const noexcept { return m_value; }
 
-		friend constexpr auto operator<=>(strongtype const&, strongtype const&) = default;
-		friend constexpr bool operator==(strongtype const&, strongtype const&)  = default;
+		friend constexpr auto operator<=>(const strongtype&, const strongtype&) = default;
+		friend constexpr bool operator==(const strongtype&, const strongtype&)  = default;
 
 	private:
 		T m_value;
@@ -306,8 +306,8 @@ export namespace deckard
 
 
 	export template<typename T>
-	concept character_type =
-	  std::is_same_v<T, char> or std::is_same_v<T, wchar_t> or std::is_same_v<T, char16_t> or std::is_same_v<T, char32_t>;
+	concept character_type
+	  = std::is_same_v<T, char> or std::is_same_v<T, wchar_t> or std::is_same_v<T, char16_t> or std::is_same_v<T, char32_t>;
 
 	export template<typename T>
 	concept basic_container = requires(T cont) { requires std::ranges::range<T>; };
@@ -315,14 +315,14 @@ export namespace deckard
 
 	export template<typename T>
 	concept string_container = requires(T) {
-		requires std::is_same_v<T, std::string> or std::is_same_v<T, std::wstring> or std::is_same_v<T, std::string_view> or
-				   std::is_same_v<T, std::wstring_view>;
+		requires std::is_same_v<T, std::string> or std::is_same_v<T, std::wstring> or std::is_same_v<T, std::string_view>
+				   or std::is_same_v<T, std::wstring_view>;
 	};
 
 	export template<typename T>
 	concept string_like_container = requires(T) {
-		requires std::is_same_v<T, std::string> or std::is_same_v<T, std::wstring> or std::is_same_v<T, std::string_view> or
-				   std::is_same_v<T, std::wstring_view> or std::is_convertible_v<T, std::string_view>;
+		requires std::is_same_v<T, std::string> or std::is_same_v<T, std::wstring> or std::is_same_v<T, std::string_view>
+				   or std::is_same_v<T, std::wstring_view> or std::is_convertible_v<T, std::string_view>;
 	};
 
 	export template<typename T>
@@ -380,3 +380,14 @@ export namespace deckard
 	*/
 
 } // namespace deckard
+
+template<std::integral T>
+struct std::formatter<deckard::extent<T>>
+{
+	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+	auto format(const deckard::extent<T>& e, std::format_context& ctx) const
+	{
+		return std::format_to(ctx.out(), "({}, {})", e.width, e.height);
+	}
+};

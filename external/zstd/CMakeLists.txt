@@ -1,12 +1,5 @@
 # https://github.com/facebook/zstd/
 
-if(MSVC)
-	# Disable debug info to avoid warning D9025
-    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-    string(REGEX REPLACE "/Z[i7]" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-    string(REGEX REPLACE "/Z[i7]" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-endif()
 
 cmake_minimum_required (VERSION 3.23)
 
@@ -159,6 +152,7 @@ add_library(ZSTD OBJECT
 if(MSVC)
     target_compile_options(ZSTD PRIVATE /W0)
     set_target_properties(ZSTD PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
+    set_target_properties(ZSTD PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
     #target_compile_options(ZSTD PRIVATE /Z7)
 
 endif()
