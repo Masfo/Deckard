@@ -357,6 +357,186 @@ namespace deckard
 			}
 		}
 
+		// multiply helpers
+		static constexpr size_t karatsuba_threshold = 32;
+
+		static void trim_vec(std::vector<type>& v) noexcept
+		{
+			while (!v.empty() and v.back() == 0)
+				v.pop_back();
+		}
+
+		[[nodiscard]] static std::vector<type> add_vec(const std::vector<type>& a, const std::vector<type>& b)
+		{
+			const auto& big   = a.size() >= b.size() ? a : b;
+			const auto& small = a.size() >= b.size() ? b : a;
+
+			std::vector<type> result;
+			result.reserve(big.size() + 1);
+
+			type carry = 0;
+			for (size_t i = 0; i < big.size(); ++i)
+			{
+				u64 sum = static_cast<u64>(big[i]) + carry;
+				if (i < small.size())
+					sum += small[i];
+				result.push_back(static_cast<type>(sum % base));
+				carry = static_cast<type>(sum / base);
+			}
+			if (carry)
+				result.push_back(carry);
+
+			return result;
+		}
+
+		// Requires a >= b (magnitude); no borrow underflow check.
+		[[nodiscard]] static std::vector<type> sub_vec(const std::vector<type>& a, const std::vector<type>& b)
+		{
+			std::vector<type> result;
+			result.reserve(a.size());
+
+			int borrow = 0;
+			for (size_t i = 0; i < a.size(); ++i)
+			{
+				int diff = static_cast<int>(a[i]) - (i < b.size() ? static_cast<int>(b[i]) : 0) - borrow;
+				if (diff < 0)
+				{
+					diff += static_cast<int>(base);
+					borrow = 1;
+				}
+				else
+					borrow = 0;
+				result.push_back(static_cast<type>(diff));
+			}
+			trim_vec(result);
+			return result;
+		}
+
+		// In-place `target += src * base^(offset)`, growing target as needed.
+		static void add_shifted_in_place(std::vector<type>& target, const std::vector<type>& src, size_t offset)
+		{
+			if (src.empty())
+				return;
+			if (target.size() < offset + src.size())
+				target.resize(offset + src.size(), 0);
+
+			type   carry = 0;
+			size_t i     = 0;
+			for (; i < src.size(); ++i)
+			{
+				const u64 sum      = static_cast<u64>(target[offset + i]) + src[i] + carry;
+				target[offset + i] = static_cast<type>(sum % base);
+				carry              = static_cast<type>(sum / base);
+			}
+			for (size_t k = offset + i; carry; ++k)
+			{
+				if (k >= target.size())
+					target.resize(k + 1, 0);
+				const u64 sum = static_cast<u64>(target[k]) + carry;
+				target[k]     = static_cast<type>(sum % base);
+				carry         = static_cast<type>(sum / base);
+			}
+		}
+
+		[[nodiscard]] static std::vector<type> schoolbook_multiply_vec(
+		  const std::vector<type>& a, const std::vector<type>& b)
+		{
+			if (a.empty() or b.empty())
+				return {};
+
+			std::vector<type> result(a.size() + b.size(), 0);
+
+			for (size_t i = 0; i < a.size(); ++i)
+			{
+				if (a[i] == 0)
+					continue;
+
+				u64 carry = 0;
+				for (size_t j = 0; j < b.size(); ++j)
+				{
+					const u64 prod = static_cast<u64>(a[i]) * b[j] + result[i + j] + carry;
+					result[i + j]  = static_cast<type>(prod % base);
+					carry          = prod / base;
+				}
+				for (size_t k = i + b.size(); carry; ++k)
+				{
+					const u64 sum = static_cast<u64>(result[k]) + carry;
+					result[k]     = static_cast<type>(sum % base);
+					carry         = sum / base;
+				}
+			}
+
+			trim_vec(result);
+			return result;
+		}
+
+		[[nodiscard]] static std::vector<type> karatsuba_multiply_vec(const std::vector<type>& a, const std::vector<type>& b)
+		{
+			if (a.empty() or b.empty())
+				return {};
+
+			if (a.size() < karatsuba_threshold or b.size() < karatsuba_threshold)
+				return schoolbook_multiply_vec(a, b);
+
+			const size_t half = std::max(a.size(), b.size()) / 2;
+
+			const auto split = [half](const std::vector<type>& v)
+			{
+				std::vector<type> low(v.begin(), v.begin() + std::min(half, v.size()));
+				std::vector<type> high;
+				if (v.size() > half)
+					high.assign(v.begin() + half, v.end());
+				trim_vec(low);
+				trim_vec(high);
+				return std::pair{std::move(low), std::move(high)};
+			};
+
+			auto [a_low, a_high] = split(a);
+			auto [b_low, b_high] = split(b);
+
+			// z0 = a_low  * b_low
+			// z2 = a_high * b_high
+			// z1 = (a_low+a_high)*(b_low+b_high) - z0 - z2   (== a_low*b_high + a_high*b_low)
+			std::vector<type> z0 = karatsuba_multiply_vec(a_low, b_low);
+			std::vector<type> z2 = karatsuba_multiply_vec(a_high, b_high);
+
+			std::vector<type> a_sum = add_vec(a_low, a_high);
+			std::vector<type> b_sum = add_vec(b_low, b_high);
+			std::vector<type> z1    = karatsuba_multiply_vec(a_sum, b_sum);
+
+			z1 = sub_vec(z1, z0);
+			z1 = sub_vec(z1, z2);
+
+			std::vector<type> result;
+			add_shifted_in_place(result, z0, 0);
+			add_shifted_in_place(result, z1, half);
+			add_shifted_in_place(result, z2, 2 * half);
+
+			trim_vec(result);
+			return result;
+		}
+
+		#if 0
+		void multiply(const bigint& lhs, const bigint& rhs)
+		{
+			assert::check(this != &lhs and this != &rhs, "multiply: output aliases input");
+
+			digits.clear();
+
+			if (lhs.is_zero() or rhs.is_zero())
+			{
+				sign = Sign::zero;
+				return;
+			}
+
+			sign   = (lhs.sign == rhs.sign) ? Sign::positive : Sign::negative;
+			digits = karatsuba_multiply_vec(lhs.digits, rhs.digits);
+
+			remove_trailing_zeros();
+		}
+
+
+		#else
 		void multiply(const bigint& lhs, const bigint& rhs)
 		{
 			assert::check(this != &lhs and this != &rhs, "multiply: output aliases input");
@@ -390,6 +570,8 @@ namespace deckard
 
 			remove_trailing_zeros();
 		}
+		#endif
+
 
 		// TODO: optional<&> for remainder
 #ifdef __cpp_lib_optional_ref
