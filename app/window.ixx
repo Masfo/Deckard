@@ -30,18 +30,23 @@ namespace deckard::app
 
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-		extent<u16> size{1920, 1080};
-		extent<u16> min_size{1280, 720};
-		extent<u16> normalized_client_size{0, 0};
-		extent<u16> physical_client_size{0, 0};
+		extent<u16>       size{1920, 1080};
+		const extent<u16> min_size{640, 480};
+		extent<u16>       normalized_client_size{0, 0};
+		extent<u16>       physical_client_size{0, 0};
 
 		bool is_running{false};
 		bool is_sizing{false};
 		bool is_minimized{false};
 		bool show_cursor{true};
 		bool invalidated{false};
+		bool resizable{true};
+		bool fullscreen{false};
+		bool active{true};
 
+		//
 
+		WINDOWPLACEMENT wp{};
 
 	private:
 		extent<u16> get_clientsize() const
@@ -149,12 +154,10 @@ namespace deckard::app
 			return is_running;
 		}
 
-		bool is_fullscreen() const
-		{
-			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
-			return (dwStyle & WS_OVERLAPPEDWINDOW) == 0;
-		}
 
+
+
+	private:
 	public:
 		window() = default;
 
@@ -175,21 +178,61 @@ namespace deckard::app
 
 		[[nodiscard]] HWND get_handle() const { return handle; }
 
-		void toggle_fullscreen()
+		[[nodiscard]] HINSTANCE get_instance() const { return GetModuleHandle(nullptr); }
+
+		[[nodiscard]] extent<u16> get_clientsize() const
 		{
-			static WINDOWPLACEMENT wp{};
+			RECT r{};
+			GetClientRect(handle, &r);
+			return to_extent(r);
+		}
 
-			// https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
+		void set_size(extent<u16> new_size) { set_client_size(new_size); }
 
-			DWORD dwStyle = GetWindowLong(handle, GWL_STYLE);
-			if (dwStyle & WS_OVERLAPPEDWINDOW)
+		void set_resizable(bool is_resizable)
+		{
+			this->resizable = is_resizable;
+
+			if (handle == nullptr)
+			{
+				if (is_resizable)
+					style |= (WS_SIZEBOX | WS_MAXIMIZEBOX);
+				else
+					style &= ~(WS_SIZEBOX | WS_MAXIMIZEBOX);
+				return;
+			}
+
+			DWORD live_style = GetWindowLong(handle, GWL_STYLE);
+			if (is_resizable)
+				live_style |= (WS_SIZEBOX | WS_MAXIMIZEBOX);
+			else
+				live_style &= ~(WS_SIZEBOX | WS_MAXIMIZEBOX);
+
+			SetWindowLongPtr(handle, GWL_STYLE, static_cast<LONG_PTR>(live_style));
+			style = live_style; // keep cache in sync
+
+			SetWindowPos(
+			  handle, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+		}
+
+		bool is_fullscreen() const { return fullscreen; }
+
+		void set_fullscreen(bool make_fullscreen)
+		{
+			if (make_fullscreen == fullscreen)
+				return;
+
+			fullscreen = make_fullscreen;
+
+			const DWORD live_style = GetWindowLong(handle, GWL_STYLE);
+
+			if (fullscreen)
 			{
 				MONITORINFO mi = {sizeof(mi)};
 				if (GetWindowPlacement(handle, &wp)
 					&& GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
 				{
-					const DWORD old_style = dwStyle & ~WS_OVERLAPPEDWINDOW;
-					SetWindowLong(handle, GWL_STYLE, old_style);
+					SetWindowLong(handle, GWL_STYLE, live_style & ~WS_OVERLAPPEDWINDOW);
 					SetWindowPos(
 					  handle,
 					  HWND_TOP,
@@ -202,14 +245,18 @@ namespace deckard::app
 			}
 			else
 			{
-
-				const DWORD old_style = dwStyle | WS_OVERLAPPEDWINDOW;
-				SetWindowLong(handle, GWL_STYLE, old_style);
+				SetWindowLong(handle, GWL_STYLE, live_style | WS_OVERLAPPEDWINDOW);
 				SetWindowPos(
 				  handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 				SetWindowPlacement(handle, &wp);
-			}
 
+				set_resizable(resizable); // WS_OVERLAPPEDWINDOW above reset THICKFRAME/MAXIMIZEBOX — reapply real state
+			}
+		}
+
+		void toggle_fullscreen()
+		{
+			set_fullscreen(not is_fullscreen());
 			invalidated = true;
 		}
 
@@ -228,7 +275,8 @@ namespace deckard::app
 
 		bool is_open() const { return handle != nullptr and is_running == true; }
 
-		auto initialize(u16 width, u16 height, bool fullscreen, std::string_view title) -> std::expected<void, std::string>
+		auto initialize(u16 width, u16 height, bool init_fullscreen, std::string_view title)
+		  -> std::expected<void, std::string>
 		{
 			if (handle != nullptr)
 				return std::unexpected("window: already initialized");
@@ -278,6 +326,8 @@ namespace deckard::app
 				return std::unexpected("window: failed to register window class");
 			}
 
+			set_resizable(resizable);
+
 			//
 			handle = CreateWindowEx(
 			  ex_style,
@@ -292,7 +342,8 @@ namespace deckard::app
 			  nullptr,
 			  wc.hInstance,
 			  this);
-			if (!handle)
+
+			if (not handle)
 			{
 				deinitialize();
 				return std::unexpected(std::format("window: failed to create window: {}", platform::get_error_string()));
@@ -300,12 +351,17 @@ namespace deckard::app
 
 			set_client_size({1920, 1080});
 
+			set_client_size(size);
+			set_fullscreen(init_fullscreen);
 			resize();
 
 			is_running  = true;
 			invalidated = true;
 
 			ShowWindow(handle, SW_SHOW);
+			SetForegroundWindow(handle);
+
+			//
 
 			return {};
 		}
@@ -323,6 +379,8 @@ namespace deckard::app
 			handle = nullptr;
 			UnregisterClass(window_class_name.data(), GetModuleHandle(0));
 		}
+
+		void destroy() { deinitialize(); }
 	};
 
 	LRESULT CALLBACK window::wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -348,7 +406,8 @@ namespace deckard::app
 
 			case WM_ACTIVATEAPP:
 			{
-
+				active   = wParam != 0;
+				g_active = active;
 				return 0;
 			}
 
@@ -413,7 +472,7 @@ namespace deckard::app
 					  new_rect->top,
 					  new_rect->right - new_rect->left,
 					  new_rect->bottom - new_rect->top,
-					  SWP_NOZORDER | SWP_NOACTIVATE))
+					  SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED))
 				{
 					return 1;
 				}
