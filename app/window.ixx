@@ -18,6 +18,17 @@ import deckard.platform;
 namespace deckard::app
 {
 
+	LRESULT CALLBACK low_level_keyboard_proc(int code, WPARAM wparam, LPARAM lparam) noexcept
+	{
+		if (code == HC_ACTION)
+		{
+			auto* info = reinterpret_cast<KBDLLHOOKSTRUCT*>(lparam);
+			if (info->vkCode == VK_LWIN or info->vkCode == VK_RWIN)
+				return 1;
+		}
+		return CallNextHookEx(nullptr, code, wparam, lparam);
+	}
+
 	constexpr std::wstring_view window_class_name = L"DeckardWindowClass";
 
 	export class window
@@ -44,7 +55,10 @@ namespace deckard::app
 		bool fullscreen{false};
 		bool active{true};
 
+		bool is_win_key_allowed{true};
+
 		//
+		HHOOK keyboard_hook{};
 
 		WINDOWPLACEMENT wp{};
 
@@ -154,8 +168,21 @@ namespace deckard::app
 			return is_running;
 		}
 
+	private:
+		void install_hook() noexcept
+		{
+			if (not keyboard_hook)
+				keyboard_hook = SetWindowsHookExW(WH_KEYBOARD_LL, low_level_keyboard_proc, GetModuleHandleW(nullptr), 0);
+		}
 
-
+		void remove_hook() noexcept
+		{
+			if (keyboard_hook)
+			{
+				UnhookWindowsHookEx(keyboard_hook);
+				keyboard_hook = nullptr;
+			}
+		}
 
 	private:
 	public:
@@ -175,6 +202,22 @@ namespace deckard::app
 		void clear_invalidated() { invalidated = false; }
 
 		void invalidate() { invalidated = true; }
+
+		void allow_win_key(bool allowed)
+		{
+			is_win_key_allowed = allowed;
+			if (is_win_key_allowed)
+			{
+				dbg::println("Install hook");
+
+				install_hook();
+			}
+			else
+			{
+				dbg::println("Uninstall hook");
+				remove_hook();
+			}
+		}
 
 		[[nodiscard]] HWND get_handle() const { return handle; }
 
@@ -355,6 +398,8 @@ namespace deckard::app
 			set_fullscreen(init_fullscreen);
 			resize();
 
+			allow_win_key(is_win_key_allowed);
+
 			is_running  = true;
 			invalidated = true;
 
@@ -363,11 +408,13 @@ namespace deckard::app
 
 			//
 
+
 			return {};
 		}
 
 		void deinitialize()
 		{
+			remove_hook();
 
 			if (is_fullscreen())
 				toggle_fullscreen();
@@ -406,8 +453,13 @@ namespace deckard::app
 
 			case WM_ACTIVATEAPP:
 			{
-				active   = wParam != 0;
-				g_active = active;
+				active = wParam != 0;
+
+				if (active and (not is_win_key_allowed))
+					install_hook();
+				else
+					remove_hook();
+
 				return 0;
 			}
 
