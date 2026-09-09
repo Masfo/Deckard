@@ -46,16 +46,16 @@ namespace deckard::app
 		extent<u16>       normalized_client_size{0, 0};
 		extent<u16>       physical_client_size{0, 0};
 
-		bool is_running{false};
-		bool is_sizing{false};
-		bool is_minimized{false};
+		bool running{false};
+		bool sizing{false};
+		bool minimized{false};
 		bool show_cursor{true};
 		bool invalidated{false};
 		bool resizable{true};
 		bool fullscreen{false};
 		bool active{true};
 
-		bool is_win_key_allowed{true};
+		bool win_key_allowed{true};
 
 		//
 		HHOOK keyboard_hook{};
@@ -165,17 +165,20 @@ namespace deckard::app
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-			return is_running;
+			return running;
 		}
 
 	private:
-		void install_hook() noexcept
+
+		void update_keyboard_hook()
 		{
-			if (not keyboard_hook)
+			const bool should_block = active and (not win_key_allowed);
+
+			if (should_block and not keyboard_hook)
+			{
 				keyboard_hook = SetWindowsHookExW(WH_KEYBOARD_LL, low_level_keyboard_proc, GetModuleHandleW(nullptr), 0);
 		}
-
-		void remove_hook() noexcept
+			else if (not should_block and keyboard_hook)
 		{
 			if (keyboard_hook)
 			{
@@ -184,7 +187,7 @@ namespace deckard::app
 			}
 		}
 
-	private:
+
 	public:
 		window() = default;
 
@@ -203,14 +206,16 @@ namespace deckard::app
 
 		void invalidate() { invalidated = true; }
 
+		[[nodiscard]] bool is_minimized() const { return minimized; }
+
+		[[nodiscard]] bool is_invalidated() const { return invalidated; }
+
+
+
 		void allow_win_key(bool allowed)
 		{
-			is_win_key_allowed = allowed;
-			if (is_win_key_allowed)
-			{
-				dbg::println("Install hook");
-
-				install_hook();
+			win_key_allowed = allowed;
+			update_keyboard_hook();
 			}
 			else
 			{
@@ -303,7 +308,7 @@ namespace deckard::app
 			invalidated = true;
 		}
 
-		bool running()
+		bool is_running()
 		{
 			if (handle_messages() == false)
 			{
@@ -314,9 +319,9 @@ namespace deckard::app
 			return true;
 		}
 
-		void close() { is_running = false; }
+		void close() { running = false; }
 
-		bool is_open() const { return handle != nullptr and is_running == true; }
+		bool is_open() const { return handle != nullptr and running == true; }
 
 		auto initialize(u16 width, u16 height, bool init_fullscreen, std::string_view title)
 		  -> std::expected<void, std::string>
@@ -398,9 +403,7 @@ namespace deckard::app
 			set_fullscreen(init_fullscreen);
 			resize();
 
-			allow_win_key(is_win_key_allowed);
-
-			is_running  = true;
+			running     = true;
 			invalidated = true;
 
 			ShowWindow(handle, SW_SHOW);
@@ -414,13 +417,13 @@ namespace deckard::app
 
 		void deinitialize()
 		{
-			remove_hook();
+			allow_win_key(false);
 
 			if (is_fullscreen())
 				toggle_fullscreen();
 
 			resize();
-			is_running = false;
+			running = false;
 
 			DestroyWindow(handle);
 			handle = nullptr;
@@ -428,6 +431,10 @@ namespace deckard::app
 		}
 
 		void destroy() { deinitialize(); }
+
+		// input
+
+		void set_input(inputs* input) { m_inputs = input; }
 	};
 
 	LRESULT CALLBACK window::wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -445,21 +452,17 @@ namespace deckard::app
 				return 1;
 			}
 
-			//case WM_PAINT:
-			//{
-			//	ValidateRect(handle, nullptr);
-			//	return 0;
-			//}
+			case WM_PAINT:
+			{
+				ValidateRect(handle, nullptr);
+				return 0;
+			}
 
 			case WM_ACTIVATEAPP:
 			{
 				active = wParam != 0;
 
-				if (active and (not is_win_key_allowed))
-					install_hook();
-				else
-					remove_hook();
-
+				update_keyboard_hook();
 				return 0;
 			}
 
@@ -536,14 +539,14 @@ namespace deckard::app
 
 			case WM_ENTERSIZEMOVE:
 			{
-				is_sizing = true;
+				sizing = true;
 				return 0;
 			}
 
 			case WM_EXITSIZEMOVE:
 			{
-				is_sizing = false;
-				if (is_running and not is_minimized)
+				sizing = false;
+				if (running and not minimized)
 					normalize_client_size();
 				return 0;
 			}
@@ -552,15 +555,16 @@ namespace deckard::app
 			case WM_SIZE:
 			{
 				if (wParam == SIZE_MINIMIZED)
-					is_minimized = true;
+					minimized = true;
+
 				if (wParam == SIZE_RESTORED or wParam == SIZE_MAXIMIZED)
 				{
-					is_minimized = false;
+					minimized = false;
 
 					size.width  = LOWORD(lParam);
 					size.height = HIWORD(lParam);
 
-					if (is_running and not is_sizing)
+					if (running and not sizing)
 						normalize_client_size();
 				}
 				return 0;
@@ -574,14 +578,14 @@ namespace deckard::app
 			case WM_DESTROY:
 			{
 				SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
-				is_running = false;
+				running = false;
 				PostQuitMessage(0);
 				return 0;
 			}
 			case WM_QUERYENDSESSION:
 			{
 				// User logging off
-				is_running = false;
+				running = false;
 				// Save states here
 
 
@@ -591,7 +595,7 @@ namespace deckard::app
 			case WM_ENDSESSION:
 			case WM_CLOSE:
 			{
-				is_running = false;
+				running = false;
 				// Save states here
 
 				return 0;
@@ -600,7 +604,7 @@ namespace deckard::app
 
 			case WM_QUIT:
 			{
-				is_running = false;
+				running = false;
 				break;
 			}
 		}
