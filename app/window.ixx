@@ -31,6 +31,16 @@ namespace deckard::app
 
 	constexpr std::wstring_view window_class_name = L"DeckardWindowClass";
 
+
+	using resize_callback = std::move_only_function<void()noexcept>;
+	using frame_callback  = std::move_only_function<bool()noexcept>;
+	using size_callback   = std::move_only_function<void(extent<u16>) noexcept>;
+
+	using initialize_callback = std::move_only_function<bool() noexcept>;
+	using destroy_callback    = std::move_only_function<void() noexcept>;
+
+	constexpr u32 RESIZE_TIMER_ID = 0xDEAD'BEEF;
+
 	export class window
 	{
 	private:
@@ -42,6 +52,7 @@ namespace deckard::app
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 		extent<u16>       size{1920, 1080};
+		extent<u16>       last_size{1920, 1080};
 		const extent<u16> min_size{640, 480};
 		extent<u16>       normalized_client_size{0, 0};
 		extent<u16>       physical_client_size{0, 0};
@@ -83,7 +94,8 @@ namespace deckard::app
 
 		void set_client_size(const extent<u16> new_size)
 		{
-			size = adjust_to_current_dpi(new_size);
+			normalized_client_size = new_size;
+			set_fullscreen(fullscreen);
 			resize();
 			invalidated = true;
 		}
@@ -156,12 +168,17 @@ namespace deckard::app
 			  SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 		}
 
-		bool handle_messages() const
-		{
+		bool handle_messages() 		{
 			assert::check(handle != nullptr);
 			MSG msg{};
 			while (PeekMessage(&msg, handle, 0, 0, PM_REMOVE))
 			{
+				if (msg.message == WM_QUIT)
+				{
+					running = false;
+					break;
+				}
+
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
@@ -198,8 +215,16 @@ namespace deckard::app
 		window(window&&)                 = delete;
 		window& operator=(window&&)      = delete;
 
-		[[nodiscard]] bool is_invalidated() const { return invalidated; }
+		// callbacks
+		resize_callback on_resize_begin;
+		resize_callback on_resize_end;
+		size_callback   on_size;
+		frame_callback  process_frame;
 
+		initialize_callback on_initialize;
+		destroy_callback    on_destroy;
+
+		//
 		void set_title(std::string_view title) { SetWindowTextA(handle, title.data()); }
 
 		void clear_invalidated() { invalidated = false; }
@@ -409,14 +434,27 @@ namespace deckard::app
 			ShowWindow(handle, SW_SHOW);
 			SetForegroundWindow(handle);
 
-			//
-
+			if (on_initialize == nullptr)
+			{
+				process_frame = [this]() noexcept { return true; };
+			}
+			else
+			{
+				if (not on_initialize())
+				{
+					deinitialize();
+					return std::unexpected("window: failed to initialize");
+				}
+			}
 
 			return {};
 		}
 
 		void deinitialize()
 		{
+			if (handle == nullptr)
+				return;
+
 			allow_win_key(false);
 
 			if (is_fullscreen())
@@ -428,6 +466,8 @@ namespace deckard::app
 			DestroyWindow(handle);
 			handle = nullptr;
 			UnregisterClass(window_class_name.data(), GetModuleHandle(0));
+
+			SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
 		}
 
 		void destroy() { deinitialize(); }
@@ -446,15 +486,17 @@ namespace deckard::app
 				return 0;
 			}
 
-			case WM_ERASEBKGND:
-			{
-				// Prevent flickering by not erasing the background
-				return 1;
-			}
+			//
+			case WM_ERASEBKGND: return 1;
 
 			case WM_PAINT:
 			{
 				ValidateRect(handle, nullptr);
+
+				if (running and sizing and not minimized)
+				{
+					process_frame();
+				}
 				return 0;
 			}
 
@@ -539,15 +581,43 @@ namespace deckard::app
 
 			case WM_ENTERSIZEMOVE:
 			{
-				sizing = true;
+				sizing    = true;
+
+				if (on_resize_begin)
+					on_resize_begin();
+
+				SetTimer(handle, RESIZE_TIMER_ID, USER_TIMER_MINIMUM, nullptr);
 				return 0;
 			}
 
 			case WM_EXITSIZEMOVE:
 			{
+				KillTimer(handle, RESIZE_TIMER_ID);
 				sizing = false;
+
+				const extent<u16> current      = get_clientsize();
+				const bool        size_changed = current != physical_client_size;
+
 				if (running and not minimized)
 					normalize_client_size();
+
+
+				if (size_changed and on_resize_end)
+					on_resize_end();
+
+
+				return 0;
+			}
+
+			case WM_TIMER:
+			{
+				if (wParam == RESIZE_TIMER_ID)
+				{
+					InvalidateRect(handle, nullptr, FALSE);
+
+					if (on_size)
+						on_size(get_clientsize());
+				}
 				return 0;
 			}
 
@@ -567,8 +637,24 @@ namespace deckard::app
 					if (running and not sizing)
 						normalize_client_size();
 				}
+
+				if (on_size)
+					on_size(get_clientsize());
+
+
 				return 0;
 			}
+
+
+			case WM_CHAR:
+			{
+				char32_t ch = static_cast<char32_t>(wParam);
+
+				if (m_inputs)
+					m_inputs->character_input(ch);
+
+				return 0;
+			};
 
 				// Applications running on Windows Vista and Windows Server 2008 should adhere to these guidelines
 				// to ensure that the Restart Manager can shut down and restart applications if necessary to install
@@ -595,17 +681,21 @@ namespace deckard::app
 			case WM_ENDSESSION:
 			case WM_CLOSE:
 			{
+				// Save states here
 				running = false;
 				// Save states here
 
+				if (on_destroy)
+					on_destroy();
 				return 0;
 			}
-
-
-			case WM_QUIT:
+			case WM_DESTROY:
 			{
+				SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
 				running = false;
-				break;
+				PostQuitMessage(0);
+			
+				return 0;
 			}
 		}
 
