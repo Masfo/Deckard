@@ -268,6 +268,73 @@ export namespace deckard
 	};
 
 	// ###########################################################################
+
+	export enum class invoke_error : std::uint8_t
+	{
+		conditional_failed = 1,
+		callable_invalid   = 2,
+	};
+
+	namespace detail_invoke
+	{
+		template<typename Fn>
+		concept not_member_pointer = not std::is_member_pointer_v<std::remove_cvref_t<Fn>>;
+
+		template<typename Fn, typename... Args>
+		using invoke_result_t = std::invoke_result_t<Fn, Args...>;
+
+		template<typename Fn>
+		constexpr bool is_callable_valid(Fn&& cb)
+		{
+			if constexpr (requires { cb != nullptr; })
+			{
+				return cb != nullptr;
+			}
+			else
+			{
+				return true;
+			}
+		}
+	} // namespace detail_invoke
+
+	// invoke_if, returns std::expected<R, invoke_error>
+	template<typename Fn, typename... Args>
+	requires std::invocable<Fn, Args...> and detail_invoke::not_member_pointer<Fn>
+	constexpr auto invoke_if(Fn&& cb, Args&&... args)
+	  -> std::expected<detail_invoke::invoke_result_t<Fn, Args...>, invoke_error>
+	{
+		using R = detail_invoke::invoke_result_t<Fn, Args...>;
+
+		if (not detail_invoke::is_callable_valid(cb))
+		{
+			return std::unexpected(invoke_error::callable_invalid);
+		}
+
+		if constexpr (std::is_void_v<R>)
+		{
+			std::invoke(std::forward<Fn>(cb), std::forward<Args>(args)...);
+			return {};
+		}
+		else
+		{
+			return std::invoke(std::forward<Fn>(cb), std::forward<Args>(args)...);
+		}
+	}
+
+	// bool conditional overload, returns std::expected<R, invoke_error>
+	template<typename Fn, typename... Args>
+	requires std::invocable<Fn, Args...> and detail_invoke::not_member_pointer<Fn>
+	constexpr auto invoke_if(bool condition, Fn&& cb, Args&&... args)
+	  -> std::expected<detail_invoke::invoke_result_t<Fn, Args...>, invoke_error>
+	{
+		if (not condition)
+		{
+			return std::unexpected(invoke_error::conditional_failed);
+		}
+
+		return invoke_if(std::forward<Fn>(cb), std::forward<Args>(args)...);
+	}
+
 	// ###########################################################################
 
 
@@ -282,13 +349,16 @@ export namespace deckard
 		{
 		}
 
+		bool operator==(const extent& other) const { return width == other.width and height == other.height; }
+
 		T width{T{0}};
 		T height{T{0}};
 	};
 
-	auto to_extent(const RECT& r) -> extent<u16>
+	template<std::unsigned_integral T = u16>
+	auto to_extent(const RECT& r) -> extent<T>
 	{
-		return extent{static_cast<u16>(r.right - r.left), static_cast<u16>(r.bottom - r.top)};
+		return extent<T>{static_cast<T>(r.right - r.left), static_cast<T>(r.bottom - r.top)};
 	}
 
 	// 	if constexpr (requires { from.data(); } )

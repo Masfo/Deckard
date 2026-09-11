@@ -16,6 +16,128 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
+TEST_CASE("invoke_if", "[invoke_if]")
+{
+	using void_callback = std::move_only_function<void() noexcept>;
+	using void_callback_param = std::move_only_function<void(int) noexcept>;
+	using callback      = std::move_only_function<int() noexcept>;
+	using callback_param = std::move_only_function<int(int) noexcept>;
+
+
+	void_callback valid_void_callable = []() noexcept { };
+	void_callback_param valid_void_callable_param = [](int x) noexcept { (void)x; };
+	void_callback invalid_void_callable;
+	void_callback_param invalid_void_callable_param;
+
+	callback valid_callable = []() noexcept { return 42; };
+	callback_param valid_callable_param = [](int x) noexcept { return x*2; };
+	callback invalid_callable;
+	callback_param invalid_callable_param;
+
+	SECTION("valid callable")
+	{
+		if (auto r = invoke_if(valid_callable); r)
+			CHECK(r.value() == 42);
+
+		if (auto r = invoke_if(valid_void_callable); r)
+			CHECK(r.has_value());
+
+		if (auto r = invoke_if(valid_callable_param, 21); r)
+			CHECK(r.value() == 42);
+
+		if (auto r = invoke_if(valid_void_callable_param, 21); r)
+			CHECK(r.has_value());
+	}
+
+	SECTION("conditional true")
+	{
+		if (auto r = invoke_if(true, valid_callable); r)
+			CHECK(r.value() == 42);
+
+		if (auto r = invoke_if(true, valid_void_callable); r)
+			CHECK(r.has_value());
+
+		if (auto r = invoke_if(true, valid_callable_param, 21); r)
+			CHECK(r.value() == 42);
+
+		if (auto r = invoke_if(true, valid_void_callable_param, 21); r)
+			CHECK(r.has_value());
+	}
+
+	SECTION("invalid callable")
+	{
+		if (auto r = invoke_if(invalid_callable); not r)
+			CHECK(r.error() == invoke_error::callable_invalid);
+
+		if (auto r = invoke_if(invalid_void_callable); not r)
+			CHECK(r.error() == invoke_error::callable_invalid);
+
+		if (auto r = invoke_if(invalid_callable_param, 21); not r)
+			CHECK(r.error() == invoke_error::callable_invalid);
+
+		if (auto r = invoke_if(invalid_void_callable_param, 21); not r)
+			CHECK(r.error() == invoke_error::callable_invalid);
+	}
+
+	SECTION("conditional false")
+	{
+		if (auto r = invoke_if(false, valid_callable); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(false, valid_void_callable); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(false, valid_callable_param, 21); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(false, valid_void_callable_param, 21); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+	}
+
+	SECTION("conditional false with invalid callable")
+	{
+		if (auto r = invoke_if(false, invalid_callable); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(false, invalid_void_callable); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(false, invalid_callable_param, 21); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(false, invalid_void_callable_param, 21); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+	}
+
+	SECTION("raw lambdas") 
+	{
+		auto lambda = [](int x, int y) noexcept { return x+y; };
+		if (auto r = invoke_if(lambda, 21, 21); r)
+			CHECK(r.value() == 42);
+
+		int (*fn_ptr)(int)  = [](int x) noexcept { return x*2; };
+		if (auto r = invoke_if(fn_ptr, 21); r)
+			CHECK(r.value() == 42);
+
+		int (*null_fn_ptr)(int) = nullptr;
+		if (auto r = invoke_if(null_fn_ptr, 21); not r)
+			CHECK(r.error() == invoke_error::callable_invalid);
+
+		if (auto r = invoke_if(false, lambda, 21, 21); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+	}
+
+	SECTION("argument forward")
+	{
+		auto move_fn = [](std::unique_ptr<int> ptr) noexcept { return *ptr; };
+		auto ptr     = std::make_unique<int>(42);
+
+		if (auto r = invoke_if(move_fn, std::move(ptr)); r)
+			CHECK(r.value() == 42);
+	}
+}
+
 TEST_CASE("float bits uint", "[float][bits][uint]")
 {
 	using namespace Catch;
@@ -678,11 +800,11 @@ TEST_CASE("helpers", "[helpers]")
 
 	SECTION("try_to_string")
 	{
-		auto a = try_to_string(0xffff, 16);
+		auto a = try_to_string(0xFFFF, 16);
 		CHECK(a.has_value() == true);
 		CHECK("ffff" == *a);
 
-		a = try_to_string(0xffff);
+		a = try_to_string(0xFFFF);
 		CHECK(a.has_value() == true);
 		CHECK("65535" == *a);
 
