@@ -282,7 +282,6 @@ export namespace deckard::utf8
 
 	std::optional<size_t> length(std::string_view buffer) { return length(to_span(buffer)); }
 
-	// std::optional<size_t> length(const char* str, u32 len) { return length({as<const u8*>(str), len}); }
 
 	std::expected<void, std::string> valid(std::span<const u8> buffer)
 	{
@@ -402,13 +401,6 @@ export namespace deckard::utf8
 
 		return ret.has_value() == true;
 	}
-
-	// bool is_valid(const char* str, u32 len)
-	//{
-	//	auto ret = valid(utf8::as_ro_bytes(str, len));
-	//
-	//	return ret ? true : false;
-	// }
 
 	char32 decode_codepoint(std::span<const u8> buffer, u32 index = 0)
 	{
