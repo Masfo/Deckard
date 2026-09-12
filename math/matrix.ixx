@@ -365,9 +365,8 @@ namespace deckard::math
 		// y grows down
 		return ortho(0.0f, width, height, 0.0f, near, far);
 #else
-		return ortho(0.0f, width, 0.0f, height, near, far);
 		// y grows up
-		//
+		return ortho(0.0f, width, 0.0f, height, near, far);
 #endif
 	}
 
