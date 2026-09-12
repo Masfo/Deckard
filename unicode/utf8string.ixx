@@ -329,6 +329,14 @@ namespace deckard::utf8
 			buffer.assign(start.ptr->data().subspan(start_index, end_index - start_index));
 		}
 
+		string(u64 count, char32 c)
+		{
+			auto encoded = encode(c);
+			buffer.reserve(count * encoded.count);
+			for (u64 i = 0; i < count; ++i)
+				buffer.append(std::span<const u8>{encoded.bytes.data(), encoded.count});
+		}
+
 		string(std::span<const u8> input) { buffer.assign(input); }
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
@@ -453,7 +461,7 @@ namespace deckard::utf8
 
 		iterator insert(iterator pos, char32 c)
 		{
-			auto decoded = encode_codepoint(c);
+			auto decoded = encode(c);
 			return insert(pos, {decoded.bytes.data(), decoded.count});
 		}
 
@@ -479,7 +487,7 @@ namespace deckard::utf8
 
 		void assign(unit u)
 		{
-			auto encoded = encode_codepoint(u);
+			auto encoded = encode(u);
 			buffer.assign(std::span<const u8>{encoded.bytes.data(), encoded.count});
 		}
 
@@ -509,7 +517,7 @@ namespace deckard::utf8
 
 		void append(const char32 c)
 		{
-			auto encoded = encode_codepoint(c);
+			auto encoded = encode(c);
 			buffer.append(std::span<const u8>{encoded.bytes.data(), encoded.count});
 		}
 
@@ -529,7 +537,7 @@ namespace deckard::utf8
 
 		void prepend(const char32 c)
 		{
-			auto encoded = encode_codepoint(c);
+			auto encoded = encode(c);
 			buffer.prepend({encoded.bytes.data(), encoded.count});
 		}
 
@@ -1386,7 +1394,7 @@ namespace deckard::utf8
 
 	export inline std::ostream& operator<<(std::ostream& os, const utf8::string& s) { return os << s.to_string(); }
 
-	export utf8::string encode_codepoints(std::span<const char32> codepoints)
+	export utf8::string encodes(std::span<const char32> codepoints)
 	{
 		string result;
 		for (char32 c : codepoints)

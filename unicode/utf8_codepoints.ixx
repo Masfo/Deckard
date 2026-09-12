@@ -26,6 +26,24 @@ namespace deckard::utf8
 
 	export constexpr bool is_four_byte_codepoint(const u8 byte) { return ((byte >> 3) == 0x1E); }
 
+	// utf-16 surrogates
+
+	export constexpr bool is_surrogate(char16 c) noexcept { return c >= 0xD800 and c <= 0xDFFF; }
+
+	export constexpr bool is_surrogate(char32 c) noexcept { return c >= 0xD800 and c <= 0xDFFF; }
+
+	export constexpr bool is_high_surrogate(char16 c) noexcept { return c >= 0xD800 and c <= 0xDBFF; }
+
+	export constexpr bool is_low_surrogate(char16 c) noexcept { return c >= 0xDC00 and c <= 0xDFFF; }
+
+	export constexpr auto combine_surrogates(char16 high, char16 low) noexcept -> char32
+	{
+		return ((static_cast<char32_t>(high) - 0xD800) << 10) + (static_cast<char32_t>(low) - 0xDC00) + 0x1'0000;
+	}
+
+
+
+
 	export constexpr auto is_combining_codepoint(char32_t cp) noexcept -> bool
 	{
 		constexpr std::pair<char32_t, char32_t> ranges[] = {
@@ -223,18 +241,18 @@ namespace deckard::utf8
 		return cp >= 0xE'0000 && cp <= 0xE'007F; // includes CANCEL TAG at E007F
 	}
 
-	export struct EncodedCodepoint
+	export struct encoded_codepoints
 	{
 		std::array<u8, 4> bytes{0};
 		u8                count{0};
 	};
 
-	export EncodedCodepoint encode_codepoint(char32 cp)
+	export encoded_codepoints encode(char32 cp)
 	{
-		EncodedCodepoint ecp;
+		encoded_codepoints ecp;
 
 		// Surrogates (U+D800–U+DFFF) are not valid Unicode codepoints
-		if (cp >= 0xD800 and cp <= 0xDFFF)
+		if (is_surrogate(cp))
 		{
 			ecp.bytes[0] = 0xEF;
 			ecp.bytes[1] = 0xBF;

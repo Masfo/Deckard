@@ -17,7 +17,7 @@ namespace deckard::utf8
 
 	inline namespace v1
 	{
-		
+
 		export class view
 		{
 		public:
@@ -570,8 +570,8 @@ namespace deckard::utf8
 				if (prefix.m_data.size_bytes() > m_data.size_bytes())
 					return false;
 
-				return std::string_view(reinterpret_cast<const char*>(m_data.data()), prefix.m_data.size_bytes()) ==
-					   std::string_view(reinterpret_cast<const char*>(prefix.m_data.data()), prefix.m_data.size_bytes());
+				return std::string_view(reinterpret_cast<const char*>(m_data.data()), prefix.m_data.size_bytes())
+					   == std::string_view(reinterpret_cast<const char*>(prefix.m_data.data()), prefix.m_data.size_bytes());
 			}
 
 			[[nodiscard]] bool starts_with(std::string_view prefix) const { return starts_with(view(prefix)); }
@@ -600,8 +600,8 @@ namespace deckard::utf8
 
 				return std::string_view(
 						 reinterpret_cast<const char*>(m_data.data() + m_data.size_bytes() - suffix.m_data.size_bytes()),
-						 suffix.m_data.size_bytes()) ==
-					   std::string_view(reinterpret_cast<const char*>(suffix.m_data.data()), suffix.m_data.size_bytes());
+						 suffix.m_data.size_bytes())
+					   == std::string_view(reinterpret_cast<const char*>(suffix.m_data.data()), suffix.m_data.size_bytes());
 			}
 
 			[[nodiscard]] bool ends_with(std::string_view suffix) const { return ends_with(view(suffix)); }
@@ -991,6 +991,7 @@ namespace deckard::utf8
 
 template<>
 struct std::hash<deckard::utf8::view>
+
 {
 	size_t operator()(const deckard::utf8::view& value) const { return deckard::utils::hash_values(value.data()); }
 };

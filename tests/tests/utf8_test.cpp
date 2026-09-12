@@ -64,23 +64,23 @@ TEST_CASE("utf8::ascii", "[utf8]")
 
 	SECTION("encode codepoint")
 	{
-		auto ecp = utf8::encode_codepoint(U'$');
+		auto ecp = utf8::encode(U'$');
 
 		CHECK(ecp.count == 1);
 		CHECK(ecp.bytes[0] == 0x24);
 
-		ecp = utf8::encode_codepoint(U'£');
+		ecp = utf8::encode(U'£');
 		CHECK(ecp.count == 2);
 		CHECK(ecp.bytes[0] == 0xC2);
 		CHECK(ecp.bytes[1] == 0xA3);
 
-		ecp = utf8::encode_codepoint(U'€');
+		ecp = utf8::encode(U'€');
 		CHECK(ecp.count == 3);
 		CHECK(ecp.bytes[0] == 0xE2);
 		CHECK(ecp.bytes[1] == 0x82);
 		CHECK(ecp.bytes[2] == 0xAC);
 
-		ecp = utf8::encode_codepoint(U'💶');
+		ecp = utf8::encode(U'💶');
 		CHECK(ecp.count == 4);
 		CHECK(ecp.bytes[0] == 0xF0);
 		CHECK(ecp.bytes[1] == 0x9F);
@@ -112,6 +112,22 @@ TEST_CASE("utf8::string", "[utf8]")
 		str = "नमस्ते";
 		CHECK(str.length() == 6);
 		CHECK(str.size_in_bytes() == 18);
+	}
+
+	SECTION("initialize count and character")
+	{
+		utf8::string str(5, 'a');
+		CHECK(str.size() == 5);
+		CHECK(str.length() == 5);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 5);
+		CHECK(std::string(str.as_string_view()) == "aaaaa"sv);
+		str = utf8::string(3, U'💶');
+		CHECK(str.size() == 3);
+		CHECK(str.length() == 3);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 12);
+		CHECK(std::string(str.as_string_view()) == "💶💶💶"sv);
 	}
 
 	SECTION("initialize from array of bytes")

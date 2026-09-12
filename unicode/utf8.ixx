@@ -123,7 +123,7 @@ namespace std
 			if (m == mode::decimal)
 				return std::format_to(ctx.out(), "{}", static_cast<u32>(v.cp));
 
-			auto encoded = encode_codepoint(v.cp);
+			auto encoded = encode(v.cp);
 			return std::format_to(
 			  ctx.out(), "{}", std::string_view{reinterpret_cast<const char*>(encoded.bytes.data()), encoded.count});
 		}
@@ -221,7 +221,7 @@ namespace std
 			if (m == mode::decimal)
 				return std::format_to(ctx.out(), "{}", static_cast<u32>(cp));
 
-			auto encoded = encode_codepoint(cp);
+			auto encoded = encode(cp);
 			return std::format_to(
 			  ctx.out(), "{}", std::string_view{reinterpret_cast<const char*>(encoded.bytes.data()), encoded.count});
 		}
