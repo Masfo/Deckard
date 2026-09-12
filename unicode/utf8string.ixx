@@ -334,7 +334,7 @@ namespace deckard::utf8
 			auto encoded = encode(c);
 			buffer.reserve(count * encoded.count);
 			for (u64 i = 0; i < count; ++i)
-				buffer.append(std::span<const u8>{encoded.bytes.data(), encoded.count});
+				buffer.append(encoded.data());
 		}
 
 		string(std::span<const u8> input) { buffer.assign(input); }

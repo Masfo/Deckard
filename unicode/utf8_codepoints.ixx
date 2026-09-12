@@ -245,6 +245,9 @@ namespace deckard::utf8
 	{
 		std::array<u8, 4> bytes{0};
 		u8                count{0};
+
+		std::span<const u8> data() const { return std::span<const u8>{bytes.data(), count}; }
+
 	};
 
 	export encoded_codepoints encode(char32 cp)
