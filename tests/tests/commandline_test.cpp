@@ -54,14 +54,14 @@ TEST_CASE("commandline", "[commandline][cli]")
 
 		CHECK(cli.parse(
 		  "-i8 -128 -u8 255 -i16 -32768 -u16 65535 -i32 -2147483648 -u32 4294967295 -i64 -9223372036854775808 -u64 18446744073709551615"sv));
-		CHECK(vi8 == -128);
-		CHECK(vu8 == 255);
-		CHECK(vi16 == -32768);
-		CHECK(vu16 == 65535);
-		CHECK(vi32 == -2'147'483'648);
-		CHECK(vu32 == 4'294'967'295);
-		CHECK(vi64 == -9'223'372'036'854'775'808);
-		CHECK(vu64 == 18'446'744'073'709'551'615);
+		CHECK(vi8 == limits::min<i8>);
+		CHECK(vu8 == limits::max<u8>);
+		CHECK(vi16 == limits::min<i16>);
+		CHECK(vu16 == limits::max<u16>);
+		CHECK(vi32 == limits::min<i32>);
+		CHECK(vu32 == limits::max<u32>);
+		CHECK(vi64 == limits::min<i64>);
+		CHECK(vu64 == limits::max<u64>);
 	}
 
 	SECTION("string value")
