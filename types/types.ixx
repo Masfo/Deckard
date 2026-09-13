@@ -11,10 +11,10 @@ struct sink_t final
 #ifdef __cpp_placeholder_variables
 #error ("remove this");
 #endif
-	template<typename T>
-	constexpr void operator=(T&&) const
-	{
-	}
+	sink_t()              = default;
+	sink_t(const sink_t&) = delete;//("sink_t cannot be copied");
+
+	void operator=(auto&&) const noexcept { }
 };
 
 export inline constexpr sink_t _;
@@ -31,6 +31,7 @@ export namespace deckard
 	using u64 = std::uint64_t;
 	using i64 = std::int64_t;
 
+	using char16 = char16_t;
 	using char32 = char32_t;
 	using usize  = std::uintptr_t;
 	using isize  = std::intptr_t;
@@ -269,8 +270,7 @@ export namespace deckard
 
 	// ###########################################################################
 
-	export enum class invoke_error : std::uint8_t
-	{
+	export enum class invoke_error : u8 {
 		conditional_failed = 1,
 		callable_invalid   = 2,
 	};
@@ -280,39 +280,34 @@ export namespace deckard
 		template<typename Fn>
 		concept not_member_pointer = not std::is_member_pointer_v<std::remove_cvref_t<Fn>>;
 
-		template<typename Fn, typename... Args>
-		using invoke_result_t = std::invoke_result_t<Fn, Args...>;
+		template<typename Fn>
+		concept nullable_callable = requires(Fn& fn) {
+			{ fn != nullptr } -> std::convertible_to<bool>;
+		};
 
 		template<typename Fn>
-		constexpr bool is_callable_valid(Fn&& cb)
+		constexpr bool is_callable_valid(Fn& cb)
 		{
-			if constexpr (requires { cb != nullptr; })
-			{
+			if constexpr (nullable_callable<Fn>)
 				return cb != nullptr;
-			}
 			else
-			{
 				return true;
-			}
 		}
 	} // namespace detail_invoke
 
-	// invoke_if, returns std::expected<R, invoke_error>
 	template<typename Fn, typename... Args>
 	requires std::invocable<Fn, Args...> and detail_invoke::not_member_pointer<Fn>
-	constexpr auto invoke_if(Fn&& cb, Args&&... args)
-	  -> std::expected<detail_invoke::invoke_result_t<Fn, Args...>, invoke_error>
+	constexpr auto invoke_if(Fn&& cb, Args&&... args) -> std::expected<std::invoke_result_t<Fn, Args...>, invoke_error>
 	{
-		using R = detail_invoke::invoke_result_t<Fn, Args...>;
+		using R = std::invoke_result_t<Fn, Args...>;
 
 		if (not detail_invoke::is_callable_valid(cb))
-		{
 			return std::unexpected(invoke_error::callable_invalid);
-		}
 
 		if constexpr (std::is_void_v<R>)
 		{
 			std::invoke(std::forward<Fn>(cb), std::forward<Args>(args)...);
+
 			return {};
 		}
 		else
@@ -321,16 +316,13 @@ export namespace deckard
 		}
 	}
 
-	// bool conditional overload, returns std::expected<R, invoke_error>
 	template<typename Fn, typename... Args>
 	requires std::invocable<Fn, Args...> and detail_invoke::not_member_pointer<Fn>
 	constexpr auto invoke_if(bool condition, Fn&& cb, Args&&... args)
-	  -> std::expected<detail_invoke::invoke_result_t<Fn, Args...>, invoke_error>
+	  -> std::expected<std::invoke_result_t<Fn, Args...>, invoke_error>
 	{
 		if (not condition)
-		{
 			return std::unexpected(invoke_error::conditional_failed);
-		}
 
 		return invoke_if(std::forward<Fn>(cb), std::forward<Args>(args)...);
 	}
