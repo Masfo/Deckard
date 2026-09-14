@@ -6,13 +6,16 @@ export module deckard.types;
 import std;
 
 // sink
+#ifdef __cpp_placeholder_variables
+#error "placeholder variables are available, drop this shim"
+#endif
 struct sink_t final
 {
-#ifdef __cpp_placeholder_variables
-#error ("remove this");
-#endif
-	sink_t()              = default;
-	sink_t(const sink_t&) = delete;//("sink_t cannot be copied");
+	sink_t()                         = default;
+	sink_t(const sink_t&)            = delete;
+	sink_t(sink_t&&)                 = delete;
+	sink_t& operator=(const sink_t&) = delete;
+	sink_t& operator=(sink_t&&)      = delete;
 
 	void operator=(auto&&) const noexcept { }
 };
@@ -31,6 +34,7 @@ export namespace deckard
 	using u64 = std::uint64_t;
 	using i64 = std::int64_t;
 
+	using char8  = char8_t;
 	using char16 = char16_t;
 	using char32 = char32_t;
 	using usize  = std::uintptr_t;
