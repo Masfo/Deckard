@@ -94,7 +94,7 @@ namespace deckard::utf8
 				u8 byte = ptr->at(index);
 
 				const auto type = utf8_table[byte];
-				codepoint       = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
+				codepoint       = state ? (byte & 0x3Fu) | (codepoint << 6) : (0xFFu >> type) & byte;
 				state           = utf8_table[256 + state + type];
 
 				if (state == 0)
@@ -337,6 +337,8 @@ namespace deckard::utf8
 				buffer.append(encoded.data());
 		}
 
+		string(std::u8string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
+
 		string(std::span<const u8> input) { buffer.assign(input); }
 
 		string(std::string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
@@ -440,9 +442,14 @@ namespace deckard::utf8
 			return true;
 		}
 
+		bool operator==(const std::u8string_view other) const
+		{
+			return operator==(std::span<const u8>{as<const u8*>(other.data()), other.size()});
+		}
+
+
 		bool operator==(std::string_view str) const { return operator==(view(str)); }
 
-	
 		// insert
 		iterator insert(iterator pos, std::span<const u8> input)
 		{
@@ -1054,17 +1061,27 @@ namespace deckard::utf8
 			return v.subview_bytes(start_index, end_index - start_index);
 		}
 
-
 		[[nodiscard]] std::string_view as_string_view() const
 		{
 			return std::string_view{as<const char*>(buffer.data().data()), buffer.size()};
 		}
 
-		std::string to_string() const
+		[[nodiscard]] std::u8string_view as_u8string_view() const
 		{
-			std::string_view view{as<const char*>(buffer.data().data()), buffer.size()};
-			return std::string(view);
+			return std::u8string_view{as<const char8_t*>(buffer.data().data()), buffer.size()};
 		}
+
+		[[nodiscard]] std::string as_string() const
+		{
+			return std::string{as<const char*>(buffer.data().data()), buffer.size()};
+		}
+
+		[[nodiscard]] std::u8string as_u8string() const
+		{
+			return std::u8string{as<const char8_t*>(buffer.data().data()), buffer.size()};
+		}
+
+		[[nodiscard]] std::string to_string() const { return as_string(); }
 
 		size_t find_first_of(const string& str, size_t pos = 0) const
 		{

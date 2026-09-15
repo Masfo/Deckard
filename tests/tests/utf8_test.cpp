@@ -616,6 +616,15 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(str.size() == 11);
 		CHECK(str == "abc ABC 123");
 	}
+
+	SECTION("to_string/as_string/as_string_view")
+	{
+		utf8::string str("hello 🌍");
+		CHECK(str.to_string() == "hello 🌍");
+		CHECK(str.as_string() == "hello 🌍");
+		CHECK(str.as_string_view() == std::string_view("hello 🌍"));
+		CHECK(str.as_u8string() == std::u8string(u8"hello 🌍"));
+	}
 }
 
 TEST_CASE("utf8::view", "[utf8][utf8view]")
