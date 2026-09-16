@@ -152,6 +152,66 @@ TEST_CASE("utf8::string", "[utf8]")
 		CHECK(data[9] == 0x8D);
 	}
 
+	SECTION("u8 str ctor") 
+	{
+		utf8::string str(u8"hello 🌍");
+		CHECK(str.size() == 7);
+		CHECK(str.length() == 7);
+		CHECK(str.empty() == false);
+		CHECK(str.size_in_bytes() == 10);
+		CHECK(str.valid());
+		CHECK(std::string(str.as_string_view()) == "hello 🌍"sv);
+	}
+
+	SECTION("lengths")
+	{ 
+		utf8::string str;
+		CHECK(str.size() == 0);
+		CHECK(str.length() == 0);
+		CHECK(str.empty() == true);
+
+		str = u8"hello 🌍";
+		CHECK(str.size() == 7);
+		CHECK(str.length() == 7);
+		CHECK(str.size_in_bytes() == 10);
+
+
+		str = "hello";
+		CHECK(str.size() == 5);
+		CHECK(str.length() == 5);
+		CHECK(str.size_in_bytes() == 5);
+
+		str = std::u8string_view{u8"hello 🌍🌍"};
+		CHECK(str.size() == 8);
+		CHECK(str.length() == 8);
+		CHECK(str.size_in_bytes() == 14);
+		
+
+
+	}
+
+	SECTION("compare against u8 str")
+	{ 
+		utf8::string str = u8"hello 🌍";
+
+		const char8* u8str = u8"hello 🌍";
+
+		CHECK(str == u8str);
+		CHECK(u8str == str);
+		CHECK(str != u8"world");
+		CHECK(u8"world" != str);
+
+
+		str = u8"hello";
+		const char8* u8str2 = u8"hello";
+
+		CHECK(str == u8str2);
+		CHECK(u8str2 == str);
+		CHECK(str != u8"world");
+
+		
+	}
+
 
 	SECTION("unicode c-tor")
 	{
@@ -1803,6 +1863,16 @@ TEST_CASE("view", "[utf8][view]")
 		//
 	}
 
+	SECTION("lengths")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+		CHECK(w.length() == 7);
+		CHECK(w.size_in_bytes() == 13);
+		CHECK(w.size_in_bytes() == str.size_in_bytes());
+	}
+
 	SECTION("compare")
 	{
 		utf8::string str("🌍hello🌍");
@@ -1815,6 +1885,37 @@ TEST_CASE("view", "[utf8][view]")
 
 		CHECK(w == w2);
 	}
+
+	SECTION("compare with stringview")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+		CHECK(w == "🌍hello🌍"sv);
+		CHECK("🌍hello🌍"sv == w);
+		CHECK(w != "world"sv);
+	}
+
+	SECTION("compare with char8")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+		CHECK(w == u8"🌍hello🌍");
+		CHECK(u8"🌍hello🌍" == w);
+		CHECK(w != u8"world");
+	}
+
+	SECTION("compare with u8string_view")
+	{
+		utf8::string str("🌍hello🌍");
+		utf8::view   w(str.data());
+		CHECK(w.size() == 7);
+		CHECK(w == std::u8string_view(u8"🌍hello🌍"));
+		CHECK(std::u8string_view(u8"🌍hello🌍") == w);
+		CHECK(w != std::u8string_view(u8"world"));
+	}
+
 
 	SECTION("contains")
 	{

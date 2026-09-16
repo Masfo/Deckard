@@ -57,7 +57,7 @@ export namespace deckard::utf8
 		u32    bytes_consumed{};
 	};
 
-	[[nodiscard]] constexpr auto u8_at(std::span<const u8> s, size_t i) -> u8 { return static_cast<u8>(s[i]); }
+	[[nodiscard]] constexpr auto u8_at(std::span<const u8> s, usize i) -> u8 { return static_cast<u8>(s[i]); }
 
 
 } // namespace deckard::utf8
@@ -65,8 +65,7 @@ export namespace deckard::utf8
 export namespace deckard::utf8
 {
 
-
-	decode_result decode_unchecked(std::span<const u8> buffer, size_t index) noexcept
+	decode_result decode_unchecked(std::span<const u8> buffer, usize index) noexcept
 	{
 		u8 byte = u8_at(buffer, index);
 		if (byte < 0x80)
@@ -76,7 +75,7 @@ export namespace deckard::utf8
 		u32 codepoint = 0;
 
 		u32 type  = utf8_table[byte];
-		codepoint = (0xffu >> type) & byte;
+		codepoint = (0xFFu >> type) & byte;
 		state     = utf8_table[256 + state + type];
 
 		if (state == UTF8_REJECT)
@@ -89,7 +88,7 @@ export namespace deckard::utf8
 			++bytes_consumed;
 
 			type      = utf8_table[byte];
-			codepoint = (byte & 0x3fu) | (codepoint << 6);
+			codepoint = (byte & 0x3Fu) | (codepoint << 6);
 			state     = utf8_table[256 + state + type];
 
 			if (state == UTF8_ACCEPT)
@@ -102,7 +101,7 @@ export namespace deckard::utf8
 		return {REPLACEMENT_CHARACTER, bytes_consumed};
 	}
 
-	auto decode(std::span<const u8> buffer, size_t index) noexcept -> std::optional<decode_result>
+	auto decode(std::span<const u8> buffer, usize index) noexcept -> std::optional<decode_result>
 	{
 		if (index >= buffer.size())
 			return std::nullopt;
@@ -111,7 +110,7 @@ export namespace deckard::utf8
 
 	std::generator<char32> yield_codepoints(std::span<const u8> buffer)
 	{
-		size_t i = 0;
+		usize i = 0;
 		while (i < buffer.size())
 		{
 			auto [codepoint, bytes_consumed] = decode_unchecked(buffer, i);
@@ -120,24 +119,23 @@ export namespace deckard::utf8
 		}
 	}
 
-	export size_t grapheme_count(std::span<const u8> buffer)
+	export usize grapheme_count(std::span<const u8> buffer)
 	{
 
-		std::size_t count = 0;
+		usize count = 0;
 
 		bool prev_was_ZWJ      = false;
 		bool prev_was_regional = false;
 		bool in_regional_pair  = false;
 
-		size_t i = 0;
+		usize i = 0;
 		while (i < buffer.size())
 		{
 			auto [cp, consumed] = utf8::decode_unchecked(buffer, i);
 			i += consumed;
 
-			const bool is_extend =
-			  is_variation_selector(cp) or is_skintone_modifier(cp) or is_zero_width_non_joiner(cp) or
-			  is_combining_mark(cp) or is_spacing_mark(cp) or is_tag_character(cp);
+			const bool is_extend = is_variation_selector(cp) or is_skintone_modifier(cp) or is_zero_width_non_joiner(cp)
+								   or is_combining_mark(cp) or is_spacing_mark(cp) or is_tag_character(cp);
 
 
 			if (count == 0)
@@ -182,13 +180,15 @@ export namespace deckard::utf8
 		return count;
 	}
 
-	std::optional<size_t> length(std::span<const u8> buffer)
+
+
+	std::optional<usize> length(std::span<const u8> buffer)
 	{
 		if (buffer.empty())
 			return 0uz;
 
-		size_t i = 0;
-		size_t len{};
+		usize i = 0;
+		usize len{};
 
 		while (i < buffer.size())
 		{
@@ -219,8 +219,8 @@ export namespace deckard::utf8
 			}
 			else if (utf8::is_three_byte_codepoint(c))
 			{
-				if (i + 2 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1)) or
-					not utf8::is_continuation_byte(u8_at(buffer, i + 2)))
+				if (i + 2 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1))
+					or not utf8::is_continuation_byte(u8_at(buffer, i + 2)))
 				{
 					dbg::println("Invalid or missing continuation byte at offset {}", i);
 					return std::nullopt;
@@ -243,16 +243,16 @@ export namespace deckard::utf8
 			}
 			else if (utf8::is_four_byte_codepoint(c))
 			{
-				if (i + 3 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1)) or
-					not utf8::is_continuation_byte(u8_at(buffer, i + 2)) or
-					not utf8::is_continuation_byte(u8_at(buffer, i + 3)))
+				if (i + 3 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1))
+					or not utf8::is_continuation_byte(u8_at(buffer, i + 2))
+					or not utf8::is_continuation_byte(u8_at(buffer, i + 3)))
 				{
 					dbg::println("Invalid or missing continuation byte at offset {}", i);
 					return std::nullopt;
 				}
 
-				codepoint = (((c & 0x07) << 18) | ((u8_at(buffer, i + 1) & 0x3F) << 12) |
-							 ((u8_at(buffer, i + 2) & 0x3F) << 6) | (u8_at(buffer, i + 3) & 0x3F));
+				codepoint = (((c & 0x07) << 18) | ((u8_at(buffer, i + 1) & 0x3F) << 12)
+							 | ((u8_at(buffer, i + 2) & 0x3F) << 6) | (u8_at(buffer, i + 3) & 0x3F));
 
 				if (codepoint < 0x1'0000)
 				{
@@ -277,19 +277,20 @@ export namespace deckard::utf8
 			++len;
 		}
 
-		return std::optional<size_t>{len};
+		return std::optional<usize>{len};
 	}
 
-	std::optional<size_t> length(std::string_view buffer) { return length(to_span(buffer)); }
+	std::optional<usize> length(std::string_view buffer) { return length(to_span(buffer)); }
+
 
 
 	std::expected<void, std::string> valid(std::span<const u8> buffer)
 	{
-		auto location_at_index = [&](const size_t index)
+		auto location_at_index = [&](const usize index)
 		{
-			size_t line   = 1;
-			size_t column = 1;
-			for (size_t pos = 0; pos < index and pos < buffer.size(); pos++)
+			usize line   = 1;
+			usize column = 1;
+			for (usize pos = 0; pos < index and pos < buffer.size(); pos++)
 			{
 				if (u8_at(buffer, pos) == static_cast<u8>('\n'))
 				{
@@ -304,7 +305,7 @@ export namespace deckard::utf8
 			return std::pair{line, column};
 		};
 
-		size_t i = 0;
+		usize i = 0;
 		while (i < buffer.size())
 		{
 			auto c         = u8_at(buffer, i);
@@ -335,8 +336,8 @@ export namespace deckard::utf8
 			}
 			else if (utf8::is_three_byte_codepoint(c))
 			{
-				if (i + 2 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1)) or
-					not utf8::is_continuation_byte(u8_at(buffer, i + 2)))
+				if (i + 2 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1))
+					or not utf8::is_continuation_byte(u8_at(buffer, i + 2)))
 				{
 					auto [line, column] = location_at_index(i);
 					return std::unexpected(
@@ -360,17 +361,17 @@ export namespace deckard::utf8
 			}
 			else if (utf8::is_four_byte_codepoint(c))
 			{
-				if (i + 3 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1)) or
-					not utf8::is_continuation_byte(u8_at(buffer, i + 2)) or
-					not utf8::is_continuation_byte(u8_at(buffer, i + 3)))
+				if (i + 3 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1))
+					or not utf8::is_continuation_byte(u8_at(buffer, i + 2))
+					or not utf8::is_continuation_byte(u8_at(buffer, i + 3)))
 				{
 					auto [line, column] = location_at_index(i);
 					return std::unexpected(
 					  std::format("Invalid or missing continuation byte at line {}, column {}", line, column));
 				}
 
-				codepoint = (((c & 0x07) << 18) | ((u8_at(buffer, i + 1) & 0x3F) << 12) |
-							 ((u8_at(buffer, i + 2) & 0x3F) << 6) | (u8_at(buffer, i + 3) & 0x3F));
+				codepoint = (((c & 0x07) << 18) | ((u8_at(buffer, i + 1) & 0x3F) << 12)
+							 | ((u8_at(buffer, i + 2) & 0x3F) << 6) | (u8_at(buffer, i + 3) & 0x3F));
 
 				if (codepoint < 0x1'0000)
 				{
@@ -415,7 +416,7 @@ export namespace deckard::utf8
 		{
 			u8        byte = u8_at(buffer, index);
 			const u32 type = utf8_table[byte];
-			codepoint      = state ? (byte & 0x3fu) | (codepoint << 6) : (0xffu >> type) & byte;
+			codepoint      = state ? (byte & 0x3Fu) | (codepoint << 6) : (0xFFu >> type) & byte;
 			state          = utf8_table[256 + state + type];
 			if (state == 0)
 				return codepoint;
@@ -426,7 +427,6 @@ export namespace deckard::utf8
 	}
 
 	char32 decode_codepoint(std::string_view buffer) { return decode_codepoint(to_span(buffer)); }
-
 
 
 } // namespace deckard::utf8

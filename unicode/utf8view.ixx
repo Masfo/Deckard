@@ -529,6 +529,17 @@ namespace deckard::utf8
 			// Comparison and search operators
 			[[nodiscard]] bool operator==(const view& other) const { return std::ranges::equal(m_data, other.m_data); }
 
+			[[nodiscard]] bool operator==(std::u8string_view other) const
+			{
+				return std::ranges::equal(m_data, std::span<const u8>{as<const u8*>(other.data()), other.size()});
+			}
+
+			[[nodiscard]] bool operator==(const char8* other) const { return operator==(std::u8string_view(other)); }
+
+			[[nodiscard]] bool operator==(std::string_view other) const { return compare(view(other)) == 0; }
+
+			[[nodiscard]] bool operator==(const char* other) const { return operator==(view(other)); }
+
 			[[nodiscard]] std::strong_ordering operator<=>(const view& other) const
 			{
 				return std::lexicographical_compare_three_way(

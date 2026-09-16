@@ -337,6 +337,11 @@ namespace deckard::utf8
 				buffer.append(encoded.data());
 		}
 
+		string(const char8* input)
+			: string(std::u8string_view(input))
+		{
+		}
+
 		string(std::u8string_view input) { buffer.assign({as<u8*>(input.data()), input.size()}); }
 
 		string(std::span<const u8> input) { buffer.assign(input); }
@@ -399,6 +404,25 @@ namespace deckard::utf8
 			return *this;
 		}
 
+		string& operator=(std::u8string_view input)
+		{
+			buffer.assign({as<u8*>(input.data()), input.size()});
+			return *this;
+		}
+
+		string& operator=(const char8* input)
+		{
+			std::u8string_view view(input);
+			buffer.assign(std::span<const u8>{as<const u8*>(view.data()), view.size()});
+			return *this;
+		}
+
+		string& operator=(const char* input)
+		{
+			buffer.assign(std::span<const u8>{as<const u8*>(input), std::strlen(input)});
+			return *this;
+		}
+
 		[[nodiscard("use result of at method")]]
 		unit at(u64 index) const
 		{
@@ -447,8 +471,11 @@ namespace deckard::utf8
 			return operator==(std::span<const u8>{as<const u8*>(other.data()), other.size()});
 		}
 
+		bool operator==(const char8* other) const { return operator==(std::u8string_view(other)); }
 
 		bool operator==(std::string_view str) const { return operator==(view(str)); }
+
+		bool operator==(const char* other) const { return operator==(view(other)); }
 
 		// insert
 		iterator insert(iterator pos, std::span<const u8> input)
