@@ -281,8 +281,6 @@ export namespace deckard
 
 	namespace detail_invoke
 	{
-		template<typename Fn>
-		concept not_member_pointer = not std::is_member_pointer_v<std::remove_cvref_t<Fn>>;
 
 		template<typename Fn>
 		concept nullable_callable = requires(Fn& fn) {
@@ -300,7 +298,7 @@ export namespace deckard
 	} // namespace detail_invoke
 
 	template<typename Fn, typename... Args>
-	requires std::invocable<Fn, Args...> and detail_invoke::not_member_pointer<Fn>
+	requires std::invocable<Fn, Args...>
 	constexpr auto invoke_if(Fn&& cb, Args&&... args) -> std::expected<std::invoke_result_t<Fn, Args...>, invoke_error>
 	{
 		using R = std::invoke_result_t<Fn, Args...>;
@@ -321,7 +319,7 @@ export namespace deckard
 	}
 
 	template<typename Fn, typename... Args>
-	requires std::invocable<Fn, Args...> and detail_invoke::not_member_pointer<Fn>
+	requires std::invocable<Fn, Args...>
 	constexpr auto invoke_if(bool condition, Fn&& cb, Args&&... args)
 	  -> std::expected<std::invoke_result_t<Fn, Args...>, invoke_error>
 	{

@@ -16,23 +16,39 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
+int free_function() noexcept { return 555;  }
+
+class function_class
+{
+public:
+	int method(int i) noexcept { return i * 2; }
+
+	void void_method(int i) noexcept { (void)i; }
+};
+
 TEST_CASE("invoke_if", "[invoke_if]")
 {
+
+
 	using void_callback = std::move_only_function<void() noexcept>;
 	using void_callback_param = std::move_only_function<void(int) noexcept>;
 	using callback      = std::move_only_function<int() noexcept>;
 	using callback_param = std::move_only_function<int(int) noexcept>;
 
-
 	void_callback valid_void_callable = []() noexcept { };
 	void_callback_param valid_void_callable_param = [](int x) noexcept { (void)x; };
+	
 	void_callback invalid_void_callable;
 	void_callback_param invalid_void_callable_param;
 
 	callback valid_callable = []() noexcept { return 42; };
 	callback_param valid_callable_param = [](int x) noexcept { return x*2; };
+
 	callback invalid_callable;
 	callback_param invalid_callable_param;
+
+	using callback_param3      = std::move_only_function<int(int,int,int) noexcept>;
+	callback_param3 valid_callable_param3 = [](int x, int y, int z) noexcept { return x + y + z; };
 
 	SECTION("valid callable")
 	{
@@ -47,6 +63,9 @@ TEST_CASE("invoke_if", "[invoke_if]")
 
 		if (auto r = invoke_if(valid_void_callable_param, 21); r)
 			CHECK(r.has_value());
+
+		if (auto r = invoke_if(valid_callable_param3, 10, 20, 30); r)
+			CHECK(r.value() == 60);
 	}
 
 	SECTION("conditional true")
@@ -125,6 +144,23 @@ TEST_CASE("invoke_if", "[invoke_if]")
 
 		if (auto r = invoke_if(false, lambda, 21, 21); not r)
 			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(free_function); r)
+			CHECK(r.value() == 555);
+
+		if (auto r = invoke_if(&function_class::method, function_class{}, 21); r)
+			CHECK(r.value() == 42);
+
+
+		if (auto r = invoke_if(false, &function_class::method, function_class{}, 21); not r)
+			CHECK(r.error() == invoke_error::conditional_failed);
+
+		if (auto r = invoke_if(&function_class::void_method, function_class{}, 21); r)
+			CHECK(r.has_value());
+
+		function_class obj;
+		if (auto r = invoke_if(&function_class::method, &obj, 21); r)
+			CHECK(r.value() == 42);
 
 	}
 
