@@ -10,12 +10,10 @@
 
 
 
-
-
 	<File Name="assert.ixx"/>
 	<File Name="debug.ixx"/>
-	<File Name="_helpers.ixx"/>
-	<File Name="_stringhelper.ixx"/>
+	<File Name="helpers.ixx"/>
+	<File Name="stringhelper.ixx"/>
 	<File Name="bitbuffer.ixx"/>
 
 
@@ -32,21 +30,21 @@
 
 	<File Name="sha2.ixx"/>
 
-	<File Name="_file.ixx"/>
+	<File Name="file.ixx"/>
 	<File Name="hash.ixx"/>
 
 
 
 
-	<File Name="_win32.ixx"/>
+	<File Name="win32.ixx"/>
 
-	<File Name="_zstd.ixx"/>
+	<File Name="zstd.ixx"/>
 	<File Name="smallbufferobject.ixx"/>
 
 
 
 	<!-- UTF8 -->
-	<File Name="utf8*.ixx" />
+	<File Name="_utf8*.ixx" />
 
 
 

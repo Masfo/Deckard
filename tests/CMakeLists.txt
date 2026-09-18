@@ -241,16 +241,16 @@ function(download_file)
 endfunction()
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt 
-              ${CMAKE_SOURCE_DIR}/bin/utf/DerivedCoreProperties.txt)
+              ${CMAKE_SOURCE_DIR}/bin/utf/DerivedCoreProperties18.txt)
  
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
-              ${CMAKE_SOURCE_DIR}/bin/utf/UnicodeData.txt)
+              ${CMAKE_SOURCE_DIR}/bin/utf/UnicodeData18.txt)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/NormalizationTest.txt
-              ${CMAKE_SOURCE_DIR}/bin/utf/NormalizationTest.txt)
+              ${CMAKE_SOURCE_DIR}/bin/utf/NormalizationTest18.txt)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ReadMe.txt
-                ${CMAKE_SOURCE_DIR}/bin/utf/readme.txt)
+                ${CMAKE_SOURCE_DIR}/bin/utf/readme18.txt)
 
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)

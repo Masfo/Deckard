@@ -13,11 +13,6 @@ using namespace deckard;
 using namespace deckard::utf8;
 using namespace std::string_view_literals;
 
-TEST_CASE("utf8", "[utf8]")
-{
-	//
-	REQUIRE(utf8::table_version() == "17.0.0"sv);
-}
 
 TEST_CASE("utf8::ascii", "[utf8]")
 {
@@ -1859,8 +1854,6 @@ TEST_CASE("view", "[utf8][view]")
 		utf8::string str("🌍hello🌍");
 		utf8::view   w(str.data());
 		CHECK(w.size() == 7);
-
-		//
 	}
 
 	SECTION("lengths")
@@ -2522,16 +2515,16 @@ TEST_CASE("normalization", "[utf8][normalization]")
 {
 	SECTION("normalization test")
 	{
-		REQUIRE(utf8::table_version() == "17.0.0"sv);
+		REQUIRE(utf8::table_version() == "18.0.0"sv);
 
 #if 0 // Run when new tables are generated
-		if (true and utf8::table_version() == "17.0.0"sv)
-			SKIP("run only for new table versions");
+		//if (true and utf8::table_version() == "18.0.0"sv)
+		//	SKIP("run only for new table versions");
 
 
-		auto lines = file::read_lines("utf\\NormalizationTest.txt");
+		auto lines = file::read_lines("utf\\NormalizationTest18.txt");
 		REQUIRE(lines.size() > 0);
-		REQUIRE(lines[0].starts_with("# NormalizationTest-17.0.0.txt"));
+		REQUIRE(lines[0].starts_with("# NormalizationTest-18.0.0.txt"));
 
 		u32 nfc_count  = 0;
 		u32 nfd_count  = 0;
@@ -2574,7 +2567,7 @@ TEST_CASE("normalization", "[utf8][normalization]")
 
 		REQUIRE(nfc_count == test_count);
 		REQUIRE(nfd_count == test_count);
-		CHECK(test_count == 20034); // 17.0.0
+		CHECK(test_count == 20171); // 18.0.0
 #endif
 	}
 

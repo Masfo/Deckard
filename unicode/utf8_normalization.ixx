@@ -77,7 +77,7 @@ namespace deckard::utf8
 			const u16    block_id = trie_directory[block_idx];
 			const size_t offset   = (static_cast<size_t>(block_id) << 6) + low_idx;
 
-			return trie_data[offset];
+			return ccc_trie_data[offset];
 		}
 
 		// Hangul
