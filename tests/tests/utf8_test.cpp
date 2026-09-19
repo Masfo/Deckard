@@ -2518,8 +2518,8 @@ TEST_CASE("normalization", "[utf8][normalization]")
 		REQUIRE(utf8::table_version() == "18.0.0"sv);
 
 #if 0 // Run when new tables are generated
-		//if (true and utf8::table_version() == "18.0.0"sv)
-		//	SKIP("run only for new table versions");
+		if (false and utf8::table_version() == "18.0.0"sv)
+			SKIP("run only for new table versions");
 
 
 		auto lines = file::read_lines("utf\\NormalizationTest18.txt");
