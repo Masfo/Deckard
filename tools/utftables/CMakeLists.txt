@@ -212,29 +212,31 @@ function(download_file)
     endif()
 endfunction()
 
+set(UNICODE_VERSION "18")
+
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt 
-             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCoreProperties.txt)
+             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/DerivedCoreProperties_${UNICODE_VERSION}.txt)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
-             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData.txt)
+             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/UnicodeData_${UNICODE_VERSION}.txt)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
-             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding.txt)
+             ${CMAKE_CURRENT_LIST_DIR}/bin/utf/CaseFolding_${UNICODE_VERSION}.txt)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/Blocks.txt
-              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/Blocks.txt)
+              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/Blocks_${UNICODE_VERSION}.txt)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
-              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList.txt)
+              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/PropList_${UNICODE_VERSION}.txt)
               
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/NamesList.txt
-              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/NamesList.txt)
+              ${CMAKE_CURRENT_LIST_DIR}/bin/utf/NamesList_${UNICODE_VERSION}.txt)
 
 
 download_file(https://www.unicode.org/Public/UCD/latest/ucd/UCD.zip
-              ${CMAKE_CURRENT_LIST_DIR}/bin/UCD.zip)
+              ${CMAKE_CURRENT_LIST_DIR}/bin/UCD_${UNICODE_VERSION}.zip)
 
 download_file(https://www.unicode.org/Public/UCD/latest/ReadMe.txt
-                ${CMAKE_CURRENT_LIST_DIR}/bin/utf/readme.txt)
+                ${CMAKE_CURRENT_LIST_DIR}/bin/utf/readme_${UNICODE_VERSION}.txt)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)

@@ -1145,7 +1145,7 @@ void emit_cpp_tables(TrieTables const &t, std::string_view name)
 
 std::string parse_version()
 {
-	auto lines = read_lines("utf/readme.txt");
+	auto lines = read_lines("utf/readme18.txt");
 
 	for (const auto &line : lines)
 	{
@@ -1193,7 +1193,7 @@ void process_unicode_data()
 	// 202F;NARROW NO-BREAK SPACE;Zs;0;CS;<noBreak> 0020;;;;N;;;;;
 	// 205F;MEDIUM MATHEMATICAL SPACE;Zs;0;WS;<compat> 0020;;;;N;;;;;
 	// 2060;WORD JOINER			;Cf;0;BN;;;;;N;;;;;
-	auto lines = read_lines("utf/UnicodeData.txt");
+	auto lines = read_lines("utf/UnicodeData18.txt");
 
 	if (lines.empty())
 		return;
