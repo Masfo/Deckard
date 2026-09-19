@@ -1,4 +1,4 @@
-﻿export module deckard.timers;
+export module deckard.timers;
 
 import std;
 import deckard.types;
@@ -7,6 +7,37 @@ import deckard.debug;
 
 namespace deckard
 {
+
+	// Frame timers
+	using namespace std::chrono_literals;
+	const f32 MAX_DELTA_TIME = std::chrono::duration<f32>(100ms).count();
+
+	export class frame_timer
+	{
+	private:
+
+		using clock = std::chrono::steady_clock;
+		clock::time_point last_time{clock::now()};
+
+	public:
+		frame_timer() = default;
+
+		void reset() { last_time = clock::now(); }
+
+
+		f32 tick() 
+		{
+			const auto now = clock::now();
+			const f32  dt  = std::chrono::duration<f32>(now - last_time).count();
+			last_time      = now;
+			return std::min(dt, MAX_DELTA_TIME);
+		}
+
+		f32 fps() { return 1.0f / tick(); }
+
+	};
+
+
 	// ScopeTimer
 	export template<typename R = std::milli>
 	class ScopeTimer
