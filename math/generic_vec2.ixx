@@ -118,6 +118,28 @@ namespace deckard::math
 			y = v[1];
 		}
 
+		
+		constexpr type operator[](size_t index)
+		{
+			switch (index)
+			{
+				case 0: return x;
+				case 1: return y;
+				default: assert::check(false, "generic_vec2: index out of bounds"); return T{0};
+			}
+		}
+
+		constexpr type operator[](size_t index) const
+		{
+			switch (index)
+			{
+				case 0: return x;
+				case 1: return y;
+				default: assert::check(false, "generic_vec2: index out of bounds"); return T{0};
+			}
+		}
+
+
 		constexpr auto operator<=>(const vec_type& other) const = default;
 
 		constexpr bool operator==(const vec_type& other) const { return equals(other); }
