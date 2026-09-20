@@ -652,7 +652,7 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum value")]] constexpr generic_vec4<T>
+	[[nodiscard("Use the minimum value")]] constexpr generic_vec4<T>
 	min(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.min(rhs);
@@ -699,7 +699,7 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the clamped value")]] constexpr T dot(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the dot product value")]] constexpr T dot(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.dot(rhs);
 	}
