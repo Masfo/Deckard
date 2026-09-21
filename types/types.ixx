@@ -332,7 +332,7 @@ export namespace deckard
 	// ###########################################################################
 
 
-	template<std::unsigned_integral T = u16>
+	template<std::integral T = u16>
 	struct extent
 	{
 		extent() = default;
@@ -349,7 +349,16 @@ export namespace deckard
 		T height{T{0}};
 	};
 
-	template<std::unsigned_integral T = u16>
+	template<arithmetic T = f32>
+	struct viewport
+	{
+		T x{T{0}};
+		T y{T{0}};
+		T width{T{0}};
+		T height{T{0}};
+	};
+
+	template<arithmetic T = u16>
 	auto to_extent(const RECT& r) -> extent<T>
 	{
 		return extent<T>{static_cast<T>(r.right - r.left), static_cast<T>(r.bottom - r.top)};
