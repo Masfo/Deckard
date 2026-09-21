@@ -12,6 +12,46 @@ import deckard.math.utils;
 namespace deckard::math
 {
 
+	struct mat3_generic
+	{
+		using type = vec3;
+		std::array<type, 3> mat;
+
+
+		static auto identity() noexcept { return mat3_generic(1.0f); }
+
+
+		mat3_generic() noexcept
+			: mat3_generic(1.0f)
+		{
+		}
+
+		explicit mat3_generic(f32 scalar) noexcept
+		{
+			mat[0].x = scalar;
+			mat[1].y = scalar;
+			mat[2].z = scalar;
+		}
+
+		mat3_generic(f32 e00, f32 e01, f32 e02, f32 e03, f32 e04, f32 e05, f32 e06, f32 e07, f32 e08)
+		{
+			mat[0] = {e00, e01, e02};
+			mat[1] = {e03, e04, e05};
+			mat[2] = {e06, e07, e08};
+		}
+
+		mat3_generic(const vec3& v0, const vec3& v1, const vec3& v2) noexcept
+		{
+			mat[0] = v0;
+			mat[1] = v1;
+			mat[2] = v2;
+		}
+
+		[[nodiscard]] static constexpr mat3_generic filled(f32 v) noexcept
+		{
+			return mat3_generic{vec3{v, v, v}, vec3{v, v, v}, vec3{v, v, v}};
+		}
+	};
 	struct mat4_generic
 	{
 
@@ -20,6 +60,7 @@ namespace deckard::math
 
 		// identity
 
+		static auto identity() noexcept { return mat4_generic(1.0f); }
 
 		mat4_generic() noexcept
 			: mat4_generic(1.0f)
@@ -153,6 +194,8 @@ namespace deckard::math
 			const f32 s = std::sin(a);
 
 			vec3 axis(v.normalized());
+			assert::check(not math::is_close_enough_zero(axis.length()), "rotate: zero-length axis");
+
 			vec3 temp(axis * (1.0f - c));
 
 			mat4_generic rotate;
