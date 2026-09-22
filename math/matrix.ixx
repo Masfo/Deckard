@@ -12,6 +12,7 @@ import deckard.math.utils;
 namespace deckard::math
 {
 
+	struct mat4_generic;
 	struct mat3_generic
 	{
 		using type = vec3;
@@ -47,11 +48,220 @@ namespace deckard::math
 			mat[2] = v2;
 		}
 
+		explicit mat3_generic(const mat4_generic& m4) noexcept;
+
+		vec3& operator[](size_t index) noexcept
+		{
+			assert::check(index < mat.size(), "mat3: indexing out-of-bounds");
+			return mat[index];
+		}
+
+		const vec3& operator[](size_t index) const noexcept
+		{
+			assert::check(index < mat.size(), "mat3: indexing out-of-bounds");
+			return mat[index];
+		}
+
+		f32 operator[](size_t x, size_t y) const noexcept
+		{
+			assert::check(x < 3 and y < 3, "mat3: indexing out-of-bounds");
+			return mat[y][x];
+		}
+
+		mat3_generic operator*(const f32 scalar) const noexcept
+		{
+			return mat3_generic(mat[0] * scalar, mat[1] * scalar, mat[2] * scalar);
+		}
+
+		mat3_generic operator*(const mat3_generic& rhs) const noexcept
+		{
+			mat3_generic result;
+
+			result[0] = mat[0] * rhs[0].x + mat[1] * rhs[0].y + mat[2] * rhs[0].z;
+			result[1] = mat[0] * rhs[1].x + mat[1] * rhs[1].y + mat[2] * rhs[1].z;
+			result[2] = mat[0] * rhs[2].x + mat[1] * rhs[2].y + mat[2] * rhs[2].z;
+
+			return result;
+		}
+
+		mat3_generic operator+(const mat3_generic& rhs) const noexcept
+		{
+			mat3_generic result;
+
+			result[0] = mat[0] + rhs[0];
+			result[1] = mat[1] + rhs[1];
+			result[2] = mat[2] + rhs[2];
+
+			return result;
+		}
+
+		mat3_generic operator-(const mat3_generic& rhs) const
+		{
+			mat3_generic result;
+
+			result[0] = mat[0] - rhs[0];
+			result[1] = mat[1] - rhs[1];
+			result[2] = mat[2] - rhs[2];
+
+			return result;
+		}
+
+		mat3_generic operator-() const noexcept { return *this * -1.0f; }
+
+		mat3_generic operator+() const noexcept { return *this; }
+
+		mat3_generic operator/(const f32 scalar) const noexcept
+		{
+			if (math::is_close_enough_zero(scalar))
+				dbg::panic("divide by zero: {} / {}", *this, scalar);
+
+			mat3_generic result;
+
+			result[0] = mat[0] / scalar;
+			result[1] = mat[1] / scalar;
+			result[2] = mat[2] / scalar;
+
+			return result;
+		}
+
+		bool operator==(const mat3_generic& lhs) const noexcept { return is_close_enough(lhs); }
+
+		bool is_close_enough(const mat3_generic& lhs) const noexcept
+		{
+			return mat[0] == lhs[0] and mat[1] == lhs[1] and mat[2] == lhs[2];
+		}
+
+		mat3_generic scale(const vec3& scale) const noexcept
+		{
+			return mat3_generic(mat[0] * scale.x, mat[1] * scale.y, mat[2] * scale.z);
+		}
+
+		mat3_generic rotate(f32 radians, const vec3& v) const noexcept
+		{
+			const f32 a = radians;
+			const f32 c = std::cos(a);
+			const f32 s = std::sin(a);
+
+			assert::check(not math::is_close_enough_zero(v.length()), "rotate: zero-length axis");
+			vec3 axis(v.normalized());
+
+			vec3 temp(axis * (1.0f - c));
+
+			mat3_generic rotation_matrix;
+			rotation_matrix[0].x = c + temp.x * axis.x;
+			rotation_matrix[0].y = temp.x * axis.y + s * axis.z;
+			rotation_matrix[0].z = temp.x * axis.z - s * axis.y;
+
+			rotation_matrix[1].x = temp.y * axis.x - s * axis.z;
+			rotation_matrix[1].y = c + temp.y * axis.y;
+			rotation_matrix[1].z = temp.y * axis.z + s * axis.x;
+
+			rotation_matrix[2].x = temp.z * axis.x + s * axis.y;
+			rotation_matrix[2].y = temp.z * axis.y - s * axis.x;
+			rotation_matrix[2].z = c + temp.z * axis.z;
+
+			mat3_generic result;
+
+			result[0] = mat[0] * rotation_matrix[0].x + mat[1] * rotation_matrix[0].y + mat[2] * rotation_matrix[0].z;
+			result[1] = mat[0] * rotation_matrix[1].x + mat[1] * rotation_matrix[1].y + mat[2] * rotation_matrix[1].z;
+			result[2] = mat[0] * rotation_matrix[2].x + mat[1] * rotation_matrix[2].y + mat[2] * rotation_matrix[2].z;
+
+			return result;
+		}
+
+		f32 determinant() const noexcept
+		{
+			return mat[0].x * (mat[1].y * mat[2].z - mat[2].y * mat[1].z)
+				   - mat[0].y * (mat[1].x * mat[2].z - mat[2].x * mat[1].z)
+				   + mat[0].z * (mat[1].x * mat[2].y - mat[2].x * mat[1].y);
+		}
+
+		mat3_generic inverse() const noexcept
+		{
+			f32 det = determinant();
+			assert::check(not math::is_close_enough_zero(det), "matrix is not invertible");
+
+			f32 OneOverDeterminant = 1.0f / det;
+
+			mat3_generic result;
+
+			result[0].x = (mat[1].y * mat[2].z - mat[2].y * mat[1].z) * OneOverDeterminant;
+			result[1].x = -(mat[1].x * mat[2].z - mat[2].x * mat[1].z) * OneOverDeterminant;
+			result[2].x = (mat[1].x * mat[2].y - mat[2].x * mat[1].y) * OneOverDeterminant;
+
+			result[0].y = -(mat[0].y * mat[2].z - mat[2].y * mat[0].z) * OneOverDeterminant;
+			result[1].y = (mat[0].x * mat[2].z - mat[2].x * mat[0].z) * OneOverDeterminant;
+			result[2].y = -(mat[0].x * mat[2].y - mat[2].x * mat[0].y) * OneOverDeterminant;
+
+			result[0].z = (mat[0].y * mat[1].z - mat[1].y * mat[0].z) * OneOverDeterminant;
+			result[1].z = -(mat[0].x * mat[1].z - mat[1].x * mat[0].z) * OneOverDeterminant;
+			result[2].z = (mat[0].x * mat[1].y - mat[1].x * mat[0].y) * OneOverDeterminant;
+
+			return result;
+		}
+
+		mat4_generic to_mat4() const noexcept;
+
 		[[nodiscard]] static constexpr mat3_generic filled(f32 v) noexcept
 		{
 			return mat3_generic{vec3{v, v, v}, vec3{v, v, v}, vec3{v, v, v}};
 		}
 	};
+
+	export mat3_generic& operator*=(mat3_generic& lhs, const mat3_generic& rhs) noexcept { return lhs = lhs * rhs; }
+
+	export mat3_generic& operator*=(mat3_generic& lhs, f32 rhs) noexcept { return lhs = lhs * rhs; }
+
+	export mat3_generic& operator/=(mat3_generic& lhs, f32 rhs) noexcept { return lhs = lhs / rhs; }
+
+	export mat3_generic& operator+=(mat3_generic& lhs, const mat3_generic& rhs) noexcept { return lhs = lhs + rhs; }
+
+	export mat3_generic& operator-=(mat3_generic& lhs, const mat3_generic& rhs) noexcept { return lhs = lhs - rhs; }
+
+	export vec3 operator*(const vec3& lhs, const mat3_generic& rhs) noexcept
+	{
+		return vec3(rhs[0].x * lhs.x + rhs[0].y * lhs.y + rhs[0].z * lhs.z,
+					rhs[1].x * lhs.x + rhs[1].y * lhs.y + rhs[1].z * lhs.z,
+					rhs[2].x * lhs.x + rhs[2].y * lhs.y + rhs[2].z * lhs.z);
+	}
+
+	export vec3 operator*(const mat3_generic& lhs, const vec3& rhs) noexcept
+	{
+		const vec3 Mov0(rhs.x);
+		const vec3 Mov1(rhs.y);
+		const vec3 Mul0 = lhs[0] * Mov0;
+		const vec3 Mul1 = lhs[1] * Mov1;
+		const vec3 Add0 = Mul0 + Mul1;
+		const vec3 Mov2(rhs.z);
+		const vec3 Mul2 = lhs[2] * Mov2;
+		const vec3 Add1 = Add0 + Mul2;
+		return Add1;
+	}
+
+	export mat3_generic transpose(const mat3_generic& mat) noexcept
+	{
+		const vec3 col0(mat[0].x, mat[1].x, mat[2].x);
+		const vec3 col1(mat[0].y, mat[1].y, mat[2].y);
+		const vec3 col2(mat[0].z, mat[1].z, mat[2].z);
+
+		return mat3_generic(col0, col1, col2);
+	}
+
+	export mat3_generic scale(const mat3_generic& mat, const vec3& scale) noexcept { return mat.scale(scale); }
+
+	export mat3_generic rotate(const mat3_generic& m, f32 radians, const vec3& v) noexcept { return m.rotate(radians, v); }
+
+	export mat3_generic inverse(const mat3_generic& mat) noexcept { return mat.inverse(); }
+
+	export f32 determinant(const mat3_generic& mat) noexcept { return mat.determinant(); }
+
+	export inline std::ostream& operator<<(std::ostream& os, const mat3_generic& m)
+	{
+		return os << "mat3((" << m[0].x << ", " << m[0].y << ", " << m[0].z << "),\n"
+				  << "     (" << m[1].x << ", " << m[1].y << ", " << m[1].z << "),\n"
+				  << "     (" << m[2].x << ", " << m[2].y << ", " << m[2].z << "))";
+	}
+
 	struct mat4_generic
 	{
 
@@ -91,6 +301,8 @@ namespace deckard::math
 			mat[2] = v2;
 			mat[3] = v3;
 		}
+
+		explicit mat4_generic(const mat3_generic& m3) noexcept;
 
 		vec4& operator[](size_t index) noexcept
 		{
@@ -307,13 +519,15 @@ namespace deckard::math
 
 		[[nodiscard]] static constexpr mat4_generic filled(f32 v) noexcept
 		{
-			mat4_generic mat;
-			vec4         v4 = {v, v, v, v};
-			mat[0]          = v4;
-			mat[1]          = v4;
-			mat[2]          = v4;
-			mat[3]          = v4;
-			return mat;
+			return mat4_generic{vec4{v, v, v, v}, vec4{v, v, v, v}, vec4{v, v, v, v}, vec4{v, v, v, v}};
+		}
+
+		[[nodiscard]] mat3_generic to_mat3() const noexcept
+		{
+			return mat3_generic(
+			  vec3(mat[0].x, mat[0].y, mat[0].z), //
+			  vec3(mat[1].x, mat[1].y, mat[1].z),
+			  vec3(mat[2].x, mat[2].y, mat[2].z));
 		}
 	};
 
@@ -496,10 +710,39 @@ namespace deckard::math
 	//		};
 	// }
 	// rotate around unit vector
+
+
+	export using mat3 = mat3_generic;
+	export using mat4 = mat4_generic;
+
 } // namespace deckard::math
 
 namespace std
 {
+	template<>
+	struct hash<deckard::math::mat3_generic>
+	{
+		size_t operator()(const deckard::math::mat3_generic& value) const
+		{
+			return deckard::utils::hash_values(
+			  value[0].x, value[0].y, value[0].z, value[1].x, value[1].y, value[1].z, value[2].x, value[2].y, value[2].z);
+		}
+	};
+
+	template<>
+	struct formatter<deckard::math::mat3_generic>
+	{
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const deckard::math::mat3_generic& m, std::format_context& ctx) const
+		{
+			std::format_to(ctx.out(), "mat3(({:.5f}, {:.5f}, {:.5f}),\n", m[0].x, m[0].y, m[0].z);
+			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}),\n", m[1].x, m[1].y, m[1].z);
+			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f})", m[2].x, m[2].y, m[2].z);
+			return std::format_to(ctx.out(), ")");
+		}
+	};
+
 	template<>
 	struct hash<deckard::math::mat4_generic>
 	{

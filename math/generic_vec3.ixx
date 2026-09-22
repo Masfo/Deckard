@@ -653,7 +653,7 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the normalized vector")]] constexpr generic_vec3<T> normalized(const generic_vec3<T>& lhs)
+	[[nodiscard("Use the normalized vector")]] constexpr generic_vec3<T> normalize(const generic_vec3<T>& lhs)
 	{
 		return lhs.normalized();
 	}
