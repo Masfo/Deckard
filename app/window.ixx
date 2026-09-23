@@ -1,22 +1,23 @@
 module;
 #include <Windows.h>
-#include <windowsx.h>
-
 #include <versionhelpers.h>
+#include <windowsx.h>
 
 
 export module deckard.app2:window;
-
+import :inputs;
 
 import std;
 import deckard.as;
 import deckard.assert;
 import deckard.debug;
+import deckard.vec;
 import deckard.types;
 import deckard.platform;
 
 namespace deckard::app
 {
+	using namespace deckard::math;
 
 	LRESULT CALLBACK low_level_keyboard_proc(int code, WPARAM wparam, LPARAM lparam) noexcept
 	{
@@ -59,7 +60,6 @@ namespace deckard::app
 		LRESULT CALLBACK wnd_proc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 		extent<u16>       size{1920, 1080};
-		extent<u16>       last_size{1920, 1080};
 		const extent<u16> min_size{640, 480};
 		extent<u16>       normalized_client_size{0, 0};
 		extent<u16>       physical_client_size{0, 0};
@@ -82,7 +82,11 @@ namespace deckard::app
 		//
 		HHOOK keyboard_hook{};
 
+		inputs*         m_inputs{nullptr};
 		WINDOWPLACEMENT wp{};
+
+
+		char16 pending_high_surrogate{};
 
 	private:
 		u8 monitor_count() const { return static_cast<u8>(GetSystemMetrics(SM_CMONITORS)); }
@@ -177,7 +181,6 @@ namespace deckard::app
 			normalized_client_size = new_size;
 			invalidated            = true;
 			resize();
-			invalidated = true;
 		}
 
 		u32 current_dpi() const { return GetDpiForWindow(handle); }
@@ -218,29 +221,24 @@ namespace deckard::app
 
 			RECT wr = {0, 0, static_cast<LONG>(client_size.width), static_cast<LONG>(client_size.height)};
 
-			RECT wr = {0, 0, (LONG)(ext.width), (LONG)(ext.height)};
-
 			if (IsWindows10OrGreater())
 				AdjustWindowRectExForDpi(&wr, style, FALSE, ex_style, dpi);
 			else
 				AdjustWindowRectEx(&wr, style, FALSE, ex_style);
-
 
 			return to_extent(wr);
 		}
 
 		void resize()
 		{
-			extent adjusted = adjust_to_current_dpi(normalized_client_size);
-
 			invalidated = true;
 
 
 			if (fullscreen)
 			{
 				const extent<u16> monitor_size = get_current_monitor_size();
-			SetWindowPos(
-			  handle,
+				SetWindowPos(
+				  handle,
 				  HWND_TOP,
 				  0,
 				  0,
@@ -283,13 +281,12 @@ namespace deckard::app
 				{
 					running = false;
 					break;
-			}
+				}
 			}
 			return running;
 		}
 
 	private:
-
 		void update_keyboard_hook()
 		{
 			const bool should_block = active and (not win_key_allowed);
@@ -297,10 +294,8 @@ namespace deckard::app
 			if (should_block and not keyboard_hook)
 			{
 				keyboard_hook = SetWindowsHookExW(WH_KEYBOARD_LL, low_level_keyboard_proc, GetModuleHandleW(nullptr), 0);
-		}
+			}
 			else if (not should_block and keyboard_hook)
-		{
-			if (keyboard_hook)
 			{
 				UnhookWindowsHookEx(keyboard_hook);
 				keyboard_hook = nullptr;
@@ -338,18 +333,10 @@ namespace deckard::app
 
 		[[nodiscard]] bool is_invalidated() const { return invalidated; }
 
-
-
 		void allow_win_key(bool allowed)
 		{
 			win_key_allowed = allowed;
 			update_keyboard_hook();
-			}
-			else
-			{
-				dbg::println("Uninstall hook");
-				remove_hook();
-			}
 		}
 
 		[[nodiscard]] HWND get_handle() const { return handle; }
@@ -445,8 +432,6 @@ namespace deckard::app
 		bool is_running()
 		{
 			if (handle_messages() == false)
-			{
-				deinitialize();
 				return false;
 
 
@@ -541,9 +526,6 @@ namespace deckard::app
 			ivec2 pos = get_monitor_center_for_window(monitor);
 			SetWindowPos(handle, nullptr, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 
-			set_client_size(size);
-			set_fullscreen(init_fullscreen);
-			resize();
 
 			running     = true;
 			invalidated = true;
@@ -562,13 +544,12 @@ namespace deckard::app
 				{
 					deinitialize();
 					return std::unexpected("window: failed to initialize");
-			}
+				}
 			}
 			else if (*result == false)
-				{
-					deinitialize();
-					return std::unexpected("window: failed to initialize");
-				}
+			{
+				deinitialize();
+				return std::unexpected("window: failed to initialize");
 			}
 
 			//
@@ -586,7 +567,6 @@ namespace deckard::app
 			if (is_fullscreen())
 				toggle_fullscreen();
 
-			resize();
 			running = false;
 
 			_ = invoke_if(on_destroy);
@@ -620,10 +600,6 @@ namespace deckard::app
 			{
 				ValidateRect(handle, nullptr);
 
-				if (running and sizing and not minimized)
-				{
-					process_frame();
-				}
 				return 0;
 			}
 
@@ -643,15 +619,6 @@ namespace deckard::app
 					return TRUE;
 				}
 				break;
-			}
-
-			case WM_ACTIVATE:
-			{
-				// const bool focused   = LOWORD(wParam) != WA_INACTIVE;
-				// const bool iconified = HIWORD(wParam) ? true : false;
-
-
-				return 0;
 			}
 
 
@@ -685,15 +652,14 @@ namespace deckard::app
 				const auto* new_rect = reinterpret_cast<const RECT*>(lParam);
 
 				SetWindowPos(
-					  handle,
-					  nullptr,
-					  new_rect->left,
-					  new_rect->top,
-					  new_rect->right - new_rect->left,
-					  new_rect->bottom - new_rect->top,
+				  handle,
+				  nullptr,
+				  new_rect->left,
+				  new_rect->top,
+				  new_rect->right - new_rect->left,
+				  new_rect->bottom - new_rect->top,
 				  SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
-				invalidated = true;
 				normalize_client_size();
 				return 0;
 			}
@@ -755,8 +721,6 @@ namespace deckard::app
 						normalize_client_size();
 				}
 
-				if (on_size)
-					on_size(get_clientsize());
 
 				_ = invoke_if(not sizing, on_size, get_clientsize());
 
@@ -764,12 +728,38 @@ namespace deckard::app
 				return 0;
 			}
 
+			case WM_KILLFOCUS:
+			{
+				pending_high_surrogate = 0;
+				break; // let DefWindowProc handle this
+			}
 
 			case WM_CHAR:
 			{
-				char32_t ch = static_cast<char32_t>(wParam);
+				const char16 unit = static_cast<char16>(wParam);
 
-				if (m_inputs)
+
+				if (utf8::is_high_surrogate(unit))
+				{
+					pending_high_surrogate = unit;
+					return 0;
+				}
+
+				char32 ch = 0;
+
+				if (utf8::is_low_surrogate(unit))
+				{
+					if (pending_high_surrogate > 0)
+						ch = utf8::combine_surrogates(pending_high_surrogate, unit);
+				}
+				else
+				{
+					ch = unit;
+				}
+
+				pending_high_surrogate = 0;
+
+				if (m_inputs and ch != 0)
 					m_inputs->character_input(ch);
 
 				return 0;
@@ -780,20 +770,10 @@ namespace deckard::app
 				// updates.
 				// https://docs.microsoft.com/en-us/windows/win32/rstmgr/guidelines-for-applications
 
-			case WM_DESTROY:
-			{
-				SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
-				running = false;
-				PostQuitMessage(0);
-				return 0;
-			}
 			case WM_QUERYENDSESSION:
 			{
 				// User logging off
 				running = false;
-				// Save states here
-
-
 				return TRUE;
 			}
 
@@ -808,18 +788,14 @@ namespace deckard::app
 			{
 				// Save states here
 				running = false;
-				// Save states here
 
-				if (on_destroy)
-					on_destroy();
 				return 0;
 			}
 			case WM_DESTROY:
 			{
-				SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
 				running = false;
 				PostQuitMessage(0);
-			
+
 				return 0;
 			}
 		}
