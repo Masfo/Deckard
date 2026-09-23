@@ -29,11 +29,18 @@ namespace deckard::app
 		return CallNextHookEx(nullptr, code, wparam, lparam);
 	}
 
+	struct monitor
+	{
+		HMONITOR    handle{nullptr};
+		extent<u16> size{0, 0};
+		bool        primary{false};
+	};
+
 	constexpr std::wstring_view window_class_name = L"DeckardWindowClass";
 
 
-	using resize_callback = std::move_only_function<void()noexcept>;
-	using frame_callback  = std::move_only_function<bool()noexcept>;
+	using resize_callback = std::move_only_function<void() noexcept>;
+	using frame_callback  = std::move_only_function<bool() noexcept>;
 	using size_callback   = std::move_only_function<void(extent<u16>) noexcept>;
 
 	using initialize_callback = std::move_only_function<bool() noexcept>;
@@ -57,6 +64,10 @@ namespace deckard::app
 		extent<u16>       normalized_client_size{0, 0};
 		extent<u16>       physical_client_size{0, 0};
 
+		ivec2                window_position{CW_USEDEFAULT, CW_USEDEFAULT};
+		std::vector<monitor> monitors;
+
+
 		bool running{false};
 		bool sizing{false};
 		bool minimized{false};
@@ -74,14 +85,83 @@ namespace deckard::app
 		WINDOWPLACEMENT wp{};
 
 	private:
-		extent<u16> get_clientsize() const
+		u8 monitor_count() const { return static_cast<u8>(GetSystemMetrics(SM_CMONITORS)); }
+
+		u8 primary_monitor_index() const
 		{
-			RECT r{};
-			GetClientRect(handle, &r);
-			return to_extent(r);
+			HMONITOR    monitor = MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY);
+			MONITORINFO mi{.cbSize = sizeof(MONITORINFO)};
+			if (not GetMonitorInfoW(monitor, &mi))
+				return 0;
+			return static_cast<u8>(mi.dwFlags & MONITORINFOF_PRIMARY ? 0 : 1);
+		}
+
+		ivec2 get_window_position() const
+		{
+			RECT wr{};
+			if (GetWindowRect(handle, &wr) == 0)
+				return {0, 0};
+			return {wr.left, wr.top};
+		}
+
+		void get_monitors()
+		{
+			monitors.clear();
+
+			EnumDisplayMonitors(
+			  nullptr,
+			  nullptr,
+			  [](HMONITOR monitor, HDC, LPRECT, LPARAM lparam) -> BOOL
+			  {
+				  auto*       mons = reinterpret_cast<decltype(&monitors)>(lparam);
+				  extent<u16> size{0, 0};
+				  MONITORINFO mi{.cbSize = sizeof(MONITORINFO)};
+
+				  if (GetMonitorInfoW(monitor, &mi))
+					  size = to_extent(mi.rcMonitor);
+
+				  bool primary = (mi.dwFlags & MONITORINFOF_PRIMARY) != 0;
+
+				  mons->push_back({monitor, size, primary});
+
+				  return TRUE; // Continue enumeration
+			  },
+			  reinterpret_cast<LPARAM>(&monitors));
+		}
+
+		ivec2 get_monitor_center_for_window(u8 index) const
+		{
+			HMONITOR monitor
+			  = monitors.size() > index ? monitors[index].handle : MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
+			MONITORINFO mi{.cbSize = sizeof(MONITORINFO)};
+			if (not GetMonitorInfoW(monitor, &mi))
+				return {CW_USEDEFAULT, CW_USEDEFAULT};
+
+			const RECT& work       = mi.rcWork;
+			const int   workWidth  = work.right - work.left;
+			const int   workHeight = work.bottom - work.top;
+
+			ivec2 center{work.left + workWidth / 2, work.top + workHeight / 2};
+			center.x -= size.width / 2;
+			center.y -= size.height / 2;
+			return center;
+		}
+
+		std::optional<extent<u16>> get_monitor_size(u8 monitor_index) const
+		{
+
+			HMONITOR monitor = monitors.size() > monitor_index ? monitors[monitor_index].handle
+															   : MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
+
+			MONITORINFO mi{.cbSize = sizeof(MONITORINFO)};
+			if (not GetMonitorInfoW(monitor, &mi))
+				return std::nullopt;
+
+			return to_extent(mi.rcMonitor);
 		}
 
 		extent<u16> get_current_monitor_size() const
+
 		{
 			HMONITOR    monitor = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
 			MONITORINFO mi{};
@@ -95,7 +175,7 @@ namespace deckard::app
 		void set_client_size(const extent<u16> new_size)
 		{
 			normalized_client_size = new_size;
-			set_fullscreen(fullscreen);
+			invalidated            = true;
 			resize();
 			invalidated = true;
 		}
@@ -132,14 +212,11 @@ namespace deckard::app
 			return normalized_client_size;
 		}
 
-		extent<u16> adjust_to_current_dpi(extent<u16> old)
+		extent<u16> adjust_to_current_dpi(extent<u16> client_size)
 		{
-			const u32 dpi   = current_dpi();
-			const f32 scale = as<f32>(dpi) / USER_DEFAULT_SCREEN_DPI;
+			const u32 dpi = current_dpi();
 
-			extent<u16> ext;
-			ext.width  = as<u16>(old.width * scale);
-			ext.height = as<u16>(old.height * scale);
+			RECT wr = {0, 0, static_cast<LONG>(client_size.width), static_cast<LONG>(client_size.height)};
 
 			RECT wr = {0, 0, (LONG)(ext.width), (LONG)(ext.height)};
 
@@ -158,6 +235,24 @@ namespace deckard::app
 
 			invalidated = true;
 
+
+			if (fullscreen)
+			{
+				const extent<u16> monitor_size = get_current_monitor_size();
+			SetWindowPos(
+			  handle,
+				  HWND_TOP,
+				  0,
+				  0,
+				  monitor_size.width,
+				  monitor_size.height,
+				  SWP_FRAMECHANGED | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+				return;
+			}
+
+			extent adjusted = adjust_to_current_dpi(size);
+
+
 			SetWindowPos(
 			  handle,
 			  nullptr,
@@ -168,10 +263,12 @@ namespace deckard::app
 			  SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
 		}
 
-		bool handle_messages() 		{
+		bool handle_messages()
+		{
 			assert::check(handle != nullptr);
+
 			MSG msg{};
-			while (PeekMessage(&msg, handle, 0, 0, PM_REMOVE))
+			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 			{
 				if (msg.message == WM_QUIT)
 				{
@@ -181,6 +278,12 @@ namespace deckard::app
 
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
+
+				if (handle == nullptr)
+				{
+					running = false;
+					break;
+			}
 			}
 			return running;
 		}
@@ -225,7 +328,7 @@ namespace deckard::app
 		destroy_callback    on_destroy;
 
 		//
-		void set_title(std::string_view title) { SetWindowTextA(handle, title.data()); }
+		void set_title(std::string_view title) { SetWindowTextA(handle, std::string{title}.c_str()); }
 
 		void clear_invalidated() { invalidated = false; }
 
@@ -275,6 +378,9 @@ namespace deckard::app
 				return;
 			}
 
+			if (fullscreen)
+				return;
+
 			DWORD live_style = GetWindowLong(handle, GWL_STYLE);
 			if (is_resizable)
 				live_style |= (WS_SIZEBOX | WS_MAXIMIZEBOX);
@@ -292,8 +398,11 @@ namespace deckard::app
 
 		void set_fullscreen(bool make_fullscreen)
 		{
+
 			if (make_fullscreen == fullscreen)
 				return;
+
+			invalidated = true;
 
 			fullscreen = make_fullscreen;
 
@@ -303,7 +412,7 @@ namespace deckard::app
 			{
 				MONITORINFO mi = {sizeof(mi)};
 				if (GetWindowPlacement(handle, &wp)
-					&& GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &mi))
+					and GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST), &mi))
 				{
 					SetWindowLong(handle, GWL_STYLE, live_style & ~WS_OVERLAPPEDWINDOW);
 					SetWindowPos(
@@ -339,7 +448,7 @@ namespace deckard::app
 			{
 				deinitialize();
 				return false;
-			}
+
 
 			return true;
 		}
@@ -348,7 +457,7 @@ namespace deckard::app
 
 		bool is_open() const { return handle != nullptr and running == true; }
 
-		auto initialize(u16 width, u16 height, bool init_fullscreen, std::string_view title)
+		auto initialize(extent<u16> newsize, bool init_fullscreen, u8 monitor, std::string_view title)
 		  -> std::expected<void, std::string>
 		{
 			if (handle != nullptr)
@@ -356,11 +465,15 @@ namespace deckard::app
 
 			SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
+			if (monitor >= monitor_count())
+				monitor = primary_monitor_index();
 
-			size.width  = width;
-			size.height = height;
+			dbg::println("window: initializing on monitor {} of {}", monitor, monitor_count() - 1);
 
-			normalized_client_size = {width, height};
+			get_monitors();
+
+			size                   = newsize;
+			normalized_client_size = newsize;
 
 			WNDCLASSEX wc{};
 			wc.cbSize        = sizeof(WNDCLASSEX);
@@ -401,6 +514,9 @@ namespace deckard::app
 
 			set_resizable(resizable);
 
+
+			const extent<u16> initial_outer = adjust_to_current_dpi(normalized_client_size);
+
 			//
 			handle = CreateWindowEx(
 			  ex_style,
@@ -409,8 +525,8 @@ namespace deckard::app
 			  style,
 			  CW_USEDEFAULT,
 			  CW_USEDEFAULT,
-			  normalized_client_size.width,
-			  normalized_client_size.height,
+			  initial_outer.width,
+			  initial_outer.height,
 			  nullptr,
 			  nullptr,
 			  wc.hInstance,
@@ -422,7 +538,8 @@ namespace deckard::app
 				return std::unexpected(std::format("window: failed to create window: {}", platform::get_error_string()));
 			}
 
-			set_client_size({1920, 1080});
+			ivec2 pos = get_monitor_center_for_window(monitor);
+			SetWindowPos(handle, nullptr, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 
 			set_client_size(size);
 			set_fullscreen(init_fullscreen);
@@ -434,18 +551,27 @@ namespace deckard::app
 			ShowWindow(handle, SW_SHOW);
 			SetForegroundWindow(handle);
 
-			if (on_initialize == nullptr)
+
+			set_client_size(size);
+			set_fullscreen(init_fullscreen);
+
+
+			if (auto result = invoke_if(on_initialize); not result)
 			{
-				process_frame = [this]() noexcept { return true; };
+				if (result.error() == invoke_error::conditional_failed)
+				{
+					deinitialize();
+					return std::unexpected("window: failed to initialize");
 			}
-			else
-			{
-				if (not on_initialize())
+			}
+			else if (*result == false)
 				{
 					deinitialize();
 					return std::unexpected("window: failed to initialize");
 				}
 			}
+
+			//
 
 			return {};
 		}
@@ -463,11 +589,12 @@ namespace deckard::app
 			resize();
 			running = false;
 
-			DestroyWindow(handle);
-			handle = nullptr;
-			UnregisterClass(window_class_name.data(), GetModuleHandle(0));
+			_ = invoke_if(on_destroy);
 
-			SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
+			HWND h = handle;
+			handle = nullptr;
+			DestroyWindow(h);
+			UnregisterClass(window_class_name.data(), GetModuleHandle(nullptr));
 		}
 
 		void destroy() { deinitialize(); }
@@ -557,22 +684,14 @@ namespace deckard::app
 
 				const auto* new_rect = reinterpret_cast<const RECT*>(lParam);
 
-				dbg::println("WM_DPICHANGED: new dpi: {}, new rect: {}x{}",
-							 HIWORD(wParam),
-							 new_rect->right - new_rect->left,
-							 new_rect->bottom - new_rect->top);
-
-				if (not SetWindowPos(
+				SetWindowPos(
 					  handle,
 					  nullptr,
 					  new_rect->left,
 					  new_rect->top,
 					  new_rect->right - new_rect->left,
 					  new_rect->bottom - new_rect->top,
-					  SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED))
-				{
-					return 1;
-				}
+				  SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
 				invalidated = true;
 				normalize_client_size();
@@ -581,7 +700,7 @@ namespace deckard::app
 
 			case WM_ENTERSIZEMOVE:
 			{
-				sizing    = true;
+				sizing = true;
 
 				if (on_resize_begin)
 					on_resize_begin();
@@ -602,8 +721,7 @@ namespace deckard::app
 					normalize_client_size();
 
 
-				if (size_changed and on_resize_end)
-					on_resize_end();
+				_ = invoke_if(size_changed, on_resize_end);
 
 
 				return 0;
@@ -615,8 +733,7 @@ namespace deckard::app
 				{
 					InvalidateRect(handle, nullptr, FALSE);
 
-					if (on_size)
-						on_size(get_clientsize());
+					_ = invoke_if(on_size, get_clientsize());
 				}
 				return 0;
 			}
@@ -640,6 +757,8 @@ namespace deckard::app
 
 				if (on_size)
 					on_size(get_clientsize());
+
+				_ = invoke_if(not sizing, on_size, get_clientsize());
 
 
 				return 0;
@@ -679,6 +798,12 @@ namespace deckard::app
 			}
 
 			case WM_ENDSESSION:
+			{
+				// User logged off
+				running = false;
+				return 0;
+			}
+
 			case WM_CLOSE:
 			{
 				// Save states here
