@@ -179,8 +179,8 @@ namespace deckard::math
 		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{0.0001}) const
 		requires(std::is_floating_point_v<T>)
 		{
-			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon) and
-				   math::is_close_enough(z, lhs.z, epsilon);
+			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon)
+				   and math::is_close_enough(z, lhs.z, epsilon);
 		}
 
 		[[nodiscard("Use the minimum value")]] constexpr vec_type min(const vec_type& other) const
@@ -415,10 +415,16 @@ namespace deckard::math
 			return (v * cosTheta) + (v.cross(axis) * sinTheta) + (axis * v.dot(axis)) * oneMinusCosTheta;
 		}
 
-		// static
-		static inline vec_type zero() { return vec_type(T{0}); }
+		// lerp
+		[[nodiscard]] constexpr vec_type lerp(const vec_type& other, const f32 t) const
+		{
+			return {std::lerp(x, other.x, t), std::lerp(y, other.y, t), std::lerp(z, other.z, t)};
+		}
 
-		static inline vec_type one() { return vec_type(T{1}); }
+		// static
+		inline static vec_type zero() { return vec_type(T{0}); }
+
+		inline static vec_type one() { return vec_type(T{1}); }
 	};
 
 	// Free functions
@@ -497,8 +503,6 @@ namespace deckard::math
 	{
 		lhs *= generic_vec3<T>(scalar);
 	}
-
-
 
 	export template<arithmetic T, arithmetic U>
 	constexpr generic_vec3<T> operator*(const generic_vec3<T>& lhs, const U& scalar)
@@ -613,15 +617,15 @@ namespace deckard::math
 	//
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum value")]] constexpr generic_vec3<T>
-	min(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the maximum value")]] constexpr generic_vec3<T> min(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.min(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum vector")]] constexpr generic_vec3<T>
-	max(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the maximum vector")]] constexpr generic_vec3<T> max(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.max(rhs);
 	}
@@ -639,15 +643,15 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the squared distance value")]] constexpr T
-	squared_distance(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.squared_distance(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the manhattan distance value")]] constexpr T
-	manhattan_distance(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.manhattan_distance(rhs);
 	}
@@ -659,8 +663,8 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T, arithmetic U, arithmetic R>
-	[[nodiscard("Use the clamped vector")]] constexpr generic_vec3<T>
-	clamp(const generic_vec3<T>& v, const U cmin, const R cmax)
+	[[nodiscard("Use the clamped vector")]] constexpr generic_vec3<T> clamp(
+	  const generic_vec3<T>& v, const U cmin, const R cmax)
 	{
 		return v.clamp(cmin, cmax);
 	}
@@ -672,15 +676,15 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the cross product vector")]] constexpr generic_vec3<T>
-	cross(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the cross product vector")]] constexpr generic_vec3<T> cross(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.cross(rhs);
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the rotated vector")]] constexpr generic_vec3<T>
-	rotate(const generic_vec3<T>& v, const generic_vec3<T>& axis, const T angle)
+	[[nodiscard("Use the rotated vector")]] constexpr generic_vec3<T> rotate(
+	  const generic_vec3<T>& v, const generic_vec3<T>& axis, const T angle)
 	{
 		return v.rotate(axis, angle);
 	}
@@ -698,8 +702,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the projected vector")]] constexpr generic_vec3<T>
-	project(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the projected vector")]] constexpr generic_vec3<T> project(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.project(rhs);
 	}
@@ -711,8 +715,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the reflected vector")]] constexpr generic_vec3<T>
-	reflect(const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
+	[[nodiscard("Use the reflected vector")]] constexpr generic_vec3<T> reflect(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs)
 	{
 		return lhs.reflect(rhs);
 	}
@@ -736,9 +740,16 @@ namespace deckard::math
 	}
 
 	export template<typename T>
-	std::ostream& operator<<(std::ostream& os, const generic_vec3<T>& s) 
-	{ 
+	std::ostream& operator<<(std::ostream& os, const generic_vec3<T>& s)
+	{
 		return os << "vec3(" << s.x << ", " << s.y << ", " << s.z << ")";
+	}
+
+	export template<std::floating_point T>
+	[[nodiscard("Use the lerped vector")]] constexpr generic_vec3<T> lerp(
+	  const generic_vec3<T>& lhs, const generic_vec3<T>& rhs, const T t)
+	{
+		return lhs.lerp(rhs, t);
 	}
 
 

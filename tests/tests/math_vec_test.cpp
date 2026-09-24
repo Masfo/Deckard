@@ -207,6 +207,13 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		// //CHECK(reflected == vec2(-136.382004f, -237.593002f));
 	}
 
+	SECTION("index")
+	{
+
+		CHECK(1 == ivec2{1, 3}[0]);
+		CHECK(3 == ivec2{1, 3}[1]);
+	}
+
 	SECTION("1d/2d indexing")
 	{
 		// 0 1 2
@@ -217,10 +224,9 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 	}
 }
 
-
 TEST_CASE("uvec2", "[vec][uvec2][math]")
 {
-	SECTION("zorder") 
+	SECTION("zorder")
 	{
 		auto correct = make_vector<u32>(0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15);
 
@@ -232,8 +238,6 @@ TEST_CASE("uvec2", "[vec][uvec2][math]")
 				CHECK(correct[index++] == to_zorder(x, y));
 			}
 		}
-
-
 	}
 }
 
@@ -631,6 +635,14 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 		CHECK(true == clamped.equals(vec3{3.0f, 2.0f, 3.0f}));
 	}
 
+	SECTION("index")
+	{
+
+		CHECK(1 == vec3{1, 3, 6}[0]);
+		CHECK(3 == vec3{1, 3, 6}[1]);
+		CHECK(6 == vec3{1, 3, 6}[2]);
+	}
+
 	SECTION("vec3 cross/dot/normal/length/angle")
 	{
 		//
@@ -856,7 +868,7 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const auto dist = distance(v1, v2);
 		CHECK_THAT(dist, WithinAbs(11.958261f, 0.000001));
 
-		
+
 		const auto sdist = squared_distance(v1, v2);
 		CHECK_THAT(sdist, WithinAbs(143.0f, 0.000001));
 
@@ -898,6 +910,15 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 		const vec4 normal{3.14f, 5.11f, -1.34f, 8.1f};
 		vec4       reflected = reflect(dir, normal);
 		CHECK(reflected == vec4(253.354828f, 396.660248f, -100.278816f, 623.342102f));
+	}
+
+	SECTION("index")
+	{
+
+		CHECK(1 == ivec4{1, 3, 6, 9}[0]);
+		CHECK(3 == ivec4{1, 3, 6, 9}[1]);
+		CHECK(6 == ivec4{1, 3, 6, 9}[2]);
+		CHECK(9 == ivec4{1, 3, 6, 9}[3]);
 	}
 
 	SECTION("compares")
@@ -959,6 +980,45 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 
 		vzero = vec4(0, 1, 1, 1);
 		CHECK(vzero.has_zero() == true);
+	}
+}
+
+// lerps
+TEST_CASE("vec_n lerp", "[vec][math]")
+{
+	SECTION("vec2")
+	{
+		const vec2 a{1.0f, 2.0f};
+		const vec2 b{3.0f, 4.0f};
+		const vec2 result = lerp(a, b, 0.5f);
+		CHECK(result.equals(vec2{2.0f, 3.0f}));
+
+		CHECK(lerp(a, b, 0.0f).equals(a));
+		CHECK(lerp(a, b, 1.0f).equals(b));
+
+
+	}
+
+	SECTION("vec3")
+	{
+		const vec3 a{1.0f, 2.0f, 3.0f};
+		const vec3 b{4.0f, 5.0f, 6.0f};
+		const vec3 result = lerp(a, b, 0.5f);
+		CHECK(result.equals(vec3{2.5f, 3.5f, 4.5f}));
+
+		CHECK(lerp(a, b, 0.0f).equals(a));
+		CHECK(lerp(a, b, 1.0f).equals(b));
+	}
+
+	SECTION("vec4")
+	{
+		const vec4 a{1.0f, 2.0f, 3.0f, 4.0f};
+		const vec4 b{5.0f, 6.0f, 7.0f, 8.0f};
+		const vec4 result = lerp(a, b, 0.5f);
+		CHECK(result.equals(vec4{3.0f, 4.0f, 5.0f, 6.0f}));
+
+		CHECK(lerp(a, b, 0.0f).equals(a));
+		CHECK(lerp(a, b, 1.0f).equals(b));
 	}
 }
 

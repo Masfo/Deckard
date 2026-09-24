@@ -81,8 +81,8 @@ namespace deckard::math
 		constexpr bool has_zero() const
 		requires(std::is_floating_point_v<T>)
 		{
-			return math::is_close_enough_zero(x) or math::is_close_enough_zero(y) or math::is_close_enough_zero(z) or
-				   math::is_close_enough_zero(w);
+			return math::is_close_enough_zero(x) or math::is_close_enough_zero(y) or math::is_close_enough_zero(z)
+				   or math::is_close_enough_zero(w);
 		}
 
 		constexpr bool is_zero() const
@@ -188,8 +188,8 @@ namespace deckard::math
 		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = 0) const
 		requires(std::is_integral_v<T>)
 		{
-			return std::abs(x - lhs.x) <= epsilon and std::abs(y - lhs.y) <= epsilon and std::abs(z - lhs.z) <= epsilon and
-				   std::abs(w - lhs.w) <= epsilon;
+			return std::abs(x - lhs.x) <= epsilon and std::abs(y - lhs.y) <= epsilon and std::abs(z - lhs.z) <= epsilon
+				   and std::abs(w - lhs.w) <= epsilon;
 		}
 
 		constexpr bool equals(const vec_type& other, const T epsilon = T{1e-5}) const
@@ -201,8 +201,8 @@ namespace deckard::math
 		constexpr bool is_close_enough(const vec_type& lhs, T epsilon = T{1e-5}) const
 		requires(std::is_floating_point_v<T>)
 		{
-			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon) and
-				   math::is_close_enough(z, lhs.z, epsilon) and math::is_close_enough(w, lhs.w, epsilon);
+			return math::is_close_enough(x, lhs.x, epsilon) and math::is_close_enough(y, lhs.y, epsilon)
+				   and math::is_close_enough(z, lhs.z, epsilon) and math::is_close_enough(w, lhs.w, epsilon);
 		}
 
 		[[nodiscard("Use the minimum value")]] constexpr vec_type min(const vec_type& other) const
@@ -452,10 +452,16 @@ namespace deckard::math
 			return result;
 		}
 
-		// static
-		static inline vec_type zero() { return vec_type(T{0}); }
+		// lerp
+		[[nodiscard]] constexpr vec_type lerp(const vec_type& other, const f32 t) const
+		{
+			return {std::lerp(x, other.x, t), std::lerp(y, other.y, t), std::lerp(z, other.z, t), std::lerp(w, other.w, t)};
+		}
 
-		static inline vec_type one() { return vec_type(T{1}); }
+		// static
+		inline static vec_type zero() { return vec_type(T{0}); }
+
+		inline static vec_type one() { return vec_type(T{1}); }
 	};
 
 	// Free functions
@@ -652,15 +658,15 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the minimum value")]] constexpr generic_vec4<T>
-	min(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the minimum value")]] constexpr generic_vec4<T> min(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.min(rhs);
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the maximum vector")]] constexpr generic_vec4<T>
-	max(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the maximum vector")]] constexpr generic_vec4<T> max(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.max(rhs);
 	}
@@ -672,8 +678,8 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the squared distance value")]] constexpr T
-	squared_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.squared_distance(rhs);
 	}
@@ -685,15 +691,15 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the manhattan distance value")]] constexpr T
-	manhattan_distance(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the manhattan distance value")]] constexpr T manhattan_distance(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.manhattan_distance(rhs);
 	}
 
 	export template<arithmetic T, arithmetic U, arithmetic R>
-	[[nodiscard("Use the clamped vector")]] constexpr generic_vec4<T>
-	clamp(const generic_vec4<T>& v, const U cmin, const R cmax)
+	[[nodiscard("Use the clamped vector")]] constexpr generic_vec4<T> clamp(
+	  const generic_vec4<T>& v, const U cmin, const R cmax)
 	{
 		return v.clamp(cmin, cmax);
 	}
@@ -705,8 +711,8 @@ namespace deckard::math
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the cross product vector")]] constexpr generic_vec3<T>
-	cross(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the cross product vector")]] constexpr generic_vec3<T> cross(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.cross(rhs);
 	}
@@ -724,8 +730,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the projected vector")]] constexpr generic_vec4<T>
-	project(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the projected vector")]] constexpr generic_vec4<T> project(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.project(rhs);
 	}
@@ -737,8 +743,8 @@ namespace deckard::math
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the reflected vector")]] constexpr generic_vec4<T>
-	reflect(const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
+	[[nodiscard("Use the reflected vector")]] constexpr generic_vec4<T> reflect(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.reflect(rhs);
 	}
@@ -765,6 +771,13 @@ namespace deckard::math
 	inline std::ostream& operator<<(std::ostream& os, const generic_vec4<T>& v)
 	{
 		return os << "vec4(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+	}
+
+	export template<std::floating_point T>
+	[[nodiscard("Use the lerped vector")]] constexpr generic_vec4<T> lerp(
+	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs, const T t)
+	{
+		return lhs.lerp(rhs, t);
 	}
 
 
