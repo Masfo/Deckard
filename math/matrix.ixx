@@ -13,14 +13,13 @@ namespace deckard::math
 {
 
 	struct mat4_generic;
+
 	struct mat3_generic
 	{
 		using type = vec3;
 		std::array<type, 3> mat;
 
-
 		static auto identity() noexcept { return mat3_generic(1.0f); }
-
 
 		mat3_generic() noexcept
 			: mat3_generic(1.0f)
@@ -401,33 +400,34 @@ namespace deckard::math
 
 		mat4_generic rotate(f32 radians, const vec3& v) const noexcept
 		{
-			const f32 a = radians;
-			const f32 c = std::cos(a);
-			const f32 s = std::sin(a);
+			const f32 len = v.length();
+			assert::check(not math::is_close_enough_zero(len), "rotate: zero-length axis");
 
-			vec3 axis(v.normalized());
-			assert::check(not math::is_close_enough_zero(axis.length()), "rotate: zero-length axis");
+		const vec3 axis		= v / len;
 
-			vec3 temp(axis * (1.0f - c));
+			const f32 c = std::cos(radians);
+			const f32 s = std::sin(radians);
 
-			mat4_generic rotate;
-			rotate[0].x = c + temp.x * axis.x;
-			rotate[0].y = temp.x * axis.y + s * axis.z;
-			rotate[0].z = temp.x * axis.z - s * axis.y;
+			const vec3 temp = axis * (1.0f - c);
 
-			rotate[1].x = temp.y * axis.x - s * axis.z;
-			rotate[1].y = c + temp.y * axis.y;
-			rotate[1].z = temp.y * axis.z + s * axis.x;
+			mat4_generic rotation_matrix;
+			rotation_matrix[0].x = c + temp.x * axis.x;
+			rotation_matrix[0].y = temp.x * axis.y + s * axis.z;
+			rotation_matrix[0].z = temp.x * axis.z - s * axis.y;
 
-			rotate[2].x = temp.z * axis.x + s * axis.y;
-			rotate[2].y = temp.z * axis.y - s * axis.x;
-			rotate[2].z = c + temp.z * axis.z;
+			rotation_matrix[1].x = temp.y * axis.x - s * axis.z;
+			rotation_matrix[1].y = c + temp.y * axis.y;
+			rotation_matrix[1].z = temp.y * axis.z + s * axis.x;
+
+			rotation_matrix[2].x = temp.z * axis.x + s * axis.y;
+			rotation_matrix[2].y = temp.z * axis.y - s * axis.x;
+			rotation_matrix[2].z = c + temp.z * axis.z;
 
 			mat4_generic result;
 
-			result[0] = mat[0] * rotate[0].x + mat[1] * rotate[0].y + mat[2] * rotate[0].z;
-			result[1] = mat[0] * rotate[1].x + mat[1] * rotate[1].y + mat[2] * rotate[1].z;
-			result[2] = mat[0] * rotate[2].x + mat[1] * rotate[2].y + mat[2] * rotate[2].z;
+			result[0] = mat[0] * rotation_matrix[0].x + mat[1] * rotation_matrix[0].y + mat[2] * rotation_matrix[0].z;
+			result[1] = mat[0] * rotation_matrix[1].x + mat[1] * rotation_matrix[1].y + mat[2] * rotation_matrix[1].z;
+			result[2] = mat[0] * rotation_matrix[2].x + mat[1] * rotation_matrix[2].y + mat[2] * rotation_matrix[2].z;
 			result[3] = mat[3];
 
 			return result;
@@ -531,13 +531,34 @@ namespace deckard::math
 		}
 	};
 
-	export void operator*=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs * rhs; }
+	mat3_generic::mat3_generic(const mat4_generic& m4) noexcept
+		: mat3_generic(m4.to_mat3())
+	{
+	}
 
-	export void operator/=(mat4_generic& lhs, const f32 rhs) noexcept { lhs = lhs / rhs; }
+	mat4_generic::mat4_generic(const mat3_generic& m3) noexcept
+		: mat4_generic(m3.to_mat4())
+	{
+	}
 
-	export void operator+=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs + rhs; }
+	mat4_generic mat3_generic::to_mat4() const noexcept
+	{
+		return mat4_generic(
+		  vec4(mat[0].x, mat[0].y, mat[0].z, 0.0f),
+		  vec4(mat[1].x, mat[1].y, mat[1].z, 0.0f),
+		  vec4(mat[2].x, mat[2].y, mat[2].z, 0.0f),
+		  vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	}
 
-	export void operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { lhs = lhs - rhs; }
+	export mat4_generic& operator*=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { return lhs = lhs * rhs; }
+
+	export mat4_generic& operator*=(mat4_generic& lhs, f32 rhs) noexcept { return lhs = lhs * rhs; }
+
+	export mat4_generic& operator/=(mat4_generic& lhs, f32 rhs) noexcept { return lhs = lhs / rhs; }
+
+	export mat4_generic& operator+=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { return lhs = lhs + rhs; }
+
+	export mat4_generic& operator-=(mat4_generic& lhs, const mat4_generic& rhs) noexcept { return lhs = lhs - rhs; }
 
 	export vec4 operator*(const vec4& lhs, const mat4_generic& rhs) noexcept
 	{
@@ -549,17 +570,17 @@ namespace deckard::math
 
 	export vec4 operator*(const mat4_generic& lhs, const vec4& rhs) noexcept
 	{
-		vec4 const Mov0(rhs.x);
-		vec4 const Mov1(rhs.y);
-		vec4 const Mul0 = lhs[0] * Mov0;
-		vec4 const Mul1 = lhs[1] * Mov1;
-		vec4 const Add0 = Mul0 + Mul1;
-		vec4 const Mov2(rhs.z);
-		vec4 const Mov3(rhs.w);
-		vec4 const Mul2 = lhs[2] * Mov2;
-		vec4 const Mul3 = lhs[3] * Mov3;
-		vec4 const Add1 = Mul2 + Mul3;
-		vec4 const Add2 = Add0 + Add1;
+		const vec4 Mov0(rhs.x);
+		const vec4 Mov1(rhs.y);
+		const vec4 Mul0 = lhs[0] * Mov0;
+		const vec4 Mul1 = lhs[1] * Mov1;
+		const vec4 Add0 = Mul0 + Mul1;
+		const vec4 Mov2(rhs.z);
+		const vec4 Mov3(rhs.w);
+		const vec4 Mul2 = lhs[2] * Mov2;
+		const vec4 Mul3 = lhs[3] * Mov3;
+		const vec4 Add1 = Mul2 + Mul3;
+		const vec4 Add2 = Add0 + Add1;
 		return Add2;
 	}
 
@@ -585,8 +606,8 @@ namespace deckard::math
 	export mat4_generic lookat_rh(const vec3& eye, const vec3& center, const vec3& up) noexcept
 	{
 		//
-		vec3 f = normalized(center - eye);
-		vec3 s = normalized(cross(f, up));
+		vec3 f = normalize(center - eye);
+		vec3 s = normalize(cross(f, up));
 		vec3 u = cross(s, f);
 
 		return mat4_generic(
@@ -596,91 +617,118 @@ namespace deckard::math
 		  vec4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 	}
 
-	export mat4_generic perspective(f32 fov, f32 aspect, f32 near, f32 far) noexcept
+	export mat4_generic perspective(f32 fov, f32 aspect, f32 znear, f32 zfar) noexcept
 	{
-		f32 const tanHalfFovy = std::tan(fov / 2.0f);
+		const f32 tanHalfFovy = std::tan(fov / 2.0f);
 
 		return mat4_generic(
 		  vec4(1.0f / (aspect * tanHalfFovy), 0.0f, 0.0f, 0.0f),
 		  vec4(0.0f, 1.0f / tanHalfFovy, 0.0f, 0.0f),
-		  vec4(0.0f, 0.0f, -(far + near) / (far - near), -1.0f),
-		  vec4(0.0f, 0.0f, -(2.0f * far * near) / (far - near), 0.0f));
+		  vec4(0.0f, 0.0f, -zfar / (zfar - znear), -1.0f),
+		  vec4(0.0f, 0.0f, -zfar * znear / (zfar - znear), 0.0f));
 	}
 
-	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) noexcept
+	export mat4_generic ortho(f32 left, f32 right, f32 bottom, f32 top, f32 znear = 0.0f, f32 zfar = 1.0f) noexcept
 	{
 		return mat4_generic(
-		  vec4(2 / (right - left), 0.0f, 0.0f, 0.0f),
+		  vec4(2.0f / (right - left), 0.0f, 0.0f, 0.0f),
 		  vec4(0.0f, 2.0f / (top - bottom), 0.0f, 0.0f),
-		  vec4(0.0f, 0.0f, -2.0f / (far - near), 0.0f),
-		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f));
+		  vec4(0.0f, 0.0f, -1.0f / (zfar - znear), 0.0f),
+		  vec4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -znear / (zfar - znear), 1.0f));
 	}
 
-	export mat4_generic ortho(f32 width, f32 height, f32 near = -1.0f, f32 far = 1.0f) noexcept
+	export mat4_generic ortho(f32 width, f32 height, f32 znear = 0.0f, f32 zfar = 1.0f) noexcept
 	{
-#if 1
-		// y grows down
-		return ortho(0.0f, width, height, 0.0f, near, far);
-#else
-		// y grows up
-		return ortho(0.0f, width, 0.0f, height, near, far);
-#endif
+		return ortho(0.0f, width, height, 0.0f, znear, zfar);
+	}
+
+	export mat4_generic ortho_centered(f32 width, f32 height, f32 znear = 0.0f, f32 zfar = 1.0f) noexcept
+	{
+		// Y-UP: bottom = -height/2, top = height/2
+		// world (0, 0) → screen center
+		return ortho(-width / 2.0f, width / 2.0f, -height / 2.0f, height / 2.0f, znear, zfar);
 	}
 
 	export mat4_generic inverse(const mat4_generic& mat) noexcept { return mat.inverse(); }
 
-	export vec3 project(const vec3& obj, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport) noexcept
+	export vec3 project(
+	  const vec3& obj, const mat4_generic& model, const mat4_generic& proj, const viewport<f32>& viewport) noexcept
 	{
 		vec4 tmp(obj, 1.0f);
 		tmp = model * tmp;
 		tmp = proj * tmp;
-
 		tmp /= tmp.w;
-		tmp   = tmp * 0.5f + 0.5f;
-		tmp.x = tmp.x * viewport.z + viewport.x;
-		tmp.y = tmp.y * viewport.w + viewport.y;
 
-		return vec3(tmp);
+		tmp.x = tmp.x * 0.5f + 0.5f;
+		tmp.y = -tmp.y * 0.5f + 0.5f; // flip y for Vulkan-native [0,1] NDC
+
+		tmp.x = tmp.x * viewport.width + viewport.x;
+		tmp.y = tmp.y * viewport.height + viewport.y;
+
+		return vec3(tmp.x, tmp.y, tmp.z);
 	}
 
-	export vec3
-	unproject(const vec3& win, const mat4_generic& model, const mat4_generic& proj, const vec4& viewport) noexcept
+	export vec3 project_top_left(
+	  const vec3& obj, const mat4_generic& model, const mat4_generic& proj, const viewport<f32>& viewport) noexcept
+	{
+		auto screen = project(obj, model, proj, viewport);
+		screen.y    = 2.0f * viewport.y + viewport.height - screen.y;
+		return screen;
+	}
+
+	export vec3 unproject(
+	  const vec3& obj, const mat4_generic& model, const mat4_generic& proj, const viewport<f32>& viewport) noexcept
 	{
 		mat4_generic inv = inverse(proj * model);
 
-		vec4 temp(win, 1.0f);
+		vec4 temp(obj, 1.0f);
 
-		temp.x = (temp.x - viewport.x) / viewport.z;
-		temp.y = (temp.y - viewport.y) / viewport.w;
+		temp.x = (temp.x - viewport.x) / viewport.width;
+		temp.y = 1.0f - (temp.y - viewport.y) / viewport.height; // unflip to match project
+		temp.x = temp.x * 2.0f - 1.0f;
+		temp.y = temp.y * 2.0f - 1.0f;
 
-		temp = temp * 2.0f - 1.0f;
+		vec4 new_obj = inv * temp;
+		new_obj /= new_obj.w;
 
-		vec4 obj = inv * temp;
-		obj /= obj.w;
-
-		return vec3{obj};
+		return vec3{new_obj};
 	}
 
-	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) noexcept
+	//
+	auto world_to_screen(
+	  const vec3& world, const mat4_generic& model, const mat4_generic& proj, const viewport<f32>& viewport) noexcept
+	{
+		return project(world, model, proj, viewport);
+	}
+
+
+	auto screen_to_world(
+	  const vec3& screen, const mat4_generic& model, const mat4_generic& proj, const viewport<f32>& viewport) noexcept
+	{
+		return unproject(screen, model, proj, viewport);
+	}
+
+	//
+	export mat4_generic frustum(f32 left, f32 right, f32 bottom, f32 top, f32 znear, f32 zfar) noexcept
 	{
 		mat4_generic result(0.0f);
 
-		result[0].x = (2.0f * near) / (right - left);
-		result[1].y = (2.0f * near) / (top - bottom);
+		result[0].x = (2.0f * znear) / (right - left);
+		result[1].y = (2.0f * znear) / (top - bottom);
+
 		result[2].x = (right + left) / (right - left);
 		result[2].y = (top + bottom) / (top - bottom);
-		result[2].z = -(far + near) / (far - near);
+
+		result[2].z = zfar / (znear - zfar);
 		result[2].w = -1.0f;
-		result[3].z = -(2.0f * far * near) / (far - near);
+		result[3].z = -(zfar * znear) / (zfar - znear);
 
 		return result;
 	}
 
 	export f32 determinant(const mat4_generic& mat) noexcept { return mat.determinant(); }
 
-	export using mat4 = mat4_generic;
-
-	export inline std::ostream& operator<<(std::ostream& os, const mat4& m) 
+	export inline std::ostream& operator<<(std::ostream& os, const mat4_generic& m)
 	{
 		return os << "mat4((" << m[0].x << ", " << m[0].y << ", " << m[0].z << ", " << m[0].w << "),\n"
 				  << "     (" << m[1].x << ", " << m[1].y << ", " << m[1].z << ", " << m[1].w << "),\n"
