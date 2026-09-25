@@ -254,14 +254,12 @@ namespace deckard::random
 		static constexpr result_type max() { return std::numeric_limits<u64>::max(); }
 	};
 
-	constexpr std::string_view dict_alphanum_special{
-	  R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
-	constexpr std::string_view dict_alphabet{dict_alphanum_special.substr(0, 52)};
-	constexpr std::string_view dict_alphanumeric{dict_alphanum_special.substr(0, 62)};
-	constexpr std::string_view dict_digits{dict_alphanum_special.substr(52, 10)};
-	constexpr std::string_view dict_id{R"(123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz)"};
-
-	constexpr std::string_view human_readable_password_dict{R"(ACDEFHJKLMNPQRTUVWXYabcdefghjkmnprtuvwxy3467)"};
+	static constexpr std::string_view dict_alphanum_special{ R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
+	static constexpr std::string_view dict_alphabet{dict_alphanum_special.substr(0, 52)};
+	static constexpr std::string_view dict_alphanumeric{dict_alphanum_special.substr(0, 62)};
+	static constexpr std::string_view dict_digits{dict_alphanum_special.substr(52, 10)};
+	static constexpr std::string_view dict_id{R"(123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz)"};
+	static constexpr std::string_view human_readable_password_dict{R"(ACDEFHJKLMNPQRTUVWXYabcdefghjkmnprtuvwxy3467)"};
 
 	export template<integral_or_bool T = i32>
 	T rnd(T minimum = limits::min<T>, T maximum = limits::max<T>)
