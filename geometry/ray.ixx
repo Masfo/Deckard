@@ -36,15 +36,15 @@ namespace deckard::geometry
 		vec3 direction{0.0f, 0.0f, 1.0f};
 		ray3d() = default;
 
-		ray3d(const vec3& o, const vec3& d)
+		ray3d(const vec3& o, const vec3& dir)
 			: origin(o)
-			, direction(d)
+			, direction(dir)
 		{
 			direction.normalize();
 		}
 
-		ray3d(const vec3& d)
-			: direction(d)
+		ray3d(const vec3& dir)
+			: direction(dir)
 		{
 			origin = vec3(0.0f);
 			direction.normalize();
