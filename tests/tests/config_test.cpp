@@ -44,7 +44,7 @@ TEST_CASE("config parsing", "[config]")
 	}
 
 	SECTION("parse boolean value")
-	{ 
+	{
 		config cfg(utf8::string("value = true"));
 		CHECK(cfg["value"].as<bool>() == true);
 
@@ -53,7 +53,6 @@ TEST_CASE("config parsing", "[config]")
 
 		cfg = config(utf8::string("value = false#comment"));
 		CHECK(cfg["value"].as<bool>() == false);
-
 	}
 
 	SECTION("utf comment without newline")
@@ -463,6 +462,29 @@ visible = false
 		cfg["app.count"] = 99;
 		CHECK(cfg["app.count"].as<i32>() == 99);
 	}
+
+	SECTION("get values with get")
+	{ 
+		config cfg(input);
+
+		auto name = cfg.get<std::string>("app.name", "DefaultApp");
+		CHECK(name == "MyApp");
+
+		auto missing = cfg.get<std::string>("app.missing", "DefaultValue");
+		CHECK(missing == "DefaultValue");
+
+		auto version = cfg.get<i32>("app.version", 0);
+		CHECK(version == 3);
+
+		auto missingInt = cfg.get<i32>("app.missingInt", 42);
+		CHECK(missingInt == 42);
+
+		auto no_default_given = cfg.get<f32>("app.scale");
+		CHECK(no_default_given == 1.5f);
+
+		auto missing_float_and_no_default = cfg.get<f32>("app.missingFloat");
+		CHECK(missing_float_and_no_default == 0.0f); // default for f32 is 0.0
+	}
 }
 
 TEST_CASE("config global key placement", "[config]")
@@ -666,13 +688,13 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(serialized == ""sv);
 
 		// The bug was:
-		// 
+		//
 		// adding a new string value and then new comment to it,
 		// overwrote the ending quote.
-		// 
+		//
 		// cfg["version"] = "123";
 		// cfg.set_comment("version", "random");
-		// 
+		//
 		// Resulting serialised as: version = "123 # random
 		// should be: version = "123" # random
 
@@ -1041,7 +1063,8 @@ TEST_CASE("config data export", "[config]")
 		auto sv   = std::string_view(reinterpret_cast<const char*>(span.data()), span.size());
 
 		CHECK(sv.find("donn\xC3\xA9"
-					  "es") != std::string_view::npos);
+					  "es")
+			  != std::string_view::npos);
 		CHECK(sv.find("cl\xC3\xA9") != std::string_view::npos);
 		CHECK(sv.find("valeur") != std::string_view::npos);
 	}
