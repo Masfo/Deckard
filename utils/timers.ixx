@@ -7,6 +7,114 @@ import deckard.debug;
 
 namespace deckard
 {
+	using namespace std::chrono_literals;
+
+	constexpr f32 MAX_DELTA_TIME = std::chrono::duration<f32>(100ms).count();
+	// fixed timer
+
+	template<typename T>
+	concept enum_with_count = std::is_scoped_enum_v<T> and requires {
+		{ std::to_underlying(T::count) } -> std::convertible_to<size_t>;
+	};
+
+	template<enum_with_count T>
+	constexpr size_t enum_count_v = static_cast<size_t>(std::to_underlying(T::count));
+
+	export template<enum_with_count T, std::array<f32, enum_count_v<T>> Intervals>
+	class fixed_timers final
+	{
+		static_assert(std::is_scoped_enum_v<T>, "T must be a scoped enum");
+		static_assert(std::ranges::all_of(Intervals, [](f32 v) { return v > 0.0f; }), "All intervals must be > 0");
+
+	private:
+		std::array<f32, enum_count_v<T>> timers{};
+		std::array<u32, enum_count_v<T>> iterations{};
+		u32                              max_iterations;
+
+	public:
+		explicit constexpr fixed_timers(u32 max_iterations = 5) noexcept
+			: max_iterations{max_iterations}
+		{
+		}
+
+		[[nodiscard]] constexpr f32& operator[](T index) noexcept { return timers[std::to_underlying(index)]; }
+
+		[[nodiscard]] constexpr f32 operator[](T index) const noexcept { return timers[std::to_underlying(index)]; }
+
+		constexpr void update(T index, f32 dt) noexcept
+		{
+			timers[std::to_underlying(index)] += dt;
+			iterations[std::to_underlying(index)] = 0;
+		}
+
+		constexpr void update(f32 dt) noexcept
+		{
+			for (auto& t : timers)
+				t += dt;
+			iterations.fill(0);
+		}
+
+		[[nodiscard]] constexpr bool tick(T index) noexcept
+		{
+			const auto i        = std::to_underlying(index);
+			auto&      t        = timers[i];
+			auto&      count    = iterations[i];
+			const f32  interval = Intervals[i];
+
+			if (t >= interval and count < max_iterations)
+			{
+				t -= interval;
+				++count;
+				return true;
+			}
+			return false;
+		}
+
+		constexpr void reset(T index) noexcept
+		{
+			timers[std::to_underlying(index)]     = 0.0f;
+			iterations[std::to_underlying(index)] = 0;
+		}
+	};
+
+	export class fixed_step
+	{
+	private:
+		f32 interval{0.0f};
+		f32 accumulator{0.0f};
+		u64 ticks{0};
+
+	public:
+		explicit fixed_step(f32 hz)
+			: interval(1.0f / hz)
+		{
+		}
+
+		void advance(f32 dt) noexcept
+		{
+			if (dt > 0.0f)
+				accumulator += dt;
+		}
+
+		bool tick() noexcept
+		{
+
+			if (accumulator >= interval)
+			{
+				accumulator -= interval;
+				ticks++;
+				return true;
+			}
+			return false;
+		}
+
+		// interpolation for rendering, range 0.0 - 1.0
+		[[nodiscard]] f32 alpha() const noexcept { return accumulator / interval; }
+
+		[[nodiscard]] f32 delta() const noexcept { return interval; }
+
+		u64 ticks_count() const noexcept { return ticks; }
+	};
 
 	// Frame timers
 	using namespace std::chrono_literals;
