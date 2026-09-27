@@ -16,6 +16,7 @@ namespace deckard
 {
 	using namespace deckard::math;
 	using namespace deckard::utils;
+	using namespace deckard::vec;
 
 	template<typename T>
 	class array2d;

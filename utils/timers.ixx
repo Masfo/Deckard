@@ -1,6 +1,7 @@
 export module deckard.timers;
 
 import std;
+import deckard.assert;
 import deckard.types;
 import deckard.helpers;
 import deckard.debug;
@@ -117,13 +118,10 @@ namespace deckard
 	};
 
 	// Frame timers
-	using namespace std::chrono_literals;
-	const f32 MAX_DELTA_TIME = std::chrono::duration<f32>(100ms).count();
 
 	export class frame_timer
 	{
 	private:
-
 		using clock = std::chrono::steady_clock;
 		clock::time_point last_time{clock::now()};
 
@@ -132,8 +130,7 @@ namespace deckard
 
 		void reset() { last_time = clock::now(); }
 
-
-		f32 tick() 
+		f32 tick()
 		{
 			const auto now = clock::now();
 			const f32  dt  = std::chrono::duration<f32>(now - last_time).count();
@@ -142,9 +139,7 @@ namespace deckard
 		}
 
 		f32 fps() { return 1.0f / tick(); }
-
 	};
-
 
 	// ScopeTimer
 	export template<typename R = std::milli>
@@ -172,7 +167,7 @@ namespace deckard
 
 		void start() { start_time = clock_now(); }
 
-		void stop(std::string_view input="")
+		void stop(std::string_view input = "")
 		{
 			now(input);
 			stopped = true;
@@ -214,8 +209,8 @@ namespace deckard
 		AverageTimer() = default;
 
 		// Copy
-		AverageTimer(AverageTimer const&)            = delete;
-		AverageTimer& operator=(AverageTimer const&) = delete;
+		AverageTimer(const AverageTimer&)            = delete;
+		AverageTimer& operator=(const AverageTimer&) = delete;
 		// Move
 		AverageTimer(AverageTimer&&)            = delete;
 		AverageTimer& operator=(AverageTimer&&) = delete;
@@ -253,4 +248,4 @@ namespace deckard
 			  "Total time: {}, Iterations: {}, Average: {}", pretty_time(m_total_dur), m_iterations, pretty_time(average()));
 		}
 	};
-}
+} // namespace deckard
