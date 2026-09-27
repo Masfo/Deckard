@@ -555,13 +555,13 @@ namespace deckard
 		std::span<const parse_error> errors() const { return m_errors; }
 
 		template<typename T>
-		T get(std::string_view key) const
+		T get(std::string_view key, std::optional<T> default_value = std::nullopt) const
 		{
 			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it == key_hash_to_token_index.end() or it->second.empty())
 			{
 				dbg::println("config: key '{}' not found", key);
-				return T{};
+				return default_value.value_or(T{});
 			}
 
 			const auto&      tok = tokens[it->second.front()];
@@ -908,6 +908,18 @@ namespace deckard
 			assert::check(index < tokens.size(), "token index out of bounds");
 			return tokens[index];
 		}
+
+		void load_from_file(fs::path file)
+		{
+			filename = file;
+			m_data   = file::read_text_file_as_utf8(file);
+			tokens.clear();
+			key_hash_to_token_index.clear();
+			m_errors.clear();
+			parse();
+		}
+
+
 
 		auto begin() const { return tokens.begin(); }
 
