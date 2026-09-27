@@ -18,6 +18,8 @@ import deckard.types;
 
 namespace deckard::math
 {
+	using namespace deckard::vec;
+
 	export auto grid_order = [](const ivec2& v1, const ivec2& v2) -> bool
 	{
 		//

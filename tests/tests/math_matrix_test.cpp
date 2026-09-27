@@ -11,6 +11,9 @@ using namespace std::string_literals;
 
 TEST_CASE("matrix3 generic", "[matrix3]")
 {
+	using namespace deckard::matrix;
+	using namespace deckard::vec;
+
 	SECTION("default constructor")
 	{
 		mat3 identity;
@@ -224,6 +227,9 @@ TEST_CASE("matrix3 generic", "[matrix3]")
 
 TEST_CASE("matrix4 generic", "[matrix4]")
 {
+	using namespace deckard::matrix;
+	using namespace deckard::vec;
+
 	SECTION("default constructor")
 	{
 		mat4 identity;

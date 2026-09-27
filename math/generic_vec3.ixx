@@ -8,7 +8,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.utils.hash;
 
-namespace deckard::math
+namespace deckard::vec
 {
 
 	export template<arithmetic T>
@@ -758,7 +758,7 @@ namespace deckard::math
 export namespace std
 {
 	using namespace deckard;
-	using namespace deckard::math;
+	using namespace deckard::vec;
 
 	template<arithmetic T>
 	struct hash<generic_vec3<T>>

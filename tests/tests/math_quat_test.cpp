@@ -14,6 +14,10 @@ using namespace std::string_literals;
 
 TEST_CASE("quatertion", "[quaternion]")
 {
+	using namespace deckard::quaternion;
+	using namespace deckard::vec;
+	using namespace deckard::matrix;
+
 	SECTION("default constructor")
 	{
 		quat q;
@@ -283,7 +287,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		quat a{0.0f, 0.0f, 0.0f, 1.0f};
 		quat b = normalize(quat(0.0f, 0.02f, 0.0f, 1.0f));
 
-		CHECK(dot(a, b) > math::slerp_lerp_threshold);
+		CHECK(dot(a, b) > quaternion::slerp_lerp_threshold);
 
 		quat result = slerp(a, b, 0.5f);
 

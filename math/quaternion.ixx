@@ -13,8 +13,12 @@ import deckard.utils.hash;
 
 import std;
 
-namespace deckard::math
+namespace deckard::quaternion
 {
+	using namespace deckard::vec;
+	using namespace deckard::matrix;
+	using namespace deckard::math;
+
 	constexpr f32 quat_epsilon = 5e-5f;
 
 	export inline constexpr f32 slerp_lerp_threshold = 0.9995f;
@@ -362,10 +366,10 @@ namespace deckard::math
 		if (theta > slerp_lerp_threshold)
 		{
 			return normalize(quat(
-			  mix(x.data.w, to.data.w, t),
-			  mix(x.data.x, to.data.x, t),
-			  mix(x.data.y, to.data.y, t),
-			  mix(x.data.z, to.data.z, t)));
+			  math::mix(x.data.w, to.data.w, t),
+			  math::mix(x.data.x, to.data.x, t),
+			  math::mix(x.data.y, to.data.y, t),
+			  math::mix(x.data.z, to.data.z, t)));
 		}
 
 		f32 angle = std::acos(std::clamp(theta, -1.0f, 1.0f));
@@ -393,10 +397,10 @@ namespace deckard::math
 
 		if (theta > slerp_lerp_threshold)
 		{
-			return quat(mix(x.data.w, z.data.w, t),
-						mix(x.data.x, z.data.x, t),
-						mix(x.data.y, z.data.y, t),
-						mix(x.data.z, z.data.z, t));
+			return quat(math::mix(x.data.w, z.data.w, t),
+						math::mix(x.data.x, z.data.x, t),
+						math::mix(x.data.y, z.data.y, t),
+						math::mix(x.data.z, z.data.z, t));
 		}
 
 
@@ -419,17 +423,17 @@ namespace deckard::math
 namespace std
 {
 	template<>
-	struct hash<quat>
+	struct hash<quaternion::quat>
 	{
-		size_t operator()(const quat& q) const { return deckard::utils::hash_values(q[3], q[0], q[1], q[2]); }
+		size_t operator()(const quaternion::quat& q) const { return deckard::utils::hash_values(q[3], q[0], q[1], q[2]); }
 	};
 
 	template<>
-	struct formatter<quat>
+	struct formatter<quaternion::quat>
 	{
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const quat& q, std::format_context& ctx) const
+		auto format(const quaternion::quat& q, std::format_context& ctx) const
 		{
 			return std::format_to(ctx.out(), "quat({:.5f}, {:.5f}, {:.5f}, {:.5f})", q[3], q[0], q[1], q[2]);
 		}

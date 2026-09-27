@@ -11,6 +11,7 @@ import deckard.as;
 namespace deckard
 {
 	using namespace deckard::math;
+	using namespace deckard::vec;
 
 	export enum class filled { yes, no };
 

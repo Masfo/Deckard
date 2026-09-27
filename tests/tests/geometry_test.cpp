@@ -14,6 +14,7 @@ TEST_CASE("geometry", "[geometry]")
 	using namespace deckard;
 	using namespace deckard::geometry;
 	using namespace deckard::math;
+	using namespace deckard::vec;
 
 	SECTION("rect") 
 	{

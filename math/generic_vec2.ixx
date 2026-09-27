@@ -8,8 +8,9 @@ import deckard.assert;
 import deckard.utils.hash;
 import deckard.math.utils;
 
-namespace deckard::math
+namespace deckard::vec
 {
+	using namespace deckard::math;
 
 	export template<arithmetic T>
 	struct alignas(alignof(T)) generic_vec2
@@ -705,7 +706,7 @@ namespace deckard::math
 export namespace std
 {
 	using namespace deckard;
-	using namespace deckard::math;
+	using namespace deckard::vec;
 
 	template<arithmetic T>
 	struct hash<generic_vec2<T>>

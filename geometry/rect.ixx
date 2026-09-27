@@ -7,6 +7,7 @@ import deckard.math.utils;
 
 namespace deckard::geometry
 {
+	using namespace deckard::vec;
 	using namespace deckard::math;
 
 	export struct rect

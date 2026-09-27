@@ -4,7 +4,7 @@ export import :vec2;
 export import :vec3;
 export import :vec4;
 
-export namespace deckard::math
+export namespace deckard::vec
 {
 
 	using uvec2   = generic_vec2<u32>;
@@ -30,6 +30,8 @@ export namespace deckard::math
 	using vec2 = generic_vec2<f32>;
 	using vec3 = generic_vec3<f32>;
 	using vec4 = generic_vec4<f32>;
+
+
 
 	static_assert(sizeof(vec2) == 2 * sizeof(f32));
 	static_assert(sizeof(vec3) == 3 * sizeof(f32));

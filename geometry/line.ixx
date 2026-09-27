@@ -6,7 +6,7 @@ import deckard.vec;
 
 namespace deckard::geometry
 {
-	using namespace deckard::math;
+	using namespace deckard::vec;
 
 	export struct line2d
 	{

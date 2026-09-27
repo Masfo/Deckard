@@ -9,8 +9,9 @@ import deckard.utils.hash;
 import deckard.vec;
 import deckard.math.utils;
 
-namespace deckard::math
+namespace deckard::matrix
 {
+	using namespace deckard::vec;
 
 	struct mat4_generic;
 
@@ -768,9 +769,9 @@ namespace deckard::math
 namespace std
 {
 	template<>
-	struct hash<deckard::math::mat3_generic>
+	struct hash<deckard::matrix::mat3_generic>
 	{
-		size_t operator()(const deckard::math::mat3_generic& value) const
+		size_t operator()(const deckard::matrix::mat3_generic& value) const
 		{
 			return deckard::utils::hash_values(
 			  value[0].x, value[0].y, value[0].z, value[1].x, value[1].y, value[1].z, value[2].x, value[2].y, value[2].z);
@@ -778,11 +779,11 @@ namespace std
 	};
 
 	template<>
-	struct formatter<deckard::math::mat3_generic>
+	struct formatter<deckard::matrix::mat3_generic>
 	{
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const deckard::math::mat3_generic& m, std::format_context& ctx) const
+		auto format(const deckard::matrix::mat3_generic& m, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "mat3(({:.5f}, {:.5f}, {:.5f}),\n", m[0].x, m[0].y, m[0].z);
 			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}),\n", m[1].x, m[1].y, m[1].z);
@@ -792,9 +793,9 @@ namespace std
 	};
 
 	template<>
-	struct hash<deckard::math::mat4_generic>
+	struct hash<deckard::matrix::mat4_generic>
 	{
-		size_t operator()(const deckard::math::mat4_generic& value) const
+		size_t operator()(const deckard::matrix::mat4_generic& value) const
 		{
 			return deckard::utils::hash_values(
 			  value[0].x,
@@ -817,12 +818,12 @@ namespace std
 	};
 
 	template<>
-	struct formatter<deckard::math::mat4_generic>
+	struct formatter<deckard::matrix::mat4_generic>
 	{
 		// TODO: Parse single or multi row?
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const deckard::math::mat4_generic& m, std::format_context& ctx) const
+		auto format(const deckard::matrix::mat4_generic& m, std::format_context& ctx) const
 		{
 			std::format_to(ctx.out(), "mat4(({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[0].x, m[0].y, m[0].z, m[0].w);
 			std::format_to(ctx.out(), "     ({:.5f}, {:.5f}, {:.5f}, {:.5f}),\n", m[1].x, m[1].y, m[1].z, m[1].w);

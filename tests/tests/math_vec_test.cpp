@@ -18,6 +18,7 @@ using namespace deckard;
 
 TEST_CASE("ivec2", "[vec][ivec2][math]")
 {
+	using namespace deckard::vec;
 	SECTION("constructor")
 	{
 		const ivec2 v0{2};
@@ -235,7 +236,7 @@ TEST_CASE("uvec2", "[vec][uvec2][math]")
 		{
 			for (const u32& x : upto(4))
 			{
-				CHECK(correct[index++] == to_zorder(x, y));
+				CHECK(correct[index++] == vec::to_zorder(x, y));
 			}
 		}
 	}
@@ -245,6 +246,7 @@ TEST_CASE("uvec2", "[vec][uvec2][math]")
 TEST_CASE("vec 2", "[vec][vec2][math]")
 {
 	//
+	using namespace deckard::vec;
 
 
 	SECTION("constructor")
@@ -457,6 +459,7 @@ TEST_CASE("vec 2", "[vec][vec2][math]")
 // vec3
 TEST_CASE("vec 3", "[vec][vec3][math]")
 {
+	using namespace deckard::vec;
 	//
 	SECTION("constructor")
 	{
@@ -706,6 +709,7 @@ TEST_CASE("vec 3", "[vec][vec3][math]")
 // vec4
 TEST_CASE("vec 4", "[vec][vec4][math]")
 {
+	using namespace deckard::vec;
 	//
 	SECTION("constructor")
 	{
@@ -986,6 +990,8 @@ TEST_CASE("vec 4", "[vec][vec4][math]")
 // lerps
 TEST_CASE("vec_n lerp", "[vec][math]")
 {
+	using namespace deckard::vec;
+
 	SECTION("vec2")
 	{
 		const vec2 a{1.0f, 2.0f};
@@ -1025,6 +1031,9 @@ TEST_CASE("vec_n lerp", "[vec][math]")
 // Format
 TEST_CASE("vec_n format", "[vec][math]")
 {
+	using namespace deckard::vec;
+
+
 	SECTION("vec2")
 	{
 		const vec2 v{2.123f, 3.141f};
