@@ -37,14 +37,14 @@ namespace deckard::random
 	u32 pcg32_random_r(pcg32_random_t& rng)
 	{
 		u64 oldstate   = rng.state;
-		rng.state      = oldstate * 6'364'136'223'846'793'005ULL + (rng.inc | 1);
+		rng.state      = oldstate * 6'364'136'223'846'793'005ull + (rng.inc | 1);
 		u32 xorshifted = static_cast<u32>(((oldstate >> 18u) ^ oldstate) >> 27u);
 		u32 rot        = static_cast<u32>(oldstate >> 59u);
 		return (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31));
 	}
 
 #ifdef _DEBUG
-	pcg32_random_t pcg_state = {0x853c'49e6'748f'ea9bULL, 0xda3e'39cb'94b9'5bdbULL};
+	pcg32_random_t pcg_state = {0x853C'49E6'748F'EA9Bull, 0xDA3E'39CB'94B9'5BDBull};
 
 #else
 
@@ -72,7 +72,7 @@ namespace deckard::random
 	{
 	private:
 #ifdef _DEBUG
-		u64 state{0xdead'beef'1234'5678ULL};
+		u64 state{0xDEAD'BEEF'1234'5678ull};
 #else
 		u64 state{deckard_build::build::random_seed};
 #endif
@@ -98,9 +98,9 @@ namespace deckard::random
 
 		constexpr u64 next()
 		{
-			u64 z = (state += 0x9e37'79b9'7f4a'7c15);
-			z     = (z ^ (z >> 30)) * 0xbf58'476d'1ce4'e5b9;
-			z     = (z ^ (z >> 27)) * 0x94d0'49bb'1331'11eb;
+			u64 z = (state += 0x9E37'79B9'7F4A'7C15);
+			z     = (z ^ (z >> 30)) * 0xBF58'476D'1CE4'E5B9;
+			z     = (z ^ (z >> 27)) * 0x94D0'49BB'1331'11EB;
 			return z ^ (z >> 31);
 		}
 
@@ -184,7 +184,7 @@ namespace deckard::random
 		void jump()
 		{
 			static constexpr statetype JUMP = {
-			  0x180e'c6d3'3cfd'0abaULL, 0xd5a6'1266'f0c9'392cULL, 0xa958'2618'e03f'c9aaULL, 0x39ab'dc45'29b1'661cULL};
+			  0x180E'C6D3'3CFD'0ABAull, 0xD5A6'1266'F0C9'392Cull, 0xA958'2618'E03F'C9AAull, 0x39AB'DC45'29B1'661Cull};
 
 			u64 s0 = 0, s1 = 0, s2 = 0, s3 = 0;
 
@@ -192,7 +192,7 @@ namespace deckard::random
 			{
 				for (auto b = 0; b < 64; b++)
 				{
-					if (jump_val & 1ULL << b)
+					if (jump_val & 1ull << b)
 					{
 						s0 ^= state[0];
 						s1 ^= state[1];
@@ -220,7 +220,7 @@ namespace deckard::random
 	{
 	private:
 		// Golden ratio fractional part * 2^64
-		static constexpr u64 GR = 0x9e37'79b9'7f4a'7c15ULL;
+		static constexpr u64 GR = 0x9E37'79B9'7F4A'7C15ull;
 
 	public:
 		dualmix128()
@@ -254,7 +254,8 @@ namespace deckard::random
 		static constexpr result_type max() { return std::numeric_limits<u64>::max(); }
 	};
 
-	static constexpr std::string_view dict_alphanum_special{ R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
+	static constexpr std::string_view dict_alphanum_special{
+	  R"(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !@#$%^&*()_+-={}[]|\:;"'<>,.?/~)"};
 	static constexpr std::string_view dict_alphabet{dict_alphanum_special.substr(0, 52)};
 	static constexpr std::string_view dict_alphanumeric{dict_alphanum_special.substr(0, 62)};
 	static constexpr std::string_view dict_digits{dict_alphanum_special.substr(52, 10)};
@@ -361,7 +362,31 @@ namespace deckard::random
 
 	export void cryptographic_random_bytes(std::span<u8> buffer)
 	{
-		std::uniform_int_distribution<u64> dist;
+		constexpr usize blocksize      = 64;
+		constexpr usize u64s_per_block = blocksize / sizeof(u64);
+
+		usize i = 0;
+		for (; i + blocksize <= buffer.size(); i += blocksize)
+		{
+			std::span<u64, u64s_per_block> block(std::bit_cast<u64*>(buffer.data() + i), u64s_per_block);
+
+			block[0] = random_device();
+			block[1] = random_device();
+			block[2] = random_device();
+			block[3] = random_device();
+			block[4] = random_device();
+			block[5] = random_device();
+			block[6] = random_device();
+			block[7] = random_device();
+		}
+
+		for (; i < buffer.size(); ++i)
+			buffer[i] = static_cast<u8>(random_device() & 0xFF);
+	}
+
+	export void bytes_seeded(std::span<u8> buffer, u64 seed)
+	{
+		std::mt19937_64 engine(seed);
 
 		constexpr usize blocksize      = 64;
 		constexpr usize u64s_per_block = blocksize / sizeof(u64);
@@ -371,19 +396,18 @@ namespace deckard::random
 		{
 			std::span<u64, u64s_per_block> block(std::bit_cast<u64*>(buffer.data() + i), u64s_per_block);
 
-			block[0] = dist(random_device);
-			block[1] = dist(random_device);
-			block[2] = dist(random_device);
-			block[3] = dist(random_device);
-			block[4] = dist(random_device);
-			block[5] = dist(random_device);
-			block[6] = dist(random_device);
-			block[7] = dist(random_device);
+			block[0] = engine();
+			block[1] = engine();
+			block[2] = engine();
+			block[3] = engine();
+			block[4] = engine();
+			block[5] = engine();
+			block[6] = engine();
+			block[7] = engine();
 		}
 
-		std::uniform_int_distribution<u16> tail_dist(0, limits::max<u8>);
 		for (; i < buffer.size(); ++i)
-			buffer[i] = static_cast<u8>(tail_dist(random_device));
+			buffer[i] = static_cast<u8>(engine() & 0xFF	);
 	}
 
 	export void bytes(std::span<u8> buffer)
