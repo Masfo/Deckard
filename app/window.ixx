@@ -17,7 +17,7 @@ import deckard.platform;
 
 namespace deckard::app
 {
-	using namespace deckard::math;
+	using namespace deckard::vec;
 
 	LRESULT CALLBACK low_level_keyboard_proc(int code, WPARAM wparam, LPARAM lparam) noexcept
 	{

@@ -75,10 +75,17 @@ namespace deckard::vulkan
 {
 	// Vulkan 1.3: https://developer.nvidia.com/blog/advanced-api-performance-vulkan-clearing-and-presenting/
 
+	//
+	// VertexBuffer vb;
+	// vb->vertex(x,y,z, color, uv);
+	//
+
+	using namespace deckard::vec;
+
 	struct triangle2_vertex
 	{
-		math::vec2 pos;
-		math::vec3 color;
+		vec2 pos;
+		vec3 color;
 	};
 
 	export class vulkan
@@ -130,10 +137,10 @@ namespace deckard::vulkan
 		graphics_pipeline m_pipeline2;
 		vertex_buffer     m_triangle2_buffer;
 
-		std::array<math::vec2, 3> m_triangle2_origin;
-		std::array<math::vec3, 3> m_triangle2_color;
-		std::array<f32, 3>        m_triangle2_angle;
-		std::array<f32, 3>        m_triangle2_angular_speed;
+		std::array<vec::vec2, 3> m_triangle2_origin;
+		std::array<vec::vec3, 3> m_triangle2_color;
+		std::array<f32, 3>       m_triangle2_angle;
+		std::array<f32, 3>       m_triangle2_angular_speed;
 
 		std::chrono::steady_clock::time_point m_last_frame_time{};
 
@@ -248,7 +255,7 @@ namespace deckard::vulkan
 
 			const std::array<VkVertexInputAttributeDescription, 2> attributes{{
 			  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = 0},
-			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = sizeof(math::vec2)},
+			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = sizeof(vec2)},
 			}};
 
 			is_initialized &= m_pipeline2.initialize(
@@ -258,9 +265,9 @@ namespace deckard::vulkan
 			frag2.deinitialize(m_device);
 
 			m_triangle2_origin = {
-			  math::vec2{0.55f, -0.75f},
-			  math::vec2{0.80f, -0.25f},
-			  math::vec2{0.30f, -0.25f},
+			  vec2{0.55f, -0.75f},
+			  vec2{0.80f, -0.25f},
+			  vec2{0.30f, -0.25f},
 			};
 
 			m_triangle2_color = {
@@ -268,9 +275,9 @@ namespace deckard::vulkan
 			  // math::vec3{1.0f, 0.0f, 1.0f}, // magenta
 			  // math::vec3{0.0f, 1.0f, 1.0f}, // cyan
 
-			  math::vec3{0.0f, 1.0f, 0.0f},
-			  math::vec3{0.0f, 0.0f, 1.0f},
-			  math::vec3{1.0f, 0.0f, 1.0f},
+			  vec3{0.0f, 1.0f, 0.0f},
+			  vec3{0.0f, 0.0f, 1.0f},
+			  vec3{1.0f, 0.0f, 1.0f},
 			};
 
 			for (u32 i = 0; i < 3; ++i)
@@ -541,7 +548,7 @@ namespace deckard::vulkan
 		{
 			m_triangle2_angle[i] += m_triangle2_angular_speed[i] * dt;
 
-			const math::vec2 offset = math::vec2{orbit_radius, 0.0f}.rotate(m_triangle2_angle[i], math::vec2::zero());
+			const vec2 offset = vec2{orbit_radius, 0.0f}.rotate(m_triangle2_angle[i], vec2::zero());
 
 			vertices[i].pos   = m_triangle2_origin[i] + offset;
 			vertices[i].color = m_triangle2_color[i];
