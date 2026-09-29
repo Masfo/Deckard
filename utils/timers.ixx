@@ -145,6 +145,11 @@ namespace deckard
 	export template<typename R = std::milli>
 	class ScopeTimer
 	{
+	private:
+		std::string                           name;
+		std::chrono::steady_clock::time_point start_time{};
+		bool                                  stopped{false};
+
 	public:
 		ScopeTimer()
 			: name("Unknown timer")
@@ -186,11 +191,6 @@ namespace deckard
 			std::chrono::duration<float, R> dur(clock_now() - start_time);
 			return dur;
 		}
-
-	private:
-		std::string                           name;
-		std::chrono::steady_clock::time_point start_time{};
-		bool                                  stopped{false};
 	};
 
 	//

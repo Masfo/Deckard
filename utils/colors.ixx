@@ -153,6 +153,15 @@ namespace deckard
 		{
 		}
 
+		rgb(const rgb& other) = default;
+
+		rgb(const std::array<u8, 3>& color)
+			: r(color[0])
+			, g(color[1])
+			, b(color[2])
+		{
+		}
+
 		bool operator==(const rgb& rhs) const { return r == rhs.r and g == rhs.g and b == rhs.b; }
 	};
 
