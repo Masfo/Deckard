@@ -391,6 +391,7 @@ set(THIRD_PARTY_LIBS
 	xinput
 	Comctl32.lib
 	gameinput.lib
+	shcore.lib
 	hid.lib
 	msimg32.lib # for GradientFill
 	version.lib

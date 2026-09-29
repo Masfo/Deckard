@@ -1,31 +1,35 @@
 
 #include <windows.h>
 #include <Commctrl.h>
+#include <cmath>
+#include <gameinput.h>
 #include <intrin.h>
 #include <time.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include "gameinput.h"
 
 #include <cstddef>
 
 
 import std;
 import deckard;
+import deckard.app2;
 import deckard.types;
-import deckard.timers;
 import deckard.helpers;
-import deckard.random;
+import deckard.math;
+import deckard.timers;
+import deckard.vec;
+
 using namespace deckard;
-using namespace deckard::app;
 using namespace deckard::literals;
 
-using namespace deckard::random;
 // using namespace std::string_literals;
 namespace fs = std::filesystem;
 using namespace std::string_view_literals;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
+
+using namespace deckard::vec;
 
 
 #ifndef _DEBUG
@@ -35,20 +39,9 @@ import window;
 std::array<unsigned char, 256> previous_state{0};
 std::array<unsigned char, 256> current_state{0};
 
-IGameInput* gameinput = nullptr;
 
-bool initialize([[maybe_unused]]vulkanapp& app)
-{
-	//
-	if (not SUCCEEDED(GameInputCreate(&gameinput)))
-	{
-		dbg::println("Failed to initialize GameInput.");
-		return false;
-	}
-	return true;
-}
-
-void keyboard_callback(vulkanapp& app, i32 key, i32 scancode, bool action, i32 mods)
+#if 0
+void keyboard_callback([[maybe_unused]]vulkanapp& app, [[maybe_unused]] i32 key, [[maybe_unused]] i32 scancode, [[maybe_unused]] bool action, [[maybe_unused]] i32 mods)
 {
 	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action ? "UP" : "DOWN", mods);
 
@@ -145,6 +138,7 @@ void render(vulkanapp&)
 	//
 }
 
+#endif
 constexpr std::array<u32, 64> k_md5 = []
 {
 	std::array<u32, 64> table = {};
@@ -575,6 +569,537 @@ private:
 	std::vector<int> flags;
 };
 
+[[nodiscard]] auto label_device_family(GameInputDeviceFamily family) noexcept -> std::string
+{
+	std::string result;
+	if (family == GameInputFamilyVirtual)
+		result += "Virtual, ";
+	if (family == GameInputFamilyAggregate)
+		result += "Aggregate, ";
+	if (family == GameInputFamilyXboxOne)
+		result += "Xbox One, ";
+	if (family == GameInputFamilyXbox360)
+		result += "Xbox 360, ";
+	if (family == GameInputFamilyHid)
+		result += "HID, ";
+	if (family == GameInputFamilyI8042)
+		result += "I8042, ";
+	if (result.empty())
+		return "None";
+
+	return result.substr(0, result.size() - 2); // Remove trailing ", "
+}
+
+[[nodiscard]] auto label_device_capability(GameInputDeviceCapabilities cap) noexcept -> std::string
+{
+
+	std::string result;
+	if (cap & GameInputDeviceCapabilityAudio)
+		result += "Audio, ";
+	if (cap & GameInputDeviceCapabilityPluginModule)
+		result += "Plugin Module, ";
+	if (cap & GameInputDeviceCapabilityPowerOff)
+		result += "Power Off, ";
+	if (cap & GameInputDeviceCapabilitySynchronization)
+		result += "Synchronization, ";
+	if (cap & GameInputDeviceCapabilityWireless)
+		result += "Wireless, ";
+	if (result.empty())
+		return "None";
+
+	return result.substr(0, result.size() - 2); // Remove trailing ", "
+}
+
+[[nodiscard]] auto label_name(GameInputLabel label) noexcept -> std::string_view
+{
+	switch (label)
+	{
+		case GameInputLabelUnknown: return "Unknown";
+		case GameInputLabelNone: return "None";
+
+		case GameInputLabelXboxGuide: return "Xbox Guide";
+		case GameInputLabelXboxBack: return "Xbox Back";
+		case GameInputLabelXboxStart: return "Xbox Start";
+		case GameInputLabelXboxMenu: return "Xbox Menu";
+		case GameInputLabelXboxView: return "Xbox View";
+		case GameInputLabelXboxA: return "Xbox A";
+		case GameInputLabelXboxB: return "Xbox B";
+		case GameInputLabelXboxX: return "Xbox X";
+		case GameInputLabelXboxY: return "Xbox Y";
+		case GameInputLabelXboxDPadUp: return "Xbox DPad Up";
+		case GameInputLabelXboxDPadDown: return "Xbox DPad Down";
+		case GameInputLabelXboxDPadLeft: return "Xbox DPad Left";
+		case GameInputLabelXboxDPadRight: return "Xbox DPad Right";
+		case GameInputLabelXboxLeftShoulder: return "Xbox Left Shoulder";
+		case GameInputLabelXboxLeftTrigger: return "Xbox Left Trigger";
+		case GameInputLabelXboxLeftStickButton: return "Xbox Left Stick Click";
+		case GameInputLabelXboxRightShoulder: return "Xbox Right Shoulder";
+		case GameInputLabelXboxRightTrigger: return "Xbox Right Trigger";
+		case GameInputLabelXboxRightStickButton: return "Xbox Right Stick Click";
+		case GameInputLabelXboxPaddle1: return "Xbox Paddle 1";
+		case GameInputLabelXboxPaddle2: return "Xbox Paddle 2";
+		case GameInputLabelXboxPaddle3: return "Xbox Paddle 3";
+		case GameInputLabelXboxPaddle4: return "Xbox Paddle 4";
+
+		case GameInputLabelLetterA: return "A";
+		case GameInputLabelLetterB: return "B";
+		case GameInputLabelLetterC: return "C";
+		case GameInputLabelLetterD: return "D";
+		case GameInputLabelLetterE: return "E";
+		case GameInputLabelLetterF: return "F";
+		case GameInputLabelLetterG: return "G";
+		case GameInputLabelLetterH: return "H";
+		case GameInputLabelLetterI: return "I";
+		case GameInputLabelLetterJ: return "J";
+		case GameInputLabelLetterK: return "K";
+		case GameInputLabelLetterL: return "L";
+		case GameInputLabelLetterM: return "M";
+		case GameInputLabelLetterN: return "N";
+		case GameInputLabelLetterO: return "O";
+		case GameInputLabelLetterP: return "P";
+		case GameInputLabelLetterQ: return "Q";
+		case GameInputLabelLetterR: return "R";
+		case GameInputLabelLetterS: return "S";
+		case GameInputLabelLetterT: return "T";
+		case GameInputLabelLetterU: return "U";
+		case GameInputLabelLetterV: return "V";
+		case GameInputLabelLetterW: return "W";
+		case GameInputLabelLetterX: return "X";
+		case GameInputLabelLetterY: return "Y";
+		case GameInputLabelLetterZ: return "Z";
+		case GameInputLabelNumber0: return "0";
+		case GameInputLabelNumber1: return "1";
+		case GameInputLabelNumber2: return "2";
+		case GameInputLabelNumber3: return "3";
+		case GameInputLabelNumber4: return "4";
+		case GameInputLabelNumber5: return "5";
+		case GameInputLabelNumber6: return "6";
+		case GameInputLabelNumber7: return "7";
+		case GameInputLabelNumber8: return "8";
+		case GameInputLabelNumber9: return "9";
+
+		case GameInputLabelArrowUp: return "Arrow Up";
+		case GameInputLabelArrowUpRight: return "Arrow Up Right";
+		case GameInputLabelArrowRight: return "Arrow Right";
+		case GameInputLabelArrowDownRight: return "Arrow Down Right";
+		case GameInputLabelArrowDown: return "Arrow Down";
+		case GameInputLabelArrowDownLLeft: return "Arrow Down Left";
+		case GameInputLabelArrowLeft: return "Arrow Left";
+		case GameInputLabelArrowUpLeft: return "Arrow Up Left";
+		case GameInputLabelArrowUpDown: return "Arrow Up Down";
+		case GameInputLabelArrowLeftRight: return "Arrow Left Right";
+		case GameInputLabelArrowUpDownLeftRight: return "Arrow Up Down Left Right";
+		case GameInputLabelArrowClockwise: return "Arrow Clockwise";
+		case GameInputLabelArrowCounterClockwise: return "Arrow Counter Clockwise";
+		case GameInputLabelArrowReturn: return "Arrow Return";
+
+		case GameInputLabelIconBranding: return "Icon Branding";
+		case GameInputLabelIconHome: return "Icon Home";
+		case GameInputLabelIconMenu: return "Icon Menu";
+		case GameInputLabelIconCross: return "Icon Cross";
+		case GameInputLabelIconCircle: return "Icon Circle";
+		case GameInputLabelIconSquare: return "Icon Square";
+		case GameInputLabelIconTriangle: return "Icon Triangle";
+		case GameInputLabelIconStar: return "Icon Star";
+		case GameInputLabelIconDPadUp: return "Icon DPad Up";
+		case GameInputLabelIconDPadDown: return "Icon DPad Down";
+		case GameInputLabelIconDPadLeft: return "Icon DPad Left";
+		case GameInputLabelIconDPadRight: return "Icon DPad Right";
+		case GameInputLabelIconDialClockwise: return "Icon Dial Clockwise";
+		case GameInputLabelIconDialCounterClockwise: return "Icon Dial Counter Clockwise";
+		case GameInputLabelIconSliderLeftRight: return "Icon Slider Left Right";
+		case GameInputLabelIconSliderUpDown: return "Icon Slider Up Down";
+		case GameInputLabelIconWheelUpDown: return "Icon Wheel Up Down";
+		case GameInputLabelIconPlus: return "Icon Plus";
+		case GameInputLabelIconMinus: return "Icon Minus";
+		case GameInputLabelIconSuspension: return "Icon Suspension";
+
+		case GameInputLabelHome: return "Home";
+		case GameInputLabelGuide: return "Guide";
+		case GameInputLabelMode: return "Mode";
+		case GameInputLabelSelect: return "Select";
+		case GameInputLabelMenu: return "Menu";
+		case GameInputLabelView: return "View";
+		case GameInputLabelBack: return "Back";
+		case GameInputLabelStart: return "Start";
+		case GameInputLabelOptions: return "Options";
+		case GameInputLabelShare: return "Share";
+		case GameInputLabelUp: return "Up";
+		case GameInputLabelDown: return "Down";
+		case GameInputLabelLeft: return "Left";
+		case GameInputLabelRight: return "Right";
+
+		case GameInputLabelLB: return "LB";
+		case GameInputLabelLT: return "LT";
+		case GameInputLabelLSB: return "LSB";
+		case GameInputLabelL1: return "L1";
+		case GameInputLabelL2: return "L2";
+		case GameInputLabelL3: return "L3";
+		case GameInputLabelRB: return "RB";
+		case GameInputLabelRT: return "RT";
+		case GameInputLabelRSB: return "RSB";
+		case GameInputLabelR1: return "R1";
+		case GameInputLabelR2: return "R2";
+		case GameInputLabelR3: return "R3";
+		case GameInputLabelP1: return "P1";
+		case GameInputLabelP2: return "P2";
+		case GameInputLabelP3: return "P3";
+		case GameInputLabelP4: return "P4";
+
+		default: return "Other/unlabeled";
+	}
+}
+
+void print_gamepad_info(const GameInputGamepadInfo& info) noexcept
+{
+	dbg::println("GameInputGamepadInfo:");
+	dbg::println("  Menu               = {}", label_name(info.menuButtonLabel));
+	dbg::println("  View               = {}", label_name(info.viewButtonLabel));
+	dbg::println("  A                  = {}", label_name(info.aButtonLabel));
+	dbg::println("  B                  = {}", label_name(info.bButtonLabel));
+	dbg::println("  X                  = {}", label_name(info.xButtonLabel));
+	dbg::println("  Y                  = {}", label_name(info.yButtonLabel));
+	dbg::println("  DPad Up            = {}", label_name(info.dpadUpLabel));
+	dbg::println("  DPad Down          = {}", label_name(info.dpadDownLabel));
+	dbg::println("  DPad Left          = {}", label_name(info.dpadLeftLabel));
+	dbg::println("  DPad Right         = {}", label_name(info.dpadRightLabel));
+	dbg::println("  Left Shoulder      = {}", label_name(info.leftShoulderButtonLabel));
+	dbg::println("  Right Shoulder     = {}", label_name(info.rightShoulderButtonLabel));
+	dbg::println("  Left Stick Click   = {}", label_name(info.leftThumbstickButtonLabel));
+	dbg::println("  Right Stick Click  = {}", label_name(info.rightThumbstickButtonLabel));
+}
+
+bool initialize() noexcept
+{
+	dbg::println("initialize() called");
+	return true;
+}
+
+struct grid_cell
+{
+	u32            x{};
+	u32            y{};
+	constexpr bool operator==(const grid_cell&) const noexcept = default;
+};
+
+struct grid_layout
+{
+	f32         origin_x{50.0f};
+	f32         origin_y{50.0f};
+	f32         margin{5.0f};
+	u16         block_size{50};
+	extent<u16> grid{8, 8};
+
+	[[nodiscard]] constexpr f32 stride() const noexcept { return static_cast<f32>(block_size) + margin; }
+
+	[[nodiscard]] constexpr vec2 cell_pos(grid_cell c) const noexcept
+	{
+		return {origin_x + static_cast<f32>(c.x) * stride(), origin_y + static_cast<f32>(c.y) * stride()};
+	}
+};
+
+enum class direction : u8
+{
+	north,
+	east,
+	south,
+	west
+};
+
+constexpr f32 min_speed = 0.5f; // tiles per second
+constexpr f32 max_speed = 2.0f;
+
+struct entity
+{
+	enum class phase : u8
+	{
+		pausing,
+		moving
+	};
+
+	vec2 position{0.0f, 0.0f};
+	vec2 size{50.0f, 50.0f};
+
+	grid_cell cell{};
+	grid_cell target{};
+	direction dir{direction::north};
+	phase     state{phase::pausing};
+	f32       timer{0.0f};
+	f32       pause_time{0.5f};
+	f32       speed{1.0f}; // tiles per second, set once at creation
+	rgb       color{0, 255, 255};
+};
+
+constexpr f32 move_duration = 1.0f;
+constexpr f32 min_turn_time = 0.5f;
+constexpr f32 max_turn_time = 2.0f;
+
+[[nodiscard]] constexpr std::optional<grid_cell> step_cell(grid_cell from, direction dir, const grid_layout& layout) noexcept
+{
+	i32 dx = 0;
+	i32 dy = 0;
+
+	switch (dir)
+	{
+		case direction::north: dy = -1; break;
+		case direction::east: dx = 1; break;
+		case direction::south: dy = 1; break;
+		case direction::west: dx = -1; break;
+	}
+
+	const i32 nx = static_cast<i32>(from.x) + dx;
+	const i32 ny = static_cast<i32>(from.y) + dy;
+
+	if (nx < 0 || ny < 0 || nx >= layout.grid.width || ny >= layout.grid.height)
+		return std::nullopt;
+
+	return grid_cell{static_cast<u32>(nx), static_cast<u32>(ny)};
+}
+
+// Turn to a random direction (90 degree steps) and pick a random pause length
+inline void begin_pause(entity& e, std::mt19937& rng) noexcept
+{
+	e.dir        = static_cast<direction>(std::uniform_int_distribution<int>{0, 3}(rng));
+	e.pause_time = std::uniform_real_distribution<f32>{min_turn_time, max_turn_time}(rng);
+	e.state      = entity::phase::pausing;
+}
+
+[[nodiscard]] inline entity make_entity(const grid_layout& layout, grid_cell cell, std::mt19937& rng) noexcept
+{
+	entity e{.position = layout.cell_pos(cell), .cell = cell, .target = cell};
+	e.speed = std::uniform_real_distribution<f32>{min_speed, max_speed}(rng);
+	e.color = to_rgb(std::uniform_real_distribution<f32>{0.0f, 360.0f}(rng), 1.0f, 1.0f);
+	begin_pause(e, rng);
+	return e;
+}
+
+// Pick a random in-bounds neighbour (4-directional)
+[[nodiscard]] inline grid_cell random_neighbour(grid_cell from, const grid_layout& layout, std::mt19937& rng) noexcept
+{
+	struct offset
+	{
+		i32 dx;
+		i32 dy;
+	};
+
+	constexpr std::array<offset, 4> dirs{{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}};
+
+	std::array<grid_cell, 4> valid{};
+	usize                    count = 0;
+
+	for (const auto [dx, dy] : dirs)
+	{
+		const i32 nx = static_cast<i32>(from.x) + dx;
+		const i32 ny = static_cast<i32>(from.y) + dy;
+
+		if (nx < 0 || ny < 0 || nx >= layout.grid.width || ny >= layout.grid.height)
+			continue;
+
+		valid[count++] = {static_cast<u32>(nx), static_cast<u32>(ny)};
+	}
+
+	if (count == 0)
+		return from;
+
+	return valid[std::uniform_int_distribution<usize>{0, count - 1}(rng)];
+}
+
+void update_entity(entity& e, f32 delta, const grid_layout& layout, std::mt19937& rng) noexcept
+{
+	e.timer += delta;
+
+	if (e.state == entity::phase::pausing and e.timer >= e.pause_time)
+	{
+		e.timer -= e.pause_time;
+
+		if (const auto next = step_cell(e.cell, e.dir, layout))
+		{
+			e.target = *next;
+			e.state  = entity::phase::moving;
+		}
+		else
+		{
+			// facing the edge: turn again instead of moving
+			begin_pause(e, rng);
+		}
+	}
+
+	if (e.state == entity::phase::moving)
+	{
+		const f32  move_time = 1.0f / e.speed;
+		const f32  t         = std::min(e.timer / move_time, 1.0f);
+		const vec2 from      = layout.cell_pos(e.cell);
+		const vec2 to        = layout.cell_pos(e.target);
+
+		e.position = {std::lerp(from.x, to.x, t), std::lerp(from.y, to.y, t)};
+
+		if (e.timer >= move_time)
+		{
+			e.timer -= move_time;
+			e.cell     = e.target;
+			e.position = to;
+			begin_pause(e, rng);
+		}
+	}
+}
+
+// Returns the cell under the point, or nullopt if outside the grid or in a margin gap
+[[nodiscard]] constexpr std::optional<grid_cell> cell_at(
+  f32 px, f32 py, f32 origin_x, f32 origin_y, extent<u16> grid, f32 margin, u16 block_size) noexcept
+{
+	const f32 stride = static_cast<f32>(block_size) + margin;
+
+	const f32 lx = px - origin_x;
+	const f32 ly = py - origin_y;
+
+	if (lx < 0.0f || ly < 0.0f)
+		return std::nullopt;
+
+	const u32 cx = static_cast<u32>(lx / stride);
+	const u32 cy = static_cast<u32>(ly / stride);
+
+	if (cx >= grid.width || cy >= grid.height)
+		return std::nullopt;
+
+	// reject the margin gap between blocks
+	if (lx - static_cast<f32>(cx) * stride >= static_cast<f32>(block_size)
+		|| ly - static_cast<f32>(cy) * stride >= static_cast<f32>(block_size))
+		return std::nullopt;
+
+	return grid_cell{cx, cy};
+}
+
+void render_grid(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta, f32 mouse_x, f32 mouse_y, extent<u16> grid,
+				 f32 margin, u16 block_size) noexcept
+{
+	constexpr f32 origin_x = 50.0f;
+	constexpr f32 origin_y = 50.0f;
+
+	const f32  stride  = static_cast<f32>(block_size) + margin;
+	const auto hovered = cell_at(mouse_x, mouse_y, origin_x, origin_y, grid, margin, block_size);
+
+	f32 total_width  = static_cast<f32>(grid.width) * stride + margin;
+	f32 total_height = static_cast<f32>(grid.height) * stride + margin;
+
+	render->draw_sprite(origin_x - margin, origin_y - margin, {total_width, total_height}, {0, 0, 0});
+
+	for (u32 y = 0; y < grid.height; ++y)
+	{
+		for (u32 x = 0; x < grid.width; ++x)
+		{
+			const f32 x_pos = origin_x + static_cast<f32>(x) * stride;
+			const f32 y_pos = origin_y + static_cast<f32>(y) * stride;
+
+			// backing block, drawn first so the normal block sits on top of it
+			if (hovered && hovered->x == x && hovered->y == y)
+			{
+				constexpr f32 pad  = 4.0f;
+				const f32     size = static_cast<f32>(block_size) + pad * 2.0f;
+				render->draw_sprite(x_pos - pad, y_pos - pad, {size, size}, {255, 0, 255});
+			}
+
+			render->draw_sprite(x_pos, y_pos, {static_cast<f32>(block_size), static_cast<f32>(block_size)}, {255, 255, 0});
+		}
+	}
+}
+
+void render_entity(deckard::app2::renderer2* render, const entity& e) noexcept
+{
+	render->draw_sprite(e.position.x, e.position.y, {e.size.x, e.size.y}, {e.color.r, e.color.g, e.color.b});
+
+	constexpr f32 m  = 12.0f; // marker size
+	const f32     cx = e.position.x + (e.size.x - m) * 0.5f;
+	const f32     cy = e.position.y + (e.size.y - m) * 0.5f;
+
+	f32 mx = cx;
+	f32 my = cy;
+
+	switch (e.dir)
+	{
+		case direction::north: my = e.position.y; break;
+		case direction::south: my = e.position.y + e.size.y - m; break;
+		case direction::west: mx = e.position.x; break;
+		case direction::east: mx = e.position.x + e.size.x - m; break;
+	}
+
+	render->draw_sprite(mx, my, {m, m}, {255, 255, 255});
+}
+
+void render_entities(deckard::app2::renderer2* render, std::span<const entity> entities) noexcept
+{
+	for (const auto& e : entities)
+		render_entity(render, e);
+}
+
+grid_layout  layout{};
+std::mt19937 rng{std::random_device{}()};
+
+std::array entities{
+  make_entity(layout, {0, 0}, rng),
+  make_entity(layout, {4, 4}, rng),
+  make_entity(layout, {7, 2}, rng),
+};
+
+void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexcept
+{
+	POINT p{};
+	GetCursorPos(&p);
+	ScreenToClient(render->get_handle(), &p);
+
+	const auto size = render->get_size();
+	const f32  mx   = static_cast<f32>(p.x);
+	const f32  my   = static_cast<f32>(p.y);
+
+	// background
+
+	render->draw_text(mx+20, my, std::format("Mouse: ({:.2f}, {:.2f})", mx, my), {255, 255, 255}, 40);
+
+	// lines
+	render->draw_line(0.0f, 0.0f, mx, my, {255, 0, 0}, 5.0f);
+	render->draw_line(size.width, 0.0f, mx, my, {00, 255, 0}, 5.0f);
+	render->draw_line(0.0f, size.height, mx, my, {0, 0, 255}, 5.0f);
+	render->draw_line(size.width, size.height, mx, my, {255, 0, 255}, 5.0f);
+
+
+	render->draw_sprite(mx + 50.0f, my + 50.0f, {100, 100}, {0, 255, 0});
+
+	for (auto& e : entities)
+		update_entity(e, delta, layout, rng);
+
+
+	render_grid(render, delta, mx, my, {8, 8}, 5.0f, 50);
+	render_entities(render, entities);
+}
+
+void destroy() noexcept { dbg::println("destroy() called"); }
+
+/*
+class Entity {
+public:
+	void update_physics(float fixed_dt) noexcept {
+		// 1. Save state before modifying
+		prev_position_ = curr_position_;
+
+		// 2. Advance state for the new tick
+		curr_position_.x += velocity_.x * fixed_dt;
+		curr_position_.y += velocity_.y * fixed_dt;
+	}
+
+	// Called during the variable rendering phase
+	[[nodiscard]] Vec2 get_render_position(float alpha) const noexcept {
+		return prev_position_.lerp(curr_position_, alpha);
+	}
+
+	void set_velocity(Vec2 v) noexcept { velocity_ = v; }
+
+private:
+	Vec2 prev_position_{};
+	Vec2 curr_position_{};
+	Vec2 velocity_{50.0f, 0.0f}; // 50 units/sec
+};
+*/
+
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
@@ -584,21 +1109,323 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
-	if(auto result = app::open(); not result)
+
+	// usage
+
+	enum class TestCounter : u32
+	{
+		fps,
+		ui,
+		network,
+		count
+	};
+
+	constexpr std::array intervals{
+	  1.0f / 60.0f, // fps
+	  1.0f / 30.0f, // ui
+	  1.0f / 5.0f,  // network
+	};
+
+	fixed_timers<TestCounter, intervals> timer{};
+
+
+	// #########################################################################
+#if 1
+
+	app::on_initialize(initialize);
+	app::on_destroy(destroy);
+
+	app::on_render(render);
+
+	app::options options{
+	  .size          = {1280, 720},
+	  .fullscreen    = false,
+	  .resizable     = true,
+	  .vsync         = true,
+	  .allow_win_key = true,
+	  .monitor       = 0,
+	  .title         = "Deckard - Vulkan - Window  1",
+	};
+	options.load_and_save();
+
+
+	if (auto result = app::open(options); not result)
 	{
 		dbg::println("Failed to open app: {}", result.error());
 		return -1;
 	}
 
+	app::on_tick(
+	  [&](const f32 delta) noexcept
+	  {
+		  app::title(std::format(
+			"Delta: {:<3.5f} - FPS: {:<8.2f} - Client: {} - Tick {:8.2f}",
+			app::delta_time(),
+			app::fps(),
+			app::size(),
+			1.0f / delta));
+
+		  if (app::was_key_pressed(VK_F11))
+			  app::fullscreen(not app::fullscreen());
+
+		  if (app::was_key_pressed(VK_ESCAPE))
+			  app::close();
+	  });
+
+	u32 uiticks  = 0;
+	u32 netticks = 0;
 	while (app::running())
 	{
-		//std::this_thread::sleep_for(33ms);
+		const f32 delta = app::delta_time();
 
+		timer.update(delta);
+
+		while (timer.tick(TestCounter::ui))
+		{
+			dbg::println("UI tick: {}", uiticks);
+			uiticks++;
+		}
+
+
+		while (timer.tick(TestCounter::network))
+		{
+
+			dbg::println("Network tick: {}", netticks);
+			netticks++;
+		}
+
+
+		// app::close();
+
+		if (app::was_key_pressed(VK_F11))
+		{
+			app::fullscreen(not app::fullscreen());
+		}
+
+
+		if (app::was_key_pressed(VK_ESCAPE))
+		{
+			app::close();
+		}
 	}
 
-	std::terminate();
+	dbg::println("ratio: {}", uiticks / static_cast<f32>(netticks));
 
 
+	_ = 0;
+
+#endif
+	// ########################################################################
+	// ########################################################################
+
+
+	GameInputCallbackToken callback_token{};
+	IGameInput*            gameinput = nullptr;
+	if (not SUCCEEDED(GameInputCreate(&gameinput)))
+	{
+		dbg::println("Failed to initialize GameInput.");
+		return -1;
+	}
+
+
+	auto callback =
+	  [](GameInputCallbackToken,
+		 void*,
+		 IGameInputDevice*     device,
+		 u64                   timestamp,
+		 GameInputDeviceStatus status,
+		 GameInputDeviceStatus prev_status)
+	{
+		const GameInputDeviceInfo* info      = device->GetDeviceInfo();
+		const auto                 supported = info->supportedInput;
+		const auto                 connected = static_cast<bool>(status & GameInputDeviceConnected);
+		bool                       wireless  = static_cast<bool>(status & GameInputDeviceWireless);
+
+		dbg::println(
+		  "[{}] Device status changed: connected={}, wireless={}, supported={:#x}, previous={:#x}",
+		  timestamp,
+		  connected,
+		  wireless,
+		  static_cast<unsigned>(supported),
+		  static_cast<unsigned>(prev_status));
+
+		dbg::println(
+		  "family: {}, capabilities: {:#x}", std::to_underlying(info->deviceFamily), std::to_underlying(info->capabilities));
+
+		GameInputBatteryState batterystate{};
+		device->GetBatteryState(&batterystate);
+		dbg::println(
+		  "Charge rate: {}, maxChargeRate: {}, remaining capacity: {}, full charge capacity: {}",
+		  batterystate.chargeRate,
+		  batterystate.maxChargeRate,
+		  batterystate.remainingCapacity,
+		  batterystate.fullChargeCapacity);
+		switch (batterystate.status)
+		{
+			case GameInputBatteryStatus::GameInputBatteryUnknown: dbg::println("Battery status: Unknown"); break;
+			case GameInputBatteryStatus::GameInputBatteryNotPresent: dbg::println("Battery status: Not Present"); break;
+			case GameInputBatteryStatus::GameInputBatteryDischarging: dbg::println("Battery status: Discharging"); break;
+			case GameInputBatteryStatus::GameInputBatteryIdle: dbg::println("Battery status: Idle"); break;
+			case GameInputBatteryStatus::GameInputBatteryCharging: dbg::println("Battery status: Charging"); break;
+		}
+
+		// supportedInput is a bitmask, not a single value — a real gamepad sets
+		// both GameInputKindGamepad and GameInputKindController at once, so
+		// check the most-specific/standardized kind first.
+		if (not connected)
+		{
+			if (supported & GameInputKindGamepad)
+				dbg::println("[Gamepad] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else if (supported & GameInputKindKeyboard)
+				dbg::println("[Keyboard] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else if (supported & GameInputKindMouse)
+				dbg::println("[Mouse] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else if (supported & GameInputKindArcadeStick)
+				dbg::println("[Arcade stick] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else if (supported & GameInputKindFlightStick)
+				dbg::println("[Flight stick] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else if (supported & GameInputKindRacingWheel)
+				dbg::println("[Racing wheel] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else if (supported & GameInputKindController)
+				dbg::println("[Generic controller] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+			else
+				dbg::println("[Device] disconnected: supported={:#x}", static_cast<unsigned>(supported));
+
+			return;
+		}
+
+
+		if (supported & GameInputKindGamepad)
+		{
+			dbg::println("[Gamepad] {}", connected ? "connected" : "disconnected");
+
+
+			dbg::println(
+			  "Device string count{}: connected={}, wireless={}, supported={:#x}",
+			  info->deviceStringCount,
+			  connected,
+			  wireless,
+			  static_cast<unsigned>(supported));
+
+			if (info->gamepadInfo)
+				print_gamepad_info(*info->gamepadInfo);
+
+			dbg::println("Family: {}", label_device_family(info->deviceFamily));
+
+			dbg::println("Capabilities: {}", label_device_capability(info->capabilities));
+
+			const GameInputRumbleMotors motors             = info->supportedRumbleMotors;
+			u32                         rumble_motor_count = std::popcount(static_cast<u32>(motors));
+			dbg::println("  Supported rumble motors: {:#x}", static_cast<unsigned>(motors));
+			dbg::println(
+			  "Rumble motors: {} (low={} high={} leftTrig={} rightTrig={})",
+			  rumble_motor_count,
+			  (motors & GameInputRumbleLowFrequency) != 0,
+			  (motors & GameInputRumbleHighFrequency) != 0,
+			  (motors & GameInputRumbleLeftTrigger) != 0,
+			  (motors & GameInputRumbleRightTrigger) != 0);
+
+			dbg::println();
+
+			f32 lowFrequency  = 0.0f;
+			f32 highFrequency = 0.0f;
+			f32 trigger_left  = 0.0f;
+			f32 trigger_right = 0.0f;
+
+			GameInputRumbleParams params{
+			  .lowFrequency  = (motors & GameInputRumbleLowFrequency) ? lowFrequency : 0.0f,
+			  .highFrequency = (motors & GameInputRumbleHighFrequency) ? highFrequency : 0.0f,
+			  .leftTrigger   = (motors & GameInputRumbleLeftTrigger) ? trigger_left : 0.0f,
+			  .rightTrigger  = (motors & GameInputRumbleRightTrigger) ? trigger_right : 0.0f,
+			};
+
+			device->SetRumbleState(&params);
+		}
+		else if (supported & GameInputKindKeyboard)
+			dbg::println("[Keyboard] {}", connected ? "connected" : "disconnected");
+		else if (supported & GameInputKindMouse)
+			dbg::println("[Mouse] {}", connected ? "connected" : "disconnected");
+		else if (supported & GameInputKindArcadeStick)
+			dbg::println("[Arcade stick] {}", connected ? "connected" : "disconnected");
+		else if (supported & GameInputKindFlightStick)
+			dbg::println("[Flight stick] {}", connected ? "connected" : "disconnected");
+		else if (supported & GameInputKindRacingWheel)
+			dbg::println("[Racing wheel] {}", connected ? "connected" : "disconnected");
+		else if (supported & GameInputKindController)
+			dbg::println("[Generic controller] {}", connected ? "connected" : "disconnected");
+		else
+			dbg::println(
+			  "[Unknown] supported={:#x} {}", static_cast<unsigned>(supported), connected ? "connected" : "disconnected");
+
+		u32 vendor_product = info->vendorId << 16 | info->productId;
+		dbg::println("  Vendor/Product: {:#x}", vendor_product);
+		dbg::println("  Vendor ID: {:#x}", info->vendorId);
+		dbg::println("  Product ID: {:#x}", info->productId);
+		dbg::println("  Device ID: {}", info->deviceId.value);
+	};
+
+
+	gameinput->RegisterDeviceCallback(
+	  nullptr, // no device filter
+	  GameInputKindGamepad | GameInputKindKeyboard | GameInputKindMouse | GameInputKindArcadeStick | GameInputKindFlightStick
+		| GameInputKindRacingWheel,
+	  GameInputDeviceConnected,
+	  GameInputAsyncEnumeration,
+	  nullptr, // context
+	  callback,
+	  &callback_token);
+
+
+	IGameInputReading* reading{};
+
+	while (!true)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(16));
+		if (SUCCEEDED(gameinput->GetCurrentReading(GameInputKindGamepad, nullptr, &reading)))
+		{
+			GameInputGamepadState state{};
+			if (reading->GetGamepadState(&state))
+			{
+				IGameInputDevice* device{};
+				reading->GetDevice(&device);
+
+
+				const bool connected = (device->GetDeviceStatus() & GameInputDeviceConnected) != 0;
+
+				if (connected)
+				{
+					dbg::println(
+					  "[{:X}] buttons={:014b} | LS=({:+1.5f},{:+1.5f}) RS=({:+1.5f},{:+1.5f}) | LT={:+1.5f} RT={:+1.5f}",
+					  reading->GetTimestamp(),
+					  as<u32>(state.buttons),
+					  state.leftThumbstickX,
+					  state.leftThumbstickY,
+					  state.rightThumbstickX,
+					  state.rightThumbstickY,
+					  state.leftTrigger,
+					  state.rightTrigger);
+				}
+				device->Release();
+			}
+			reading->Release();
+		}
+	}
+	gameinput->UnregisterCallback(callback_token, /*timeoutMs=*/0);
+
+
+#if 0
+
+
+	vulkanapp app01{{.title = "hello"}};
+	app01.set_keyboard_callback(keyboard_callback);
+	app01.set_fixed_update_callback(fixed_update);
+	app01.set_update_callback(update);
+	app01.set_render_callback(render);
+	
+
+	return app01.run();
+
+#endif
 
 	test_class tc;
 
@@ -684,7 +1511,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	u64 compressed_total_bytes = 0;
 
-	for (const fs::path& file : files_to_archive)
+	for (const fs::path& file : files_to_archive | std::views::take(1))
 	{
 
 		if (fs::is_directory(file))
@@ -833,7 +1660,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// cfg[std::format("new_{}", random::id(3))] = "hello world";
 
-	auto k = cfg.save();
+	(void)cfg.save();
 
 
 	// file::write(
@@ -880,13 +1707,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// ########################################################################
 
-	 [[maybe_unused]] u32 fbtui = float_bits_to_uint(1.0f);
-	_         = 0;
+	[[maybe_unused]] u32 fbtui = float_bits_to_uint(1.0f);
+	_                          = 0;
 
 
 	// ########################################################################
 
-	constexpr u64 buffer_size = 1_MiB;
+	constexpr u64 buffer_size = 1_KiB;
 	f32           offset      = -1.0f;
 	for (int i = 100; i >= 0; i -= 10)
 	{
@@ -2140,21 +2967,5 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		// special enter textmode for input
 		// keys.enter_text_mode()
 		// end_text_mode(), // inputs keys as text?
-
-		vulkanapp app01(
-		  {.title  = "Example 01", //
-		   .width  = 1280,
-		   .height = 720,
-		   .flags  = Attribute::vsync | Attribute::resizable});
-
-
-		app01.set_keyboard_callback(keyboard_callback);
-		app01.set_fixed_update_callback(fixed_update);
-		app01.set_update_callback(update);
-		app01.set_render_callback(render);
-		app01.set_initialize_callback(initialize);
-
-
-		return app01.run();
 	}
 }
