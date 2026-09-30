@@ -2,6 +2,7 @@
 
 
 import std;
+import deckard.callbacks;
 import deckard.helpers;
 import deckard.stringhelper;
 import deckard.types;
@@ -16,7 +17,7 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace std::chrono_literals;
 
-int free_function() noexcept { return 555;  }
+int free_function() noexcept { return 555; }
 
 class function_class
 {
@@ -30,24 +31,24 @@ TEST_CASE("invoke_if", "[invoke_if]")
 {
 
 
-	using void_callback = std::move_only_function<void() noexcept>;
+	using void_callback       = std::move_only_function<void() noexcept>;
 	using void_callback_param = std::move_only_function<void(int) noexcept>;
-	using callback      = std::move_only_function<int() noexcept>;
-	using callback_param = std::move_only_function<int(int) noexcept>;
+	using callback            = std::move_only_function<int() noexcept>;
+	using callback_param      = std::move_only_function<int(int) noexcept>;
 
-	void_callback valid_void_callable = []() noexcept { };
+	void_callback       valid_void_callable       = []() noexcept { };
 	void_callback_param valid_void_callable_param = [](int x) noexcept { (void)x; };
-	
-	void_callback invalid_void_callable;
+
+	void_callback       invalid_void_callable;
 	void_callback_param invalid_void_callable_param;
 
-	callback valid_callable = []() noexcept { return 42; };
-	callback_param valid_callable_param = [](int x) noexcept { return x*2; };
+	callback       valid_callable       = []() noexcept { return 42; };
+	callback_param valid_callable_param = [](int x) noexcept { return x * 2; };
 
-	callback invalid_callable;
+	callback       invalid_callable;
 	callback_param invalid_callable_param;
 
-	using callback_param3      = std::move_only_function<int(int,int,int) noexcept>;
+	using callback_param3                 = std::move_only_function<int(int, int, int) noexcept>;
 	callback_param3 valid_callable_param3 = [](int x, int y, int z) noexcept { return x + y + z; };
 
 	SECTION("valid callable")
@@ -128,13 +129,13 @@ TEST_CASE("invoke_if", "[invoke_if]")
 			CHECK(r.error() == invoke_error::conditional_failed);
 	}
 
-	SECTION("raw lambdas") 
+	SECTION("raw lambdas")
 	{
-		auto lambda = [](int x, int y) noexcept { return x+y; };
+		auto lambda = [](int x, int y) noexcept { return x + y; };
 		if (auto r = invoke_if(lambda, 21, 21); r)
 			CHECK(r.value() == 42);
 
-		int (*fn_ptr)(int)  = [](int x) noexcept { return x*2; };
+		int (*fn_ptr)(int) = [](int x) noexcept { return x * 2; };
 		if (auto r = invoke_if(fn_ptr, 21); r)
 			CHECK(r.value() == 42);
 
@@ -161,7 +162,6 @@ TEST_CASE("invoke_if", "[invoke_if]")
 		function_class obj;
 		if (auto r = invoke_if(&function_class::method, &obj, 21); r)
 			CHECK(r.value() == 42);
-
 	}
 
 	SECTION("argument forward")
@@ -171,6 +171,126 @@ TEST_CASE("invoke_if", "[invoke_if]")
 
 		if (auto r = invoke_if(move_fn, std::move(ptr)); r)
 			CHECK(r.value() == 42);
+	}
+}
+
+void free_function_for_fixed(int& x) noexcept { x *= 2; }
+
+
+
+
+TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
+{
+	using namespace Catch;
+
+
+	fixed_callbacks<3, int> callbacks{};
+
+	int call_count{0};
+	int last_value{0};
+
+	SECTION("add and invoke")
+	{
+		call_count = 0;
+
+		_ = callbacks.add(
+		  [&](int x) noexcept
+		  {
+			  CHECK(x == 42);
+			  ++call_count;
+		  });
+
+		_ = callbacks.add(
+		  [&](int x) noexcept
+		  {
+			  CHECK(x * 2 == 84);
+			  ++call_count;
+		  });
+
+		_ = callbacks.add([&](int x) noexcept { last_value = x; });
+
+		callbacks.invoke(42);
+		CHECK(call_count == 2);
+		CHECK(last_value == 42);
+	}
+	SECTION("size and empty")
+	{
+
+		CHECK(callbacks.empty());
+		CHECK(callbacks.size() == 0);
+		_ = callbacks.add([](int x) noexcept { (void)x; });
+		CHECK(not callbacks.empty());
+		CHECK(callbacks.size() == 1);
+		CHECK(last_value == 0);
+	}
+
+
+	SECTION("clear")
+	{
+		_ = callbacks.add([](int x) noexcept { (void)x; });
+		callbacks.clear();
+		CHECK(callbacks.empty());
+		CHECK(callbacks.size() == 0);
+	}
+
+	//
+	fixed_callbacks<2, float, std::string> small_callbacks{};
+
+	SECTION("add and invoke with different types")
+	{
+		float       last_float{0.0f};
+		std::string last_string;
+
+		_ = small_callbacks.add(
+		  [&](float f, std::string s) noexcept
+		  {
+			  last_float  = f;
+			  last_string = std::move(s);
+		  });
+
+		small_callbacks.invoke(3.14f, "test");
+
+		CHECK(last_float == Approx(3.14f));
+		CHECK(last_string == "test");
+	}
+
+	SECTION("free function")
+	{
+		fixed_callbacks<2, int&> cb{};
+		int                      result = 21;
+		REQUIRE(cb.add(free_function_for_fixed));
+		REQUIRE(cb.size() == 1);
+
+		cb.invoke(result);
+		CHECK(result == 42);
+	}
+
+	class function_class_fixed
+	{
+	public:
+
+		void method(int i) noexcept
+		{
+			x = i * 2;
+		}
+
+		int get() const noexcept { return x; }
+
+	private:
+		int x{0};
+	};
+
+
+	SECTION("function class")
+	{
+		fixed_callbacks<2, function_class_fixed&, int> cb{};
+		function_class_fixed          obj{};
+		REQUIRE(cb.add(&function_class_fixed::method));
+		REQUIRE(cb.size() == 1);
+
+		cb.invoke(obj, 21);
+
+		CHECK(obj.get() == 42); 
 	}
 }
 
