@@ -38,9 +38,14 @@ namespace deckard
 		{
 		}
 
-		[[nodiscard]] constexpr f32& operator[](T index) noexcept { return timers[std::to_underlying(index)]; }
+		[[nodiscard]] f32 interval(T index) const noexcept { return Intervals[std::to_underlying(index)]; }
 
-		[[nodiscard]] constexpr f32 operator[](T index) const noexcept { return timers[std::to_underlying(index)]; }
+		[[nodiscard]] f32 alpha(T index) const noexcept
+		{
+			const auto i        = std::to_underlying(index);
+			const f32  interval = Intervals[i];
+			return std::clamp(timers[i] / interval, 0.0f, 1.0f);
+		}
 
 		constexpr void update(T index, f32 dt) noexcept
 		{
