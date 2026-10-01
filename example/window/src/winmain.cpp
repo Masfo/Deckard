@@ -74,6 +74,28 @@ struct grid_layout
 	u16         block_size{50};
 	extent<u16> grid{8, 8};
 
+	std::vector<u8> blocked{};
+
+	[[nodiscard]] constexpr usize index(grid_cell c) const noexcept { return static_cast<usize>(c.y) * grid.width + c.x; }
+
+	[[nodiscard]] bool is_blocked(grid_cell c) const noexcept { return not blocked.empty() and blocked[index(c)] != 0; }
+
+	void generate_obstacles(usize count, std::span<const grid_cell> reserved, std::mt19937& rng)
+	{
+		blocked.assign(static_cast<usize>(grid.width) * grid.height, 0);
+
+		std::vector<grid_cell> candidates;
+		for (u32 y = 0; y < grid.height; ++y)
+			for (u32 x = 0; x < grid.width; ++x)
+				if (const grid_cell c{x, y}; std::ranges::find(reserved, c) == reserved.end())
+					candidates.push_back(c);
+
+		std::ranges::shuffle(candidates, rng);
+
+		for (const grid_cell c : candidates | std::views::take(count))
+			blocked[index(c)] = 1;
+	}
+
 	[[nodiscard]] constexpr f32 stride() const noexcept { return static_cast<f32>(block_size) + margin; }
 
 	[[nodiscard]] constexpr vec2 cell_pos(grid_cell c) const noexcept
@@ -81,10 +103,11 @@ struct grid_layout
 		return {origin_x + static_cast<f32>(c.x) * stride(), origin_y + static_cast<f32>(c.y) * stride()};
 	}
 
-	[[nodiscard]] constexpr std::optional<grid_cell> cell_at(f32 px, f32 py) const noexcept
+	[[nodiscard]] constexpr std::optional<grid_cell> nearest_cell(f32 px, f32 py) const noexcept
 	{
-		const f32 lx = px - origin_x;
-		const f32 ly = py - origin_y;
+		const f32 half = margin * 0.5f;
+		const f32 lx   = px - origin_x + half;
+		const f32 ly   = py - origin_y + half;
 
 		if (lx < 0.0f or ly < 0.0f)
 			return std::nullopt;
@@ -94,10 +117,6 @@ struct grid_layout
 		const u32 cy = static_cast<u32>(ly / s);
 
 		if (cx >= grid.width or cy >= grid.height)
-			return std::nullopt;
-
-		const f32 bs = static_cast<f32>(block_size);
-		if (lx - static_cast<f32>(cx) * s >= bs or ly - static_cast<f32>(cy) * s >= bs)
 			return std::nullopt;
 
 		return grid_cell{cx, cy};
@@ -112,8 +131,8 @@ enum class direction : u8
 	west
 };
 
-constexpr f32 min_speed = 1.5f; // tiles per second
-constexpr f32 max_speed = 5.0f;
+constexpr u32 min_route_len = 3; // manhattan distance, in cells
+constexpr u32 max_route_len = 6;
 
 struct entity
 {
@@ -123,45 +142,25 @@ struct entity
 		moving
 	};
 
-	vec2 position{0.0f, 0.0f};
-	vec2 prev_position{0.0f, 0.0f};
+	vec2 position{0.0f, 0.0f};           // simulation position, no longer used for rendering
 	vec2 size{50.0f, 50.0f};
 
-	grid_cell cell{};
-	grid_cell target{};
-	direction dir{direction::north};
-	phase     state{phase::pausing};
-	f32       timer{0.0f};
-	f32       pause_time{0.5f};
-	f32       speed{1.0f}; // tiles per second, set once at creation
-	rgb       color{0, 255, 255};
+	grid_cell              cell{};       // current cell
+	grid_cell              start{};      // where the current/last route began
+	std::vector<grid_cell> route{};      // kept after arrival so rendering can still sample it
+	f32                    s{0.0f};      // eased distance along route, in tiles [0, route.size()]
+	f32                    prev_s{0.0f}; // s at the previous logic tick
+	direction              dir{direction::north};
+	phase                  state{phase::pausing};
+	f32                    timer{0.0f};
+	f32                    pause_time{0.5f};
+	f32                    speed{1.0f};
+	rgb                    color{0, 255, 255};
 };
 
 constexpr f32 move_duration = 1.0f;
 constexpr f32 min_turn_time = 0.5f;
 constexpr f32 max_turn_time = 2.0f;
-
-[[nodiscard]] constexpr std::optional<grid_cell> step_cell(grid_cell from, direction dir, const grid_layout& layout) noexcept
-{
-	i32 dx = 0;
-	i32 dy = 0;
-
-	switch (dir)
-	{
-		case direction::north: dy = -1; break;
-		case direction::east: dx = 1; break;
-		case direction::south: dy = 1; break;
-		case direction::west: dx = -1; break;
-	}
-
-	const i32 nx = static_cast<i32>(from.x) + dx;
-	const i32 ny = static_cast<i32>(from.y) + dy;
-
-	if (nx < 0 || ny < 0 || nx >= layout.grid.width || ny >= layout.grid.height)
-		return std::nullopt;
-
-	return grid_cell{static_cast<u32>(nx), static_cast<u32>(ny)};
-}
 
 // Turn to a random direction (90 degree steps) and pick a random pause length
 inline void begin_pause(entity& e, std::mt19937& rng) noexcept
@@ -171,19 +170,20 @@ inline void begin_pause(entity& e, std::mt19937& rng) noexcept
 	e.state      = entity::phase::pausing;
 }
 
-[[nodiscard]] inline entity make_entity(const grid_layout& layout, grid_cell cell, std::mt19937& rng) noexcept
+[[nodiscard]] std::vector<grid_cell> make_route(grid_cell from, const grid_layout& layout, std::mt19937& rng)
 {
-	const vec2 p = layout.cell_pos(cell);
-	entity     e{.position = p, .prev_position = p, .cell = cell, .target = cell};
-	e.speed = std::uniform_real_distribution<f32>{min_speed, max_speed}(rng);
-	e.color = to_rgb(std::uniform_real_distribution<f32>{0.0f, 360.0f}(rng), 1.0f, 1.0f);
-	begin_pause(e, rng);
-	return e;
-}
+	constexpr u32 unvisited = std::numeric_limits<u32>::max();
 
-// Pick a random in-bounds neighbour (4-directional)
-[[nodiscard]] grid_cell random_neighbour(grid_cell from, const grid_layout& layout, std::mt19937& rng) noexcept
-{
+	const usize w = layout.grid.width;
+	const usize h = layout.grid.height;
+
+	std::vector<u32>      dist(w * h, unvisited);
+	std::vector<usize>    parent(w * h, 0);
+	std::queue<grid_cell> frontier;
+
+	dist[layout.index(from)] = 0;
+	frontier.push(from);
+
 	struct offset
 	{
 		i32 dx;
@@ -192,97 +192,203 @@ inline void begin_pause(entity& e, std::mt19937& rng) noexcept
 
 	constexpr std::array<offset, 4> dirs{{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}};
 
-	std::array<grid_cell, 4> valid{};
-	usize                    count = 0;
+	std::vector<grid_cell> reachable; // everything found within max_route_len steps
 
-	for (const auto [dx, dy] : dirs)
+	while (not frontier.empty())
 	{
-		const i32 nx = static_cast<i32>(from.x) + dx;
-		const i32 ny = static_cast<i32>(from.y) + dy;
+		const grid_cell cur = frontier.front();
+		frontier.pop();
 
-		if (nx < 0 || ny < 0 || nx >= layout.grid.width || ny >= layout.grid.height)
+		const u32 d = dist[layout.index(cur)];
+		if (d >= max_route_len)
 			continue;
 
-		valid[count++] = {static_cast<u32>(nx), static_cast<u32>(ny)};
+		for (const auto [dx, dy] : dirs)
+		{
+			const i32 nx = static_cast<i32>(cur.x) + dx;
+			const i32 ny = static_cast<i32>(cur.y) + dy;
+
+			if (nx < 0 or ny < 0 or nx >= layout.grid.width or ny >= layout.grid.height)
+				continue;
+
+			const grid_cell n{static_cast<u32>(nx), static_cast<u32>(ny)};
+
+			if (layout.is_blocked(n) or dist[layout.index(n)] != unvisited)
+				continue;
+
+			dist[layout.index(n)]   = d + 1;
+			parent[layout.index(n)] = layout.index(cur);
+			reachable.push_back(n);
+			frontier.push(n);
+		}
 	}
 
-	if (count == 0)
-		return from;
+	// prefer destinations at least min_route_len away, otherwise take anything reachable
+	std::vector<grid_cell> farthest;
+	std::ranges::copy_if(
+	  reachable, std::back_inserter(farthest), [&](grid_cell c) { return dist[layout.index(c)] >= min_route_len; });
 
-	return valid[std::uniform_int_distribution<usize>{0, count - 1}(rng)];
+	const auto& pool = farthest.empty() ? reachable : farthest;
+	if (pool.empty())
+		return {}; // completely boxed in
+
+	const grid_cell dest = pool[std::uniform_int_distribution<usize>{0, pool.size() - 1}(rng)];
+
+	// walk the parent chain back to the start, then reverse
+	std::vector<grid_cell> route;
+	for (usize i = layout.index(dest); i != layout.index(from); i = parent[i])
+		route.push_back({static_cast<u32>(i % w), static_cast<u32>(i / w)});
+
+	std::ranges::reverse(route);
+	return route;
 }
 
-void update_entity(entity& e, f32 delta, const grid_layout& layout, std::mt19937& rng) noexcept
+[[nodiscard]] constexpr direction direction_between(grid_cell a, grid_cell b) noexcept
+{
+	if (b.x > a.x)
+		return direction::east;
+	if (b.x < a.x)
+		return direction::west;
+	if (b.y > a.y)
+		return direction::south;
+	return direction::north;
+}
+
+constexpr f32 tile_hue       = 60.0f; // yellow, matches the tile colour {255, 255, 0}
+constexpr f32 tile_hue_guard = 30.0f; // excluded +/- degrees around it
+
+// random hue in [0, 360) that stays clear of the tile hue
+[[nodiscard]] f32 random_entity_hue(std::mt19937& rng)
+{
+	constexpr f32 lo    = tile_hue - tile_hue_guard;
+	constexpr f32 width = tile_hue_guard * 2.0f;
+
+	// sample from the allowed length, then skip over the excluded band
+	f32 h = std::uniform_real_distribution<f32>{0.0f, 360.0f - width}(rng);
+	if (h >= lo)
+		h += width;
+
+	return h;
+}
+
+constexpr usize entity_count = 4;
+
+// one hue per entity, all clear of the tile hue and at least ~0.5 * (allowed span / N) apart
+template<usize N>
+[[nodiscard]] std::array<f32, N> distinct_hues(std::mt19937& rng)
+{
+	constexpr f32 width  = tile_hue_guard * 2.0f;
+	constexpr f32 lo     = tile_hue - tile_hue_guard;
+	constexpr f32 span   = 360.0f - width; // hues left after removing the guard band
+	constexpr f32 slice  = span / static_cast<f32>(N);
+	constexpr f32 jitter = slice * 0.25f;  // keeps neighbours >= slice / 2 apart
+
+	// random rotation so the palette differs between runs
+	const f32 rotation = std::uniform_real_distribution<f32>{0.0f, span}(rng);
+
+	std::array<f32, N> hues{};
+	for (usize i = 0; i < N; ++i)
+	{
+		const f32 centre = (static_cast<f32>(i) + 0.5f) * slice + rotation;
+		const f32 j      = std::uniform_real_distribution<f32>{-jitter, jitter}(rng);
+
+		// work in the compressed space (guard band removed), wrapping around
+		f32 h = std::fmod(centre + j + span, span);
+
+		// then skip over the excluded band
+		if (h >= lo)
+			h += width;
+
+		hues[i] = h;
+	}
+
+	std::ranges::shuffle(hues, rng); // so speed doesn't correlate with hue order
+	return hues;
+}
+
+[[nodiscard]] inline entity make_entity(const grid_layout& layout, grid_cell cell, f32 speed, f32 hue, std::mt19937& rng)
+{
+	const vec2 p = layout.cell_pos(cell);
+	entity     e{.position = p, .cell = cell, .start = cell};
+	e.speed = speed;
+	e.color = to_rgb(hue, 1.0f, 1.0f);
+	begin_pause(e, rng);
+	return e;
+}
+
+struct route_sample
+{
+	vec2      pos;
+	direction dir;
+};
+
+// position on the route after travelling `s` tiles; always axis-aligned within a leg
+[[nodiscard]] route_sample sample_route(const entity& e, f32 s, const grid_layout& layout) noexcept
+{
+	if (e.route.empty())
+		return {layout.cell_pos(e.cell), e.dir};
+
+	const usize i    = std::min(static_cast<usize>(std::max(s, 0.0f)), e.route.size() - 1);
+	const f32   frac = std::clamp(s - static_cast<f32>(i), 0.0f, 1.0f);
+
+	const grid_cell a = (i == 0) ? e.start : e.route[i - 1];
+	const grid_cell b = e.route[i];
+
+	const vec2 from = layout.cell_pos(a);
+	const vec2 to   = layout.cell_pos(b);
+
+	return {{math::lerp(from.x, to.x, frac), math::lerp(from.y, to.y, frac)}, direction_between(a, b)};
+}
+
+void update_entity(entity& e, f32 delta, const grid_layout& layout, std::mt19937& rng)
 {
 	e.timer += delta;
-	e.prev_position = e.position;
+	e.prev_s = e.s;
 
 	if (e.state == entity::phase::pausing and e.timer >= e.pause_time)
 	{
 		e.timer -= e.pause_time;
+		e.route = make_route(e.cell, layout, rng);
 
-		if (const auto next = step_cell(e.cell, e.dir, layout))
+		if (e.route.empty())
 		{
-			e.target = *next;
-			e.state  = entity::phase::moving;
+			begin_pause(e, rng);
 		}
 		else
 		{
-			// facing the edge: turn again instead of moving
-			begin_pause(e, rng);
+			e.start  = e.cell;
+			e.s      = 0.0f;
+			e.prev_s = 0.0f; // don't interpolate from the previous route's progress
+			e.state  = entity::phase::moving;
 		}
 	}
 
 	if (e.state == entity::phase::moving)
 	{
-		const f32  move_time = 1.0f / e.speed;
-		const f32  t         = std::min(e.timer / move_time, 1.0f);
-		const vec2 from      = layout.cell_pos(e.cell);
-		const vec2 to        = layout.cell_pos(e.target);
+		const f32 n         = static_cast<f32>(e.route.size());
+		const f32 move_time = n / e.speed;
+		const f32 t         = std::min(e.timer / move_time, 1.0f);
 
-		e.position = {std::lerp(from.x, to.x, t), std::lerp(from.y, to.y, t)};
+		e.s   = math::smootherstep(t) * n;
+		e.dir = sample_route(e, e.s, layout).dir;
 
 		if (e.timer >= move_time)
 		{
 			e.timer -= move_time;
-			e.cell     = e.target;
-			e.position = to;
+			e.cell = e.route.back();
+			e.s    = n; // route stays in place, rendering keeps sampling its end
 			begin_pause(e, rng);
 		}
 	}
-}
 
-// Returns the cell under the point, or nullopt if outside the grid or in a margin gap
-[[nodiscard]] constexpr std::optional<grid_cell> cell_at(
-  f32 px, f32 py, f32 origin_x, f32 origin_y, extent<u16> grid, f32 margin, u16 block_size) noexcept
-{
-	const f32 stride = static_cast<f32>(block_size) + margin;
-
-	const f32 lx = px - origin_x;
-	const f32 ly = py - origin_y;
-
-	if (lx < 0.0f || ly < 0.0f)
-		return std::nullopt;
-
-	const u32 cx = static_cast<u32>(lx / stride);
-	const u32 cy = static_cast<u32>(ly / stride);
-
-	if (cx >= grid.width || cy >= grid.height)
-		return std::nullopt;
-
-	// reject the margin gap between blocks
-	if (lx - static_cast<f32>(cx) * stride >= static_cast<f32>(block_size)
-		|| ly - static_cast<f32>(cy) * stride >= static_cast<f32>(block_size))
-		return std::nullopt;
-
-	return grid_cell{cx, cy};
+	e.position = sample_route(e, e.s, layout).pos;
 }
 
 void render_grid(deckard::app2::renderer2* r, const grid_layout& l, f32 mx, f32 my) noexcept
 {
 	const f32  stride  = l.stride();
 	const f32  bs      = static_cast<f32>(l.block_size);
-	const auto hovered = l.cell_at(mx, my);
+	const auto hovered = l.nearest_cell(mx, my);
 
 	const f32 total_w = static_cast<f32>(l.grid.width) * stride + l.margin;
 	const f32 total_h = static_cast<f32>(l.grid.height) * stride + l.margin;
@@ -293,26 +399,35 @@ void render_grid(deckard::app2::renderer2* r, const grid_layout& l, f32 mx, f32 
 	{
 		for (u32 x = 0; x < l.grid.width; ++x)
 		{
-			const auto [px, py] = l.cell_pos({x, y});
+			const grid_cell c{x, y};
+			const auto [px, py] = l.cell_pos(c);
+			const bool blocked  = l.is_blocked(c);
 
-			if (hovered == grid_cell{x, y})
+			if (hovered == c)
 			{
-				constexpr f32 pad = 4.0f;
-				r->draw_sprite(px - pad, py - pad, {bs + pad * 2.0f, bs + pad * 2.0f}, {255, 0, 255});
+				constexpr f32 pad       = 4.0f;
+				const auto    highlight = blocked ? std::array<u8, 3>{255, 64, 64} : std::array<u8, 3>{255, 0, 255};
+				r->draw_sprite(px - pad, py - pad, {bs + pad * 2.0f, bs + pad * 2.0f}, highlight);
 			}
 
-			r->draw_sprite(px, py, {bs, bs}, {255, 255, 0});
+			r->draw_sprite(px, py, {bs, bs}, blocked ? std::array<u8, 3>{60, 60, 60} : std::array<u8, 3>{255, 255, 0});
 		}
 	}
 }
 
-void render_entity(deckard::app2::renderer2* render, const entity& e, f32 alpha) noexcept
+void render_entity(deckard::app2::renderer2* render, const entity& e, const grid_layout& layout, f32 alpha) noexcept
 {
-	const vec2 pos{std::lerp(e.prev_position.x, e.position.x, alpha), std::lerp(e.prev_position.y, e.position.y, alpha)};
+	const vec2 pos = sample_route(e, std::lerp(e.prev_s, e.s, alpha), layout).pos;
+
+	// 1px border: a larger sprite behind the body
+	constexpr f32               border = 1.0f;
+	constexpr std::array<u8, 3> border_color{0, 0, 0};
+
+	render->draw_sprite(pos.x - border, pos.y - border, {e.size.x + border * 2.0f, e.size.y + border * 2.0f}, border_color);
 
 	render->draw_sprite(pos.x, pos.y, {e.size.x, e.size.y}, {e.color.r, e.color.g, e.color.b});
 
-	// direction marker: use pos instead of e.position
+	// direction marker unchanged
 	constexpr f32 m  = 12.0f;
 	f32           mx = pos.x + (e.size.x - m) * 0.5f;
 	f32           my = pos.y + (e.size.y - m) * 0.5f;
@@ -328,29 +443,36 @@ void render_entity(deckard::app2::renderer2* render, const entity& e, f32 alpha)
 	render->draw_sprite(mx, my, {m, m}, {255, 255, 255});
 }
 
-void render_entities(deckard::app2::renderer2* render, std::span<const entity> entities, f32 alpha) noexcept
+void render_entities(
+  deckard::app2::renderer2* render, std::span<const entity> entities, const grid_layout& layout, f32 alpha) noexcept
 {
 	for (const auto& e : entities)
-		render_entity(render, e, alpha);
+		render_entity(render, e, layout, alpha);
 }
 
 struct world
 {
 	grid_layout           layout{};
 	std::mt19937          rng{std::random_device{}()};
-	std::array<entity, 3> entities{};
+	std::array<entity, 4> entities{};
 	f32                   alpha{0.0f};
-	f32                   accumulator{0.0f};
 };
-
 
 [[nodiscard]] world make_world()
 {
+	constexpr std::array starts{grid_cell{0, 0}, grid_cell{4, 4}, grid_cell{7, 2}, grid_cell{2, 6}};
+	static_assert(starts.size() == entity_count);
+
 	world w;
+	w.layout.generate_obstacles(12, starts, w.rng);
+
+	const auto hues = distinct_hues<entity_count>(w.rng);
+
 	w.entities = {
-	  make_entity(w.layout, {0, 0}, w.rng),
-	  make_entity(w.layout, {4, 4}, w.rng),
-	  make_entity(w.layout, {7, 2}, w.rng),
+	  make_entity(w.layout, starts[0], 0.5f, hues[0], w.rng),
+	  make_entity(w.layout, starts[1], 1.0f, hues[1], w.rng),
+	  make_entity(w.layout, starts[2], 3.0f, hues[2], w.rng),
+	  make_entity(w.layout, starts[3], 5.0f, hues[3], w.rng),
 	};
 	return w;
 }
@@ -361,33 +483,19 @@ world g_world = make_world();
 void update(world& w, f32 delta) noexcept
 {
 	for (auto& e : w.entities)
-		update_entity(e, 1.0f / 20.0f, w.layout, w.rng);
-}
-
-void advance(world& w, f32 delta) noexcept
-{
-	w.accumulator += delta;
-	while (w.accumulator >= 1.0f / 20.0f)
 	{
-		update(w, 1.0f / 20.0f);
-		w.accumulator -= 1.0f / 20.0f;
+		update_entity(e, delta, w.layout, w.rng);
 	}
-	w.alpha = w.accumulator / (1.0f / 20.0f);
 }
 
 void render_world(deckard::app2::renderer2* r, const world& w, f32 mx, f32 my) noexcept
 {
 	render_grid(r, w.layout, mx, my);
-	render_entities(r, w.entities, w.alpha);
+	render_entities(r, w.entities, w.layout, w.alpha);
 }
+
 grid_layout  layout{};
 std::mt19937 rng{std::random_device{}()};
-
-std::array entities{
-  make_entity(layout, {0, 0}, rng),
-  make_entity(layout, {4, 4}, rng),
-  make_entity(layout, {7, 2}, rng),
-};
 
 void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexcept
 {
@@ -400,9 +508,8 @@ void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexce
 	const f32  my   = static_cast<f32>(p.y);
 
 
-	advance(g_world, delta);
-
-	// background
+	// advance(g_world, delta);
+	//  background
 
 	render->draw_text(mx + 20, my, std::format("Mouse: ({:.2f}, {:.2f})", mx, my), {255, 255, 255}, 40);
 
@@ -422,8 +529,19 @@ void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexce
 	// render_grid(render, delta, mx, my, {8, 8}, 5.0f, 50);
 	//	 render_grid(, layout, mx, my);
 	render_world(render, g_world, mx, my);
-	//render_entities(render, g_world.entities, g_world.alpha);
+	// render_entities(render, g_world.entities, g_world.alpha);
 }
+
+template<typename T>
+class sparseset
+{
+private:
+	std::vector<T>   dense;
+	std::vector<u32> dense_keys;
+	std::vector<u32> sparse;
+
+public:
+};
 
 bool initialize() noexcept
 {
@@ -443,24 +561,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	// usage
 
-	enum class TestCounter : u32
-	{
-		fps,
-		ui,
-		network,
-		count
-	};
-
-	constexpr std::array intervals{
-	  1.0f / 60.0f, // fps
-	  1.0f / 30.0f, // ui
-	  1.0f / 5.0f,  // network
-	};
-
-
-	fixed_timers<TestCounter, intervals> timer{};
-
-	f32 u = timer[TestCounter::ui];
 
 	// #########################################################################
 
@@ -487,16 +587,28 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		return -1;
 	}
 
+
+	deckard::app2::renderer2* render = &app::get_renderer();
+
+
+	enum class TestCounter : u32
+	{
+		ui,
+		logic,
+		count
+	};
+
+	constexpr std::array intervals{
+	  1.0f / 30.0f, // ui
+	  1.0f / 5.0f,  // logic
+	};
+
+
+	fixed_timers<TestCounter, intervals> timer{};
+
 	app::on_tick(
 	  [&](const f32 delta) noexcept
 	  {
-		  app::title(std::format(
-			"Delta: {:<3.5f} - FPS: {:<8.2f} - Client: {} - Tick {:8.2f}",
-			app::delta_time(),
-			app::fps(),
-			app::size(),
-			1.0f / delta));
-
 		  if (app::was_key_pressed(VK_F11))
 			  app::fullscreen(not app::fullscreen());
 
@@ -504,44 +616,32 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			  app::close();
 	  });
 
-	u32 uiticks  = 0;
-	u32 netticks = 0;
 
-
-	f32                       logic_delta    = 1.0f / 20.0f; // 20 ticks per second
-	f32                       max_frame_time = 0.25f;        // seconds
-	f32                       accumulator    = 0.0f;
-	deckard::app2::renderer2* render         = &app::get_renderer();
 	while (app::running())
 	{
+		timer.update(app::delta_time());
 
-		const f32 delta = app::delta_time();
 
-		timer.update(delta);
-		accumulator += delta;
-
-		while (accumulator >= logic_delta)
+		//
+		while (timer.tick(TestCounter::logic))
 		{
-			update(g_world, logic_delta);
-			accumulator -= logic_delta;
+			update(g_world, timer.interval(TestCounter::logic));
 		}
-		g_world.alpha = accumulator / logic_delta;
+		g_world.alpha = timer.alpha(TestCounter::logic);
 
 
-		// app::close();
-
-		if (app::was_key_pressed(VK_F11))
+		//
+		while (timer.tick(TestCounter::ui))
 		{
-			app::fullscreen(not app::fullscreen());
-		}
+			app::title(std::format(
+			  "Delta: {:<3.5f} - FPS: {:<8.2f} - Client: {} - Tick: {:<8.2f}",
+			  app::delta_time(),
+			  app::fps(),
+			  app::size(),
 
-
-		if (app::was_key_pressed(VK_ESCAPE))
-		{
-			app::close();
+			  timer.alpha(TestCounter::ui)));
 		}
 	}
 
-	dbg::println("ratio: {}", uiticks / static_cast<f32>(netticks));
 	return 0;
 }
