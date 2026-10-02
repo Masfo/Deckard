@@ -386,44 +386,52 @@ namespace deckard::app
 		void set_fullscreen(bool make_fullscreen)
 		{
 
-			if (make_fullscreen == fullscreen)
+			if (handle == nullptr or make_fullscreen == fullscreen)
 				return;
 
-			invalidated = true;
-
-			fullscreen = make_fullscreen;
-
-			const DWORD live_style = GetWindowLong(handle, GWL_STYLE);
-
-			if (fullscreen)
+			if (make_fullscreen)
 			{
-				MONITORINFO mi = {sizeof(mi)};
-				if (GetWindowPlacement(handle, &wp)
-					and GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST), &mi))
-				{
-					SetWindowLong(handle, GWL_STYLE, live_style & ~WS_OVERLAPPEDWINDOW);
-					SetWindowPos(
-					  handle,
-					  HWND_TOP,
-					  mi.rcMonitor.left,
-					  mi.rcMonitor.top,
-					  mi.rcMonitor.right - mi.rcMonitor.left,
-					  mi.rcMonitor.bottom - mi.rcMonitor.top,
-					  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-				}
+				MONITORINFO mi{.cbSize = sizeof(mi)};
+				if (not GetWindowPlacement(handle, &wp)
+					or not GetMonitorInfoW(MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST), &mi))
+					return; // state unchanged
+
+				fullscreen = true;
+
+				const DWORD live_style = GetWindowLong(handle, GWL_STYLE);
+				SetWindowLong(handle, GWL_STYLE, live_style & ~WS_OVERLAPPEDWINDOW);
+				SetWindowPos(
+				  handle,
+				  HWND_TOP,
+				  mi.rcMonitor.left,
+				  mi.rcMonitor.top,
+				  mi.rcMonitor.right - mi.rcMonitor.left,
+				  mi.rcMonitor.bottom - mi.rcMonitor.top,
+				  SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 			}
 			else
 			{
-				SetWindowLong(handle, GWL_STYLE, live_style | WS_OVERLAPPEDWINDOW);
-				SetWindowPos(
-				  handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-				SetWindowPlacement(handle, &wp);
+				fullscreen = false;
 
-				set_resizable(resizable); // WS_OVERLAPPEDWINDOW above reset THICKFRAME/MAXIMIZEBOX — reapply real state
+				const DWORD live_style = GetWindowLong(handle, GWL_STYLE);
+				SetWindowLong(handle, GWL_STYLE, live_style | WS_OVERLAPPEDWINDOW);
+				SetWindowPlacement(handle, &wp);
+				set_resizable(resizable);
+				SetWindowPos(
+				  handle,
+				  nullptr,
+				  0,
+				  0,
+				  0,
+				  0,
+				  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 			}
+
+			invalidated = true;
 		}
 
 		void toggle_fullscreen()
+
 		{
 			set_fullscreen(not is_fullscreen());
 			invalidated = true;
@@ -562,7 +570,7 @@ namespace deckard::app
 			if (handle == nullptr)
 				return;
 
-			allow_win_key(false);
+			allow_win_key(true);
 
 			if (is_fullscreen())
 				toggle_fullscreen();
