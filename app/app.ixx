@@ -11,7 +11,6 @@ module;
 #include <windowsx.h>
 
 export module deckard.app;
-export import :inputs;
 
 import std;
 using namespace std::chrono_literals;
@@ -22,14 +21,16 @@ import deckard.types;
 import deckard.vulkan;
 import deckard.platform;
 import deckard.win32;
+import deckard.helpers;
 
 import deckard.debug;
 import deckard.assert;
 import deckard.enums;
 import deckard.threadutil;
-
-namespace deckard
+#if 0
+namespace deckard::app
 {
+	using flicks = std::chrono::duration<std::chrono::nanoseconds::rep, std::ratio<1, 705'600'000>>;
 	export enum class Attribute : u8 {
 		fullscreen       = BIT(0),
 		togglefullscreen = BIT(1),
@@ -45,11 +46,6 @@ namespace deckard
 		Count = 8
 	};
 	export consteval void enable_bitmask_operations(Attribute);
-} // namespace deckard
-
-namespace deckard::app
-{
-	using flicks = std::chrono::duration<std::chrono::nanoseconds::rep, std::ratio<1, 705'600'000>>;
 
 	// callback
 	class vulkanapp;
@@ -91,7 +87,7 @@ namespace deckard::app
 	public:
 		struct properties
 		{
-			std::string title;
+			std::string title{"Default title"};
 			u16         width{1920};
 			u16         height{1080};
 			Attribute   flags{Attribute::resizable | Attribute::vsync};
@@ -111,7 +107,6 @@ namespace deckard::app
 		DWORD       style{WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SIZEBOX};
 		DWORD       ex_style{0};
 
-		inputs m_inputs;
 
 		input_keyboard_callback_ptr* keyboard_callback{nullptr};
 
@@ -129,6 +124,7 @@ namespace deckard::app
 		bool renderer_initialized{false};
 		bool is_running{false};
 		bool is_sizing{false};
+		bool is_resizing{false};
 		bool is_minimized{false};
 		bool show_cursor{true};
 
@@ -502,12 +498,13 @@ namespace deckard::app
 		}
 
 	public:
-		void set_title(std::string_view title)
+		void set_title(const std::string_view title)
 		{
 			//
 			m_properties.title = title;
+
 			if (handle)
-				SetWindowTextA(handle, title.data());
+				SetWindowTextA(handle, m_properties.title.data());
 		}
 
 		void set_initialize_callback(initialize_callback_ptr* ptr)
@@ -653,7 +650,7 @@ namespace deckard::app
 	public:
 		void toggle_fullscreen2() { toggle_fullscreen(); }
 
-		void toggle(deckard::Attribute flags) { set(flags); }
+		void toggle(deckard::app::Attribute flags) { set(flags); }
 
 		// ####################################################################################
 		// ####################################################################################
@@ -661,7 +658,7 @@ namespace deckard::app
 		// ####################################################################################
 		// ####################################################################################
 		// ####################################################################################
-		void poll_inputs() { m_inputs.poll(); }
+		void poll_inputs() { }
 
 	public:
 		vulkanapp(vulkanapp&&)            = delete;
@@ -676,8 +673,10 @@ namespace deckard::app
 
 		~vulkanapp() { destroy(); }
 
-		void create()
+		void create(std::string_view title)
 		{
+			m_properties.title = title;
+
 			dbg::println("CPU: {}", system::GetCPUIDString());
 			dbg::println("RAM: {}", platform::get_ram_string());
 			dbg::println("OS:  {}", system::GetOSVersionString());
@@ -772,7 +771,7 @@ namespace deckard::app
 			  nullptr,
 			  wc.hInstance,
 			  this);
-			if (!handle)
+			if (not handle)
 			{
 				dbg::println("CreateWindowEx failed: {}", platform::get_error_string());
 				destroy();
@@ -805,7 +804,7 @@ namespace deckard::app
 			set_square_corners(corner::square);
 
 
-			SetTimer(handle, 0, 16, 0);
+			SetTimer(handle, 0, 8, 0);
 
 			bool vsync = has(m_properties.flags, Attribute::vsync);
 
@@ -815,7 +814,8 @@ namespace deckard::app
 				return;
 			}
 
-			set_title(m_properties.title);
+			if (handle)
+				SetWindowTextA(handle, title.data());
 
 
 			input_initialize();
@@ -862,9 +862,13 @@ namespace deckard::app
 
 		void resize()
 		{
+			if (is_resizing)
+				return;
+
+			is_resizing = true;
+
+			// m_properties.title is valid
 			extent adjusted = adjust_to_current_dpi(normalized_client_size);
-
-
 			SetWindowPos(
 			  handle,
 			  nullptr,
@@ -873,6 +877,12 @@ namespace deckard::app
 			  adjusted.width,
 			  adjusted.height,
 			  SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+
+			// m_properties.title is corrupt here
+
+			is_resizing = false;
+
+			int x = 0;
 		}
 
 		f32 time() const
@@ -978,7 +988,7 @@ namespace deckard::app
 
 				if (timers[FPS] > 1.0f)
 				{
-				//	fps                = frames / timers[FPS];
+					//	fps                = frames / timers[FPS];
 					max_fps            = std::max(fps, max_fps);
 					update_tick        = 0;
 					frames             = 0;
@@ -1022,10 +1032,7 @@ namespace deckard::app
 				}
 
 
-				m_inputs.poll();
 
-				// auto& pad = m_inputs.controller();
-				// pad.vibrate(pad.left_trigger(), pad.right_trigger());
 
 				// Update
 				if (update_callback)
@@ -1046,7 +1053,7 @@ namespace deckard::app
 			std::jthread app_thread(
 			  [&]
 			  {
-				  create();
+				  create(m_properties.title);
 
 				  if (not is_running)
 				  {
@@ -1215,7 +1222,7 @@ namespace deckard::app
 			{
 
 				extent new_min = adjust_to_current_dpi(min_extent);
-
+			
 				POINT minsize{(LONG)new_min.width, (LONG)new_min.height};
 				((MINMAXINFO*)lParam)->ptMinTrackSize = minsize;
 				return 0;
@@ -1265,10 +1272,10 @@ namespace deckard::app
 			case WM_EXITSIZEMOVE:
 			{
 				is_sizing = false;
-				KillTimer(handle, RESIZE_TIMER_ID);
 				resize();
 				if (is_running and not is_minimized)
 					vulkan.resize(); // final, authoritative swapchain rebuild
+				KillTimer(handle, RESIZE_TIMER_ID);
 				return 0;
 			}
 
@@ -1301,7 +1308,9 @@ namespace deckard::app
 				{
 					is_minimized = false;
 					if (is_running)
+					{
 						vulkan.resize();
+					}
 				}
 				return 0;
 			}
@@ -1440,18 +1449,18 @@ namespace deckard::app
 				i32 vk       = static_cast<i32>(wParam);
 				i32 scancode = (lParam >> 16) & 0xFF;
 
-				bool alt   = (GetKeyState(Key::Alt) & 0x8000);
-				bool shift = (GetKeyState(Key::Shift) & 0x8000);
-				bool ctrl  = (GetKeyState(Key::Ctrl) & 0x8000);
+				//bool alt   = (GetKeyState(Key::Alt) & 0x8000);
+				//bool shift = (GetKeyState(Key::Shift) & 0x8000);
+				//bool ctrl  = (GetKeyState(Key::Ctrl) & 0x8000);
 
 
 				// bool wasDown = (lParam & (1 << 30)) != 0;
 				// bool isDown  = (lParam & (1 << 31)) == 0;
 
-				dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
+				//dbg::println("alt: {}, ctrl: {}, shift: {} - {}", alt, ctrl, shift, vk);
 
-				if (keyboard_callback)
-					keyboard_callback(*this, vk, scancode, false, 0);
+				//if (keyboard_callback)
+				//	keyboard_callback(*this, vk, scancode, false, 0);
 
 				return 0;
 			}
@@ -1685,5 +1694,5 @@ namespace deckard::app
 		return DefWindowProc(handle, uMsg, wParam, lParam);
 	}
 
-
 } // namespace deckard::app
+#endif
