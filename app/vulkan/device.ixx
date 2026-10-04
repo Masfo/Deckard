@@ -721,7 +721,7 @@ namespace deckard::vulkan
 			dbg::println("Vulkan device extensions({}):", device_extensions.size());
 
 			std::ranges::sort(
-			  device_extensions, {}, [](VkExtensionProperties const& e) { return std::string_view{e.extensionName}; });
+			  device_extensions, {}, [](const VkExtensionProperties& e) { return std::string_view{e.extensionName}; });
 
 			for (const auto& extension : device_extensions)
 			{
@@ -823,7 +823,7 @@ namespace deckard::vulkan
 			// check if dynamic rendering is supported
 
 			VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-			features13.synchronization2 = VK_TRUE;
+			features13.synchronization2 = VK_TRUE; // Barrier2
 			features13.dynamicRendering = VK_TRUE;
 
 			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
