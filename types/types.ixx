@@ -1,5 +1,6 @@
 module;
 #include <Windows.h>
+#include <version> // feature-test macros only; macros don't come through `import std;`
 
 export module deckard.types;
 

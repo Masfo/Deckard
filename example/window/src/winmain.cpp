@@ -559,8 +559,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 
-	// usage
-
 
 	// #########################################################################
 
@@ -588,7 +586,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	}
 
 
-	deckard::app2::renderer2* render = &app::get_renderer();
 
 
 	enum class TestCounter : u32
@@ -609,18 +606,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	app::on_tick(
 	  [&](const f32 delta) noexcept
 	  {
-		  if (app::was_key_pressed(VK_F11))
-			  app::fullscreen(not app::fullscreen());
-
-		  if (app::was_key_pressed(VK_ESCAPE))
-			  app::close();
-	  });
-
-
-	while (app::running())
-	{
-		timer.update(app::delta_time());
-
+		timer.update(delta);
 
 		//
 		while (timer.tick(TestCounter::logic))
@@ -641,6 +627,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			  timer.alpha(TestCounter::ui)));
 		}
+	  });
+
+
+	while (app::running())
+	{
+		  if (app::was_key_pressed(VK_F11))
+			  app::fullscreen(not app::fullscreen());
+
+		  if (app::was_key_pressed(VK_ESCAPE))
+			  app::close();
 	}
 
 	return 0;

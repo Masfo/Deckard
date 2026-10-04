@@ -4,6 +4,10 @@ module;
 #include <cstdio>
 #include <objbase.h>
 
+#include <version> // feature-test macros only; macros don't come through `import std;`
+
+
+
 export module deckard;
 
 export import deckard.as;
@@ -37,6 +41,7 @@ export import deckard.arrays;
 export import deckard.base_encoding;
 export import deckard.bigint;
 export import deckard.bytepool;
+export import deckard.callbacks;
 export import deckard.colors;
 export import deckard.commandline;
 export import deckard.cpuid;

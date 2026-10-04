@@ -249,6 +249,7 @@ set(DECKARD_MODULES
 		utils/arrays.ixx
 		utils/base_n.ixx
 		utils/bytepool.ixx
+		utils/callbacks.ixx
 		utils/circular_buffer.ixx
 		utils/colors.ixx
 		utils/commandline.ixx
