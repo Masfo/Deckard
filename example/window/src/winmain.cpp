@@ -501,7 +501,7 @@ void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexce
 {
 	POINT p{};
 	GetCursorPos(&p);
-	ScreenToClient(render->get_handle(), &p);
+	ScreenToClient(app::window_handle(), &p);
 
 	const auto size = render->get_size();
 	const f32  mx   = static_cast<f32>(p.x);
@@ -511,7 +511,7 @@ void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexce
 	// advance(g_world, delta);
 	//  background
 
-	render->draw_text(mx + 20, my, std::format("Mouse: ({:.2f}, {:.2f})", mx, my), {255, 255, 255}, 40);
+	//render->draw_text(mx + 20, my, std::format("Mouse: ({:.2f}, {:.2f})", mx, my), {255, 255, 255}, 40);
 
 	// lines
 	render->draw_line(0.0f, 0.0f, mx, my, {255, 0, 0}, 5.0f);
@@ -634,6 +634,15 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		  if (app::was_key_pressed(VK_F11))
 			  app::fullscreen(not app::fullscreen());
+
+		  if (app::was_key_pressed(VK_F2))
+			  app::resize({1920, 1080});
+
+		  if (app::was_key_pressed(VK_F3))
+			  app::resize({1280, 720});
+
+		  if (app::was_key_pressed(VK_F4))
+			  app::resize({640, 480});
 
 		  if (app::was_key_pressed(VK_ESCAPE))
 			  app::close();
