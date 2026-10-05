@@ -269,6 +269,8 @@ namespace deckard::app
 
 	export void fullscreen(bool value) { detail::window.set_fullscreen(value); }
 
+	export void resize(extent<u16> size) { detail::window.set_size(size); }
+
 	export [[nodiscard("check if the app if fullscreen")]] bool fullscreen() { return detail::window.is_fullscreen(); }
 
 	export void title(std::string_view title) { detail::window.set_title(title); }
@@ -278,6 +280,8 @@ namespace deckard::app
 	export [[nodiscard("check the size of the window")]] extent<u16> size() { return detail::window.get_clientsize(); }
 
 	export [[nodiscard]] app2::renderer2& get_renderer() { return detail::renderer; }
+
+	export [[nodiscar]] HWND window_handle() { return detail::window.get_handle(); }
 
 	export [[nodiscard]] f32 delta_time() { return detail::delta_time; }
 

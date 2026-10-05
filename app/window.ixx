@@ -178,6 +178,7 @@ namespace deckard::app
 
 		void set_client_size(const extent<u16> new_size)
 		{
+			size                   = new_size;
 			normalized_client_size = new_size;
 			invalidated            = true;
 			resize();
@@ -721,9 +722,6 @@ namespace deckard::app
 				if (wParam == SIZE_RESTORED or wParam == SIZE_MAXIMIZED)
 				{
 					minimized = false;
-
-					size.width  = LOWORD(lParam);
-					size.height = HIWORD(lParam);
 
 					if (running and not sizing)
 						normalize_client_size();
