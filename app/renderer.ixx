@@ -1,16 +1,13 @@
-module;
-#include <Windows.h>
-
 export module deckard.app2:renderer;
 
 import std;
 import deckard.types;
 import deckard.colors;
 import deckard.debug;
+import deckard.vulkan;
 
 export namespace deckard::app2
 {
-
 	export class renderer2;
 
 	using render_callback = std::move_only_function<void(renderer2* render, f32 delta_time) noexcept>;
@@ -18,37 +15,25 @@ export namespace deckard::app2
 	export class renderer2
 	{
 	private:
-		extent<u16> size{1920, 1080};
-		f32         hue{0.0f};
-		HWND        handle{nullptr};
+		using vertex2d = vulkan::vertex2d;
 
-		HDC     back_dc{nullptr};
-		HBITMAP back_bitmap{nullptr};
-		HBITMAP back_bitmap_old{nullptr};
+		static constexpr f32 pi{std::numbers::pi_v<f32>};
+		static constexpr u32 cap_segments{8};
+		static constexpr u32 quad_vertices{6};
+		static constexpr u32 cap_vertices{cap_segments * 3};
+		static constexpr f32 round_cap_min_half_width{1.5f}; // thinner lines look the same with butt caps
+
+		vulkan::context* ctx{nullptr};
+		extent<u16>                 size{1920, 1080};
+		f32                         hue{0.0f};
+		std::array<f32, 3>          clear_color{0.0f, 0.0f, 0.0f};
+		std::vector<vertex2d>       vertices;
+		bool                        overflow_reported{false};
 
 	private:
-		void create_backbuffer()
+		[[nodiscard]] static constexpr u32 pack(const std::array<u8, 3>& c, u8 a = 255) noexcept
 		{
-			destroy_backbuffer();
-
-			HDC window_dc   = GetDC(handle);
-			back_dc         = CreateCompatibleDC(window_dc);
-			back_bitmap     = CreateCompatibleBitmap(window_dc, size.width, size.height);
-			back_bitmap_old = static_cast<HBITMAP>(SelectObject(back_dc, back_bitmap));
-			ReleaseDC(handle, window_dc);
-		}
-
-		void destroy_backbuffer()
-		{
-			if (back_dc)
-			{
-				SelectObject(back_dc, back_bitmap_old);
-				DeleteObject(back_bitmap);
-				DeleteDC(back_dc);
-				back_dc         = nullptr;
-				back_bitmap     = nullptr;
-				back_bitmap_old = nullptr;
-			}
+			return u32{c[0]} | (u32{c[1]} << 8) | (u32{c[2]} << 16) | (u32{a} << 24);
 		}
 
 		void update(f32 delta_time)
@@ -59,192 +44,146 @@ export namespace deckard::app2
 				hue += 360.0f;
 		}
 
-		// TODO: generic draw quad, with size and color hues
-		void paint_background() const
+		bool reserve_vertices(std::size_t count)
 		{
-			auto w = size.width;
-			auto h = size.height;
+			if (vertices.size() + count <= vulkan::max_batch_vertices)
+				return true;
 
-			auto rgb0 = to_rgb(hue, 1.0f, 1.0f);
-			auto rgb1 = to_rgb(std::fmod(hue + 90.0f, 360.0f), 1.0f, 1.0f);
-			auto rgb2 = to_rgb(std::fmod(hue + 180.0f, 360.0f), 1.0f, 1.0f);
-			auto rgb3 = to_rgb(std::fmod(hue + 270.0f, 360.0f), 1.0f, 1.0f);
-
-			TRIVERTEX vertices[4] = {
-			  {0,
-			   0,
-			   static_cast<COLOR16>(rgb0[0] << 8),
-			   static_cast<COLOR16>(rgb0[1] << 8),
-			   static_cast<COLOR16>(rgb0[2] << 8),
-			   0},
-			  {w,
-			   0,
-			   static_cast<COLOR16>(rgb1[0] << 8),
-			   static_cast<COLOR16>(rgb1[1] << 8),
-			   static_cast<COLOR16>(rgb1[2] << 8),
-			   0},
-			  {w,
-			   h,
-			   static_cast<COLOR16>(rgb2[0] << 8),
-			   static_cast<COLOR16>(rgb2[1] << 8),
-			   static_cast<COLOR16>(rgb2[2] << 8),
-			   0},
-			  {0,
-			   h,
-			   static_cast<COLOR16>(rgb3[0] << 8),
-			   static_cast<COLOR16>(rgb3[1] << 8),
-			   static_cast<COLOR16>(rgb3[2] << 8),
-			   0}};
-
-			GRADIENT_TRIANGLE triangles[2] = {{0, 1, 2}, {0, 2, 3}};
-			GradientFill(back_dc, vertices, 4, triangles, 2, GRADIENT_FILL_TRIANGLE);
+			if (not overflow_reported)
+			{
+				overflow_reported = true;
+				dbg::println("renderer: 2D batch full ({} vertices), dropping draws", vulkan::max_batch_vertices);
+			}
+			return false;
 		}
 
-		void clear(COLORREF color) const noexcept
+		void push_triangle(f32 ax, f32 ay, f32 bx, f32 by, f32 cx, f32 cy, u32 rgba)
 		{
-			if (handle == nullptr)
-				return;
+			vertices.push_back({{ax, ay}, rgba});
+			vertices.push_back({{bx, by}, rgba});
+			vertices.push_back({{cx, cy}, rgba});
+		}
 
-			HDC    hdc = GetDC(handle);
-			RECT   rect{0, 0, size.width, size.height};
-			HBRUSH brush = CreateSolidBrush(color);
-			FillRect(hdc, &rect, brush);
-			DeleteObject(brush);
-			ReleaseDC(handle, hdc);
+		// half-circle fan around (cx, cy), bulging towards (dir_x, dir_y)
+		void push_cap(f32 cx, f32 cy, f32 dir_x, f32 dir_y, f32 radius, u32 rgba)
+		{
+			const f32 nx = -dir_y;
+			const f32 ny = dir_x;
+
+			f32 prev_x = cx + nx * radius;
+			f32 prev_y = cy + ny * radius;
+
+			for (u32 i = 1; i <= cap_segments; ++i)
+			{
+				const f32 a  = pi * static_cast<f32>(i) / static_cast<f32>(cap_segments);
+				const f32 px = cx + (nx * std::cos(a) + dir_x * std::sin(a)) * radius;
+				const f32 py = cy + (ny * std::cos(a) + dir_y * std::sin(a)) * radius;
+
+				push_triangle(cx, cy, prev_x, prev_y, px, py, rgba);
+				prev_x = px;
+				prev_y = py;
+			}
 		}
 
 	public:
 		render_callback on_render;
 
 	public:
-		void initialize(HWND hWnd, extent<u16> initial_size)
+		void initialize(vulkan::context& context, extent<u16> initial_size)
 		{
-			handle = hWnd;
-			size   = initial_size;
+			ctx  = &context;
+			size = initial_size;
+			vertices.reserve(4096);
 			dbg::println("renderer: initialized with size {}x{}", size.width, size.height);
-			create_backbuffer();
 		}
 
 		void deinitialize()
 		{
-			destroy_backbuffer();
+			ctx = nullptr;
+			vertices.clear();
+			vertices.shrink_to_fit();
 			dbg::println("renderer: deinitialized");
 		}
 
-		HWND get_handle() const { return handle; }
-
 		void resize(extent<u16> new_size) { notify_size(new_size); }
+
+		void notify_size(extent<u16> new_size) { size = new_size; }
 
 		extent<u16> get_size() const { return size; }
 
-		void notify_size(extent<u16> new_size)
-		{
-			size = new_size;
-			create_backbuffer();
-		}
-
 		void begin_frame()
 		{
+			vertices.clear();
+			overflow_reported = false;
 		}
 
-		void end_frame() 
+		[[nodiscard]] bool end_frame()
 		{
-			HDC window_dc = GetDC(handle);
-			BitBlt(window_dc, 0, 0, size.width, size.height, back_dc, 0, 0, SRCCOPY);
-			ReleaseDC(handle, window_dc);
+			if (ctx == nullptr)
+				return false;
+
+			return ctx->draw(vertices, clear_color);
 		}
 
-		void render(f32 delta)
+		[[nodiscard]] bool render(f32 delta)
 		{
 			update(delta);
 
 			begin_frame();
-			paint_background();
-
 			_ = invoke_if(on_render, this, delta);
-			end_frame();
+			return end_frame();
 		}
 
-		void clear() { clear(RGB(0, 0, 0)); }
-
-		// Solid-color line with adjustable thickness
-		void draw_line(f32 x0, f32 y0, f32 x1, f32 y1, const std::array<u8, 3>& color, f32 thickness = 1.0f) const
+		void clear(const std::array<u8, 3>& color = {0, 0, 0})
 		{
-			LOGBRUSH brush{.lbStyle = BS_SOLID, .lbColor = RGB(color[0], color[1], color[2])};
-
-			DWORD pen_width = static_cast<DWORD>(std::max(1.0f, thickness));
-			HPEN  pen       = ExtCreatePen(
-			  PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_ROUND | PS_JOIN_ROUND, pen_width, &brush, 0, nullptr);
-			HPEN old_pen = static_cast<HPEN>(SelectObject(back_dc, pen));
-
-			MoveToEx(back_dc, static_cast<int>(x0), static_cast<int>(y0), nullptr);
-			LineTo(back_dc, static_cast<int>(x1), static_cast<int>(y1));
-
-			SelectObject(back_dc, old_pen);
-			DeleteObject(pen);
+			vertices.clear();
+			clear_color = {color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f};
 		}
 
-		void draw_sprite(f32 x, f32 y,std::array<f32,2> sprite_size, const std::array<u8, 3>& color) const
+		void draw_line(f32 x0, f32 y0, f32 x1, f32 y1, const std::array<u8, 3>& color, f32 thickness = 1.0f)
 		{
-			auto x0 = static_cast<LONG>(x);
-			auto y0 = static_cast<LONG>(y);
-			auto x1 = x0 + static_cast<LONG>(sprite_size[0]);
-			auto y1 = y0 + static_cast<LONG>(sprite_size[1]);
+			const f32  half       = std::max(1.0f, thickness) * 0.5f;
+			const bool round_caps = half >= round_cap_min_half_width;
 
-			COLOR16 r = static_cast<COLOR16>(color[0] << 8);
-			COLOR16 g = static_cast<COLOR16>(color[1] << 8);
-			COLOR16 b = static_cast<COLOR16>(color[2] << 8);
-
-			TRIVERTEX vertices[4] = {
-			  {x0, y0, r, g, b, 0},
-			  {x1, y0, r, g, b, 0},
-			  {x1, y1, r, g, b, 0},
-			  {x0, y1, r, g, b, 0},
-			};
-
-			GRADIENT_TRIANGLE triangles[2] = {{0, 1, 2}, {0, 2, 3}};
-			GradientFill(back_dc, vertices, 4, triangles, 2, GRADIENT_FILL_TRIANGLE);
-		}
-
-		void draw_text(f32 x, f32 y, std::string_view text, const std::array<u8, 3>& color, int font_size = 18) const
-		{
-			if (text.empty())
+			if (not reserve_vertices(quad_vertices + (round_caps ? 2 * cap_vertices : 0)))
 				return;
 
-			const int len = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-			if (len <= 0)
+			x0 += 0.5f;
+			y0 += 0.5f;
+			x1 += 0.5f;
+			y1 += 0.5f;
+
+			const f32 dx  = x1 - x0;
+			const f32 dy  = y1 - y0;
+			const f32 len = std::hypot(dx, dy);
+			const f32 ux  = len > 1e-6f ? dx / len : 1.0f; 
+			const f32 uy  = len > 1e-6f ? dy / len : 0.0f;
+			const f32 nx  = -uy * half;
+			const f32 ny  = ux * half;
+
+			const u32 rgba = pack(color);
+
+			push_triangle(x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, rgba);
+			push_triangle(x0 + nx, y0 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny, rgba);
+
+			if (round_caps)
+			{
+				push_cap(x0, y0, -ux, -uy, half, rgba);
+				push_cap(x1, y1, ux, uy, half, rgba);
+			}
+		}
+
+		void draw_sprite(f32 x, f32 y, std::array<f32, 2> sprite_size, const std::array<u8, 3>& color)
+		{
+			if (not reserve_vertices(quad_vertices))
 				return;
 
-			std::wstring wide(static_cast<usize>(len), L'\0');
-			MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), wide.data(), len);
+			const f32 x1   = x + sprite_size[0];
+			const f32 y1   = y + sprite_size[1];
+			const u32 rgba = pack(color);
 
-			// negative height = character height in pixels
-			HFONT font = CreateFontW(
-			  -font_size,
-			  0,
-			  0,
-			  0,
-			  FW_NORMAL,
-			  FALSE,
-			  FALSE,
-			  FALSE,
-			  DEFAULT_CHARSET,
-			  OUT_TT_PRECIS,
-			  CLIP_DEFAULT_PRECIS,
-			  CLEARTYPE_QUALITY,
-			  DEFAULT_PITCH | FF_DONTCARE,
-			  L"Segoe UI");
-
-			const auto old_font  = SelectObject(back_dc, font);
-			const auto old_color = SetTextColor(back_dc, RGB(color[0], color[1], color[2]));
-			const auto old_mode  = SetBkMode(back_dc, TRANSPARENT);
-
-			TextOutW(back_dc, static_cast<int>(x), static_cast<int>(y), wide.c_str(), static_cast<int>(wide.size()));
-
-			SetBkMode(back_dc, old_mode);
-			SetTextColor(back_dc, old_color);
-			SelectObject(back_dc, old_font);
-			DeleteObject(font); // deselected on the line above, so safe to delete
+			push_triangle(x, y, x1, y, x1, y1, rgba);
+			push_triangle(x, y, x1, y1, x, y1, rgba);
 		}
 	};
 } // namespace deckard::app2
