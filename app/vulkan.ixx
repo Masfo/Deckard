@@ -38,12 +38,178 @@ import std;
 import deckard.debug;
 import deckard.types;
 import deckard.as;
+import deckard.types;
+import deckard.vec;
+import deckard.random;
+import deckard.debug;
 import deckard.assert;
+
+#ifndef _DEBUG
+import deckard_build;
+#endif
+
+namespace fs  = std::filesystem;
+namespace vec = deckard::vec;
 
 namespace deckard::vulkan
 {
-	export class queue
+	static constexpr u32 frames_in_flight = 3;
+
+	inline constexpr std::array<f32, 3> default_clear_rgb{0.0f, 0.5f, 0.75f};
+
+	static constexpr VkImageSubresourceRange color_range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+	export struct buffer
 	{
+		VkBuffer       handle{};
+		VkDeviceMemory memory{};
+		VkDeviceSize   size{};
+		void*          mapped{}; // non-null only for HOST_VISIBLE memory
+	};
+
+	struct frame_slot
+	{
+		VkCommandBuffer cmd{};
+		VkSemaphore     image_available{};
+		buffer          vertex{}; // animated triangle2 vertices
+		buffer          batch{};  // 2D batch vertices
+		u32             batch_count{0};
+		u64             timeline_value{0};
+	};
+
+	export struct vertex2d
+	{
+		vec::vec2 v;
+		u32       rgba; // r | g<<8 | b<<16 | a<<24 -> bytes R,G,B,A in memory (little-endian)
+	};
+
+	static_assert(sizeof(vec::vec2) == 2 * sizeof(f32));
+	static_assert(std::is_standard_layout_v<vertex2d>);           // offsetof needs this
+
+	export inline constexpr u32 max_batch_vertices = 3u * 32768u; // multiple of 3, ~1.1 MiB per frame slot
+
+	struct pipeline_desc
+	{
+		VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP}; // old defaults, so the
+		VkCullModeFlags     cull_mode{VK_CULL_MODE_BACK_BIT};               // triangle pipelines are unchanged
+		VkShaderStageFlags  push_stages{0};
+		u32                 push_size{0};
+	};
+
+	struct pipeline_state
+	{
+		VkPipelineLayout layout{nullptr};
+		VkPipeline       pipeline{nullptr};
+		VkPipelineCache  cache{nullptr};
+		fs::path         cache_file{};
+	};
+
+	struct triangle2_vertex
+	{
+		vec::vec2 pos;
+		vec::vec3 color;
+	};
+
+	// Debug utils
+	PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT{nullptr};
+	PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
+	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT{nullptr};
+
+	// ################################################################
+	// Helpers ########################################################
+	template<typename T>
+	concept VulkanStruct = requires(T t) {
+		t.sType;
+		t.pNext;
+	};
+
+	template<VulkanStruct... Ts>
+	void vulkan_pnext_chain(Ts&... structs) noexcept
+	{
+		VkBaseOutStructure* previous{nullptr};
+		const auto          link = [&](auto& s)
+		{
+			auto* current = reinterpret_cast<VkBaseOutStructure*>(&s);
+			if (previous)
+				previous->pNext = current;
+
+			while (current->pNext)
+				current = current->pNext;
+
+			previous = current;
+		};
+		(link(structs), ...);
+	}
+
+	// Vulkan's two-call enumeration idiom. `fn(u32* count, T* items)` may return VkResult or void.
+	// Retries on VK_INCOMPLETE.
+	template<typename T, typename Fn>
+	[[nodiscard]] std::expected<std::vector<T>, VkResult> enumerate(Fn&& fn)
+	{
+		const auto call = [&](u32* count, T* items) -> VkResult
+		{
+			if constexpr (std::is_void_v<std::invoke_result_t<Fn&, u32*, T*>>)
+			{
+				fn(count, items);
+				return VK_SUCCESS;
+			}
+			else
+				return fn(count, items);
+		};
+
+		std::vector<T> items;
+		u32            count{0};
+		VkResult       result{VK_SUCCESS};
+
+		do
+		{
+			if (result = call(&count, nullptr); result != VK_SUCCESS)
+				return std::unexpected(result);
+
+			items.resize(count);
+			result = call(&count, items.data());
+		} while (result == VK_INCOMPLETE);
+
+		if (result != VK_SUCCESS)
+			return std::unexpected(result);
+
+		items.resize(count);
+		return items;
+	}
+
+	constexpr auto extension_name = [](const VkExtensionProperties& e) -> const char* { return e.extensionName; };
+	constexpr auto layer_name     = [](const VkLayerProperties& l) -> const char* { return l.layerName; };
+
+	[[nodiscard]] bool has_name(const auto& available, std::string_view wanted, auto name_of)
+	{
+		return std::ranges::any_of(available, [&](const auto& item) { return std::string_view{name_of(item)} == wanted; });
+	}
+
+	void transition_image(
+	  VkCommandBuffer cmd, VkImage image, VkPipelineStageFlags2 src_stage, VkAccessFlags2 src_access,
+	  VkPipelineStageFlags2 dst_stage, VkAccessFlags2 dst_access, VkImageLayout old_layout,
+	  VkImageLayout new_layout) noexcept
+	{
+		const VkImageMemoryBarrier2 barrier{
+		  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		  .srcStageMask        = src_stage,
+		  .srcAccessMask       = src_access,
+		  .dstStageMask        = dst_stage,
+		  .dstAccessMask       = dst_access,
+		  .oldLayout           = old_layout,
+		  .newLayout           = new_layout,
+		  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		  .image               = image,
+		  .subresourceRange    = color_range,
+		};
+		const VkDependencyInfo dependency{
+		  .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+		  .imageMemoryBarrierCount = 1,
+		  .pImageMemoryBarriers    = &barrier,
+		};
+		vkCmdPipelineBarrier2(cmd, &dependency);
+	}
 	public:
 		bool initialize(VkInstance instance, HINSTANCE window_instance, HWND window_handle)
 		{
@@ -61,13 +227,27 @@ namespace deckard::vulkan
 
 } // namespace deckard::vulkan
 
-*/
+	export class context
+	{
+	private:
+		VkInstance               m_instance{nullptr};
+		VkDevice                 m_device{nullptr};
+		VkPhysicalDevice         m_physical_device{nullptr};
+		VkQueue                  m_graphics_queue{nullptr};
+		u32                      m_graphics_queue_family_index{0};
+		VkSurfaceKHR             m_surface{nullptr};
+		VkSurfaceCapabilitiesKHR m_surface_capabilities{};
+		VkSwapchainKHR           m_swapchain{nullptr};
+		VkSurfaceFormatKHR       m_surface_format{};
+		VkExtent2D               m_swapchain_extent{};
+		u32                      swapchain_image_count{0};
 
-import std;
-import deckard.vulkan_helpers;
-import deckard.types;
-import deckard.vec;
-import deckard.random;
+
+		u32 minimum_api_version{VK_API_VERSION_1_3};
+
+		std::array<frame_slot, frames_in_flight> m_frames;
+
+		bool m_needs_resize{false};
 
 namespace fs = std::filesystem;
 
@@ -80,18 +260,55 @@ namespace deckard::vulkan
 	// vb->vertex(x,y,z, color, uv);
 	//
 
-	using namespace deckard::vec;
+	private:
+	public:
+		[[nodiscard]] VkInstance instance() const noexcept { return m_instance; }
 
 	struct triangle2_vertex
+		[[nodiscard]] static constexpr bool version_at_least(u32 version, u32 major, u32 minor) noexcept
 	{
-		vec2 pos;
-		vec3 color;
+			return VK_API_VERSION_MAJOR(version) > major
+				   or (VK_API_VERSION_MAJOR(version) == major and VK_API_VERSION_MINOR(version) >= minor);
+		}
+
+		using debug_callback_t = void(std::string_view, std::string_view, std::string_view);
+
+		void set_debug_callback(std::move_only_function<debug_callback_t> callback) { debug_callback = std::move(callback); }
+
+		std::expected<void, std::string> initialize(HWND hWnd, u32 apiversion = VK_API_VERSION_1_3)
+		{
+			if (not version_at_least(apiversion, 1, 3))
+				return std::unexpected(std::format(
+				  "Vulkan 1.3 or newer is required, requested {}.{}",
+				  VK_API_VERSION_MAJOR(apiversion),
+				  VK_API_VERSION_MINOR(apiversion)));
+
+			u32 instance_version{0};
+			if (vkEnumerateInstanceVersion(&instance_version) != VK_SUCCESS)
+				return std::unexpected("Failed to enumerate Vulkan instance version");
+
+			if (not version_at_least(instance_version, 1, 3))
+				return std::unexpected(std::format(
+				  "Vulkan loader/runtime reports {}.{}.{}, 1.3 is required",
+				  VK_API_VERSION_MAJOR(instance_version),
+				  VK_API_VERSION_MINOR(instance_version),
+				  VK_API_VERSION_PATCH(instance_version)));
+
+			dbg::println("Vulkan instance version: {}.{}.{}",
+						 VK_API_VERSION_MAJOR(instance_version),
+						 VK_API_VERSION_MINOR(instance_version),
+						 VK_API_VERSION_PATCH(instance_version));
+
+
+			minimum_api_version = apiversion;
 	};
 
 	export class vulkan
+		void deinitialize()
 	{
 	public:
 		vulkan() = default;
+		}
 
 		vulkan(HWND handle, bool vsync, u32 apiversion) { initialize(handle, vsync, apiversion); }
 
@@ -123,6 +340,46 @@ namespace deckard::vulkan
 		bool is_vsync() const { return m_vsync; }
 
 	private:
+		// ############################################################
+		// Instance ###################################################
+
+		std::expected<void, std::string> initialize_instance(u32 minimum_apiversion)
+		{
+			auto extensions = enumerate<VkExtensionProperties>(
+			  [](u32* count, VkExtensionProperties* items)
+			  { return vkEnumerateInstanceExtensionProperties(nullptr, count, items); });
+			if (not extensions)
+				return std::unexpected("Failed to enumerate instance extensions");
+			m_available_extensions = std::move(*extensions);
+
+			auto layers = enumerate<VkLayerProperties>(
+			  [](u32* count, VkLayerProperties* items) { return vkEnumerateInstanceLayerProperties(count, items); });
+			if (not layers)
+				return std::unexpected("Failed to enumerate validator layers");
+			m_available_layers = std::move(*layers);
+
+			const VkApplicationInfo app_info{
+			  .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			  .pApplicationName   = "Deckard",
+			  .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+			  .pEngineName        = "Deckard",
+#ifndef _DEBUG
+			  .engineVersion = VK_MAKE_VERSION(
+				deckard_build::build::major, deckard_build::build::minor, deckard_build::build::patch),
+#endif
+			  .apiVersion = minimum_apiversion,
+			};
+
+			const std::array<const char*, 5> required_extensions{
+			  VK_KHR_SURFACE_EXTENSION_NAME,
+			  VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+			  VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+			  // VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+			  // VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+			  VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			  VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+			std::vector<const char*> required_layers;
 #ifdef _DEBUG
 		debug m_debug;
 #endif
@@ -614,4 +871,5 @@ namespace deckard::vulkan
 	}
 
 
+	};
 } // namespace deckard::vulkan

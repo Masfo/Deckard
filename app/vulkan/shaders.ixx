@@ -5,11 +5,11 @@ module;
 
 
 export module deckard.vulkan:shaders;
-import :device;
 
 import deckard.types;
 import deckard.file;
 import deckard.platform;
+import deckard.debug;
 
 import std;
 namespace fs = std::filesystem;
@@ -18,6 +18,9 @@ using namespace std::chrono_literals;
 namespace deckard::vulkan
 {
 #define SPV_SPIRV_VERSION_WORD(MAJOR, MINOR) ((uint32_t(uint8_t(MAJOR)) << 16) | (uint32_t(uint8_t(MINOR)) << 8))
+
+
+
 
 	constexpr u32 SPIRV_HEADER_MAGIC = 0x0723'0203;
 
@@ -66,7 +69,7 @@ namespace deckard::vulkan
 	public:
 		// TODO: have fs::path member, have a reload method
 
-		std::expected<bool, std::string> load(device device, fs::path shader_file)
+		std::expected<bool, std::string> load(VkDevice device, fs::path shader_file)
 		{
 			if (not fs::exists(shader_file))
 				return std::unexpected(std::format("Shader '{}' not found", shader_file.string()));
@@ -82,7 +85,8 @@ namespace deckard::vulkan
 			return true;
 		}
 
-		std::expected<bool, std::string> load_from_memory(device device, std::span<const u8> spirv_bytes)
+
+		std::expected<bool, std::string> load_from_memory(VkDevice device, std::span<const u8> spirv_bytes)
 		{
 			if (spirv_bytes.empty())
 				return std::unexpected(std::string("Shader bytes are empty"));
