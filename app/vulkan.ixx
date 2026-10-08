@@ -2,23 +2,14 @@ module;
 #include <windows.h>
 
 #include <vulkan/vk_enum_string_helper.h>
-#define VK_ONLY_EXPORTED_PROTOTYPES
+#define VK_USE_PLATFORM_WIN32_KHR
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
 
 export module deckard.vulkan;
 
-export import :instance;
-export import :device;
-export import :debug;
-export import :surface;
-export import :swapchain;
-export import :command_buffer;
-export import :semaphore;
-export import :images;
-export import :core;
-export import :texture;
+export module deckard.vulkan;
 export import :shaders;
 export import :pipeline;
 export import :buffer;
@@ -381,7 +372,7 @@ namespace deckard::vulkan
 
 			std::vector<const char*> required_layers;
 #ifdef _DEBUG
-		debug m_debug;
+			required_layers = {"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_crash_diagnostic"};
 #endif
 		instance             m_instance;
 		device               m_device;
@@ -391,38 +382,105 @@ namespace deckard::vulkan
 		images               m_images;
 		graphics_pipeline    m_pipeline;
 
-		graphics_pipeline m_pipeline2;
-		vertex_buffer     m_triangle2_buffer;
+			for (const char* extension : required_extensions)
+				if (not has_name(m_available_extensions, extension, extension_name))
+					return std::unexpected(std::format("Required extension not found: {}", extension));
 
-		std::array<vec::vec2, 3> m_triangle2_origin;
-		std::array<vec::vec3, 3> m_triangle2_color;
-		std::array<f32, 3>       m_triangle2_angle;
-		std::array<f32, 3>       m_triangle2_angular_speed;
+			for (const char* layer : required_layers)
+				if (not has_name(m_available_layers, layer, layer_name))
+					return std::unexpected(std::format("Required layer not found: {}", layer));
 
-		std::chrono::steady_clock::time_point m_last_frame_time{};
+			const VkInstanceCreateInfo instance_info{
+			  .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			  .pApplicationInfo        = &app_info,
+			  .enabledLayerCount       = as<u32>(required_layers.size()),
+			  .ppEnabledLayerNames     = required_layers.data(),
+			  .enabledExtensionCount   = as<u32>(required_extensions.size()),
+			  .ppEnabledExtensionNames = required_extensions.data(),
+			};
 
-		void update_triangle2(f32 dt);
+			switch (const VkResult result = vkCreateInstance(&instance_info, nullptr, &m_instance))
+			{
+				case VK_SUCCESS: return {};
+				case VK_ERROR_INCOMPATIBLE_DRIVER: return std::unexpected("Vulkan driver is not compatible.");
+				case VK_ERROR_EXTENSION_NOT_PRESENT: return std::unexpected("Vulkan extension not present.");
+				case VK_ERROR_LAYER_NOT_PRESENT: return std::unexpected("Vulkan layer not present.");
+				default:
+					return std::unexpected(std::format("Failed to create Vulkan instance: {}", string_VkResult(result)));
+			}
+		}
 
+		void deinitialize_instance()
+		{
+			if (m_instance)
+			{
+				vkDestroyInstance(m_instance, nullptr);
+				m_instance = VK_NULL_HANDLE;
+			}
+		}
 
-		// one per frame-in-flight slot, indexed by current_frame
-		std::vector<semaphore> image_available;
+		// ############################################################
+		// Debug ######################################################
+		template<typename Handle>
+		void set_debug_name([[maybe_unused]]VkDevice dev, Handle handle, VkObjectType type, std::string_view name) noexcept
+		{
+		#ifdef _DEBUG
+			const VkDebugUtilsObjectNameInfoEXT info{
+			  .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+			  .objectType   = type,
+			  .objectHandle = reinterpret_cast<std::uint64_t>(handle),
+			  .pObjectName  = name.data(),
+			};
+			// Load once via vkGetInstanceProcAddr in real code
+			static auto fn = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+			  vkGetDeviceProcAddr(dev, "vkSetDebugUtilsObjectNameEXT"));
+			if (fn)
+				fn(dev, &info);
+			#endif
+		}
 
 		// one per swapchain image, avoids signaling a semaphore still in use by the swapchain
 		std::vector<semaphore> rendering_finished;
 
-		// single semaphore; each frame slot just remembers which counter value to wait for
-		timeline_semaphore in_flight_timeline;
+		static VKAPI_ATTR VkBool32 VKAPI_CALL static_debug_callback(
+		  [[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT      message_severity,
+		  [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT             message_type,
+		  [[maybe_unused]] const VkDebugUtilsMessengerCallbackDataEXT* callback_data, [[maybe_unused]] void* userdata)
+		{
+#ifdef _DEBUG
+			auto* self = static_cast<context*>(userdata);
 
-		std::vector<u64> in_flight_values;    // per frame slot: last value submitted for that slot
-		u64              timeline_counter{0}; // next value to signal on submit
-		u32              current_frame{0};    // rotates over frame slots [0, frame count)
+			const std::string_view severity = [&]() -> std::string_view
+			{
+				switch (message_severity)
+				{
+					case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "Verbose";
+					case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: return "Info";
+					case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "Warning";
+					case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: return "Error";
+					default: return "Unknown";
+				}
+			}();
 
+			const std::string_view type = [&]() -> std::string_view
+			{
+				switch (message_type)
+				{
+					case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: return "General";
+					case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: return "Validation";
+					case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: return "Performance";
+					case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT: return "Device address binding";
+					default: return "Unknown";
+				}
+			}();
 
-		bool is_initialized{false};
-		bool m_vsync{true};
-	};
+			if (callback_data->pMessage and self->debug_callback)
+				self->debug_callback(severity, type, std::string_view(callback_data->pMessage));
+#endif
+			return VK_FALSE;
+		}
 
-	bool vulkan::initialize(HWND handle, bool vsync, u32 apiversion)
+		std::expected<void, std::string> initialize_debug_functions()
 	{
 		dbg::println(
 		  "Compiled against Vulkan Header Version: {}.{}.{}.{}",
@@ -432,10 +490,64 @@ namespace deckard::vulkan
 		  VK_API_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
 		m_vsync = vsync;
 
-		is_initialized = m_instance.initialize(apiversion);
-#ifdef _DEBUG
-		is_initialized &= m_debug.initialize(m_instance, nullptr);
+			vkCreateDebugUtilsMessengerEXT = load_instance_proc<PFN_vkCreateDebugUtilsMessengerEXT>(
+			  "vkCreateDebugUtilsMessengerEXT");
+			vkSubmitDebugUtilsMessageEXT = load_instance_proc<PFN_vkSubmitDebugUtilsMessageEXT>(
+			  "vkSubmitDebugUtilsMessageEXT");
+			vkDestroyDebugUtilsMessengerEXT = load_instance_proc<PFN_vkDestroyDebugUtilsMessengerEXT>(
+			  "vkDestroyDebugUtilsMessengerEXT");
+
+			if (not vkCreateDebugUtilsMessengerEXT or not vkSubmitDebugUtilsMessageEXT
+				or not vkDestroyDebugUtilsMessengerEXT)
+				return std::unexpected("Failed to load debug functions");
 #endif
+			return {};
+		}
+
+		std::expected<void, std::string> initialize_debug()
+		{
+#ifdef _DEBUG
+			if (auto result = initialize_debug_functions(); not result)
+				return result;
+
+			constexpr VkDebugUtilsMessageSeverityFlagsEXT severity
+			  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+				| VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+				// | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+				| VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+
+			const VkDebugUtilsMessengerCreateInfoEXT create_info{
+			  .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+			  .messageSeverity = severity,
+			  .messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+								 | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+			  .pfnUserCallback = static_debug_callback,
+			  .pUserData       = this,
+			};
+
+			assert::check(
+			  m_instance != VK_NULL_HANDLE, "Vulkan instance must be created before initializing debug messenger");
+
+			if (VkResult result = vkCreateDebugUtilsMessengerEXT(m_instance, &create_info, nullptr, &debug_messenger);
+				result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to create debug messenger: {}", string_VkResult(result)));
+#endif
+			return {};
+		}
+
+		void deinitialize_debug()
+		{
+#ifdef _DEBUG
+			if (m_instance == VK_NULL_HANDLE)
+				return;
+
+			if (debug_messenger != VK_NULL_HANDLE)
+			{
+				vkDestroyDebugUtilsMessengerEXT(m_instance, debug_messenger, nullptr);
+				debug_messenger = VK_NULL_HANDLE;
+			}
+#endif
+		}
 
 		is_initialized &= m_device.initialize(m_instance, apiversion);
 
