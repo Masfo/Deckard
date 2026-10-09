@@ -6,6 +6,7 @@ import deckard.types;
 import deckard.colors;
 import deckard.assert;
 import deckard.math.utils;
+import deckard.utils.hash;
 import deckard.file;
 import deckard.serializer;
 import deckard.helpers;
@@ -683,8 +684,8 @@ namespace deckard
 			return std::make_pair(width, height);
 		}
 
-		inline std::optional<std::vector<qoi_px>>
-		qoi_decode_pixels(deckard::serializer& ser, u32 width, u32 height, [[maybe_unused]] u8 channels)
+		inline std::optional<std::vector<qoi_px>> qoi_decode_pixels(
+		  deckard::serializer& ser, u32 width, u32 height, [[maybe_unused]] u8 channels)
 		{
 			std::vector<qoi_px>    pixels;
 			std::array<qoi_px, 64> index{};
@@ -768,7 +769,6 @@ namespace deckard
 		}
 	} // namespace detail
 
-
 	u64 bound_qoi(u32 width, u32 height, u8 channels)
 	{
 		if (width == 0 or height == 0)
@@ -804,7 +804,8 @@ namespace deckard
 
 		auto out_span = ser.data();
 		if (out_span.size() > buffer.size())
-			return std::unexpected(std::format("encode_qoi: buffer too small (need {}, got {})", out_span.size(), buffer.size()));
+			return std::unexpected(
+			  std::format("encode_qoi: buffer too small (need {}, got {})", out_span.size(), buffer.size()));
 
 		std::memcpy(buffer.data(), out_span.data(), out_span.size());
 		return true;
@@ -835,7 +836,8 @@ namespace deckard
 
 		auto out_span = ser.data();
 		if (out_span.size() > buffer.size())
-			return std::unexpected(std::format("encode_qoi: buffer too small (need {}, got {})", out_span.size(), buffer.size()));
+			return std::unexpected(
+			  std::format("encode_qoi: buffer too small (need {}, got {})", out_span.size(), buffer.size()));
 
 		std::memcpy(buffer.data(), out_span.data(), out_span.size());
 		return true;
@@ -1054,8 +1056,8 @@ namespace deckard
 
 		const u64       expected_size = static_cast<u64>(width) * static_cast<u64>(height) * 3u;
 		std::vector<u8> decompressed(expected_size);
-		auto            result =
-		  zstd::decompress(std::span{compressed_data.data(), compressed_data.size()}, std::span{decompressed.data(), decompressed.size()});
+		auto            result = zstd::decompress(
+		  std::span{compressed_data.data(), compressed_data.size()}, std::span{decompressed.data(), decompressed.size()});
 		if (not result)
 			return {};
 		if (*result != expected_size)
@@ -1079,7 +1081,8 @@ namespace deckard
 		if (not encoded)
 			return false;
 		out.resize(*encoded);
-		auto result = file::write({.filename = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
+		auto result = file::write(
+		  {.filename = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
 	}
 
@@ -1151,8 +1154,8 @@ namespace deckard
 
 		const u64       expected_size = static_cast<u64>(width) * static_cast<u64>(height) * 4u;
 		std::vector<u8> decompressed(expected_size);
-		auto            result =
-		  zstd::decompress(std::span{compressed_data.data(), compressed_data.size()}, std::span{decompressed.data(), decompressed.size()});
+		auto            result = zstd::decompress(
+		  std::span{compressed_data.data(), compressed_data.size()}, std::span{decompressed.data(), decompressed.size()});
 		if (not result)
 			return {};
 		if (*result != expected_size)
@@ -1176,7 +1179,8 @@ namespace deckard
 		if (not encoded)
 			return false;
 		out.resize(*encoded);
-		auto result = file::write({.filename = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
+		auto result = file::write(
+		  {.filename = path, .buffer = std::span{out.data(), out.size()}, .mode = file::filemode::overwrite});
 		return result.has_value() and *result == out.size();
 	}
 
@@ -1239,7 +1243,11 @@ namespace deckard
 	// ###############################################################################################
 	// PNG - #########################################################################################
 
-	export void read_png_info(fs::path file)
+	struct png_state
+	{
+	};
+
+	export std::expected<image_rgba, std::string> read_png_info(fs::path file)
 	{
 		//
 		const auto data = file::read(file);
@@ -1247,59 +1255,96 @@ namespace deckard
 		std::span<const u8> bytes{data.data(), data.size()};
 
 		if (bytes.empty())
+			return std::unexpected("read_png_info: file is empty");
+
+		std::array<u8, 8>   signature{137, 80, 78, 71, 13, 10, 26, 10};
+		std::span<const u8> signature_span{signature.data(), signature.size()};
+
+
+		if (not std::ranges::equal(signature_span, bytes.subspan(0, 8)))
+			return std::unexpected("invalid PNG signature");
+
+		 u32 width{0};
+		 u32 height     {0};
+		 u8  bit_depth  {0};
+		 u8  color_type{0}; //  2 = RGB, 6 = RGBA
+		// const u8  compression_method = read_be<u8>(ihdr, 10);
+		// const u8  filter_method      = read_be<u8>(ihdr, 11);
+		// const u8  interlace_method   = read_be<u8>(ihdr, 12);
+
+
+		
+
+		// ##########################################
+
+		std::span<const u8> idat{};
+
+		usize offset = signature.size();
+
+		while (bytes.size() - offset >= 12)
 		{
-			dbg::println("read_png_info: file is empty");
-			return;
+			u32                 length = read_be<u32>(bytes, offset);
+			std::span<const u8> type = bytes.subspan(offset + 4, 4);
+
+			std::span<const u8> type_and_data = bytes.subspan(offset + 4, 4 + length);
+			std::span<const u8> data          = type_and_data.subspan(4, length);
+			std::span<const u8> crc   = bytes.subspan(offset + 8 + length, 4);
+			offset += 12 + length; // 4 bytes for length, 4 bytes for type, length bytes for data, 4 bytes for crc
+
+			if (data.size() != length)
+				return std::unexpected("read_png_info: invalid chunk length");
+
+			if (std::byteswap(as<u32>(crc)) != utils::crc32(type_and_data))
+				return std::unexpected("read_png_info: invalid CRC for chunk");
+
+			// IHDR
+			if (std::ranges::equal(type, std::string_view{"IHDR"}))
+			{
+				if (length != 13)
+					return std::unexpected("read_png_info: invalid IHDR chunk length");
+
+
+				width = read_be<u32>(data, 0);
+				height = read_be<u32>(data, 4);
+				bit_depth = read_be<u8>(data, 8);
+				color_type = read_be<u8>(data, 9);
+
+
+				if (width == 0 or height == 0 or width > 16384 or height > 16384)
+					return std::unexpected(std::format("read_png_info: invalid image dimensions: {}x{}", width, height));
+
+				if (bit_depth != 8)
+					return std::unexpected(std::format("read_png_info: unsupported bit depth: {}", bit_depth));
+
+				if (color_type != 2 and color_type != 6)
+					return std::unexpected(std::format("read_png_info: unsupported color type: {}", color_type));
+
+				continue;
+			}
+
+			if (std::ranges::equal(type, std::string_view{"IDAT"}))
+			{
+				idat = data;
+				break;
+			}
+
+			if (std::ranges::equal(type, std::string_view{"IEND"}))
+				break;
 		}
 
-		std::array<u8, 8> signature{137, 80, 78, 71, 13, 10, 26, 10};
-		std::span<const u8>     signature_span{signature.data(), signature.size()};
+		if (idat.empty())
+			return std::unexpected("read_png_info: no IDAT chunk found");
+
+		// decode the IDAT chunk
+
+		
+		
+
+		
+		image_rgba img(width, height);
 
 
-		if (not std::ranges::equal(signature_span,bytes.subspan(0,8)))
-		{
-			dbg::println("read_png_info: file is not a valid PNG (invalid signature)");
-			return;
-		}
-
-
-		// print the first chunk type and length
-		if (bytes.size() < 33)
-		{
-			dbg::println("read_png_info: file is too small to contain a valid PNG chunk");
-			return;
-		}
-		u32         length = (bytes[8] << 24) | (bytes[9] << 16) | (bytes[10] << 8) | bytes[11];
-		std::string chunk_type(reinterpret_cast<const char*>(&bytes[12]), 4);
-		dbg::println("read_png_info: first chunk type = {}, length = {}", chunk_type, length);
-
-		if (chunk_type != "IHDR" or length < 13)
-		{
-			dbg::println("read_png_info: missing IHDR chunk");
-			return;
-		}
-
-		struct IHDR
-		{
-			u32 width_be;
-			u32 height_be;
-			u8  bit_depth;
-			u8  color_type;
-			u8  compression_method;
-			u8  filter_method;
-			u8  interlace_method;
-		};
-
-
-		IHDR ihdr = as<IHDR>(bytes.subspan(16, 13));
-
-		const u32 width  = std::byteswap(ihdr.width_be);
-		const u32 height = std::byteswap(ihdr.height_be);
-
-		dbg::println("width: {}, height: {}, bit depth: {}, color type: {}", width, height, ihdr.bit_depth, ihdr.color_type);
-		dbg::println("compression: {}, filter: {}, interlace: {}", ihdr.compression_method, ihdr.filter_method, ihdr.interlace_method);
-
-		_ = 0;
+		return img;
 	}
 
 

@@ -198,6 +198,7 @@ namespace deckard
 		}
 		else if constexpr (std::is_same_v<std::span<u8>, U> or std::is_same_v<std::span<const u8>, U>)
 		{
+			// span<u8> -> arithmetic
 			assert::check(value.size() <= sizeof(Ret),
 						  std::format("Buffer must have {} bytes, was given {} byte buffer", sizeof(Ret), value.size()));
 
