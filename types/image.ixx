@@ -61,6 +61,13 @@ namespace deckard
 			return std::span<const u8>{reinterpret_cast<const u8*>(m_data.data()), m_data.size() * sizeof(color_type)};
 		}
 
+		std::span<const color_type> row(u64 y) const
+		{
+			assert::check(y < m_height, "y-coordinate out-of-bounds");
+			auto row_start = math::index_from_2d((u64)0u, (u64)y, (u64)m_width);
+			return std::span<const color_type>{m_data.data() + row_start, m_width};
+		}
+
 		u64 size_in_bytes() const { return raw_data().size_bytes(); }
 
 		void assign(std::span<const color_type> pixels)

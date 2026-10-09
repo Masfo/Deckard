@@ -41,6 +41,27 @@ TEST_CASE("image", "[image]")
 		CHECK(img[1, 1] == deckard::rgba{255, 255, 0, 255});
 	}
 
+	SECTION("row")
+	{
+		deckard::image_rgba img(2, 2);
+		CHECK(img.width() == 2);
+		CHECK(img.height() == 2);
+
+		img[0, 0] = {255, 0, 0, 0};
+		img[1, 0] = {0, 255, 0, 64};
+		img[0, 1] = {0, 0, 255, 128};
+		img[1, 1] = {255, 255, 0, 255};
+
+		auto row0 = img.row(0);
+		CHECK(row0[0] == deckard::rgba{255, 0, 0, 0});
+		CHECK(row0[1] == deckard::rgba{0, 255, 0, 64});
+
+		auto row1 = img.row(1);
+		CHECK(row1[0] == deckard::rgba{0, 0, 255, 128});
+		CHECK(row1[1] == deckard::rgba{255, 255, 0, 255});
+
+	}
+
 	SECTION("encode_bmp_2x2")
 	{
 		deckard::image_rgb img(2, 2);
