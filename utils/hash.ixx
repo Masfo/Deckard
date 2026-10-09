@@ -111,6 +111,33 @@ namespace deckard::utils
 
 	export constexpr u64 hash_values(const char* str) { return hash_values(to_span(str)); }
 
+
+	// ########################################################################
+	// CRC
+
+	static constexpr auto crc_table = []
+	{
+		std::array<u32, 256> t{};
+		for (u32 n = 0; n < 256; ++n)
+		{
+			u32 c = n;
+			for (int k = 0; k < 8; ++k)
+				c = (c & 1) ? 0xEDB8'8320u ^ (c >> 1) : c >> 1;
+			t[n] = c;
+		}
+		return t;
+	}();
+
+
+	export u32 crc32(std::span<const u8> data, u32 crc = 0xFFFF'FFFFu)
+	{
+		for (const auto& byte : data)
+			crc = crc_table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+		return crc ^ 0xFFFF'FFFFu;
+	}
+
+
+
 	// ########################################################################
 	// Siphash
 
