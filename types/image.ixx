@@ -20,10 +20,10 @@ namespace deckard
 	template<u64 Channels>
 	class image_channels final
 	{
-		static_assert(Channels == 3 or Channels == 4, "Channels must be either 3 (RGB) or 4 (RGBA)");
+		static_assert(Channels == 1 or	Channels == 3 or Channels == 4, "Channels must be either 1 (Gray), 3 (RGB) or 4 (RGBA)");
 
 	public:
-		using color_type = std::conditional_t<Channels == 4, rgba, rgb>;
+		using color_type = std::conditional_t<Channels == 1, gray, std::conditional_t<Channels == 4, rgba, rgb>>;
 
 	private:
 		// conditional<Channels == 1, gray, std::conditional<Channels == 3, rgb, std::conditional<Channels == 4, rgba, ....>>
@@ -34,15 +34,15 @@ namespace deckard
 		u16                     m_height{1};
 
 	public:
-		explicit image_channels(u32 w, u32 h)
+		explicit image_channels(u64 w, u64 h)
 		{
-			m_width  = static_cast<u16>(std::clamp(w, 1u, static_cast<u32>(limits::max<u16>)));
-			m_height = static_cast<u16>(std::clamp(h, 1u, static_cast<u32>(limits::max<u16>)));
+			m_width  = static_cast<u16>(std::clamp(w, 1ull, static_cast<u64>(limits::max<u16>)));
+			m_height = static_cast<u16>(std::clamp(h, 1ull, static_cast<u64>(limits::max<u16>)));
 
 			m_data.resize(m_width * m_height);
 		}
 
-		explicit image_channels(u32 w, u32 h, std::span<const color_type> pixels)
+		explicit image_channels(u64 w, u64 h, std::span<const color_type> pixels)
 			: image_channels(w, h)
 		{
 			assign(pixels);
@@ -61,12 +61,34 @@ namespace deckard
 			return std::span<const u8>{reinterpret_cast<const u8*>(m_data.data()), m_data.size() * sizeof(color_type)};
 		}
 
-		std::span<const color_type> row(u64 y) const
+		std::span<const color_type> row(u16 y) const
 		{
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
-			auto row_start = math::index_from_2d((u64)0u, (u64)y, (u64)m_width);
+			auto row_start = math::index_from_2d(static_cast<u16>(0), y, static_cast<u16>(m_width));
 			return std::span<const color_type>{m_data.data() + row_start, m_width};
 		}
+
+		std::span<color_type> row(u16 y)
+		{
+			assert::check(y < m_height, "y-coordinate out-of-bounds");
+			auto row_start = math::index_from_2d(static_cast<u16>(0), y,static_cast<u16>(m_width));
+			return std::span<color_type>{m_data.data() + row_start, m_width};
+		}
+
+		std::span<const u8> row_bytes(u16 y) const
+		{
+			auto bytes = std::as_bytes(row(y));
+			return {reinterpret_cast<u8*>(bytes.data()), bytes.size()};
+		}
+
+		std::span<u8> row_bytes(u16 y)
+		{
+			auto bytes = std::as_writable_bytes(row(y));
+			return {reinterpret_cast<u8*>(bytes.data()), bytes.size()};
+		}
+
+
+
 
 		u64 size_in_bytes() const { return raw_data().size_bytes(); }
 
@@ -76,7 +98,7 @@ namespace deckard
 			std::ranges::copy(pixels, m_data.begin());
 		}
 
-		color_type& at(u64 x, u64 y)
+		color_type& at(u16 x, u16 y)
 		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
@@ -86,7 +108,7 @@ namespace deckard
 			return m_data[idx];
 		}
 
-		const color_type& at(u64 x, u64 y) const
+		const color_type& at(u16 x, u16 y) const
 		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
@@ -96,9 +118,9 @@ namespace deckard
 			return m_data[idx];
 		}
 
-		color_type& operator[](u64 x, u64 y) { return at(x, y); }
+		color_type& operator[](u16 x, u16 y) { return at(x, y); }
 
-		const color_type& operator[](u64 x, u64 y) const { return at(x, y); }
+		const color_type& operator[](u16 x, u16 y) const { return at(x, y); }
 
 		bool operator==(const image_channels& other) const
 		{
@@ -108,6 +130,7 @@ namespace deckard
 		}
 	};
 
+	export using image_gray = image_channels<1>;
 	export using image_rgb  = image_channels<3>;
 	export using image_rgba = image_channels<4>;
 

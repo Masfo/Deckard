@@ -56,9 +56,39 @@ TEST_CASE("image", "[image]")
 		CHECK(row0[0] == deckard::rgba{255, 0, 0, 0});
 		CHECK(row0[1] == deckard::rgba{0, 255, 0, 64});
 
+		row0[0] = deckard::rgba{1, 2, 3, 4};
+		CHECK(row0[0] == deckard::rgba{1, 2, 3, 4});
+		CHECK(row0[1] == deckard::rgba{0, 255, 0, 64});
+
 		auto row1 = img.row(1);
 		CHECK(row1[0] == deckard::rgba{0, 0, 255, 128});
 		CHECK(row1[1] == deckard::rgba{255, 255, 0, 255});
+
+
+
+		auto row0_bytes = img.row_bytes(0);
+		CHECK(row0_bytes[0] == 1);
+		CHECK(row0_bytes[1] == 2);
+		CHECK(row0_bytes[2] == 3);
+		CHECK(row0_bytes[3] == 4);
+		CHECK(row0_bytes[4] == 0);
+		CHECK(row0_bytes[5] == 255);
+		CHECK(row0_bytes[6] == 0);
+		CHECK(row0_bytes[7] == 64);
+		
+		auto row1_bytes = img.row_bytes(1);
+		CHECK(row1_bytes[0] == 0);
+		CHECK(row1_bytes[1] == 0);
+		CHECK(row1_bytes[2] == 255);
+		CHECK(row1_bytes[3] == 128);
+		CHECK(row1_bytes[4] == 255);
+		CHECK(row1_bytes[5] == 255);
+		CHECK(row1_bytes[6] == 0);
+		CHECK(row1_bytes[7] == 255);
+		
+		
+		row0_bytes[0] = 64;
+		CHECK(img[0, 0] == deckard::rgba{64, 2, 3, 4});
 
 	}
 
