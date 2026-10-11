@@ -5,6 +5,7 @@ module;
 #define VK_USE_PLATFORM_WIN32_KHR
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_win32.h>
 
 export module deckard.vulkan;
@@ -482,13 +483,9 @@ namespace deckard::vulkan
 
 		std::expected<void, std::string> initialize_debug_functions()
 	{
-		dbg::println(
-		  "Compiled against Vulkan Header Version: {}.{}.{}.{}",
-		  VK_API_VERSION_VARIANT(VK_HEADER_VERSION_COMPLETE),
-		  VK_API_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE),
-		  VK_API_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE),
-		  VK_API_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
-		m_vsync = vsync;
+#ifdef _DEBUG
+			assert::check(
+			  m_instance != VK_NULL_HANDLE, "Vulkan instance must be created before initializing debug functions");
 
 			vkCreateDebugUtilsMessengerEXT = load_instance_proc<PFN_vkCreateDebugUtilsMessengerEXT>(
 			  "vkCreateDebugUtilsMessengerEXT");
@@ -549,12 +546,68 @@ namespace deckard::vulkan
 #endif
 		}
 
-		is_initialized &= m_device.initialize(m_instance, apiversion);
+		// ############################################################
+		// Surface ####################################################
 
-		if (m_device == nullptr)
+		std::expected<void, std::string> initialize_surface(HWND hwnd)
 		{
-			dbg::println("Failed to create Vulkan device");
+			const VkWin32SurfaceCreateInfoKHR create_info{
+			  .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+			  .hinstance = GetModuleHandle(nullptr),
+			  .hwnd      = hwnd,
+			};
+
+			if (VkResult result = vkCreateWin32SurfaceKHR(m_instance, &create_info, nullptr, &m_surface);
+				result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to create Win32 surface: {}", string_VkResult(result)));
+
+			return {};
+		}
+
+		[[nodiscard]] std::expected<VkSurfaceCapabilitiesKHR, VkResult> query_surface_capabilities() const noexcept
+		{
+			VkSurfaceCapabilitiesKHR capabilities{};
+			if (VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, m_surface, &capabilities);
+				result != VK_SUCCESS)
+				return std::unexpected(result);
+
+			return capabilities;
+		}
+
+		std::expected<void, std::string> update_surface_capabilities()
+		{
+			if (m_surface == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan surface must be created before updating surface capabilities");
+
+			if (m_physical_device == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan physical device must be created before updating surface capabilities");
+
+			auto capabilities = query_surface_capabilities();
+			if (not capabilities)
+				return std::unexpected(
+				  std::format("Failed to get surface capabilities: {}", string_VkResult(capabilities.error())));
+
+			m_surface_capabilities = *capabilities;
+			return {};
+		}
+
+		void deinitialize_surface()
+		{
+			if (m_surface != VK_NULL_HANDLE)
+			{
+				vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+				m_surface = VK_NULL_HANDLE;
+			}
+		}
+
+		[[nodiscard]] bool can_present_win32(u32 queue_family_index) const
+		{
+			VkBool32 present_support = VK_FALSE;
+			if (vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, queue_family_index, m_surface, &present_support)
+				!= VK_SUCCESS)
 			return false;
+
+			return present_support == VK_TRUE;
 		}
 		is_initialized &= m_surface.initialize(m_instance, m_device, handle);
 
