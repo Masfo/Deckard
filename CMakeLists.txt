@@ -313,24 +313,8 @@ set(DECKARD_MODULES
 
 		# Vulkan
 		app/vulkan.ixx
-
-		app/vulkan/buffer.ixx
-		app/vulkan/command_buffer.ixx
-		app/vulkan/core.ixx
-		app/vulkan/debug.ixx
-		app/vulkan/device.ixx
-		
-		app/vulkan/helpers.ixx
-		app/vulkan/images.ixx
-		app/vulkan/instance.ixx
-		app/vulkan/pipeline.ixx
-		app/vulkan/semaphore.ixx
-		app/vulkan/shader.ixx
 		app/vulkan/shaders.ixx
-		app/vulkan/surface.ixx
-		app/vulkan/swapchain.ixx
-		app/vulkan/texture.ixx
-
+		
 
 		# Types
 		types/allocator.ixx
@@ -338,9 +322,17 @@ set(DECKARD_MODULES
 		types/bigint.ixx
 		types/enum_flags.ixx
 		types/helpertypes.ixx
-		types/image.ixx
 		types/int128.ixx
 		types/types.ixx
+
+		# Image
+		image/image.ixx
+		image/image_common.ixx
+		image/bmp.ixx
+		image/png.ixx
+
+		# Compression
+		compress/inflate.ixx
 
 		# External helpers
 		compress/zstd.ixx
@@ -356,7 +348,7 @@ set(DECKARD_MODULES
 
 
 		std.ixx
-)
+   "image/tga.ixx" "image/qoi.ixx" "image/dif.ixx")
 
 
  find_package(gameinput CONFIG REQUIRED)
@@ -376,8 +368,8 @@ target_sources(deckard PRIVATE
 
 target_sources(deckard
 	PUBLIC
-	FILE_SET CXX_MODULES FILES 
-	${DECKARD_MODULES}
+	FILE_SET CXX_MODULES FILES  ${DECKARD_MODULES}
+	PRIVATE
 )
 
 #target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)

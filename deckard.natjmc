@@ -33,6 +33,7 @@
 	<File Name="file.ixx"/>
 	<File Name="hash.ixx"/>
 
+	<File Name="_vulkan.ixx"/>
 
 
 

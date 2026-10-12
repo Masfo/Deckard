@@ -4,6 +4,9 @@
 import std;
 import deckard.image;
 import deckard.zstd;
+import deckard.types;
+
+
 
 TEST_CASE("image", "[image]")
 {
@@ -65,7 +68,6 @@ TEST_CASE("image", "[image]")
 		CHECK(row1[1] == deckard::rgba{255, 255, 0, 255});
 
 
-
 		auto row0_bytes = img.row_bytes(0);
 		CHECK(row0_bytes[0] == 1);
 		CHECK(row0_bytes[1] == 2);
@@ -75,7 +77,7 @@ TEST_CASE("image", "[image]")
 		CHECK(row0_bytes[5] == 255);
 		CHECK(row0_bytes[6] == 0);
 		CHECK(row0_bytes[7] == 64);
-		
+
 		auto row1_bytes = img.row_bytes(1);
 		CHECK(row1_bytes[0] == 0);
 		CHECK(row1_bytes[1] == 0);
@@ -85,11 +87,10 @@ TEST_CASE("image", "[image]")
 		CHECK(row1_bytes[5] == 255);
 		CHECK(row1_bytes[6] == 0);
 		CHECK(row1_bytes[7] == 255);
-		
-		
+
+
 		row0_bytes[0] = 64;
 		CHECK(img[0, 0] == deckard::rgba{64, 2, 3, 4});
-
 	}
 
 	SECTION("encode_bmp_2x2")
@@ -110,20 +111,19 @@ TEST_CASE("image", "[image]")
 
 		std::vector<deckard::u8> out;
 		out.resize(file_bytes);
-		auto res = deckard::encode_bmp(img, out);
+		auto res = deckard::image::encode_bmp(img, out);
 		CHECK(res.has_value());
-		CHECK(*res == true);
 
 		CHECK(out[0] == static_cast<deckard::u8>('B'));
 		CHECK(out[1] == static_cast<deckard::u8>('M'));
 		CHECK(out[10] == static_cast<deckard::u8>(pixel_offset & 0xFFu));
 		CHECK(out[11] == static_cast<deckard::u8>((pixel_offset >> 8) & 0xFFu));
-		CHECK(out[28] == 24); // 
+		CHECK(out[28] == 24); //
 
-		CHECK(out[pixel_offset + 0] == 9);  
-		CHECK(out[pixel_offset + 1] == 8);  
-		CHECK(out[pixel_offset + 2] == 7);  
-		CHECK(out[pixel_offset + 3] == 12); 
+		CHECK(out[pixel_offset + 0] == 9);
+		CHECK(out[pixel_offset + 1] == 8);
+		CHECK(out[pixel_offset + 2] == 7);
+		CHECK(out[pixel_offset + 3] == 12);
 		CHECK(out[pixel_offset + 4] == 11);
 		CHECK(out[pixel_offset + 5] == 10);
 
@@ -135,7 +135,7 @@ TEST_CASE("image", "[image]")
 		CHECK(out[row0 + 4] == 5);
 		CHECK(out[row0 + 5] == 4);
 
-		auto decoded = deckard::decode_bmp(out);
+		auto decoded = deckard::image::decode_bmp(out);
 		REQUIRE(decoded.has_value());
 		CHECK(decoded->width() == 2);
 		CHECK(decoded->height() == 2);
@@ -161,7 +161,7 @@ TEST_CASE("image", "[image]")
 			buffer.resize(1024); // More than enough for 2x2
 
 			// Encode
-			auto encoded = deckard::encode_dif_rgb(img, std::span{buffer.data(), buffer.size()});
+			auto encoded = deckard::image::encode_dif_rgb(img, std::span{buffer.data(), buffer.size()});
 			REQUIRE(encoded.has_value());
 			CHECK(encoded.value() > 10); // Should be at least header size
 
@@ -170,7 +170,7 @@ TEST_CASE("image", "[image]")
 			CHECK(buffer[1] == 'I');
 			CHECK(buffer[2] == 'F');
 			CHECK(buffer[3] == '1');
-			
+
 			// Check width/height (little-endian)
 			CHECK(buffer[4] == 2); // width low byte
 			CHECK(buffer[5] == 0); // width high byte
@@ -179,7 +179,7 @@ TEST_CASE("image", "[image]")
 			CHECK(buffer[8] == 3); // channels (RGB)
 
 			// Decode
-			auto decoded = deckard::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			auto decoded = deckard::image::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
 			REQUIRE(decoded.has_value());
 			CHECK(decoded->width() == 2);
 			CHECK(decoded->height() == 2);
@@ -205,7 +205,7 @@ TEST_CASE("image", "[image]")
 			buffer.resize(1024);
 
 			// Encode
-			auto encoded = deckard::encode_dif_rgba(img, std::span{buffer.data(), buffer.size()});
+			auto encoded = deckard::image::encode_dif_rgba(img, std::span{buffer.data(), buffer.size()});
 			REQUIRE(encoded.has_value());
 			CHECK(encoded.value() > 10);
 
@@ -217,7 +217,7 @@ TEST_CASE("image", "[image]")
 			CHECK(buffer[8] == 4); // channels (RGBA)
 
 			// Decode
-			auto decoded = deckard::decode_dif_rgba(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			auto decoded = deckard::image::decode_dif_rgba(std::span<const deckard::u8>{buffer.data(), encoded.value()});
 			REQUIRE(decoded.has_value());
 			CHECK(decoded->width() == 2);
 			CHECK(decoded->height() == 2);
@@ -238,26 +238,25 @@ TEST_CASE("image", "[image]")
 				for (deckard::u16 x = 0; x < 64; ++x)
 				{
 					img.at(x, y) = deckard::rgb{
-						static_cast<deckard::u8>(x * 4),
-						static_cast<deckard::u8>(y * 4),
-						static_cast<deckard::u8>((x + y) * 2)
-					};
+					  static_cast<deckard::u8>(x * 4),
+					  static_cast<deckard::u8>(y * 4),
+					  static_cast<deckard::u8>((x + y) * 2)};
 				}
 			}
 
 			// Encode
-			const deckard::u32 uncompressed_size = 64 * 64 * 3;
+			const deckard::u32       uncompressed_size = 64 * 64 * 3;
 			std::vector<deckard::u8> buffer;
 			buffer.resize(10 + deckard::zstd::bound(uncompressed_size));
-			
-			auto encoded = deckard::encode_dif_rgb(img, std::span{buffer.data(), buffer.size()});
+
+			auto encoded = deckard::image::encode_dif_rgb(img, std::span{buffer.data(), buffer.size()});
 			REQUIRE(encoded.has_value());
-			
+
 			// Compressed size should be less than uncompressed (with header)
 			CHECK(encoded.value() < (10 + uncompressed_size));
 
 			// Decode and verify
-			auto decoded = deckard::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			auto decoded = deckard::image::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
 			REQUIRE(decoded.has_value());
 			CHECK(decoded->width() == 64);
 			CHECK(decoded->height() == 64);
@@ -272,11 +271,11 @@ TEST_CASE("image", "[image]")
 		{
 			deckard::image_rgb img(2, 2);
 			img.at(0, 0) = {1, 2, 3};
-			
+
 			// Try with a buffer that's too small
 			std::vector<deckard::u8> small_buffer(5);
-			auto result = deckard::encode_dif_rgb(img, std::span{small_buffer.data(), small_buffer.size()});
-			
+			auto result = deckard::image::encode_dif_rgb(img, std::span{small_buffer.data(), small_buffer.size()});
+
 			REQUIRE(not result.has_value());
 			CHECK(result.error().find("buffer too small") != std::string::npos);
 		}
@@ -288,8 +287,8 @@ TEST_CASE("image", "[image]")
 			buffer[1] = 'Y';
 			buffer[2] = 'Z';
 			buffer[3] = '1';
-			
-			auto result = deckard::decode_dif_rgb(std::span{buffer.data(), buffer.size()});
+
+			auto result = deckard::image::decode_dif_rgb(std::span{buffer.data(), buffer.size()});
 			CHECK(not result.has_value());
 		}
 
@@ -298,13 +297,13 @@ TEST_CASE("image", "[image]")
 			// Create valid RGBA DIF file
 			deckard::image_rgba rgba_img(2, 2);
 			rgba_img.at(0, 0) = {1, 2, 3, 4};
-			
+
 			std::vector<deckard::u8> buffer(1024);
-			auto encoded = deckard::encode_dif_rgba(rgba_img, std::span{buffer.data(), buffer.size()});
+			auto encoded = deckard::image::encode_dif_rgba(rgba_img, std::span{buffer.data(), buffer.size()});
 			REQUIRE(encoded.has_value());
-			
+
 			// Try to decode as RGB (should fail - wrong channel count)
-			auto result = deckard::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
+			auto result = deckard::image::decode_dif_rgb(std::span<const deckard::u8>{buffer.data(), encoded.value()});
 			CHECK(not result.has_value());
 		}
 	}
@@ -332,8 +331,8 @@ TEST_CASE("image", "[image]")
 		{
 			for (deckard::u16 x = 0; x < img.width(); ++x)
 			{
-				CHECK(img[x, y] ==
-					  deckard::rgb{
+				CHECK(img[x, y]
+					  == deckard::rgb{
 						static_cast<deckard::u8>(x),
 						static_cast<deckard::u8>(y),
 						static_cast<deckard::u8>(x + y),
@@ -369,8 +368,8 @@ TEST_CASE("image", "[image]")
 		{
 			for (deckard::u16 x = 0; x < img.width(); ++x)
 			{
-				CHECK(img[x, y] ==
-					  deckard::rgba{
+				CHECK(img[x, y]
+					  == deckard::rgba{
 						static_cast<deckard::u8>(x * 10),
 						static_cast<deckard::u8>(y * 10),
 						static_cast<deckard::u8>(x + y),

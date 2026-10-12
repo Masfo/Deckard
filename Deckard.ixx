@@ -18,7 +18,6 @@ export import deckard.helpertypes;
 export import deckard.log;
 export import deckard.types;
 export import deckard.uuid;
-export import deckard.image;
 
 export import deckard.int128;
 
@@ -106,6 +105,12 @@ export import deckard.taskpool;
 
 // DB
 export import deckard.archive;
+
+// Image
+export import deckard.image;
+
+// Inflate
+export import deckard.inflate;
 
 // ZSTD
 export import deckard.zstd;
