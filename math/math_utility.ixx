@@ -331,6 +331,12 @@ export namespace deckard::math
 		return q;
 	}
 
+	template<std::unsigned_integral T>
+	[[nodiscard]] constexpr u64 index_from_2d(T x, T y, T width) noexcept
+	{
+		return u64{y} * width + x;
+	}
+
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)
 	{
