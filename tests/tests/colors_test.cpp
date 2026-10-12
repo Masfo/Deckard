@@ -94,6 +94,7 @@ TEST_CASE("colors", "[colors][rgba][rgb]")
 
 	SECTION("format")
 	{
+
 		rgba a(196, 0, 0);
 		CHECK(std::format("{}", a) == "rgba(196, 0, 0, 255)"s);
 
@@ -101,5 +102,13 @@ TEST_CASE("colors", "[colors][rgba][rgb]")
 		CHECK(std::format("{:X}", a) == "rgba(#C40000FF)"s);
 
 		CHECK(std::format("{:f}", a) == "rgba(0.769, 0.0, 0.0, 1.0)"s);
+
+
+		rgb b(196, 25, 9);
+		CHECK(std::format("{}", b) == "rgb(196, 25, 9)"s);
+
+
+		gray c(128);
+		CHECK(std::format("{}", c) == "gray(128)"s);
 	}
 }

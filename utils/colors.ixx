@@ -14,7 +14,6 @@ namespace deckard
 #endif
 	using namespace deckard::literals;
 
-
 	export constexpr u8 clamp_rgb(f32 color) { return static_cast<u8>((std::clamp(color, 0.0f, 1.0f) * 255.0f) + 0.5f); }
 
 	export constexpr u8 clamp_rgb(i32 color) { return static_cast<u8>(std::clamp(color, 0, 255)); }
@@ -139,6 +138,21 @@ namespace deckard
 		// RGB(255,255,255) -> HSV(0,0,100)
 
 		// RGB(0,128,196) -> HSV(200.8, 100, 76.9)
+	};
+
+	export struct gray
+	{
+		u8 v;
+		gray() = default;
+
+		gray(u8 value)
+			: v(value)
+		{
+		}
+
+		gray(const gray& other) = default;
+
+		bool operator==(const gray& rhs) const { return v == rhs.v; }
 	};
 
 	export struct rgb
@@ -292,13 +306,17 @@ namespace deckard
 	export bool operator==(const hsv& lhs, const rgb& rhs) { return equal(lhs, rhs); }
 
 	export bool operator==(const hsv& lhs, const rgba& rhs) { return equal(lhs, rhs); }
-
-
 }; // namespace deckard
 
 export namespace std
 {
 	using namespace deckard;
+
+	template<>
+	struct hash<gray>
+	{
+		size_t operator()(const gray& value) const { return deckard::utils::hash_values(value.v); }
+	};
 
 	template<>
 	struct hash<rgb>
@@ -309,7 +327,10 @@ export namespace std
 	template<>
 	struct hash<rgba>
 	{
-		size_t operator()(const rgba& value) const { return deckard::utils::hash_values(value.r, value.g, value.b, value.a); }
+		size_t operator()(const rgba& value) const
+		{
+			return deckard::utils::hash_values(value.r, value.g, value.b, value.a);
+		}
 	};
 
 	template<>
@@ -318,13 +339,29 @@ export namespace std
 		size_t operator()(const hsv& value) const { return deckard::utils::hash_values(value.h, value.s, value.v); }
 	};
 
+
+		template<>
+	struct formatter<gray>
+	{
+		// TODO: Parse width
+		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+		auto format(const gray& v, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "gray({})", v.v);
+		}
+	};
+
 	template<>
 	struct formatter<rgb>
 	{
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const rgb& v, std::format_context& ctx) const { return std::format_to(ctx.out(), "rgb({}, {}, {})", v.r, v.g, v.b); }
+		auto format(const rgb& v, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "rgb({}, {}, {})", v.r, v.g, v.b);
+		}
 	};
 
 	template<>
@@ -418,6 +455,9 @@ export namespace std
 		// TODO: Parse width
 		constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-		auto format(const hsv& v, std::format_context& ctx) const { return std::format_to(ctx.out(), "hsv({}, {}, {})", v.h, v.s, v.v); }
+		auto format(const hsv& v, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "hsv({}, {}, {})", v.h, v.s, v.v);
+		}
 	};
 } // namespace std

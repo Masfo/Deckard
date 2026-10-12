@@ -77,7 +77,7 @@ namespace deckard
 		{
 			assert::check(valid(x, y));
 
-			const u32 index = index_from_2d(x, y, m_extent.width);
+			const auto index = index_from_2d(x, y, m_extent.width);
 			return m_data[index];
 		}
 
@@ -85,7 +85,7 @@ namespace deckard
 		{
 			assert::check(valid(x, y));
 
-			const u32 index = index_from_2d(x, y, m_extent.width);
+			const auto index = index_from_2d(x, y, m_extent.width);
 			return m_data[index];
 		}
 
@@ -97,7 +97,7 @@ namespace deckard
 				return;
 
 
-			const u32 index = index_from_2d(x, y, m_extent.width);
+			const auto index = index_from_2d(x, y, m_extent.width);
 			m_data[index]   = value;
 		}
 
@@ -256,7 +256,7 @@ namespace deckard
 		{
 			assert::check(valid(x, y));
 
-			const u32 index = index_from_2d(x, y, m_extent.width);
+			const auto index = index_from_2d(x, y, m_extent.width);
 
 			return (m_data[index / 8] >> (index % 8)) & 1;
 		}
@@ -265,7 +265,7 @@ namespace deckard
 		{
 			assert::check(valid(x, y));
 
-			const u32 index = index_from_2d(x, y, m_extent.width);
+			const auto index = index_from_2d(x, y, m_extent.width);
 
 			if (value)
 				m_data[index / 8] |= (1 << (index % 8));

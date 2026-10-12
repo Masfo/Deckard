@@ -177,6 +177,12 @@ namespace deckard
 
 		void start() { start_time = clock_now(); }
 
+		void start(std::string_view input)
+		{
+			name = input;
+			start();
+		}
+
 		void stop(std::string_view input = "")
 		{
 			now(input);
