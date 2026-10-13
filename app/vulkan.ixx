@@ -611,108 +611,214 @@ namespace deckard::vulkan
 		}
 		is_initialized &= m_surface.initialize(m_instance, m_device, handle);
 
-		is_initialized &= m_swapchain.initialize(m_device, m_surface, vsync);
-		is_initialized &= m_command_buffer.initialize(m_device, m_swapchain);
-		is_initialized &= m_images.initialize(m_device, m_swapchain);
+		std::expected<u32, std::string> select_queue_family_index()
+		{
+			auto families = enumerate<VkQueueFamilyProperties>(
+			  [this](u32* count, VkQueueFamilyProperties* items)
+			  { vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, count, items); });
+			if (not families or families->empty())
+				return std::unexpected("Failed to get queue family properties");
 
-		is_initialized &= in_flight_timeline.initialize(m_device, 0);
+			for (u32 i = 0; i < families->size(); ++i)
+			{
+				const auto& family = (*families)[i];
+				if (family.queueCount != 0 and (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) and can_present_win32(i))
+					return i;
+			}
 
-		image_available.resize(m_swapchain.count(m_device));
-		for (auto& image : image_available)
-			is_initialized &= image.initialize(m_device);
+			return std::unexpected("Failed to find a suitable queue family");
+		}
 
+		// ############################################################
+		// Device #####################################################
 
-		in_flight_values.assign(m_swapchain.count(m_device), 0);
-		timeline_counter = 0;
-		current_frame    = 0;
+		// Prefers discrete, then integrated, then the first device. Devices missing the required features or
+		// API version are skipped while looking for discrete/integrated.
+		std::expected<void, std::string> select_physical_device()
+		{
+			auto devices = enumerate<VkPhysicalDevice>(
+			  [this](u32* count, VkPhysicalDevice* items) { return vkEnumeratePhysicalDevices(m_instance, count, items); });
+			if (not devices)
+				return std::unexpected(
+				  std::format("Failed to enumerate physical devices: {}", string_VkResult(devices.error())));
 
-		rendering_finished.resize(m_swapchain.count(m_device));
-		for (auto& sem : rendering_finished)
-			is_initialized &= sem.initialize(m_device);
+			// TODO: Implement scoring
+			std::optional<VkPhysicalDevice> discrete;
+			std::optional<VkPhysicalDevice> integrated;
 
+			for (const VkPhysicalDevice device : *devices)
+			{
+				VkPhysicalDeviceProperties props{};
+				vkGetPhysicalDeviceProperties(device, &props);
 
-		// Compile the hardcoded triangle shaders at runtime and build the pipeline
-		const fs::path shader_dir = fs::current_path() / "shaders";
-		shader         vert;
-		shader         frag;
+				VkPhysicalDeviceFeatures2        features2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+				VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+				VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+				VkPhysicalDeviceVulkan14Features features14{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
 
 		if (auto spirv = compile_spirv13(shader_dir / "triangle.vert"); not spirv.empty())
 		{
-			if (auto result = vert.load_from_memory(m_device, spirv); not result)
-				dbg::println(result.error());
+					dbg::println("Skipping device {}: need dynamic rendering, synchronization2 and timelineSemaphore",
+								 props.deviceName);
+					continue;
 		}
 
-		if (auto spirv = compile_spirv13(shader_dir / "triangle.frag"); not spirv.empty())
+				if (
+				  not version_at_least(
+					props.apiVersion, VK_API_VERSION_MAJOR(minimum_api_version), VK_API_VERSION_MINOR(minimum_api_version)))
 		{
-			if (auto result = frag.load_from_memory(m_device, spirv); not result)
-				dbg::println(result.error());
+					dbg::println(
+					  "Skipping device {}: {}.{}.{}, requires at least {}.{}",
+					  props.deviceName,
+					  VK_API_VERSION_MAJOR(props.apiVersion),
+					  VK_API_VERSION_MINOR(props.apiVersion),
+					  VK_API_VERSION_PATCH(props.apiVersion),
+					  VK_API_VERSION_MAJOR(minimum_api_version),
+					  VK_API_VERSION_MINOR(minimum_api_version));
+					continue;
 		}
 
-		is_initialized &= m_pipeline.initialize(m_device, vert, frag, m_swapchain.desired_format().format);
+				if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU and not discrete)
+					discrete = device;
+				else if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU and not integrated)
+					integrated = device;
+			}
 
-		vert.deinitialize(m_device);
-		frag.deinitialize(m_device);
+			if (discrete)
+				m_physical_device = *discrete;
+			else if (integrated)
+				m_physical_device = *integrated;
+			else if (not devices->empty())
+				m_physical_device = devices->front();
+			else
+				return std::unexpected("No suitable Vulkan devices found");
 
-		// Second triangle: vertices pushed as init data (not hardcoded in the vertex shader),
-		// each corner then orbits its original position at a random speed/direction.
+			return {};
+		}
+
+		void log_device_info() const
+			{
+			VkPhysicalDeviceVulkan12Properties vulkan12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES};
+			VkPhysicalDeviceVulkan13Properties vulkan13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES};
+			VkPhysicalDeviceVulkan14Properties vulkan14{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES};
+			VkPhysicalDeviceProperties2        properties2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+
+			vulkan_pnext_chain(properties2, vulkan12, vulkan13, vulkan14);
+
+			vkGetPhysicalDeviceProperties2(m_physical_device, &properties2);
+
+			dbg::println(
+			  "Conformance version: {}.{}.{}.{}",
+			  vulkan12.conformanceVersion.major,
+			  vulkan12.conformanceVersion.minor,
+			  vulkan12.conformanceVersion.subminor,
+			  vulkan12.conformanceVersion.patch);
+			dbg::println("Device name: {}", properties2.properties.deviceName);
+			dbg::println("Driver name: {}", vulkan12.driverName);
+			dbg::println("Driver version: {}.0.{}",
+						 VK_VERSION_MAJOR(properties2.properties.driverVersion),
+						 VK_VERSION_PATCH(properties2.properties.driverVersion));
+			}
+
+		// Extensions that are enabled when the device offers them.
+		static constexpr std::array<const char*, 8> wanted_device_extensions{
+		  VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+		  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		  VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+		  VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+		  VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+		  VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+		  VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+		  VK_EXT_MEMORY_BUDGET_EXTENSION_NAME};
+
+		std::expected<void, std::string> create_device()
+			{
+			auto extensions = enumerate<VkExtensionProperties>(
+			  [this](u32* count, VkExtensionProperties* items)
+			  { return vkEnumerateDeviceExtensionProperties(m_physical_device, nullptr, count, items); });
+
+			if (not extensions)
+			{
+				return std::unexpected(
+				  std::format("Failed to enumerate device extensions: {}", string_VkResult(extensions.error())));
+			}
+
+			m_device_extensions = std::move(*extensions);
+
+			log_device_info();
+
+			auto queue_family = select_queue_family_index();
+			if (not queue_family)
+				return std::unexpected(queue_family.error());
+			m_graphics_queue_family_index = *queue_family;
+
+			const f32                     queue_priority = 1.0f;
+			const VkDeviceQueueCreateInfo queue_info{
+			  .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			  .queueFamilyIndex = m_graphics_queue_family_index,
+			  .queueCount       = 1,
+			  .pQueuePriorities = &queue_priority,
+			};
+
+			std::vector<const char*> enabled_extensions;
+			for (const char* name : wanted_device_extensions)
+				if (has_name(m_device_extensions, name, extension_name))
+					enabled_extensions.push_back(name);
+
+			// required features
+			VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+			features13.synchronization2 = VK_TRUE;    // Barrier synchronization2
+			features13.dynamicRendering = VK_TRUE;    // Dynamic rendering
+
+			VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+			features12.timelineSemaphore   = VK_TRUE; // Timeline semaphores
+			features12.descriptorIndexing  = VK_TRUE; // Descriptor indexing
+			features12.bufferDeviceAddress = VK_TRUE; // Buffer device address
+
+			VkPhysicalDeviceShaderObjectFeaturesEXT shader_object{
+			  .sType        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
+			  .shaderObject = VK_TRUE, // Shader object
+			};
+
+			vulkan_pnext_chain(features13, features12, shader_object);
+
+			const VkDeviceCreateInfo device_info{
+			  .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			  .pNext                   = &features13,
+			  .queueCreateInfoCount    = 1,
+			  .pQueueCreateInfos       = &queue_info,
+			  .enabledExtensionCount   = as<u32>(enabled_extensions.size()),
+			  .ppEnabledExtensionNames = enabled_extensions.data(),
+			};
+
+			if (VkResult result = vkCreateDevice(m_physical_device, &device_info, nullptr, &m_device); result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to create Vulkan device: {}", string_VkResult(result)));
+
+			vkGetDeviceQueue(m_device, m_graphics_queue_family_index, 0, &m_graphics_queue);
+			if (m_graphics_queue == VK_NULL_HANDLE)
+				return std::unexpected("Failed to get graphics queue from device");
+
+			return {};
+		}
+
+		std::expected<void, std::string> initialize_device()
+			{
+			assert::check(m_instance != VK_NULL_HANDLE, "Vulkan instance must be created before initializing device");
+
+			return select_physical_device()
+			  .and_then([this] { return create_device(); })
+			  .and_then([this] { return update_surface_capabilities(); });
+			}
+
+		void deinitialize_device()
 		{
-			shader vert2;
-			shader frag2;
-
-			if (auto spirv = compile_spirv13(shader_dir / "triangle2.vert"); not spirv.empty())
+			if (m_device != VK_NULL_HANDLE)
 			{
-				if (auto result = vert2.load_from_memory(m_device, spirv); not result)
-					dbg::println(result.error());
+				vkDeviceWaitIdle(m_device);
+				vkDestroyDevice(m_device, nullptr);
+				m_device = VK_NULL_HANDLE;
 			}
-
-			if (auto spirv = compile_spirv13(shader_dir / "triangle.frag"); not spirv.empty())
-			{
-				if (auto result = frag2.load_from_memory(m_device, spirv); not result)
-					dbg::println(result.error());
-			}
-
-			const std::array<VkVertexInputBindingDescription, 1> bindings{{
-			  {.binding = 0, .stride = sizeof(triangle2_vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
-			}};
-
-			const std::array<VkVertexInputAttributeDescription, 2> attributes{{
-			  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = 0},
-			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = sizeof(vec2)},
-			}};
-
-			is_initialized &= m_pipeline2.initialize(
-			  m_device, vert2, frag2, m_swapchain.desired_format().format, bindings, attributes);
-
-			vert2.deinitialize(m_device);
-			frag2.deinitialize(m_device);
-
-			m_triangle2_origin = {
-			  vec2{0.55f, -0.75f},
-			  vec2{0.80f, -0.25f},
-			  vec2{0.30f, -0.25f},
-			};
-
-			m_triangle2_color = {
-			  // math::vec3{1.0f, 1.0f, 0.0f}, // yellow
-			  // math::vec3{1.0f, 0.0f, 1.0f}, // magenta
-			  // math::vec3{0.0f, 1.0f, 1.0f}, // cyan
-
-			  vec3{0.0f, 1.0f, 0.0f},
-			  vec3{0.0f, 0.0f, 1.0f},
-			  vec3{1.0f, 0.0f, 1.0f},
-			};
-
-			for (u32 i = 0; i < 3; ++i)
-			{
-				m_triangle2_angle[i] = random::rnd<f32>(0.0f, std::numbers::pi_v<f32> * 2.0f);
-
-				const f32 speed              = random::rnd<f32>(1.0f, 3.0f);
-				m_triangle2_angular_speed[i] = random::randbool() ? speed : -speed;
-			}
-
-			std::array<triangle2_vertex, 3> initial_vertices{};
-			for (u32 i = 0; i < 3; ++i)
-				initial_vertices[i] = {m_triangle2_origin[i], m_triangle2_color[i]};
+		}
 
 			is_initialized &= m_triangle2_buffer.initialize(m_device, std::as_bytes(std::span(initial_vertices)));
 		}
