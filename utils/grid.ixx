@@ -114,13 +114,13 @@ namespace deckard
 		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
 
 		T& operator[](const u32 x, const u32 y)
-		requires not std::is_same_v<T, bool>
+		requires (not std::is_same_v<T, bool>)
 		{
 			return data.get(x, y);
 		}
 
 		T& at(const u32 x, const u32 y)
-		requires not std::is_same_v<T, bool>
+		requires (not std::is_same_v<T, bool>)
 		{
 			return data.get(x, y);
 		}
@@ -130,7 +130,7 @@ namespace deckard
 		T get(const u32 x, const u32 y) const { return data.get(x, y); }
 
 		T& get(const u32 x, const u32 y)
-		requires not std::is_same_v<T, bool>
+		requires (not std::is_same_v<T, bool>)
 		{
 			return data.get(x, y);
 		}
