@@ -73,7 +73,10 @@
 - Return rich errors rather than `bool` where practical.
 - Use `dbg::eprintln`/`dbg::println` only when the existing code in that area already logs.
 - Preserve existing error messages and formats when modifying code.
-
+- Use `std::expected` for functions that may fail with recoverable errors, returning `std::expected<T, E>` instead of exceptions. std::expected<void, std::string> is preferred for functions that may fail but do not return a value.
+- Use `std::optional` for parameters or returns that may not have a value, avoiding null pointers where semantics fit.
+- State errors clearly and concisely; avoid vague messages like "something went wrong".
+- 
 ## Performance & safety
 - Avoid extra allocations in hot paths.
 - Validate buffer sizes and offsets; prevent out-of-bounds access.
