@@ -427,6 +427,23 @@ target_compile_options(deckard PRIVATE
 )
 
 ###################################
+# copy shaders to bin
+set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/app/vulkan/shaders")
+set(SHADER_DST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin/shaders")
+
+file(GLOB SHADER_FILES CONFIGURE_DEPENDS
+    "${SHADER_SRC_DIR}/*.vert"
+    "${SHADER_SRC_DIR}/*.frag"
+	"${SHADER_SRC_DIR}/*.glsl"
+)
+
+add_custom_target(copy_shaders ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_DST_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SHADER_FILES} "${SHADER_DST_DIR}"
+    DEPENDS ${SHADER_FILES}
+    COMMENT "Copying shaders to ${SHADER_DST_DIR}"
+    VERBATIM)
+add_dependencies(deckard copy_shaders)
 
 
 if(DECKARD_RUN_BUILDINC)
