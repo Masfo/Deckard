@@ -7,7 +7,6 @@ module;
 #include <version> // feature-test macros only; macros don't come through `import std;`
 
 
-
 export module deckard;
 
 export import deckard.as;
@@ -123,7 +122,6 @@ export import deckard.app;
 export import deckard.app2;
 
 
-
 // export import deckard.DTE;
 export import deckard.win32;
 
@@ -179,43 +177,8 @@ using namespace deckard;
 
 extern "C" i32 deckard_main(utf8::view);
 
-#if 0
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandline, int) 
-{ 
-	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
-	SetDllDirectoryW(L"");
-
-	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
-	using CoUninitializePtr = void(void);
-	auto CoInitializeEx     = system::get_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
-	auto CoUninitialize     = system::get_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
-
-	if (CoInitializeEx)
-		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-	redirect_console(true);
-
-	deckard::random::initialize();
-	net::initialize();
-
-
-	// main
-	int ret = deckard_main(U"");
-
-	//
-
-	if (CoUninitialize)
-		CoUninitialize();
-
-	redirect_console(false);
-	net::deinitialize();
-
-	return ret;
-}
-#endif
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
+export void deckard_init()
 {
-
 	// clang-format off
 	#if 0
 		
@@ -250,15 +213,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");
 
-	using CoInitializePtr   = HRESULT(LPVOID, DWORD);
-	using CoUninitializePtr = void(void);
-	auto CoInitializeEx     = platform::get_dynamic_address<CoInitializePtr*>("Ole32.dll", "CoInitializeEx");
-	auto CoUninitialize     = platform::get_dynamic_address<CoUninitializePtr*>("Ole32.dll", "CoUninitialize");
+
 
 	// InitCommonControls();
-
-	if (CoInitializeEx)
-		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 	//	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
 	info("Initialized");
@@ -266,24 +223,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
 	deckard::random::initialize();
 	net::initialize();
 	dbg::println("Initialized");
+}
 
-
-	// main
-	auto cmdline = utf8::view{commandline};
-
-	int ret = deckard_main(cmdline);
-
-	//	dbg::println("Memory usage after deckard_main: {}MB", system::process_ram_usage() / 1_MiB);
-
-
-	//
+export void deckard_deinit()
+{
 	dbg::println("Deinitializing");
-
-	if (CoUninitialize)
-		CoUninitialize();
-
 	net::deinitialize();
 	redirect_console(false);
+}
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR commandline, int)
+{
+
+	deckard_init();
+
+	int ret = deckard_main(utf8::view{commandline});
+
+
+	deckard_deinit();
 
 	return ret;
 }
