@@ -2,6 +2,7 @@ export module deckard.inflate;
 
 import std;
 import deckard.types;
+import deckard.assert;
 
 namespace deckard
 {
@@ -273,11 +274,15 @@ namespace deckard
 	[[msvc::noinline]] [[nodiscard]] std::expected<void, std::string> inflate_codes(
 	  bit_reader& br, const huffman& lit, const huffman& dist, sink& out) noexcept
 	{
+		static_assert(std::endian::native == std::endian::little);
+
 		const auto      s   = br.save();
 		const u8*       in  = s.in;
 		const u8* const end = s.end;
 		u64             bb  = s.bb;
 		u32             bc  = s.bc;
+
+		assert::check(bc <= 63, "bit buffer overflow");
 
 		u8* const   base = out.base;
 		const usize cap  = out.cap;
@@ -311,7 +316,7 @@ namespace deckard
 					bb |= u64{*in++} << bc;
 					bc += 8;
 				}
-			};
+			}
 
 			// decode a symbol from the literal/length tree
 			u32 e = lf[bb & 1023], l = 0;
@@ -323,6 +328,7 @@ namespace deckard
 			}
 			else if ((sym = lit.slow(u32(bb & 0x7FFF), l)) < 0)
 				return leave("bad huffman");
+
 			bb >>= l;
 			bc -= l;
 			if (bc > 63) // u32 wrapped: consumed more bits than the input had
@@ -362,6 +368,9 @@ namespace deckard
 				return leave("bad huffman");
 			bb >>= l;
 			bc -= l;
+			if (bc > 63) // u32 wrapped
+				return leave("truncated");
+
 			if (ds >= 30)
 				return leave("bad symbol");
 
@@ -379,12 +388,13 @@ namespace deckard
 
 			u8*       dst = base + pos;
 			const u8* src = dst - d;
+
+
 			if (d >= 8 and cap - pos >= usize{len} + 8)
 			{
 				for (u32 i = 0; i < len; i += 8)
 					std::memcpy(dst + i, src + i, 8);
 			}
-
 			else if (d >= len)
 			{
 				std::memcpy(dst, src, len);
@@ -395,8 +405,14 @@ namespace deckard
 			}
 			else
 			{
-				for (u32 i = 0; i < len; ++i)
-					dst[i] = src[i];
+				std::memcpy(dst, src, d);
+				usize done = d;
+				while (done < len)
+				{
+					const usize n = std::min<usize>(done, len - done);
+					std::memcpy(dst + done, dst, n);
+					done += n;
+				}
 			}
 			pos += len;
 		}
@@ -539,6 +555,10 @@ namespace deckard
 	{
 		bit_reader      br{in};
 		std::vector<u8> buf(exact_size);
+
+		if (buf.size() < exact_size)
+			return std::unexpected("buffer did not allocate enough memory");
+
 		sink            out{buf.data(), 0, buf.size()};
 
 		bool is_final = false;
