@@ -35,6 +35,8 @@ import deckard.vec;
 import deckard.random;
 import deckard.debug;
 import deckard.assert;
+import deckard.scope_exit;
+import deckard.image;
 
 #ifndef _DEBUG
 import deckard_build;
@@ -49,14 +51,25 @@ namespace deckard::vulkan
 
 	inline constexpr std::array<f32, 3> default_clear_rgb{0.0f, 0.5f, 0.75f};
 
-	static constexpr VkImageSubresourceRange color_range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+	static constexpr VkImageSubresourceRange  color_range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+	static constexpr std::array<vec::vec2, 3> triangle2_uvs{
+	  vec::vec2{0.5f, 0.0f}, vec::vec2{1.0f, 1.0f}, vec::vec2{0.0f, 1.0f}};
 
 	export struct buffer
 	{
 		VkBuffer       handle{};
 		VkDeviceMemory memory{};
 		VkDeviceSize   size{};
+		VkMemoryPropertyFlags memory_properties{};
 		void*          mapped{}; // non-null only for HOST_VISIBLE memory
+	};
+
+	struct image_resource
+	{
+		VkImage        handle{};
+		VkDeviceMemory memory{};
+		VkImageView    view{};
+		VkSampler      sampler{};
 	};
 
 	struct frame_slot
@@ -82,10 +95,11 @@ namespace deckard::vulkan
 
 	struct pipeline_desc
 	{
-		VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP}; // old defaults, so the
-		VkCullModeFlags     cull_mode{VK_CULL_MODE_BACK_BIT};               // triangle pipelines are unchanged
-		VkShaderStageFlags  push_stages{0};
-		u32                 push_size{0};
+		VkPrimitiveTopology   topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP}; // old defaults, so the
+		VkCullModeFlags       cull_mode{VK_CULL_MODE_BACK_BIT};               // triangle pipelines are unchanged
+		VkShaderStageFlags    push_stages{0};
+		u32                   push_size{0};
+		VkDescriptorSetLayout descriptor_set_layout{VK_NULL_HANDLE};
 	};
 
 	struct pipeline_state
@@ -98,8 +112,9 @@ namespace deckard::vulkan
 
 	struct triangle2_vertex
 	{
-		vec::vec2 pos;
-		vec::vec3 color;
+		vec::vec2          pos;
+		vec::vec2          uv;
+		std::array<f32, 4> color;
 	};
 
 	// Debug utils
@@ -225,6 +240,9 @@ namespace deckard::vulkan
 		VkInstance               m_instance{nullptr};
 		VkDevice                 m_device{nullptr};
 		VkPhysicalDevice         m_physical_device{nullptr};
+		bool                     m_unified_image_layouts{false};
+		buffer*                  m_screenshot_buffer{nullptr};
+		buffer                   m_screenshot_readback{};
 		VkQueue                  m_graphics_queue{nullptr};
 		u32                      m_graphics_queue_family_index{0};
 		VkSurfaceKHR             m_surface{nullptr};
@@ -232,6 +250,7 @@ namespace deckard::vulkan
 		VkSwapchainKHR           m_swapchain{nullptr};
 		VkSurfaceFormatKHR       m_surface_format{};
 		VkExtent2D               m_swapchain_extent{};
+		bool                     m_swapchain_transfer_src{false};
 		u32                      swapchain_image_count{0};
 
 
@@ -241,22 +260,84 @@ namespace deckard::vulkan
 
 		bool m_needs_resize{false};
 
-namespace fs = std::filesystem;
+		// command buffer
+		VkCommandPool                m_command_pool{nullptr};
+		std::vector<VkCommandBuffer> m_command_buffers;
+		u32                          m_command_buffer_index{0};
 
-namespace deckard::vulkan
+		// synchronization
+		std::vector<VkSemaphore> m_image_available{};    // one per swapchain image
+		std::vector<VkSemaphore> m_rendering_finished{}; // one per swapchain image
+
+		VkSemaphore      m_in_flight_timeline{nullptr};
+		std::vector<u64> m_in_flight_timeline_values;
+
+		// images
+		std::vector<VkImage>     m_swapchain_images;
+		std::vector<VkImageView> m_swapchain_image_views;
+		image_resource           m_uploaded_image{};
+		u64                      m_signal_value{0};     // timeline semaphore signal value for the current frame in flight
+		u64                      m_timeline_counter{0}; // timeline semaphore counter for the current frame in flight
+		u32                      m_currentframe{0};     // frame index for the current frame in flight
+
+		// pipelines: [0] = triangle, [1] = triangle2
+		std::vector<pipeline_state> m_pipelines;
+		pipeline_state              m_pipeline_2d{};
+		VkDescriptorSetLayout       m_texture_descriptor_layout{VK_NULL_HANDLE};
+		VkDescriptorPool            m_texture_descriptor_pool{VK_NULL_HANDLE};
+		VkDescriptorSet             m_texture_descriptor_set{VK_NULL_HANDLE};
+		std::array<f32, 3>          m_clear_rgb{default_clear_rgb};
+
+		// triangle2
+		buffer                                m_triangle2{}; // static copy, only used by record_clear_commands()
+		std::array<triangle2_vertex, 3>       m_triangle2_initial_vertices{};
+		std::array<vec::vec2, 3>              m_triangle2_origin{};
+		std::array<std::array<f32, 4>, 3>     m_triangle2_color{};
+		std::array<f32, 3>                    m_triangle2_angle{};
+		std::array<f32, 3>                    m_triangle2_angular_speed{};
+		f32                                   m_time_seconds{0.0f};
+		std::chrono::steady_clock::time_point m_last_frame_time{};
+		bool                                  vsync{true};
+
+
+		std::vector<VkLayerProperties>     m_available_layers;
+		std::vector<VkExtensionProperties> m_available_extensions;
+		std::vector<VkExtensionProperties> m_device_extensions;
+
+		using debug_callback_t = void(std::string_view, std::string_view, std::string_view);
+
+		VkDebugUtilsMessengerEXT                  debug_messenger{nullptr};
+		std::move_only_function<debug_callback_t> debug_callback;
+
+		// Device-level handles with a (device, handle, allocator) destroy function: destroy and reset.
+		template<typename Handle, typename Fn>
+		void destroy(Handle& handle, Fn destroy_fn) const noexcept
 {
-	// Vulkan 1.3: https://developer.nvidia.com/blog/advanced-api-performance-vulkan-clearing-and-presenting/
+			if (handle and m_device)
+			{
+				destroy_fn(m_device, handle, nullptr);
+				handle = {};
+			}
+		}
 
-	//
-	// VertexBuffer vb;
-	// vb->vertex(x,y,z, color, uv);
-	//
+		template<typename Pfn>
+		[[nodiscard]] Pfn load_instance_proc(const char* name) const noexcept
+		{
+			return reinterpret_cast<Pfn>(vkGetInstanceProcAddr(m_instance, name));
+		}
 
 	private:
 	public:
 		[[nodiscard]] VkInstance instance() const noexcept { return m_instance; }
 
-	struct triangle2_vertex
+		[[nodiscard]] VkDevice device() const noexcept { return m_device; }
+
+		[[nodiscard]] VkPhysicalDevice physical_device() const noexcept { return m_physical_device; }
+
+		[[nodiscard]] VkQueue graphics_queue() const noexcept { return m_graphics_queue; }
+
+		void set_vsync(bool enabled) noexcept { vsync = enabled; }
+
 		[[nodiscard]] static constexpr bool version_at_least(u32 version, u32 major, u32 minor) noexcept
 	{
 			return VK_API_VERSION_MAJOR(version) > major
@@ -293,39 +374,253 @@ namespace deckard::vulkan
 
 
 			minimum_api_version = apiversion;
-	};
 
-	export class vulkan
-		void deinitialize()
-	{
-	public:
-		vulkan() = default;
+			auto result
+			  = initialize_instance(minimum_api_version)
+				  .and_then([this] { return initialize_debug(); })
+				  .and_then([this, hWnd] { return initialize_surface(hWnd); })
+				  .and_then([this] { return initialize_device(); })
+				  .and_then([this] { return initialize_swapchain(); })
+				  .and_then([this] { return initialize_swapchain_images(); })
+				  .and_then([this] { return initialize_command_buffers(); })
+				  .and_then([this] { return initialize_frames(); })
+				  .and_then([this] { return initialize_synchronization(); })
+				  .and_then([this] { return initialize_triangle_renderer(); })
+				  .and_then([this] { return initialize_renderer2d(); })
+				  .and_then([this] { return record_clear_commands(); });
+
+
+			return result;
 		}
 
-		vulkan(HWND handle, bool vsync, u32 apiversion) { initialize(handle, vsync, apiversion); }
+		void deinitialize()
+		{
+			if (m_device != VK_NULL_HANDLE)
+				vkDeviceWaitIdle(m_device);
 
-		~vulkan() { deinitialize(); };
+			deinitialize_synchronization();
+			deinitialize_renderer2d();
+			deinitialize_frames();
+			deinitialize_triangle_renderer();
+			deinitialize_command_buffers();
+			deinitialize_swapchain_images();
+			deinitialize_uploaded_image();
+			if (m_screenshot_readback.handle != VK_NULL_HANDLE)
+				destroy_buffer(m_screenshot_readback);
+			deinitialize_swapchain();
+			deinitialize_device();
+			deinitialize_surface();
+			deinitialize_debug();
+			deinitialize_instance();
+		}
 
-		// Copy
-		vulkan(const vulkan&)            = delete;
-		vulkan& operator=(const vulkan&) = delete;
+		[[nodiscard]] bool resize()
+		{
+			const auto caps = query_surface_capabilities();
+			if (not caps or caps->currentExtent.width == 0 or caps->currentExtent.height == 0)
+				return false;
 
-		// Move
-		vulkan(vulkan&&)            = delete;
-		vulkan& operator=(vulkan&&) = delete;
+			vkDeviceWaitIdle(m_device);
+
+			if (auto result = resize_swapchain()
+								.and_then([this] { return resize_swapchain_images(); })
+								.and_then([this] { return resize_synchronization(); });
+				not result)
+			{
+				dbg::println("resize failed: {}", result.error());
+				return false;
+			}
 
 
-		bool initialize(HWND handle, bool vsync, u32 apiversion);
-		void deinitialize();
+			for (auto& frame : m_frames)
+			{
+				destroy(frame.image_available, vkDestroySemaphore);
+				frame.image_available = create_semaphore();
+				if (frame.image_available == VK_NULL_HANDLE)
+					return false;
+				frame.timeline_value = 0;
+			}
 
-		void resize();
-		void resize_images();
+			m_timeline_counter = 0;
+			m_currentframe     = 0;
+			m_needs_resize     = false;
 
 
-		bool draw();
-		void record_commands();
+			return true;
+		}
 
-		void wait() { m_device.wait(); }
+		[[nodiscard]] bool needs_resize() const noexcept { return m_needs_resize; }
+
+		bool draw(std::span<const vertex2d> batch = {}, std::array<f32, 3> clear_rgb = default_clear_rgb)
+		{
+
+			if (m_swapchain_images.empty())
+				return true;
+
+			auto& frame = m_frames[m_currentframe];
+
+			// One host wait covers command buffer, vertex buffer and image_available reuse.
+			if (frame.timeline_value != 0)
+				wait_for_timeline_semaphore(m_in_flight_timeline, frame.timeline_value);
+
+			upload_batch(frame, batch);
+			m_clear_rgb = clear_rgb;
+
+			const auto now    = std::chrono::steady_clock::now();
+			const f32  dt     = std::chrono::duration<f32>(now - m_last_frame_time).count();
+			m_last_frame_time = now;
+			m_time_seconds += dt;
+			update_triangle2(frame, dt);
+
+			u32      image_index{0};
+			VkResult result = vkAcquireNextImageKHR(
+			  m_device, m_swapchain, UINT64_MAX, frame.image_available, VK_NULL_HANDLE, &image_index);
+
+			if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				m_needs_resize = true;
+				return true;
+			}
+			if (result == VK_SUBOPTIMAL_KHR)
+				m_needs_resize = true;
+			else if (result != VK_SUCCESS)
+				return false;
+
+			vkResetCommandBuffer(frame.cmd, 0);
+			if (auto recorded = record_frame(frame, image_index); not recorded)
+			{
+				dbg::println("{}", recorded.error());
+				m_needs_resize = true;
+				return false;
+			}
+
+			const u64 signal_value = m_timeline_counter + 1;
+			if (result = submit_frame(frame, image_index, signal_value); result != VK_SUCCESS)
+			{
+				dbg::println("Failed to submit frame: {}", string_VkResult(result));
+				m_needs_resize = true;
+				return false;
+			}
+
+			// only after a successful submit, so a failed submit can't leave a never-signaled value behind
+			m_timeline_counter   = signal_value;
+			frame.timeline_value = signal_value;
+
+			const VkPresentInfoKHR present_info{
+			  .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			  .waitSemaphoreCount = 1,
+			  .pWaitSemaphores    = &m_rendering_finished[image_index], // per image
+			  .swapchainCount     = 1,
+			  .pSwapchains        = &m_swapchain,
+			  .pImageIndices      = &image_index,
+	};
+
+			result = vkQueuePresentKHR(m_graphics_queue, &present_info);
+			if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR)
+				m_needs_resize = true;
+			else if (result != VK_SUCCESS)
+	{
+				dbg::println("Failed to present: {}", string_VkResult(result));
+				return false;
+		}
+
+			// Advance even if present was out of date: the slot's value is already recorded.
+			m_currentframe = (m_currentframe + 1) % frames_in_flight;
+			return true;
+		}
+
+		[[nodiscard]] std::expected<image_rgb, std::string> screenshot(
+		  std::span<const vertex2d> batch = {}, std::array<f32, 3> clear_rgb = default_clear_rgb)
+		{
+			if (m_device == VK_NULL_HANDLE or m_swapchain_images.empty())
+				return std::unexpected("Vulkan swapchain must be initialized before taking a screenshot");
+			if (not m_swapchain_transfer_src)
+				return std::unexpected("Swapchain images do not support transfer-source usage");
+			if (m_screenshot_buffer != nullptr)
+				return std::unexpected("A Vulkan screenshot is already in progress");
+
+			const u32 width  = m_swapchain_extent.width;
+			const u32 height = m_swapchain_extent.height;
+			if (width == 0 or height == 0 or width > image_rgb::MAX_WIDTH or height > image_rgb::MAX_HEIGHT)
+				return std::unexpected("Swapchain extent is not supported for an RGB screenshot");
+
+			if (m_surface_format.format != VK_FORMAT_R8G8B8A8_UNORM and m_surface_format.format != VK_FORMAT_R8G8B8A8_SRGB
+				and m_surface_format.format != VK_FORMAT_B8G8R8A8_UNORM
+				and m_surface_format.format != VK_FORMAT_B8G8R8A8_SRGB)
+				return std::unexpected(std::format(
+				  "Swapchain format {} is not supported for RGB screenshots", string_VkFormat(m_surface_format.format)));
+
+			const VkDeviceSize readback_size = static_cast<VkDeviceSize>(width) * height * 4;
+			if (m_screenshot_readback.size < readback_size)
+			{
+				buffer readback{};
+				if (auto result = create_buffer(
+					  readback_size,
+					  VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+					  readback,
+					  "screenshot readback",
+					  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+					  VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+					not result)
+					return std::unexpected(result.error());
+
+				if (m_screenshot_readback.handle != VK_NULL_HANDLE)
+					destroy_buffer(m_screenshot_readback);
+				m_screenshot_readback = std::exchange(readback, buffer{});
+				dbg::println(
+				  "Screenshot readback memory: cached={}, coherent={}",
+				  (m_screenshot_readback.memory_properties & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0,
+				  (m_screenshot_readback.memory_properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0);
+			}
+
+			m_screenshot_buffer = &m_screenshot_readback;
+			scope_exit reset_screenshot_buffer{[this] { m_screenshot_buffer = nullptr; }};
+
+			const u32 frame_index             = m_currentframe;
+			const u64 previous_timeline_value = m_timeline_counter;
+			if (not draw(batch, clear_rgb))
+			{
+				vkDeviceWaitIdle(m_device);
+				return std::unexpected("Failed to render frame for Vulkan screenshot");
+			}
+			if (m_timeline_counter == previous_timeline_value)
+				return std::unexpected("Vulkan did not render a frame for the screenshot");
+			const u64                 frame_value = m_frames[frame_index].timeline_value;
+			const VkSemaphoreWaitInfo wait_info{
+			  .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+			  .semaphoreCount = 1,
+			  .pSemaphores    = &m_in_flight_timeline,
+			  .pValues        = &frame_value,
+			};
+			if (VkResult result = vkWaitSemaphores(m_device, &wait_info, UINT64_MAX); result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to wait for screenshot readback: {}", string_VkResult(result)));
+			if ((m_screenshot_readback.memory_properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+			{
+				const VkMappedMemoryRange mapped_range{
+				  .sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+				  .memory = m_screenshot_readback.memory,
+				  .size   = VK_WHOLE_SIZE,
+				};
+				if (VkResult result = vkInvalidateMappedMemoryRanges(m_device, 1, &mapped_range); result != VK_SUCCESS)
+					return std::unexpected(
+					  std::format("Failed to invalidate screenshot readback memory: {}", string_VkResult(result)));
+			}
+
+			image_rgb   image{width, height};
+			const auto* pixels = static_cast<const u8*>(m_screenshot_readback.mapped);
+			const bool  bgra   = m_surface_format.format == VK_FORMAT_B8G8R8A8_UNORM
+								 or m_surface_format.format == VK_FORMAT_B8G8R8A8_SRGB;
+			auto        output = image.data();
+			for (std::size_t i = 0; i < output.size(); ++i)
+			{
+				const std::size_t offset = i * 4;
+				output[i].r              = pixels[offset + (bgra ? 2 : 0)];
+				output[i].g              = pixels[offset + 1];
+				output[i].b              = pixels[offset + (bgra ? 0 : 2)];
+			}
+
+			return image;
+		}
 
 		void vsync(bool v) { m_vsync = v; }
 
@@ -423,7 +718,7 @@ namespace deckard::vulkan
 		// ############################################################
 		// Debug ######################################################
 		template<typename Handle>
-		void set_debug_name([[maybe_unused]]VkDevice dev, Handle handle, VkObjectType type, std::string_view name) noexcept
+		void set_debug_name([[maybe_unused]] VkDevice dev, Handle handle, VkObjectType type, std::string_view name) noexcept
 		{
 		#ifdef _DEBUG
 			const VkDebugUtilsObjectNameInfoEXT info{
@@ -769,6 +1064,23 @@ namespace deckard::vulkan
 				if (has_name(m_device_extensions, name, extension_name))
 					enabled_extensions.push_back(name);
 
+			bool                                           enable_unified_image_layouts{false};
+			VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unified_image_layouts{
+			  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR};
+			if (has_name(m_device_extensions, VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME, extension_name))
+			{
+				VkPhysicalDeviceFeatures2 features2{
+				  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &unified_image_layouts};
+				vkGetPhysicalDeviceFeatures2(m_physical_device, &features2);
+
+				if (unified_image_layouts.unifiedImageLayouts)
+				{
+					enabled_extensions.push_back(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
+					unified_image_layouts.unifiedImageLayouts = VK_TRUE;
+					enable_unified_image_layouts              = true;
+				}
+			}
+
 			// required features
 			VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 			features13.synchronization2 = VK_TRUE;    // Barrier synchronization2
@@ -784,6 +1096,9 @@ namespace deckard::vulkan
 			  .shaderObject = VK_TRUE, // Shader object
 			};
 
+			if (unified_image_layouts.unifiedImageLayouts)
+				vulkan_pnext_chain(features13, features12, shader_object, unified_image_layouts);
+			else
 			vulkan_pnext_chain(features13, features12, shader_object);
 
 			const VkDeviceCreateInfo device_info{
@@ -798,6 +1113,7 @@ namespace deckard::vulkan
 			if (VkResult result = vkCreateDevice(m_physical_device, &device_info, nullptr, &m_device); result != VK_SUCCESS)
 				return std::unexpected(std::format("Failed to create Vulkan device: {}", string_VkResult(result)));
 
+			m_unified_image_layouts = enable_unified_image_layouts;
 			vkGetDeviceQueue(m_device, m_graphics_queue_family_index, 0, &m_graphics_queue);
 			if (m_graphics_queue == VK_NULL_HANDLE)
 				return std::unexpected("Failed to get graphics queue from device");
@@ -882,7 +1198,7 @@ namespace deckard::vulkan
 
 			// usage: transfer src/dst only when the surface supports them
 			const VkImageUsageFlags usage
-			  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+			  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
 				| (m_surface_capabilities.supportedUsageFlags
 				   & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT));
 
@@ -934,6 +1250,7 @@ namespace deckard::vulkan
 			if (VkResult result = vkCreateSwapchainKHR(m_device, &create_info, nullptr, &m_swapchain); result != VK_SUCCESS)
 				return std::unexpected(std::format("Failed to create swapchain: {}", string_VkResult(result)));
 
+			m_swapchain_transfer_src = (usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) != 0;
 			if (old_swapchain != VK_NULL_HANDLE)
 				vkDestroySwapchainKHR(m_device, old_swapchain, nullptr);
 
@@ -951,201 +1268,861 @@ namespace deckard::vulkan
 
 		void deinitialize_swapchain() { destroy(m_swapchain, vkDestroySwapchainKHR); }
 
-		record_commands();
+		// ############################################################
+		// Swapchain images ###########################################
 
-		for (auto& sem : rendering_finished)
-			sem.deinitialize(m_device);
-
-		for (auto& image : image_available)
-			image.deinitialize(m_device);
-
-
-		const u32 frame_count = m_swapchain.count(m_device);
-
-		rendering_finished.resize(frame_count);
-		for (auto& sem : rendering_finished)
-			sem.initialize(m_device);
-
-		image_available.resize(frame_count);
-		for (auto& image : image_available)
-			image.initialize(m_device);
-
-		in_flight_values.assign(frame_count, 0);
-		current_frame = 0;
-	}
-
-	void vulkan::resize_images()
-	{
-		m_images.deinitialize(m_device);
-		m_images.initialize(m_device, m_swapchain);
-	}
-
-	void vulkan::record_commands()
-	{
-		m_device.wait();
-
-		m_surface.update(m_device);
-
-		m_command_buffer.deinitialize(m_device);
-
-		if (not m_command_buffer.initialize(m_device, m_swapchain))
-			return;
-
-
-		// vkCmdExecuteCommands
-		// record static commands, then add them to the command buffer with vkCmdExecuteCommands
-
-		// TODO: no reuse of command yet, record per frame
-		// render pass, framebuffer
-		// viewport, vkCmdDraw
-
-		for (u32 i = 0; i < m_command_buffer.size(); ++i)
+		std::expected<void, std::string> initialize_swapchain_images()
 		{
-			VkResult result = m_command_buffer.begin(i);
-			if (result != VK_SUCCESS)
+			if (m_swapchain == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan swapchain must be created before initializing swapchain images");
+
+			auto images = enumerate<VkImage>(
+			  [this](u32* count, VkImage* items) { return vkGetSwapchainImagesKHR(m_device, m_swapchain, count, items); });
+			if (not images)
+				return std::unexpected(std::format("Failed to get swapchain images: {}", string_VkResult(images.error())));
+
+			m_swapchain_images    = std::move(*images);
+			swapchain_image_count = as<u32>(m_swapchain_images.size());
+
+			// image views
+			m_swapchain_image_views.assign(swapchain_image_count, VK_NULL_HANDLE);
+
+			for (std::size_t i = 0; i < m_swapchain_images.size(); ++i)
 			{
-				dbg::println("Command buffer begin failed");
-				return;
+				const VkImageViewCreateInfo view_info{
+				  .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				  .image            = m_swapchain_images[i],
+				  .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+				  .format           = m_surface_format.format, // TODO: better format selection
+				  .subresourceRange = color_range,             // components default to IDENTITY
+				};
+
+				if (VkResult result = vkCreateImageView(m_device, &view_info, nullptr, &m_swapchain_image_views[i]);
+					result != VK_SUCCESS)
+					return std::unexpected(std::format("Failed to create image view: {}", string_VkResult(result)));
 			}
 
-			assert::check(m_command_buffer[i] != nullptr);
+			m_swapchain_extent = m_surface_capabilities.currentExtent;
 
-			// #0080c4
-			VkClearColorValue clear_color{0.0f, 0.5f, 0.75f, 1.0f};
+			return {};
+	}
 
+		void deinitialize_swapchain_images()
+	{
+			for (auto& view : m_swapchain_image_views)
+				destroy(view, vkDestroyImageView);
 
-			const VkRenderingAttachmentInfo color_attachment_info{
-			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			  .imageView   = m_images.imageview(i),
-			  .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			m_swapchain_image_views.clear();
+			m_swapchain_images.clear();
+	}
 
-			  .loadOp     = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			  .storeOp    = VK_ATTACHMENT_STORE_OP_STORE,
-			  .clearValue = clear_color,
+		void destroy_image(image_resource& image) const noexcept
+	{
+			if (image.sampler != VK_NULL_HANDLE)
+				vkDestroySampler(m_device, image.sampler, nullptr);
+			if (image.view != VK_NULL_HANDLE)
+				vkDestroyImageView(m_device, image.view, nullptr);
+			if (image.handle != VK_NULL_HANDLE)
+				vkDestroyImage(m_device, image.handle, nullptr);
+			if (image.memory != VK_NULL_HANDLE)
+				vkFreeMemory(m_device, image.memory, nullptr);
+			image = {};
+		}
+
+		void deinitialize_uploaded_image() { destroy_image(m_uploaded_image); }
+
+		[[nodiscard]] VkImage get_swapchain_image(u32 index) const
+		{
+			assert::check(index < m_swapchain_images.size(), "Swapchain image index out of range");
+			return m_swapchain_images[index];
+		}
+
+		[[nodiscard]] VkImageView get_swapchain_image_view(u32 index) const
+		{
+			assert::check(index < m_swapchain_image_views.size(), "Swapchain image view index out of range");
+			return m_swapchain_image_views[index];
+		}
+
+		// ############################################################
+		// Command buffers ############################################
+
+		std::expected<void, std::string> allocate_command_buffers(std::span<VkCommandBuffer> out) const
+		{
+			const VkCommandBufferAllocateInfo allocate_info{
+			  .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			  .commandPool        = m_command_pool,
+			  .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			  .commandBufferCount = as<u32>(out.size()),
 			};
 
+			if (VkResult result = vkAllocateCommandBuffers(m_device, &allocate_info, out.data()); result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to allocate command buffers: {}", string_VkResult(result)));
 
-			const VkExtent2D      current_extent = m_surface.extent();
-			VkRect2D              render_area{{0, 0}, {current_extent.width, current_extent.height}};
+			return {};
+		}
+
+		std::expected<void, std::string> initialize_command_buffers()
+		{
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be created before initializing command buffer");
+
+			// transient command buffers are short-lived and can be reset after execution, which can improve performance
+			const VkCommandPoolCreateInfo pool_info{
+			  .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			  .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+			  .queueFamilyIndex = m_graphics_queue_family_index,
+			};
+
+			if (VkResult result = vkCreateCommandPool(m_device, &pool_info, nullptr, &m_command_pool); result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to create command pool: {}", string_VkResult(result)));
+
+			m_command_buffers.resize(swapchain_image_count);
+			return allocate_command_buffers(m_command_buffers);
+		}
+
+		void deinitialize_command_buffers()
+		{
+			if (not m_command_buffers.empty())
+		{
+				vkFreeCommandBuffers(m_device, m_command_pool, as<u32>(m_command_buffers.size()), m_command_buffers.data());
+				m_command_buffers.clear();
+			}
+
+			destroy(m_command_pool, vkDestroyCommandPool);
+		}
+
+		[[nodiscard]] VkCommandBuffer& get_command_buffer(u32 index)
+			{
+			assert::check(index < m_command_buffers.size(), "Command buffer index out of range");
+			return m_command_buffers[index];
+			}
+
+		// Barrier (acquire -> attachment), dynamic rendering with a clear and `draw`, barrier (attachment -> present).
+		template<std::invocable<VkCommandBuffer> Draw>
+		std::expected<void, std::string> record_commands(
+		  VkCommandBuffer cmd, VkCommandBufferUsageFlags usage, u32 image_index, VkExtent2D extent,
+		  const std::array<f32, 3>& clear_rgb, Draw&& draw)
+		{
+			const VkCommandBufferBeginInfo begin_info{
+			  .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			  .flags = usage,
+			};
+			if (auto result = vkBeginCommandBuffer(cmd, &begin_info); result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to begin command buffer: {}", string_VkResult(result)));
+
+			// srcStage matches the acquire semaphore's wait stage
+			transition_image(
+			  cmd,
+			  m_swapchain_images[image_index],
+			  VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			  VK_ACCESS_2_NONE,
+			  VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			  VK_IMAGE_LAYOUT_UNDEFINED,
+			  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+			VkClearValue clear_value{};
+			clear_value.color = {{clear_rgb[0], clear_rgb[1], clear_rgb[2], 1.0f}};
+
+			const VkRenderingAttachmentInfo color_attachment{
+			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			  .imageView   = m_swapchain_image_views[image_index],
+			  .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			  .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			  .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+			  .clearValue  = clear_value,
+			};
+
+			const VkRect2D        render_area{{0, 0}, extent};
 			const VkRenderingInfo render_info{
-			  .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-			  // TODO: update commands when resized
+			  .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
 			  .renderArea           = render_area,
 			  .layerCount           = 1,
 			  .colorAttachmentCount = 1,
-			  .pColorAttachments    = &color_attachment_info,
+			  .pColorAttachments    = &color_attachment,
 			};
 
-			VkImageMemoryBarrier2 top_image_memory_barrier{
-			  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-			  .srcStageMask        = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-			  .srcAccessMask       = VK_ACCESS_2_NONE,
-			  .dstStageMask        = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			  .dstAccessMask       = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			  .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
-			  .newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			  .image               = m_images.image(i),
-			  .subresourceRange    = {
-				.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel   = 0,
-				.levelCount     = 1,
-				.baseArrayLayer = 0,
-				.layerCount     = 1,
-			  }};
-
-			const VkDependencyInfo top_dependency_info{
-			  .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-			  .imageMemoryBarrierCount = 1,
-			  .pImageMemoryBarriers    = &top_image_memory_barrier,
-			};
-
-			vkCmdPipelineBarrier2(m_command_buffer[i], &top_dependency_info);
-
-
-			vkCmdBeginRenderingKHR(m_command_buffer[i], &render_info);
+			vkCmdBeginRendering(cmd, &render_info);
 
 			const VkViewport viewport{
-			  .x        = 0.0f, //
-			  .y        = 0.0f,
-			  .width    = (f32)current_extent.width,
-			  .height   = (f32)current_extent.height,
-			  .minDepth = 0.0f,
-			  .maxDepth = 1.0f};
+			  0.0f, 0.0f, static_cast<f32>(extent.width), static_cast<f32>(extent.height), 0.0f, 1.0f};
+			vkCmdSetViewport(cmd, 0, 1, &viewport);
+			vkCmdSetScissor(cmd, 0, 1, &render_area);
 
-			vkCmdSetViewport(m_command_buffer[i], 0, 1, &viewport);
+			std::invoke(std::forward<Draw>(draw), cmd);
 
-			VkRect2D scissor = render_area;
-			vkCmdSetScissor(m_command_buffer[i], 0, 1, &scissor);
+			vkCmdEndRendering(cmd);
 
-			if (m_pipeline.valid())
+			if (m_screenshot_buffer)
 			{
-				vkCmdBindPipeline(m_command_buffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-				vkCmdDraw(m_command_buffer[i], 3, 1, 0, 0);
+				transition_image(
+				  cmd,
+				  m_swapchain_images[image_index],
+				  VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				  VK_PIPELINE_STAGE_2_COPY_BIT,
+				  VK_ACCESS_2_TRANSFER_READ_BIT,
+				  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+				const VkBufferImageCopy copy_region{
+				  .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1},
+				  .imageExtent      = {extent.width, extent.height, 1},
+				};
+				vkCmdCopyImageToBuffer(
+				  cmd,
+				  m_swapchain_images[image_index],
+				  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				  m_screenshot_buffer->handle,
+				  1,
+				  &copy_region);
+
+				transition_image(
+				  cmd,
+				  m_swapchain_images[image_index],
+				  VK_PIPELINE_STAGE_2_COPY_BIT,
+				  VK_ACCESS_2_TRANSFER_READ_BIT,
+				  VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+				  VK_ACCESS_2_NONE,
+				  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			}
+			else
+			{
+				// Render writes become visible to presentation through the semaphore.
+				transition_image(
+				  cmd,
+				  m_swapchain_images[image_index],
+				  VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				  VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+				  VK_ACCESS_2_NONE,
+				  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			}
 
-			if (m_pipeline2.valid())
+			if (auto result = vkEndCommandBuffer(cmd); result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to end command buffer: {}", string_VkResult(result)));
+
+			return {};
+		}
+
+		// The two triangle pipelines: [0] has no vertex input, [1] reads `vertex_buffer`.
+		void draw_triangles(VkCommandBuffer cmd, VkBuffer vertex_buffer) const
+		{
+			if (m_pipelines.size() > 0 and m_pipelines[0].pipeline != VK_NULL_HANDLE)
 			{
-				vkCmdBindPipeline(m_command_buffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline2);
-
-				const VkBuffer     vertex_buffers[]{m_triangle2_buffer};
-				const VkDeviceSize offsets[]{0};
-				vkCmdBindVertexBuffers(m_command_buffer[i], 0, 1, vertex_buffers, offsets);
-
-				vkCmdDraw(m_command_buffer[i], 3, 1, 0, 0);
+				vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[0].pipeline);
+				vkCmdDraw(cmd, 3, 1, 0, 0);
 			}
 
-			vkCmdEndRenderingKHR(m_command_buffer[i]);
-
-
-			//
-
-
-#if 1
-			// image barrier begin: LAYOUT_UNDEFINED -> LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			//               before end: LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> LAYOUT_PRESENT_SRC_KHR
-			// https://github.com/emeiri/ogldev/blob/master/Vulkan/VulkanCore/Source/wrapper.cpp#L181
-
-			VkImageMemoryBarrier2 bottom_image_memory_barrier{
-			  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-			  .srcStageMask        = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			  .srcAccessMask       = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			  .dstStageMask        = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-			  .dstAccessMask       = VK_ACCESS_2_NONE,
-			  .oldLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			  .newLayout           = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			  .image               = m_images.image(i),
-			  .subresourceRange    = {
-				.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel   = 0,
-				.levelCount     = 1,
-				.baseArrayLayer = 0,
-				.layerCount     = 1,
-			  }};
-
-			const VkDependencyInfo bottom_dependency_info{
-			  .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-			  .imageMemoryBarrierCount = 1,
-			  .pImageMemoryBarriers    = &bottom_image_memory_barrier,
-			};
-
-			vkCmdPipelineBarrier2(m_command_buffer[i], &bottom_dependency_info);
-
-#endif
-
-			result = m_command_buffer.end(i);
-			if (result != VK_SUCCESS)
+			if (m_pipelines.size() > 1 and m_pipelines[1].pipeline != VK_NULL_HANDLE and vertex_buffer != VK_NULL_HANDLE
+				and m_uploaded_image.view != VK_NULL_HANDLE and m_texture_descriptor_set != VK_NULL_HANDLE)
 			{
-				dbg::println("cmd buffer failed");
+				const VkDeviceSize offset{0};
+				vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[1].pipeline);
+				vkCmdBindDescriptorSets(
+				  cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[1].layout, 0, 1, &m_texture_descriptor_set, 0, nullptr);
+
+				// push time
+				vkCmdPushConstants(
+				  cmd,
+				  m_pipelines[1].layout,
+				  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+				  0,
+				  sizeof(m_time_seconds),
+				  &m_time_seconds);
+
+
+				vkCmdBindVertexBuffers(cmd, 0, 1, &vertex_buffer, &offset);
+				vkCmdDraw(cmd, 3, 1, 0, 0);
 			}
 		}
+
+		// Pre-records the static command buffers (not used by draw(), which records per frame).
+		std::expected<void, std::string> record_clear_commands()
+		{
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be created before recording commands");
+			assert::check(m_command_pool != VK_NULL_HANDLE, "Vulkan command pool must be created before recording commands");
+
+			const VkExtent2D extent = m_surface_capabilities.currentExtent;
+
+			for (std::size_t i = 0; i < m_command_buffers.size(); ++i)
+				if (auto result = record_commands(
+					  m_command_buffers[i],
+					  0,
+					  as<u32>(i),
+					  extent,
+					  default_clear_rgb,
+					  [this](VkCommandBuffer cmd) { draw_triangles(cmd, m_triangle2.handle); });
+					not result)
+					return result;
+
+			return {};
+		}
+
+		std::expected<void, std::string> record_frame(const frame_slot& frame, u32 image_index)
+		{
+			const VkExtent2D extent = m_swapchain_extent;
+
+			return record_commands(
+			  frame.cmd,
+			  VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, // re-recorded every frame
+			  image_index,
+			  extent,
+			  m_clear_rgb,
+			  [&](VkCommandBuffer cmd)
+			  {
+				  draw_triangles(cmd, frame.vertex.handle);
+
+				  if (frame.batch_count > 0 and m_pipeline_2d.pipeline != VK_NULL_HANDLE)
+				  {
+					  const std::array<f32, 2> scale{
+						2.0f / static_cast<f32>(extent.width), 2.0f / static_cast<f32>(extent.height)};
+					  const VkDeviceSize offset{0};
+
+					  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_2d.pipeline);
+					  vkCmdPushConstants(
+						cmd, m_pipeline_2d.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(scale), scale.data());
+					  vkCmdBindVertexBuffers(cmd, 0, 1, &frame.batch.handle, &offset);
+					  vkCmdDraw(cmd, frame.batch_count, 1, 0, 0);
+				  }
+			  });
+		}
+
+		VkResult submit(VkSemaphore wait, VkCommandBuffer cmd, VkSemaphore rendering_finished, u64 signal_value) const
+		{
+			const VkSemaphoreSubmitInfo wait_info{
+			  .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			  .semaphore = wait,
+			  .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, // covered by the top barrier's srcStageMask
+			};
+
+			const std::array<VkSemaphoreSubmitInfo, 2> signal_infos{{
+			  {.sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			   .semaphore = rendering_finished,
+			   .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT}, // binary: value ignored
+			  {.sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			   .semaphore = m_in_flight_timeline,
+			   .value     = signal_value,
+			   .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+			  }};
+
+			const VkCommandBufferSubmitInfo cmd_info{
+			  .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			  .commandBuffer = cmd,
+			};
+
+			const VkSubmitInfo2 submit_info{
+			  .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+			  .waitSemaphoreInfoCount   = 1,
+			  .pWaitSemaphoreInfos      = &wait_info,
+			  .commandBufferInfoCount   = 1,
+			  .pCommandBufferInfos      = &cmd_info,
+			  .signalSemaphoreInfoCount = as<u32>(signal_infos.size()),
+			  .pSignalSemaphoreInfos    = signal_infos.data(),
+			};
+
+			return vkQueueSubmit2(m_graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+		}
+
+		VkResult submit_command() const
+		{
+			return submit(
+			  m_image_available[m_currentframe],
+			  m_command_buffers[m_command_buffer_index],
+			  m_rendering_finished[m_command_buffer_index],
+			  m_signal_value);
+		}
+
+		VkResult submit_frame(const frame_slot& frame, u32 image_index, u64 signal_value) const
+		{
+			return submit(frame.image_available, frame.cmd, m_rendering_finished[image_index], signal_value);
+		}
+
+		// ############################################################
+		// Semaphores #################################################
+
+		VkSemaphore create_semaphore(VkSemaphoreType type = VK_SEMAPHORE_TYPE_BINARY) const
+		{
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be valid to create semaphore");
+
+			const VkSemaphoreTypeCreateInfo type_info{
+			  .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+			  .semaphoreType = type,
+			  .initialValue  = 0,
+			};
+			const VkSemaphoreCreateInfo semaphore_info{
+			  .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			  .pNext = type == VK_SEMAPHORE_TYPE_TIMELINE ? &type_info : nullptr,
+			};
+
+			VkSemaphore semaphore{VK_NULL_HANDLE};
+			if (vkCreateSemaphore(m_device, &semaphore_info, nullptr, &semaphore) != VK_SUCCESS)
+				return VK_NULL_HANDLE;
+			return semaphore;
+		}
+
+		void assert_timeline(VkSemaphore semaphore) const
+		{
+			assert::check(semaphore != VK_NULL_HANDLE, "Timeline semaphore must be valid");
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be valid to use timeline semaphore");
+		}
+
+		void wait_for_timeline_semaphore(VkSemaphore semaphore, u64 value, u64 timeout = UINT64_MAX) const
+		{
+			assert_timeline(semaphore);
+
+			const VkSemaphoreWaitInfo wait_info{
+			  .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+			  .semaphoreCount = 1,
+			  .pSemaphores    = &semaphore,
+			  .pValues        = &value,
+			};
+			const auto result = vkWaitSemaphores(m_device, &wait_info, timeout);
+			assert::check(result == VK_SUCCESS, "Failed to wait for timeline semaphore");
+		}
+
+		[[nodiscard]] u64 get_timeline_semaphore_value(VkSemaphore semaphore) const
+		{
+			assert_timeline(semaphore);
+
+			u64        value  = 0;
+			const auto result = vkGetSemaphoreCounterValue(m_device, semaphore, &value);
+			assert::check(result == VK_SUCCESS, "Failed to get timeline semaphore value");
+			return value;
+		}
+
+		void signal_timeline_semaphore(VkSemaphore semaphore, u64 value) const
+		{
+			assert_timeline(semaphore);
+
+			const VkSemaphoreSignalInfo signal_info{
+			  .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+			  .semaphore = semaphore,
+			  .value     = value,
+			};
+			const auto result = vkSignalSemaphore(m_device, &signal_info);
+			assert::check(result == VK_SUCCESS, "Failed to signal timeline semaphore");
+		}
+
+		// ############################################################
+		// Synchronization ############################################
+
+		std::expected<void, std::string> initialize_synchronization()
+		{
+			if (m_device == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan device must be created before initializing synchronization");
+
+
+			m_in_flight_timeline = create_semaphore(VK_SEMAPHORE_TYPE_TIMELINE);
+			m_in_flight_timeline_values.assign(swapchain_image_count, 0);
+
+			m_timeline_counter = 0;
+			m_currentframe     = 0;
+
+			for (auto* semaphores : {&m_image_available, &m_rendering_finished})
+			{
+				semaphores->resize(swapchain_image_count);
+				std::ranges::generate(*semaphores, [this] { return create_semaphore(); });
+			}
+
+			if (m_in_flight_timeline == VK_NULL_HANDLE
+				or std::ranges::any_of(m_image_available, [](VkSemaphore s) { return s == VK_NULL_HANDLE; })
+				or std::ranges::any_of(m_rendering_finished, [](VkSemaphore s) { return s == VK_NULL_HANDLE; }))
+				return std::unexpected("Failed to create synchronization semaphores");
+
+
+			return {};
+		}
+
+		void destroy_synchronization()
+		{
+			destroy(m_in_flight_timeline, vkDestroySemaphore);
+
+			for (auto* semaphores : {&m_rendering_finished, &m_image_available})
+				for (auto& semaphore : *semaphores)
+					destroy(semaphore, vkDestroySemaphore);
+		}
+
+		std::expected<void, std::string> resize_synchronization()
+			{
+			if (m_device == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan device must be created before resizing synchronization");
+			destroy_synchronization();
+			return initialize_synchronization();
+			}
+
+		void deinitialize_synchronization()
+			{
+			if (m_device == VK_NULL_HANDLE)
+				return;
+			vkDeviceWaitIdle(m_device);
+			destroy_synchronization();
+		}
+
+		// ############################################################
+		// Pipelines ##################################################
+
+		void destroy_pipeline(pipeline_state& state) const noexcept
+		{
+			destroy(state.pipeline, vkDestroyPipeline);
+			destroy(state.layout, vkDestroyPipelineLayout);
+			destroy(state.cache, vkDestroyPipelineCache);
+			}
+
+		std::expected<pipeline_state, std::string> create_pipeline(
+		  VkShaderModule vertex, VkShaderModule fragment, std::span<const VkVertexInputBindingDescription> bindings = {},
+		  std::span<const VkVertexInputAttributeDescription> attributes = {}, const pipeline_desc& desc = {}) const
+		{
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be created before initializing pipeline");
+
+			// TODO: cache
+			pipeline_state state{};
+
+			const auto fail = [&](std::string message)
+			{
+				destroy_pipeline(state);
+				return std::unexpected(std::move(message));
+			};
+
+			const VkPipelineCacheCreateInfo cache_info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+			if (vkCreatePipelineCache(m_device, &cache_info, nullptr, &state.cache) != VK_SUCCESS)
+			{
+				dbg::println("Failed to create pipeline cache, continuing without cache");
+				state.cache = VK_NULL_HANDLE;
+			}
+
+			// layout
+			const VkPushConstantRange push_range{
+			  .stageFlags = desc.push_stages,
+			  .offset     = 0,
+			  .size       = desc.push_size,
+			};
+			const VkPipelineLayoutCreateInfo layout_info{
+			  .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			  .setLayoutCount         = desc.descriptor_set_layout != VK_NULL_HANDLE ? 1u : 0u,
+			  .pSetLayouts            = desc.descriptor_set_layout != VK_NULL_HANDLE ? &desc.descriptor_set_layout : nullptr,
+			  .pushConstantRangeCount = desc.push_size != 0 ? 1u : 0u,
+			  .pPushConstantRanges    = desc.push_size != 0 ? &push_range : nullptr,
+			};
+			if (VkResult result = vkCreatePipelineLayout(m_device, &layout_info, nullptr, &state.layout);
+				result != VK_SUCCESS)
+				return fail(std::format("Failed to create pipeline layout: {}", string_VkResult(result)));
+
+			const std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages{{
+			  {
+				.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage  = VK_SHADER_STAGE_VERTEX_BIT,
+				.module = vertex,
+				.pName  = "main",
+			  },
+			  {
+				.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.module = fragment,
+				.pName  = "main",
+			  },
+			  }};
+
+			const VkPipelineVertexInputStateCreateInfo vertex_input_info{
+			  .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			  .vertexBindingDescriptionCount   = as<u32>(bindings.size()),
+			  .pVertexBindingDescriptions      = bindings.empty() ? nullptr : bindings.data(),
+			  .vertexAttributeDescriptionCount = as<u32>(attributes.size()),
+			  .pVertexAttributeDescriptions    = attributes.empty() ? nullptr : attributes.data(),
+			};
+
+			const VkPipelineInputAssemblyStateCreateInfo input_assembly_info{
+			  .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			  .topology               = desc.topology,
+			  .primitiveRestartEnable = VK_FALSE,
+			};
+
+			// dynamic viewport and scissor
+			const VkPipelineViewportStateCreateInfo viewport_state_info{
+			  .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			  .viewportCount = 1,
+			  .scissorCount  = 1,
+			};
+
+			const VkPipelineRasterizationStateCreateInfo rasterizer_info{
+			  .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			  .depthClampEnable        = VK_FALSE,
+			  .rasterizerDiscardEnable = VK_FALSE,
+			  .polygonMode             = VK_POLYGON_MODE_FILL,
+			  .cullMode                = desc.cull_mode,
+			  .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+			  .depthBiasEnable         = VK_FALSE,
+			  .lineWidth               = 1.0f,
+			};
+
+			const VkPipelineMultisampleStateCreateInfo multisample_info{
+			  .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			  .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+			};
+
+			const VkPipelineColorBlendAttachmentState color_blend_attachment{
+			  .blendEnable    = VK_FALSE,
+			  .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT
+								| VK_COLOR_COMPONENT_A_BIT,
+			};
+
+			const VkPipelineColorBlendStateCreateInfo color_blend_info{
+			  .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			  .logicOpEnable   = VK_FALSE,
+			  .attachmentCount = 1,
+			  .pAttachments    = &color_blend_attachment,
+			};
+
+			constexpr std::array<VkDynamicState, 2> dynamic_states{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+			const VkPipelineDynamicStateCreateInfo dynamic_state_info{
+			  .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			  .dynamicStateCount = as<u32>(dynamic_states.size()),
+			  .pDynamicStates    = dynamic_states.data(),
+			};
+
+			// creation feedback
+			std::array<VkPipelineCreationFeedback, 2> stage_feedback{};
+			VkPipelineCreationFeedback                creation_feedback{};
+
+			const VkPipelineCreationFeedbackCreateInfo feedback_info{
+			  .sType                              = VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
+			  .pPipelineCreationFeedback          = &creation_feedback,
+			  .pipelineStageCreationFeedbackCount = as<u32>(stage_feedback.size()),
+			  .pPipelineStageCreationFeedbacks    = stage_feedback.data(),
+			};
+
+			// dynamic rendering
+			const VkPipelineRenderingCreateInfo rendering_info{
+			  .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			  .pNext                   = &feedback_info,
+			  .colorAttachmentCount    = 1,
+			  .pColorAttachmentFormats = &m_surface_format.format,
+			  .depthAttachmentFormat   = VK_FORMAT_UNDEFINED,
+			  .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+			};
+
+			const VkGraphicsPipelineCreateInfo pipeline_info{
+			  .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			  .pNext               = &rendering_info,
+			  .stageCount          = as<u32>(shader_stages.size()),
+			  .pStages             = shader_stages.data(),
+			  .pVertexInputState   = &vertex_input_info,
+			  .pInputAssemblyState = &input_assembly_info,
+			  .pViewportState      = &viewport_state_info,
+			  .pRasterizationState = &rasterizer_info,
+			  .pMultisampleState   = &multisample_info,
+			  .pColorBlendState    = &color_blend_info,
+			  .pDynamicState       = &dynamic_state_info,
+			  .layout              = state.layout,
+			  .renderPass          = VK_NULL_HANDLE,
+			  .subpass             = 0,
+			};
+
+			if (VkResult result = vkCreateGraphicsPipelines(
+				  m_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &state.pipeline);
+				result != VK_SUCCESS)
+				return fail(std::format("Failed to create graphics pipeline: {}", string_VkResult(result)));
+
+			return state;
+		}
+
+		void deinitialize_pipeline()
+		{
+			for (auto& pipeline : m_pipelines)
+				destroy_pipeline(pipeline);
+
+			m_pipelines.clear();
+		}
+
+		// ############################################################
+		// Buffers ####################################################
+
+
+		// ############################################################
+		// Triangle renderer ##########################################
+
+		std::expected<void, std::string> initialize_triangle_buffer(std::span<const triangle2_vertex> vertices)
+		{
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be created before initializing triangle buffer");
+
+			if (vertices.empty())
+				return std::unexpected("Triangle vertex data must not be empty");
+
+			if (auto result = create_buffer(
+				  vertices.size_bytes(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, m_triangle2, "triangle vertex");
+				not result)
+				return result;
+
+			std::memcpy(m_triangle2.mapped, vertices.data(), vertices.size_bytes());
+			return {};
+		}
+
+		void deinitialize_triangle_buffer() { destroy_buffer(m_triangle2); }
+
+		void update_texture_descriptor(const image_resource& image) const
+		{
+			if (m_texture_descriptor_set == VK_NULL_HANDLE or image.view == VK_NULL_HANDLE)
+				return;
+
+			const VkDescriptorImageInfo image_info{
+			  .sampler     = image.sampler,
+			  .imageView   = image.view,
+			  .imageLayout = m_unified_image_layouts ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			};
+			const VkWriteDescriptorSet write{
+			  .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			  .dstSet          = m_texture_descriptor_set,
+			  .dstBinding      = 0,
+			  .descriptorCount = 1,
+			  .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			  .pImageInfo      = &image_info,
+			};
+			vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
+		}
+
+		std::expected<void, std::string> initialize_texture_descriptor()
+		{
+			const VkDescriptorSetLayoutBinding binding{
+			  .binding         = 0,
+			  .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			  .descriptorCount = 1,
+			  .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT,
+			};
+			const VkDescriptorSetLayoutCreateInfo layout_info{
+			  .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			  .bindingCount = 1,
+			  .pBindings    = &binding,
+			};
+			if (VkResult result = vkCreateDescriptorSetLayout(m_device, &layout_info, nullptr, &m_texture_descriptor_layout);
+				result != VK_SUCCESS)
+				return std::unexpected(
+				  std::format("Failed to create texture descriptor set layout: {}", string_VkResult(result)));
+
+			const VkDescriptorPoolSize       pool_size{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1};
+			const VkDescriptorPoolCreateInfo pool_info{
+			  .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			  .maxSets       = 1,
+			  .poolSizeCount = 1,
+			  .pPoolSizes    = &pool_size,
+			};
+			if (VkResult result = vkCreateDescriptorPool(m_device, &pool_info, nullptr, &m_texture_descriptor_pool);
+				result != VK_SUCCESS)
+				return std::unexpected(std::format("Failed to create texture descriptor pool: {}", string_VkResult(result)));
+
+			const VkDescriptorSetAllocateInfo allocate_info{
+			  .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			  .descriptorPool     = m_texture_descriptor_pool,
+			  .descriptorSetCount = 1,
+			  .pSetLayouts        = &m_texture_descriptor_layout,
+			};
+			if (VkResult result = vkAllocateDescriptorSets(m_device, &allocate_info, &m_texture_descriptor_set);
+				result != VK_SUCCESS)
+				return std::unexpected(
+				  std::format("Failed to allocate texture descriptor set: {}", string_VkResult(result)));
+
+			update_texture_descriptor(m_uploaded_image);
+			return {};
+		}
+
+		std::expected<void, std::string> build_triangle_renderer()
+		{
+			shader_set<4> shaders{m_device};
+			if (auto result = shaders.load_all(
+				  fs::current_path() / "shaders", {"triangle.vert", "triangle.frag", "triangle2.vert", "triangle2.frag"});
+				not result)
+				return result;
+			if (auto result = initialize_texture_descriptor(); not result)
+				return result;
+
+			const auto add_pipeline = [this](auto&&... args) -> std::expected<void, std::string>
+			{
+				auto pipeline = create_pipeline(std::forward<decltype(args)>(args)...);
+				if (not pipeline)
+					return std::unexpected(std::move(pipeline.error()));
+
+				m_pipelines.push_back(std::move(*pipeline));
+				return {};
+			};
+
+			const std::array<VkVertexInputBindingDescription, 1> bindings{{
+			  {.binding = 0, .stride = sizeof(triangle2_vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+			}};
+
+			const std::array<VkVertexInputAttributeDescription, 3> attributes{{
+			  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = 0},
+			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = sizeof(vec::vec2)},
+			  {.location = 2,
+			   .binding  = 0,
+			   .format   = VK_FORMAT_R32G32B32A32_SFLOAT,
+			   .offset   = offsetof(triangle2_vertex, color)},
+
+			}};
+
+			// triangle.frag is used by the untextured triangle.
+			if (auto result = add_pipeline(shaders[0], shaders[1]); not result)
+				return result;
+
+			const pipeline_desc texture_desc{
+			  //  .cull_mode           = VK_CULL_MODE_NONE,
+			  .push_stages           = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+			  .push_size             = sizeof(f32),
+			  .descriptor_set_layout = m_texture_descriptor_layout,
+			};
+			if (auto result = add_pipeline(shaders[2], shaders[3], bindings, attributes, texture_desc); not result)
+				return result;
+
+			m_triangle2_origin = {
+			  vec::vec2{0.55f, -0.75f},
+			  vec::vec2{0.80f, -0.25f},
+			  vec::vec2{0.30f, -0.25f},
+			};
+			m_triangle2_color = {{{0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 1.0f}}};
+
+			for (u32 i = 0; i < 3; ++i)
+			{
+				m_triangle2_angle[i]            = random::rnd<f32>(0.0f, std::numbers::pi_v<f32> * 2.0f);
+				const f32 speed                 = random::rnd<f32>(1.0f, 3.0f);
+				m_triangle2_angular_speed[i]    = random::randbool() ? speed : -speed;
+				m_triangle2_initial_vertices[i] = {m_triangle2_origin[i], triangle2_uvs[i], m_triangle2_color[i]};
+			}
+
+			if (auto result = initialize_triangle_buffer(m_triangle2_initial_vertices); not result)
+				return result;
+
+			m_last_frame_time = std::chrono::steady_clock::now();
+			m_time_seconds    = 0.0f;
+			return {};
+		}
+
+		std::expected<void, std::string> initialize_triangle_renderer()
+		{
+			deinitialize_triangle_renderer();
+
+			auto result = build_triangle_renderer();
+			if (not result)
+				deinitialize_triangle_renderer();
+
+			return result;
 	}
 
-	void vulkan::update_triangle2(f32 dt)
+		void deinitialize_triangle_renderer()
 	{
+			deinitialize_triangle_buffer();
+			deinitialize_pipeline();
+			if (m_texture_descriptor_pool != VK_NULL_HANDLE)
+				vkDestroyDescriptorPool(m_device, m_texture_descriptor_pool, nullptr);
+			m_texture_descriptor_pool = VK_NULL_HANDLE;
+			m_texture_descriptor_set  = VK_NULL_HANDLE;
+			if (m_texture_descriptor_layout != VK_NULL_HANDLE)
+				vkDestroyDescriptorSetLayout(m_device, m_texture_descriptor_layout, nullptr);
+			m_texture_descriptor_layout = VK_NULL_HANDLE;
+		}
+
+		// Advances the three orbiting vertices by `dt` and writes them to `destination`.
+		void write_triangle2(void* destination, f32 dt)
+		{
 		constexpr f32 orbit_radius = 0.06f;
 
 		std::array<triangle2_vertex, 3> vertices{};
@@ -1153,71 +2130,138 @@ namespace deckard::vulkan
 		{
 			m_triangle2_angle[i] += m_triangle2_angular_speed[i] * dt;
 
-			const vec2 offset = vec2{orbit_radius, 0.0f}.rotate(m_triangle2_angle[i], vec2::zero());
+				const vec::vec2 offset = vec::vec2{orbit_radius, 0.0f}.rotate(m_triangle2_angle[i], vec::vec2::zero());
+				vertices[i].pos        = m_triangle2_origin[i] + offset;
+				vertices[i].uv         = triangle2_uvs[i];
+				vertices[i].color      = m_triangle2_color[i];
+			}
 
-			vertices[i].pos   = m_triangle2_origin[i] + offset;
-			vertices[i].color = m_triangle2_color[i];
+			std::memcpy(destination, vertices.data(), sizeof(vertices)); // HOST_COHERENT, mapped once
 		}
 
-		m_triangle2_buffer.update(m_device, std::as_bytes(std::span(vertices)));
+		void update_triangle2(f32 dt)
+		{
+			if (m_triangle2.mapped != nullptr)
+				write_triangle2(m_triangle2.mapped, dt);
 	}
 
-	bool vulkan::draw()
+		void update_triangle2(frame_slot& frame, f32 dt)
 	{
-
-		in_flight_timeline.wait(m_device, in_flight_values[current_frame]);
-
-		const auto now    = std::chrono::steady_clock::now();
-		const f32  dt     = std::chrono::duration<f32>(now - m_last_frame_time).count();
-		m_last_frame_time = now;
-		update_triangle2(dt);
-
-		bool resized{false};
-		u32  image_index{0};
-
-		// image_available multiple?
-		VkResult result = vkAcquireNextImageKHR(
-		  m_device, m_swapchain, UINT64_MAX, image_available[current_frame], nullptr, &image_index);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			resize();
-			resized = true;
-		}
-		else if (result != VK_SUCCESS and result != VK_SUBOPTIMAL_KHR)
-		{
-			dbg::println("Acquire swapchain image failed: {}", string_VkResult(result));
-			return false;
+			assert::check(frame.vertex.mapped != nullptr, "Frame vertex buffer must be mapped");
+			write_triangle2(frame.vertex.mapped, dt);
 		}
 
+		// ############################################################
+		// Frames #####################################################
 
-		++timeline_counter;
-		in_flight_values[current_frame] = timeline_counter;
-
-		m_command_buffer.submit(
-		  m_device,
-		  image_available[current_frame],
-		  rendering_finished[image_index],
-		  in_flight_timeline,
-		  timeline_counter,
-		  image_index);
-
-
-		result = m_device.present(rendering_finished[image_index], image_index, m_swapchain);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or resized)
+		std::expected<void, std::string> initialize_frames()
 		{
-			resize();
-		}
-		else if (result != VK_SUCCESS)
+			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be created before initializing frames");
+			assert::check(m_command_pool != VK_NULL_HANDLE, "Command pool must be created before initializing frames");
+
+			// Allocate every command buffer first and store them immediately, so a later
+			// failure can always free them through deinitialize_frames().
+			std::array<VkCommandBuffer, frames_in_flight> cmds{};
+			if (auto result = allocate_command_buffers(cmds); not result)
+				return result;
+
+			for (u32 i = 0; i < frames_in_flight; ++i)
+				m_frames[i] = frame_slot{.cmd = cmds[i]};
+
+			for (auto& frame : m_frames)
+			{
+				frame.image_available = create_semaphore();
+				if (frame.image_available == VK_NULL_HANDLE)
 		{
-			dbg::println("Vulkan present failed: {}", string_VkResult(result));
-			return false;
+					deinitialize_frames();
+					return std::unexpected("Failed to create image_available semaphore");
 		}
 
-		current_frame = (current_frame + 1) % as<u32>(image_available.size());
+				auto result = create_buffer(
+				  sizeof(triangle2_vertex) * 3, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame.vertex, "frame vertex");
+				if (result)
+					result = create_buffer(
+					  sizeof(vertex2d) * max_batch_vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame.batch, "frame batch");
 
-		return true;
+				if (not result)
+		{
+					deinitialize_frames();
+					return result;
+				}
+		}
+
+			return {};
+		}
+
+		void deinitialize_frames()
+		{
+			if (m_device == VK_NULL_HANDLE)
+				return;
+
+			vkDeviceWaitIdle(m_device);
+
+			std::array<VkCommandBuffer, frames_in_flight> cmds{};
+			u32                                           cmd_count{0};
+
+			for (auto& frame : m_frames)
+		{
+				if (frame.cmd != VK_NULL_HANDLE)
+					cmds[cmd_count++] = frame.cmd;
+
+				destroy(frame.image_available, vkDestroySemaphore);
+				destroy_buffer(frame.vertex);
+				destroy_buffer(frame.batch);
+
+				frame = {};
+			}
+
+			if (cmd_count > 0 and m_command_pool != VK_NULL_HANDLE)
+				vkFreeCommandBuffers(m_device, m_command_pool, cmd_count, cmds.data());
+		}
+
+		void upload_batch(frame_slot& frame, std::span<const vertex2d> batch) const noexcept
+		{
+			u32 count = static_cast<u32>(std::min<std::size_t>(batch.size(), max_batch_vertices));
+			count -= count % 3; // whole triangles only
+			if (count != 0)
+				std::memcpy(frame.batch.mapped, batch.data(), count * sizeof(vertex2d));
+			frame.batch_count = count;
+		}
+
+		// ############################################################
+		// Renderer 2D ################################################
+
+		std::expected<void, std::string> initialize_renderer2d()
+		{
+			shader_set<2> shaders{m_device};
+			if (auto result = shaders.load_all(fs::current_path() / "shaders", {"batch2d.vert", "batch2d.frag"}); not result)
+				return result;
+
+			const std::array<VkVertexInputBindingDescription, 1> bindings{{
+			  {.binding = 0, .stride = sizeof(vertex2d), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+			}};
+
+			const std::array<VkVertexInputAttributeDescription, 2> attributes{{
+			  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(vertex2d, v)},
+			  {.location = 1, .binding = 0, .format = VK_FORMAT_R8G8B8A8_UNORM, .offset = offsetof(vertex2d, rgba)},
+			}};
+
+			const pipeline_desc desc{
+			  .topology    = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			  .cull_mode   = VK_CULL_MODE_NONE,
+			  .push_stages = VK_SHADER_STAGE_VERTEX_BIT,
+			  .push_size   = sizeof(f32) * 2,
+			};
+
+			auto pipeline = create_pipeline(shaders[0], shaders[1], bindings, attributes, desc);
+			if (not pipeline)
+				return std::unexpected(std::move(pipeline.error()));
+
+			m_pipeline_2d = std::move(*pipeline);
+			return {};
 	}
 
+		void deinitialize_renderer2d() { destroy_pipeline(m_pipeline_2d); }
 
 	};
 } // namespace deckard::vulkan
