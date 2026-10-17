@@ -38,7 +38,7 @@ namespace deckard
 
 		void restore(const snapshot& s) noexcept
 		{
-			if (s.bc > 63)
+			if (s.bc > 64)
 			{
 				over   = true;
 				buffer = 0;
@@ -56,15 +56,16 @@ namespace deckard
 		{
 			static_assert(std::endian::native == std::endian::little);
 
-			if (pos + 8 <= data_.size()) [[likely]]
+			// Fast path: an empty buffer can take 8 bytes at once.
+			if (count == 0 and data_.size() - pos >= 8) 
 			{
-				u64 v;
-				std::memcpy(&v, data_.data() + pos, 8);
-				buffer |= v << count;
-				pos += (63 - count) >> 3;
-				count |= 56;
+				std::memcpy(&buffer, data_.data() + pos, 8);
+				pos += 8;
+				count = 64;
 				return;
 			}
+
+			// Append only complete bytes that fit in the buffer.
 			while (count <= 56 and pos < data_.size())
 			{
 				buffer |= u64{data_[pos++]} << count;
@@ -72,7 +73,13 @@ namespace deckard
 			}
 		}
 
-		[[nodiscard]] u32 peek(u32 n) const noexcept { return static_cast<u32>(buffer & ((u64{1} << n) - 1)); }
+		[[nodiscard]] u32 available() const noexcept { return count; }
+
+		[[nodiscard]] u32 peek(u32 n) const noexcept
+		{
+			assert::check(n <= 32, "bit_reader::peek width");
+			return static_cast<u32>(buffer & ((u64{1} << n) - 1));
+		}
 
 		void consume(u32 n) noexcept
 		{
@@ -89,7 +96,17 @@ namespace deckard
 
 		[[nodiscard]] u32 bits(u32 n) noexcept
 		{
+			assert::check(n <= 32, "bit_reader::bits width");
 			refill();
+
+			if (n > count)
+			{
+				over   = true;
+				buffer = 0;
+				count  = 0;
+				return 0;
+			}
+
 			const u32 v = peek(n);
 			consume(n);
 			return v;
@@ -269,8 +286,6 @@ namespace deckard
 		}
 	};
 
-
-
 	[[msvc::noinline]] [[nodiscard]] std::expected<void, std::string> inflate_codes(
 	  bit_reader& br, const huffman& lit, const huffman& dist, sink& out) noexcept
 	{
@@ -282,7 +297,7 @@ namespace deckard
 		u64             bb  = s.bb;
 		u32             bc  = s.bc;
 
-		assert::check(bc <= 63, "bit buffer overflow");
+		assert::check(bc <= 64, "bit buffer overflow");
 
 		u8* const   base = out.base;
 		const usize cap  = out.cap;
@@ -301,13 +316,11 @@ namespace deckard
 		{
 
 			// prefill the bit buffer if we have at least 8 bytes left in the input, otherwise refill slowly
-			if (end - in >= 8)
+			if (bc == 0 and end - in >= 8)
 			{
-				u64 v_;
-				std::memcpy(&v_, in, 8);
-				bb |= v_ << bc;
-				in += (63 - bc) >> 3;
-				bc |= 56;
+				std::memcpy(&bb, in, 8);
+				in += 8;
+				bc = 64;
 			}
 			else
 			{
@@ -386,14 +399,19 @@ namespace deckard
 			if (len > cap - pos)
 				return leave("too large");
 
-			u8*       dst = base + pos;
+			// copy selection from already written output, possibly overlapping
+			u8* const dst = base + pos;
 			const u8* src = dst - d;
 
-
-			if (d >= 8 and cap - pos >= usize{len} + 8)
+			if (d >= 8 and len >= 8)
 			{
-				for (u32 i = 0; i < len; i += 8)
+				u32 i = 0;
+
+				for (; i + 8 <= len; i += 8)
 					std::memcpy(dst + i, src + i, 8);
+
+				if (i < len)
+					std::memcpy(dst + i, src + i, len - i);
 			}
 			else if (d >= len)
 			{
@@ -406,6 +424,7 @@ namespace deckard
 			else
 			{
 				std::memcpy(dst, src, d);
+
 				usize done = d;
 				while (done < len)
 				{
@@ -414,6 +433,7 @@ namespace deckard
 					done += n;
 				}
 			}
+
 			pos += len;
 		}
 	}
@@ -506,7 +526,6 @@ namespace deckard
 		return inflate_codes(br, lit, dist, out);
 	}
 
-
 	[[nodiscard]] std::expected<void, std::string> inflate_fixed(bit_reader& br, sink& out) noexcept
 	{
 		static constexpr auto tables = []
@@ -559,7 +578,7 @@ namespace deckard
 		if (buf.size() < exact_size)
 			return std::unexpected("buffer did not allocate enough memory");
 
-		sink            out{buf.data(), 0, buf.size()};
+		sink out{buf.data(), 0, buf.size()};
 
 		bool is_final = false;
 		while (not is_final)
@@ -584,7 +603,7 @@ namespace deckard
 		return buf;
 	}
 
-	export [[nodiscard]] std::expected<std::vector<u8>, std::string> zlib_decompress(
+	export [[nodiscard]] std::expected<std::vector<u8>, std::string> png_decompress(
 	  std::span<const u8> input, u64 size_hint = 0, bool validate_checksum = true) noexcept
 	{
 		if (input.size() < 6)
