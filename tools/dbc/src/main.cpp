@@ -14,7 +14,6 @@ import deckard.utf8;
 import deckard.lexer;
 import deckard.serializer;
 
-import deckard.app;
 
 
 #ifndef _DEBUG

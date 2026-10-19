@@ -51,7 +51,7 @@
 
 
 
-	<!-- Scripring -->
+	<!-- Scripting -->
 	<File Name="_lexer.ixx"/>
 	<File Name="_parser.ixx"/>
 

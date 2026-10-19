@@ -40,7 +40,7 @@ if(MSVC)
     target_compile_definitions(dbc PRIVATE WIN32_LEAN_AND_MEAN)
     target_compile_definitions(dbc PRIVATE WIN32_EXTRA_LEAN)
     
-    target_compile_options(dbc PRIVATE /Zc:preprocessor)
+    target_compile_options(dbc PRIVATE /Zc:preprocessor /Zc:cmath) 
     target_compile_options(dbc PRIVATE /permissive-)
     target_compile_options(dbc PRIVATE /std:c++latest)
     target_compile_options(dbc PRIVATE /Zc:__cplusplus)

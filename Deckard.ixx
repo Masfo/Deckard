@@ -119,7 +119,6 @@ export import deckard.net;
 
 // App
 export import deckard.app;
-export import deckard.app2;
 
 
 // export import deckard.DTE;
@@ -181,7 +180,8 @@ export void deckard_init()
 {
 	// clang-format off
 	#if 0
-		
+
+		// ▰▱
 	{+[](){};}
 
 	{[&][[]](){};}
@@ -213,11 +213,6 @@ export void deckard_init()
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");
 
-
-
-	// InitCommonControls();
-
-	//	dbg::println("Memory usage: {}MB", system::process_ram_usage() / 1_MiB);
 	info("Initialized");
 
 	deckard::random::initialize();

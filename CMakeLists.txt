@@ -1,10 +1,6 @@
 cmake_minimum_required (VERSION 4.4)
 
-# set(CMAKE_CXX_STANDARD 23)
-# set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-# if ( NOT "${CMAKE_GENERATOR}" MATCHES "Visual Studio.*" )
-#   set(CMAKE_CXX_MODULE_STD 1)
-# endif ()
+
 project(deckard LANGUAGES CXX)
 
 
@@ -68,10 +64,11 @@ if(MSVC)
 	
 	# Global compile options for MSVC
 	target_compile_options(deckard PRIVATE 
-		$<$<COMPILE_LANGUAGE:CXX>:
+		
 			/nologo
-			/Zc:preprocessor 
 			/std:c++latest 
+			/Zc:preprocessor 
+			/Zc:cmath
 			/Zc:__cplusplus /Zc:__STDC__ 
 			/utf-8
 			/W4
@@ -79,9 +76,8 @@ if(MSVC)
 			/FS
 			/diagnostics:caret
 			/MP
-			>
+		
 	)
-
 
 
 	#target_compile_options(deckard PRIVATE /arch:AVX2)
@@ -141,15 +137,6 @@ if(MSVC)
 
 	endif()
 
-
-	# STD hack
-	set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
-	configure_file(	
-			$ENV{VCToolsInstallDir}modules/std.ixx
-			${CMAKE_CURRENT_LIST_DIR}/std.ixx
-			COPYONLY
-	)
-	set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 endif()
 
@@ -303,11 +290,11 @@ set(DECKARD_MODULES
 		scripting/parser/parser.ixx
 
 		# App
-		app/app.ixx
+		
 		app/controller.ixx
 		app/inputs.ixx
 		
-		app/app2.ixx
+		app/app.ixx
 		app/window.ixx
 		app/renderer.ixx
 
@@ -330,6 +317,9 @@ set(DECKARD_MODULES
 		image/image_common.ixx
 		image/bmp.ixx
 		image/png.ixx
+		image/tga.ixx
+		image/qoi.ixx
+		image/dif.ixx
 
 		# Compression
 		compress/inflate.ixx
@@ -347,8 +337,20 @@ set(DECKARD_MODULES
 		# $<$<PLATFORM_ID:Windows>:platform/DTE.ixx>
 
 
-		std.ixx
-   "image/tga.ixx" "image/qoi.ixx" "image/dif.ixx")
+		#std.ixx
+  )
+
+  set(DECKARD_MODULES_IMPL
+
+	app/vulkan/impl/command_buffer.cxx
+	app/vulkan/impl/debug.cxx
+	app/vulkan/impl/device.cxx
+	app/vulkan/impl/instance.cxx
+	app/vulkan/impl/pipeline.cxx
+	app/vulkan/impl/surface.cxx
+	app/vulkan/impl/synchronization.cxx
+	app/vulkan/impl/swapchain.cxx
+  )
 
 
  find_package(gameinput CONFIG REQUIRED)
@@ -369,7 +371,8 @@ target_sources(deckard PRIVATE
 target_sources(deckard
 	PUBLIC
 	FILE_SET CXX_MODULES FILES  ${DECKARD_MODULES}
-	PRIVATE
+
+	PRIVATE ${DECKARD_MODULES_IMPL}
 )
 
 #target_include_directories(deckard PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/gl)
