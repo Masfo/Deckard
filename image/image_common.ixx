@@ -75,7 +75,7 @@ namespace deckard
 
 		std::span<color_format> data() { return m_data; }
 
-		u8 components() const { return static_cast<u8>(Channels); }
+		u8 channels() const { return static_cast<u8>(Channels); }
 
 		std::span<const color_format> data() const { return m_data; }
 

@@ -18,6 +18,7 @@ export import :common;
 export import :bmp;
 export import :dif;
 export import :png;
+export import :tga;
 export import :qoi;
 
 namespace fs = std::filesystem;
@@ -33,6 +34,9 @@ namespace deckard
 
 		if (width == 0 or height == 0)
 			return std::unexpected("convert_rgba_to_rgb: image has zero dimensions");
+
+		if (width > image_rgb::MAX_WIDTH or height > image_rgb::MAX_HEIGHT)
+			return std::unexpected("convert_rgba_to_rgb: image dimensions exceed maximum allowed size");
 
 		image_rgb rgb_img(width, height);
 		for (u16 y = 0; y < height; ++y)
