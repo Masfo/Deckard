@@ -343,6 +343,29 @@ namespace deckard::sha1 // #####################################################
 
 namespace deckard::sha256 // ############################################################################
 {
+	#if 0
+	// To show how K table is generated
+	constexpr std::array<u32, 64> K = []
+	{
+		constexpr std::array<u32, 64> primes = {
+		  2,   3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,  43,  47,  53,  59,  61,  67,  71,  73,  79,
+		  83,  89,  97,  101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193,
+		  197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311};
+
+		std::array<u32, 64> table{};
+
+		for (u32 i = 0; i < table.size(); ++i)
+		{
+			const double x        = std::cbrt(static_cast<double>(primes[i]));
+			const double fraction = x - std::floor(x);
+
+			table[i] = static_cast<u32>(fraction * 0x1'0000'0000ull);
+		}
+
+		return table;
+	}();
+	#endif
+
 
 	export using digest = generic_sha_digest<32>;
 	static_assert(sizeof(digest) == 32);
