@@ -5,6 +5,7 @@ import deckard.types;
 import deckard.assert;
 import deckard.as;
 import deckard.debug;
+import deckard.utf8;
 
 namespace deckard
 {
@@ -246,8 +247,8 @@ namespace deckard
 		}
 
 		// Copy
-		serializer(serializer const&)            = delete;
-		serializer& operator=(serializer const&) = delete;
+		serializer(const serializer&)            = delete;
+		serializer& operator=(const serializer&) = delete;
 		// Move
 		serializer(serializer&&)            = delete;
 		serializer& operator=(serializer&&) = delete;
@@ -275,7 +276,7 @@ namespace deckard
 		}
 
 		template<typename T>
-		void write(std::span<T> input, [[maybe_unused]] u32 size = 0)
+		void write(std::span<T> input)
 		{
 			for (const u8 c : input)
 				write_byte(c);
@@ -326,29 +327,16 @@ namespace deckard
 		}
 
 		template<typename T, size_t S>
-		void write(std::array<T, S> input)
+		void write(std::array<T, S> input, const u32 count = S)
 		{
-
-			write(std::span<T>{input.data(), S});
+			write(std::span<T>{input.data(), count});
 		}
 
-		template<typename T, size_t S>
-		void write(std::array<T, S> input, const u32 bits)
-		{
-			write(std::span<T>{input.data(), bits});
-		}
-
+		// count == std::dynamic_extent writes the whole vector
 		template<typename T>
-		void write(std::vector<T>& input)
+		void write(std::vector<T>& input, const size_t count = std::dynamic_extent)
 		{
-
-			write(std::span{input});
-		}
-
-		template<typename T>
-		void write(std::vector<T>& input, const u32 bits)
-		{
-			write(std::span<T>{input.data(), bits});
+			write(std::span<T>{input.data(), count == std::dynamic_extent ? input.size() : count});
 		}
 
 		// Reads
@@ -378,7 +366,21 @@ namespace deckard
 
 			if constexpr (std::is_convertible_v<T, std::string>)
 			{
-				return read_string<T>();
+				assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
+
+				T result{};
+				if constexpr (std::is_same_v<T, std::string>)
+				{
+					const u32 count = read<u32>();
+
+					result.reserve(count);
+
+					for (u32 i = 0; i < count; i++)
+						result.push_back(read<u8>());
+				}
+
+				align_to_byte_offset(readpos);
+				return result;
 			}
 			else
 			{
@@ -465,35 +467,8 @@ namespace deckard
 			}
 		}
 
-		template<typename T>
-		T read_string()
-		{
-			align_to_byte_offset(readpos);
-			assert::check(byte_index(readpos) <= buffer.size(), "Buffer has no more data");
-
-			T result{};
-			if constexpr (std::is_same_v<T, std::string>)
-			{
-				auto count = read<u32>();
-
-				result.reserve(count);
-
-				for (u32 i = 0; i < count; i++)
-					result.push_back(read<u8>());
-			}
-
-			align_to_byte_offset(readpos);
-			return result;
-		}
-
 		template<typename T, size_t S>
-		void read(std::array<T, S>& output)
-		{
-			read(std::span<u8>{output}, S * 8);
-		}
-
-		template<typename T, size_t S>
-		void read(std::array<T, S>& output, const u32 bits)
+		void read(std::array<T, S>& output, const u32 bits = S * 8)
 		{
 			read(std::span<u8>{output}, bits);
 		}
@@ -517,14 +492,13 @@ namespace deckard
 		{
 			buffer.clear();
 			writepos = 0;
+			rewind();
 		}
 
 		void reset(std::span<u8> data)
 		{
-			buffer.resize(data.size());
-			std::memcpy(buffer.data(), data.data(), data.size());
-			writepos = 0;
-			rewind();
+			reset();
+			buffer.assign(data.begin(), data.end());
 		}
 
 		// remaining
@@ -545,12 +519,6 @@ namespace deckard
 
 		size_t size_in_bits() const { return writepos; }
 
-		void clear()
-		{
-			buffer.clear();
-			rewind();
-		}
-
 		void rewind() { readpos = 0; }
 
 		void reserve(size_t size) { buffer.reserve(size); }
@@ -562,6 +530,289 @@ namespace deckard
 
 
 		// TODO: save types for serialized as a metadata
+	};
+
+	// ############################################################################################
+	// ############################################################################################
+
+	template<typename S, typename T>
+	concept has_member_serialize = requires(S& s, const T& v) { v.serialize(s); };
+
+	template<typename S, typename T>
+	concept has_member_deserialize = requires(S& s, T& v) { v.deserialize(s); };
+
+	// non-member (free function) overloads, found via ADL in the type's namespace
+	template<typename S, typename T>
+	concept has_free_serialize = requires(S& s, const T& v) { serialize(s, v); };
+
+	template<typename S, typename T>
+	concept has_free_deserialize = requires(S& s, T& v) { deserialize(s, v); };
+
+	template<typename T>
+	struct is_byte_array : std::false_type {};
+
+	template<usize N>
+	struct is_byte_array<std::array<u8, N>> : std::true_type {};
+
+	// S is a serializer: write/read a value of type T (defaults to a byte), its destination form, and a byte span
+	export template<typename S, typename T = u8>
+	concept serializer_type =
+	  requires(S& s, const T& value, T& out, std::span<const u8> bytes_in, std::span<u8> bytes_out) {
+		s.write(value);
+		s.template read<T>();
+		s.read(out);
+		s.write(bytes_in);
+		s.read(bytes_out);
+	};
+
+
+	export class inplace_serializer final
+	{
+	private:
+		static constexpr usize   capacity = 8_KiB;
+		std::array<u8, capacity> buffer{};
+
+		usize writepos{0};
+		usize readpos{0};
+
+		void write_raw(std::span<const u8> bytes)
+		{
+			assert::check(bytes.size() <= writable(), "inplace_serializer buffer overflow");
+			std::ranges::copy(bytes, buffer.data() + writepos);
+			writepos += bytes.size();
+		}
+
+		void write_array(std::span<const u8> bytes)
+		{
+			assert::check(sizeof(u32) + bytes.size() <= writable(), "inplace_serializer buffer overflow");
+
+			write<u32>(as<u32>(bytes.size()));
+			write_raw(bytes);
+		}
+
+		// byte order is only swapped on little-endian hosts; on big-endian it is already network order
+		template<std::integral T>
+		[[nodiscard]] static constexpr T byte_swap_if_little(T value) noexcept
+		{
+			if constexpr (std::endian::native == std::endian::little)
+				return std::byteswap(value);
+			else
+				return value;
+		}
+
+		template<typename T>
+		[[nodiscard]] std::array<u8, sizeof(T)> read_raw()
+		{
+			std::array<u8, sizeof(T)> raw{};
+			read(std::span<u8>{raw});
+			return raw;
+		}
+
+	public:
+		// helpers
+		[[nodiscard]] auto data() const noexcept { return std::span<const u8>{buffer.data(), writepos}; }
+
+		[[nodiscard]] bool empty() const noexcept { return writepos == 0; }
+
+		[[nodiscard]] usize size() const noexcept { return writepos; }
+
+		[[nodiscard]] usize remaining() const noexcept { return writepos - readpos; }
+
+		[[nodiscard]] usize writable() const noexcept { return capacity - writepos; }
+
+		[[nodiscard]] usize max_size() const noexcept { return capacity; }
+
+		void clear() noexcept
+		{
+			writepos = 0;
+			rewind();
+		}
+
+		void seek(usize pos) noexcept
+		{
+			assert::check(pos <= writepos, "inplace_serializer seek position out of bounds");
+			readpos = pos;
+		}
+
+		void rewind() noexcept { seek(0); }
+
+		[[nodiscard]] const u8& operator[](usize index) const
+		{
+			assert::check(index < writepos, "inplace_serializer index out of bounds");
+			return buffer[index];
+		}
+
+		[[nodiscard]] u8& operator[](usize index)
+		{
+			assert::check(index < writepos, "inplace_serializer index out of bounds");
+			return buffer[index];
+		}
+
+		// read
+		template<std::integral T>
+		requires(std::same_as<std::remove_cvref_t<T>, u8>)
+		[[nodiscard]] u8 read() { return read(1).front(); }
+
+		template<std::integral T>
+		requires(not std::same_as<T, bool> and not std::same_as<std::remove_cvref_t<T>, u8>)
+		[[nodiscard]] T read()
+		{
+			return byte_swap_if_little(std::bit_cast<T>(read_raw<T>()));
+		}
+
+		template<std::same_as<bool> T>
+		[[nodiscard]] bool read()
+		{
+			return read<u8>() != 0;
+		}
+
+		template<std::floating_point T>
+		[[nodiscard]] T read()
+		{
+			using len = std::conditional_t<sizeof(T) == 4, u32, u64>;
+			return std::bit_cast<T>(read<len>());
+		}
+
+		void read(std::span<u8> output) { std::ranges::copy(read(output.size()), output.begin()); }
+
+		[[nodiscard]] std::span<const u8> read(usize count)
+		{
+			assert::check(count <= remaining(), "inplace_serializer buffer underflow");
+			std::span<const u8> bytes{buffer.data() + readpos, count};
+			readpos += count;
+			return bytes;
+		}
+
+		[[nodiscard]] std::span<const u8> read() { return read(read<u32>()); }
+
+		template<typename T>
+		requires(is_byte_array<T>::value)
+		[[nodiscard]] T read()
+		{
+			T out{};
+			const u32 len = read<u32>();
+			assert::check(len == out.size(), "inplace_serializer array size mismatch");
+			read(std::span<u8>{out});
+			return out;
+		}
+
+		template<typename T>
+		requires(std::same_as<T, std::string> or std::same_as<T, std::string_view> or std::same_as<T, std::vector<u8>>)
+		[[nodiscard]] T read()
+		{
+			const auto bytes = read();
+
+			if constexpr (std::same_as<T, std::vector<u8>>)
+				return T{bytes.begin(), bytes.end()};
+			else
+				return T{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+		}
+
+		template<typename T>
+		requires(has_member_deserialize<inplace_serializer, T> and std::is_default_constructible_v<T>)
+		[[nodiscard]] T read()
+		{
+			T value{};
+			value.deserialize(*this);
+			return value;
+		}
+
+		template<typename T>
+		requires(has_free_deserialize<inplace_serializer, T> and not has_member_deserialize<inplace_serializer, T>
+		         and std::is_default_constructible_v<T>)
+		[[nodiscard]] T read()
+		{
+			T value{};
+			deserialize(*this, value);
+			return value;
+		}
+
+		template<pod_type T>
+		requires(not has_member_deserialize<inplace_serializer, T> and not has_free_deserialize<inplace_serializer, T>)
+		[[nodiscard]] T read()
+		{
+			return std::bit_cast<T>(read<std::array<u8, sizeof(T)>>());
+		}
+
+		template<typename T>
+		requires(std::is_scoped_enum_v<T>)
+		[[nodiscard]] T read()
+		{
+			return static_cast<T>(read<std::underlying_type_t<T>>());
+		}
+
+		template<typename T>
+		void read(T& out)
+		{
+			out = read<T>();
+		}
+
+		// write
+		template<std::integral T>
+		requires(std::same_as<std::remove_cvref_t<T>, u8>)
+		void write(T byte) { write_raw({&byte, 1}); }
+
+		template<std::integral T>
+		requires(not std::same_as<T, bool> and not std::same_as<std::remove_cvref_t<T>, u8>)
+		void write(T value)
+		{
+			write_raw(std::bit_cast<std::array<u8, sizeof(T)>>(byte_swap_if_little(value)));
+		}
+
+		template<std::same_as<bool> T>
+		void write(T value)
+		{
+			write(static_cast<u8>(value));
+		}
+
+		template<std::floating_point T>
+		void write(T value)
+		{
+			static_assert(sizeof(T) == 4 or sizeof(T) == 8, "Unsupported floating point size");
+			using type = std::conditional_t<sizeof(T) == 4, u32, u64>;
+			write(std::bit_cast<type>(value));
+		}
+
+		void write(std::span<const u8> input) { write_array(input); }
+
+		// explicit array overload: std::array<u8,N> is also convertible to utf8::view
+		template<usize S>
+		void write(const std::array<u8, S>& input)
+		{
+			write_array(input);
+		}
+
+		void write(std::string_view input) { write_array({reinterpret_cast<const u8*>(input.data()), input.size()}); }
+
+		void write(utf8::view input) { write(input.to_string_view()); }
+
+		template<typename T>
+		requires(has_member_serialize<inplace_serializer, T>)
+		void write(const T& value)
+		{
+			value.serialize(*this);
+		}
+
+		template<typename T>
+		requires(has_free_serialize<inplace_serializer, T> and not has_member_serialize<inplace_serializer, T>)
+		void write(const T& value)
+		{
+			serialize(*this, value);
+		}
+
+		template<pod_type T>
+		requires(not has_member_serialize<inplace_serializer, T> and not has_free_serialize<inplace_serializer, T>)
+		void write(const T& value)
+		{
+			write(std::bit_cast<std::array<u8, sizeof(T)>>(value));
+		}
+
+		template<typename T>
+		requires(std::is_scoped_enum_v<T>)
+		void write(const T& value)
+		{
+			write(std::to_underlying(value));
+		}
 	};
 
 
