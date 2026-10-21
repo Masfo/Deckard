@@ -269,6 +269,12 @@ export namespace deckard
 	// ###########################################################################
 
 	template<typename T>
+	concept pod_type
+	  = std::is_class_v<T> and std::is_trivially_copyable_v<T> and std::is_standard_layout_v<T>
+		and not std::convertible_to<const T&, std::span<const u8>> and not std::convertible_to<const T&, std::string_view>;
+
+
+	template<typename T>
 	concept subspannable = requires(T&& v) {
 		{ v.subspan() } -> std::same_as<std::span<u8>>;
 	};
@@ -463,5 +469,14 @@ struct std::formatter<deckard::extent<T>>
 	auto format(const deckard::extent<T>& e, std::format_context& ctx) const
 	{
 		return std::format_to(ctx.out(), "({}, {})", e.width, e.height);
+	}
+};
+
+template<>
+struct std::formatter<std::errc> : std::formatter<std::string>
+{
+	auto format(std::errc e, auto& ctx) const
+	{
+		return std::formatter<std::string>::format(std::make_error_code(e).message(), ctx);
 	}
 };
