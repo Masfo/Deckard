@@ -193,21 +193,21 @@ TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 	{
 		call_count = 0;
 
-		_ = callbacks.add(
+		(void)callbacks.add(
 		  [&](int x) noexcept
 		  {
 			  CHECK(x == 42);
 			  ++call_count;
 		  });
 
-		_ = callbacks.add(
+		(void)callbacks.add(
 		  [&](int x) noexcept
 		  {
 			  CHECK(x * 2 == 84);
 			  ++call_count;
 		  });
 
-		_ = callbacks.add([&](int x) noexcept { last_value = x; });
+		(void)callbacks.add([&](int x) noexcept { last_value = x; });
 
 		callbacks.invoke(42);
 		CHECK(call_count == 2);
@@ -218,7 +218,7 @@ TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 
 		CHECK(callbacks.empty());
 		CHECK(callbacks.size() == 0);
-		_ = callbacks.add([](int x) noexcept { (void)x; });
+		(void)callbacks.add([](int x) noexcept { (void)x; });
 		CHECK(not callbacks.empty());
 		CHECK(callbacks.size() == 1);
 		CHECK(last_value == 0);
@@ -227,7 +227,7 @@ TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 
 	SECTION("clear")
 	{
-		_ = callbacks.add([](int x) noexcept { (void)x; });
+		(void)callbacks.add([](int x) noexcept { (void)x; });
 		callbacks.clear();
 		CHECK(callbacks.empty());
 		CHECK(callbacks.size() == 0);
@@ -241,7 +241,7 @@ TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 		float       last_float{0.0f};
 		std::string last_string;
 
-		_ = small_callbacks.add(
+		(void)small_callbacks.add(
 		  [&](float f, std::string s) noexcept
 		  {
 			  last_float  = f;
