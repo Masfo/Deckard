@@ -75,7 +75,9 @@ TEST_CASE("geometry", "[geometry]")
 
 TEST_CASE("geometry intersection", "[geometry][intersection]")
 {
+	using namespace deckard;
 	using namespace deckard::geometry;
+	using namespace deckard::vec;
 
 	SECTION("ray3d intersects...")
 	{
@@ -127,6 +129,35 @@ TEST_CASE("geometry intersection", "[geometry][intersection]")
 			sphere s1({0, 0, 0}, 1.0f);
 			sphere s2({0, 0, 2.0f}, 1.0f);
 			CHECK(intersect(s1, s2));
+		}
+	}
+
+	SECTION("rect intersects...")
+	{
+		SECTION("vec2 (inside)")
+		{
+			rect r({0.0f, 0.0f}, {10.0f, 10.0f});
+			CHECK(intersect(r, vec2{0.0f, 0.0f}));
+			CHECK(intersect(r, vec2{5.0f, 5.0f}));
+			CHECK(intersect(r, vec2{-5.0f, -5.0f}));
+			CHECK(r.intersect(vec2{2.0f, 3.0f}));
+		}
+
+		SECTION("vec2 (outside)")
+		{
+			rect r({0.0f, 0.0f}, {10.0f, 10.0f});
+			CHECK_FALSE(intersect(r, vec2{5.1f, 0.0f}));
+			CHECK_FALSE(intersect(r, vec2{0.0f, -5.1f}));
+			CHECK_FALSE(r.intersect(vec2{10.0f, 10.0f}));
+		}
+
+		SECTION("rotated")
+		{
+			rect r({0.0f, 0.0f}, {4.0f, 2.0f});
+			r.rotate(std::numbers::pi_v<f32> / 2.0f);
+
+			CHECK(intersect(r, vec2{0.0f, 1.5f}));
+			CHECK_FALSE(intersect(r, vec2{1.5f, 0.0f}));
 		}
 	}
 }
