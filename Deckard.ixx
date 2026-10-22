@@ -32,6 +32,7 @@ export import deckard.filemonitor;
 
 // Math
 export import deckard.math;
+export import deckard.geometry;
 
 
 // Utils
