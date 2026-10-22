@@ -6,12 +6,381 @@ import std;
 import deckard;
 import deckard.types;
 import deckard.serializer;
+import deckard.utf8;
 
 using namespace deckard;
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
 
+struct Pod
+{
+	i32 a{-1};
+	u32 b{0xABCD};
+};
+
+struct NonPod
+{
+	i32               a{-1};
+	u32               b{0xABCD};
+	std::string       str{"???"};
+	std::array<u8, 4> bytes{0xDE, 0xAD, 0xBE, 0xEF};
+
+	template<serializer_type S>
+	void serialize(S& s) const
+	{
+		s.write(a);
+		s.write(b);
+		s.write(str);
+		s.write(bytes);
+	}
+
+	template<serializer_type S>
+	void deserialize(S& s)
+	{
+		s.read(a);
+		s.read(b);
+		s.read(str);
+		s.read(bytes);
+	}
+};
+
+// non-member serialize/deserialize, found via ADL in the type's namespace
+struct NonPod2
+{
+	i32               a{-1};
+	u32               b{0xABCD};
+	std::string       str{"???"};
+	std::array<u8, 4> bytes{0xDE, 0xAD, 0xBE, 0xEF};
+};
+
+template<serializer_type S>
+void serialize(S& s, const NonPod2& v)
+{
+	s.write(v.a);
+	s.write(v.b);
+	s.write(v.str);
+	s.write(v.bytes);
+}
+
+template<serializer_type S>
+void deserialize(S& s, NonPod2& v)
+{
+	s.read(v.a);
+	s.read(v.b);
+	s.read(v.str);
+	s.read(v.bytes);
+}
+
+struct NonSerializable
+{
+	std::string text;
+};
+
+// serializer_type<S>: S is a serializer (checks a byte); serializer_type<S, T> checks a specific type
+static_assert(serializer_type<inplace_serializer>);
+static_assert(serializer_type<inplace_serializer, u8>);
+static_assert(serializer_type<inplace_serializer, i32>);
+static_assert(serializer_type<inplace_serializer, u64>);
+static_assert(serializer_type<inplace_serializer, bool>);
+static_assert(serializer_type<inplace_serializer, f32>);
+static_assert(serializer_type<inplace_serializer, std::string>);
+static_assert(serializer_type<inplace_serializer, std::string_view>);
+static_assert(serializer_type<inplace_serializer, std::vector<u8>>);
+static_assert(serializer_type<inplace_serializer, std::array<u8, 4>>);
+static_assert(serializer_type<inplace_serializer, Pod>);
+static_assert(serializer_type<inplace_serializer, NonPod>);
+static_assert(serializer_type<inplace_serializer, NonPod2>);
+static_assert(not serializer_type<inplace_serializer, NonSerializable>);
+
+TEST_CASE("inplace serializer", "[serializer]")
+{
+
+
+	SECTION("init")
+	{
+		inplace_serializer s;
+		CHECK(s.empty());
+		CHECK(s.size() == 0);
+	}
+
+	SECTION("write/read")
+	{
+		inplace_serializer s;
+
+		s.write<i8>(-1);
+		CHECK(s.size() == 1);
+		CHECK(s[0] == 0xFF);
+		CHECK(i8{-1} == s.read<i8>());
+		s.clear();
+
+		s.write<i64>(-2);
+		CHECK(s.size() == 8);
+		CHECK(s[0] == 0xFF);
+		CHECK(s[1] == 0xFF);
+		CHECK(s[2] == 0xFF);
+		CHECK(s[3] == 0xFF);
+		CHECK(s[4] == 0xFF);
+		CHECK(s[5] == 0xFF);
+		CHECK(s[6] == 0xFF);
+		CHECK(s[7] == 0xFE);
+		CHECK(i64{-2} == s.read<i64>());
+		s.clear();
+
+
+		s.write<u16>(0xABCD);
+		CHECK(s.size() == 2);
+		CHECK(s[0] == 0xAB);
+		CHECK(s[1] == 0xCD);
+		CHECK(u16{0xABCD} == s.read<u16>());
+		s.clear();
+
+		s.write<u32>(0xDEAD'BEEF);
+		CHECK(s.size() == 4);
+		CHECK(s[0] == 0xDE);
+		CHECK(s[1] == 0xAD);
+		CHECK(s[2] == 0xBE);
+		CHECK(s[3] == 0xEF);
+		CHECK(u32{0xDEAD'BEEF} == s.read<u32>());
+		s.clear();
+
+		s.write<u64>(0x1122'3344'5566'7788);
+		CHECK(s.size() == 8);
+		CHECK(s[0] == 0x11);
+		CHECK(s[1] == 0x22);
+		CHECK(s[2] == 0x33);
+		CHECK(s[3] == 0x44);
+		CHECK(s[4] == 0x55);
+		CHECK(s[5] == 0x66);
+		CHECK(s[6] == 0x77);
+		CHECK(s[7] == 0x88);
+		CHECK(u64{0x1122'3344'5566'7788} == s.read<u64>());
+		s.clear();
+
+		s.write<bool>(true);
+		CHECK(s.size() == 1);
+		CHECK(s[0] == 1);
+		CHECK(true == s.read<bool>());
+		s.clear();
+
+		s.write<f32>(3.14f);
+		CHECK(s.size() == 4);
+		CHECK(s[0] == 0x40);
+		CHECK(s[1] == 0x48);
+		CHECK(s[2] == 0xF5);
+		CHECK(s[3] == 0xC3);
+		CHECK(3.14f == s.read<f32>());
+		s.clear();
+
+		s.write("hello"sv);
+		CHECK(s.size() == 4 + 5);
+		CHECK(s[0] == 0x00);
+		CHECK(s[1] == 0x00);
+		CHECK(s[2] == 0x00);
+		CHECK(s[3] == 0x05);
+		CHECK(s[4] == 'h');
+		CHECK(s[5] == 'e');
+		CHECK(s[6] == 'l');
+		CHECK(s[7] == 'l');
+		CHECK(s[8] == 'o');
+		CHECK("hello"sv == s.read<std::string_view>());
+		s.rewind();
+		CHECK("hello"s == s.read<std::string>());
+		s.clear();
+
+		s.write(utf8::string("🌍hello🌍"sv));
+		CHECK(s.size() == 4 + (4 + 5 + 4));
+		CHECK(s[0] == 0x00);
+		CHECK(s[1] == 0x00);
+		CHECK(s[2] == 0x00);
+		CHECK(s[3] == 0x0D);
+
+		CHECK(s[4] == 0xF0);
+		CHECK(s[5] == 0x9F);
+		CHECK(s[6] == 0x8C);
+		CHECK(s[7] == 0x8D);
+		CHECK(s[8] == 'h');
+		CHECK(s[9] == 'e');
+		CHECK(s[10] == 'l');
+		CHECK(s[11] == 'l');
+		CHECK(s[12] == 'o');
+		CHECK(s[13] == 0xF0);
+		CHECK(s[14] == 0x9F);
+		CHECK(s[15] == 0x8C);
+		CHECK(s[16] == 0x8D);
+		CHECK("🌍hello🌍"sv == s.read<std::string_view>());
+		s.clear();
+
+		std::array<u8, 16> arr = {
+		  0xDE, 0xAD, 0xBE, 0xEF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC};
+		s.write(arr);
+		CHECK(s.size() == 4 + 16);
+		CHECK(s[0] == 0x00);
+		CHECK(s[1] == 0x00);
+		CHECK(s[2] == 0x00);
+		CHECK(s[3] == 0x10);
+		for (std::size_t i = 0; i < arr.size(); ++i)
+			CHECK(s[4 + i] == arr[i]);
+
+		auto read_arr = s.read<std::array<u8, 16>>();
+		for (std::size_t i = 0; i < arr.size(); ++i)
+			CHECK(read_arr[i] == arr[i]);
+		s.clear();
+	}
+
+	SECTION("enum serialize")
+	{
+		enum class Color : u8
+		{
+			Red = 6,
+			Green,
+			Blue
+		};
+
+		enum class Flags : u16
+		{
+			None = 0,
+			A    = 0x0102,
+			B    = 0x0304
+		};
+
+		enum class State 
+		{
+			Idle,
+			Running,
+			Stopped
+		};
+
+		inplace_serializer s;
+
+		s.write(Color::Green); 
+		CHECK(s.size() == 1);
+		CHECK(s[0] == 7);
+
+		s.write(Flags::A); 
+		CHECK(s.size() == 1 + 2);
+		CHECK(s[1] == 0x01);
+		CHECK(s[2] == 0x02);
+
+		s.write(State::Stopped); 
+		CHECK(s.size() == 1 + 2 + 4);
+		CHECK(s[3] == 0x00);
+		CHECK(s[4] == 0x00);
+		CHECK(s[5] == 0x00);
+		CHECK(s[6] == 0x02);
+
+		CHECK(s.read<Color>() == Color::Green);
+		CHECK(s.read<Flags>() == Flags::A);
+		CHECK(s.read<State>() == State::Stopped);
+		CHECK(s.remaining() == 0);
+	}
+
+	SECTION("fill serializer")
+	{
+		inplace_serializer s;
+		std::vector<u8>    data;
+		data.resize(s.max_size() - sizeof(u32), 0x55);
+
+		s.write(data);
+
+		CHECK(s.size() == s.max_size());
+		CHECK(s.remaining() == s.max_size());
+
+		const auto payload = s.read();
+		CHECK(payload.size() == s.max_size() - sizeof(u32));
+		CHECK(s.remaining() == 0);
+
+		CHECK(std::ranges::all_of(payload, [](u8 b) { return b == 0x55; }));
+
+		std::vector<u8> v;
+		s.rewind();
+		s.read(v);
+		CHECK(v.size() == s.max_size() - sizeof(u32));
+		CHECK(std::ranges::all_of(v, [](u8 b) { return b == 0x55; }));
+
+
+	}
+
+	SECTION("pod struct serialize")
+	{
+		inplace_serializer s;
+		s.write(Pod{-1, 42});
+		CHECK(s.size() == 4 + 8);
+
+		Pod read_struct{};
+		s.read(read_struct);
+
+		CHECK(read_struct.a == i32{-1});
+		CHECK(read_struct.b == u32{42});
+	}
+
+
+	SECTION("non pod struct serialize")
+	{
+		inplace_serializer s;
+
+		s.write(NonPod{-1, 42, "hello"s, {0xDE, 0xAD, 0xBE, 0xEF}});
+		CHECK(s.size() == 4 + 4 + (4 + 5) + (4 + 4));
+
+		NonPod read_struct{};
+		s.read(read_struct);
+		CHECK(read_struct.a == i32{-1});
+		CHECK(read_struct.b == u32{42});
+		CHECK(read_struct.str == "hello"s);
+		CHECK(read_struct.bytes == std::array<u8, 4>{0xDE, 0xAD, 0xBE, 0xEF});
+	}
+
+	SECTION("non pod free function serialize")
+	{
+		inplace_serializer s;
+
+		s.write(NonPod2{-1, 42, "hello"s, {0xDE, 0xAD, 0xBE, 0xEF}});
+		CHECK(s.size() == 4 + 4 + (4 + 5) + (4 + 4));
+
+		NonPod2 read_struct{};
+		s.read(read_struct);
+		CHECK(read_struct.a == i32{-1});
+		CHECK(read_struct.b == u32{42});
+		CHECK(read_struct.str == "hello"s);
+		CHECK(read_struct.bytes == std::array<u8, 4>{0xDE, 0xAD, 0xBE, 0xEF});
+
+		s.clear();
+		s.write(NonPod2{-3, 126, "again"s, {0x01, 0x02, 0x03, 0x04}});
+
+		const auto read_value = s.read<NonPod2>();
+		CHECK(read_value.a == i32{-3});
+		CHECK(read_value.b == u32{126});
+		CHECK(read_value.str == "again"s);
+		CHECK(read_value.bytes == std::array<u8, 4>{0x01, 0x02, 0x03, 0x04});
+	}
+
+	SECTION("mix regular, pod, non pod struct serialize")
+	{
+
+		inplace_serializer s;
+
+		s.write(Pod{-1, 42});
+		s.write<u32>(0xDEAD'BEEF);
+		s.write(NonPod{-2, 84, "world"s, {0x11, 0x22, 0x33, 0x44}});
+
+		CHECK(s.size() == (4 + 8) + 4 + (4 + 4 + (4 + 5) + (4 + 4)));
+
+		Pod read_struct{};
+		s.read(read_struct);
+		CHECK(read_struct.a == i32{-1});
+		CHECK(read_struct.b == u32{42});
+
+		u32 read_u32 = s.read<u32>();
+		CHECK(read_u32 == 0xDEAD'BEEF);
+
+		NonPod read_nonpod{};
+		s.read(read_nonpod);
+		CHECK(read_nonpod.a == i32{-2});
+		CHECK(read_nonpod.b == u32{84});
+		CHECK(read_nonpod.str == "world"s);
+		CHECK(read_nonpod.bytes == std::array<u8, 4>{0x11, 0x22, 0x33, 0x44});
+	}
+}
 
 TEST_CASE("serializer", "[serializer]")
 {
@@ -48,16 +417,16 @@ TEST_CASE("serializer", "[serializer]")
 	}
 	SECTION("read/write u8 q/o padding")
 	{
-		//serializer s(padding::no);
-		//s.write<u8>(0xAB);
-		//s.write<bool>(true);
-		//s.write<u8>(0xCD);
-		//CHECK(s.size() == 3);
-		//CHECK(s.size_in_bits() == 17);
-		//s.rewind();
-		//CHECK(0xAB == s.read<u8>());
-		//CHECK(true == s.read<bool>());
-		//CHECK(0xCD == s.read<u8>());
+		// serializer s(padding::no);
+		// s.write<u8>(0xAB);
+		// s.write<bool>(true);
+		// s.write<u8>(0xCD);
+		// CHECK(s.size() == 3);
+		// CHECK(s.size_in_bits() == 17);
+		// s.rewind();
+		// CHECK(0xAB == s.read<u8>());
+		// CHECK(true == s.read<bool>());
+		// CHECK(0xCD == s.read<u8>());
 	}
 
 
@@ -169,35 +538,35 @@ TEST_CASE("serializer", "[serializer]")
 	{
 		serializer s;
 		s.write("Hello, World!");
-		//s.write("Deckard Serializer");
-		//CHECK(s.size() == 39);
-		//CHECK(s.size_in_bits() == 312);
+		// s.write("Deckard Serializer");
+		// CHECK(s.size() == 39);
+		// CHECK(s.size_in_bits() == 312);
 		s.rewind();
 		std::string str1 = s.read<std::string>();
 		CHECK(str1 == "Hello, World!");
-		//std::string str2 = s.read<std::string>();
-		//CHECK(str2 == "Deckard Serializer");
+		// std::string str2 = s.read<std::string>();
+		// CHECK(str2 == "Deckard Serializer");
 	}
 
 	SECTION("write/read array")
 	{
 		// TODO: fix writing arrays
-		
-		//serializer        s;
-		//std::array<u8, 4> arr1{0x01, 0x02, 0x03, 0x04};
-		//std::array<u8, 6> arr2{0x05, 0x06, 0x07, 0x08, 0x09, 0x0A};
-		//s.write(arr1);
-		//s.write(arr2);
-		//CHECK(s.size() == 18);
-		//CHECK(s.size_in_bits() == 144);
-		//s.rewind();
-		//std::array<u8, 4> read_arr1{};
-		//std::array<u8, 6> read_arr2{};
-		//s.read(read_arr1);
-		//s.read(read_arr2);
-		//CHECK(std::ranges::equal(arr1, read_arr1));
-		//CHECK(std::ranges::equal(arr2, read_arr2));
-	}	
+
+		// serializer        s;
+		// std::array<u8, 4> arr1{0x01, 0x02, 0x03, 0x04};
+		// std::array<u8, 6> arr2{0x05, 0x06, 0x07, 0x08, 0x09, 0x0A};
+		// s.write(arr1);
+		// s.write(arr2);
+		// CHECK(s.size() == 18);
+		// CHECK(s.size_in_bits() == 144);
+		// s.rewind();
+		// std::array<u8, 4> read_arr1{};
+		// std::array<u8, 6> read_arr2{};
+		// s.read(read_arr1);
+		// s.read(read_arr2);
+		// CHECK(std::ranges::equal(arr1, read_arr1));
+		// CHECK(std::ranges::equal(arr2, read_arr2));
+	}
 
 	SECTION("write/read mixed types")
 	{
