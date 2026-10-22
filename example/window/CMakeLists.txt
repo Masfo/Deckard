@@ -49,10 +49,10 @@ if(MSVC)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32_LEAN_AND_MEAN)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32_EXTRA_LEAN)
     
-    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor)
+    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /Zc:cmath)
     target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
     target_compile_options(${PROJECT_NAME} PRIVATE /std:c++latest)
-    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus)
+    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus )
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
     
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
