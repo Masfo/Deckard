@@ -961,6 +961,11 @@ namespace deckard::utf8
 				return find_last_not_of(view(sv), pos);
 			}
 
+			[[nodiscard]] std::string_view to_string_view() const
+			{
+				return std::string_view{reinterpret_cast<const char*>(m_data.data()), m_data.size_bytes()};
+			}
+
 			[[nodiscard]] std::string to_string() const
 			{
 				if (empty())
