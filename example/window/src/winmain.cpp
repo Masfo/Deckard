@@ -1,7 +1,6 @@
 
 #include <windows.h>
 #include <Commctrl.h>
-#include <cmath>
 #include <gameinput.h>
 #include <intrin.h>
 #include <time.h>
@@ -9,16 +8,23 @@
 #include <ws2tcpip.h>
 
 #include <cstddef>
-
+#include <version>
 
 import std;
 import deckard;
-import deckard.app2;
+import deckard.app;
 import deckard.types;
 import deckard.helpers;
 import deckard.math;
+import deckard.math.utils;
 import deckard.timers;
 import deckard.vec;
+import deckard.vulkan;
+import deckard.geometry;
+
+#ifndef _DEBUG
+import window;
+#endif
 
 using namespace deckard;
 using namespace deckard::literals;
@@ -384,7 +390,7 @@ void update_entity(entity& e, f32 delta, const grid_layout& layout, std::mt19937
 	e.position = sample_route(e, e.s, layout).pos;
 }
 
-void render_grid(deckard::app2::renderer2* r, const grid_layout& l, f32 mx, f32 my) noexcept
+void render_grid(deckard::app::render* r, const grid_layout& l, f32 mx, f32 my) noexcept
 {
 	const f32  stride  = l.stride();
 	const f32  bs      = static_cast<f32>(l.block_size);
@@ -415,7 +421,7 @@ void render_grid(deckard::app2::renderer2* r, const grid_layout& l, f32 mx, f32 
 	}
 }
 
-void render_entity(deckard::app2::renderer2* render, const entity& e, const grid_layout& layout, f32 alpha) noexcept
+void render_entity(deckard::app::render* render, const entity& e, const grid_layout& layout, f32 alpha) noexcept
 {
 	const vec2 pos = sample_route(e, std::lerp(e.prev_s, e.s, alpha), layout).pos;
 
@@ -444,11 +450,14 @@ void render_entity(deckard::app2::renderer2* render, const entity& e, const grid
 }
 
 void render_entities(
-  deckard::app2::renderer2* render, std::span<const entity> entities, const grid_layout& layout, f32 alpha) noexcept
+  deckard::app::render* render, std::span<const entity> entities, const grid_layout& layout, f32 alpha) noexcept
 {
 	for (const auto& e : entities)
 		render_entity(render, e, layout, alpha);
 }
+
+vulkan::texture_id uv_test_texture{};
+vulkan::texture_id mouse_texture{};
 
 struct world
 {
@@ -474,6 +483,7 @@ struct world
 	  make_entity(w.layout, starts[2], 3.0f, hues[2], w.rng),
 	  make_entity(w.layout, starts[3], 5.0f, hues[3], w.rng),
 	};
+
 	return w;
 }
 
@@ -488,7 +498,7 @@ void update(world& w, f32 delta) noexcept
 	}
 }
 
-void render_world(deckard::app2::renderer2* r, const world& w, f32 mx, f32 my) noexcept
+void render_world(deckard::app::render* r, const world& w, f32 mx, f32 my) noexcept
 {
 	render_grid(r, w.layout, mx, my);
 	render_entities(r, w.entities, w.layout, w.alpha);
@@ -497,7 +507,10 @@ void render_world(deckard::app2::renderer2* r, const world& w, f32 mx, f32 my) n
 grid_layout  layout{};
 std::mt19937 rng{std::random_device{}()};
 
-void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexcept
+
+f32 rotation_angle = 0.0f;
+
+void render(deckard::app::render* render, [[maybe_unused]] f32 delta) noexcept
 {
 	POINT p{};
 	GetCursorPos(&p);
@@ -511,16 +524,28 @@ void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexce
 	// advance(g_world, delta);
 	//  background
 
-	//render->draw_text(mx + 20, my, std::format("Mouse: ({:.2f}, {:.2f})", mx, my), {255, 255, 255}, 40);
+	// render->draw_text(mx + 20, my, std::format("Mouse: ({:.2f}, {:.2f})", mx, my), {255, 255, 255}, 40);
 
 	// lines
 	render->draw_line(0.0f, 0.0f, mx, my, {255, 0, 0}, 5.0f);
 	render->draw_line(size.width, 0.0f, mx, my, {0, 255, 0}, 5.0f);
 	render->draw_line(0.0f, size.height, mx, my, {0, 0, 255}, 5.0f);
 	render->draw_line(size.width, size.height, mx, my, {255, 0, 255}, 5.0f);
+	if (uv_test_texture)
+		render->draw_triangle(uv_test_texture);
+	if (mouse_texture)
+		render->draw_sprite(mouse_texture, mx + 50.0f, my + 50.0f, {100.0f, 100.0f});
 
+	geometry::rect btn1{vec2{400.0f, 575.0f}, vec2{200.0f, 50.0f}};
+	geometry::rect btn2{vec2{400.0f, 630.0f}, vec2{200.0f, 50.0f}};
 
-	render->draw_sprite(mx + 50.0f, my + 50.0f, {100, 100}, {0, 255, 0});
+	rotation_angle += delta * math::to_radians(90.0f);
+	btn1.rotate(rotation_angle);
+
+	const bool highlight = intersect(btn1, vec2{mx, my});
+	render->button(btn1, highlight);
+	render->button(btn2, true);
+
 
 	// for (auto& e : entities)
 	//	update_entity(e, delta, layout, rng);
@@ -549,15 +574,314 @@ bool initialize() noexcept
 	return true;
 }
 
+bool initialize_textures() noexcept
+{
+	auto uv_test = app::load_texture(fs::current_path() / "data" / "uv-test.png");
+	if (not uv_test)
+	{
+		dbg::println("Failed to load uv-test.png: {}", uv_test.error());
+		return false;
+	}
+	uv_test_texture = *uv_test;
+	auto mouse      = app::load_texture(fs::current_path() / "data" / "mouse.png");
+	if (not mouse)
+	{
+		dbg::println("Failed to load mouse.png: {}", mouse.error());
+		return false;
+	}
+	mouse_texture = *mouse;
+	return true;
+}
+
+constexpr std::array<u32, 64> k_md5 = []
+{
+	std::array<u32, 64> table{};
+
+	for (u32 i = 0; i < table.size(); ++i)
+		table[i] = static_cast<u32>(0x1'0000'0000 * std::fabs(std::sin(i + 1.0)));
+
+	return table;
+}();
+
+template<typename T>
+concept AllocatorInterface = requires(T& s, usize alignment, usize count, usize checkpoint) {
+	{ s.template alloc<u8>(alignment) } -> std::same_as<u8*>;
+	{ s.template alloc_array<u8>(count, alignment) } -> std::same_as<std::span<u8>>;
+	{ s.mark() } -> std::same_as<usize>;
+	{ s.restore(checkpoint) } -> std::same_as<void>;
+	{ s.reset() } -> std::same_as<void>;
+};
+
+class arena
+{
+public:
+	static constexpr usize default_alignment = alignof(std::max_align_t);
+	static constexpr usize buffer_alignment  = 64;
+
+private:
+	u8*   m_buffer{nullptr};
+	usize m_capacity{0};
+	usize m_offset{0};
+	bool  m_owns_buffer{false};
+
+	void release() noexcept
+	{
+		if (m_owns_buffer)
+			::operator delete(m_buffer, std::align_val_t{buffer_alignment});
+	}
+
+	// uninitialized memory, no constructor calls, returns nullptr if not enough space
+	[[nodiscard]] void* alloc_raw(usize size, usize alignment = default_alignment) noexcept
+	{
+		assert::check(std::has_single_bit(alignment), "alignment must be a power of two");
+		assert::check(m_offset <= m_capacity, "arena offset exceeds capacity");
+
+		const auto  addr    = reinterpret_cast<std::uintptr_t>(m_buffer) + m_offset;
+		const usize padding = (alignment - (addr & (alignment - 1))) & (alignment - 1);
+
+		if (padding > remaining() || size > remaining() - padding)
+			return nullptr;
+
+		void* p = m_buffer + m_offset + padding;
+		m_offset += padding + size;
+		return p;
+	}
+
+	// uninitialized memory, no constructor calls, returns an empty span if not enough space
+	template<typename T>
+	requires std::is_trivially_destructible_v<T>
+	[[nodiscard]] std::span<T> alloc_array_raw(usize count, usize alignment = alignof(T)) noexcept
+	{
+		if (count > std::numeric_limits<usize>::max() / sizeof(T))
+			return {};
+		auto* array = static_cast<T*>(alloc_raw(sizeof(T) * count, std::max<usize>(alignof(T), alignment)));
+		return array ? std::span<T>{array, count} : std::span<T>{};
+	}
+
+	[[nodiscard]] void* alloc(usize size, usize alignment = default_alignment) noexcept
+	{
+		return alloc_raw(size, alignment);
+	}
+
+public:
+	explicit arena(std::span<u8> storage) noexcept
+		: m_buffer{storage.data()}
+		, m_capacity{storage.size()}
+	{
+	}
+
+	explicit arena(usize capacity)
+		: m_buffer{static_cast<u8*>(::operator new(capacity, std::align_val_t{buffer_alignment}))}
+		, m_capacity{capacity}
+		, m_owns_buffer{true}
+	{
+	}
+
+	arena(const arena&)            = delete;
+	arena& operator=(const arena&) = delete;
+
+	arena(arena&& o) noexcept
+		: m_buffer{std::exchange(o.m_buffer, nullptr)}
+		, m_capacity{std::exchange(o.m_capacity, 0)}
+		, m_offset{std::exchange(o.m_offset, 0)}
+		, m_owns_buffer{std::exchange(o.m_owns_buffer, false)}
+	{
+	}
+
+	arena& operator=(arena&& o) noexcept
+	{
+		if (this != &o)
+		{
+			release();
+			m_buffer      = std::exchange(o.m_buffer, nullptr);
+			m_capacity    = std::exchange(o.m_capacity, 0);
+			m_offset      = std::exchange(o.m_offset, 0);
+			m_owns_buffer = std::exchange(o.m_owns_buffer, false);
+		}
+		return *this;
+	}
+
+	~arena() { release(); }
+
+	template<typename T = u8, typename Self>
+	requires std::is_trivially_copyable_v<T> and std::is_trivially_default_constructible_v<T>
+	[[nodiscard]] auto data(this Self&& self) noexcept
+	{
+		using elem = std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const T, T>;
+		assert::check(reinterpret_cast<std::uintptr_t>(self.m_buffer) % alignof(T) == 0, "buffer is not properly aligned");
+		return std::span<elem>{reinterpret_cast<elem*>(self.m_buffer), self.m_capacity / sizeof(T)};
+	}
+
+	template<typename T>
+	[[nodiscard]] T* alloc(usize alignment = alignof(T)) noexcept
+	{
+		return static_cast<T*>(alloc_raw(sizeof(T), std::max<usize>(alignof(T), alignment)));
+	}
+
+	template<typename T>
+	[[nodiscard]] std::span<T> alloc_array(usize count, usize alignment = alignof(T)) noexcept
+	{
+		return alloc_array_raw<T>(count, alignment);
+	}
+
+	// constructs an object of type T in the arena, returns nullptr if not enough space
+	template<typename T, typename... Args>
+	requires std::is_trivially_destructible_v<T> and std::is_constructible_v<T, Args...>
+	[[nodiscard]] T* create(Args&&... args) noexcept
+	{
+		void* p = alloc_raw(sizeof(T), alignof(T));
+		return p ? std::construct_at(static_cast<T*>(p), std::forward<Args>(args)...) : nullptr;
+	}
+
+	// constructs an array of objects of type T in the arena, returns an empty span if not enough space
+	template<typename T, typename... Args>
+	requires std::is_trivially_destructible_v<T> and std::is_constructible_v<T, const Args&...>
+	[[nodiscard]] std::span<T> create_array(usize count, const Args&... args) noexcept(
+	  std::is_nothrow_constructible_v<T, const Args&...>)
+	{
+		auto storage = alloc_array_raw<T>(count);
+		for (T& slot : storage)
+			std::construct_at(std::addressof(slot), args...);
+		return storage;
+	}
+
+	[[nodiscard]] usize used() const noexcept { return m_offset; }
+
+	[[nodiscard]] usize capacity() const noexcept { return m_capacity; }
+
+	[[nodiscard]] usize remaining() const noexcept { return m_capacity - m_offset; }
+
+	[[nodiscard]] usize mark() const noexcept { return m_offset; }
+
+	void restore(usize mark) noexcept
+	{
+		assert::check(mark <= m_offset, "cannot restore to a mark ahead of the current offset");
+		m_offset = mark;
+	}
+
+	void reset() noexcept { m_offset = 0; }
+};
+
+static_assert(AllocatorInterface<arena>);
+
+class arenascope
+{
+private:
+	arena* m_arena{nullptr};
+	usize  m_mark{0};
+
+	[[nodiscard]] arena& get() const noexcept
+	{
+		assert::check(m_arena != nullptr, "scope was released or moved-from");
+		assert::check(m_arena->used() >= m_mark, "arena was rewound below this scope's mark");
+		return *m_arena;
+	}
+public:
+	[[nodiscard]] explicit arenascope(arena& a) noexcept
+		: m_arena{&a}
+		, m_mark{a.mark()}
+	{
+	}
+
+	arenascope(const arenascope&)            = delete;
+	arenascope& operator=(const arenascope&) = delete;
+
+	arenascope(arenascope&& o) noexcept
+		: m_arena{std::exchange(o.m_arena, nullptr)}
+		, m_mark{o.m_mark}
+	{
+	}
+
+	arenascope& operator=(arenascope&& o) noexcept
+	{
+		if (this != &o)
+		{
+			rewind();
+			m_arena = std::exchange(o.m_arena, nullptr);
+			m_mark  = o.m_mark;
+		}
+		return *this;
+	}
+
+	~arenascope() { rewind(); }
+
+	// keep the allocations; the scope becomes inert
+	void release() noexcept { m_arena = nullptr; }
+
+	// free everything allocated since construction; scope stays active for reuse
+	void rewind() noexcept
+	{
+		if (m_arena)
+			m_arena->restore(m_mark);
+	}
+
+
+	template<typename T, typename... Args>
+	requires std::is_trivially_destructible_v<T> and std::is_constructible_v<T, Args...>
+	[[nodiscard]] T* create(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
+	{
+		return get().create<T>(std::forward<Args>(args)...);
+	}
+
+	template<typename T, typename... Args>
+	requires std::is_trivially_destructible_v<T> and std::is_constructible_v<T, const Args&...>
+	[[nodiscard]] std::span<T> create_array(usize count, const Args&... args) noexcept(
+	  std::is_nothrow_constructible_v<T, const Args&...>)
+	{
+		return get().create_array<T>(count, args...);
+	}
+
+	template<typename T>
+	[[nodiscard]] T* alloc(usize alignment = alignof(T)) noexcept
+	{
+		return get().alloc<T>(alignment);
+	}
+
+	template<typename T>
+	[[nodiscard]] std::span<T> alloc_array(usize count, usize alignment = alignof(T)) noexcept
+	{
+		return get().alloc_array<T>(count, alignment);
+	}
+};
+
+void area_test(arena& a)
+{
+	arenascope scope{a};
+	auto       tmp = scope.create<u8>(u8{0xEE});
+}
+
+// arena + arena_view(marks and rewinds)
+
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
 #ifndef _DEBUG
-	std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
-	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
-	std::print("{}\n{}\n", big_text("DECKARD"), big_text(deckard_build::build::version_string));
+	// std::print("dbc {} ({}), ", window::build::version_string, window::build::calver);
+	// std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
+	// std::print("{}\n{}\n", big_text("DECKARD"), big_text(deckard_build::build::version_string));
 #endif
 	// ########################################################################
 
+
+	// ########################################################################
+
+	arena a{1_MiB};
+
+	auto arenaview = a.data<u32>();
+
+	auto vec  = a.alloc_array<u32>(u32{4});
+	auto vec2 = a.create_array<u32>(u32{4});
+
+	for (auto& v : vec2)
+		v = 0x1122'3344;
+
+	area_test(a);
+	auto v1 = a.create<u8>(u8{0xFF});
+
+	auto img = image::load_tga<image_rgba>("data//3x3.tga"_path);
+	if (img)
+	{
+		image::save_tga("data//3x3_copy.tga"_path, *img);
+	}
 
 
 	// #########################################################################
@@ -584,8 +908,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		dbg::println("Failed to open app: {}", result.error());
 		return -1;
 	}
-
-
+	if (not initialize_textures())
+	{
+		app::close();
+		return -1;
+	}
 
 
 	enum class TestCounter : u32
@@ -606,46 +933,49 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	app::on_tick(
 	  [&](const f32 delta) noexcept
 	  {
-		timer.update(delta);
+		  timer.update(delta);
 
-		//
-		while (timer.tick(TestCounter::logic))
-		{
-			update(g_world, timer.interval(TestCounter::logic));
-		}
-		g_world.alpha = timer.alpha(TestCounter::logic);
+		  //
+		  while (timer.tick(TestCounter::logic))
+		  {
+			  update(g_world, timer.interval(TestCounter::logic));
+		  }
+		  g_world.alpha = timer.alpha(TestCounter::logic);
 
 
-		//
-		while (timer.tick(TestCounter::ui))
-		{
-			app::title(std::format(
-			  "Delta: {:<3.5f} - FPS: {:<8.2f} - Client: {} - Tick: {:<8.2f}",
-			  app::delta_time(),
-			  app::fps(),
-			  app::size(),
+		  //
+		  while (timer.tick(TestCounter::ui))
+		  {
+			  app::title(std::format(
+				"Delta: {:<3.5f} - FPS: {:<8.2f} - Client: {} - Tick: {:<8.2f}",
+				app::delta_time(),
+				app::fps(),
+				app::size(),
 
-			  timer.alpha(TestCounter::ui)));
-		}
+				timer.alpha(TestCounter::ui)));
+		  }
 	  });
 
 
 	while (app::running())
 	{
-		  if (app::was_key_pressed(VK_F11))
-			  app::fullscreen(not app::fullscreen());
+		if (app::was_key_pressed(VK_F11))
+			app::fullscreen(not app::fullscreen());
 
-		  if (app::was_key_pressed(VK_F2))
-			  app::resize({1920, 1080});
+		if (app::was_key_pressed(VK_F2))
+			app::resize({1920, 1080});
 
-		  if (app::was_key_pressed(VK_F3))
-			  app::resize({1280, 720});
+		if (app::was_key_pressed(VK_F3))
+			app::resize({1280, 720});
 
-		  if (app::was_key_pressed(VK_F4))
-			  app::resize({640, 480});
+		if (app::was_key_pressed(VK_F4))
+			app::resize({640, 480});
 
-		  if (app::was_key_pressed(VK_ESCAPE))
-			  app::close();
+		if (app::was_key_pressed(VK_F5))
+			app::screenshot();
+
+		if (app::was_key_pressed(VK_ESCAPE))
+			app::close();
 	}
 
 	return 0;
