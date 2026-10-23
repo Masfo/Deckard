@@ -26,11 +26,11 @@ namespace deckard::quaternion
 	export class quat
 	{
 	private:
-		friend f32  dot(const quat& a, const quat& b);
-		friend quat cross(const quat& q1, const quat& q2);
-		friend quat conjugate(const quat& q);
-		friend quat slerp(const quat& p, const quat& q, f32 t) noexcept
-		friend quat mix(const quat& x, const quat& y, f32 t);
+		friend f32  dot(const quat& a, const quat& b) noexcept;
+		friend quat cross(const quat& q1, const quat& q2) noexcept;
+		friend quat conjugate(const quat& q) noexcept;
+		friend quat slerp(const quat& p, const quat& q, f32 t) noexcept;
+		friend quat mix(const quat& x, const quat& y, f32 t) noexcept;
 		friend vec3 operator*(const quat& q, const vec3& v) noexcept;
 		friend quat normalize(const quat& q) noexcept;
 
@@ -79,7 +79,7 @@ namespace deckard::quaternion
 
 		quat operator+() const noexcept { return *this; }
 
-		auto operator[](size_t index) const noexcept-> f32
+		auto operator[](size_t index) const noexcept -> f32
 		{
 			assert::check(index < 4, "out-of-bounds, quat has 4 elements");
 			return data[index];
@@ -300,9 +300,9 @@ namespace deckard::quaternion
 		return conjugate(q) / d;
 	}
 
-	export quat operator*(f32 scalar, const quat& q) { return q * scalar; }
+	export quat operator*(f32 scalar, const quat& q) noexcept { return q * scalar; }
 
-	export quat cross(const quat& q1, const quat& q2)
+	export quat cross(const quat& q1, const quat& q2) noexcept
 	{
 		return {q1.data.w * q2.data.w - q1.data.x * q2.data.x - q1.data.y * q2.data.y - q1.data.z * q2.data.z,
 				q1.data.w * q2.data.x + q1.data.x * q2.data.w + q1.data.y * q2.data.z - q1.data.z * q2.data.y,
@@ -352,7 +352,7 @@ namespace deckard::quaternion
 		return q * rotation;
 	}
 
-	export quat mix(const quat& x, const quat& y, f32 t)
+	export quat mix(const quat& x, const quat& y, f32 t) noexcept
 	{
 		f32 theta = dot(x, y);
 
