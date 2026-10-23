@@ -422,9 +422,9 @@ namespace deckard::vec
 		}
 
 		// static
-		inline static vec_type zero() { return vec_type(T{0}); }
+		inline static constexpr vec_type zero() { return vec_type(T{0}); }
 
-		inline static vec_type one() { return vec_type(T{1}); }
+		inline static constexpr vec_type one() { return vec_type(T{1}); }
 	};
 
 	// Free functions
@@ -753,7 +753,7 @@ namespace deckard::vec
 	}
 
 
-} // namespace deckard::math
+} // namespace deckard::vec
 
 export namespace std
 {

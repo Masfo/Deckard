@@ -29,7 +29,7 @@ namespace deckard::quaternion
 		friend f32  dot(const quat& a, const quat& b);
 		friend quat cross(const quat& q1, const quat& q2);
 		friend quat conjugate(const quat& q);
-		friend quat slerp(const quat& x, const quat& y, f32 t);
+		friend quat slerp(const quat& p, const quat& q, f32 t) noexcept
 		friend quat mix(const quat& x, const quat& y, f32 t);
 		friend vec3 operator*(const quat& q, const vec3& v) noexcept;
 		friend quat normalize(const quat& q) noexcept;
@@ -75,42 +75,42 @@ namespace deckard::quaternion
 
 		quat(const mat4& m) { *this = from_mat4(m); }
 
-		quat operator-() const { return quat(-data.w, -data.x, -data.y, -data.z); }
+		quat operator-() const noexcept { return quat(-data.w, -data.x, -data.y, -data.z); }
 
-		quat operator+() const { return *this; }
+		quat operator+() const noexcept { return *this; }
 
-		auto operator[](size_t index) const -> f32
+		auto operator[](size_t index) const noexcept-> f32
 		{
 			assert::check(index < 4, "out-of-bounds, quat has 4 elements");
 			return data[index];
 		}
 
-		f32 w() const { return data.w; }
+		f32 w() const noexcept { return data.w; }
 
-		f32 x() const { return data.x; }
+		f32 x() const noexcept { return data.x; }
 
-		f32 y() const { return data.y; }
+		f32 y() const noexcept { return data.y; }
 
-		f32 z() const { return data.z; }
+		f32 z() const noexcept { return data.z; }
 
-		bool equals(const quat& lhs, f32 epsilon = quat_epsilon) const
+		bool equals(const quat& lhs, f32 epsilon = quat_epsilon) const noexcept
 		{
 			return math::is_close_enough(data.w, lhs.data.w, epsilon) and math::is_close_enough(data.x, lhs.data.x, epsilon)
 				   and math::is_close_enough(data.y, lhs.data.y, epsilon)
 				   and math::is_close_enough(data.z, lhs.data.z, epsilon);
 		}
 
-		quat operator+(const quat& other) const
+		quat operator+(const quat& other) const noexcept
 		{
 			return quat(data.w + other.data.w, data.x + other.data.x, data.y + other.data.y, data.z + other.data.z);
 		}
 
-		quat operator-(const quat& other) const
+		quat operator-(const quat& other) const noexcept
 		{
 			return quat(data.w - other.data.w, data.x - other.data.x, data.y - other.data.y, data.z - other.data.z);
 		}
 
-		quat operator*(const quat& other) const
+		quat operator*(const quat& other) const noexcept
 		{
 			const f32 w = data.w * other.data.w - data.x * other.data.x - data.y * other.data.y - data.z * other.data.z;
 
@@ -121,18 +121,18 @@ namespace deckard::quaternion
 			return quat(w, x, y, z);
 		}
 
-		quat operator*(const f32 scalar) const
+		quat operator*(const f32 scalar) const noexcept
 		{
 			return quat(data.w * scalar, data.x * scalar, data.y * scalar, data.z * scalar);
 		}
 
-		quat operator/(const f32 scalar) const
+		quat operator/(const f32 scalar) const noexcept
 		{
 			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
 			return quat(data.w / scalar, data.x / scalar, data.y / scalar, data.z / scalar);
 		}
 
-		quat& operator+=(const quat& other)
+		quat& operator+=(const quat& other) noexcept
 		{
 			data.w += other.data.w;
 
@@ -143,7 +143,7 @@ namespace deckard::quaternion
 			return *this;
 		}
 
-		quat& operator-=(const quat& other)
+		quat& operator-=(const quat& other) noexcept
 		{
 			data.w -= other.data.w;
 
@@ -154,7 +154,7 @@ namespace deckard::quaternion
 			return *this;
 		}
 
-		quat& operator*=(const quat& other)
+		quat& operator*=(const quat& other) noexcept
 		{
 			const quat temp(*this);
 
@@ -171,7 +171,7 @@ namespace deckard::quaternion
 			return *this;
 		}
 
-		quat& operator*=(const f32 scalar)
+		quat& operator*=(const f32 scalar) noexcept
 		{
 			data.w *= scalar;
 
@@ -182,7 +182,7 @@ namespace deckard::quaternion
 			return *this;
 		}
 
-		quat& operator/=(const f32 scalar)
+		quat& operator/=(const f32 scalar) noexcept
 		{
 			assert::check(scalar != 0.0f, "Division by zero in quaternion division");
 
@@ -195,7 +195,7 @@ namespace deckard::quaternion
 			return *this;
 		}
 
-		static quat from_mat4(const mat4& m)
+		static quat from_mat4(const mat4& m) noexcept
 		{
 			quat result;
 
@@ -274,25 +274,25 @@ namespace deckard::quaternion
 			return mat4{r00, r01, r02, 0.0f, r10, r11, r12, 0.0f, r20, r21, r22, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 		}
 
-		std::string to_string() const
+		std::string to_string() const noexcept
 		{
 			return std::format("quat(w: {:.5f}, x: {:.5f}, y: {:.5f}, z: {:.5f})", data.w, data.x, data.y, data.z);
 		}
 	};
 
-	export bool operator==(const quat& q1, const quat& q2) { return q1.equals(q2); }
+	export bool operator==(const quat& q1, const quat& q2) noexcept { return q1.equals(q2); }
 
-	export f32 dot(const quat& a, const quat& b)
+	export f32 dot(const quat& a, const quat& b) noexcept
 	{
 		vec4 tmp(a.data.w * b.data.w, a.data.x * b.data.x, a.data.y * b.data.y, a.data.z * b.data.z);
 		return (tmp.x + tmp.y) + (tmp.z + tmp.w);
 	}
 
-	export f32 length(const quat& q) { return std::sqrt(dot(q, q)); }
+	export f32 length(const quat& q) noexcept { return std::sqrt(dot(q, q)); }
 
-	export quat conjugate(const quat& q) { return quat(q.data.w, -q.data.x, -q.data.y, -q.data.z); }
+	export quat conjugate(const quat& q) noexcept { return quat(q.data.w, -q.data.x, -q.data.y, -q.data.z); }
 
-	export quat inverse(const quat& q)
+	export quat inverse(const quat& q) noexcept
 	{
 		const f32 d = dot(q, q);
 		assert::check(d > 0.0f, "Cannot invert a quaternion with zero length");
@@ -385,27 +385,32 @@ namespace deckard::quaternion
 		return x * (1.0f - t) + (y * t);
 	}
 
-	export quat slerp(const quat& x, const quat& y, f32 t)
+	export [[nodiscard]] quat slerp(const quat& p, const quat& q, f32 t) noexcept
 	{
-		quat z     = y;
-		f32  theta = dot(x, y);
-		if (theta < 0.0f)
+		f32  cos_theta = dot(p, q);
+		quat z         = q;
+
+		// q and -q are the same rotation; take the short way round
+		if (cos_theta < 0.0f)
 		{
-			z     = -y;
-			theta = -theta;
+			z         = -q;
+			cos_theta = -cos_theta;
 		}
 
-		if (theta > slerp_lerp_threshold)
+		// nearly parallel: sin(angle) -> 0, so use nlerp
+		if (cos_theta > slerp_lerp_threshold)
 		{
-			return quat(math::mix(x.data.w, z.data.w, t),
-						math::mix(x.data.x, z.data.x, t),
-						math::mix(x.data.y, z.data.y, t),
-						math::mix(x.data.z, z.data.z, t));
+			return normalize(quat(
+			  math::mix(p.data.w, z.data.w, t),
+			  math::mix(p.data.x, z.data.x, t),
+			  math::mix(p.data.y, z.data.y, t),
+			  math::mix(p.data.z, z.data.z, t)));
 		}
 
+		const f32 angle = std::acos(cos_theta);
+		const f32 inv_s = 1.0f / std::sin(angle);
 
-		f32 angle = std::acos(std::clamp(theta, -1.0f, 1.0f));
-		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * z) / std::sin(angle);
+		return (std::sin((1.0f - t) * angle) * inv_s) * p + (std::sin(t * angle) * inv_s) * z;
 	}
 
 	export [[nodiscard]] vec3 operator*(const quat& q, const vec3& v) noexcept
@@ -418,7 +423,7 @@ namespace deckard::quaternion
 	export inline std::ostream& operator<<(std::ostream& os, const quat& s) { return os << s.to_string(); }
 
 
-} // namespace deckard::math
+} // namespace deckard::quaternion
 
 namespace std
 {
