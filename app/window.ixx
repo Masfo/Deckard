@@ -4,7 +4,7 @@ module;
 #include <windowsx.h>
 
 
-export module deckard.app2:window;
+export module deckard.app:window;
 import :inputs;
 
 import std;
