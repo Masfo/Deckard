@@ -177,6 +177,10 @@ namespace deckard
 		}
 
 		bool operator==(const rgb& rhs) const { return r == rhs.r and g == rhs.g and b == rhs.b; }
+
+		u32 to_u32() const { return static_cast<u32>(r) | (static_cast<u32>(g) << 8) | (static_cast<u32>(b) << 16); }
+
+		explicit operator u32() const { return to_u32(); }
 	};
 
 	export struct rgba
@@ -274,6 +278,15 @@ namespace deckard
 		}
 
 		bool operator==(const rgba& rhs) const { return r == rhs.r and g == rhs.g and b == rhs.b and a == rhs.a; }
+
+
+		u32 to_u32() const
+		{
+			return static_cast<u32>(r) | (static_cast<u32>(g) << 8) | (static_cast<u32>(b) << 16)
+				   | (static_cast<u32>(a) << 24);
+		}
+
+		explicit operator u32() const { return to_u32(); }
 	};
 
 	u8 mix(u8 a, u8 b, f32 t)
