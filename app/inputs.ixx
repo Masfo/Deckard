@@ -4,7 +4,7 @@ module;
 #include <hidsdi.h>
 #include <wrl/client.h>
 
-export module deckard.app2:inputs;
+export module deckard.app:inputs;
 
 
 import std;
@@ -15,6 +15,7 @@ import deckard.debug;
 import deckard.helpers;
 import deckard.platform;
 import deckard.utf8;
+import deckard.vec;
 
 using namespace GameInput::v3;
 using namespace std::string_view_literals;
@@ -367,7 +368,7 @@ namespace deckard::app
 				 GameInputDeviceStatus prev_status)
 
 			  {
-				  _ = prev_status;
+				  prev_status;
 
 				  inputs* const self = static_cast<inputs*>(context);
 
