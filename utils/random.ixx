@@ -11,11 +11,16 @@ import deckard.types;
 import deckard.debug;
 import deckard.as;
 import deckard.assert;
+import deckard.utils.hash;
 
 namespace fs = std::filesystem;
 
 namespace deckard::random
 {
+
+	constexpr u64 default_random_seed = utils::constant_seed; // hash.ixx
+
+
 	export std::random_device random_device;
 
 	export template<std::integral T = u32>
@@ -68,6 +73,14 @@ namespace deckard::random
 
 	} // namespace pcg
 
+	export [[nodiscard]] constexpr u64 splitmix(u64 x) noexcept
+	{
+		x += 0x9E37'79B9'7F4A'7C15ull;
+		x = (x ^ (x >> 30)) * 0xBF58'476D'1CE4'E5B9ull;
+		x = (x ^ (x >> 27)) * 0x94D0'49BB'1331'11EBull;
+		return x ^ (x >> 31);
+	}
+
 	export class splitmix64
 	{
 	private:
@@ -98,10 +111,7 @@ namespace deckard::random
 
 		constexpr u64 next()
 		{
-			u64 z = (state += 0x9E37'79B9'7F4A'7C15);
-			z     = (z ^ (z >> 30)) * 0xBF58'476D'1CE4'E5B9;
-			z     = (z ^ (z >> 27)) * 0x94D0'49BB'1331'11EB;
-			return z ^ (z >> 31);
+			return splitmix(state);
 		}
 
 		using result_type = u64;
@@ -407,7 +417,7 @@ namespace deckard::random
 		}
 
 		for (; i < buffer.size(); ++i)
-			buffer[i] = static_cast<u8>(engine() & 0xFF	);
+			buffer[i] = static_cast<u8>(engine() & 0xFF);
 	}
 
 	export void bytes(std::span<u8> buffer)

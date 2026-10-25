@@ -16,62 +16,169 @@ import std;
 
 namespace deckard::utils
 {
+	using namespace std::string_view_literals;
 
+	// ########################################################################
+	// fnv
 
-	constexpr u32 constant_seed_1 =
-	  (__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 + (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
-	  (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
+	constexpr u32 val_32_const   = 0x811C'9DC5;
+	constexpr u32 prime_32_const = 0x100'0193;
+	constexpr u64 val_64_const   = 0xCBF2'9CE4'8422'2325;
+	constexpr u64 prime_64_const = 0x100'0000'01B3;
 
-	template<std::unsigned_integral T>
-	constexpr T distribute(T x) noexcept
+	export constexpr u64 fnv1a_64(std::string_view str)
 	{
-		if constexpr (sizeof(T) == 8)
+		u64 hash = val_64_const;
+		for (const char c : str)
 		{
-			x ^= x >> 12;
-			x ^= x << 25;
-			x ^= x >> 27;
-			return x * 0x2545'F491'4F6C'DD1DULL;
+			hash ^= static_cast<u8>(c);
+			hash *= prime_64_const;
 		}
-		else if constexpr (sizeof(T) == 4)
-		{
-			x ^= x >> 13;
-			x ^= x << 17;
-			x ^= x >> 5;
-			return x * 0x85eb'ca6bU;
-		}
-		else
-		{
-			static_assert(sizeof(T) == 8 || sizeof(T) == 4, "distribute: add a branch if you need 16/8-bit support");
-		}
+		return hash;
 	}
 
-	export template<typename T, typename... Rest>
-	constexpr u64 hash_combine(u64 seed, const T& v, Rest&&... rest)
+	export constexpr u32 fnv1a_32(const char* buffer, size_t count)
 	{
+		uint32_t hash  = val_32_const;
+		uint32_t prime = prime_32_const;
 
-		if constexpr (std::is_integral_v<T>)
+		for (int i = 0; i < count; ++i)
 		{
-			seed = std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^
-				   distribute(static_cast<u64>(static_cast<std::make_unsigned_t<T>>(v)));
-		}
-		else if constexpr (std::is_floating_point_v<T>)
-		{
-			using ftype = std::conditional_t<sizeof(T) == 4, u32, u64>;
-			seed =
-			  std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^ distribute(static_cast<u64>(std::bit_cast<ftype>(v)));
-		}
-		else if constexpr (requires { std::hash<T>{}(v); })
-		{
-			seed = std::rotl(seed, std::numeric_limits<u64>::digits / 3) ^ distribute(static_cast<u64>(std::hash<T>{}(v)));
+			uint8_t value = buffer[i];
+			hash          = hash ^ value;
+			hash *= prime;
 		}
 
-		if constexpr (sizeof...(rest) > 0)
-			return hash_combine(seed, std::forward<Rest>(rest)...);
-		else
-			return seed;
+		return hash;
 	}
 
-	export constexpr u64 constant_seed = distribute<u64>(constant_seed_1);
+	export constexpr u32 fnv1a_32(const std::span<const u8> buffer)
+	{
+		u32 hash = val_32_const;
+
+		for (int i = 0; i < buffer.size(); ++i)
+		{
+			hash = hash ^ buffer[i];
+			hash *= prime_32_const;
+		}
+
+		return hash;
+	}
+
+	export constexpr u64 fnv1a_64(const std::span<const u8> buffer)
+	{
+		u64 hash = val_64_const;
+
+		for (int i = 0; i < buffer.size(); ++i)
+		{
+			hash = hash ^ buffer[i];
+			hash *= prime_64_const;
+		}
+
+		return hash;
+	}
+
+	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32(to_span(str)); }
+
+	export template<std::integral T>
+	requires(sizeof(T) <= 4)
+	constexpr u64 fnv1a_32(T value)
+	{
+		u32 hash = val_32_const;
+		for (int i = 0; i < sizeof(T); ++i)
+		{
+			hash = hash ^ ((value >> (i * 8)) & 0xFF);
+			hash *= prime_32_const;
+		}
+		return hash;
+	}
+
+	export template<std::integral T>
+	constexpr u64 fnv1a_64(T value)
+	{
+		u64 hash = val_64_const;
+		for (int i = 0; i < sizeof(T); ++i)
+		{
+			hash = hash ^ ((value >> (i * 8)) & 0xFF);
+			hash *= prime_64_const;
+		}
+		return hash;
+	}
+
+	export constexpr u32 operator""_fnv32(const char* s, size_t count) { return fnv1a_32({s, count}); }
+
+	export constexpr u64 operator""_fnv64(const char* s, size_t count) { return fnv1a_64({s, count}); }
+
+	// ####################
+	export constexpr u64 constant_seed = fnv1a_64(__DATE__ " " __TIME__);
+
+	// ####################
+
+
+	namespace detail
+	{
+		// splitmix64 finalizer; the additive constant means 0 no longer maps to 0
+		[[nodiscard]] constexpr u64 mix(u64 x) noexcept
+		{
+			x += 0x9E37'79B9'7F4A'7C15ull;
+			x = (x ^ (x >> 30)) * 0xBF58'476D'1CE4'E5B9ull;
+			x = (x ^ (x >> 27)) * 0x94D0'49BB'1331'11EBull;
+			return x ^ (x >> 31);
+		}
+
+		template<typename T>
+		[[nodiscard]] constexpr u64 to_u64(const T& v)
+		{
+			if constexpr (std::is_enum_v<T>)
+				return to_u64(std::to_underlying(v));
+			else if constexpr (std::integral<T>)
+				return static_cast<u64>(v); // bool/char fine; signed sign-extends (well-defined)
+			else if constexpr (std::floating_point<T>)
+			{
+				if (v == T{})
+					return 0; // +0.0 == -0.0
+				if constexpr (sizeof(T) == 4)
+					return std::bit_cast<u32>(v);
+				else if constexpr (sizeof(T) == 8)
+					return std::bit_cast<u64>(v);
+				else
+					return to_u64(static_cast<double>(v)); // long double, float16, ...
+			}
+			else if constexpr (std::is_same_v<T, std::string_view>)
+				return fnv1a_64(v);
+			else if constexpr (std::is_same_v<T, std::span<const u8>>)
+				return fnv1a_64(v);
+			else
+			{
+				static_assert(hashable<T>, "hash_combine: type is not hashable");
+				return static_cast<u64>(std::hash<T>{}(v));
+			}
+		}
+	} // namespace detail
+
+	export template<typename... Ts>
+	[[nodiscard]] constexpr u64 hash_combine(u64 seed, const Ts&... vs)
+	{
+		constexpr int shift = std::numeric_limits<u64>::digits / 3;
+		((seed = std::rotl(seed, shift) ^ detail::mix(detail::to_u64(vs))), ...);
+		return seed;
+	}
+
+
+	static_assert(hash_combine(0, 1, 2) != hash_combine(0, 2, 1));  // ordering
+	static_assert(hash_combine(0, 0) != hash_combine(0, 0, 0));     // trailing zeros
+	static_assert(hash_combine(0, 0.0) == hash_combine(0, -0.0));   // +0.0 == -0.0
+	static_assert(hash_combine(0, true) != hash_combine(0, false)); // bool
+	static_assert(hash_combine(0, std::span<const u8>{}) == hash_combine(0, std::span<const u8>{}));
+	static_assert(hash_combine(0, "hello"sv) == hash_combine(0, "hello"sv));
+
+	constexpr std::array<u8, 2> hash_test_a{1,2};
+	constexpr std::array<u8, 2> hash_test_b{2,1};
+	static_assert(hash_combine(0, std::span<const u8>{hash_test_a}) != hash_combine(0, std::span<const u8>{hash_test_b}));
+	static_assert(hash_combine(0, std::span<const u8>{hash_test_a}) == hash_combine(0, std::span<const u8>{hash_test_a}));
+
+	//
+
 
 	export template<typename... Types>
 	constexpr u64 hash_values(const Types&... args)
@@ -109,8 +216,6 @@ namespace deckard::utils
 
 	export constexpr u64 hash_values(const std::string& str) { return hash_values(to_span(str)); }
 
-	export constexpr u64 hash_values(const char* str) { return hash_values(to_span(str)); }
-
 
 	// ########################################################################
 	// CRC
@@ -128,15 +233,12 @@ namespace deckard::utils
 		return t;
 	}();
 
-
 	export u32 crc32(std::span<const u8> data, u32 crc = 0xFFFF'FFFFu)
 	{
 		for (const auto& byte : data)
 			crc = crc_table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
 		return crc ^ 0xFFFF'FFFFu;
 	}
-
-
 
 	// ########################################################################
 	// Siphash
@@ -150,12 +252,12 @@ namespace deckard::utils
 		u64 k0 = as<u64>(key.subspan(0, 8));
 		u64 k1 = as<u64>(key.subspan(8, 8));
 
-		u64 v0 = k0 ^ 0x736f'6d65'7073'6575ull;
-		u64 v1 = k1 ^ 0x646f'7261'6e64'6f6dull;
-		u64 v2 = k0 ^ 0x6c79'6765'6e65'7261ull;
+		u64 v0 = k0 ^ 0x736F'6D65'7073'6575ull;
+		u64 v1 = k1 ^ 0x646F'7261'6E64'6F6Dull;
+		u64 v2 = k0 ^ 0x6C79'6765'6E65'7261ull;
 		u64 v3 = k1 ^ 0x7465'6462'7974'6573ull;
 
-		u64 last7 = (u64)(m.size() & 0xff) << 56;
+		u64 last7 = (u64)(m.size() & 0xFF) << 56;
 
 		auto sipcompress = [&]
 		{
@@ -201,7 +303,7 @@ namespace deckard::utils
 		sipcompress();
 		sipcompress();
 		v0 ^= last7;
-		v2 ^= 0xff;
+		v2 ^= 0xFF;
 		sipcompress();
 		sipcompress();
 		sipcompress();
@@ -228,70 +330,14 @@ namespace deckard::utils
 
 	export u64 siphash(std::string_view str) { return siphash(to_span(str)); }
 
-	export u64 operator""_siphash(char const* s, size_t count) { return siphash({s, count}); }
-
-	// ########################################################################
-	// fnv
-	constexpr u32 val_32_const   = 0x811c'9dc5;
-	constexpr u32 prime_32_const = 0x100'0193;
-	constexpr u64 val_64_const   = 0xcbf2'9ce4'8422'2325;
-	constexpr u64 prime_64_const = 0x100'0000'01b3;
-
-	export constexpr u32 fnv1a_32(char const* buffer, size_t count)
-	{
-		uint32_t hash  = val_32_const;
-		uint32_t prime = prime_32_const;
-
-		for (int i = 0; i < count; ++i)
-		{
-			uint8_t value = buffer[i];
-			hash          = hash ^ value;
-			hash *= prime;
-		}
-
-		return hash;
-	}
-
-	export constexpr u32 fnv1a_32(const std::span<const u8> buffer)
-	{
-		u32 hash = val_32_const;
-
-		for (int i = 0; i < buffer.size(); ++i)
-		{
-			hash = hash ^ buffer[i];
-			hash *= prime_32_const;
-		}
-
-		return hash;
-	}
-
-	export constexpr u64 fnv1a_64(const std::span<const u8> buffer)
-	{
-		u64 hash = val_64_const;
-
-		for (int i = 0; i < buffer.size(); ++i)
-		{
-			hash = hash ^ buffer[i];
-			hash *= prime_64_const;
-		}
-
-		return hash;
-	}
-
-	export constexpr u32 fnv1a_32(std::string_view str) { return fnv1a_32(to_span(str)); }
-
-	export constexpr u64 fnv1a_64(std::string_view str) { return fnv1a_64(to_span(str)); }
-
-	export constexpr u32 operator""_fnv32(char const* s, size_t count) { return fnv1a_32({s, count}); }
-
-	export constexpr u64 operator""_fnv64(char const* s, size_t count) { return fnv1a_64({s, count}); }
+	export u64 operator""_siphash(const char* s, size_t count) { return siphash({s, count}); }
 
 	// ########################################################################
 	// rapiphash
 
-	constexpr u64 RAPID_SEED = 0xbdd8'9aa9'8270'4029ull;
+	constexpr u64 RAPID_SEED = 0xBDD8'9AA9'8270'4029ull;
 
-	constexpr u64 rapid_secret[3] = {0x2d35'8dcc'aa6c'78a5ull, 0x8bb8'4b93'962e'acc9ull, 0x4b33'a62e'd433'd4a3ull};
+	constexpr u64 rapid_secret[3] = {0x2D35'8DCC'AA6C'78A5ull, 0x8BB8'4B93'962E'ACC9ull, 0x4B33'A62E'D433'D4A3ull};
 
 	void rapid_mum(u64* A, u64* B)
 	{
@@ -393,7 +439,7 @@ namespace deckard::utils
 
 	// ########################################################################
 	// Chibihash - https://nrk.neocities.org/articles/chibihash
-	constexpr u64 CHIBI_SEED = 0x1918'05f9'ed90'9da0;
+	constexpr u64 CHIBI_SEED = 0x1918'05F9'ED90'9DA0;
 
 	constexpr u64 chibihash64__load32le(const u8* p)
 	{
@@ -414,7 +460,7 @@ namespace deckard::utils
 		const u8* p = (const u8*)keyIn;
 		ptrdiff_t l = len;
 
-		const u64 K     = 0x2B7E'1516'28AE'D2A7ULL; // digits of e
+		const u64 K     = 0x2B7E'1516'28AE'D2A7ull; // digits of e
 		u64       seed2 = chibihash64__rotl(seed - K, 15) + chibihash64__rotl(seed - K, 47);
 		u64       h[4]  = {seed, seed + K, seed2, seed2 + (K * K ^ K)};
 
@@ -483,17 +529,17 @@ namespace deckard::utils
 		return chibihash64({as<u8*>(buffer.data()), buffer.size()}, seed);
 	}
 
-	export u64 operator""_chibihash(char const* buffer, size_t len) { return chibihash64({buffer, len}); }
+	export u64 operator""_chibihash(const char* buffer, size_t len) { return chibihash64({buffer, len}); }
 
 	// ########################################################
 
 	export u64 xxh64(std::span<const u8> buffer, u64 seed = 0)
 	{
-		static constexpr u64 prime1 = 0x9e37'79b1'85eb'ca87ULL;
-		static constexpr u64 prime2 = 0xc2b2'ae3d'27d4'eb4fULL;
-		static constexpr u64 prime3 = 0x1656'67b1'9e37'79f9ULL;
-		static constexpr u64 prime4 = 0x85eb'ca77'c2b2'ae63ULL;
-		static constexpr u64 prime5 = 0x27d4'eb2f'1656'67c5ULL;
+		static constexpr u64 prime1 = 0x9E37'79B1'85EB'CA87ull;
+		static constexpr u64 prime2 = 0xC2B2'AE3D'27D4'EB4Full;
+		static constexpr u64 prime3 = 0x1656'67B1'9E37'79F9ull;
+		static constexpr u64 prime4 = 0x85EB'CA77'C2B2'AE63ull;
+		static constexpr u64 prime5 = 0x27D4'EB2F'1656'67C5ull;
 
 		const u8* p   = buffer.data();
 		size_t    len = buffer.size();
@@ -578,17 +624,17 @@ namespace deckard::utils
 
 	export u64 xxh64(std::string_view str, u64 seed = 0) { return xxh64(to_span(str), seed); }
 
-	export u64 operator""_xxh64(char const* buffer, size_t len) { return xxh64({buffer, len}); }
+	export u64 operator""_xxh64(const char* buffer, size_t len) { return xxh64({buffer, len}); }
 
 	// ##########################
 
 	export class xxhash64_hasher
 	{
-		static constexpr u64 prime1 = 0x9E37'79B1'85EB'CA87ULL;
-		static constexpr u64 prime2 = 0xC2B2'AE3D'27D4'EB4FULL;
-		static constexpr u64 prime3 = 0x1656'67B1'9E37'79F9ULL;
-		static constexpr u64 prime4 = 0x85EB'CA77'C2B2'AE63ULL;
-		static constexpr u64 prime5 = 0x27D4'EB2F'1656'67C5ULL;
+		static constexpr u64 prime1 = 0x9E37'79B1'85EB'CA87ull;
+		static constexpr u64 prime2 = 0xC2B2'AE3D'27D4'EB4Full;
+		static constexpr u64 prime3 = 0x1656'67B1'9E37'79F9ull;
+		static constexpr u64 prime4 = 0x85EB'CA77'C2B2'AE63ull;
+		static constexpr u64 prime5 = 0x27D4'EB2F'1656'67C5ull;
 
 		std::array<u64, 4> state_{prime1 + prime2, prime2, 0, static_cast<u64>(-static_cast<i64>(prime1))};
 		std::array<u8, 32> buffer_{};
@@ -658,8 +704,8 @@ namespace deckard::utils
 
 			if (total_len_ >= 32)
 			{
-				hash =
-				  std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12) + std::rotl(state_[3], 18);
+				hash = std::rotl(state_[0], 1) + std::rotl(state_[1], 7) + std::rotl(state_[2], 12)
+					   + std::rotl(state_[3], 18);
 
 				for (u64 acc : state_)
 				{
@@ -769,7 +815,8 @@ namespace deckard::utils
 	namespace wyhash_detail
 	{
 		// portable 64x64->128 multiply, returning {low, high}
-		[[nodiscard]] inline std::pair<u64, u64> mul128(u64 a, u64 b) noexcept {
+		[[nodiscard]] inline std::pair<u64, u64> mul128(u64 a, u64 b) noexcept
+		{
 #if defined(_MSC_VER) && defined(_M_X64)
 			u64 hi{};
 			u64 lo = _umul128(a, b, &hi);
@@ -790,7 +837,6 @@ namespace deckard::utils
 			return {lo, hi};
 #endif
 		}
-
 
 		// 64x64->128 multiply-and-xor-fold ("MUM")
 		[[nodiscard]] inline u64 mix(u64 a, u64 b) noexcept
@@ -822,19 +868,17 @@ namespace deckard::utils
 		{
 			return (static_cast<u64>(p[0]) << 16) | (static_cast<u64>(p[len >> 1]) << 8) | p[len - 1];
 		}
-	} // namespace detail
-
-
+	} // namespace wyhash_detail
 
 	constexpr std::array<u64, 4> default_secret{
-	  0x2d35'8dcc'aa6c'78a5ull,
-	  0x8bb8'4b93'962e'acc9ull,
-	  0x4b33'a62e'd433'd4a3ull,
-	  0x4d5a'2da5'1de1'aa47ull,
+	  0x2D35'8DCC'AA6C'78A5ull,
+	  0x8BB8'4B93'962E'ACC9ull,
+	  0x4B33'A62E'D433'D4A3ull,
+	  0x4D5A'2DA5'1DE1'AA47ull,
 	};
 
-	export [[nodiscard]] u64
-	wyhash(std::span<const u8> data, u64 seed = 0, const std::array<u64, 4>& secret = default_secret) noexcept
+	export [[nodiscard]] u64 wyhash(
+	  std::span<const u8> data, u64 seed = 0, const std::array<u64, 4>& secret = default_secret) noexcept
 	{
 		using namespace wyhash_detail;
 
@@ -915,10 +959,17 @@ namespace deckard::utils
 	// ########################################################
 
 
-	export u64 hash(std::string_view str, u64 seed=0) { return wyhash(str, seed); }
+	export u64 hash(std::string_view str, u64 seed = 0) { return wyhash(str, seed); }
 
-	export u64 hash(std::span<const u8> buffer, u64 seed=0) { return wyhash(buffer, seed); }
+	export u64 hash(std::span<const u8> buffer, u64 seed = 0) { return wyhash(buffer, seed); }
 
+	// ########################################################
+
+
+	[[nodiscard]] consteval u64 lineseed(std::source_location loc = std::source_location::current()) noexcept
+	{
+		return fnv1a_64(constant_seed) ^ fnv1a_64(loc.file_name()) ^ (u64{loc.line()} << 32) ^ u64 { loc.column() };
+	}
 
 
 } // namespace deckard::utils
