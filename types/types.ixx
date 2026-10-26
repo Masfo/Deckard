@@ -118,6 +118,10 @@ export namespace deckard
 
 
 	template<typename T>
+	concept hashable = requires(const T& v) { std::hash<T>{}(v); };
+
+
+	template<typename T>
 	concept arithmetic = std::is_arithmetic_v<T>;
 
 	template<typename T>
@@ -164,6 +168,7 @@ export namespace deckard
 		template<>
 		constexpr i64 max<bool> = 1;
 
+		// bits_to_unsigned_max(8) == 0b11111111, 255, 0xFF
 		template<std::unsigned_integral T = u64>
 		constexpr T bits_to_unsigned_max(u32 n)
 		{
@@ -172,15 +177,18 @@ export namespace deckard
 			return (1 << n) - 1;
 		}
 
+
+		// bits_to_signed_max(8) == 0b01111111, 127, 0x7F
 		template<std::signed_integral T = i64>
 		constexpr T bits_to_signed_max(u32 n)
 		{
 			if (n >= 64)
-				return std::numeric_limits<T>::min();
+				return std::numeric_limits<T>::max();
 
 			return (1 << (n - 1)) - 1;
 		}
 
+		// bits_to_signed_min(8) == 0b10000000, -128, 0x80
 		template<std::signed_integral T = i64>
 		constexpr T bits_to_signed_min(u32 n)
 		{

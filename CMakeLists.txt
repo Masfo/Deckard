@@ -11,15 +11,15 @@ option(DECKARD_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_BUILD_TOOLS "Build tools" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
 
-#find_program(SCCACHE sccache REQUIRED)
-#if(SCCACHE)
-#set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE})
-#set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE})
-#set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
-#cmake_policy(SET CMP0141 NEW)
-#else()
-#	message(STATUS "sccache not found — building without compiler cache")
-#endif()
+# find_program(SCCACHE sccache REQUIRED)
+# if(SCCACHE)
+# set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE})
+# set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE})
+# set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+# cmake_policy(SET CMP0141 NEW)
+# else()
+# 	message(STATUS "sccache not found — building without compiler cache")
+# endif()
 
 
 
@@ -298,9 +298,13 @@ set(DECKARD_MODULES
 		app/window.ixx
 		app/renderer.ixx
 
+
 		# Vulkan
 		app/vulkan.ixx
 		app/vulkan/shaders.ixx
+		app/vulkan/common.ixx
+		app/vulkan/mesh.ixx
+		app/vulkan/light.ixx
 		
 
 		# Types
@@ -337,8 +341,7 @@ set(DECKARD_MODULES
 		# $<$<PLATFORM_ID:Windows>:platform/DTE.ixx>
 
 
-		#std.ixx
-  )
+ )
 
   set(DECKARD_MODULES_IMPL
 

@@ -1,6 +1,6 @@
 
 
-cmake_minimum_required (VERSION 3.30)
+cmake_minimum_required (VERSION 4.4)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -41,7 +41,7 @@ if(MSVC)
     target_compile_definitions(utftables PRIVATE WIN32_LEAN_AND_MEAN)
     target_compile_definitions(utftables PRIVATE WIN32_EXTRA_LEAN)
     
-    target_compile_options(utftables PRIVATE /Zc:preprocessor)
+    target_compile_options(utftables PRIVATE /Zc:preprocessor /Zc:cmath)
     target_compile_options(utftables PRIVATE /permissive-)
     target_compile_options(utftables PRIVATE /std:c++latest)
     target_compile_options(utftables PRIVATE /Zc:__cplusplus)

@@ -7,9 +7,10 @@ import deckard.utf8;
 import deckard.utils.hash;
 import deckard.debug;
 import deckard.helpers;
-
+import deckard.file;
 namespace deckard::json
 {
+	namespace fs = std::filesystem;
 
 	export class value;
 
@@ -234,6 +235,13 @@ namespace deckard::json
 		parser() = default;
 
 		friend auto operator==(const parser& lhs, const parser& rhs) noexcept -> bool { return lhs.data == rhs.data; }
+
+		parser(std::span<const u8> buffer)
+			: data(buffer)
+			, scanner(buffer)
+		{
+		}
+
 
 		parser(utf8::view v)
 			: data(v)
@@ -491,6 +499,20 @@ namespace deckard::json
 			return value{nullptr};
 		}
 	};
+
+
+	export auto load(utf8::view v) -> std::expected<value, std::string>
+	{
+		parser p;
+		return p.parse(v);
+	}
+
+	export auto load(fs::path path) -> std::expected<value, std::string>
+	{
+		utf8::string content = file::read_text_file_as_utf8(path);
+		parser p;
+		return  p.parse(content);
+	}
 
 
 } // namespace deckard::json
