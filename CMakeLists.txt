@@ -29,7 +29,7 @@ set_target_properties(deckard PROPERTIES
 	CXX_STANDARD 23
 	CXX_STANDARD_REQUIRED ON
 	CXX_EXTENSIONS OFF
-	CXX_SCAN_FOR_MODULES ON
+	#CXX_SCAN_FOR_MODULES ON
 	RUNTIME_OUTPUT_DIRECTORY                ${CMAKE_SOURCE_DIR}/bin
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG          ${CMAKE_SOURCE_DIR}/bin
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE        ${CMAKE_SOURCE_DIR}/bin
@@ -348,7 +348,7 @@ set(DECKARD_MODULES
 		$<$<PLATFORM_ID:Windows>:platform/win32.ixx>
 		# $<$<PLATFORM_ID:Windows>:platform/DTE.ixx>
 
-		std.ixx
+		#std.ixx
 
 
   "spatial/hashgrid.ixx")
