@@ -29,7 +29,7 @@
 - CMake project targeting Windows (Win32 APIs used) with Ninja generator.
 - Use C++23 and C++26 where available; keep code compatible with MSVC.
 - Prefer standard library facilities; avoid adding new external dependencies.
-- Do not attempt to build or run CMake builds in this workspace; the build environment cannot be completed by the agent and doing so wastes tokens. Stick to source edits, diagnostics, and instructions.
+## Do not attempt to build or run CMake builds in this workspace; the build environment cannot be completed by the agent and doing so wastes tokens. Stick to source edits, diagnostics, and instructions.
 
 ## Tests
 - 

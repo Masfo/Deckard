@@ -140,6 +140,14 @@ if(MSVC)
 
 endif()
 
+	set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+	configure_file(	
+			$ENV{VCToolsInstallDir}modules/std.ixx
+			${CMAKE_CURRENT_LIST_DIR}/std.ixx
+			COPYONLY
+	)
+	set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+
 # Vulkan
 find_package(Vulkan REQUIRED)
 #find_package(VulkanMemoryAllocator CONFIG REQUIRED)
@@ -340,8 +348,10 @@ set(DECKARD_MODULES
 		$<$<PLATFORM_ID:Windows>:platform/win32.ixx>
 		# $<$<PLATFORM_ID:Windows>:platform/DTE.ixx>
 
+		std.ixx
 
- )
+
+  "spatial/hashgrid.ixx")
 
   set(DECKARD_MODULES_IMPL
 
