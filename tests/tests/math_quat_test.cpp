@@ -144,7 +144,7 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK(norm == quat(0.6213291f, -0.6475016f, 0.07375692f, 0.4350308f));
 	}
 
-	SECTION("normalize degenenate")
+	SECTION("normalize degenerate")
 	{
 		quat degen(0.0f, 0.0f, 0.0f, 0.0f);
 		quat norm = normalize(degen);
@@ -244,7 +244,6 @@ TEST_CASE("quatertion", "[quaternion]")
 		CHECK(result == qresult);
 	}
 
-
 	SECTION("from rotation mat4")
 	{
 		vec3 v(1.0f, 2.0f, 3.0f);
@@ -305,5 +304,65 @@ TEST_CASE("quatertion", "[quaternion]")
 		std::string f = std::format("{}", q);
 
 		CHECK(f == "quat(0.43595, -0.71829, 0.31062, 0.44444)"s);
+	}
+}
+
+TEST_CASE("quat::to_mat4 uses the mat4 column convention", "[quaternion][matrix]")
+{
+	using namespace deckard::quaternion;
+	using namespace deckard::vec;
+	using namespace deckard::matrix;
+
+	const quat q(vec3(1.0f, 2.0f, 3.0f));
+	const mat4 m = q.to_mat4();
+
+	const vec3 points[] = {vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f),
+						   vec3(0.3f, -2.0f, 7.5f)};
+
+	SECTION("mat4 * vec4 is the same rotation as quat * vec3")
+	{
+		for (const vec3& p : points)
+		{
+			CHECK((m * vec4(p, 0.0f)).xyz() == q * p);
+		}
+	}
+
+	SECTION("vec4 * mat4 is the transpose, i.e. the inverse rotation")
+	{
+		for (const vec3& p : points)
+		{
+			CHECK((vec4(p, 0.0f) * m).xyz() == conjugate(q) * p);
+		}
+	}
+
+	SECTION("elements are columns")
+	{
+		CHECK(math::is_close_enough(m[0, 0], 0.411982f, 1e-5f));
+		CHECK(math::is_close_enough(m[1, 0], -0.0587267f, 1e-5f)); // row 1, col 0
+		CHECK(math::is_close_enough(m[0, 1], -0.833738f, 1e-5f));  // row 0, col 1
+
+		CHECK(m[3] == vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		CHECK(m[0].w == 0.0f);
+		CHECK(m[1].w == 0.0f);
+		CHECK(m[2].w == 0.0f);
+	}
+
+	SECTION("composition and round trip")
+	{
+		CHECK((q * q).to_mat4() == m * m);
+
+		const quat back = quat::from_mat4(m);
+
+		CHECK(back.equals(q));
+		CHECK(quat(m).equals(q));
+		CHECK((back * vec3(0.3f, -2.0f, 7.5f)) == q * vec3(0.3f, -2.0f, 7.5f));
+	}
+
+	SECTION("translation is in element 3, as translate() assumes")
+	{
+		const mat4 t = mat4{}.translate(vec3(5.0f, 6.0f, 7.0f));
+
+		CHECK(t[3] == vec4(5.0f, 6.0f, 7.0f, 1.0f));
+		CHECK((t * vec4(1.0f, 2.0f, 3.0f, 1.0f)).xyz() == vec3(6.0f, 8.0f, 10.0f));
 	}
 }

@@ -25,7 +25,6 @@ export inline constexpr sink_t _;
 
 export namespace deckard
 {
-
 	using u8  = std::uint8_t;
 	using i8  = std::int8_t;
 	using u16 = std::uint16_t;
@@ -176,7 +175,6 @@ export namespace deckard
 				return std::numeric_limits<T>::max();
 			return (1 << n) - 1;
 		}
-
 
 		// bits_to_signed_max(8) == 0b01111111, 127, 0x7F
 		template<std::signed_integral T = i64>

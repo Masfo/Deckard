@@ -39,6 +39,9 @@
 
 	<File Name="win32.ixx"/>
 
+
+
+
 	<File Name="zstd.ixx"/>
 	<File Name="smallbufferobject.ixx"/>
 
@@ -58,7 +61,6 @@
 
 
 	<!-- Externals -->
-	<File Name="sqlite3.c"/>
 	<File Name="catch_*.*"/>
 	<File Name="monocypher*.*"/>
 

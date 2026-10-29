@@ -151,7 +151,11 @@ namespace deckard::vec
 
 		constexpr operator generic_vec3<T>() const { return generic_vec3<T>(x, y, z); }
 
-		constexpr type operator[](size_t index)
+		[[nodiscard]] constexpr generic_vec3<T> xyz() const { return generic_vec3<T>(x, y, z); }
+
+
+
+		constexpr type& operator[](size_t index)
 		{
 			switch (index)
 			{
@@ -159,7 +163,7 @@ namespace deckard::vec
 				case 1: return y;
 				case 2: return z;
 				case 3: return w;
-				default: assert::check(false, "generic_vec4: index out of bounds"); return T{0};
+				default: assert::check(false, "generic_vec4: index out of bounds"); return x;
 			}
 		}
 

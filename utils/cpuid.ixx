@@ -2,15 +2,17 @@ module;
 #include <Windows.h>
 #include <intrin.h>
 
-extern "C" bool deckard_has_cpuid(); // cpuid.asm
-
 export module deckard.cpuid;
+
 
 import std;
 import deckard.types;
 import deckard.helpers;
 import deckard.as;
 import deckard.platform;
+
+
+extern "C" bool has_cpuid(); // cpuid.asm
 
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
@@ -131,7 +133,8 @@ namespace deckard::cpuid
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	export bool has_cpuid() { return ::deckard_has_cpuid(); }
+
+	export bool has_cpuid() { return ::has_cpuid(); }
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{

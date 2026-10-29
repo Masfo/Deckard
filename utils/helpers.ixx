@@ -39,8 +39,8 @@ export namespace deckard
 			finish = end;
 		}
 
-		return std::ranges::views::iota(start, finish) | std::ranges::views::stride(stepsize) |
-			   std::ranges::views::transform(
+		return std::ranges::views::iota(start, finish) | std::ranges::views::stride(stepsize)
+			   | std::ranges::views::transform(
 				 [begin, start, descending](auto i) { return descending ? (begin - (i - start)) : i; });
 	};
 
@@ -142,22 +142,18 @@ export namespace deckard
 
 	constexpr bool test_bit(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-
 	export template<u64 Alignment>
 	[[nodiscard]] bool is_pointer_aligned(const void* ptr)
 	{
 		static_assert(std::has_single_bit(Alignment), "Alignment must be power of two");
-		return (reinterpret_cast<std::uintptr_t>(ptr) & (Alignment-1)) == 0;
+		return (reinterpret_cast<std::uintptr_t>(ptr) & (Alignment - 1)) == 0;
 	}
 
 	export template<pointer T>
-	[[nodiscard]]constexpr bool is_pointer_aligned(const T ptr, u64 alignment)
+	[[nodiscard]] constexpr bool is_pointer_aligned(const T ptr, u64 alignment)
 	{
-		return std::has_single_bit(alignment) and (reinterpret_cast<std::uintptr_t>(ptr) & (alignment -1)) == 0;
+		return std::has_single_bit(alignment) and (reinterpret_cast<std::uintptr_t>(ptr) & (alignment - 1)) == 0;
 	}
-
-
-
 
 	export template<std::integral T>
 	constexpr T read_le(std::span<const u8> buffer, u64 offset = 0)
@@ -221,42 +217,41 @@ export namespace deckard
 		return std::vector<u8>(byte_view.begin(), byte_view.end());
 	}
 
-
 	//
 
 	template<typename T>
 	concept ByteReinterpretable = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
 
 	export template<ByteReinterpretable T>
-	[[nodiscard]] auto as_byte_span(T const& obj) noexcept -> std::span<const std::byte>
+	[[nodiscard]] auto as_byte_span(const T& obj) noexcept -> std::span<const std::byte>
 	{
-		return {reinterpret_cast<std::byte const*>(std::addressof(obj)), sizeof(T)};
+		return {reinterpret_cast<const std::byte*>(std::addressof(obj)), sizeof(T)};
 	}
 
 	// For structs/trivial types: view the raw bytes (same as as_byte_span, alias for clarity)
 	export template<ByteReinterpretable T>
-	[[nodiscard]] auto as_byte_span_be(T const& obj) noexcept -> std::span<const std::byte>
+	[[nodiscard]] auto as_byte_span_be(const T& obj) noexcept -> std::span<const std::byte>
 	{
-		return {reinterpret_cast<std::byte const*>(std::addressof(obj)), sizeof(T)};
+		return {reinterpret_cast<const std::byte*>(std::addressof(obj)), sizeof(T)};
 	}
 
 	// For arithmetic types: view a pre-computed big-endian array as a span
 	export template<arithmetic T>
 	requires(not std::same_as<T, bool>)
-	[[nodiscard]] constexpr auto as_byte_span_be(std::array<std::byte, sizeof(T)> const& be_arr) noexcept
+	[[nodiscard]] constexpr auto as_byte_span_be(const std::array<std::byte, sizeof(T)>& be_arr) noexcept
 	  -> std::span<const std::byte>
 	{
 		return {be_arr.data(), be_arr.size()};
 	}
 
 	export template<ByteReinterpretable T>
-	[[nodiscard]] constexpr auto to_byte_array(T const& obj) noexcept -> std::array<std::byte, sizeof(T)>
+	[[nodiscard]] constexpr auto to_byte_array(const T& obj) noexcept -> std::array<std::byte, sizeof(T)>
 	{
 		return std::bit_cast<std::array<std::byte, sizeof(T)>>(obj);
 	}
 
 	export template<ByteReinterpretable T>
-	[[nodiscard]] constexpr auto from_byte_array(std::array<std::byte, sizeof(T)> const& arr) noexcept -> T
+	[[nodiscard]] constexpr auto from_byte_array(const std::array<std::byte, sizeof(T)>& arr) noexcept -> T
 	{
 		return std::bit_cast<T>(arr);
 	}
@@ -713,8 +708,8 @@ export namespace deckard
 
 	// make_array
 	template<class... Ts>
-	constexpr std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>
-	make_array(Ts&&... ts)
+	constexpr std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)> make_array(
+	  Ts&&... ts)
 	{
 		return std::array<typename std::decay<typename std::common_type<Ts...>::type>::type, sizeof...(Ts)>{
 		  std::forward<Ts>(ts)...};
@@ -1291,7 +1286,7 @@ export namespace deckard
 	}
 
 	template<arithmetic T>
-	auto to_number(T input, int [[maybe_unused]] base = 10) -> std::optional<std::string>
+	auto to_number(T input, [[maybe_unused]] int base = 10) -> std::optional<std::string>
 	{
 		if (auto result = try_to_number<i64>(std::to_string(input), base); result.has_value())
 			return std::to_string(*result);
@@ -1300,7 +1295,7 @@ export namespace deckard
 	}
 
 	template<arithmetic T = i32>
-	auto to_number(std::string_view input, int [[maybe_unused]] base = 10) -> T
+	auto to_number(std::string_view input, [[maybe_unused]] int base = 10) -> T
 	{
 		if (input.empty())
 			return T{0};
@@ -1642,11 +1637,11 @@ export namespace deckard
 		  999'999'999'999,
 		  9'999'999'999'999,
 		  99'999'999'999'999,
-		  999'999'999'999'999ULL,
-		  9'999'999'999'999'999ULL,
-		  99'999'999'999'999'999ULL,
-		  999'999'999'999'999'999ULL,
-		  9'999'999'999'999'999'999ULL};
+		  999'999'999'999'999ull,
+		  9'999'999'999'999'999ull,
+		  99'999'999'999'999'999ull,
+		  999'999'999'999'999'999ull,
+		  9'999'999'999'999'999'999ull};
 
 		size_t y = (19 * int_log2(v) >> 6);
 		y += v > table[y];
@@ -1705,7 +1700,8 @@ export namespace deckard
 		{
 			if (unit == 0)
 			{
-				ret += std::format("{}{} byte{}", (ret.empty() ? "" : ", "), bytes, bytes > 1 ? "s" : "");
+				if (bytes > 0)
+					ret += std::format("{}{} byte{}", (ret.empty() ? "" : ", "), bytes, bytes > 1 ? "s" : "");
 				return;
 			}
 

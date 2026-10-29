@@ -1250,3 +1250,37 @@ TEST_CASE("vec4 benchmark", "[vec][benchmark]")
 	CHECK(gen_result[3] == sse_result[3]);
 #endif
 }
+
+TEST_CASE("vec4 swizzle", "[vec][vec4][swizzle][math]")
+{
+	using namespace deckard::vec;
+
+	const vec4 v(1.0f, 2.0f, 3.0f, 4.0f);
+
+	SECTION("xyz drops w")
+	{
+		const vec3 s = v.xyz();
+
+		CHECK(s.x == 1.0f);
+		CHECK(s.y == 2.0f);
+		CHECK(s.z == 3.0f);
+
+		CHECK(s == vec3(1.0f, 2.0f, 3.0f));
+	}
+
+	SECTION("returns a copy")
+	{
+		vec4       src(1.0f, 2.0f, 3.0f, 4.0f);
+		vec3       dst = src.xyz();
+		dst.x          = 9.0f;
+
+		CHECK(src.x == 1.0f);
+	}
+
+	SECTION("is constexpr")
+	{
+		static_assert(vec4(1.0f, 2.0f, 3.0f, 4.0f).xyz() == vec3(1.0f, 2.0f, 3.0f));
+
+		CHECK(vec4(1.0f, 2.0f, 3.0f, 4.0f).xyz().z == 3.0f);
+	}
+}

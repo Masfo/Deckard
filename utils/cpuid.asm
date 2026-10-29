@@ -1,6 +1,6 @@
 .code
 
-deckard_has_cpuid PROC PUBLIC
+has_cpuid PROC PUBLIC
 	push rbx
 	pushfq
 	pop rax
@@ -19,6 +19,6 @@ not_supported:
 exit:
 	pop rbx
 	ret
-deckard_has_cpuid ENDP
+has_cpuid ENDP
 
 END

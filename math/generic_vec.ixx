@@ -37,6 +37,25 @@ export namespace deckard::vec
 	static_assert(sizeof(vec3) == 3 * sizeof(f32));
 	static_assert(sizeof(vec4) == 4 * sizeof(f32));
 
+	template<typename T>
+	auto sum(const generic_vec2<T>& v)
+	{
+		return v.x + v.y;
+	}
+
+	template<typename T>
+	auto sum(const generic_vec3<T>& v)
+	{
+		return v.x + v.y + v.z;
+	}
+
+	template<typename T>
+	auto product(const generic_vec3<T>& v)
+	{
+		return v.x * v.y * v.z;
+	}
+
+
 	template<std::integral T, std::integral U>
 	constexpr T from_2d_to_index(const generic_vec2<T>& v, U width)
 	{

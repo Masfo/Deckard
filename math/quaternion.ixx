@@ -30,7 +30,7 @@ namespace deckard::quaternion
 		friend quat cross(const quat& q1, const quat& q2) noexcept;
 		friend quat conjugate(const quat& q) noexcept;
 		friend quat slerp(const quat& p, const quat& q, f32 t) noexcept;
-		friend quat mix(const quat& x, const quat& y, f32 t) noexcept;
+		friend quat nlerp(const quat& x, const quat& y, f32 t) noexcept;
 		friend vec3 operator*(const quat& q, const vec3& v) noexcept;
 		friend quat normalize(const quat& q) noexcept;
 
@@ -60,7 +60,8 @@ namespace deckard::quaternion
 			data.z = v.z;
 		}
 
-		quat(const vec3& v)
+		// x = pitch, y = yaw, z = roll
+		explicit quat(const vec3& v)
 		{
 			const vec3 half = v * 0.5f;
 			vec3       c    = cos(half);
@@ -73,11 +74,20 @@ namespace deckard::quaternion
 			data.z = c.x * c.y * s.z - s.x * s.y * c.z;
 		}
 
-		quat(const mat4& m) { *this = from_mat4(m); }
+		// expects the upper-left 3x3 to be a rotation: a scale must be baked out by the caller
+		// (from_mat4 is trace based, so it cannot separate scale from rotation). normalize()
+		// only guarantees |q| == 1, because every rotation path here assumes a unit quaternion.
+		quat(const mat4& m) { *this = normalize(from_mat4(m)); }
 
 		quat operator-() const noexcept { return quat(-data.w, -data.x, -data.y, -data.z); }
 
 		quat operator+() const noexcept { return *this; }
+
+		//auto operator[](size_t index) noexcept -> f32&
+		//{
+		//	assert::check(index < 4, "out-of-bounds, quat has 4 elements");
+		//	return data[index];
+		//}
 
 		auto operator[](size_t index) const noexcept -> f32
 		{
@@ -93,11 +103,18 @@ namespace deckard::quaternion
 
 		f32 z() const noexcept { return data.z; }
 
-		bool equals(const quat& lhs, f32 epsilon = quat_epsilon) const noexcept
+		bool compare(const quat& other, f32 epsilon = quat_epsilon) const noexcept
 		{
-			return math::is_close_enough(data.w, lhs.data.w, epsilon) and math::is_close_enough(data.x, lhs.data.x, epsilon)
-				   and math::is_close_enough(data.y, lhs.data.y, epsilon)
-				   and math::is_close_enough(data.z, lhs.data.z, epsilon);
+			return math::is_close_enough(data.w, other.data.w, epsilon) and math::is_close_enough(data.x, other.data.x, epsilon)
+				   and math::is_close_enough(data.y, other.data.y, epsilon)
+				   and math::is_close_enough(data.z, other.data.z, epsilon);
+		}
+
+		// quaternions are a double cover: q and -q are the same rotation, and conversions
+		// (from_mat4, slerp, ...) may return either. compare() compares components instead.
+		[[nodiscard]] bool equals(const quat& other, f32 epsilon = quat_epsilon) const noexcept
+		{
+			return compare(other, epsilon) or compare(-other, epsilon);
 		}
 
 		quat operator+(const quat& other) const noexcept
@@ -315,14 +332,14 @@ namespace deckard::quaternion
 		const f32 len_sq = q.data.w * q.data.w + q.data.x * q.data.x + q.data.y * q.data.y + q.data.z * q.data.z;
 
 		if (not(len_sq > deckard::math::default_epsilon<f32>))
-			return quat(1.0f, 0.0f, 0.0f, 0.0f);
+			return quat{};
 
 		const f32 inv_len = 1.0f / std::sqrt(len_sq);
 
 		return q * inv_len;
 	}
 
-	export quat rotate(const quat& q, const f32 radians, const vec3& v)
+	export quat rotate(const quat& q, const f32 radians, const vec3& v) noexcept
 	{
 		auto tmp = v.normalized();
 
@@ -330,29 +347,30 @@ namespace deckard::quaternion
 		return q * quat(std::cos(radians * 0.5f), tmp.x * s, tmp.y * s, tmp.z * s);
 	}
 
-	export quat rotate_x(const quat& q, f32 radians)
+	export quat rotate_x(const quat& q, f32 radians) noexcept
 	{
 
-		const float half     = radians * 0.5f;
+		const f32 half     = radians * 0.5f;
 		quat        rotation = quat(std::cos(half), std::sin(half), 0.0f, 0.0f);
 		return q * rotation;
 	}
 
-	export quat rotate_y(const quat& q, f32 radians)
+	export quat rotate_y(const quat& q, f32 radians) noexcept
 	{
-		const float half     = radians * 0.5f;
+		const f32 half     = radians * 0.5f;
 		quat        rotation = quat(std::cos(half), 0.0f, std::sin(half), 0.0f);
 		return q * rotation;
 	}
 
-	export quat rotate_z(const quat& q, f32 radians)
+	export quat rotate_z(const quat& q, f32 radians) noexcept
 	{
-		const float half     = radians * 0.5f;
+		const f32 half     = radians * 0.5f;
 		quat        rotation = quat(std::cos(half), 0.0f, 0.0f, std::sin(half));
 		return q * rotation;
 	}
 
-	export quat mix(const quat& x, const quat& y, f32 t) noexcept
+	// normalized lerp
+	export quat nlerp(const quat& x, const quat& y, f32 t) noexcept
 	{
 		f32 theta = dot(x, y);
 
@@ -377,7 +395,8 @@ namespace deckard::quaternion
 		return (std::sin((1.0f - t) * angle) * x + std::sin(t * angle) * to) / std::sin(angle);
 	}
 
-	export quat lerp(const quat& x, const quat& y, f32 t)
+	// unnormalized lerp
+	export quat lerp(const quat& x, const quat& y, f32 t) noexcept
 	{
 		assert::check(t >= 0.0f);
 		assert::check(t <= 1.0f);

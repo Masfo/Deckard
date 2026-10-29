@@ -352,10 +352,10 @@ if constexpr (is_debug_build){
 
 		hash_type hash(u64 seed = 0) const
 		{
-			hash_combine(seed, m_extent.width, m_extent.height);
+			seed = hash_combine(seed, m_extent.width, m_extent.height);
 
 			for (const auto& i : m_data)
-				hash_combine(seed, i);
+				seed = hash_combine(seed, i);
 
 			return seed;
 		}

@@ -244,6 +244,13 @@ TEST_CASE("matrix4 generic", "[matrix4]")
 		CHECK(identity == mat4::identity());
 	}
 
+	SECTION("column-major")
+	{ 
+		mat4 m{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		bool column_major = m[0, 1] == 5.0f;
+		REQUIRE(column_major);
+	}
+
 	SECTION("fill constructor")
 	{
 		mat4 filled = mat4::filled(0.0f);
