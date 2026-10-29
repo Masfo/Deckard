@@ -40,6 +40,9 @@ export namespace deckard
 	using usize  = std::uintptr_t;
 	using isize  = std::intptr_t;
 
+	static_assert(sizeof(usize) == sizeof(void*), "usize as pointer-sized integer");
+	static_assert(sizeof(isize) == sizeof(void*), "isize as pointer-sized integer");
+
 	using f32 = float;
 	using f64 = double;
 
