@@ -2,6 +2,8 @@ module;
 #include <Windows.h>
 #include <intrin.h>
 
+extern "C" bool deckard_has_cpuid(); // cpuid.asm
+
 export module deckard.cpuid;
 
 import std;
@@ -129,7 +131,7 @@ namespace deckard::cpuid
 
 	constexpr bool is_bit_set(u64 value, u32 bitindex) { return ((value >> bitindex) & 1) ? true : false; }
 
-	extern "C" bool has_cpuid(); // cpuid.asm
+	export bool has_cpuid() { return ::deckard_has_cpuid(); }
 
 	export auto cpuid(int id) -> std::array<u32, 4>
 	{

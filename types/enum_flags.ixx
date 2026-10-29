@@ -1,3 +1,6 @@
+module;
+#include <version>
+
 export module deckard.enums;
 
 import std;

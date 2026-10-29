@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 4.4)
 
 
-project(deckard LANGUAGES CXX)
+project(deckard LANGUAGES CXX ASM_MASM)
 
 
 add_library(deckard STATIC)
@@ -64,7 +64,7 @@ if(MSVC)
 	
 	# Global compile options for MSVC
 	target_compile_options(deckard PRIVATE 
-		
+		$<$<COMPILE_LANGUAGE:CXX>:
 			/nologo
 			/std:c++latest 
 			/Zc:preprocessor 
@@ -76,7 +76,8 @@ if(MSVC)
 			/FS
 			/diagnostics:caret
 			/MP
-		
+		>
+		$<$<COMPILE_LANGUAGE:ASM_MASM>:/nologo>
 	)
 
 
