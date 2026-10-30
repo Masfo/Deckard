@@ -29,7 +29,7 @@ set_target_properties(deckard PROPERTIES
 	CXX_STANDARD 23
 	CXX_STANDARD_REQUIRED ON
 	CXX_EXTENSIONS OFF
-	#CXX_SCAN_FOR_MODULES ON
+	CXX_SCAN_FOR_MODULES ON
 	RUNTIME_OUTPUT_DIRECTORY                ${CMAKE_SOURCE_DIR}/bin
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG          ${CMAKE_SOURCE_DIR}/bin
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE        ${CMAKE_SOURCE_DIR}/bin
@@ -120,7 +120,7 @@ if(MSVC)
 			MSVC_RUNTIME_LIBRARY "MultiThreadedDebug"
 		)
 		target_compile_definitions(deckard PRIVATE DEBUG)
-		target_link_options(deckard PRIVATE /INCREMENTAL /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
+		target_link_options(deckard PRIVATE /DEBUG /INCREMENTAL /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/deckard.ilk)
 	endif()
 	
 	# Release
@@ -141,13 +141,6 @@ if(MSVC)
 
 endif()
 
-	set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
-	configure_file(	
-			$ENV{VCToolsInstallDir}modules/std.ixx
-			${CMAKE_CURRENT_LIST_DIR}/std.ixx
-			COPYONLY
-	)
-	set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
 # Vulkan
 find_package(Vulkan REQUIRED)
@@ -215,7 +208,7 @@ set(DECKARD_MODULES
 
 		# Spatial
 		spatial/spatial.ixx
-
+		spatial/hashgrid.ixx
 		spatial/octree.ixx
 		spatial/quadtree.ixx
 
@@ -352,7 +345,7 @@ set(DECKARD_MODULES
 		#std.ixx
 
 
-  "spatial/hashgrid.ixx")
+)
 
   set(DECKARD_MODULES_IMPL
 

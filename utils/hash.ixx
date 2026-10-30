@@ -127,7 +127,13 @@ namespace deckard::utils
 		}
 
 		template<typename T>
-		[[nodiscard]] constexpr u64 to_u64(const T& v)
+		concept is_system_time_point = requires {
+			typename T::duration;
+			requires std::same_as<T, std::chrono::time_point<std::chrono::system_clock, typename T::duration>>;
+		};
+
+		template<typename T>
+		[[nodiscard]] constexpr u64 to_u64(const T& v) noexcept
 		{
 			if constexpr (std::is_enum_v<T>)
 				return to_u64(std::to_underlying(v));
@@ -144,10 +150,19 @@ namespace deckard::utils
 				else
 					return to_u64(static_cast<double>(v)); // long double, float16, ...
 			}
-			else if constexpr (std::is_same_v<T, std::string_view>)
+			else if constexpr (std::is_convertible_v<const T&, std::string_view>)
 				return fnv1a_64(v);
 			else if constexpr (std::is_same_v<T, std::span<const u8>>)
 				return fnv1a_64(v);
+			else if constexpr (std::is_same_v<T, std::chrono::year_month_day>)
+			{
+				const u32 y = static_cast<u32>(static_cast<int>(v.year()) + 32768);
+				const u32 m = static_cast<unsigned>(v.month());
+				const u32 d = static_cast<unsigned>(v.day());
+				return (static_cast<u64>(y) << 32) | (static_cast<u64>(m) << 16) | static_cast<u64>(d);
+			}
+			else if constexpr (is_system_time_point<T>)
+				return mix(static_cast<u64>(v.time_since_epoch().count()));
 			else
 			{
 				static_assert(hashable<T>, "hash_combine: type is not hashable");
@@ -164,6 +179,11 @@ namespace deckard::utils
 		return seed;
 	}
 
+	export template<typename... Ts>
+	[[nodiscard]] constexpr u64 hash_combine(const Ts&... vs)
+	{
+		return hash_combine(constant_seed, vs...);
+	}
 
 	static_assert(hash_combine(0, 1, 2) != hash_combine(0, 2, 1));  // ordering
 	static_assert(hash_combine(0, 0) != hash_combine(0, 0, 0));     // trailing zeros
@@ -172,8 +192,8 @@ namespace deckard::utils
 	static_assert(hash_combine(0, std::span<const u8>{}) == hash_combine(0, std::span<const u8>{}));
 	static_assert(hash_combine(0, "hello"sv) == hash_combine(0, "hello"sv));
 
-	constexpr std::array<u8, 2> hash_test_a{1,2};
-	constexpr std::array<u8, 2> hash_test_b{2,1};
+	constexpr std::array<u8, 2> hash_test_a{1, 2};
+	constexpr std::array<u8, 2> hash_test_b{2, 1};
 	static_assert(hash_combine(0, std::span<const u8>{hash_test_a}) != hash_combine(0, std::span<const u8>{hash_test_b}));
 	static_assert(hash_combine(0, std::span<const u8>{hash_test_a}) == hash_combine(0, std::span<const u8>{hash_test_a}));
 
@@ -215,7 +235,6 @@ namespace deckard::utils
 	export constexpr u64 hash_values(std::string_view str) { return hash_values(to_span(str)); }
 
 	export constexpr u64 hash_values(const std::string& str) { return hash_values(to_span(str)); }
-
 
 	// ########################################################################
 	// CRC
