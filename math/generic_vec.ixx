@@ -32,17 +32,24 @@ export namespace deckard::vec
 	using vec4 = generic_vec4<f32>;
 
 
-
 	static_assert(sizeof(vec2) == 2 * sizeof(f32));
 	static_assert(sizeof(vec3) == 3 * sizeof(f32));
 	static_assert(sizeof(vec4) == 4 * sizeof(f32));
 
+	// vec2 sum/product
 	template<typename T>
 	auto sum(const generic_vec2<T>& v)
 	{
 		return v.x + v.y;
 	}
 
+	template<typename T>
+	auto product(const generic_vec2<T>& v)
+	{
+		return v.x * v.y;
+	}
+
+	// vec3 sum/product
 	template<typename T>
 	auto sum(const generic_vec3<T>& v)
 	{
@@ -55,17 +62,31 @@ export namespace deckard::vec
 		return v.x * v.y * v.z;
 	}
 
+	// vec4 sum/product
+	template<typename T>
+	auto sum(const generic_vec4<T>& v)
+	{
+		return v.x + v.y + v.z + v.w;
+	}
+
+	template<typename T>
+	auto product(const generic_vec4<T>& v)
+	{
+		return v.x * v.y * v.z * v.w;
+	}
+
+	//
 
 	template<std::integral T, std::integral U>
-	constexpr T from_2d_to_index(const generic_vec2<T>& v, U width)
+	constexpr T index_from_2d(const generic_vec2<T>& v, U width)
 	{
-		return index_from_2d(v.x, v.y, width);
+		return math::index_from_2d(v.x, v.y, width);
 	}
 
 	template<std::integral T, std::integral U, std::integral I>
-	constexpr T from_3d_to_index(const generic_vec3<T>& v, U width, I height)
+	constexpr T index_from_3d(const generic_vec3<T>& v, U width, I height)
 	{
-		return index_from_3d(v.x, v.y, width, height);
+		return math::index_from_3d(v.x, v.y, width, height);
 	}
 
 	template<std::integral T, std::integral U>
@@ -80,6 +101,7 @@ export namespace deckard::vec
 		return {index % width, mod((index / width), height), index / (width * height)};
 	}
 
+	//
 	template<std::unsigned_integral T, std::integral U>
 	constexpr generic_vec2<T> to_zorder(const generic_vec2<T>& v, const U width)
 	{
@@ -142,13 +164,119 @@ export namespace deckard::vec
 		{
 			for (const u32& x : upto(8))
 			{
-				dbg::print("{:02} ", math::to_zorder(math::uvec2{x, y}));
+				dbg::print("{:02} ", vec::to_zorder(math::uvec2{x, y}));
 			}
 			dbg::println();
 		}
 	*/
 
-} // namespace deckard::math
+
+	/* Zig-Zag order
+	
+		00 01 05 06 14 15 27 28
+		02 04 07 13 16 26 29 42
+		03 08 12 17 25 30 41 43
+		09 11 18 24 31 40 44 53
+		10 19 23 32 39 45 52 54
+		20 22 33 38 46 51 55 60
+		21 34 37 47 50 56 59 61
+		35 36 48 49 57 58 62 63
+		
+		for (const u32& y : upto(8))
+		{
+		for (const u32& x : upto(8))
+		{
+			dbg::print("{:02} ", vec::to_zigzag(uvec2{x, y}, 8, 8));
+		}
+		dbg::println();
+		}
+*/
+
+
+
+	namespace detail
+	{
+		constexpr u64 isqrt(u64 n) noexcept
+		{
+			u64 res = 0;
+			u64 bit = u64{1} << 62;
+			while (bit > n)
+				bit >>= 2;
+			while (bit != 0)
+			{
+				if (n >= res + bit)
+				{
+					n -= res + bit;
+					res = (res >> 1) + bit;
+				}
+				else
+					res >>= 1;
+				bit >>= 2;
+			}
+			return res;
+		}
+
+		constexpr u64 tri(u64 n) noexcept { return n * (n + 1) / 2; }
+
+		constexpr u64 zz_before(u64 d, u64 w, u64 h) noexcept
+		{
+			const u64 m = std::min(w, h);
+			const u64 M = std::max(w, h);
+			const u64 n = w + h - 1;
+
+			if (d < m)
+				return tri(d);
+			if (d <= M)
+				return tri(m) + (d - m) * m;
+			return w * h - tri(n - d);
+		}
+
+		constexpr auto zz_rows(u64 d, u64 w, u64 h) noexcept -> std::pair<u64, u64>
+		{
+			return {d >= w ? d - w + 1 : u64{0}, std::min(d, h - 1)};
+		}
+	} // namespace detail
+
+	template<std::unsigned_integral T>
+	[[nodiscard]] constexpr u64 to_zigzag(const generic_vec2<T>& v, u32 w, u32 h) noexcept
+	{
+		const u64 x = v.x, y = v.y;
+		const u64 d         = x + y;
+		const auto [lo, hi] = detail::zz_rows(d, w, h);
+
+		return detail::zz_before(d, w, h) + ((d & 1) ? y - lo : hi - y);
+	}
+
+	template<std::unsigned_integral T>
+	[[nodiscard]] constexpr auto from_zigzag(u64 i, u32 w, u32 h) noexcept -> generic_vec2<T>
+	{
+		const u64 m     = std::min(w, h);
+		const u64 n     = u64{w} + h - 1;
+		const u64 total = u64{w} * h;
+
+		u64 d;
+		if (i < detail::tri(m))
+		{
+			d = (detail::isqrt(8 * i + 1) - 1) / 2;
+		}
+		else if (i < total - detail::tri(m - 1))
+		{
+			d = m + (i - detail::tri(m)) / m;
+		}
+		else
+		{
+			const u64 j = total - 1 - i;
+			d           = n - 1 - (detail::isqrt(8 * j + 1) - 1) / 2;
+		}
+
+		const u64 off       = i - detail::zz_before(d, w, h);
+		const auto [lo, hi] = detail::zz_rows(d, w, h);
+		const u64 y         = (d & 1) ? lo + off : hi - off;
+
+		return {static_cast<T>(d - y), static_cast<T>(y)};
+	}
+
+} // namespace deckard::vec
 
 export namespace std
 {

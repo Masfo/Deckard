@@ -2,6 +2,7 @@
 
 
 import std;
+import deckard.views;
 import deckard.callbacks;
 import deckard.helpers;
 import deckard.stringhelper;
@@ -176,9 +177,6 @@ TEST_CASE("invoke_if", "[invoke_if]")
 
 void free_function_for_fixed(int& x) noexcept { x *= 2; }
 
-
-
-
 TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 {
 	using namespace Catch;
@@ -268,11 +266,7 @@ TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 	class function_class_fixed
 	{
 	public:
-
-		void method(int i) noexcept
-		{
-			x = i * 2;
-		}
+		void method(int i) noexcept { x = i * 2; }
 
 		int get() const noexcept { return x; }
 
@@ -280,17 +274,16 @@ TEST_CASE("fixed_callbacks", "[fixed_callbacks]")
 		int x{0};
 	};
 
-
 	SECTION("function class")
 	{
 		fixed_callbacks<2, function_class_fixed&, int> cb{};
-		function_class_fixed          obj{};
+		function_class_fixed                           obj{};
 		REQUIRE(cb.add(&function_class_fixed::method));
 		REQUIRE(cb.size() == 1);
 
 		cb.invoke(obj, 21);
 
-		CHECK(obj.get() == 42); 
+		CHECK(obj.get() == 42);
 	}
 }
 
@@ -967,6 +960,83 @@ TEST_CASE("helpers", "[helpers]")
 		a = try_to_string(-256, 16);
 		CHECK(a.has_value() == true);
 		CHECK("-100" == *a);
+	}
+
+	SECTION("sum / product")
+	{
+		std::vector<i32> v{1, 2, 3, 4, 5};
+		CHECK(sum(v) == 15);
+		CHECK(product(v) == 120);
+		CHECK(subtract<i32>(v) == -13);
+		
+		std::vector<std::string> vs{"1", "2", "3", "4", "5"};
+		CHECK(sum(vs) == "12345"sv);
+		
+
+		std::vector<std::optional<i64>> vopt{1, 2, 3, std::nullopt, 4, 5};
+		CHECK(sum<i64>(vopt) == 15);
+		CHECK(product<i64>(vopt) == 120);
+		CHECK(subtract<i64>(vopt) == -13);
+
+
+
+	}
+
+	SECTION("group_by")
+	{
+
+		// group by value
+		{
+			std::vector<u64> vs{1, 2, 3, 4, 0xFF, 6, 7, 8, 9, 10, 0xFF, 12, 13, 14};
+
+			std::vector<std::vector<u64>> groups;
+
+			for (const auto& group : vs | group_by(0xFF))
+				groups.push_back(group | std::ranges::to<std::vector<u64>>());
+
+			CHECK(groups.size() == 3);
+			CHECK(groups[0].size() == 4);
+			CHECK(sum<i64>(groups[0]) == 1 + 2 + 3 + 4);
+
+			CHECK(groups[1].size() == 5);
+			CHECK(sum<i64>(groups[1]) == 6 + 7 + 8 + 9 + 10);
+
+			CHECK(groups[2].size() == 3);
+			CHECK(sum<i64>(groups[2]) == 12 + 13 + 14);
+		}
+
+		// group by predicate
+		{
+			std::vector<std::string> vs{"100", "200", "5", "400", "y", "500", "5", "700", "300"};
+
+			std::vector<std::vector<std::string>> groups;
+
+			for (const auto& group : vs | group_by([](const std::string& s) { return s == "y"; }))
+			{
+				groups.push_back(group | std::ranges::to<std::vector<std::string>>());
+			}
+
+			CHECK(groups.size() == 2);
+			CHECK(groups[0].size() == 4);
+			CHECK(sum<i64>(groups[0]) == 705);
+
+			CHECK(groups[1].size() == 4);
+			CHECK(sum<i64>(groups[1]) == 1505);
+		}
+
+		// group by empty string
+		{
+			std::vector<std::string> vs{"100", "200", "", "400", "", "500", "", "700", "300"};
+
+			std::vector<u64> expected{300, 400, 500, 1000};
+			auto             groups = vs | group_by_empty | std::ranges::to<std::vector>();
+
+			CHECK(groups.size() == expected.size());
+			for (size_t i = 0; i < groups.size(); ++i)
+			{
+				CHECK(sum<u64>(groups[i]) == expected[i]);
+			}
+		}
 	}
 
 	SECTION("load_as/load_as_be")

@@ -39,10 +39,7 @@ namespace deckard
 
 		array2d(u32 w, u32 h) { resize(w, h); }
 
-		array2d(extent<u32> e)
-			: m_extent(e)
-		{
-		}
+		array2d(extent<u32> e) { resize(e); }
 
 		T operator[](const ivec2 v) const { return at(v.x, v.y); }
 
@@ -110,7 +107,7 @@ namespace deckard
 			u32 count = 0;
 			for (u32 y = 0; y < height(); ++y)
 				for (u32 x = 0; x < width(); ++x)
-					count += input.contains(at(x, y)) ? 1 : 0;
+					count += input.contains(static_cast<char>(at(x, y))) ? 1 : 0;
 			return count;
 		}
 
@@ -234,10 +231,7 @@ namespace deckard
 
 		array2d() { resize(m_extent.width, m_extent.height); }
 
-		array2d(extent<u32> e)
-			: m_extent(e)
-		{
-		}
+		array2d(extent<u32> e) { resize(e.width, e.height); }
 
 		array2d(u32 w, u32 h) { resize(w, h); }
 
@@ -268,14 +262,21 @@ namespace deckard
 			const auto index = index_from_2d(x, y, m_extent.width);
 
 			if (value)
-				m_data[index / 8] |= (1 << (index % 8));
+				m_data[index / 8] |= static_cast<u8>(1u << (index % 8));
 			else
-				m_data[index / 8] &= ~(1 << (index % 8));
+				m_data[index / 8] &= static_cast<u8>(~(1u << (index % 8)));
 		}
 
 		void flip(u32 x, u32 y) { set(x, y, not get(x, y)); }
 
-		void fill(const bool value) { std::ranges::fill(m_data, static_cast<u8>(value ? 0xFF : 0x00)); }
+		void fill(const bool value)
+		{
+			std::ranges::fill(m_data, static_cast<u8>(value ? 0xFF : 0x00));
+
+			// keep unused tail bits zero so hash() and operator== only depend on real cells
+			if (const auto tail = (m_extent.width * m_extent.height) % 8; value and tail != 0 and not m_data.empty())
+				m_data.back() = static_cast<u8>((1u << tail) - 1u);
+		}
 
 		void clear() { m_data.clear(); }
 

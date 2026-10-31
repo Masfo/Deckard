@@ -263,6 +263,7 @@ set(DECKARD_MODULES
 		utils/threadutils.ixx
 		utils/timers.ixx
 		utils/uuid.ixx
+		utils/views.ixx
 		
 
 

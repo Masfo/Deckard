@@ -117,6 +117,9 @@ target_sources(tests PUBLIC
 
     # Json
     tests/json_test.cpp
+
+    # Grid
+    tests/grid_test.cpp
 )
 
 

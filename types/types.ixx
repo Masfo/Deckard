@@ -393,7 +393,20 @@ export namespace deckard
 	template<typename T>
 	concept not_builtin = not std::is_fundamental_v<T>;
 
+	// optional / expected
+	template<typename T>
+	concept optional_like = requires(const std::remove_cvref_t<T>& t) { []<typename U>(const std::optional<U>&) { }(t); };
 
+	template<typename T>
+	concept expected_like = requires(const std::remove_cvref_t<T>& t) {
+		[]<typename U, typename E>(const std::expected<U, E>&)
+		requires(not std::is_void_v<U>) { }(t);
+	};
+
+	template<typename T>
+	concept maybe_like = optional_like<T> or expected_like<T>;
+
+	// 
 	export template<typename T>
 	concept character_type
 	  = std::is_same_v<T, char> or std::is_same_v<T, wchar_t> or std::is_same_v<T, char16_t> or std::is_same_v<T, char32_t>;

@@ -220,7 +220,7 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 		// 0 1 2
 		// 3 4 5
 		// 6 7 8
-		CHECK(4 == from_2d_to_index(ivec2{1, 1}, 3));
+		CHECK(4 == index_from_2d(ivec2{1, 1}, 3));
 		CHECK(ivec2{1, 1} == from_index_to_2d(4, 3));
 	}
 }

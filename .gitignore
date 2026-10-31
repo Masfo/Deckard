@@ -22,3 +22,4 @@ log.*.txt
 /build_out.txt
 /build
 /scratch
+*.obj

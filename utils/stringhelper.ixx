@@ -39,13 +39,13 @@ export namespace deckard::string
 		uppercase  = BIT(3),
 		special    = BIT(4),
 
-		reserved  = BIT(5),
+		null      = BIT(5),
 		reserved2 = BIT(6),
 		reserved3 = BIT(7),
 
 		alphabet = lowercase | uppercase,
 		alphanum = alphabet | digit,
-		all      = whitespace | alphanum | special,
+		all      = whitespace | alphanum | special | null,
 
 		d  = digit,
 		w  = whitespace,
@@ -54,8 +54,9 @@ export namespace deckard::string
 		a  = l | u,
 		an = a | d,
 		s  = special,
+		n  = null,
 
-		Count = 8
+		  Count = 8
 
 	};
 
@@ -132,7 +133,7 @@ export namespace deckard::string
 
 	// strip - option
 	// input = strip(input, w|u|d);
-	std::string strip(std::string_view str, option opt = option::whitespace)
+	std::string strip(std::string_view str, option opt = option::whitespace | option::null)
 	{
 		using enum option;
 		std::string ret{str};
@@ -141,11 +142,14 @@ export namespace deckard::string
 		if (std::to_underlying(opt) == 0)
 			return ret;
 
+		if (has(opt, null))
+			ret = strip(ret, '\0');
 
 		if (has(opt, whitespace))
 		{
 			ret = strip(ret, '\t', '\r');
 			ret = strip(ret, ' ');
+			ret = strip(ret, '\n');
 		}
 
 		if (has(opt, digit))
@@ -234,17 +238,17 @@ export namespace deckard::string
 
 	// split
 	template<typename T = std::string_view>
-	std::vector<T> split(std::string_view strv, std::string_view delims = " ")
+	std::vector<T> split(std::string_view input, std::string_view delims = " ")
 	{
 		std::vector<T> output;
 		size_t         first = 0;
 
-		while (first < strv.size())
+		while (first < input.size())
 		{
-			const auto second = strv.find_first_of(delims, first);
+			const auto second = input.find_first_of(delims, first);
 
 			if (first != second)
-				output.emplace_back(strv.substr(first, second - first));
+				output.emplace_back(input.substr(first, second - first));
 
 			if (second == T::npos)
 				break;
@@ -365,6 +369,11 @@ export namespace deckard::string
 		s = trim_front(s);
 		return trim_back(s);
 	};
+
+	std::string_view to_string_view(std::span<const u8> input)
+	{
+		return std::string_view(reinterpret_cast<const char*>(input.data()), input.size());
+	}
 
 	// match
 	bool match(std::string_view pattern, std::string_view input)

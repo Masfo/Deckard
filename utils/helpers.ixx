@@ -11,6 +11,22 @@ using namespace deckard::literals;
 
 export namespace deckard
 {
+	template<arithmetic T>
+	auto to_number(T input, int base = 10) -> std::optional<std::string>;
+
+	template<arithmetic T = i32>
+	auto to_number(std::string_view input, int base = 10) -> T;
+
+	template<arithmetic T, arithmetic C = i32>
+	auto to_number(T input, [[maybe_unused]] int base = 10) -> C;
+
+	template<arithmetic T = i32>
+	auto try_to_number(std::string_view input, int base = 10) -> std::expected<T, std::string>;
+
+	template<arithmetic T = i32>
+	auto try_to_number(std::optional<T> input, [[maybe_unused]] int base = 10) -> T;
+
+
 	constexpr std::string_view whitespace_string{" \t\f\n\r\v"};
 
 
@@ -734,6 +750,22 @@ export namespace deckard
 		return {static_cast<T>(args)...};
 	}
 
+	// sum/product/subtract helpers
+	template<std::integral I, I Neutral, typename T>
+	[[nodiscard]] constexpr I operand(const T& value)
+	{
+		if constexpr (maybe_like<T>)
+			return value ? operand<I, Neutral>(*value) : Neutral;
+		else if constexpr (arithmetic<T>)
+			return static_cast<I>(value);
+		else
+			return try_to_number<I>(value).value_or(Neutral);
+	}
+
+
+
+
+
 	// sum
 	template<arithmetic A, arithmetic... Args>
 	constexpr A sum(A a, A b, Args... args)
@@ -756,6 +788,14 @@ export namespace deckard
 		return std::ranges::fold_left(container, ValueType{}, std::plus<>{});
 	}
 
+	template<std::integral I, std::ranges::input_range Container>
+	[[nodiscard]] constexpr auto sum(const Container& container) -> I
+	{
+		return std::ranges::fold_left_first(container | std::views::transform([](const auto& v) { return operand<I, I{0}>(v); }),
+											[](I acc, I v) -> I { return static_cast<I>(acc + v); })
+		  .value_or(I{});
+	}
+
 	// subtract
 	template<class A, class... Args>
 	constexpr A subtract(A a, A b, Args... args)
@@ -774,7 +814,15 @@ export namespace deckard
 		using ValueType = std::ranges::range_value_t<Container>;
 		static_assert(can_subtract_v<ValueType, ValueType>, "Cannot sum types on this container");
 
-		return std::ranges::fold_left(container, ValueType{}, std::plus<>{});
+		return std::ranges::fold_left(container, ValueType{}, std::minus<>{});
+	}
+
+	template<std::integral I, std::ranges::input_range Container>
+	[[nodiscard]] constexpr auto subtract(const Container& container) -> I
+	{
+		return std::ranges::fold_left_first(container | std::views::transform([](const auto& v) { return operand<I, I{0}>(v); }),
+											[](I acc, I v) -> I { return static_cast<I>(acc - v); })
+		  .value_or(I{});
 	}
 
 	// product
@@ -795,6 +843,15 @@ export namespace deckard
 		using ValueType = std::ranges::range_value_t<Container>;
 		static_assert(can_multiply_v<ValueType, ValueType>, "Cannot multiply types on this container");
 		return std::ranges::fold_left(container, ValueType{1}, std::multiplies<>{});
+	}
+
+template<std::integral I, std::ranges::input_range Container>
+	[[nodiscard]] constexpr auto product(const Container& container) -> I
+	{
+		return std::ranges::fold_left(
+		  container | std::views::transform([](const auto& v) { return operand<I, I{1}>(v); }),
+		  I{1},
+		  [](I acc, I v) -> I { return static_cast<I>(acc * v); });
 	}
 
 	// compare
@@ -1192,8 +1249,8 @@ export namespace deckard
 		return (c >= a) && (c <= b);
 	}
 
-	template<arithmetic T = i32>
-	auto try_to_number(std::string_view input, int base = 10) -> std::expected<T, std::string>
+	template<arithmetic T>
+	auto try_to_number(std::string_view input, int base) -> std::expected<T, std::string>
 	{
 		auto is_valid_for_base = [](std::string_view s, int base) -> bool
 		{
@@ -1286,7 +1343,21 @@ export namespace deckard
 	}
 
 	template<arithmetic T>
-	auto to_number(T input, [[maybe_unused]] int base = 10) -> std::optional<std::string>
+	auto try_to_number(std::optional<T> input, [[maybe_unused]] int base) -> T
+	{
+		if (input.has_value())
+			return input.value();
+		return T{};
+	}
+
+	template<arithmetic T, arithmetic C>
+	auto to_number(T input, [[maybe_unused]] int base) -> C
+	{
+		return static_cast<T>(input);
+	}
+
+	template<arithmetic T>
+	auto to_number(T input, [[maybe_unused]] int base) -> std::optional<std::string>
 	{
 		if (auto result = try_to_number<i64>(std::to_string(input), base); result.has_value())
 			return std::to_string(*result);
@@ -1294,8 +1365,8 @@ export namespace deckard
 		return {};
 	}
 
-	template<arithmetic T = i32>
-	auto to_number(std::string_view input, [[maybe_unused]] int base = 10) -> T
+	template<arithmetic T>
+	auto to_number(std::string_view input, [[maybe_unused]] int base) -> T
 	{
 		if (input.empty())
 			return T{0};
