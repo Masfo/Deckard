@@ -766,7 +766,9 @@ export namespace deckard
 
 
 
-	// sum
+
+	// ##############################################################################
+	// sum ##########################################################################
 	template<arithmetic A, arithmetic... Args>
 	constexpr A sum(A a, A b, Args... args)
 	{
@@ -788,6 +790,18 @@ export namespace deckard
 		return std::ranges::fold_left(container, ValueType{}, std::plus<>{});
 	}
 
+	template<std::ranges::input_range Container>
+	requires maybe_like<std::ranges::range_value_t<Container>>
+			 and std::integral<maybe_value_t<std::ranges::range_value_t<Container>>>
+	[[nodiscard]] constexpr auto sum(const Container& container) -> maybe_value_t<std::ranges::range_value_t<Container>>
+	{
+		using ValueType = std::remove_cvref_t<std::ranges::range_value_t<Container>>;
+		using T         = maybe_value_t<ValueType>;
+
+		return std::ranges::fold_left(
+		  container, T{}, [](T acc, const ValueType& value) -> T { return static_cast<T>(acc + operand<T, T{0}>(value)); });
+	}
+
 	template<std::integral I, std::ranges::input_range Container>
 	[[nodiscard]] constexpr auto sum(const Container& container) -> I
 	{
@@ -796,7 +810,8 @@ export namespace deckard
 		  .value_or(I{});
 	}
 
-	// subtract
+	// ##############################################################################
+	// subtract #####################################################################
 	template<class A, class... Args>
 	constexpr A subtract(A a, A b, Args... args)
 	{
@@ -817,6 +832,21 @@ export namespace deckard
 		return std::ranges::fold_left(container, ValueType{}, std::minus<>{});
 	}
 
+	template<std::ranges::input_range Container>
+	requires maybe_like<std::ranges::range_value_t<Container>>
+			 and std::integral<maybe_value_t<std::ranges::range_value_t<Container>>>
+	[[nodiscard]] constexpr auto subtract(const Container& container)
+	  -> maybe_value_t<std::ranges::range_value_t<Container>>
+	{
+		using ValueType = std::remove_cvref_t<std::ranges::range_value_t<Container>>;
+		using T         = maybe_value_t<ValueType>;
+
+		return std::ranges::fold_left_first(
+		  container | std::views::transform([](const ValueType& value) { return operand<T, T{0}>(value); }),
+		  [](T acc, T v) -> T { return static_cast<T>(acc - v); })
+		  .value_or(T{});
+	}
+
 	template<std::integral I, std::ranges::input_range Container>
 	[[nodiscard]] constexpr auto subtract(const Container& container) -> I
 	{
@@ -825,7 +855,8 @@ export namespace deckard
 		  .value_or(I{});
 	}
 
-	// product
+	// ##############################################################################
+	// product ######################################################################
 	template<class A, class... Args>
 	constexpr A product(A a, A b, Args... args)
 	{
@@ -845,7 +876,22 @@ export namespace deckard
 		return std::ranges::fold_left(container, ValueType{1}, std::multiplies<>{});
 	}
 
-template<std::integral I, std::ranges::input_range Container>
+	template<std::ranges::input_range Container>
+	requires maybe_like<std::ranges::range_value_t<Container>>
+			 and std::integral<maybe_value_t<std::ranges::range_value_t<Container>>>
+	[[nodiscard]] constexpr auto product(const Container& container)
+	  -> maybe_value_t<std::ranges::range_value_t<Container>>
+	{
+		using ValueType = std::remove_cvref_t<std::ranges::range_value_t<Container>>;
+		using T         = maybe_value_t<ValueType>;
+
+		return std::ranges::fold_left(
+		  container | std::views::transform([](const ValueType& value) { return operand<T, T{1}>(value); }),
+		  T{1},
+		  [](T acc, T v) -> T { return static_cast<T>(acc * v); });
+	}
+
+	template<std::integral I, std::ranges::input_range Container>
 	[[nodiscard]] constexpr auto product(const Container& container) -> I
 	{
 		return std::ranges::fold_left(
@@ -854,7 +900,9 @@ template<std::integral I, std::ranges::input_range Container>
 		  [](I acc, I v) -> I { return static_cast<I>(acc * v); });
 	}
 
-	// compare
+
+	// ##############################################################################
+	// compare ######################################################################
 	template<typename T, typename... Values>
 	constexpr bool is_any_of(const T& target, const Values&... values)
 	requires(std::equality_comparable_with<T, Values> && ...)

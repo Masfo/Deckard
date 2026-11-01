@@ -406,7 +406,24 @@ export namespace deckard
 	template<typename T>
 	concept maybe_like = optional_like<T> or expected_like<T>;
 
-	// 
+	// maybe_value: strips optional/expected layers to get the contained type
+	template<typename T>
+	struct maybe_value
+	{
+		using type = T;
+	};
+
+	template<maybe_like T>
+	struct maybe_value<T>
+	{
+		using type = typename maybe_value<typename std::remove_cvref_t<T>::value_type>::type;
+	};
+
+	template<typename T>
+	using maybe_value_t = typename maybe_value<std::remove_cvref_t<T>>::type;
+
+
+	//
 	export template<typename T>
 	concept character_type
 	  = std::is_same_v<T, char> or std::is_same_v<T, wchar_t> or std::is_same_v<T, char16_t> or std::is_same_v<T, char32_t>;

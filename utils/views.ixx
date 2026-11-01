@@ -14,31 +14,51 @@ namespace deckard
 	//
 	//   for (const auto& group : vs | group_by([](const std::string& s) { return s.empty(); }))
 	//       ...
-	template<typename T>
-	struct group_by_fn : std::ranges::range_adaptor_closure<group_by_fn<T>>
+	//
+	//   // split on multiples of 3
+	//   for (const auto& group : nums | group_by([](i64 n) { return n % 3 == 0; }))
+	//       ...
+	enum class delimiter { drop, trailing, leading };
+
+	template<typename T, delimiter D = delimiter::drop>
+	struct group_by_fn : std::ranges::range_adaptor_closure<group_by_fn<T, D>>
 	{
 		T arg;
 
-		constexpr explicit group_by_fn(T v) : arg(std::move(v)) {}
+		constexpr explicit group_by_fn(T v)
+			: arg(std::move(v))
+		{
+		}
 
 		template<std::ranges::viewable_range R>
 		auto operator()(R&& range) const
 		{
 			using Value = std::ranges::range_value_t<R>;
 
-			if constexpr (std::predicate<T&, const Value&>)
+			// Normalise "value" and "predicate" into one predicate
+			auto pred = [&]
 			{
-				auto pred = arg;
+				if constexpr (std::predicate<const T&, const Value&>)
+					return arg;
+				else
+					return [v = arg](const Value& e) { return e == v; };
+			}();
+
+			if constexpr (D == delimiter::trailing)
+			{
 				return std::forward<R>(range)
-					 | std::views::chunk_by(
-						 [pred](const auto& a, const auto& b) { return not pred(a) and not pred(b); })
-					 | std::views::filter(
-						 [pred](const auto& group) { return not pred(*std::ranges::begin(group)); });
+					   | std::views::chunk_by([pred](const auto& a, const auto&) { return not pred(a); });
+			}
+			else if constexpr (D == delimiter::leading)
+			{
+				return std::forward<R>(range)
+					   | std::views::chunk_by([pred](const auto&, const auto& b) { return not pred(b); });
 			}
 			else
 			{
-				return std::forward<R>(range) | std::views::split(T{arg})
-					 | std::views::filter([](const auto& group) { return not std::ranges::empty(group); });
+				return std::forward<R>(range)
+					   | std::views::chunk_by([pred](const auto& a, const auto& b) { return not pred(a) and not pred(b); })
+					   | std::views::filter([pred](const auto& g) { return not pred(*std::ranges::begin(g)); });
 			}
 		}
 	};
@@ -46,15 +66,34 @@ namespace deckard
 	export template<typename T>
 	constexpr auto group_by(T value) -> group_by_fn<T>
 	{
-		return group_by_fn<T>{std::move(value)};
+		return group_by_fn<T, delimiter::drop>{std::move(value)};
+	}
+
+	export template<typename T>
+	constexpr auto group_by_trailing(T value) -> group_by_fn<T, delimiter::trailing>
+	{
+		return group_by_fn<T, delimiter::trailing>{std::move(value)};
+	}
+
+	export template<typename T>
+	constexpr auto group_by_leading(T value) -> group_by_fn<T, delimiter::leading>
+	{
+		return group_by_fn<T, delimiter::leading>{std::move(value)};
 	}
 
 	// group_by_empty
 	//
 	// Splits a range on empty elements and drops the resulting empty groups.
+	// Empty strings/containers and disengaged optionals are treated as empty.
 	//
 	//   std::vector<std::string> vs{"100", "200", "", "300"};
 	//   for (const auto& group : vs | group_by_empty)
 	//       ...
-	export constexpr auto group_by_empty = group_by([](const auto& value) { return std::ranges::empty(value); });
+	export constexpr auto group_by_empty = group_by([](const auto& value)
+	{
+		if constexpr (requires { value.has_value(); })
+			return not value.has_value();
+		else
+			return std::ranges::empty(value);
+	});
 }
