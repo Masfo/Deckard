@@ -1,6 +1,7 @@
 export module deckard.grid;
 
 import std;
+import deckard.assert;
 import deckard.arrays;
 import deckard.debug;
 import deckard.types;
@@ -40,6 +41,16 @@ namespace deckard
 	export constexpr ivec2 south_east{south + east};
 	export constexpr ivec2 south_west{south + west};
 	export constexpr ivec2 north_west{north + west};
+
+	export namespace grid3d_directions
+	{
+		inline constexpr ivec3 top{0, -1, 0};
+		inline constexpr ivec3 bottom{0, 1, 0};
+		inline constexpr ivec3 left{-1, 0, 0};
+		inline constexpr ivec3 right{1, 0, 0};
+		inline constexpr ivec3 front{0, 0, -1};
+		inline constexpr ivec3 back{0, 0, 1};
+	}
 
 	export template<typename T = u8>
 	class grid
@@ -841,6 +852,479 @@ namespace deckard
 	{
 		return bfs(g, start, goal, [](const u8 v) { return v == 0; });
 	}
+
+
+	// DFS on a 4-connected grid. Returns a path from start to goal (both included), or nullopt if no path exists.
+	export template<typename T, typename WalkableFn>
+	requires Walkable<T, WalkableFn>
+	auto dfs(const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable)
+	  -> std::optional<std::vector<ivec2>>
+	{
+		if (not g.valid(start) or not g.valid(goal))
+			return std::nullopt;
+
+		if (not walkable(g.get(start)) or not walkable(g.get(goal)))
+			return std::nullopt;
+
+		const u32 w = g.width();
+
+		const auto to_index = [w](const ivec2 p) { return as<u32>(p.y) * w + as<u32>(p.x); };
+		const auto to_point = [w](const u32 i) { return ivec2{as<i32>(i % w), as<i32>(i / w)}; };
+
+		constexpr u32 none = std::numeric_limits<u32>::max();
+
+		std::vector<u32>  parent(g.size(), none);
+		std::vector<bool> visited(g.size(), false);
+		std::stack<u32>   open; // LIFO: the last pushed neighbour is explored first
+
+		const u32 start_index = to_index(start);
+		visited[start_index]  = true;
+		open.push(start_index);
+
+		constexpr std::array<ivec2, 4> directions{north, east, south, west};
+
+		while (not open.empty())
+		{
+			const u32   current = open.top();
+			const ivec2 pos     = to_point(current);
+			open.pop();
+
+			if (pos == goal)
+			{
+				std::vector<ivec2> path;
+				for (u32 i = current; i != none; i = parent[i])
+					path.push_back(to_point(i));
+
+				std::ranges::reverse(path);
+				return path;
+			}
+
+			for (const auto& direction : directions)
+			{
+				const ivec2 next = pos + direction;
+
+				if (not g.valid(next) or not walkable(g.get(next)))
+					continue;
+
+				const u32 next_index = to_index(next);
+				if (visited[next_index])
+					continue;
+
+				visited[next_index] = true;
+				parent[next_index]  = current;
+				open.push(next_index);
+			}
+		}
+
+		return std::nullopt;
+	}
+
+	// default u8 grid: 0 is walkable, anything else is a wall
+	export auto dfs(const grid<u8>& g, const ivec2 start, const ivec2 goal) -> std::optional<std::vector<ivec2>>
+	{
+		return dfs(g, start, goal, [](const u8 v) { return v == 0; });
+	}
+
+
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// Grid 3d 
+
+	export template<typename T=u8>
+	class grid3d
+	{
+	private:
+		struct cell_data
+		{
+			std::optional<T> value;
+			std::array<std::optional<T>, 6> faces{};
+		};
+
+		static constexpr std::array<ivec3, 6> face_directions{
+		  grid3d_directions::top,
+		  grid3d_directions::bottom,
+		  grid3d_directions::left,
+		  grid3d_directions::right,
+		  grid3d_directions::front,
+		  grid3d_directions::back};
+
+		static auto face_index(const ivec3 dir) -> std::optional<usize>
+		{
+			for (usize i = 0; i < face_directions.size(); ++i)
+			{
+				if (face_directions[i] == dir)
+					return i;
+			}
+			return std::nullopt;
+		}
+
+		i64                          width{};
+		i64 height{};
+		i64                          depth{};
+
+		std::unordered_map<ivec3, cell_data> data;
+	public:
+
+		grid3d(i64 width, i64 height, i64 depth)
+			: width(width)
+			, height(height)
+			, depth(depth)
+		{
+			data.reserve(width * height * depth);
+		}
+
+		bool valid_position(ivec3 pos) const
+		{
+			return (pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height && pos.z >= 0 && pos.z < depth);
+		}
+
+		void set_plane(const grid<T>& plane, const ivec3 dir)
+		{
+			const auto index = face_index(dir);
+			assert::check(index.has_value(), "grid3d::set_plane: direction must be a signed unit axis");
+			if (not index.has_value())
+				return;
+
+			const i64 expected_width = dir.x != 0 ? depth : width;
+			const i64 expected_height = dir.x != 0 ? height : dir.y != 0 ? depth : height;
+			const bool dimensions_match =
+			  as<i64>(plane.width()) == expected_width and as<i64>(plane.height()) == expected_height;
+			assert::check(dimensions_match, "grid3d::set_plane: plane dimensions do not match face");
+			if (not dimensions_match)
+				return;
+
+			for (i64 y = 0; y < expected_height; ++y)
+			{
+				for (i64 x = 0; x < expected_width; ++x)
+				{
+					ivec3 pos;
+					if (dir.x != 0)
+						pos = {dir.x < 0 ? 0 : as<i32>(width - 1), as<i32>(y), as<i32>(x)};
+					else if (dir.y != 0)
+						pos = {as<i32>(x), dir.y < 0 ? 0 : as<i32>(height - 1), as<i32>(y)};
+					else
+						pos = {as<i32>(x), as<i32>(y), dir.z < 0 ? 0 : as<i32>(depth - 1)};
+
+					data[pos].faces[*index] = plane.get(as<u32>(x), as<u32>(y));
+				}
+			}
+		}
+
+
+		grid<T> getplane(const ivec3 dir) const
+		{
+			const auto index = face_index(dir);
+			assert::check(index.has_value(), "grid3d::getplane: direction must be a signed unit axis");
+			if (not index.has_value())
+				return grid<T>{0, 0};
+
+			const i64 plane_width = dir.x != 0 ? depth : width;
+			const i64 plane_height = dir.y != 0 ? depth : height;
+			grid<T> plane{as<u32>(plane_width), as<u32>(plane_height)};
+
+			const i32 fixed_x = dir.x < 0 ? 0 : as<i32>(width - 1);
+			const i32 fixed_y = dir.y < 0 ? 0 : as<i32>(height - 1);
+			const i32 fixed_z = dir.z < 0 ? 0 : as<i32>(depth - 1);
+			for (i64 y = 0; y < plane_height; ++y)
+			{
+				for (i64 x = 0; x < plane_width; ++x)
+				{
+					ivec3 pos;
+					if (dir.x != 0)
+						pos = {fixed_x, as<i32>(y), as<i32>(x)}; // (z,y)
+					else if (dir.y != 0)
+						pos = {as<i32>(x), fixed_y, as<i32>(y)}; // (x,z)
+					else
+						pos = {as<i32>(x), as<i32>(y), fixed_z}; // (x,y)
+
+					plane.set(as<u32>(x), as<u32>(y), get_face(pos, dir).value_or(T{}));
+				}
+			}
+
+			return plane;
+		}
+
+		std::string print() const
+		{
+			const auto grid_top = getplane(grid3d_directions::top);
+			const auto grid_bottom = getplane(grid3d_directions::bottom);
+			const auto grid_left = getplane(grid3d_directions::left);
+			const auto grid_right = getplane(grid3d_directions::right);
+			const auto grid_front = getplane(grid3d_directions::front);
+			const auto grid_back = getplane(grid3d_directions::back);
+
+			std::string result;
+			const std::string indent(grid_left.width() + 1, ' ');
+			const auto append_row = [&result](const grid<T>& face, const u32 y)
+			{
+				for (u32 x = 0; x < face.width(); ++x)
+				{
+					const char value = static_cast<char>(face.get(x, y));
+					result.push_back(value == '\0' ? '.' : value);
+				}
+			};
+
+			for (u32 y = 0; y < grid_top.height(); ++y)
+			{
+				result += indent;
+				append_row(grid_top, y);
+				result.push_back('\n');
+			}
+
+			for (u32 y = 0; y < grid_front.height(); ++y)
+			{
+				append_row(grid_left, y);
+				result.push_back(' ');
+				append_row(grid_front, y);
+				result.push_back(' ');
+				append_row(grid_right, y);
+				result.push_back(' ');
+				append_row(grid_back, y);
+				result.push_back('\n');
+			}
+
+			for (u32 y = 0; y < grid_bottom.height(); ++y)
+			{
+				result += indent;
+				append_row(grid_bottom, y);
+				result.push_back('\n');
+			}
+
+			return result;
+		}
+
+		void dump() const { dbg::print("{}", print()); }
+
+		// Face order: front (z=0), back (z=depth-1), left (x=0),
+		// right (x=width-1), top (y=0), bottom (y=height-1).
+		// Face-local coordinates are (x,y) for front/back, (z,y) for
+		// left/right, and (x,z) for top/bottom. Shared edge and corner
+		// cubies retain a separate sticker value for each face.
+		void load_from_grids(const std::array<grid<T>, 6>& grids)
+		{
+			const bool dimensions_match =
+			  as<i64>(grids[0].width()) == width and as<i64>(grids[0].height()) == height and
+			  as<i64>(grids[1].width()) == width and as<i64>(grids[1].height()) == height and
+			  as<i64>(grids[2].width()) == depth and as<i64>(grids[2].height()) == height and
+			  as<i64>(grids[3].width()) == depth and as<i64>(grids[3].height()) == height and
+			  as<i64>(grids[4].width()) == width and as<i64>(grids[4].height()) == depth and
+			  as<i64>(grids[5].width()) == width and as<i64>(grids[5].height()) == depth;
+			assert::check(dimensions_match, "grid3d::load_from_grids: face dimensions do not match grid dimensions");
+			if (not dimensions_match)
+				return;
+			data.clear();
+			set_plane(grids[0], grid3d_directions::front);
+			set_plane(grids[1], grid3d_directions::back);
+			set_plane(grids[2], grid3d_directions::left);
+			set_plane(grids[3], grid3d_directions::right);
+			set_plane(grids[4], grid3d_directions::top);
+			set_plane(grids[5], grid3d_directions::bottom);
+		}
+
+
+
+
+		void set(ivec3 pos, const T& value)
+		{
+			if (not valid_position(pos))
+			{
+				dbg::println("grid3d::set: invalid position {}", pos);
+				return;
+			}
+
+			data[pos].value = value;
+		}
+
+		std::optional<T> get(ivec3 pos) const
+		{
+			if (not valid_position(pos))
+			{
+				dbg::println("grid3d::get: invalid position {}", pos);
+				return std::nullopt;
+			}
+
+			const auto it = data.find(pos);
+			return it == data.end() ? T{} : it->second.value.value_or(T{});
+		}
+
+		void set_face(const ivec3 pos, const ivec3 dir, const T& value)
+		{
+			if (not valid_position(pos))
+			{
+				dbg::println("grid3d::set_face: invalid position {}", pos);
+				return;
+			}
+
+			const auto index = face_index(dir);
+			assert::check(index.has_value(), "grid3d::set_face: direction must be a signed unit axis");
+			if (not index.has_value())
+				return;
+			bool on_boundary = false;
+			switch (*index)
+			{
+				case 0: on_boundary = pos.y == 0; break; // top
+				case 1: on_boundary = pos.y == height - 1; break; // bottom
+				case 2: on_boundary = pos.x == 0; break; // left
+				case 3: on_boundary = pos.x == width - 1; break; // right
+				case 4: on_boundary = pos.z == 0; break; // front
+				case 5: on_boundary = pos.z == depth - 1; break; // back
+			}
+			assert::check(on_boundary, "grid3d::set_face: position is not on the requested face");
+			if (not on_boundary)
+				return;
+
+			data[pos].faces[*index] = value;
+		}
+
+		std::optional<T> get_face(const ivec3 pos, const ivec3 dir) const
+		{
+			if (not valid_position(pos))
+			{
+				dbg::println("grid3d::get_face: invalid position {}", pos);
+				return std::nullopt;
+			}
+
+			const auto index = face_index(dir);
+			assert::check(index.has_value(), "grid3d::get_face: direction must be a signed unit axis");
+			if (not index.has_value())
+				return std::nullopt;
+
+			const auto it = data.find(pos);
+			if (it == data.end())
+				return std::nullopt;
+			return it->second.faces[*index];
+		}
+
+
+		void rotate(const ivec3 axis, const i32 angle) 
+		{
+			const bool valid_axis =
+			  ((axis.x == 1 or axis.x == -1) and axis.y == 0 and axis.z == 0) or
+			  ((axis.y == 1 or axis.y == -1) and axis.x == 0 and axis.z == 0) or
+			  ((axis.z == 1 or axis.z == -1) and axis.x == 0 and axis.y == 0);
+			assert::check(valid_axis, "grid3d::rotate: axis must be a signed unit axis");
+			if (not valid_axis)
+				return;
+
+			const bool valid_angle = angle % 90 == 0;
+			assert::check(valid_angle, "grid3d::rotate: angle must be a multiple of 90");
+			if (not valid_angle)
+				return;
+
+			// Positive Y turns follow the cube-net convention: the front face moves right.
+			// A negative axis reverses the turn direction.
+			i32 turns = (angle / 90) % 4;
+			if ((axis.x < 0) or (axis.y < 0) or (axis.z < 0))
+				turns = -turns;
+			if (turns < 0)
+				turns += 4;
+
+			const i64 old_width = width;
+			const i64 old_height = height;
+			const i64 old_depth = depth;
+			auto rotated = std::unordered_map<ivec3, cell_data>{};
+			rotated.reserve(data.size());
+			const auto rotate_direction = [axis, turns](const ivec3 dir)
+			{
+				if (axis.x != 0)
+				{
+					switch (turns)
+					{
+						case 1: return ivec3{dir.x, -dir.z, dir.y};
+						case 2: return ivec3{dir.x, -dir.y, -dir.z};
+						case 3: return ivec3{dir.x, dir.z, -dir.y};
+						default: return dir;
+					}
+				}
+				if (axis.y != 0)
+				{
+					switch (turns)
+					{
+						case 1: return ivec3{-dir.z, dir.y, dir.x};
+						case 2: return ivec3{-dir.x, dir.y, -dir.z};
+						case 3: return ivec3{dir.z, dir.y, -dir.x};
+						default: return dir;
+					}
+				}
+				switch (turns)
+				{
+					case 1: return ivec3{-dir.y, dir.x, dir.z};
+					case 2: return ivec3{-dir.x, -dir.y, dir.z};
+					case 3: return ivec3{dir.y, -dir.x, dir.z};
+					default: return dir;
+				}
+			};
+
+			for (const auto& [pos, value] : data)
+			{
+				ivec3 next = pos;
+				if (axis.x != 0)
+				{
+					switch (turns)
+					{
+						case 1: next = {pos.x, as<i32>(old_depth - 1 - pos.z), pos.y}; break;
+						case 2: next = {pos.x, as<i32>(old_height - 1 - pos.y), as<i32>(old_depth - 1 - pos.z)}; break;
+						case 3: next = {pos.x, pos.z, as<i32>(old_height - 1 - pos.y)}; break;
+						default: break;
+					}
+				}
+				else if (axis.y != 0)
+				{
+					switch (turns)
+					{
+						case 1: next = {as<i32>(old_depth - 1 - pos.z), pos.y, pos.x}; break;
+						case 2: next = {as<i32>(old_width - 1 - pos.x), pos.y, as<i32>(old_depth - 1 - pos.z)}; break;
+						case 3: next = {pos.z, pos.y, as<i32>(old_width - 1 - pos.x)}; break;
+						default: break;
+					}
+				}
+				else
+				{
+					switch (turns)
+					{
+						case 1: next = {as<i32>(old_height - 1 - pos.y), pos.x, pos.z}; break;
+						case 2: next = {as<i32>(old_width - 1 - pos.x), as<i32>(old_height - 1 - pos.y), pos.z}; break;
+						case 3: next = {pos.y, as<i32>(old_width - 1 - pos.x), pos.z}; break;
+						default: break;
+					}
+				}
+
+				cell_data next_value;
+				next_value.value = value.value;
+				for (usize i = 0; i < value.faces.size(); ++i)
+				{
+					if (not value.faces[i].has_value())
+						continue;
+
+					const auto next_index = face_index(rotate_direction(face_directions[i]));
+					assert::check(next_index.has_value(), "grid3d::rotate: failed to rotate face direction");
+					if (next_index.has_value())
+						next_value.faces[*next_index] = value.faces[i];
+				}
+
+				rotated.emplace(next, std::move(next_value));
+			}
+
+			if (turns % 2 != 0)
+			{
+				if (axis.x != 0)
+					std::swap(height, depth);
+				else if (axis.y != 0)
+					std::swap(width, depth);
+				else
+					std::swap(width, height);
+			}
+
+			data = std::move(rotated);
+		}
+
+	};
+
+
 
 
 } // namespace deckard

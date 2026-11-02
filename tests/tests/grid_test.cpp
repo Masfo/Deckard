@@ -1617,9 +1617,250 @@ TEST_CASE("grid", "[grid]")
 
 		auto b = bfs(g, ivec2{1, 1}, ivec2{8, 8}, open);
 		auto a = a_star(g, ivec2{1, 1}, ivec2{8, 8}, open);
+		auto d = dfs(g, ivec2{1, 1}, ivec2{8, 8}, open);
 		REQUIRE(b.has_value());
 		REQUIRE(a.has_value());
 		CHECK(b.value().size() == a.value().size());
+		CHECK(d.value().size() >= b.value().size()); // DFS may not find the shortest path
 	}
 
+	SECTION("DFS")
+	{ 
+		grid<u8> g;
+		g.from_lines(
+		  {"##########",
+		   "#....#...#",
+		   "#.##.#.#.#",
+		   "#.#..#.#.#",
+		   "#.#.##.#.#",
+		   "#.#....#.#",
+		   "#.####.#.#",
+		   "#......#.#",
+		   "#.######.#",
+		   "##########"});
+
+		const auto open = [](const u8 c) { return c != '#'; };
+
+		auto path = dfs(g, ivec2{1, 1}, ivec2{8, 8}, open);
+		REQUIRE(path.has_value());
+		CHECK(path.value().front() == ivec2{1, 1});
+		CHECK(path.value().back() == ivec2{8, 8});
+		CHECK(path.value().size() >= 25u); // DFS may not find the shortest path
+
+	}
+
+}
+
+TEST_CASE("grid3d rotate", "[grid][grid3d]")
+{
+	using namespace deckard;
+
+	SECTION("quarter turns rotate coordinates and extents")
+	{
+		grid3d<char> around_x(2, 3, 4);
+		around_x.set({1, 2, 3}, 'x');
+		around_x.set_face({1, 0, 3}, grid3d_directions::top, 't');
+		around_x.rotate({1, 0, 0}, 90);
+		CHECK(around_x.get({1, 0, 2}) == 'x');
+		CHECK(around_x.get_face({1, 0, 0}, grid3d_directions::front) == 't');
+		CHECK_FALSE(around_x.get({1, 4, 0}).has_value());
+		around_x.rotate({1, 0, 0}, -90);
+		CHECK(around_x.get({1, 2, 3}) == 'x');
+
+		grid3d<char> around_y(2, 3, 4);
+		around_y.set({1, 2, 3}, 'y');
+		around_y.rotate({0, 1, 0}, 90);
+		CHECK(around_y.get({0, 2, 1}) == 'y');
+		CHECK_FALSE(around_y.get({4, 0, 0}).has_value());
+
+		grid3d<char> around_z(2, 3, 4);
+		around_z.set({1, 2, 3}, 'z');
+		around_z.rotate({0, 0, 1}, 90);
+		CHECK(around_z.get({0, 1, 3}) == 'z');
+		CHECK_FALSE(around_z.get({3, 0, 0}).has_value());
+	}
+
+	SECTION("signed axes and full turns")
+	{
+		grid3d<char> g(2, 3, 4);
+		g.set({1, 2, 3}, 'v');
+		g.rotate({-1, 0, 0}, 90);
+		CHECK(g.get({1, 3, 0}) == 'v');
+		g.rotate({0, 0, 1}, 360);
+		CHECK(g.get({1, 3, 0}) == 'v');
+	}
+}
+
+TEST_CASE("rubiks cube test", "[grid][grid3d]")
+{
+	using namespace deckard;
+	using namespace deckard::vec;
+
+	std::array<grid<char>, 6> faces{
+	  grid<char>{3, 3}, grid<char>{3, 3}, grid<char>{3, 3},
+	  grid<char>{3, 3}, grid<char>{3, 3}, grid<char>{3, 3}};
+	faces[0].fill('F');
+	faces[1].fill('B');
+	faces[2].fill('L');
+	faces[3].fill('R');
+	faces[4].fill('U');
+	faces[5].fill('D');
+
+	grid3d<char> cube(3, 3, 3);
+	cube.load_from_grids(faces);
+
+	// This corner cubie retains all three stickers rather than one overwriting the others.
+	CHECK(cube.get_face({0, 0, 0}, grid3d_directions::front) == 'F');
+	CHECK(cube.get_face({0, 0, 0}, grid3d_directions::left) == 'L');
+	CHECK(cube.get_face({0, 0, 0}, grid3d_directions::top) == 'U');
+
+	CHECK(cube.getplane(grid3d_directions::front).get(0, 0) == 'F');
+	CHECK(cube.getplane(grid3d_directions::left).get(0, 0) == 'L');
+	CHECK(cube.getplane(grid3d_directions::top).get(0, 0) == 'U');
+	CHECK(cube.print() ==
+	      "    UUU\n"
+	      "    UUU\n"
+	      "    UUU\n"
+	      "LLL FFF RRR BBB\n"
+	      "LLL FFF RRR BBB\n"
+	      "LLL FFF RRR BBB\n"
+	      "    DDD\n"
+	      "    DDD\n"
+	      "    DDD\n");
+
+
+	SECTION("rotate cube around y axis")
+	{
+
+		cube.rotate({0, 1, 0}, 90);
+		CHECK(cube.getplane(grid3d_directions::front).get(0, 0) == 'L');
+		CHECK(cube.getplane(grid3d_directions::left).get(0, 0) == 'B');
+		CHECK(cube.getplane(grid3d_directions::back).get(0, 0) == 'R');
+		CHECK(cube.getplane(grid3d_directions::right).get(0, 0) == 'F');
+
+		CHECK(
+		  cube.print()
+		  == "    UUU\n"
+			 "    UUU\n"
+			 "    UUU\n"
+			 "BBB LLL FFF RRR\n"
+			 "BBB LLL FFF RRR\n"
+			 "BBB LLL FFF RRR\n"
+			 "    DDD\n"
+			 "    DDD\n"
+			 "    DDD\n");
+
+	}
+
+}
+
+TEST_CASE("grid3d load from six faces", "[grid][grid3d]")
+{
+	using namespace deckard;
+	using namespace deckard::vec;
+	CHECK(grid3d_directions::top == ivec3{0, -1, 0});
+	CHECK(grid3d_directions::bottom == ivec3{0, 1, 0});
+	CHECK(grid3d_directions::left == ivec3{-1, 0, 0});
+	CHECK(grid3d_directions::right == ivec3{1, 0, 0});
+	CHECK(grid3d_directions::front == ivec3{0, 0, -1});
+	CHECK(grid3d_directions::back == ivec3{0, 0, 1});
+
+	std::array<grid<char>, 6> faces{
+	  grid<char>{4, 4}, grid<char>{4, 4}, grid<char>{4, 4},
+	  grid<char>{4, 4}, grid<char>{4, 4}, grid<char>{4, 4}};
+	faces[0].fill('f'); // front
+	faces[1].fill('b'); // back
+	faces[2].fill('l'); // left
+	faces[3].fill('r'); // right
+	faces[4].fill('t'); // top
+	faces[5].fill('d'); // bottom
+
+	grid3d<char> cube(4, 4, 4);
+	cube.load_from_grids(faces);
+
+	grid3d<char> partial_cube(4, 4, 4);
+	partial_cube.set_plane(faces[0], grid3d_directions::front);
+	CHECK(partial_cube.get_face({0, 0, 0}, grid3d_directions::front) == 'f');
+	CHECK_FALSE(partial_cube.get_face({0, 0, 0}, grid3d_directions::left).has_value());
+	partial_cube.set_plane(faces[2], grid3d_directions::left);
+	CHECK(partial_cube.get_face({0, 0, 0}, grid3d_directions::front) == 'f');
+	CHECK(partial_cube.get_face({0, 0, 0}, grid3d_directions::left) == 'l');
+
+	CHECK(cube.get_face({1, 1, 0}, grid3d_directions::front) == 'f');
+	CHECK(cube.get_face({1, 1, 3}, grid3d_directions::back) == 'b');
+	CHECK(cube.get_face({0, 1, 1}, grid3d_directions::left) == 'l');
+	CHECK(cube.get_face({3, 1, 1}, grid3d_directions::right) == 'r');
+	CHECK(cube.get_face({1, 0, 1}, grid3d_directions::top) == 't');
+	CHECK(cube.get_face({1, 3, 1}, grid3d_directions::bottom) == 'd');
+	CHECK(cube.get_face({0, 0, 0}, grid3d_directions::front) == 'f');
+	CHECK(cube.get_face({0, 0, 0}, grid3d_directions::left) == 'l');
+	CHECK(cube.get_face({0, 0, 0}, grid3d_directions::top) == 't');
+
+	const auto front = cube.getplane(grid3d_directions::front);
+	CHECK(front.count("f") == 16u);
+	CHECK(front.get(1, 1) == 'f');
+
+	const auto grid_back = cube.getplane(grid3d_directions::back);
+	const auto grid_left = cube.getplane(grid3d_directions::left);
+	const auto grid_right = cube.getplane(grid3d_directions::right);
+	const auto grid_top = cube.getplane(grid3d_directions::top);
+	const auto grid_bottom = cube.getplane(grid3d_directions::bottom);
+	CHECK(grid_back.get(1, 1) == 'b');
+	CHECK(grid_left.get(1, 1) == 'l');
+	CHECK(grid_right.get(1, 1) == 'r');
+	CHECK(grid_top.get(1, 1) == 't');
+	CHECK(grid_bottom.get(1, 1) == 'd');
+}
+
+TEST_CASE("grid3d rectangular cuboid planes", "[grid][grid3d]")
+{
+	using namespace deckard;
+
+	std::array<grid<char>, 6> faces{
+	  grid<char>{2, 3}, grid<char>{2, 3},
+	  grid<char>{4, 3}, grid<char>{4, 3},
+	  grid<char>{2, 4}, grid<char>{2, 4}};
+	faces[0].fill('F');
+	faces[1].fill('B');
+	faces[2].fill('L');
+	faces[3].fill('R');
+	faces[4].fill('T');
+	faces[5].fill('D');
+
+	grid3d<char> cuboid(2, 3, 4);
+	cuboid.load_from_grids(faces);
+
+	const auto grid_front = cuboid.getplane(grid3d_directions::front);
+	const auto grid_back = cuboid.getplane(grid3d_directions::back);
+	const auto grid_left = cuboid.getplane(grid3d_directions::left);
+	const auto grid_right = cuboid.getplane(grid3d_directions::right);
+	const auto grid_top = cuboid.getplane(grid3d_directions::top);
+	const auto grid_bottom = cuboid.getplane(grid3d_directions::bottom);
+	CHECK(grid_front.width() == 2);
+	CHECK(grid_front.height() == 3);
+	CHECK(grid_back.width() == 2);
+	CHECK(grid_back.height() == 3);
+	CHECK(grid_left.width() == 4);
+	CHECK(grid_left.height() == 3);
+	CHECK(grid_right.width() == 4);
+	CHECK(grid_right.height() == 3);
+	CHECK(grid_top.width() == 2);
+	CHECK(grid_top.height() == 4);
+	CHECK(grid_bottom.width() == 2);
+	CHECK(grid_bottom.height() == 4);
+	CHECK(cuboid.get_face({0, 0, 0}, grid3d_directions::front) == 'F');
+	CHECK(cuboid.get_face({0, 0, 0}, grid3d_directions::left) == 'L');
+	CHECK(cuboid.get_face({0, 0, 0}, grid3d_directions::top) == 'T');
+	CHECK(cuboid.print() ==
+	      "     TT\n"
+	      "     TT\n"
+	      "     TT\n"
+	      "     TT\n"
+	      "LLLL FF RRRR BB\n"
+	      "LLLL FF RRRR BB\n"
+	      "LLLL FF RRRR BB\n"
+	      "     DD\n"
+	      "     DD\n"
+	      "     DD\n"
+	      "     DD\n");
 }
