@@ -18,9 +18,6 @@ TEST_CASE("array", "[array]")
 	{
 		array2d<int> g(8, 8);
 		CHECK(g.size_in_bytes() == 8 * 8 * 4);
-
-		array2d<bool> g2(8, 8);
-		CHECK(g2.size_in_bytes() == 8 * 8 / 8);
 	}
 
 	SECTION("get/set int")
@@ -34,35 +31,33 @@ TEST_CASE("array", "[array]")
 		CHECK(g.get(1, 1) == 8);
 	}
 
-	SECTION("get/set bool")
+
+
+	SECTION("find")
 	{
-		array2d<bool> g(8, 8);
+		array2d<int> g(8, 8);
 		g.fill(0);
+		g.set(3, 3, 42);
 
-		CHECK(g.get(1, 1) == false);
-
-		g.set(1, 1, true);
-		CHECK(g.get(1, 1) == true);
+		CHECK(g.find(42) == ivec2{3, 3});
+		CHECK(g.find(99) == std::nullopt);
 	}
 
 	SECTION("extent constructor")
 	{
-		array2d<int> g(extent<u32>{4, 3});
-		CHECK(g.width() == 4u);
-		CHECK(g.height() == 3u);
-		CHECK(g.size() == 12u);
+		array2d<int> g(extent<i32>{4, 3});
+		CHECK(g.width() == 4);
+		CHECK(g.height() == 3);
+		CHECK(g.size() == 12);
 		CHECK(g.get(3, 2) == 0);
 
-		array2d<bool> b(extent<u32>{4, 3});
-		CHECK(b.size_in_bytes() == 2u);
-		CHECK_FALSE(b.get(3, 2));
 	}
 
 	SECTION("default construct")
 	{
 		array2d<int> g;
-		CHECK(g.width() == 1u);
-		CHECK(g.height() == 1u);
+		CHECK(g.width() == 1);
+		CHECK(g.height() == 1);
 		CHECK(g.get(0, 0) == 0);
 	}
 
@@ -124,7 +119,7 @@ TEST_CASE("array", "[array]")
 		CHECK(g.size() == 20u);
 		CHECK(g.valid(4, 3));
 
-		g.resize(extent<u32>{3, 3});
+		g.resize(extent<i32>{3, 3});
 		CHECK(g.size() == 9u);
 	}
 
@@ -199,67 +194,7 @@ TEST_CASE("array", "[array]")
 		CHECK(a.hash(1) != a.hash(2));
 	}
 
-	SECTION("bool flip")
-	{
-		array2d<bool> g(8, 8);
-		CHECK_FALSE(g.get(3, 3));
 
-		g.flip(3, 3);
-		CHECK(g.get(3, 3));
 
-		g.flip(3, 3);
-		CHECK_FALSE(g.get(3, 3));
-	}
-
-	SECTION("bool set clears bit")
-	{
-		array2d<bool> g(8, 8);
-		g.fill(true);
-		g.set(2, 2, false);
-
-		CHECK_FALSE(g.get(2, 2));
-		CHECK(g.get(1, 2));
-		CHECK(g.get(3, 2));
-	}
-
-	SECTION("bool bits do not bleed across cells")
-	{
-		array2d<bool> g(5, 5);
-
-		for (u32 y = 0; y < 5; ++y)
-			for (u32 x = 0; x < 5; ++x)
-				g.set(x, y, (x + y) % 2 == 0);
-
-		for (u32 y = 0; y < 5; ++y)
-			for (u32 x = 0; x < 5; ++x)
-				CHECK(g.get(x, y) == ((x + y) % 2 == 0));
-	}
-
-	SECTION("bool fill equals per-cell set")
-	{
-		// 9x9 = 81 bits, padding bits in the last byte
-		array2d<bool> filled_grid(9, 9);
-		filled_grid.fill(true);
-
-		array2d<bool> set_grid(9, 9);
-		for (u32 y = 0; y < 9; ++y)
-			for (u32 x = 0; x < 9; ++x)
-				set_grid.set(x, y, true);
-
-		CHECK(filled_grid == set_grid);
-		CHECK(filled_grid.hash() == set_grid.hash());
-	}
-
-	SECTION("bool equality and hash")
-	{
-		array2d<bool> a(8, 8);
-		array2d<bool> b(8, 8);
-		CHECK(a == b);
-		CHECK(a.hash() == b.hash());
-
-		b.set(7, 7, true);
-		CHECK_FALSE(a == b);
-		CHECK(a.hash() != b.hash());
-	}
 }
 
