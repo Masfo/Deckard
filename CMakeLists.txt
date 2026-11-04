@@ -10,6 +10,8 @@ option(DECKARD_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_BUILD_TOOLS "Build tools" ${PROJECT_IS_TOP_LEVEL})
 option(DECKARD_RUN_BUILDINC "Buildinc tool" ${PROJECT_IS_TOP_LEVEL})
+option(DECKARD_COPY_SHADERS "Shader copy" ${PROJECT_IS_TOP_LEVEL})
+
 
 # find_program(SCCACHE sccache REQUIRED)
 # if(SCCACHE)
@@ -361,9 +363,6 @@ set(DECKARD_MODULES
   )
 
 
- find_package(gameinput CONFIG REQUIRED)
- target_link_libraries(deckard PRIVATE Microsoft::GameInput)
-
 # $<$<PLATFORM_ID:Linux,Windows>:OpenGL::GL>
 # $<$      <PLATFORM_ID:Windows> :win32/win32.ixx>
 # $<$<NOT:$<PLATFORM_ID:Windows>>:file.cpp>
@@ -394,11 +393,8 @@ set(THIRD_PARTY_LIBS
 	ws2_32
 	xinput
 	Comctl32.lib
-	gameinput.lib
 	shcore.lib
-	hid.lib
 	msimg32.lib # for GradientFill
-	version.lib
 	#cpuid
    # libcpmtd.lib
    # libcmtd.lib
@@ -439,22 +435,25 @@ target_compile_options(deckard PRIVATE
 
 ###################################
 # copy shaders to bin
-set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/app/vulkan/shaders")
-set(SHADER_DST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin/shaders")
+if(DECKARD_COPY_SHADERS)
 
-file(GLOB SHADER_FILES CONFIGURE_DEPENDS
-    "${SHADER_SRC_DIR}/*.vert"
-    "${SHADER_SRC_DIR}/*.frag"
-	"${SHADER_SRC_DIR}/*.glsl"
-)
-
-add_custom_target(copy_shaders ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_DST_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SHADER_FILES} "${SHADER_DST_DIR}"
-    DEPENDS ${SHADER_FILES}
-    COMMENT "Copying shaders to ${SHADER_DST_DIR}"
-    VERBATIM)
-add_dependencies(deckard copy_shaders)
+	set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/app/vulkan/shaders")
+	set(SHADER_DST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin/shaders")
+	
+	file(GLOB SHADER_FILES CONFIGURE_DEPENDS
+	    "${SHADER_SRC_DIR}/*.vert"
+	    "${SHADER_SRC_DIR}/*.frag"
+		"${SHADER_SRC_DIR}/*.glsl"
+	)
+	
+	add_custom_target(copy_shaders ALL
+	    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_DST_DIR}"
+	    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SHADER_FILES} "${SHADER_DST_DIR}"
+	    DEPENDS ${SHADER_FILES}
+	    COMMENT "Copying shaders to ${SHADER_DST_DIR}"
+	    VERBATIM)
+	add_dependencies(deckard copy_shaders)
+endif()
 
 
 if(DECKARD_RUN_BUILDINC)

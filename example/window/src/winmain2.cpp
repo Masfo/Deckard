@@ -1,8 +1,6 @@
-
 #include <windows.h>
 #include <Commctrl.h>
 #include <cmath>
-#include <gameinput.h>
 #include <intrin.h>
 #include <time.h>
 #include <winsock2.h>
@@ -564,210 +562,9 @@ public:
 		return self;
 	};
 
-
 private:
 	std::vector<int> flags;
 };
-
-[[nodiscard]] auto label_device_family(GameInputDeviceFamily family) noexcept -> std::string
-{
-	std::string result;
-	if (family == GameInputFamilyVirtual)
-		result += "Virtual, ";
-	if (family == GameInputFamilyAggregate)
-		result += "Aggregate, ";
-	if (family == GameInputFamilyXboxOne)
-		result += "Xbox One, ";
-	if (family == GameInputFamilyXbox360)
-		result += "Xbox 360, ";
-	if (family == GameInputFamilyHid)
-		result += "HID, ";
-	if (family == GameInputFamilyI8042)
-		result += "I8042, ";
-	if (result.empty())
-		return "None";
-
-	return result.substr(0, result.size() - 2); // Remove trailing ", "
-}
-
-[[nodiscard]] auto label_device_capability(GameInputDeviceCapabilities cap) noexcept -> std::string
-{
-
-	std::string result;
-	if (cap & GameInputDeviceCapabilityAudio)
-		result += "Audio, ";
-	if (cap & GameInputDeviceCapabilityPluginModule)
-		result += "Plugin Module, ";
-	if (cap & GameInputDeviceCapabilityPowerOff)
-		result += "Power Off, ";
-	if (cap & GameInputDeviceCapabilitySynchronization)
-		result += "Synchronization, ";
-	if (cap & GameInputDeviceCapabilityWireless)
-		result += "Wireless, ";
-	if (result.empty())
-		return "None";
-
-	return result.substr(0, result.size() - 2); // Remove trailing ", "
-}
-
-[[nodiscard]] auto label_name(GameInputLabel label) noexcept -> std::string_view
-{
-	switch (label)
-	{
-		case GameInputLabelUnknown: return "Unknown";
-		case GameInputLabelNone: return "None";
-
-		case GameInputLabelXboxGuide: return "Xbox Guide";
-		case GameInputLabelXboxBack: return "Xbox Back";
-		case GameInputLabelXboxStart: return "Xbox Start";
-		case GameInputLabelXboxMenu: return "Xbox Menu";
-		case GameInputLabelXboxView: return "Xbox View";
-		case GameInputLabelXboxA: return "Xbox A";
-		case GameInputLabelXboxB: return "Xbox B";
-		case GameInputLabelXboxX: return "Xbox X";
-		case GameInputLabelXboxY: return "Xbox Y";
-		case GameInputLabelXboxDPadUp: return "Xbox DPad Up";
-		case GameInputLabelXboxDPadDown: return "Xbox DPad Down";
-		case GameInputLabelXboxDPadLeft: return "Xbox DPad Left";
-		case GameInputLabelXboxDPadRight: return "Xbox DPad Right";
-		case GameInputLabelXboxLeftShoulder: return "Xbox Left Shoulder";
-		case GameInputLabelXboxLeftTrigger: return "Xbox Left Trigger";
-		case GameInputLabelXboxLeftStickButton: return "Xbox Left Stick Click";
-		case GameInputLabelXboxRightShoulder: return "Xbox Right Shoulder";
-		case GameInputLabelXboxRightTrigger: return "Xbox Right Trigger";
-		case GameInputLabelXboxRightStickButton: return "Xbox Right Stick Click";
-		case GameInputLabelXboxPaddle1: return "Xbox Paddle 1";
-		case GameInputLabelXboxPaddle2: return "Xbox Paddle 2";
-		case GameInputLabelXboxPaddle3: return "Xbox Paddle 3";
-		case GameInputLabelXboxPaddle4: return "Xbox Paddle 4";
-
-		case GameInputLabelLetterA: return "A";
-		case GameInputLabelLetterB: return "B";
-		case GameInputLabelLetterC: return "C";
-		case GameInputLabelLetterD: return "D";
-		case GameInputLabelLetterE: return "E";
-		case GameInputLabelLetterF: return "F";
-		case GameInputLabelLetterG: return "G";
-		case GameInputLabelLetterH: return "H";
-		case GameInputLabelLetterI: return "I";
-		case GameInputLabelLetterJ: return "J";
-		case GameInputLabelLetterK: return "K";
-		case GameInputLabelLetterL: return "L";
-		case GameInputLabelLetterM: return "M";
-		case GameInputLabelLetterN: return "N";
-		case GameInputLabelLetterO: return "O";
-		case GameInputLabelLetterP: return "P";
-		case GameInputLabelLetterQ: return "Q";
-		case GameInputLabelLetterR: return "R";
-		case GameInputLabelLetterS: return "S";
-		case GameInputLabelLetterT: return "T";
-		case GameInputLabelLetterU: return "U";
-		case GameInputLabelLetterV: return "V";
-		case GameInputLabelLetterW: return "W";
-		case GameInputLabelLetterX: return "X";
-		case GameInputLabelLetterY: return "Y";
-		case GameInputLabelLetterZ: return "Z";
-		case GameInputLabelNumber0: return "0";
-		case GameInputLabelNumber1: return "1";
-		case GameInputLabelNumber2: return "2";
-		case GameInputLabelNumber3: return "3";
-		case GameInputLabelNumber4: return "4";
-		case GameInputLabelNumber5: return "5";
-		case GameInputLabelNumber6: return "6";
-		case GameInputLabelNumber7: return "7";
-		case GameInputLabelNumber8: return "8";
-		case GameInputLabelNumber9: return "9";
-
-		case GameInputLabelArrowUp: return "Arrow Up";
-		case GameInputLabelArrowUpRight: return "Arrow Up Right";
-		case GameInputLabelArrowRight: return "Arrow Right";
-		case GameInputLabelArrowDownRight: return "Arrow Down Right";
-		case GameInputLabelArrowDown: return "Arrow Down";
-		case GameInputLabelArrowDownLLeft: return "Arrow Down Left";
-		case GameInputLabelArrowLeft: return "Arrow Left";
-		case GameInputLabelArrowUpLeft: return "Arrow Up Left";
-		case GameInputLabelArrowUpDown: return "Arrow Up Down";
-		case GameInputLabelArrowLeftRight: return "Arrow Left Right";
-		case GameInputLabelArrowUpDownLeftRight: return "Arrow Up Down Left Right";
-		case GameInputLabelArrowClockwise: return "Arrow Clockwise";
-		case GameInputLabelArrowCounterClockwise: return "Arrow Counter Clockwise";
-		case GameInputLabelArrowReturn: return "Arrow Return";
-
-		case GameInputLabelIconBranding: return "Icon Branding";
-		case GameInputLabelIconHome: return "Icon Home";
-		case GameInputLabelIconMenu: return "Icon Menu";
-		case GameInputLabelIconCross: return "Icon Cross";
-		case GameInputLabelIconCircle: return "Icon Circle";
-		case GameInputLabelIconSquare: return "Icon Square";
-		case GameInputLabelIconTriangle: return "Icon Triangle";
-		case GameInputLabelIconStar: return "Icon Star";
-		case GameInputLabelIconDPadUp: return "Icon DPad Up";
-		case GameInputLabelIconDPadDown: return "Icon DPad Down";
-		case GameInputLabelIconDPadLeft: return "Icon DPad Left";
-		case GameInputLabelIconDPadRight: return "Icon DPad Right";
-		case GameInputLabelIconDialClockwise: return "Icon Dial Clockwise";
-		case GameInputLabelIconDialCounterClockwise: return "Icon Dial Counter Clockwise";
-		case GameInputLabelIconSliderLeftRight: return "Icon Slider Left Right";
-		case GameInputLabelIconSliderUpDown: return "Icon Slider Up Down";
-		case GameInputLabelIconWheelUpDown: return "Icon Wheel Up Down";
-		case GameInputLabelIconPlus: return "Icon Plus";
-		case GameInputLabelIconMinus: return "Icon Minus";
-		case GameInputLabelIconSuspension: return "Icon Suspension";
-
-		case GameInputLabelHome: return "Home";
-		case GameInputLabelGuide: return "Guide";
-		case GameInputLabelMode: return "Mode";
-		case GameInputLabelSelect: return "Select";
-		case GameInputLabelMenu: return "Menu";
-		case GameInputLabelView: return "View";
-		case GameInputLabelBack: return "Back";
-		case GameInputLabelStart: return "Start";
-		case GameInputLabelOptions: return "Options";
-		case GameInputLabelShare: return "Share";
-		case GameInputLabelUp: return "Up";
-		case GameInputLabelDown: return "Down";
-		case GameInputLabelLeft: return "Left";
-		case GameInputLabelRight: return "Right";
-
-		case GameInputLabelLB: return "LB";
-		case GameInputLabelLT: return "LT";
-		case GameInputLabelLSB: return "LSB";
-		case GameInputLabelL1: return "L1";
-		case GameInputLabelL2: return "L2";
-		case GameInputLabelL3: return "L3";
-		case GameInputLabelRB: return "RB";
-		case GameInputLabelRT: return "RT";
-		case GameInputLabelRSB: return "RSB";
-		case GameInputLabelR1: return "R1";
-		case GameInputLabelR2: return "R2";
-		case GameInputLabelR3: return "R3";
-		case GameInputLabelP1: return "P1";
-		case GameInputLabelP2: return "P2";
-		case GameInputLabelP3: return "P3";
-		case GameInputLabelP4: return "P4";
-
-		default: return "Other/unlabeled";
-	}
-}
-
-void print_gamepad_info(const GameInputGamepadInfo& info) noexcept
-{
-	dbg::println("GameInputGamepadInfo:");
-	dbg::println("  Menu               = {}", label_name(info.menuButtonLabel));
-	dbg::println("  View               = {}", label_name(info.viewButtonLabel));
-	dbg::println("  A                  = {}", label_name(info.aButtonLabel));
-	dbg::println("  B                  = {}", label_name(info.bButtonLabel));
-	dbg::println("  X                  = {}", label_name(info.xButtonLabel));
-	dbg::println("  Y                  = {}", label_name(info.yButtonLabel));
-	dbg::println("  DPad Up            = {}", label_name(info.dpadUpLabel));
-	dbg::println("  DPad Down          = {}", label_name(info.dpadDownLabel));
-	dbg::println("  DPad Left          = {}", label_name(info.dpadLeftLabel));
-	dbg::println("  DPad Right         = {}", label_name(info.dpadRightLabel));
-	dbg::println("  Left Shoulder      = {}", label_name(info.leftShoulderButtonLabel));
-	dbg::println("  Right Shoulder     = {}", label_name(info.rightShoulderButtonLabel));
-	dbg::println("  Left Stick Click   = {}", label_name(info.leftThumbstickButtonLabel));
-	dbg::println("  Right Stick Click  = {}", label_name(info.rightThumbstickButtonLabel));
-}
 
 void destroy() noexcept { dbg::println("destroy() called"); }
 
@@ -1269,354 +1066,23 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// ########################################################################
 
 
-	GameInputCallbackToken callback_token{};
-	IGameInput*            gameinput = nullptr;
-	if (not SUCCEEDED(GameInputCreate(&gameinput)))
+
+	volatile static bool init = false;
+
+	if (!init)
 	{
-		dbg::println("Failed to initialize GameInput.");
-		return -1;
+		dbg::println("init");
+
+		// Gdiplus::GdiplusStartup();
+		init = true;
+	}
+	else
+	{
+		dbg::println("already init");
 	}
 
-
-	auto callback =
-	  [](GameInputCallbackToken,
-		 void*,
-		 IGameInputDevice*     device,
-		 u64                   timestamp,
-		 GameInputDeviceStatus status,
-		 GameInputDeviceStatus prev_status)
 	{
-		const GameInputDeviceInfo* info      = device->GetDeviceInfo();
-		const auto                 supported = info->supportedInput;
-		const auto                 connected = static_cast<bool>(status & GameInputDeviceConnected);
-		bool                       wireless  = static_cast<bool>(status & GameInputDeviceWireless);
-
-		dbg::println(
-		  "[{}] Device status changed: connected={}, wireless={}, supported={:#x}, previous={:#x}",
-		  timestamp,
-		  connected,
-		  wireless,
-		  static_cast<unsigned>(supported),
-		  static_cast<unsigned>(prev_status));
-
-		dbg::println(
-		  "family: {}, capabilities: {:#x}", std::to_underlying(info->deviceFamily), std::to_underlying(info->capabilities));
-
-		GameInputBatteryState batterystate{};
-		device->GetBatteryState(&batterystate);
-		dbg::println(
-		  "Charge rate: {}, maxChargeRate: {}, remaining capacity: {}, full charge capacity: {}",
-		  batterystate.chargeRate,
-		  batterystate.maxChargeRate,
-		  batterystate.remainingCapacity,
-		  batterystate.fullChargeCapacity);
-		switch (batterystate.status)
-		{
-			case GameInputBatteryStatus::GameInputBatteryUnknown: dbg::println("Battery status: Unknown"); break;
-			case GameInputBatteryStatus::GameInputBatteryNotPresent: dbg::println("Battery status: Not Present"); break;
-			case GameInputBatteryStatus::GameInputBatteryDischarging: dbg::println("Battery status: Discharging"); break;
-			case GameInputBatteryStatus::GameInputBatteryIdle: dbg::println("Battery status: Idle"); break;
-			case GameInputBatteryStatus::GameInputBatteryCharging: dbg::println("Battery status: Charging"); break;
-		}
-
-		// supportedInput is a bitmask, not a single value — a real gamepad sets
-		// both GameInputKindGamepad and GameInputKindController at once, so
-		// check the most-specific/standardized kind first.
-		if (not connected)
-		{
-			if (supported & GameInputKindGamepad)
-				dbg::println("[Gamepad] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else if (supported & GameInputKindKeyboard)
-				dbg::println("[Keyboard] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else if (supported & GameInputKindMouse)
-				dbg::println("[Mouse] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else if (supported & GameInputKindArcadeStick)
-				dbg::println("[Arcade stick] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else if (supported & GameInputKindFlightStick)
-				dbg::println("[Flight stick] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else if (supported & GameInputKindRacingWheel)
-				dbg::println("[Racing wheel] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else if (supported & GameInputKindController)
-				dbg::println("[Generic controller] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-			else
-				dbg::println("[Device] disconnected: supported={:#x}", static_cast<unsigned>(supported));
-
-			return;
-		}
-
-
-		if (supported & GameInputKindGamepad)
-		{
-			dbg::println("[Gamepad] {}", connected ? "connected" : "disconnected");
-
-
-			dbg::println(
-			  "Device string count{}: connected={}, wireless={}, supported={:#x}",
-			  info->deviceStringCount,
-			  connected,
-			  wireless,
-			  static_cast<unsigned>(supported));
-
-			if (info->gamepadInfo)
-				print_gamepad_info(*info->gamepadInfo);
-
-			dbg::println("Family: {}", label_device_family(info->deviceFamily));
-
-			dbg::println("Capabilities: {}", label_device_capability(info->capabilities));
-
-			const GameInputRumbleMotors motors             = info->supportedRumbleMotors;
-			u32                         rumble_motor_count = std::popcount(static_cast<u32>(motors));
-			dbg::println("  Supported rumble motors: {:#x}", static_cast<unsigned>(motors));
-			dbg::println(
-			  "Rumble motors: {} (low={} high={} leftTrig={} rightTrig={})",
-			  rumble_motor_count,
-			  (motors & GameInputRumbleLowFrequency) != 0,
-			  (motors & GameInputRumbleHighFrequency) != 0,
-			  (motors & GameInputRumbleLeftTrigger) != 0,
-			  (motors & GameInputRumbleRightTrigger) != 0);
-
-			dbg::println();
-
-			f32 lowFrequency  = 0.0f;
-			f32 highFrequency = 0.0f;
-			f32 trigger_left  = 0.0f;
-			f32 trigger_right = 0.0f;
-
-			GameInputRumbleParams params{
-			  .lowFrequency  = (motors & GameInputRumbleLowFrequency) ? lowFrequency : 0.0f,
-			  .highFrequency = (motors & GameInputRumbleHighFrequency) ? highFrequency : 0.0f,
-			  .leftTrigger   = (motors & GameInputRumbleLeftTrigger) ? trigger_left : 0.0f,
-			  .rightTrigger  = (motors & GameInputRumbleRightTrigger) ? trigger_right : 0.0f,
-			};
-
-			device->SetRumbleState(&params);
-		}
-		else if (supported & GameInputKindKeyboard)
-			dbg::println("[Keyboard] {}", connected ? "connected" : "disconnected");
-		else if (supported & GameInputKindMouse)
-			dbg::println("[Mouse] {}", connected ? "connected" : "disconnected");
-		else if (supported & GameInputKindArcadeStick)
-			dbg::println("[Arcade stick] {}", connected ? "connected" : "disconnected");
-		else if (supported & GameInputKindFlightStick)
-			dbg::println("[Flight stick] {}", connected ? "connected" : "disconnected");
-		else if (supported & GameInputKindRacingWheel)
-			dbg::println("[Racing wheel] {}", connected ? "connected" : "disconnected");
-		else if (supported & GameInputKindController)
-			dbg::println("[Generic controller] {}", connected ? "connected" : "disconnected");
-		else
-			dbg::println(
-			  "[Unknown] supported={:#x} {}", static_cast<unsigned>(supported), connected ? "connected" : "disconnected");
-
-		u32 vendor_product = info->vendorId << 16 | info->productId;
-		dbg::println("  Vendor/Product: {:#x}", vendor_product);
-		dbg::println("  Vendor ID: {:#x}", info->vendorId);
-		dbg::println("  Product ID: {:#x}", info->productId);
-		dbg::println("  Device ID: {}", info->deviceId.value);
-	};
-
-
-	gameinput->RegisterDeviceCallback(
-	  nullptr, // no device filter
-	  GameInputKindGamepad | GameInputKindKeyboard | GameInputKindMouse | GameInputKindArcadeStick | GameInputKindFlightStick
-		| GameInputKindRacingWheel,
-	  GameInputDeviceConnected,
-	  GameInputAsyncEnumeration,
-	  nullptr, // context
-	  callback,
-	  &callback_token);
-
-
-	IGameInputReading* reading{};
-
-	while (!true)
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(16));
-		if (SUCCEEDED(gameinput->GetCurrentReading(GameInputKindGamepad, nullptr, &reading)))
-		{
-			GameInputGamepadState state{};
-			if (reading->GetGamepadState(&state))
-			{
-				IGameInputDevice* device{};
-				reading->GetDevice(&device);
-
-
-				const bool connected = (device->GetDeviceStatus() & GameInputDeviceConnected) != 0;
-
-				if (connected)
-				{
-					dbg::println(
-					  "[{:X}] buttons={:014b} | LS=({:+1.5f},{:+1.5f}) RS=({:+1.5f},{:+1.5f}) | LT={:+1.5f} RT={:+1.5f}",
-					  reading->GetTimestamp(),
-					  as<u32>(state.buttons),
-					  state.leftThumbstickX,
-					  state.leftThumbstickY,
-					  state.rightThumbstickX,
-					  state.rightThumbstickY,
-					  state.leftTrigger,
-					  state.rightTrigger);
-				}
-				device->Release();
-			}
-			reading->Release();
-		}
-	}
-	gameinput->UnregisterCallback(callback_token, /*timeoutMs=*/0);
-
-
-#if 0
-
-
-	vulkanapp app01{{.title = "hello"}};
-	app01.set_keyboard_callback(keyboard_callback);
-	app01.set_fixed_update_callback(fixed_update);
-	app01.set_update_callback(update);
-	app01.set_render_callback(render);
-	
-
-	return app01.run();
-
-#endif
-
-	test_class tc;
-
-	tc.flag(1).flag(2).flag(3).option(42).flag(4);
-
-
-	// static_assert(offsetof(TestStruct, a) == 0);
-	// static_assert(offsetof(TestStruct, b) == offsetof(TestStruct, a) + sizeof(u8) + Padding<u8>{1});
-	// static_assert(offsetof(TestStruct, c) == offsetof(TestStruct, b) + sizeof(i16));
-	// static_assert(offsetof(TestStruct, d) == offsetof(TestStruct, c) + sizeof(u32));
-
-	u64 secret = random::randu64();
-	for (int i = 12; i < 12; ++i)
-	{
-		auto start = std::chrono::high_resolution_clock::now();
-		for (u64 nonce = 0;; ++nonce)
-		{
-			u64 combined = secret + nonce;
-			u64 hash     = utils::chibihash64(&combined, sizeof(combined));
-			if (std::countl_zero(hash) == i)
-			{
-				auto end = std::chrono::high_resolution_clock::now();
-				dbg::println(
-				  "nonce: {} - hash: {:0X} ({} leading zeros) - elapsed: {:.5f} ms",
-				  nonce,
-				  hash,
-				  std::countl_zero(hash),
-				  std::chrono::duration<double, std::milli>(end - start).count());
-				dbg::println("{:064B}", hash);
-				break;
-			}
-		}
-	}
-
-
-	TestStruct ts{};
-
-	auto tstr = as_byte_span(ts);
-
-	TestStruct ts2 = from_byte_array<TestStruct>(tstr);
-	_              = 0;
-
-
-	// ###############################
-
-	constexpr u8  archive_version = 255;
-	constexpr u64 archive_magic   = std::byteswap(0x4445'434B'4152'4400 | archive_version); // "DECKARD" + version byte
-
-	(void)file::write({.filename = "archive_test.dat",
-					   .buffer   = std::span<const u8>(reinterpret_cast<const u8*>(&archive_magic), sizeof(archive_magic))});
-
-
-	std::vector<fs::path> files_to_archive;
-
-	fs::path data_dir = "data";
-	for (const fs::directory_entry& path : fs::recursive_directory_iterator(data_dir))
-	{
-		if (path.is_regular_file() or path.is_directory())
-			files_to_archive.push_back(path);
-	}
-
-	std::ranges::sort(files_to_archive, std::ranges::greater());
-	// std::ranges::sort(files_to_archive);
-
-	// greater: 585
-	//        : 596
-	// files_to_archive.clear();
-
-
-	std::vector<u8> paths_buffer;
-	paths_buffer.reserve(1024 * 128);
-
-	auto gen_random_file = [&](const fs::path path)
-	{
-		u64             size = random::randu64(10_KiB, 1_MiB);
-		std::vector<u8> buffer(size);
-
-		generate(buffer, random::randu64(40, 100));
-		(void)file::write({.filename = path, .buffer = buffer});
-	};
-
-	u64 sizes_total = 0;
-
-	u64 compressed_total_bytes = 0;
-
-	for (const fs::path& file : files_to_archive | std::views::take(1))
-	{
-
-		if (fs::is_directory(file))
-			continue;
-
-		u64 file_size = fs::file_size(file);
-
-		sizes_total += file_size;
-
-		if (file_size == 0)
-		{
-			gen_random_file(file);
-		}
-
-		std::vector<u8> file_data;
-		file_data.resize(file_size);
-		(void)file::read({.filename = file, .buffer = file_data, .size = file_size});
-
-		std::vector<u8> compressed_data;
-		compressed_data.resize(zstd::bound(file_data.size()));
-		auto csize = zstd::compress(file_data, compressed_data);
-
-		compressed_total_bytes += csize.value_or(0);
-
-		std::string p = file.string();
-
-
-		paths_buffer.insert(paths_buffer.end(), p.begin(), p.end());
-		paths_buffer.push_back('\0');
-
-		dbg::println("file: {} ({} bytes)", p, fs::file_size(file));
-	}
-
-	std::vector<u8> compressed_paths_buffer;
-	compressed_paths_buffer.resize(zstd::bound(paths_buffer.size()));
-	auto size = zstd::compress(paths_buffer, compressed_paths_buffer);
-	compressed_paths_buffer.resize(size.value_or(0));
-	dbg::println("paths_buffer size: {}, compressed size: {}",
-				 human_readable_bytes(paths_buffer.size()),
-				 human_readable_bytes(size.value_or(0)));
-
-
-	dbg::println("Total size of files: {}", human_readable_bytes(sizes_total));
-	dbg::println("Total compressed size of files: {}", human_readable_bytes(compressed_total_bytes));
-	dbg::println(
-	  "Compressed ratio: {:.2f}%", 100.0 - (math::safe_divide(compressed_total_bytes, sizes_total).value_or(0) * 100.0));
-	_ = 0;
-
-
-	// ###############################
-
-	std::vector<u8> rnd_data;
-	rnd_data.resize(16_MiB);
-	{
-		ScopeTimer time("random data");
+		ScopeTimer timer("random data");
 
 		random::bytes_quick(rnd_data);
 	}
@@ -1784,7 +1250,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		percent = result ? percent : 0.0f;
 
 		dbg::println(
-		  "compress_if_smaller: {}% compressible, result: {}, compressed size: {} bytes ({:.2f})",
+		  "compress_if_smaller: {}% compressable, result: {}, compressed size: {} bytes ({:.2f})",
 		  i,
 		  result.has_value() ? "compressed" : "not compressed",
 		  result.value_or(0),
@@ -2222,7 +1688,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					switch (method)
 					{
 						case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
-						default: dbg::println("  Attribute Method: Unknown"); break;
+						default: dbg::println("  Attribute Method: Unknown", method); break;
 					}
 
 					u16 attr_length = packetx.read<u16>();
@@ -2466,8 +1932,6 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			}
 #endif
 
-#if 0
-#endif
 				{
 					size_t padding = (4 - (packet.size() % 4)) % 4;
 					for (size_t i = 0; i < padding; ++i)
@@ -2530,44 +1994,27 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 			// PAcket 2:
-			// 01 01
-			// 00 18
-			// 21 12 A4 42
-			// DE AD BE EF 69 CA FE BA BE 11 22 33
-			//
-			// 00 01  Mapped address
-			// 00 08
-			// 00 01 DC 6C D5 98 A1 0A 00 20 00 08 00 01 FD 7E F4 8A 05 48
-
-			// 2a00:1678:2470:38:172e:6bff:5dbb:b0ae
-
-			_ = 0;
-			// Cloudflare
-			// 01 01									0x0101 STUN response
-			// 00 18									Length
-			// 21 12 A4 42						ipv6.src == fd7d:76ee:e68f:a993:977:ca24:f8af:5038		MAGIC cookie
-			// DE AD BE EF 69 CA FE BA BE 11 22 33		Transaction ID (same as sent)
-			//
-			// 00 20			XOR-mapped-address
-			// 00 14			length
-			// 00 02			padding byte, version byte (01 ipv4, 02 ipv6)
-			// CD B2			port xor'd with MAGIC
-			//
-			// 01 13 B0 F8		xor with magic
-			//					xor rest with transaction id
-			// 98 AC BE EF 6D B3 3C 8D 02 7A C9 11
-
-
-			// FB stun
 			// 01 01			STUN Message type
 			// 00 18			Message length
 			// 21 12 A4 42		Magic cookie
-			// DE AD BE EF 69 CA FE BA BE 11 22 33
+			// DE AD BE EF 69 CA FE BA BE 11 22 33		Transaction ID (same as sent)
 			//
 			// 00 01		 Attribute: MAPPED-ADDRESS
 			// 00 08 0x0008: MESSAGE-INTEGRITY
 			// 00 01 len
-			// E6 14 D5 98 A1 EA 00 20 00 08 00 01 C7 06 F4 8A 05 A8
+			// E6 14 D5 98 A1 0A 00 20 00 08 00 01 C7 06 F4 8A 05 A8
+
+
+			// Cloudflare
+			// 01 01			STUN Message type
+			// 00 18			Message length
+			// 21 12 A4 42		Magic cookie
+			// DE AD BE EF 69 CA FE BA BE 11 22 33		Transaction ID (same as sent)
+			//
+			// 00 01		 Attribute: MAPPED-ADDRESS
+			// 00 08 0x0008: MESSAGE-INTEGRITY
+			// 00 01 len
+			// E6 14 D5 98 A1 EA 00 20 00 08 00 01 FD 7E F4 8A 05 48
 
 
 			// Google stun
@@ -2965,57 +2412,5 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		}
 
 		_;
-
-
-		//
-		// std::string ipv6("2001:0db8:85a3::8a2e:0370:7334");
-
-		//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
-		// 20 01 0d b8 00 00 00 00 00 01 00 00 00 00 00 01
-		// 192.168.1.1 - c0.ab.01.01
-		//  ::ffff:c0ab:0101
-		//
-		//  127.0.0.1 - ::ffff:7f00:1
-
-
-		// ########################################################################
-		// ✅ ❌
-
-
-		// Lexer       lexer(input);
-		// Parser      parser(lexer);
-		// int         result = parser.expression();
-		// dbg::println("Result: {}", result);
-
-
-		// Environment
-		//	std::unordered_map<std::string, int> env;
-		//
-		//	// Create an AST
-		//	std::unique_ptr<Node> ast =
-		//	  create_assign_node("x", create_bin_op_node('+', create_num_node(2), create_bin_op_node('*',
-		// create_num_node(3),
-		// create_num_node(6))));
-		//
-		//	std::unordered_map<std::string, int> constants;
-		//
-		//	print_ast(ast);
-		//	auto code = generate_bytecode(ast, constants);
-		//	interpret_ast(ast, env);
-		//	dbg::println("x = {}", env["x"]);
-		//
-
-
-		// TODO: register key bindings to apps own enum
-		//
-		// enum player_movement
-		// up,down,left,right, fire
-		// bind(KEY_LEFT, left)
-		// bind(KEY_SPACE, fire)  // both space and pad_a fires
-		// bind(PAD_A, fire)
-
-		// special enter textmode for input
-		// keys.enter_text_mode()
-		// end_text_mode(), // inputs keys as text?
 	}
 }

@@ -1,7 +1,6 @@
 
 #include <windows.h>
 #include <Commctrl.h>
-#include <gameinput.h>
 #include <intrin.h>
 #include <time.h>
 #include <winsock2.h>
@@ -15,12 +14,14 @@ import deckard;
 import deckard.app;
 import deckard.types;
 import deckard.helpers;
+import deckard.views;
 import deckard.math;
 import deckard.math.utils;
 import deckard.timers;
 import deckard.vec;
 import deckard.vulkan;
 import deckard.geometry;
+import deckard.cpuid;
 
 #ifndef _DEBUG
 import window;
@@ -458,6 +459,11 @@ void render_entities(
 
 vulkan::texture_id uv_test_texture{};
 vulkan::texture_id mouse_texture{};
+vulkan::mesh_id    demo_cube{};
+vulkan::light      demo_light{};
+constexpr f32      demo_cube_x{2.0f};
+constexpr f32      light_orbit_radius{2.5f};
+constexpr f32      light_orbit_height{1.5f};
 
 struct world
 {
@@ -508,9 +514,11 @@ grid_layout  layout{};
 std::mt19937 rng{std::random_device{}()};
 
 
-f32 rotation_angle = 0.0f;
+f32 rotation_angle    = 0.0f;
+f32 cube_rotation     = 0.0f;
+f32 light_orbit_angle = 0.0f;
 
-void render(deckard::app::render* render, [[maybe_unused]] f32 delta) noexcept
+void render(deckard::app::render* render, f32 delta) noexcept
 {
 	POINT p{};
 	GetCursorPos(&p);
@@ -555,6 +563,27 @@ void render(deckard::app::render* render, [[maybe_unused]] f32 delta) noexcept
 	//	 render_grid(, layout, mx, my);
 	render_world(render, g_world, mx, my);
 	// render_entities(render, g_world.entities, g_world.alpha);
+
+	if (demo_cube)
+	{
+		cube_rotation += delta * math::to_radians(45.0f);
+		light_orbit_angle += delta * math::to_radians(60.0f);
+		demo_light.position = {
+		  demo_cube_x + std::cos(light_orbit_angle) * light_orbit_radius,
+		  light_orbit_height,
+		  std::sin(light_orbit_angle) * light_orbit_radius};
+		render->set_light(demo_light);
+		const vec3 light_position = render->get_light().position;
+
+		render->draw_mesh(
+		  demo_cube,
+		  vec3{demo_cube_x, 0.0f, 0.0f},
+		  vec3{cube_rotation * 0.35f, cube_rotation, cube_rotation * 0.2f},
+		  vec3{1.25f, 1.25f, 1.25f},
+		  {255, 255, 255},
+		  uv_test_texture);
+		render->draw_mesh(demo_cube, light_position, vec3::zero(), vec3{0.14f, 0.14f, 0.14f}, {255, 235, 130}, {}, 2.0f);
+	}
 }
 
 template<typename T>
@@ -590,6 +619,29 @@ bool initialize_textures() noexcept
 		return false;
 	}
 	mouse_texture = *mouse;
+	return true;
+}
+
+bool initialize_mesh_demo() noexcept
+{
+	auto& renderer = app::get_renderer();
+	renderer.set_camera(vec3{0.0f, 1.5f, 7.0f}, vec3{0.0f, 0.0f, 0.0f}, vec3{0.0f, 1.0f, 0.0f}, 50.0f);
+	light_orbit_angle = 0.0f;
+	demo_light        = vulkan::light{
+	  .position  = {demo_cube_x + light_orbit_radius, light_orbit_height, 0.0f},
+	  .color     = {1.0f, 0.92f, 0.78f},
+	  .intensity = 3.5f,
+	  .radius    = 24.0f};
+	renderer.set_light(demo_light);
+
+	auto cube = renderer.create_mesh(vulkan::create_cube(1.0f));
+	if (not cube)
+	{
+		dbg::println("Failed to create demo cube: {}", cube.error());
+		return false;
+	}
+
+	demo_cube = *cube;
 	return true;
 }
 
@@ -776,6 +828,7 @@ private:
 		assert::check(m_arena->used() >= m_mark, "arena was rewound below this scope's mark");
 		return *m_arena;
 	}
+
 public:
 	[[nodiscard]] explicit arenascope(arena& a) noexcept
 		: m_arena{&a}
@@ -815,7 +868,6 @@ public:
 			m_arena->restore(m_mark);
 	}
 
-
 	template<typename T, typename... Args>
 	requires std::is_trivially_destructible_v<T> and std::is_constructible_v<T, Args...>
 	[[nodiscard]] T* create(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
@@ -848,9 +900,11 @@ void area_test(arena& a)
 {
 	arenascope scope{a};
 	auto       tmp = scope.create<u8>(u8{0xEE});
+	tmp;
 }
 
 // arena + arena_view(marks and rewinds)
+
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
@@ -861,6 +915,102 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 #endif
 	// ########################################################################
 
+	const std::vector<std::vector<u32>> matrix{
+	  {1, 2, 3},
+	  {4, 5},
+	};
+
+	const std::vector<std::vector<u32>> expectedmatrix{
+	  {1, 4},
+	  {2, 5},
+	  {3, 0},
+	};
+
+	for (const auto& row : matrix)
+	{
+		for (const auto& elem : row)
+			dbg::print("{} ", elem);
+		dbg::print("\n");
+	}
+
+	auto rot = string::rotate_cw(matrix, 0);
+	for (const auto& row : rot)
+	{
+		for (const auto& elem : row)
+			dbg::print("{} ", elem);
+		dbg::print("\n");
+	}
+
+
+	auto transposed = string::transpose(matrix, 0);
+	assert::check(transposed == expectedmatrix, "Transpose result differs");
+
+	auto rot_ccw = string::rotate_ccw(matrix, 0);
+	for (const auto& row : rot_ccw)
+	{
+		for (const auto& elem : row)
+			dbg::print("{} ", elem);
+		dbg::print("\n");
+	}
+
+	const std::array<std::array<u32, 2>, 3> array_matrix{{{1, 2}, {3, 4}, {5, 6}}};
+	const std::vector<std::vector<u32>> array_expected{{1, 3, 5}, {2, 4, 6}};
+	assert::check(string::transpose(array_matrix) == array_expected, "Array transpose differs");
+
+	for (const auto& row : transposed)
+	{
+		for (const auto& elem : row)
+			dbg::print("{} ", elem);
+		dbg::print("\n");
+	}
+
+	std::vector<std::vector<std::string>> str_matrix{
+	  {"a", "b", "c"},
+	  {"d", "e", "f"},
+	  {"g", "i"},
+	};
+
+	auto str_transposed = string::transpose(str_matrix, "");
+	for (const auto& row : str_transposed)
+	{
+		for (const auto& elem : row)
+			dbg::print("'{}' ", elem);
+		dbg::print("\n");
+	}
+
+
+	int x = 0;
+
+
+	// ########################################################################
+
+
+	ivec3 target_size{1024, 256, 1024};
+	ivec3 cell_size{8, 8, 8};
+	vec3  inv_cell_size{1.0f / cell_size.x, 1.0f / cell_size.y, 1.0f / cell_size.z};
+
+
+	ivec3 cell_count{((target_size.x + cell_size.x - 1) / cell_size.x),
+					 ((target_size.y + cell_size.y - 1) / cell_size.y),
+					 ((target_size.z + cell_size.z - 1) / cell_size.z)};
+
+
+	ivec3 world_size{cell_count.x * cell_size.x, cell_count.y * cell_size.y, cell_count.z * cell_size.z};
+
+
+	dbg::println("Target size: {} x {} x {}", target_size.x, target_size.y, target_size.z);
+	dbg::println("Cell size: {} x {} x {}", cell_size.x, cell_size.y, cell_size.z);
+	dbg::println("Total cells count : {} x {} x {} = {}", cell_count.x, cell_count.y, cell_count.z, product(cell_count));
+	dbg::println("World size: {} x {} x {}", world_size.x, world_size.y, world_size.z);
+
+	dbg::println("World size: {}", pretty_bytes(product(cell_count) * sizeof(u32) * 8));
+
+	vec3 world_min{-world_size.x * 0.5f, -world_size.y * 0.5f, -world_size.z * 0.5f};
+	vec3 world_max{world_size.x * 0.5f, world_size.y * 0.5f, world_size.z * 0.5f};
+
+	dbg::println("World min: {} x {} x {}", world_min.x, world_min.y, world_min.z);
+	dbg::println("World max: {} x {} x {}", world_max.x, world_max.y, world_max.z);
+	dbg::println();
 
 	// ########################################################################
 
@@ -872,15 +1022,15 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	auto vec2 = a.create_array<u32>(u32{4});
 
 	for (auto& v : vec2)
-		v = 0x1122'3344;
+		v = 0x1122'3355;
 
 	area_test(a);
 	auto v1 = a.create<u8>(u8{0xFF});
-
+	v1;
 	auto img = image::load_tga<image_rgba>("data//3x3.tga"_path);
 	if (img)
 	{
-		image::save_tga("data//3x3_copy.tga"_path, *img);
+		_ = image::save_tga("data//3x3_copy.tga"_path, *img);
 	}
 
 
@@ -909,6 +1059,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		return -1;
 	}
 	if (not initialize_textures())
+	{
+		app::close();
+		return -1;
+	}
+	if (not initialize_mesh_demo())
 	{
 		app::close();
 		return -1;

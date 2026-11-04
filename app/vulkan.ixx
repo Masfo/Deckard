@@ -10,13 +10,15 @@ module;
 
 
 export module deckard.vulkan;
+export import deckard.vulkan.common;
+export import deckard.vulkan.light;
+export import deckard.mesh;
 export import :shaders;
 
 import std;
 import deckard.as;
 import deckard.types;
 import deckard.vec;
-import deckard.random;
 import deckard.debug;
 import deckard.assert;
 import deckard.scope_exit;
@@ -38,13 +40,13 @@ namespace deckard::vulkan
 	inline constexpr std::array<f32, 3> default_clear_rgb{0.0f, 0.5f, 0.75f};
 
 
-	static constexpr std::array<vec::vec2, 3> triangle2_uvs{
-	  vec::vec2{0.5f, 0.0f}, vec::vec2{1.0f, 1.0f}, vec::vec2{0.0f, 1.0f}};
-
 	export struct buffer
 	{
 		VkBuffer              handle{};
 		VkDeviceMemory        memory{};
+		VkDeviceSize          memory_offset{};
+		VkDeviceSize          allocation_size{};
+		u32                   allocation_block{std::numeric_limits<u32>::max()};
 		VkDeviceSize          size{};
 		VkMemoryPropertyFlags memory_properties{};
 		void*                 mapped{}; // non-null only for HOST_VISIBLE memory
@@ -54,8 +56,28 @@ namespace deckard::vulkan
 	{
 		VkImage        handle{};
 		VkDeviceMemory memory{};
+		VkDeviceSize  memory_offset{};
+		VkDeviceSize  allocation_size{};
+		u32           allocation_block{std::numeric_limits<u32>::max()};
 		VkImageView    view{};
 		VkSampler      sampler{};
+	};
+
+	struct memory_range
+	{
+		VkDeviceSize offset{};
+		VkDeviceSize size{};
+	};
+
+	struct memory_block
+	{
+		VkDeviceMemory        memory{};
+		VkDeviceSize          size{};
+		u32                   memory_type{};
+		VkMemoryPropertyFlags properties{};
+		bool                  image_memory{false};
+		void*                 mapped{};
+		std::vector<memory_range> free_ranges;
 	};
 
 	export struct texture_id
@@ -67,11 +89,56 @@ namespace deckard::vulkan
 		[[nodiscard]] friend bool operator==(texture_id, texture_id) noexcept = default;
 	};
 
+	export struct mesh_id
+	{
+		u32 value{std::numeric_limits<u32>::max()};
+
+		[[nodiscard]] explicit operator bool() const noexcept { return value != std::numeric_limits<u32>::max(); }
+
+		[[nodiscard]] friend bool operator==(mesh_id, mesh_id) noexcept = default;
+	};
+
+	// One 3D draw submitted for the current frame.
+	export struct mesh_draw
+	{
+		mesh_id             id{};
+		texture_id          texture{};
+		std::array<f32, 16> model{};  // column-major model transform
+		std::array<f32, 12> normal{}; // mat3 inverse-transpose of the model matrix, each column padded to 16 bytes
+		std::array<f32, 4>  color{1.0f, 1.0f, 1.0f, 0.0f}; // RGB tint, W emissive strength
+	};
+
 	struct texture_resource
 	{
 		image_resource  image{};
 		VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
 	};
+
+	struct mesh_resource
+	{
+		buffer vertex{};
+		buffer index{};
+		u32    index_count{0};
+	};
+
+	// Matches the push constant block in mesh.vert / mesh.frag.
+	struct mesh_push_constant
+	{
+		std::array<f32, 16> model;
+		std::array<f32, 12> normal; // mat3 in std430: three columns, each padded to 16 bytes
+		std::array<f32, 4>  color;  // RGB tint, W emissive strength
+	};
+
+	static_assert(sizeof(mesh_push_constant) == 128);
+
+	struct scene_uniform
+	{
+		std::array<f32, 16> view_projection;
+		std::array<f32, 4>  light_position_intensity;
+		std::array<f32, 4>  light_color_radius;
+	};
+
+	static_assert(sizeof(scene_uniform) == 96);
 
 	struct texture_batch
 	{
@@ -84,25 +151,22 @@ namespace deckard::vulkan
 	{
 		VkCommandBuffer            cmd{};
 		VkSemaphore                image_available{};
-		buffer                     vertex{}; // animated triangle2 vertices
 		buffer                     batch{};  // 2D batch vertices
+		buffer                     scene{};  // view-projection and point light
+		VkDescriptorSet            scene_descriptor_set{VK_NULL_HANDLE};
 		u32                        batch_count{0};
 		std::vector<texture_batch> texture_batches;
 		u64                        timeline_value{0};
 	};
 
-	export struct vertex2d
-	{
-		vec::vec2 v;
-		vec::vec2 uv;
-		u32       rgba;       // r | g<<8 | b<<16 | a<<24 -> bytes R,G,B,A in memory (little-endian)
-		u32       texture_id; // Index into the context's stable texture table
-	};
 
 	static_assert(sizeof(vec::vec2) == 2 * sizeof(f32));
 	static_assert(std::is_standard_layout_v<vertex2d>);           // offsetof needs this
 
 	export inline constexpr u32 max_batch_vertices = 3u * 32768u; // multiple of 3, ~1.1 MiB per frame slot
+
+	// Format of the depth attachment that is bound to every dynamic rendering pass.
+	export inline constexpr VkFormat default_depth_format = VK_FORMAT_D32_SFLOAT;
 
 	export struct pipeline_desc
 	{
@@ -111,7 +175,17 @@ namespace deckard::vulkan
 		VkShaderStageFlags    push_stages{0};
 		u32                   push_size{0};
 		VkDescriptorSetLayout descriptor_set_layout{VK_NULL_HANDLE};
+		VkDescriptorSetLayout additional_descriptor_set_layout{VK_NULL_HANDLE};
 		bool                  alpha_blend{false};
+		bool                  depth_test{false};
+		bool                  depth_write{false};
+		// Test/write become dynamic state, so one pipeline can draw both depth-tested and overlay
+		// geometry without a shader variant.
+		bool                  dynamic_depth{false};
+		VkCompareOp           depth_compare{VK_COMPARE_OP_LESS};
+		// Dynamic rendering requires the pipeline to declare the attachment formats it is used with, even
+		// when the pipeline does not read or write depth.
+		VkFormat              depth_format{default_depth_format};
 	};
 
 	export struct pipeline_state
@@ -418,13 +492,6 @@ namespace deckard::vulkan
 		}
 	};
 
-	struct triangle2_vertex
-	{
-		vec::vec2          pos;
-		vec::vec2          uv;
-		std::array<f32, 4> color;
-	};
-
 	// Debug utils
 	PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT{nullptr};
 	PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT{nullptr};
@@ -503,7 +570,7 @@ namespace deckard::vulkan
 	void transition_image(
 	  VkCommandBuffer cmd, VkImage image, VkPipelineStageFlags2 src_stage, VkAccessFlags2 src_access,
 	  VkPipelineStageFlags2 dst_stage, VkAccessFlags2 dst_access, VkImageLayout old_layout,
-	  VkImageLayout new_layout) noexcept
+	  VkImageLayout new_layout, VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT) noexcept
 	{
 		const VkImageMemoryBarrier2 barrier{
 		  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -516,7 +583,7 @@ namespace deckard::vulkan
 		  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		  .image               = image,
-		  .subresourceRange    = color_range,
+		  .subresourceRange    = {aspect, 0, 1, 0, 1},
 		};
 		const VkDependencyInfo dependency{
 		  .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -584,6 +651,7 @@ namespace deckard::vulkan
 	{
 	private:
 		static constexpr u32 max_texture_count = 4096;
+		static constexpr u32 max_mesh_count    = 4096;
 
 		VkInstance               m_instance{nullptr};
 		VkDevice                 m_device{nullptr};
@@ -591,6 +659,7 @@ namespace deckard::vulkan
 		bool                     m_unified_image_layouts{false};
 		buffer*                  m_screenshot_buffer{nullptr};
 		buffer                   m_screenshot_readback{};
+		std::vector<memory_block> m_memory_blocks{};
 		VkQueue                  m_graphics_queue{nullptr};
 		u32                      m_graphics_queue_family_index{0};
 		VkSurfaceKHR             m_surface{nullptr};
@@ -626,26 +695,25 @@ namespace deckard::vulkan
 		std::array<texture_resource, max_texture_count> m_textures{};
 		u32                                             m_texture_count{0};
 		texture_id                                      m_white_texture{0};
+		std::vector<mesh_resource>                      m_meshes{};
 		u64 m_signal_value{0};     // timeline semaphore signal value for the current frame in flight
 		u64 m_timeline_counter{0}; // timeline semaphore counter for the current frame in flight
 		u32 m_currentframe{0};     // frame index for the current frame in flight
 
-		// pipelines: [0] = triangle, [1] = triangle2
+		// pipelines: [0] = triangle
 		std::vector<pipeline_state> m_pipelines;
 		pipeline_state              m_pipeline_2d{};
+		pipeline_state              m_pipeline_mesh{};
+		std::vector<image_resource> m_depth_images{};
+		VkFormat                    m_depth_format{default_depth_format};
 		VkDescriptorSetLayout       m_texture_descriptor_layout{VK_NULL_HANDLE};
 		VkDescriptorPool            m_texture_descriptor_pool{VK_NULL_HANDLE};
+		VkDescriptorSetLayout       m_scene_descriptor_layout{VK_NULL_HANDLE};
+		VkDescriptorPool            m_scene_descriptor_pool{VK_NULL_HANDLE};
+		light                        m_scene_light{
+		  .position = {-2.0f, 4.0f, 3.0f}, .color = {1.0f, 0.95f, 0.85f}, .intensity = 2.5f, .radius = 10.0f};
 		std::array<f32, 3>          m_clear_rgb{default_clear_rgb};
 
-		// triangle2
-		buffer                                m_triangle2{}; // static copy, only used by record_clear_commands()
-		std::array<triangle2_vertex, 3>       m_triangle2_initial_vertices{};
-		std::array<vec::vec2, 3>              m_triangle2_origin{};
-		std::array<std::array<f32, 4>, 3>     m_triangle2_color{};
-		std::array<f32, 3>                    m_triangle2_angle{};
-		std::array<f32, 3>                    m_triangle2_angular_speed{};
-		f32                                   m_time_seconds{0.0f};
-		std::chrono::steady_clock::time_point m_last_frame_time{};
 		bool                                  vsync{true};
 
 
@@ -682,6 +750,8 @@ namespace deckard::vulkan
 		[[nodiscard]] VkQueue graphics_queue() const noexcept { return m_graphics_queue; }
 
 		void set_vsync(bool enabled) noexcept { vsync = enabled; }
+
+		void set_light(const light& source) noexcept { m_scene_light = source; }
 
 		[[nodiscard]] static constexpr bool version_at_least(u32 version, u32 major, u32 minor) noexcept
 		{
@@ -727,11 +797,13 @@ namespace deckard::vulkan
 				  .and_then([this] { return initialize_device(); })
 				  .and_then([this] { return initialize_swapchain(); })
 				  .and_then([this] { return initialize_swapchain_images(); })
+				  .and_then([this] { return initialize_depth(); })
 				  .and_then([this] { return initialize_command_buffers(); })
 				  .and_then([this] { return initialize_frames(); })
 				  .and_then([this] { return initialize_synchronization(); })
 				  .and_then([this] { return initialize_triangle_renderer(); })
 				  .and_then([this] { return initialize_renderer2d(); })
+				  .and_then([this] { return initialize_mesh_renderer(); })
 				  .and_then([this] { return record_clear_commands(); });
 
 
@@ -745,13 +817,17 @@ namespace deckard::vulkan
 
 			deinitialize_synchronization();
 			deinitialize_renderer2d();
+			deinitialize_mesh_renderer();
+			deinitialize_meshes();
 			deinitialize_frames();
 			deinitialize_triangle_renderer();
 			deinitialize_command_buffers();
 			deinitialize_swapchain_images();
+			deinitialize_depth();
 			deinitialize_textures();
 			if (m_screenshot_readback.handle != VK_NULL_HANDLE)
 				destroy_buffer(m_screenshot_readback);
+			deinitialize_memory_blocks();
 			deinitialize_swapchain();
 			deinitialize_device();
 			deinitialize_surface();
@@ -769,6 +845,7 @@ namespace deckard::vulkan
 
 			if (auto result = resize_swapchain()
 								.and_then([this] { return resize_swapchain_images(); })
+								.and_then([this] { return resize_depth(); })
 								.and_then([this] { return resize_synchronization(); });
 				not result)
 			{
@@ -796,7 +873,12 @@ namespace deckard::vulkan
 
 		[[nodiscard]] bool needs_resize() const noexcept { return m_needs_resize; }
 
-		bool draw(std::span<const vertex2d> batch = {}, std::array<f32, 3> clear_rgb = default_clear_rgb)
+		[[nodiscard]] const light& get_light() const noexcept { return m_scene_light; }
+
+		bool draw(
+		  std::span<const vertex2d> batch = {}, std::span<const mesh_draw> meshes = {},
+		  std::array<f32, 3> clear_rgb = default_clear_rgb,
+		  std::array<f32, 16> view_projection = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1})
 		{
 
 			if (m_swapchain_images.empty())
@@ -809,12 +891,6 @@ namespace deckard::vulkan
 				wait_for_timeline_semaphore(m_in_flight_timeline, frame.timeline_value);
 
 			m_clear_rgb = clear_rgb;
-
-			const auto now    = std::chrono::steady_clock::now();
-			const f32  dt     = std::chrono::duration<f32>(now - m_last_frame_time).count();
-			m_last_frame_time = now;
-			m_time_seconds += dt;
-			update_triangle2(frame, dt);
 
 			upload_batch(frame, batch);
 
@@ -833,7 +909,7 @@ namespace deckard::vulkan
 				return false;
 
 			vkResetCommandBuffer(frame.cmd, 0);
-			if (auto recorded = record_frame(frame, image_index); not recorded)
+			if (auto recorded = record_frame(frame, image_index, meshes, view_projection); not recorded)
 			{
 				dbg::println("{}", recorded.error());
 				m_needs_resize = true;
@@ -876,7 +952,9 @@ namespace deckard::vulkan
 		}
 
 		[[nodiscard]] std::expected<image_rgb, std::string> screenshot(
-		  std::span<const vertex2d> batch = {}, std::array<f32, 3> clear_rgb = default_clear_rgb)
+		  std::span<const vertex2d> batch = {}, std::span<const mesh_draw> meshes = {},
+		  std::array<f32, 3> clear_rgb = default_clear_rgb,
+		  std::array<f32, 16> view_projection = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1})
 		{
 			if (m_device == VK_NULL_HANDLE or m_swapchain_images.empty())
 				return std::unexpected("Vulkan swapchain must be initialized before taking a screenshot");
@@ -923,7 +1001,7 @@ namespace deckard::vulkan
 
 			const u32 frame_index             = m_currentframe;
 			const u64 previous_timeline_value = m_timeline_counter;
-			if (not draw(batch, clear_rgb))
+			if (not draw(batch, meshes, clear_rgb, view_projection))
 			{
 				vkDeviceWaitIdle(m_device);
 				return std::unexpected("Failed to render frame for Vulkan screenshot");
@@ -987,6 +1065,134 @@ namespace deckard::vulkan
 			return fallback;
 		}
 
+		struct memory_allocation
+		{
+			VkDeviceMemory        memory{};
+			VkDeviceSize          offset{};
+			VkDeviceSize          size{};
+			VkMemoryPropertyFlags properties{};
+			void*                 mapped{};
+			u32                   block{};
+		};
+
+		[[nodiscard]] static std::optional<VkDeviceSize> take_memory_range(
+		  memory_block& block, VkDeviceSize size, VkDeviceSize alignment)
+		{
+			for (std::size_t i = 0; i < block.free_ranges.size(); ++i)
+			{
+				const memory_range range = block.free_ranges[i];
+				const VkDeviceSize offset = (range.offset + alignment - 1) & ~(alignment - 1);
+				if (offset < range.offset or offset - range.offset > range.size or size > range.size - (offset - range.offset))
+					continue;
+
+				block.free_ranges.erase(block.free_ranges.begin() + i);
+				if (offset > range.offset)
+					block.free_ranges.push_back({range.offset, offset - range.offset});
+				const VkDeviceSize end = offset + size;
+				if (end < range.offset + range.size)
+					block.free_ranges.push_back({end, range.offset + range.size - end});
+				return offset;
+			}
+			return std::nullopt;
+		}
+
+		[[nodiscard]] std::expected<memory_allocation, std::string> allocate_memory(
+		  VkDeviceSize size, VkDeviceSize alignment, u32 type_filter, VkMemoryPropertyFlags required,
+		  VkMemoryPropertyFlags preferred, bool image_memory, std::string_view label)
+		{
+			const auto memory_type = find_memory_type(type_filter, required, preferred);
+			if (not memory_type)
+				return std::unexpected(std::format("Failed to find suitable memory type for {}", label));
+
+			VkPhysicalDeviceMemoryProperties memory_properties{};
+			vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memory_properties);
+			const VkMemoryPropertyFlags properties = memory_properties.memoryTypes[*memory_type].propertyFlags;
+
+			for (u32 i = 0; i < m_memory_blocks.size(); ++i)
+			{
+				auto& block = m_memory_blocks[i];
+				if (block.memory_type != *memory_type or block.image_memory != image_memory)
+					continue;
+				if (auto offset = take_memory_range(block, size, alignment))
+					return memory_allocation{
+					  block.memory, *offset, size, block.properties,
+					  block.mapped ? static_cast<std::byte*>(block.mapped) + *offset : nullptr, i};
+			}
+
+			// Keep small resources in reusable blocks; image and buffer pools stay separate for
+			// bufferImageGranularity requirements.
+			constexpr VkDeviceSize small_allocation_threshold = 1024 * 1024;
+			const VkDeviceSize    block_size = std::max(size, small_allocation_threshold);
+			const VkMemoryAllocateInfo allocate_info{
+			  .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			  .allocationSize  = block_size,
+			  .memoryTypeIndex = *memory_type,
+			};
+
+			memory_block block{
+			  .size         = block_size,
+			  .memory_type  = *memory_type,
+			  .properties   = properties,
+			  .image_memory = image_memory,
+			  .free_ranges  = {{0, block_size}},
+			};
+			if (VkResult result = vkAllocateMemory(m_device, &allocate_info, nullptr, &block.memory); result != VK_SUCCESS)
+				return std::unexpected(
+				  std::format("Failed to allocate {} memory block: {}", label, string_VkResult(result)));
+
+			if (not image_memory and (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+				if (VkResult result = vkMapMemory(m_device, block.memory, 0, VK_WHOLE_SIZE, 0, &block.mapped);
+					result != VK_SUCCESS)
+				{
+					vkFreeMemory(m_device, block.memory, nullptr);
+					return std::unexpected(
+					  std::format("Failed to map {} memory block: {}", label, string_VkResult(result)));
+				}
+
+			m_memory_blocks.push_back(std::move(block));
+			const u32 block_index = static_cast<u32>(m_memory_blocks.size() - 1);
+			auto&    stored_block = m_memory_blocks.back();
+			const auto offset = take_memory_range(stored_block, size, alignment);
+			assert::check(offset.has_value(), "New Vulkan memory block could not satisfy its first allocation");
+			return memory_allocation{
+			  stored_block.memory, *offset, size, stored_block.properties,
+			  stored_block.mapped ? static_cast<std::byte*>(stored_block.mapped) + *offset : nullptr, block_index};
+		}
+
+		void release_memory(u32 block_index, VkDeviceSize offset, VkDeviceSize size) noexcept
+		{
+			if (block_index >= m_memory_blocks.size() or size == 0)
+				return;
+
+			auto& block = m_memory_blocks[block_index];
+			block.free_ranges.push_back({offset, size});
+			std::ranges::sort(block.free_ranges, {}, &memory_range::offset);
+
+			std::vector<memory_range> merged;
+			merged.reserve(block.free_ranges.size());
+			for (const auto& range : block.free_ranges)
+			{
+				if (not merged.empty() and merged.back().offset + merged.back().size >= range.offset)
+					merged.back().size = std::max(
+					  merged.back().offset + merged.back().size, range.offset + range.size) - merged.back().offset;
+				else
+					merged.push_back(range);
+			}
+			block.free_ranges = std::move(merged);
+		}
+
+		void deinitialize_memory_blocks() noexcept
+		{
+			for (auto& block : m_memory_blocks)
+			{
+				if (block.mapped != nullptr)
+					vkUnmapMemory(m_device, block.memory);
+				if (block.memory != VK_NULL_HANDLE)
+					vkFreeMemory(m_device, block.memory, nullptr);
+			}
+			m_memory_blocks.clear();
+		}
+
 	private:
 		// ############################################################
 		// Buffer #####################################################
@@ -1014,39 +1220,31 @@ namespace deckard::vulkan
 			VkMemoryRequirements requirements{};
 			vkGetBufferMemoryRequirements(m_device, out.handle, &requirements);
 
-			auto memory_type = find_memory_type(requirements.memoryTypeBits, required, preferred);
-			if (not memory_type)
+			auto allocation = allocate_memory(
+			  requirements.size, requirements.alignment, requirements.memoryTypeBits, required, preferred, false, label);
+			if (not allocation)
 			{
 				destroy_buffer(out);
-				return std::unexpected(std::format("Failed to find suitable memory type for {} buffer", label));
+				return std::unexpected(std::move(allocation.error()));
 			}
 
-			VkPhysicalDeviceMemoryProperties mem_properties{};
-			vkGetPhysicalDeviceMemoryProperties(m_physical_device, &mem_properties);
-			out.memory_properties = mem_properties.memoryTypes[*memory_type].propertyFlags;
+			out.memory            = allocation->memory;
+			out.memory_offset     = allocation->offset;
+			out.allocation_size   = allocation->size;
+			out.allocation_block  = allocation->block;
+			out.memory_properties = allocation->properties;
+			out.mapped            = allocation->mapped;
 
-			const VkMemoryAllocateInfo memory_info{
-			  .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			  .allocationSize  = requirements.size,
-			  .memoryTypeIndex = *memory_type,
-			};
-
-			if (auto r = vkAllocateMemory(m_device, &memory_info, nullptr, &out.memory); r != VK_SUCCESS)
-			{
-				destroy_buffer(out);
-				return std::unexpected(std::format("Failed to allocate {} memory: {}", label, string_VkResult(r)));
-			}
-
-			if (auto r = vkBindBufferMemory(m_device, out.handle, out.memory, 0); r != VK_SUCCESS)
+			if (auto r = vkBindBufferMemory(m_device, out.handle, out.memory, out.memory_offset); r != VK_SUCCESS)
 			{
 				destroy_buffer(out);
 				return std::unexpected(std::format("Failed to bind {} memory: {}", label, string_VkResult(r)));
 			}
 
-			if (auto r = vkMapMemory(m_device, out.memory, 0, requirements.size, 0, &out.mapped); r != VK_SUCCESS)
+			if ((required & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0 and out.mapped == nullptr)
 			{
 				destroy_buffer(out);
-				return std::unexpected(std::format("Failed to map {} memory: {}", label, string_VkResult(r)));
+				return std::unexpected(std::format("{} buffer memory was not mapped", label));
 			}
 
 			out.size = size;
@@ -1058,43 +1256,24 @@ namespace deckard::vulkan
 
 		void destroy_buffer(buffer& buf) noexcept
 		{
-			if (buf.mapped)
-				vkUnmapMemory(m_device, buf.memory);
-
-			vkDestroyBuffer(m_device, buf.handle, nullptr);
-			vkFreeMemory(m_device, buf.memory, nullptr);
+			if (buf.handle != VK_NULL_HANDLE)
+				vkDestroyBuffer(m_device, buf.handle, nullptr);
+			release_memory(buf.allocation_block, buf.memory_offset, buf.allocation_size);
 			buf = {};
 		}
 
-		auto map_memory(VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, void*& out) noexcept -> VkResult
-		{
-			auto result = vkMapMemory(m_device, memory, offset, size, 0, &out);
-			if (result != VK_SUCCESS)
-				return result;
-			return VK_SUCCESS;
-		}
-
-		void unmap_memory(VkDeviceMemory memory) noexcept { vkUnmapMemory(m_device, memory); }
-
 		[[nodiscard]] std::expected<buffer, std::string> upload(
-		  std::span<const std::byte> data, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+		  std::span<const std::byte> data, VkBufferUsageFlags usage, [[maybe_unused]] VkMemoryPropertyFlags properties)
 		{
 			buffer buf{};
 			if (auto result = create_buffer(data.size(), usage, buf, "upload buffer"); not result)
 				return std::unexpected(std::format("Failed to create buffer: {}", result.error()));
-			if (buf.mapped)
-				std::memcpy(buf.mapped, data.data(), data.size());
-			else
+			if (buf.mapped == nullptr)
 			{
-				void* mapped{nullptr};
-				if (auto result = map_memory(buf.memory, 0, data.size(), mapped); result != VK_SUCCESS)
-				{
-					destroy_buffer(buf);
-					return std::unexpected(std::format("Failed to map buffer memory: {}", string_VkResult(result)));
-				}
-				std::memcpy(mapped, data.data(), data.size());
-				unmap_memory(buf.memory);
+				destroy_buffer(buf);
+				return std::unexpected("Upload buffer allocation is not host-visible");
 			}
+			std::memcpy(buf.mapped, data.data(), data.size());
 			return buf;
 		}
 
@@ -1184,7 +1363,7 @@ namespace deckard::vulkan
 		// Swapchain images ###########################################
 
 
-		void destroy_image(image_resource& image) const noexcept
+		void destroy_image(image_resource& image) noexcept
 		{
 			if (image.sampler != VK_NULL_HANDLE)
 				vkDestroySampler(m_device, image.sampler, nullptr);
@@ -1192,8 +1371,7 @@ namespace deckard::vulkan
 				vkDestroyImageView(m_device, image.view, nullptr);
 			if (image.handle != VK_NULL_HANDLE)
 				vkDestroyImage(m_device, image.handle, nullptr);
-			if (image.memory != VK_NULL_HANDLE)
-				vkFreeMemory(m_device, image.memory, nullptr);
+			release_memory(image.allocation_block, image.memory_offset, image.allocation_size);
 			image = {};
 		}
 
@@ -1215,6 +1393,26 @@ namespace deckard::vulkan
 			if (not id or id.value >= m_texture_count)
 				return nullptr;
 			return &m_textures[id.value];
+		}
+
+		[[nodiscard]] const mesh_resource* find_mesh(mesh_id id) const noexcept
+		{
+			if (not id or id.value >= m_meshes.size())
+				return nullptr;
+			return &m_meshes[id.value];
+		}
+
+		void deinitialize_meshes() noexcept
+		{
+			if (m_device == VK_NULL_HANDLE)
+				return;
+
+			for (auto& mesh : m_meshes)
+			{
+				destroy_buffer(mesh.vertex);
+				destroy_buffer(mesh.index);
+			}
+			m_meshes.clear();
 		}
 
 		// ############################################################
@@ -1266,6 +1464,33 @@ namespace deckard::vulkan
 			  .clearValue  = clear_value,
 			};
 
+			image_resource* depth = image_index < m_depth_images.size() ? &m_depth_images[image_index] : nullptr;
+			const bool has_depth = depth != nullptr and depth->handle != VK_NULL_HANDLE and depth->view != VK_NULL_HANDLE;
+
+			VkRenderingAttachmentInfo depth_attachment{
+			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			  .imageView   = has_depth ? depth->view : VK_NULL_HANDLE,
+			  .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			  .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			  .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+			  .clearValue  = {.depthStencil = {1.0f, 0}},
+			};
+
+			if (has_depth)
+			{
+				// Contents are always cleared, so discarding the previous frame's layout is fine.
+				transition_image(
+				  cmd,
+				  depth->handle,
+				  VK_PIPELINE_STAGE_2_NONE,
+				  VK_ACCESS_2_NONE,
+				  VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+				  VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				  VK_IMAGE_LAYOUT_UNDEFINED,
+				  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+				  VK_IMAGE_ASPECT_DEPTH_BIT);
+			}
+
 			const VkRect2D        render_area{{0, 0}, extent};
 			const VkRenderingInfo render_info{
 			  .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -1273,6 +1498,7 @@ namespace deckard::vulkan
 			  .layerCount           = 1,
 			  .colorAttachmentCount = 1,
 			  .pColorAttachments    = &color_attachment,
+			  .pDepthAttachment     = has_depth ? &depth_attachment : nullptr,
 			};
 
 			vkCmdBeginRendering(cmd, &render_info);
@@ -1342,9 +1568,8 @@ namespace deckard::vulkan
 
 		// The first triangle pipeline has no vertex input. The animated triangle is emitted
 		// through the regular textured 2D batch so its texture is selected by vertex ID.
-		void draw_triangles(VkCommandBuffer cmd, VkBuffer vertex_buffer) const
+		void draw_triangles(VkCommandBuffer cmd) const
 		{
-			(void)vertex_buffer;
 			if (m_pipelines.size() > 0 and m_pipelines[0].pipeline != VK_NULL_HANDLE)
 			{
 				vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[0].pipeline);
@@ -1367,16 +1592,24 @@ namespace deckard::vulkan
 					  as<u32>(i),
 					  extent,
 					  default_clear_rgb,
-					  [this](VkCommandBuffer cmd) { draw_triangles(cmd, m_triangle2.handle); });
+					  [this](VkCommandBuffer cmd) { draw_triangles(cmd); });
 					not result)
 					return result;
 
 			return {};
 		}
 
-		std::expected<void, std::string> record_frame(const frame_slot& frame, u32 image_index)
+		std::expected<void, std::string> record_frame(
+		  const frame_slot& frame, u32 image_index, std::span<const mesh_draw> meshes,
+		  const std::array<f32, 16>& view_projection)
 		{
 			const VkExtent2D extent = m_swapchain_extent;
+			const scene_uniform scene{
+			  view_projection,
+			  {m_scene_light.position.x, m_scene_light.position.y, m_scene_light.position.z, m_scene_light.intensity},
+			  {m_scene_light.color.x, m_scene_light.color.y, m_scene_light.color.z, m_scene_light.radius},
+			};
+			std::memcpy(frame.scene.mapped, &scene, sizeof(scene));
 
 			return record_commands(
 			  frame.cmd,
@@ -1386,7 +1619,62 @@ namespace deckard::vulkan
 			  m_clear_rgb,
 			  [&](VkCommandBuffer cmd)
 			  {
-				  draw_triangles(cmd, frame.vertex.handle);
+				  draw_triangles(cmd);
+
+				  if (not meshes.empty() and m_pipeline_mesh.pipeline != VK_NULL_HANDLE)
+				  {
+					  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_mesh.pipeline);
+					  vkCmdBindDescriptorSets(
+						cmd,
+						VK_PIPELINE_BIND_POINT_GRAPHICS,
+						m_pipeline_mesh.layout,
+						1,
+						1,
+						&frame.scene_descriptor_set,
+						0,
+						nullptr);
+
+					  for (const auto& item : meshes)
+					  {
+						  const auto* resource = find_mesh(item.id);
+						  if (resource == nullptr or resource->index_count == 0)
+							  continue;
+
+						  // Emissive markers skip depth testing so they stay visible behind geometry.
+						  const VkBool32 depth = item.color[3] > 0.0f ? VK_FALSE : VK_TRUE;
+						  vkCmdSetDepthTestEnable(cmd, depth);
+						  vkCmdSetDepthWriteEnable(cmd, depth);
+
+						  const VkDeviceSize offset{0};
+						  vkCmdBindVertexBuffers(cmd, 0, 1, &resource->vertex.handle, &offset);
+						  vkCmdBindIndexBuffer(cmd, resource->index.handle, 0, VK_INDEX_TYPE_UINT32);
+
+						  const texture_id texture_id = item.texture ? item.texture : m_white_texture;
+						  const auto* texture = find_texture(texture_id);
+						  if (texture == nullptr or texture->descriptor_set == VK_NULL_HANDLE)
+							  continue;
+						  vkCmdBindDescriptorSets(
+							cmd,
+							VK_PIPELINE_BIND_POINT_GRAPHICS,
+							m_pipeline_mesh.layout,
+							0,
+							1,
+							&texture->descriptor_set,
+							0,
+							nullptr);
+
+						  const mesh_push_constant push{item.model, item.normal, item.color};
+						  vkCmdPushConstants(
+							cmd,
+							m_pipeline_mesh.layout,
+							VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+							0,
+							sizeof(push),
+							&push);
+
+						  vkCmdDrawIndexed(cmd, resource->index_count, 1, 0, 0, 0);
+					  }
+				  }
 
 				  if (frame.batch_count > 0 and m_pipeline_2d.pipeline != VK_NULL_HANDLE
 					  and not frame.texture_batches.empty())
@@ -1459,24 +1747,6 @@ namespace deckard::vulkan
 
 		// ############################################################
 		// Triangle renderer ##########################################
-
-		std::expected<void, std::string> initialize_triangle_buffer(std::span<const triangle2_vertex> vertices)
-		{
-			assert::check(m_device != VK_NULL_HANDLE, "Vulkan device must be created before initializing triangle buffer");
-
-			if (vertices.empty())
-				return std::unexpected("Triangle vertex data must not be empty");
-
-			if (auto result = create_buffer(
-				  vertices.size_bytes(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, m_triangle2, "triangle vertex");
-				not result)
-				return result;
-
-			std::memcpy(m_triangle2.mapped, vertices.data(), vertices.size_bytes());
-			return {};
-		}
-
-		void deinitialize_triangle_buffer() { destroy_buffer(m_triangle2); }
 
 		void update_texture_descriptor(texture_resource& texture) const
 		{
@@ -1562,9 +1832,9 @@ namespace deckard::vulkan
 
 		std::expected<void, std::string> build_triangle_renderer()
 		{
-			shader_set<4> shaders{m_device};
+			shader_set<2> shaders{m_device};
 			if (auto result = shaders.load_all(
-				  fs::current_path() / "shaders", {"triangle.vert", "triangle.frag", "triangle2.vert", "triangle2.frag"});
+				  fs::current_path() / "shaders", {"triangle.vert", "triangle.frag"});
 				not result)
 				return result;
 			if (auto result = initialize_texture_descriptor(); not result)
@@ -1586,54 +1856,8 @@ namespace deckard::vulkan
 				return {};
 			};
 
-			const std::array<VkVertexInputBindingDescription, 1> bindings{{
-			  {.binding = 0, .stride = sizeof(triangle2_vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
-			}};
-
-			const std::array<VkVertexInputAttributeDescription, 3> attributes{{
-			  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = 0},
-			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = sizeof(vec::vec2)},
-			  {.location = 2,
-			   .binding  = 0,
-			   .format   = VK_FORMAT_R32G32B32A32_SFLOAT,
-			   .offset   = offsetof(triangle2_vertex, color)},
-
-			}};
-
-			// triangle.frag is used by the untextured triangle.
-			if (auto result = add_pipeline(shaders[0], shaders[1]); not result)
-				return result;
-
-			const pipeline_desc texture_desc{
-			  //  .cull_mode           = VK_CULL_MODE_NONE,
-			  .push_stages           = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-			  .push_size             = sizeof(f32),
-			  .descriptor_set_layout = m_texture_descriptor_layout,
-			};
-			if (auto result = add_pipeline(shaders[2], shaders[3], bindings, attributes, texture_desc); not result)
-				return result;
-
-			m_triangle2_origin = {
-			  vec::vec2{0.55f, -0.75f},
-			  vec::vec2{0.80f, -0.25f},
-			  vec::vec2{0.30f, -0.25f},
-			};
-			m_triangle2_color = {{{0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 1.0f}}};
-
-			for (u32 i = 0; i < 3; ++i)
-			{
-				m_triangle2_angle[i]            = random::rnd<f32>(0.0f, std::numbers::pi_v<f32> * 2.0f);
-				const f32 speed                 = random::rnd<f32>(1.0f, 3.0f);
-				m_triangle2_angular_speed[i]    = random::randbool() ? speed : -speed;
-				m_triangle2_initial_vertices[i] = {m_triangle2_origin[i], triangle2_uvs[i], m_triangle2_color[i]};
-			}
-
-			if (auto result = initialize_triangle_buffer(m_triangle2_initial_vertices); not result)
-				return result;
-
-			m_last_frame_time = std::chrono::steady_clock::now();
-			m_time_seconds    = 0.0f;
-			return {};
+			// The untextured triangle has no vertex input; it is positioned from gl_VertexIndex.
+			return add_pipeline(shaders[0], shaders[1]);
 		}
 
 		std::expected<void, std::string> initialize_triangle_renderer()
@@ -1649,7 +1873,6 @@ namespace deckard::vulkan
 
 		void deinitialize_triangle_renderer()
 		{
-			deinitialize_triangle_buffer();
 			deinitialize_pipelines();
 			destroy_texture_resources();
 			if (m_texture_descriptor_pool != VK_NULL_HANDLE)
@@ -1659,37 +1882,6 @@ namespace deckard::vulkan
 				vkDestroyDescriptorSetLayout(m_device, m_texture_descriptor_layout, nullptr);
 			m_texture_descriptor_layout = VK_NULL_HANDLE;
 			m_white_texture             = {0};
-		}
-
-		// Advances the three orbiting vertices by `dt` and writes them to `destination`.
-		void write_triangle2(void* destination, f32 dt)
-		{
-			constexpr f32 orbit_radius = 0.06f;
-
-			std::array<triangle2_vertex, 3> vertices{};
-			for (u32 i = 0; i < 3; ++i)
-			{
-				m_triangle2_angle[i] += m_triangle2_angular_speed[i] * dt;
-
-				const vec::vec2 offset = vec::vec2{orbit_radius, 0.0f}.rotate(m_triangle2_angle[i], vec::vec2::zero());
-				vertices[i].pos        = m_triangle2_origin[i] + offset;
-				vertices[i].uv         = triangle2_uvs[i];
-				vertices[i].color      = m_triangle2_color[i];
-			}
-
-			std::memcpy(destination, vertices.data(), sizeof(vertices)); // HOST_COHERENT, mapped once
-		}
-
-		void update_triangle2(f32 dt)
-		{
-			if (m_triangle2.mapped != nullptr)
-				write_triangle2(m_triangle2.mapped, dt);
-		}
-
-		void update_triangle2(frame_slot& frame, f32 dt)
-		{
-			assert::check(frame.vertex.mapped != nullptr, "Frame vertex buffer must be mapped");
-			write_triangle2(frame.vertex.mapped, dt);
 		}
 
 		// ############################################################
@@ -1719,10 +1911,10 @@ namespace deckard::vulkan
 				}
 
 				auto result = create_buffer(
-				  sizeof(triangle2_vertex) * 3, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame.vertex, "frame vertex");
+				  sizeof(vertex2d) * max_batch_vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame.batch, "frame batch");
 				if (result)
 					result = create_buffer(
-					  sizeof(vertex2d) * max_batch_vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame.batch, "frame batch");
+					  sizeof(scene_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, frame.scene, "scene uniform");
 
 				if (not result)
 				{
@@ -1750,8 +1942,8 @@ namespace deckard::vulkan
 					cmds[cmd_count++] = frame.cmd;
 
 				destroy(frame.image_available, vkDestroySemaphore);
-				destroy_buffer(frame.vertex);
 				destroy_buffer(frame.batch);
+				destroy_buffer(frame.scene);
 
 				frame = {};
 			}
@@ -1816,6 +2008,222 @@ namespace deckard::vulkan
 		}
 
 		void deinitialize_renderer2d() { destroy_pipeline(m_pipeline_2d); }
+
+		// ############################################################
+		// Depth buffer ###############################################
+
+		std::expected<void, std::string> initialize_depth()
+		{
+			if (m_device == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan device must be created before initializing the depth buffer");
+			if (m_swapchain_extent.width == 0 or m_swapchain_extent.height == 0)
+				return std::unexpected("Swapchain extent must be non-zero before initializing the depth buffer");
+
+			deinitialize_depth();
+			m_depth_images.resize(m_swapchain_images.size());
+
+			const VkImageCreateInfo image_info{
+			  .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			  .imageType     = VK_IMAGE_TYPE_2D,
+			  .format        = m_depth_format,
+			  .extent        = {m_swapchain_extent.width, m_swapchain_extent.height, 1},
+			  .mipLevels     = 1,
+			  .arrayLayers   = 1,
+			  .samples       = VK_SAMPLE_COUNT_1_BIT,
+			  .tiling        = VK_IMAGE_TILING_OPTIMAL,
+			  .usage         = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			  .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+			  .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			};
+			for (auto& depth : m_depth_images)
+			{
+				if (VkResult result = vkCreateImage(m_device, &image_info, nullptr, &depth.handle); result != VK_SUCCESS)
+				{
+					deinitialize_depth();
+					return std::unexpected(std::format("Failed to create depth image: {}", string_VkResult(result)));
+				}
+
+				VkMemoryRequirements requirements{};
+				vkGetImageMemoryRequirements(m_device, depth.handle, &requirements);
+				auto allocation = allocate_memory(
+				  requirements.size, requirements.alignment, requirements.memoryTypeBits,
+				  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, true, "depth image");
+				if (not allocation)
+				{
+					deinitialize_depth();
+					return std::unexpected(std::move(allocation.error()));
+				}
+
+				depth.memory           = allocation->memory;
+				depth.memory_offset    = allocation->offset;
+				depth.allocation_size  = allocation->size;
+				depth.allocation_block = allocation->block;
+				if (VkResult result = vkBindImageMemory(m_device, depth.handle, depth.memory, depth.memory_offset);
+					result != VK_SUCCESS)
+				{
+					deinitialize_depth();
+					return std::unexpected(std::format("Failed to bind depth image memory: {}", string_VkResult(result)));
+				}
+
+				const VkImageViewCreateInfo view_info{
+				  .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				  .image            = depth.handle,
+				  .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+				  .format           = m_depth_format,
+				  .subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1},
+				};
+				if (VkResult result = vkCreateImageView(m_device, &view_info, nullptr, &depth.view); result != VK_SUCCESS)
+				{
+					deinitialize_depth();
+					return std::unexpected(std::format("Failed to create depth image view: {}", string_VkResult(result)));
+				}
+			}
+
+			return {};
+		}
+
+		std::expected<void, std::string> resize_depth()
+		{
+			deinitialize_depth();
+			return initialize_depth();
+		}
+
+		void deinitialize_depth() noexcept
+		{
+			if (m_device != VK_NULL_HANDLE)
+				for (auto& depth : m_depth_images)
+					destroy_image(depth);
+			m_depth_images.clear();
+		}
+
+		// ############################################################
+		// Renderer 3D ################################################
+
+		std::expected<void, std::string> initialize_scene_descriptors()
+		{
+			const VkDescriptorSetLayoutBinding binding{
+			  .binding         = 0,
+			  .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			  .descriptorCount = 1,
+			  .stageFlags      = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+			};
+			const VkDescriptorSetLayoutCreateInfo layout_info{
+			  .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			  .bindingCount = 1,
+			  .pBindings    = &binding,
+			};
+			if (VkResult result = vkCreateDescriptorSetLayout(m_device, &layout_info, nullptr, &m_scene_descriptor_layout);
+				result != VK_SUCCESS)
+				return std::unexpected(
+				  std::format("Failed to create scene descriptor set layout: {}", string_VkResult(result)));
+
+			const VkDescriptorPoolSize pool_size{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frames_in_flight};
+			const VkDescriptorPoolCreateInfo pool_info{
+			  .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			  .maxSets       = frames_in_flight,
+			  .poolSizeCount = 1,
+			  .pPoolSizes    = &pool_size,
+			};
+			if (VkResult result = vkCreateDescriptorPool(m_device, &pool_info, nullptr, &m_scene_descriptor_pool);
+				result != VK_SUCCESS)
+			{
+				vkDestroyDescriptorSetLayout(m_device, m_scene_descriptor_layout, nullptr);
+				m_scene_descriptor_layout = VK_NULL_HANDLE;
+				return std::unexpected(std::format("Failed to create scene descriptor pool: {}", string_VkResult(result)));
+			}
+
+			std::array<VkDescriptorSetLayout, frames_in_flight> layouts{};
+			layouts.fill(m_scene_descriptor_layout);
+			std::array<VkDescriptorSet, frames_in_flight> sets{};
+			const VkDescriptorSetAllocateInfo allocate_info{
+			  .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			  .descriptorPool     = m_scene_descriptor_pool,
+			  .descriptorSetCount = frames_in_flight,
+			  .pSetLayouts        = layouts.data(),
+			};
+			if (VkResult result = vkAllocateDescriptorSets(m_device, &allocate_info, sets.data()); result != VK_SUCCESS)
+			{
+				vkDestroyDescriptorPool(m_device, m_scene_descriptor_pool, nullptr);
+				vkDestroyDescriptorSetLayout(m_device, m_scene_descriptor_layout, nullptr);
+				m_scene_descriptor_pool  = VK_NULL_HANDLE;
+				m_scene_descriptor_layout = VK_NULL_HANDLE;
+				return std::unexpected(std::format("Failed to allocate scene descriptor sets: {}", string_VkResult(result)));
+			}
+
+			for (u32 i = 0; i < frames_in_flight; ++i)
+			{
+				m_frames[i].scene_descriptor_set = sets[i];
+				const VkDescriptorBufferInfo buffer_info{
+				  .buffer = m_frames[i].scene.handle,
+				  .offset = 0,
+				  .range  = sizeof(scene_uniform),
+				};
+				const VkWriteDescriptorSet write{
+				  .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				  .dstSet          = sets[i],
+				  .dstBinding      = 0,
+				  .descriptorCount = 1,
+				  .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				  .pBufferInfo     = &buffer_info,
+				};
+				vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
+			}
+
+			return {};
+		}
+
+		std::expected<void, std::string> initialize_mesh_renderer()
+		{
+			if (auto result = initialize_scene_descriptors(); not result)
+				return result;
+
+			shader_set<2> shaders{m_device};
+			if (auto result = shaders.load_all(fs::current_path() / "shaders", {"mesh.vert", "mesh.frag"}); not result)
+				return result;
+
+			const std::array<VkVertexInputBindingDescription, 1> bindings{{
+			  {.binding = 0, .stride = sizeof(mesh_vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+			}};
+
+			const std::array<VkVertexInputAttributeDescription, 3> attributes{{
+			  {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(mesh_vertex, position)},
+			  {.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(mesh_vertex, normal)},
+			  {.location = 2, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(mesh_vertex, uv)},
+			}};
+
+			const pipeline_desc desc{
+			  .topology     = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			  .cull_mode    = VK_CULL_MODE_NONE,
+			  .push_stages  = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+			  .push_size    = sizeof(mesh_push_constant),
+			  .descriptor_set_layout = m_texture_descriptor_layout,
+			  .additional_descriptor_set_layout = m_scene_descriptor_layout,
+			  .depth_test   = true,
+			  .depth_write  = true,
+			  .dynamic_depth = true,
+			  .depth_format = m_depth_format,
+			};
+
+			auto pipeline = create_pipeline(shaders[0], shaders[1], bindings, attributes, desc);
+			if (not pipeline)
+				return std::unexpected(std::move(pipeline.error()));
+
+			m_pipeline_mesh = std::move(*pipeline);
+			return {};
+		}
+
+		void deinitialize_mesh_renderer()
+		{
+			destroy_pipeline(m_pipeline_mesh);
+			if (m_scene_descriptor_pool != VK_NULL_HANDLE)
+				vkDestroyDescriptorPool(m_device, m_scene_descriptor_pool, nullptr);
+			m_scene_descriptor_pool = VK_NULL_HANDLE;
+			if (m_scene_descriptor_layout != VK_NULL_HANDLE)
+				vkDestroyDescriptorSetLayout(m_device, m_scene_descriptor_layout, nullptr);
+			m_scene_descriptor_layout = VK_NULL_HANDLE;
+			for (auto& frame : m_frames)
+				frame.scene_descriptor_set = VK_NULL_HANDLE;
+		}
 
 		// ############################################################
 		// image upload ###############################################
@@ -1888,18 +2296,18 @@ namespace deckard::vulkan
 
 			VkMemoryRequirements requirements{};
 			vkGetImageMemoryRequirements(m_device, uploaded.handle, &requirements);
-			auto memory_type = find_memory_type(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			if (not memory_type)
-				return std::unexpected("Failed to find suitable device-local memory for image");
+			auto allocation = allocate_memory(
+			  requirements.size, requirements.alignment, requirements.memoryTypeBits,
+			  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, true, "sampled image");
+			if (not allocation)
+				return std::unexpected(std::move(allocation.error()));
 
-			const VkMemoryAllocateInfo memory_info{
-			  .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			  .allocationSize  = requirements.size,
-			  .memoryTypeIndex = *memory_type,
-			};
-			if (VkResult result = vkAllocateMemory(m_device, &memory_info, nullptr, &uploaded.memory); result != VK_SUCCESS)
-				return std::unexpected(std::format("Failed to allocate image memory: {}", string_VkResult(result)));
-			if (VkResult result = vkBindImageMemory(m_device, uploaded.handle, uploaded.memory, 0); result != VK_SUCCESS)
+			uploaded.memory           = allocation->memory;
+			uploaded.memory_offset    = allocation->offset;
+			uploaded.allocation_size  = allocation->size;
+			uploaded.allocation_block = allocation->block;
+			if (VkResult result = vkBindImageMemory(m_device, uploaded.handle, uploaded.memory, uploaded.memory_offset);
+				result != VK_SUCCESS)
 				return std::unexpected(std::format("Failed to bind image memory: {}", string_VkResult(result)));
 
 			const VkImageViewCreateInfo view_info{
@@ -2032,6 +2440,48 @@ namespace deckard::vulkan
 		}
 
 		[[nodiscard]] texture_id default_texture() const noexcept { return m_white_texture; }
+
+		// ############################################################
+		// mesh upload ################################################
+
+		[[nodiscard]] std::expected<mesh_id, std::string> upload_mesh(const mesh& source)
+		{
+			if (m_device == VK_NULL_HANDLE)
+				return std::unexpected("Vulkan device must be initialized before uploading meshes");
+			if (source.empty())
+				return std::unexpected("Mesh must contain both vertices and indices");
+			if (source.vertices.size() > std::numeric_limits<u32>::max()
+				or source.indices.size() > std::numeric_limits<u32>::max())
+				return std::unexpected("Mesh has too many vertices or indices");
+			if (std::ranges::any_of(source.indices, [&](u32 index) { return index >= source.vertices.size(); }))
+				return std::unexpected("Mesh index references a vertex outside the vertex array");
+			if (m_meshes.size() >= max_mesh_count)
+				return std::unexpected("Mesh table is full");
+
+			mesh_resource resource{};
+			if (auto result = create_buffer(
+				  source.vertices.size() * sizeof(mesh_vertex),
+				  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				  resource.vertex,
+				  "mesh vertex");
+				not result)
+				return std::unexpected(std::move(result.error()));
+
+			if (auto result = create_buffer(
+				  source.indices.size() * sizeof(u32), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, resource.index, "mesh index");
+				not result)
+			{
+				destroy_buffer(resource.vertex);
+				return std::unexpected(std::move(result.error()));
+			}
+
+			std::memcpy(resource.vertex.mapped, source.vertices.data(), source.vertices.size() * sizeof(mesh_vertex));
+			std::memcpy(resource.index.mapped, source.indices.data(), source.indices.size() * sizeof(u32));
+			resource.index_count = static_cast<u32>(source.indices.size());
+
+			m_meshes.push_back(resource);
+			return mesh_id{static_cast<u32>(m_meshes.size() - 1)};
+		}
 	};
 
 } // namespace deckard::vulkan
