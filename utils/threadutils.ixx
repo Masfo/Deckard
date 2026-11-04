@@ -33,7 +33,7 @@ namespace deckard::thread
 		}
 	};
 
-	export void set_thread_name(std::string_view [[maybe_unused]]threadname)
+	export void set_thread_name([[maybe_unused]] std::string_view threadname)
 	{
 		#ifdef _WIN32
 

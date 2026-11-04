@@ -129,7 +129,7 @@ namespace deckard::app
 
 		config cfg;
 
-		void load_and_save()
+		auto load_and_save() -> std::expected<void, std::string>
 		{
 			// set defaults
 			cfg.set("window.width", size.width);
@@ -141,7 +141,10 @@ namespace deckard::app
 			cfg.set("window.monitor", monitor);
 			cfg.set("window.title", title);
 
-			cfg.load_from_file("settings.txt"_path);
+			const auto settings_path = "settings.txt"_path;
+			if (auto result = cfg.load_from_file(settings_path); not result)
+				return std::unexpected(result.error());
+
 			size.width    = cfg.get<u16>("window.width", size.width);
 			size.height   = cfg.get<u16>("window.height", size.height);
 			fullscreen    = cfg.get<bool>("window.fullscreen", fullscreen);
@@ -151,7 +154,10 @@ namespace deckard::app
 			monitor       = cfg.get<u8>("window.monitor", monitor);
 			title         = cfg.get<std::string>("window.title", title);
 
-			_ = cfg.save("settings.txt"_path);
+			if (auto result = cfg.save(settings_path); not result)
+				return std::unexpected(result.error());
+
+			return {};
 		}
 
 		void save()

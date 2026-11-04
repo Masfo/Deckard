@@ -955,30 +955,34 @@ namespace deckard::file
 		return {};
 	}
 
+	// ################################################################################################################
 	// simple api
 
-	export std::vector<u8> read_file(fs::path path)
+	export std::expected<std::vector<u8>, std::string> read_file(fs::path path)
 	{
 		std::vector<u8> ret;
 
 		auto size = filesize(path);
-		if (size)
-		{
-			ret.resize(*size);
-			auto r = file::read({.filename = path, .buffer = ret, .size = *size});
-			if (not r)
-			{
-				dbg::eprintln("read_file: could not read file '{}': {}", path.generic_string(), r.error());
-				return {};
-			}
-			return ret;
-		}
-		return {};
+		if (not size)
+			return std::unexpected(
+			  std::format("read_file: file '{}' does not exist", platform::string_from_wide(path.wstring())));
+
+		ret.resize(*size);
+		auto result = file::read({.filename = path, .buffer = ret, .size = *size});
+		if (not result)
+			return std::unexpected(result.error());
+
+		return ret;
 	}
 
-	export auto read_text_file_as_vector(fs::path path, bool normalize_new_lines=true) -> std::vector<u8>
+	export auto read_text_file_as_vector(fs::path path, bool normalize_new_lines = true)
+	  -> std::expected<std::vector<u8>, std::string>
 	{
-		std::vector<u8> v = read_file(path);
+		auto result = read_file(path);
+		if (not result)
+			return std::unexpected(result.error());
+
+		std::vector<u8> v = std::move(*result);
 		if (v.empty())
 			return v;
 
@@ -1002,67 +1006,70 @@ namespace deckard::file
 		return v;
 	}
 
-	export auto read_text_file_as_utf8(fs::path path) -> utf8::string
+	export auto read_text_file_as_utf8(fs::path path) -> std::expected<utf8::string, std::string>
 	{
-		auto v = read_text_file_as_vector(path);
+		auto result = read_text_file_as_vector(path);
+		if (not result)
+			return std::unexpected(result.error());
 
-		utf8::string ret(v);
-		if (auto result = ret.valid(); not result)
-			dbg::println("Warning: file '{}' with invalid UTF-8 data: {}", path, result.error());
+		utf8::string ret(*result);
+		if (auto validity = ret.valid(); not validity)
+			return std::unexpected(std::format(
+			  "read_text_file_as_utf8: file '{}' has invalid UTF-8 data: {}",
+			  platform::string_from_wide(path.wstring()),
+			  validity.error()));
 
 		ret = utf8::normalize(ret);
 
 		return ret;
 	}
 
-	export std::string read_text_file_as_string(fs::path path)
+	export auto read_text_file_as_string(fs::path path) -> std::expected<std::string, std::string>
 	{
-		auto v = read_text_file_as_vector(path);
+		auto result = read_text_file_as_vector(path);
+		if (not result)
+			return std::unexpected(result.error());
 
-		return std::string(v.begin(), v.end());
+		return std::string(result->begin(), result->end());
 	}
 
-	export std::vector<std::string>
+	export std::expected<std::vector<std::string>, std::string>
 	read_lines_exact(fs::path path, std::string_view delimiter, bool include_empty_lines = true)
 	{
 		using namespace deckard::string;
 
+		auto result = read_text_file_as_string(path);
+		if (not result)
+			return std::unexpected(result.error());
 
-		auto s   = read_text_file_as_string(path);
-		auto ret = split_exact(s, delimiter, include_empty_lines);
-
-		return ret;
+		return split_exact(*result, delimiter, include_empty_lines);
 	}
 
-	export std::vector<std::string>
+	export std::expected<std::vector<std::string>, std::string>
 	read_lines_delimiter(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
-		std::vector<std::string> ret;
-
 		if (include_empty_lines == false)
 		{
-			auto f = read_text_file_as_string(path);
-			if (f.empty())
-				return {};
-			ret = split<std::string>(f, delimiter);
+			auto result = read_text_file_as_string(path);
+			if (not result)
+				return std::unexpected(result.error());
+			if (result->empty())
+				return std::vector<std::string>{};
+			return split<std::string>(*result, delimiter);
 		}
-		else
-		{
-			ret = read_lines_exact(path, delimiter, include_empty_lines);
-		}
-
-		return ret;
+		return read_lines_exact(path, delimiter, include_empty_lines);
 	}
 
-	export std::vector<std::string>
+	export std::expected<std::vector<std::string>, std::string>
 	read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		return read_lines_delimiter(path, delimiter, include_empty_lines);
 	}
 
-	export std::vector<std::string> read_all_lines(fs::path path, std::string_view delimiter = "\n")
+	export std::expected<std::vector<std::string>, std::string>
+	read_all_lines(fs::path path, std::string_view delimiter = "\n")
 	{
 		return read_lines(path, delimiter, true);
 	}
@@ -1070,16 +1077,20 @@ namespace deckard::file
 	// try read
 
 	export template<arithmetic T>
-	std::vector<T> read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
+	std::expected<std::vector<T>, std::string>
+	read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
-		const auto     lines = read_lines(path, delimiter, include_empty_lines);
+		const auto lines = read_lines(path, delimiter, include_empty_lines);
+		if (not lines)
+			return std::unexpected(lines.error());
+
 		std::vector<T> ret;
 
-		ret.reserve(lines.size());
+		ret.reserve(lines->size());
 
-		for (const auto& line : lines)
+		for (const auto& line : *lines)
 		{
 			auto value = try_to_number<T>(trim(line));
 			if (value)
@@ -1090,44 +1101,51 @@ namespace deckard::file
 	}
 
 	export template<arithmetic T>
-	std::vector<T> read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
+	std::expected<std::vector<T>, std::string> read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
 	{
 		return read_lines_as<T>(path, delimiter, true);
 	}
 
 	export template<arithmetic T>
-	std::vector<std::optional<T>>
+	std::expected<std::vector<std::optional<T>>, std::string>
 	try_read_lines_as(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
-		const auto                    lines = read_lines(path, delimiter, include_empty_lines);
+		const auto lines = read_lines(path, delimiter, include_empty_lines);
+		if (not lines)
+			return std::unexpected(lines.error());
+
 		std::vector<std::optional<T>> ret;
 
-		ret.reserve(lines.size());
+		ret.reserve(lines->size());
 
-		for (const auto& line : lines)
+		for (const auto& line : *lines)
 			ret.emplace_back(try_to_number<T>(trim(line)));
 
 		return ret;
 	}
 
 	export template<arithmetic T>
-	std::vector<std::optional<T>> try_read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
+	std::expected<std::vector<std::optional<T>>, std::string>
+	try_read_all_lines_as(fs::path path, std::string_view delimiter = "\n")
 	{
 		return try_read_lines_as<T>(path, delimiter, true);
 	}
 
-	export std::vector<std::optional<std::string>>
+	export std::expected<std::vector<std::optional<std::string>>, std::string>
 	try_read_lines(fs::path path, std::string_view delimiter = "\n", bool include_empty_lines = false)
 	{
 		using namespace deckard::string;
 
-		const auto                              lines = read_lines(path, delimiter, include_empty_lines);
-		std::vector<std::optional<std::string>> ret;
-		ret.reserve(lines.size());
+		const auto lines = read_lines(path, delimiter, include_empty_lines);
+		if (not lines)
+			return std::unexpected(lines.error());
 
-		for (const auto& line : lines)
+		std::vector<std::optional<std::string>> ret;
+		ret.reserve(lines->size());
+
+		for (const auto& line : *lines)
 		{
 			if (line.empty())
 				ret.emplace_back(std::nullopt);

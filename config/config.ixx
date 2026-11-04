@@ -480,8 +480,22 @@ namespace deckard
 
 		explicit config(fs::path file)
 		{
+			if (not fs::exists(file))
+			{
+				filename = file;
+				parse();
+				return;
+			}
+
+			auto result = file::read_text_file_as_utf8(file);
+			if (not result)
+			{
+				m_errors.push_back({result.error()});
+				return;
+			}
+
 			filename = file;
-			m_data   = file::read_text_file_as_utf8(file);
+			m_data   = std::move(*result);
 			parse();
 		}
 
@@ -909,14 +923,30 @@ namespace deckard
 			return tokens[index];
 		}
 
-		void load_from_file(fs::path file)
+		auto load_from_file(fs::path file) -> std::expected<void, std::string>
 		{
+			if (not fs::exists(file))
+			{
+				filename = file;
+				m_data.clear();
+				tokens.clear();
+				key_hash_to_token_index.clear();
+				m_errors.clear();
+				parse();
+				return {};
+			}
+
+			auto result = file::read_text_file_as_utf8(file);
+			if (not result)
+				return std::unexpected(result.error());
+
 			filename = file;
-			m_data   = file::read_text_file_as_utf8(file);
+			m_data   = std::move(*result);
 			tokens.clear();
 			key_hash_to_token_index.clear();
 			m_errors.clear();
 			parse();
+			return {};
 		}
 
 

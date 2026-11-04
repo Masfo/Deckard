@@ -509,9 +509,12 @@ namespace deckard::json
 
 	export auto load(fs::path path) -> std::expected<value, std::string>
 	{
-		utf8::string content = file::read_text_file_as_utf8(path);
+		auto content = file::read_text_file_as_utf8(path);
+		if (not content)
+			return std::unexpected(content.error());
+
 		parser p;
-		return  p.parse(content);
+		return p.parse(*content);
 	}
 
 
