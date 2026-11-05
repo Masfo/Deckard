@@ -39,13 +39,13 @@ export namespace deckard::string
 		uppercase  = BIT(3),
 		special    = BIT(4),
 
-		null      = BIT(5),
+		reserved1 = BIT(5),
 		reserved2 = BIT(6),
 		reserved3 = BIT(7),
 
 		alphabet = lowercase | uppercase,
 		alphanum = alphabet | digit,
-		all      = whitespace | alphanum | special | null,
+		all      = whitespace | alphanum | special,
 
 		d  = digit,
 		w  = whitespace,
@@ -54,44 +54,170 @@ export namespace deckard::string
 		a  = l | u,
 		an = a | d,
 		s  = special,
-		n  = null,
 
-		  Count = 8
+		Count = 8
 
 	};
 
 	consteval void enable_bitmask_operations(option);
 
 	template<typename T>
+	struct vector_string_traits;
+
+	template<typename T>
+	requires std::is_arithmetic_v<T>
+	struct vector_string_traits<vec::generic_vec2<T>>
+	{
+		using component_type                    = T;
+		static constexpr size_t component_count = 2;
+	};
+
+	template<typename T>
+	requires std::is_arithmetic_v<T>
+	struct vector_string_traits<vec::generic_vec3<T>>
+	{
+		using component_type                    = T;
+		static constexpr size_t component_count = 3;
+	};
+
+	template<typename T>
+	requires std::is_arithmetic_v<T>
+	struct vector_string_traits<vec::generic_vec4<T>>
+	{
+		using component_type                    = T;
+		static constexpr size_t component_count = 4;
+	};
+
+	template<typename T>
+	concept vector_convertible = requires {
+		typename vector_string_traits<T>::component_type;
+		vector_string_traits<T>::component_count;
+	};
+
+	template<typename T>
+	concept split_conversion_target
+	  = std::is_arithmetic_v<T> or std::constructible_from<T, std::string_view> or vector_convertible<T>;
+
+	template<typename T>
+	requires split_conversion_target<T>
 	auto convert_to_type(std::string_view input, [[maybe_unused]] std::string_view delims = " ") -> T
 	{
-
-		if constexpr (std::is_same_v<T, char>)
+		if constexpr (std::same_as<T, char>)
 		{
-			return input[0];
+			assert::check(input.size() == 1, "Expected one character");
+			return input.front();
 		}
-
-		if constexpr (std::is_convertible_v<T, std::string_view>)
-		{
-			return T(input);
-		}
-
-		if constexpr (std::is_arithmetic_v<T>)
-		{
+		else if constexpr (std::is_arithmetic_v<T>)
 			return to_number<T>(input);
+		else if constexpr (vector_convertible<T>)
+		{
+			using Component                                               = typename vector_string_traits<T>::component_type;
+			constexpr size_t                              component_count = vector_string_traits<T>::component_count;
+			std::array<std::string_view, component_count> components{};
+			size_t                                        first = 0;
+
+			for (size_t i = 0; i < component_count; ++i)
+			{
+				const auto separator = input.find(',', first);
+				if (i + 1 < component_count)
+				{
+					assert::check(separator != std::string_view::npos, "Missing vector component");
+					components[i] = input.substr(first, separator - first);
+					first         = separator + 1;
+				}
+				else
+				{
+					assert::check(separator == std::string_view::npos, "Too many vector components");
+					components[i] = input.substr(first);
+				}
+			}
+
+			return [&]<size_t... I>(std::index_sequence<I...>) -> T
+			{ return T{to_number<Component>(components[I])...}; }(std::make_index_sequence<component_count>{});
 		}
-
-
-		//		dbg::panic("conversion not handled");
+		else
+			return T(input);
 	}
 
 	// ###########################################################################
+	template<typename Matrix>
+	auto transpose(
+	  const Matrix& matrix,
+	  std::ranges::range_value_t<std::ranges::range_value_t<Matrix>> pad = {})
+	  -> std::vector<std::vector<std::ranges::range_value_t<std::ranges::range_value_t<Matrix>>>>
+	{
+		if (matrix.empty())
+			return {};
 
+		
+
+		using Row = std::ranges::range_value_t<Matrix>;
+		using T   = std::ranges::range_value_t<Row>;
+
+		const usize rows = matrix.size();
+		const usize cols = std::ranges::max(matrix | std::views::transform([](const auto& row) { return row.size(); }));
+		std::vector<std::vector<T>> transposed(cols, std::vector<T>(rows, pad));
+		for (usize i = 0; i < rows; ++i)
+		{
+			for (usize j = 0; j < matrix[i].size(); ++j)
+				transposed[j][i] = matrix[i][j];
+		}
+		return transposed;
+	}
+
+	template<typename Matrix>
+	[[nodiscard]] auto rotate_cw(
+	  const Matrix& in,
+	  std::ranges::range_value_t<std::ranges::range_value_t<Matrix>> pad = {})
+	  -> std::vector<std::vector<std::ranges::range_value_t<std::ranges::range_value_t<Matrix>>>>
+	{
+		auto out = transpose(in, pad);
+		for (auto& row : out)
+			std::ranges::reverse(row);
+		return out;
+	}
+
+	template<typename Matrix>
+	[[nodiscard]] auto rotate_ccw(
+	  const Matrix& in,
+	  std::ranges::range_value_t<std::ranges::range_value_t<Matrix>> pad = {})
+	  -> std::vector<std::vector<std::ranges::range_value_t<std::ranges::range_value_t<Matrix>>>>
+	{
+		auto out = transpose(in, pad);
+
+		std::ranges::reverse(out);
+		return out;
+	}
+
+	//
 
 	// count
 	i64 count(auto str, std::string_view interests) noexcept
 	{
 		return std::ranges::count_if(str, [&interests](char c) { return interests.contains(c); });
+	}
+
+	i64 count_exact(std::string_view str, std::string_view value) noexcept
+	{
+		if (value.empty())
+			return 0;
+
+		i64    count = 0;
+		size_t pos   = 0;
+		while ((pos = str.find(value, pos)) != std::string_view::npos)
+		{
+			++count;
+			pos += value.size();
+		}
+		return count;
+	}
+
+	std::unordered_map<char, i64> histogram(std::string_view str) noexcept
+	{
+		std::unordered_map<char, i64> counts;
+		for (const char& c : str)
+			counts[c] += 1;
+		return counts;
 	}
 
 	// strip - single
@@ -133,7 +259,7 @@ export namespace deckard::string
 
 	// strip - option
 	// input = strip(input, w|u|d);
-	std::string strip(std::string_view str, option opt = option::whitespace | option::null)
+	std::string strip(std::string_view str, option opt = option::whitespace)
 	{
 		using enum option;
 		std::string ret{str};
@@ -142,8 +268,6 @@ export namespace deckard::string
 		if (std::to_underlying(opt) == 0)
 			return ret;
 
-		if (has(opt, null))
-			ret = strip(ret, '\0');
 
 		if (has(opt, whitespace))
 		{
@@ -181,43 +305,52 @@ export namespace deckard::string
 		ret.reserve(input.size());
 		for (const char& c : input)
 		{
-			if (has(opt, whitespace))
-			{
-				if (in_range('\t', '\r', c) or c == ' ')
-					ret += c;
-			}
-
-			if (has(opt, digit))
-			{
-				if (in_range('0', '9', c))
-					ret += c;
-			}
-
-			if (has(opt, lowercase))
-			{
-				if (in_range('a', 'z', c))
-					ret += c;
-			}
-
-			if (has(opt, uppercase))
-			{
-				if (in_range('A', 'Z', c))
-					ret += c;
-			}
-
-			if (has(opt, special))
-			{
-				if (in_range('!', '/', c))
-					ret += c;
-				if (in_range(':', '@', c))
-					ret += c;
-				if (in_range('[', '`', c))
-					ret += c;
-				if (in_range('{', '~', c))
-					ret += c;
-			}
-
+			bool selected = false;
+			if (has(opt, whitespace) and (in_range('\t', '\r', c) or c == ' '))
+				selected = true;
+			if (has(opt, digit) and in_range('0', '9', c))
+				selected = true;
+			if (has(opt, lowercase) and in_range('a', 'z', c))
+				selected = true;
+			if (has(opt, uppercase) and in_range('A', 'Z', c))
+				selected = true;
+			if (has(opt, special)
+				and (in_range('!', '/', c) or in_range(':', '@', c) or in_range('[', '`', c) or in_range('{', '~', c)))
+				selected = true;
 			if (extra.contains(c))
+				selected = true;
+
+			if (selected)
+				ret += c;
+		}
+		return ret;
+	}
+
+	// exclude_only
+	std::string exclude_only(std::string_view input, option opt = option::all, std::string_view extra = "")
+	{
+		using enum option;
+
+		std::string ret;
+		ret.reserve(input.size());
+		for (const char& c : input)
+		{
+			bool selected = false;
+			if (has(opt, whitespace) and (in_range('\t', '\r', c) or c == ' '))
+				selected = true;
+			if (has(opt, digit) and in_range('0', '9', c))
+				selected = true;
+			if (has(opt, lowercase) and in_range('a', 'z', c))
+				selected = true;
+			if (has(opt, uppercase) and in_range('A', 'Z', c))
+				selected = true;
+			if (has(opt, special)
+				and (in_range('!', '/', c) or in_range(':', '@', c) or in_range('[', '`', c) or in_range('{', '~', c)))
+				selected = true;
+			if (extra.contains(c))
+				selected = true;
+
+			if (not selected)
 				ret += c;
 		}
 		return ret;
@@ -248,15 +381,29 @@ export namespace deckard::string
 			const auto second = input.find_first_of(delims, first);
 
 			if (first != second)
-				output.emplace_back(input.substr(first, second - first));
+				output.emplace_back(convert_to_type<T>(input.substr(first, second - first)));
 
-			if (second == T::npos)
+			if (second == std::string_view::npos)
 				break;
 
 			first = second + 1;
 		}
 
 		return output;
+	}
+
+
+	// auto [a,b] = split<std::string, std::string>(input, delims);
+	template<typename... Ts>
+	requires(sizeof...(Ts) > 1 and (split_conversion_target<Ts> and ...))
+	auto split(std::string_view input, std::string_view delims = " ") -> std::tuple<Ts...>
+	{
+		const auto parts = split(input, delims);
+		assert::check(
+		  parts.size() == sizeof...(Ts), std::format("Expected {} parts, found {}", sizeof...(Ts), parts.size()));
+
+		return [&]<size_t... I>(std::index_sequence<I...>) -> std::tuple<Ts...>
+		{ return {convert_to_type<Ts>(parts[I])...}; }(std::index_sequence_for<Ts...>{});
 	}
 
 	// split_once
@@ -266,12 +413,20 @@ export namespace deckard::string
 		size_t pos = str.find(delims);
 		if (pos != std::string::npos)
 		{
-			return make_array(str.substr(0, pos), str.substr(pos + 1));
+			return make_array(str.substr(0, pos), str.substr(pos + delims.size()));
 		}
 		else
 		{
 			return make_array(str, ""s);
 		}
+	}
+
+	template<typename T1, typename T2>
+	requires(split_conversion_target<T1> and split_conversion_target<T2>)
+	auto split_once(std::string_view str, std::string_view delims = " ") -> std::tuple<T1, T2>
+	{
+		const auto parts = split_once(str, delims);
+		return {convert_to_type<T1>(parts[0]), convert_to_type<T2>(parts[1])};
 	}
 
 	// split_exact
@@ -294,6 +449,31 @@ export namespace deckard::string
 		return output;
 	}
 
+	template<typename... Ts>
+	requires(sizeof...(Ts) > 0 and (split_conversion_target<Ts> and ...))
+	auto split_exact(std::string_view str, std::string_view delims, bool include_empty = false) -> std::tuple<Ts...>
+	{
+		std::vector<std::string_view> parts;
+		size_t                        first = 0;
+		while (first < str.size())
+		{
+			const auto second = str.find(delims, first);
+
+			if (include_empty or first != second)
+				parts.emplace_back(str.substr(first, second - first));
+
+			if (second == std::string_view::npos)
+				break;
+			first = second + delims.size();
+		}
+
+		assert::check(
+		  parts.size() == sizeof...(Ts), std::format("Expected {} parts, found {}", sizeof...(Ts), parts.size()));
+
+		return [&]<size_t... I>(std::index_sequence<I...>) -> std::tuple<Ts...>
+		{ return {convert_to_type<Ts>(parts[I])...}; }(std::index_sequence_for<Ts...>{});
+	}
+
 	// split_exact
 	std::vector<std::string_view> split_exact(std::string_view str, u64 length)
 	{
@@ -307,6 +487,18 @@ export namespace deckard::string
 		return v;
 	}
 
+	template<typename... Ts>
+	requires(sizeof...(Ts) > 0 and (split_conversion_target<Ts> and ...))
+	auto split_exact(std::string_view str, u64 length) -> std::tuple<Ts...>
+	{
+		const auto parts = split_exact(str, length);
+		assert::check(
+		  parts.size() == sizeof...(Ts), std::format("Expected {} parts, found {}", sizeof...(Ts), parts.size()));
+
+		return [&]<size_t... I>(std::index_sequence<I...>) -> std::tuple<Ts...>
+		{ return {convert_to_type<Ts>(parts[I])...}; }(std::index_sequence_for<Ts...>{});
+	}
+
 	// split_stride
 	std::vector<std::string_view> split_stride(std::string_view str, u64 stride)
 	{
@@ -318,6 +510,20 @@ export namespace deckard::string
 				v.emplace_back(str.substr(i, stride));
 		}
 		return v;
+	}
+
+	template<typename T>
+	requires split_conversion_target<T>
+	auto split_stride(std::string_view str, u64 stride) -> std::vector<T>
+	{
+		const auto     parts = split_stride(str, stride);
+		std::vector<T> result;
+		result.reserve(parts.size());
+
+		for (const auto part : parts)
+			result.emplace_back(convert_to_type<T>(part));
+
+		return result;
 	}
 
 	// split_to_vector
@@ -378,14 +584,14 @@ export namespace deckard::string
 	// match
 	bool match(std::string_view pattern, std::string_view input)
 	{
-		if (pattern.empty() && input.empty())
+		if (pattern.empty() and input.empty())
 			return true;
-		else if (pattern.starts_with('*') && pattern.size() > 1 && input.empty())
+		else if (pattern.starts_with('*') and pattern.size() > 1 and input.empty())
 			return false;
-		else if (pattern.starts_with('?') || (!pattern.empty() and !input.empty() and pattern[0] == input[0]))
+		else if (pattern.starts_with('?') or (not pattern.empty() and not input.empty() and pattern[0] == input[0]))
 			return match(pattern.substr(1), input.substr(1));
 		else if (pattern.starts_with('*'))
-			return match(pattern.substr(1), input) || match(pattern, input.substr(1));
+			return match(pattern.substr(1), input) or match(pattern, input.substr(1));
 
 		return false;
 	}
@@ -548,6 +754,64 @@ export namespace deckard::string
 		return ret;
 	}
 
+	// ints - one type per number: ints<i32, i64>("123 456")
+	template<std::integral... Ts>
+	requires(sizeof...(Ts) > 1)
+	constexpr auto ints(const std::string_view str) -> std::tuple<Ts...>
+	{
+		std::array<std::pair<u64, bool>, sizeof...(Ts)> values{};
+
+		u64    acc   = 0;
+		bool   added = false;
+		bool   neg   = false;
+		size_t index = 0;
+
+		auto flush = [&]
+		{
+			values[index++] = {acc, neg};
+			acc             = 0;
+			added           = false;
+			neg             = false;
+		};
+
+		for (const auto& c : str)
+		{
+			if (index >= values.size())
+				break;
+
+			if (c == '-' and neg == false)
+			{
+				neg = true;
+				continue;
+			}
+
+			if (in_range(0, 9, c - '0'))
+			{
+				acc *= 10;
+				acc += c - '0';
+				added = true;
+				continue;
+			}
+
+			if (added and index < values.size())
+				flush();
+		}
+
+		if (added and index < values.size())
+			flush();
+
+		auto convert = []<typename T>(std::pair<u64, bool> value) -> T
+		{
+			if constexpr (std::is_unsigned_v<T>)
+				return static_cast<T>(value.first);
+			else
+				return value.second ? -static_cast<T>(value.first) : static_cast<T>(value.first);
+		};
+
+		return [&]<size_t... I>(std::index_sequence<I...>) -> std::tuple<Ts...>
+		{ return {convert.template operator()<Ts>(values[I])...}; }(std::index_sequence_for<Ts...>{});
+	}
+
 	export auto simple_pattern_match(std::string_view expression, std::string_view input) -> std::vector<std::string_view>
 	{
 		std::vector<std::string_view> ret;
@@ -584,100 +848,27 @@ export namespace deckard::string
 		return ret;
 	}
 
-	export template<typename T1, typename T2>
-	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<T1, T2>
+	export template<typename... Ts>
+	requires(sizeof...(Ts) > 0)
+	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<Ts...>
 	{
 		auto result = simple_pattern_match(expr, input);
 
-		assert::check(result.size() >= 2, std::format("Expected pattern to match at least 2, found {}", result.size()));
+		assert::check(result.size() >= sizeof...(Ts),
+					  std::format("Expected pattern to match at least {}, found {}", sizeof...(Ts), result.size()));
 
-		T1 t1{};
-		T2 t2{};
+		auto convert = []<typename T>(std::string_view value) -> T
+		{
+			if constexpr (std::is_integral_v<T>)
+				return to_number<T>(value);
+			else if constexpr (std::is_convertible_v<T, std::string>)
+				return T(value);
+			else
+				return T{};
+		};
 
-		// T1
-		if constexpr (std::is_integral_v<T1>)
-			t1 = to_number<T1>(result[0]);
-		if constexpr (std::is_convertible_v<T1, std::string>)
-			t1 = result[0];
-
-		// T2
-		if constexpr (std::is_integral_v<T2>)
-			t2 = to_number<T2>(result[1]);
-		if constexpr (std::is_convertible_v<T2, std::string>)
-			t2 = result[1];
-
-		return {t1, t2};
-	}
-
-	export template<typename T1, typename T2, typename T3>
-	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<T1, T2, T3>
-	{
-		auto result = simple_pattern_match(expr, input);
-
-		assert::check(result.size() >= 3, std::format("Expected pattern to match at least 3, found {}", result.size()));
-
-		T1 t1{};
-		T2 t2{};
-		T3 t3{};
-
-		// T1
-		if constexpr (std::is_integral_v<T1>)
-			t1 = to_number<T1>(result[0]);
-		if constexpr (std::is_convertible_v<T1, std::string>)
-			t1 = result[0];
-
-		// T2
-		if constexpr (std::is_integral_v<T2>)
-			t2 = to_number<T2>(result[1]);
-		if constexpr (std::is_convertible_v<T2, std::string>)
-			t2 = result[1];
-
-		// T2
-		if constexpr (std::is_integral_v<T3>)
-			t3 = to_number<T3>(result[2]);
-		if constexpr (std::is_convertible_v<T3, std::string>)
-			t3 = result[2];
-
-		return {t1, t2, t3};
-	}
-
-	export template<typename T1, typename T2, typename T3, typename T4>
-	auto simple_pattern_match(std::string_view expr, std::string_view input) -> std::tuple<T1, T2, T3, T4>
-	{
-		auto result = simple_pattern_match(expr, input);
-
-		assert::check(result.size() >= 4, std::format("Expected pattern to match at least 4, found {}", result.size()));
-
-		T1 t1{};
-		T2 t2{};
-		T3 t3{};
-		T4 t4{};
-
-		// T1
-		if constexpr (std::is_integral_v<T1>)
-			t1 = to_number<T1>(result[0]);
-		if constexpr (std::is_convertible_v<T1, std::string>)
-			t1 = result[0];
-
-		// T2
-		if constexpr (std::is_integral_v<T2>)
-			t2 = to_number<T2>(result[1]);
-		if constexpr (std::is_convertible_v<T2, std::string>)
-			t2 = result[1];
-
-		// T3
-		if constexpr (std::is_integral_v<T3>)
-			t3 = to_number<T3>(result[2]);
-		if constexpr (std::is_convertible_v<T3, std::string>)
-			t3 = result[2];
-
-		// T4
-		if constexpr (std::is_integral_v<T4>)
-			t4 = to_number<T4>(result[3]);
-		if constexpr (std::is_convertible_v<T4, std::string>)
-			t4 = result[3];
-
-		return {t1, t2, t3, t4};
+		return [&]<std::size_t... I>(std::index_sequence<I...>) -> std::tuple<Ts...>
+		{ return {convert.template operator()<Ts>(result[I])...}; }(std::index_sequence_for<Ts...>{});
 	}
 
 } // namespace deckard::string

@@ -1,7 +1,8 @@
-cmake_minimum_required (VERSION 4.4)
+cmake_minimum_required (VERSION 4.5)
 
 
 project(deckard LANGUAGES CXX ASM_MASM)
+message(STATUS "CMake version: ${CMAKE_VERSION}")
 
 
 add_library(deckard STATIC)
