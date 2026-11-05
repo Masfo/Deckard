@@ -1019,6 +1019,24 @@ export namespace deckard
 			return concat(concat(a, b), args...);
 	}
 
+	template<std::size_t GROUP, std::integral T, std::size_t N>
+	requires(GROUP > 0 and N % GROUP == 0)
+	auto concat(const std::array<T, N>& values)
+	{
+		std::array<T, N / GROUP> result{};
+		for (std::size_t group = 0; group < result.size(); ++group)
+		{
+			T value = values[group * GROUP];
+			for (std::size_t i = 1; i < GROUP; ++i)
+				value = concat(value, values[group * GROUP + i]);
+			result[group] = value;
+		}
+		if constexpr (N / GROUP == 1)
+			return result[0];
+		else
+			return result;
+	}
+
 	// concat/vector
 	template<std::ranges::input_range... Rs>
 	auto concat(const Rs... rs)
@@ -1390,28 +1408,6 @@ export namespace deckard
 		}
 	}
 
-	template<arithmetic T>
-	auto try_to_number(std::optional<T> input, [[maybe_unused]] int base) -> T
-	{
-		if (input.has_value())
-			return input.value();
-		return T{};
-	}
-
-	template<arithmetic T, arithmetic C>
-	auto to_number(T input, [[maybe_unused]] int base) -> C
-	{
-		return static_cast<T>(input);
-	}
-
-	template<arithmetic T>
-	auto to_number(T input, [[maybe_unused]] int base) -> std::optional<std::string>
-	{
-		if (auto result = try_to_number<i64>(std::to_string(input), base); result.has_value())
-			return std::to_string(*result);
-
-		return {};
-	}
 
 	template<arithmetic T>
 	auto to_number(std::string_view input, [[maybe_unused]] int base) -> T
