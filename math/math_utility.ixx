@@ -83,12 +83,35 @@ export namespace deckard::math
 	}
 
 	// mod
-	template<arithmetic T, arithmetic U>
-	T mod(T x, U N)
+	template<std::integral T, std::integral U>
+	[[nodiscard]] constexpr T mod(T x, U n) noexcept
 	{
-		if (N == U{0})
-			return 0;
-		return static_cast<T>((x % N + N) % N);
+		// Precondition: n != 0
+		if constexpr (std::is_unsigned_v<T> and std::is_unsigned_v<U>)
+		{
+			return static_cast<T>(x % n);
+		}
+		else
+		{
+			using wide   = std::intmax_t;
+			const wide a = static_cast<wide>(x);
+			const wide b = static_cast<wide>(n);
+
+			if (b == -1)
+				return 0;                        // avoids INT_MIN % -1 UB
+
+			wide r = a % b;
+			if (r != 0 and ((r < 0) != (b < 0))) // result takes the sign of the divisor
+				r += b;
+			return static_cast<T>(r);
+		}
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] constexpr T mod(T x, T n) noexcept
+	{
+		const T r = std::fmod(x, n);
+		return (r != T{0} and ((r < T{0}) != (n < T{0}))) ? r + n : r;
 	}
 
 	// mix
@@ -331,11 +354,11 @@ export namespace deckard::math
 		return q;
 	}
 
-	template<std::unsigned_integral T>
-	[[nodiscard]] constexpr u64 index_from_2d(T x, T y, T width) noexcept
-	{
-		return u64{y} * width + x;
-	}
+	//template<std::unsigned_integral T>
+	//[[nodiscard]] constexpr u64 index_from_2d(T x, T y, T width) noexcept
+	//{
+	//	return u64{y} * width + x;
+	//}
 
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)
