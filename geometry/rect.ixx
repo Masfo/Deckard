@@ -93,64 +93,75 @@ namespace deckard::geometry
 	export [[nodiscard]] bool intersect(const vec2& b, const rect& a) { return intersect(a, b); }
 
 	// ########################
-
-	export struct irect
+	export template<typename T>
+	struct generic_irect
 	{
-		ivec2 min{0, 0};
-		ivec2 max{1, 1};
+		static_assert(
+		  std::is_same_v<T, ivec2> or std::is_same_v<T, uvec2> or std::is_same_v<T, i64vec2> or std::is_same_v<T, u64vec2>);
 
-		constexpr irect() noexcept = default;
+		T min{0, 0};
+		T max{1, 1};
 
-		constexpr explicit irect(ivec2 pos) noexcept
+		constexpr generic_irect() noexcept = default;
+
+		constexpr explicit generic_irect(T pos) noexcept
 			: min{pos}
-			, max{pos + ivec2{1, 1}}
+			, max{pos + T{1, 1}}
 		{
 		}
 
-		constexpr irect(ivec2 mmin, ivec2 mmax) noexcept
+		constexpr generic_irect(T mmin, T mmax) noexcept
 			: min{mmin}
 			, max{mmax}
 		{
 		}
 
-		[[nodiscard]] static constexpr irect from_size(ivec2 pos, ivec2 sz) noexcept { return {pos, pos + sz}; }
+		[[nodiscard]] static constexpr generic_irect<T> from_size(T pos, T sz) noexcept { return {pos, pos + sz}; }
 
-		[[nodiscard]] friend constexpr bool operator==(const irect&, const irect&) noexcept = default;
+		[[nodiscard]] friend constexpr bool operator==(const generic_irect<T>&, const generic_irect<T>&) noexcept = default;
 
-		[[nodiscard]] constexpr ivec2 size() const noexcept { return max - min; }
+		[[nodiscard]] constexpr T size() const noexcept { return max - min; }
 
-		[[nodiscard]] constexpr ivec2 position() const noexcept { return min; }
+		[[nodiscard]] constexpr i64 area() const noexcept
+		{
+			if (empty())
+				return 0;
+			const T s = size();
+			return static_cast<i64>(s.x) * s.y;
+		}
+
+		[[nodiscard]] constexpr T position() const noexcept { return min; }
 
 		//
 
-		[[nodiscard]] constexpr bool contains(ivec2 p) const noexcept
+		[[nodiscard]] constexpr bool contains(T p) const noexcept
 		{
 			return p.x >= min.x and p.x < max.x and p.y >= min.y and p.y < max.y;
 		}
 
-		[[nodiscard]] constexpr bool contains(const irect& b) const noexcept
+		[[nodiscard]] constexpr bool contains(const generic_irect<T>& b) const noexcept
 		{
 			return b.min.x >= min.x and b.max.x <= max.x and b.min.y >= min.y and b.max.y <= max.y;
 		}
 
-		[[nodiscard]] constexpr std::optional<irect> intersection(const irect& b) const noexcept
+		[[nodiscard]] constexpr std::optional<generic_irect<T>> intersection(const generic_irect<T>& b) const noexcept
 		{
-			const ivec2 lo{std::max(min.x, b.min.x), std::max(min.y, b.min.y)};
-			const ivec2 hi{std::min(max.x, b.max.x), std::min(max.y, b.max.y)};
+			const T lo{std::max(min.x, b.min.x), std::max(min.y, b.min.y)};
+			const T hi{std::min(max.x, b.max.x), std::min(max.y, b.max.y)};
 
 			if (lo.x >= hi.x or lo.y >= hi.y)
 				return std::nullopt;
 
-			return irect{lo, hi};
+			return generic_irect{lo, hi};
 		}
 
-		[[nodiscard]] constexpr bool intersects(const irect& b) const noexcept { return intersection(b).has_value(); }
+		[[nodiscard]] constexpr bool intersects(const generic_irect<T>& b) const noexcept { return intersection(b).has_value(); }
 
 		[[nodiscard]] constexpr bool empty() const noexcept { return min.x >= max.x or min.y >= max.y; }
 
-		[[nodiscard]] static constexpr irect none() noexcept { return {{0, 0}, {0, 0}}; }
+		[[nodiscard]] static constexpr generic_irect<T> none() noexcept { return generic_irect<T>{{0, 0}, {0, 0}}; }
 
-		[[nodiscard]] constexpr irect union_with(const irect& b) const noexcept
+		[[nodiscard]] constexpr generic_irect<T> union_with(const generic_irect<T>& b) const noexcept
 		{
 			if (empty())
 				return b;
@@ -161,13 +172,34 @@ namespace deckard::geometry
 		}
 	};
 
-	export [[nodiscard]] constexpr bool intersects(const irect& a, const irect& b) noexcept { return a.intersects(b); }
+	export template<typename T>
+	[[nodiscard]] constexpr bool intersects(const generic_irect<T>& a, const generic_irect<T>& b) noexcept
+	{
+		return a.intersects(b);
+	}
 
-	export [[nodiscard]] constexpr auto intersection(const irect& a, const irect& b) noexcept { return a.intersection(b); }
+	export template<typename T>
+	[[nodiscard]] constexpr auto intersection(const generic_irect<T>& a, const generic_irect<T>& b) noexcept
+	{
+		return a.intersection(b);
+	}
 
-	export [[nodiscard]] constexpr bool contains(const irect& a, ivec2 p) noexcept { return a.contains(p); }
+	export template<typename T>
+	[[nodiscard]] constexpr bool contains(const generic_irect<T>& a, T p) noexcept
+	{
+		return a.contains(p);
+	}
 
-	export [[nodiscard]] constexpr bool contains(const irect& a, const irect& b) noexcept { return a.contains(b); }
+	export template<typename T>
+	[[nodiscard]] constexpr bool contains(const generic_irect<T>& a, const generic_irect<T>& b) noexcept
+	{
+		return a.contains(b);
+	}
+
+	export using irect = generic_irect<ivec2>;
+	export using irect64 = generic_irect<i64vec2>;
+	export using urect   = generic_irect<uvec2>;
+	export using urect64 = generic_irect<u64vec2>;
 
 
 }; // namespace deckard::geometry
