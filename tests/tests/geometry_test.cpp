@@ -29,8 +29,7 @@ TEST_CASE("geometry", "[geometry]")
 		SECTION("empty")
 		{
 			CHECK(irect::none().empty());
-			CHECK_FALSE(irect{}.empty());
-			CHECK((irect{ivec2{1, 2}, ivec2{1, 3}}.empty()));
+			CHECK_FALSE(irect{ivec2{0, 0}, ivec2{1, 1}}.empty());
 		}
 
 		SECTION("from size") 
@@ -39,6 +38,12 @@ TEST_CASE("geometry", "[geometry]")
 			CHECK(r.min == ivec2{15, -15});
 			CHECK(r.max == ivec2{22, -12});
 			CHECK(r.size() == ivec2{7, 3});
+		}
+
+		SECTION("area")
+		{
+			irect r{ivec2{15, -15}, ivec2{22, -12}};
+			CHECK(r.area() == 21);
 		}
 
 		SECTION("min")
@@ -62,6 +67,8 @@ TEST_CASE("geometry", "[geometry]")
 			CHECK(r.contains(ivec2{21, -13}));
 			CHECK_FALSE(r.contains(ivec2{22, -12}));
 			CHECK_FALSE(r.contains(ivec2{14, -16}));
+			CHECK(contains(r, ivec2{15, -15}));
+			CHECK_FALSE(contains(r, ivec2{22, -12}));
 		}
 
 		SECTION("contains irect")
@@ -70,6 +77,8 @@ TEST_CASE("geometry", "[geometry]")
 			irect r2{ivec2{2, 2}, ivec2{6, 6}};
 			CHECK(r1.contains(r2));
 			CHECK_FALSE(r2.contains(r1));
+			CHECK(contains(r1, r2));
+			CHECK_FALSE(contains(r2, r1));
 		}
 
 		SECTION("intersects")
@@ -81,6 +90,9 @@ TEST_CASE("geometry", "[geometry]")
 			irect r3{ivec2{22, -12}, ivec2{27, -7}};
 			CHECK_FALSE(r1.intersects(r3));
 			CHECK_FALSE(r3.intersects(r1));
+
+			CHECK(intersects(r1, r2));
+			CHECK_FALSE(intersects(r1, r3));
 		}
 
 		SECTION("intersection")
@@ -95,6 +107,8 @@ TEST_CASE("geometry", "[geometry]")
 			irect r3{ivec2{22, -12}, ivec2{27, -7}};
 			auto  result2 = r1.intersection(r3);
 			CHECK_FALSE(result2.has_value());
+
+
 		}
 
 		SECTION("intersection") 
@@ -106,6 +120,8 @@ TEST_CASE("geometry", "[geometry]")
 			CHECK(result->min == ivec2{7, 6});
 			CHECK(result->max == ivec2{9, 8});
 			CHECK(result->size() == ivec2{2, 2});
+
+			CHECK(intersection(r1, r2) == result);
 		}
 
 		SECTION("union")
@@ -115,7 +131,98 @@ TEST_CASE("geometry", "[geometry]")
 			auto  result = r1.union_with(r2);
 			CHECK(result.min == ivec2{15, -15});
 			CHECK(result.max == ivec2{25, -9});
+
+			
 		}
+	}
+
+
+	SECTION("ibox") 
+	{
+		//
+		SECTION("c-tor")
+		{
+			ibox b;
+			CHECK(b.min == ivec3{0, 0, 0});
+			CHECK(b.max == ivec3{1, 1, 1});
+		}
+
+		SECTION("from size")
+		{
+			ibox b = ibox::from_size(ivec3{15, -15, 5}, ivec3{7, 3, 2});
+			CHECK(b.min == ivec3{15, -15, 5});
+			CHECK(b.max == ivec3{22, -12, 7});
+			CHECK(b.size() == ivec3{7, 3, 2});
+		}
+
+
+
+		SECTION("empty")
+		{
+			CHECK(ibox{ivec3{0, 0, 0}, ivec3{1, 1, 1}}.empty() == false);
+			CHECK(ibox{ivec3{0, 0, 0}, ivec3{0, 1, 1}}.empty());
+			CHECK(ibox{ivec3{0, 0, 0}, ivec3{1, 0, 1}}.empty());
+			CHECK(ibox{ivec3{0, 0, 0}, ivec3{1, 1, 0}}.empty());
+		}
+
+		SECTION("size")
+		{
+			ibox b{ivec3{0, 0, 0}, ivec3{4, 5, 6}};
+			CHECK(b.size() == ivec3{4, 5, 6});
+		}
+
+		SECTION("contains ivec3")
+		{
+			ibox b{ivec3{0, 0, 0}, ivec3{4, 5, 6}};
+			CHECK(b.contains(ivec3{0, 0, 0}));
+			CHECK(b.contains(ivec3{3, 4, 5}));
+			CHECK_FALSE(b.contains(ivec3{4, 5, 6}));
+			CHECK_FALSE(b.contains(ivec3{-1, -1, -1}));
+		}
+
+		SECTION("contains ibox")
+		{ 
+			ibox a{ivec3{0, 0, 0}, ivec3{4, 5, 6}};
+			ibox b{ivec3{0, 0, 0}, ivec3{1, 1, 1}};
+			CHECK(a.contains(b));
+			CHECK_FALSE(b.contains(a));
+		}
+
+		SECTION("intersects") 
+		{
+			ibox a{ivec3{0, 0, 0}, ivec3{4, 5, 6}};
+			ibox b{ivec3{2, 2, 2}, ivec3{6, 6, 6}};
+			CHECK(a.intersects(b));
+			CHECK(b.intersects(a));
+			ibox c{ivec3{4, 5, 6}, ivec3{8, 9, 10}};
+			CHECK_FALSE(a.intersects(c));
+			CHECK_FALSE(c.intersects(a));
+		}
+
+		SECTION("intersection") 
+		{
+			ibox a{ivec3{0, 0, 0}, ivec3{4, 5, 6}};
+			ibox b{ivec3{2, 2, 2}, ivec3{6, 6, 6}};
+			auto result = a.intersection(b);
+			REQUIRE(result.has_value());
+			CHECK(result->min == ivec3{2, 2, 2});
+			CHECK(result->max == ivec3{4, 5, 6});
+			CHECK(result->size() == ivec3{2, 3, 4});
+			CHECK(result->volume() == 24);
+			ibox c{ivec3{4, 5, 6}, ivec3{8, 9, 10}};
+			auto result2 = a.intersection(c);
+			CHECK_FALSE(result2.has_value());
+		}
+
+		SECTION("volume")
+		{
+			ibox a{ivec3{0, 0, 0}, ivec3{4, 5, 6}};
+			CHECK(a.volume() == 120);
+
+			ibox b{{-8, -6, -4}, {-2, -1, 0}};
+			CHECK(b.volume() == 120);
+		}
+
 	}
 
 	SECTION("rect") 

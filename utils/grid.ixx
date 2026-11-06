@@ -18,8 +18,8 @@ namespace deckard
 	export enum class filled { yes, no };
 
 	export template<typename F>
-	concept floodfill_cb = requires(F fn, u32 x, u32 y) {
-		{ fn(x, y) };
+	concept floodfill_cb = requires(F fn, ivec2 pos) {
+		{ fn(pos) };
 	};
 
 	export template<typename T, typename F>
@@ -42,6 +42,10 @@ namespace deckard
 	export constexpr ivec2 south_west{south + west};
 	export constexpr ivec2 north_west{north + west};
 
+	export constexpr std::array<ivec2, 4> directions4{north, east, south, west};
+	export constexpr std::array<ivec2, 8> directions8{
+	  north, north_east, east, south_east, south, south_west, west, north_west};
+
 	export namespace grid3d_directions
 	{
 		inline constexpr ivec3 top{0, -1, 0};
@@ -50,26 +54,34 @@ namespace deckard
 		inline constexpr ivec3 right{1, 0, 0};
 		inline constexpr ivec3 front{0, 0, -1};
 		inline constexpr ivec3 back{0, 0, 1};
-	}
+	} // namespace grid3d_directions
 
 	export template<typename T = u8>
 	class grid
 	{
 	private:
-		array2d<T> data;
+		array2d<T>                data;
+		std::unordered_set<ivec2> visited;
 
 	public:
-		using FunctionOp = const std::function<void(const ivec2, const T)>;
+		using FunctionOp = const std::function<bool(const ivec2, const T)>;
 
 		// friend void dump(const grid&);
 
 		grid() = default;
 
-		grid(u32 w, u32 h) { data.resize(w, h); }
+		grid(i32 w, i32 h) { data.resize(w, h); }
 
 		grid(std::string_view input) { from_string(input); }
 
-		// TODO: vec2
+		// visit
+		void clear_visited() { visited.clear(); }
+
+		i32 visited_count() const { return as<i32>(visited.size()); }
+
+		[[nodiscard]] bool is_visited(const ivec2 pos) const { return visited.contains(pos); }
+
+		void visit(const ivec2 pos) { visited.insert(pos); }
 
 		void from_string(std::string_view input)
 		{
@@ -121,7 +133,7 @@ namespace deckard
 		}
 
 		// TODO: subgrid
-		grid<T> subgrid(const u32 x, const u32 y, const u32 w, const u32 h) const
+		grid<T> subgrid(const i32 x, const i32 y, const i32 w, const i32 h) const
 		{
 			grid<T> result{};
 
@@ -131,14 +143,14 @@ namespace deckard
 			if (x >= width() or y >= height())
 				return result;
 
-			u32 clamped_w = std::min(w, width() - x);
-			u32 clamped_h = std::min(h, height() - y);
+			i32 clamped_w = std::min(w, width() - x);
+			i32 clamped_h = std::min(h, height() - y);
 
 			result.resize(clamped_w, clamped_h);
 
-			for (u32 yy = 0; yy < clamped_h; ++yy)
+			for (i32 yy = 0; yy < clamped_h; ++yy)
 			{
-				for (u32 xx = 0; xx < clamped_w; ++xx)
+				for (i32 xx = 0; xx < clamped_w; ++xx)
 				{
 					result.set(xx, yy, this->get(x + xx, y + yy));
 				}
@@ -147,65 +159,47 @@ namespace deckard
 			return result;
 		}
 
-		grid<T> subgrid(const ivec2 pos, const u32 w, const u32 h) const { return subgrid(pos.x, pos.y, w, h); }
+		grid<T> subgrid(const ivec2 pos, const i32 w, const i32 h) const { return subgrid(pos.x, pos.y, w, h); }
 
 		T operator[](const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
-		T& operator[](const ivec2 pos)
-		{
-			return data.get(pos.x, pos.y);
-		}
+		T& operator[](const ivec2 pos) { return data.get(pos.x, pos.y); }
 
-		T operator[](const u32 x, const u32 y) const { return data.get(x, y); }
+		T operator[](const i32 x, const i32 y) const { return data.get(x, y); }
 
-		T& operator[](const u32 x, const u32 y)
-		{
-			return data.get(x, y);
-		}
+		T& operator[](const i32 x, const i32 y) { return data.get(x, y); }
 
-		T& at(const u32 x, const u32 y)
-		{
-			return data.get(x, y);
-		}
+		T& at(const i32 x, const i32 y) { return data.get(x, y); }
 
-		T at(const u32 x, const u32 y) const { return data.get(x, y); }
+		T at(const i32 x, const i32 y) const { return data.get(x, y); }
 
 		T at(const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
-		T& at(const ivec2 pos)
-		{
-			return data.get(pos.x, pos.y);
-		}
+		T& at(const ivec2 pos) { return data.get(pos.x, pos.y); }
 
-		T get(const u32 x, const u32 y) const { return data.get(x, y); }
+		T get(const i32 x, const i32 y) const { return data.get(x, y); }
 
 		//
-		T& get(const u32 x, const u32 y)
-		{
-			return data.get(x, y);
-		}
+		T& get(const i32 x, const i32 y) { return data.get(x, y); }
 
 		T get(const ivec2 pos) const { return data.get(pos.x, pos.y); }
 
-		T& get(const ivec2 pos)
-		{
-			return data.get(pos.x, pos.y);
-		}
+		T& get(const ivec2 pos) { return data.get(pos.x, pos.y); }
 
-		std::optional<std::span<const T>> row(const u32 y) const 
+		std::optional<std::span<const T>> row(const i32 y) const
 		{
 			if (y >= height())
 				return std::nullopt;
 
-			return std::span<const T>{data.data() + y * width(), width()}; 
+			return std::span<const T>{data.data() + y * width(), static_cast<std::size_t>(width())};
 		}
 
-		std::optional<std::span<T>> row(const u32 y)
+		std::optional<std::span<T>> row(const i32 y)
 		{
 			if (y >= height())
 				return std::nullopt;
 
-			return std::span<T>{&data.get(0, y), width()};
+			return std::span<T>{&data.get(0, y), static_cast<std::size_t>(width())};
 		}
 
 		std::optional<T> try_at(const ivec2 pos) const { return valid(pos) ? get(pos) : std::optional<T>{}; }
@@ -218,7 +212,40 @@ namespace deckard
 				{
 					if (auto v = try_at(ivec2{x, y}); v.has_value())
 					{
-						op(ivec2{x, y}, *v);
+						if (bool r = op(ivec2{x, y}, *v); r == false)
+							return;
+					}
+				}
+			}
+		}
+
+		void for_each_neighbour4(
+		  const std::function<bool(const ivec2, const T, const std::array<std::optional<T>, 4>&)>& op) const
+		{
+			for (i32 y = 0; y < as<i32>(height()); ++y)
+			{
+				for (i32 x = 0; x < as<i32>(width()); ++x)
+				{
+					if (auto v = try_at(ivec2{x, y}); v.has_value())
+					{
+						if (bool r = op(ivec2{x, y}, *v, neighbours4(ivec2{x, y})); r == false)
+							return;
+					}
+				}
+			}
+		}
+
+		void for_each_neighbour8(
+		  const std::function<bool(const ivec2, const T, const std::array<std::optional<T>, 8>&)>& op) const
+		{
+			for (i32 y = 0; y < as<i32>(height()); ++y)
+			{
+				for (i32 x = 0; x < as<i32>(width()); ++x)
+				{
+					if (auto v = try_at(ivec2{x, y}); v.has_value())
+					{
+						if (bool r = op(ivec2{x, y}, *v, neighbours8(ivec2{x, y})); r == false)
+							return;
 					}
 				}
 			}
@@ -226,32 +253,28 @@ namespace deckard
 
 		auto points() const
 		{
-			const u32 grid_width = width();
-			return std::views::iota(u32{0}, size())
-				 | std::views::transform([grid_width](const u32 index)
-				   {
-					   return ivec2{as<i32>(index % grid_width), as<i32>(index / grid_width)};
-				   });
+			const i32 grid_width = width();
+			return std::views::iota(i32{0}, size())
+				   | std::views::transform([grid_width](const i32 index)
+										   { return ivec2{as<i32>(index % grid_width), as<i32>(index / grid_width)}; });
 		}
 
 		void for_each_row(const std::function<void(usize, std::span<const T>)>& op)
 		{
-			for (u32 y = 0; y < height(); ++y)
+			for (i32 y = 0; y < height(); ++y)
 			{
 				if (const auto row_values = row(y))
 					op(as<usize>(y), *row_values);
 			}
 		}
 
-
-
-		void for_each_column(const std::function<void(const u32, const std::vector<T>&)>& op) const
+		void for_each_column(const std::function<void(const i32, const std::vector<T>&)>& op) const
 		{
-			for (u32 x = 0; x < width(); ++x)
+			for (i32 x = 0; x < width(); ++x)
 			{
 				std::vector<T> column{};
 				column.reserve(height());
-				for (u32 y = 0; y < height(); ++y)
+				for (i32 y = 0; y < height(); ++y)
 				{
 					column.push_back(get(x, y));
 				}
@@ -259,17 +282,17 @@ namespace deckard
 			}
 		}
 
-		void resize(u32 nwidth, u32 nheight) { data.resize(nwidth, nheight); }
+		void resize(i32 nwidth, i32 nheight) { data.resize(nwidth, nheight); }
 
-		void set(ivec2 pos, const T& value) { data.set(as<u32>(pos.x), as<u32>(pos.y), value); }
+		void set(ivec2 pos, const T& value) { data.set(as<i32>(pos.x), as<i32>(pos.y), value); }
 
-		void set(u32 x, u32 y, const T& value) { data.set(x, y, value); }
+		void set(i32 x, i32 y, const T& value) { data.set(x, y, value); }
 
 		void clear() { data.clear(); }
 
-		u32 count(std::string_view input) const { return data.count(input); }
+		i32 count(std::string_view input) const { return data.count(input); }
 
-		bool valid(const u32 x, const u32 y) const { return data.valid(x, y); }
+		bool valid(const i32 x, const i32 y) const { return data.valid(x, y); }
 
 		bool valid(ivec2 c) const { return data.valid(c.x, c.y); }
 
@@ -281,23 +304,24 @@ namespace deckard
 
 		auto neighbours8(ivec2 pos) const
 		{
-			return std::array<std::optional<T>, 8>{try_at(pos + north),
-												   try_at(pos + north_east),
-												   try_at(pos + east),
-												   try_at(pos + south_east),
-												   try_at(pos + south),
-												   try_at(pos + south_west),
-												   try_at(pos + west),
-												   try_at(pos + north_west)};
+			return std::array<std::optional<T>, 8>{
+			  try_at(pos + north),
+			  try_at(pos + north_east),
+			  try_at(pos + east),
+			  try_at(pos + south_east),
+			  try_at(pos + south),
+			  try_at(pos + south_west),
+			  try_at(pos + west),
+			  try_at(pos + north_west)};
 		}
 
-		u32 width() const { return data.width(); };
+		i32 width() const { return data.width(); };
 
-		u32 height() const { return data.height(); };
+		i32 height() const { return data.height(); };
 
-		u32 size() const { return data.size(); }
+		i32 size() const { return data.size(); }
 
-		u32 size_in_bytes() const { return data.size_in_bytes(); }
+		i32 size_in_bytes() const { return data.size_in_bytes(); }
 
 		operator auto() const noexcept { return hash(); }
 
@@ -337,7 +361,7 @@ namespace deckard
 				if (x1 == x2 && y1 == y2)
 					break;
 
-				i64 e2 = 2 * err;
+				i32 e2 = 2 * err;
 
 				if (e2 > -dy)
 				{
@@ -408,7 +432,7 @@ namespace deckard
 				if (x1 == x2 && y1 == y2)
 					break;
 
-				i64 e2 = 2 * err;
+				i32 e2 = 2 * err;
 
 				if (e2 > -dy)
 				{
@@ -425,37 +449,37 @@ namespace deckard
 		}
 
 		// x,y,x2
-		void hline(u32 x1, const u32 y, u32 x2, const T& v)
+		void hline(i32 x1, const i32 y, i32 x2, const T& v)
 		{
 			if (x1 > x2)
 				std::swap(x1, x2);
 
-			for (u32 x = x1; x <= x2; ++x)
+			for (i32 x = x1; x <= x2; ++x)
 				set(x, y, v);
 		}
 
 		// pos, x2
-		void hline(const ivec2 pos, const u32 x2, const T& v) { hline(as<u32>(pos.x), as<u32>(pos.y), x2, v); }
+		void hline(const ivec2 pos, const i32 x2, const T& v) { hline(as<i32>(pos.x), as<i32>(pos.y), x2, v); }
 
 		// x,y,y2
-		void vline(u32 x, u32 y1, u32 y2, const T& v)
+		void vline(i32 x, i32 y1, i32 y2, const T& v)
 		{
 			if (y1 > y2)
 				std::swap(y1, y2);
 
-			for (u32 y = y1; y <= y2; ++y)
+			for (i32 y = y1; y <= y2; ++y)
 				set(x, y, v);
 		}
 
 		// pos, y2
-		void vline(const ivec2 pos, const u32 y2, const T& v) { vline(as<u32>(pos.x), as<u32>(pos.y), y2, v); }
+		void vline(const ivec2 pos, const i32 y2, const T& v) { vline(as<i32>(pos.x), as<i32>(pos.y), y2, v); }
 
 		void rectangle(const ivec2 p1, const ivec2 p2, const T& v, filled f = filled::yes)
 		{
-			rectangle(as<u32>(p1.x), as<u32>(p1.y), as<u32>(p2.x), as<u32>(p2.y), v, f);
+			rectangle(as<i32>(p1.x), as<i32>(p1.y), as<i32>(p2.x), as<i32>(p2.y), v, f);
 		}
 
-		void rectangle(u32 x1, u32 y1, u32 x2, u32 y2, const T& v, filled f = filled::yes)
+		void rectangle(i32 x1, i32 y1, i32 x2, i32 y2, const T& v, filled f = filled::yes)
 		{
 			if (x1 > x2)
 				std::swap(x1, x2);
@@ -464,8 +488,8 @@ namespace deckard
 
 			if (f == filled::yes)
 			{
-				for (u32 y = y1; y < y2 + 1; ++y)
-					for (u32 x = x1; x < x2 + 1; ++x)
+				for (i32 y = y1; y < y2 + 1; ++y)
+					for (i32 x = x1; x < x2 + 1; ++x)
 						set(x, y, v);
 			}
 			else
@@ -478,7 +502,7 @@ namespace deckard
 			}
 		}
 
-		void circle(u32 xm, u32 ym, u32 r, const T& v)
+		void circle(i32 xm, i32 ym, i32 r, const T& v)
 
 		{
 			const i32 cx = as<i32>(xm);
@@ -488,10 +512,10 @@ namespace deckard
 			do
 			{
 				// set() ignores negative (wrapped) coordinates
-				set(static_cast<u32>(cx - x), static_cast<u32>(cy + y), v);
-				set(static_cast<u32>(cx - y), static_cast<u32>(cy - x), v);
-				set(static_cast<u32>(cx + x), static_cast<u32>(cy - y), v);
-				set(static_cast<u32>(cx + y), static_cast<u32>(cy + x), v);
+				set(static_cast<i32>(cx - x), static_cast<i32>(cy + y), v);
+				set(static_cast<i32>(cx - y), static_cast<i32>(cy - x), v);
+				set(static_cast<i32>(cx + x), static_cast<i32>(cy - y), v);
+				set(static_cast<i32>(cx + y), static_cast<i32>(cy + x), v);
 				const i32 e = err;
 				if (e > x)
 					err += ++x * 2 + 1;
@@ -500,64 +524,58 @@ namespace deckard
 			} while (x < 0);
 		}
 
-		void circle(const ivec2 center, const u32 r, const T& v) { circle(as<u32>(center.x), as<u32>(center.y), r, v); }
+		void circle(const ivec2 center, const i32 r, const T& v) { circle(as<i32>(center.x), as<i32>(center.y), r, v); }
 
 		void fill(const T& value) { data.fill(value); }
 
-		template<floodfill_cb Func>
-		u32 floodfill(const ivec2 pos, const Func&& cb)
-		{
-			return floodfill(as<u32>(pos.x), as<u32>(pos.y), std::move(cb));
-		}
 
-		u32 floodfill(const ivec2 pos, const T& r) { return floodfill(as<u32>(pos.x), as<u32>(pos.y), r); }
 
 		template<floodfill_cb Func>
-		u32 floodfill(u32 x, u32 y, const Func&& cb)
+		i32 floodfill(ivec2 pos, const Func&& cb)
 		{
-			static_assert(std::is_same_v<T, std::invoke_result_t<Func, u32, u32>>,
-						  "Callback must be have signature fn(u32,u32) -> T (array2d<T>)");
+			static_assert(std::is_same_v<T, std::invoke_result_t<Func, ivec2>>,
+						  "Callback must have signature fn(ivec2) -> T (array2d<T>)");
 
-			T value = data.get(x, y);
+			T value = data.get(pos.x, pos.y);
 
-			std::set<std::pair<u32, u32>>   seen;
-			std::deque<std::pair<u32, u32>> to_visit;
+			std::set<ivec2>   seen;
+			std::deque<ivec2> to_visit;
 
-			to_visit.push_back({x, y});
+			to_visit.push_back(pos);
 
-			u32 count{};
+			i32 count{};
 
 			while (not to_visit.empty())
 			{
-				const auto [dx, dy] = to_visit.front();
+				const auto newpos = to_visit.front();
 				to_visit.pop_front();
 
-				if (not valid(dx, dy))
+				if (not valid(newpos))
 					continue;
 
-				if (seen.contains({dx, dy}))
+				if (seen.contains(newpos))
 					continue;
 
-				seen.insert({dx, dy});
+				seen.insert(newpos);
 
-				if (get(dx, dy) != value)
+				if (get(newpos) != value)
 					continue;
 
-				set(dx, dy, cb(dx, dy));
+				set(newpos, cb(newpos));
 				count += 1;
 
-				to_visit.push_back({dx + 1, dy + 0});
-				to_visit.push_back({dx + 0, dy + 1});
-				to_visit.push_back({dx - 1, dy - 0});
-				to_visit.push_back({dx - 0, dy - 1});
+				to_visit.push_back(newpos + east);
+				to_visit.push_back(newpos + south);
+				to_visit.push_back(newpos + west);
+				to_visit.push_back(newpos + north);
 			}
 
 			return count;
 		}
 
-		u32 floodfill(u32 x, u32 y, const T& r)
+		i32 floodfill(ivec2 pos, const T& r)
 		{
-			return floodfill(x, y, [r](u32, u32) -> T { return r; });
+			return floodfill(pos, [r](ivec2) -> T { return r; });
 		}
 
 		// find_all
@@ -565,9 +583,9 @@ namespace deckard
 		{
 			std::vector<ivec2> points;
 
-			for (auto y = 0u; y < height(); ++y)
+			for (auto y = 0; y < height(); ++y)
 			{
-				for (auto x = 0u; x < width(); ++x)
+				for (auto x = 0; x < width(); ++x)
 				{
 					if (data.get(x, y) == to_find)
 						points.emplace_back(ivec2{as<i32>(x), as<i32>(y)});
@@ -579,21 +597,23 @@ namespace deckard
 			return points;
 		}
 
-		void reverse_row(u32 row)
+		std::optional<ivec2> find(const T value) const { return data.find(value); }
+
+		void reverse_row(i32 row)
 		{
 			if (row >= height())
 				return;
 
-			for (u32 x = 0; x < width() / 2; ++x)
+			for (i32 x = 0; x < width() / 2; ++x)
 				std::swap(data.at(x, row), data.at(width() - 1u - x, row));
 		}
 
-		void reverse_col(u32 col)
+		void reverse_col(i32 col)
 		{
 			if (col >= width())
 				return;
 
-			for (u32 y = 0; y < height() / 2; ++y)
+			for (i32 y = 0; y < height() / 2; ++y)
 				std::swap(data.at(col, y), data.at(col, height() - 1u - y));
 		}
 
@@ -602,9 +622,9 @@ namespace deckard
 			array2d<T> transposed;
 			transposed.resize(height(), width());
 
-			for (u32 y = 0; y < height(); ++y)
+			for (i32 y = 0; y < height(); ++y)
 			{
-				for (u32 x = 0; x < width(); ++x)
+				for (i32 x = 0; x < width(); ++x)
 				{
 					transposed.set(y, x, get(x, y));
 				}
@@ -614,13 +634,13 @@ namespace deckard
 
 		void reverse_rows()
 		{
-			for (u32 y = 0; y < height(); ++y)
+			for (i32 y = 0; y < height(); ++y)
 				reverse_row(y);
 		}
 
 		void reverse_columns()
 		{
-			for (u32 x = 0; x < width(); ++x)
+			for (i32 x = 0; x < width(); ++x)
 				reverse_col(x);
 		}
 
@@ -630,13 +650,11 @@ namespace deckard
 			reverse_rows();
 		}
 
-
 		void rotate_ccw()
 		{
 			transpose();
 			reverse_columns();
 		}
-
 
 		void rotate_left() { rotate_ccw(); }
 
@@ -645,9 +663,9 @@ namespace deckard
 		std::string print() const
 		{
 			std::string ret;
-			for (u32 y = 0; y < height(); ++y)
+			for (i32 y = 0; y < height(); ++y)
 			{
-				for (u32 x = 0; x < width(); ++x)
+				for (i32 x = 0; x < width(); ++x)
 				{
 					ret.push_back(get(x, y));
 				}
@@ -668,7 +686,7 @@ namespace deckard
 				return false;
 			}
 
-			u32 colors = *std::max_element(data.begin(), data.end());
+			i32 colors = *std::max_element(data.begin(), data.end());
 
 			file << "P5\n" << width() << " " << height() << "\n" << colors << "\n";
 
@@ -704,7 +722,7 @@ namespace deckard
 		// per-cell search state, indexed by position
 		struct cell
 		{
-			u32   cost = std::numeric_limits<u32>::max(); // best known steps from start
+			i32   cost = std::numeric_limits<i32>::max(); // best known steps from start
 			ivec2 parent{-1, -1};                         // where we came from
 		};
 
@@ -712,12 +730,12 @@ namespace deckard
 		struct node
 		{
 			ivec2 pos{};
-			u32   cost{0}; // cost from start
-			u32   f{0};    // f = cost + heuristic
+			i32   cost{0}; // cost from start
+			i32   f{0};    // f = cost + heuristic
 		};
 
-		const u32  width     = g.width();
-		const auto heuristic = [goal](const ivec2 p) { return as<u32>(std::abs(p.x - goal.x) + std::abs(p.y - goal.y)); };
+		const i32  width     = g.width();
+		const auto heuristic = [goal](const ivec2 p) { return as<i32>(std::abs(p.x - goal.x) + std::abs(p.y - goal.y)); };
 		const auto sorter    = [](const node& a, const node& b) { return a.f > b.f; }; // min-heap on f
 
 		std::vector<cell>                                              cells(g.size());
@@ -755,7 +773,7 @@ namespace deckard
 			for (const ivec2 direction : directions)
 			{
 				const ivec2 next      = current.pos + direction;
-				const u32   next_cost = current.cost + 1;
+				const i32   next_cost = current.cost + 1;
 
 				if (not can_walk(next))
 					continue;
@@ -794,18 +812,18 @@ namespace deckard
 		if (not walkable(g.get(start)) or not walkable(g.get(goal)))
 			return std::nullopt;
 
-		const u32 w = g.width();
+		const i32 w = g.width();
 
-		const auto to_index = [w](const ivec2 p) { return as<u32>(p.y) * w + as<u32>(p.x); };
-		const auto to_point = [w](const u32 i) { return ivec2{as<i32>(i % w), as<i32>(i / w)}; };
+		const auto to_index = [w](const ivec2 p) { return as<i32>(p.y) * w + as<i32>(p.x); };
+		const auto to_point = [w](const i32 i) { return ivec2{as<i32>(i % w), as<i32>(i / w)}; };
 
-		constexpr u32 none = std::numeric_limits<u32>::max();
+		constexpr i32 none = std::numeric_limits<i32>::max();
 
-		std::vector<u32>  parent(g.size(), none);
+		std::vector<i32>  parent(g.size(), none);
 		std::vector<bool> visited(g.size(), false);
-		std::queue<u32>   open;
+		std::queue<i32>   open;
 
-		const u32 start_index = to_index(start);
+		const i32 start_index = to_index(start);
 		visited[start_index]  = true;
 		open.push(start_index);
 
@@ -813,14 +831,14 @@ namespace deckard
 
 		while (not open.empty())
 		{
-			const u32   current = open.front();
+			const i32   current = open.front();
 			const ivec2 pos     = to_point(current);
 			open.pop();
 
 			if (pos == goal)
 			{
 				std::vector<ivec2> path;
-				for (u32 i = current; i != none; i = parent[i])
+				for (i32 i = current; i != none; i = parent[i])
 					path.push_back(to_point(i));
 
 				std::ranges::reverse(path);
@@ -834,7 +852,7 @@ namespace deckard
 				if (not g.valid(next) or not walkable(g.get(next)))
 					continue;
 
-				const u32 next_index = to_index(next);
+				const i32 next_index = to_index(next);
 				if (visited[next_index])
 					continue;
 
@@ -853,7 +871,6 @@ namespace deckard
 		return bfs(g, start, goal, [](const u8 v) { return v == 0; });
 	}
 
-
 	// DFS on a 4-connected grid. Returns a path from start to goal (both included), or nullopt if no path exists.
 	export template<typename T, typename WalkableFn>
 	requires Walkable<T, WalkableFn>
@@ -866,18 +883,18 @@ namespace deckard
 		if (not walkable(g.get(start)) or not walkable(g.get(goal)))
 			return std::nullopt;
 
-		const u32 w = g.width();
+		const i32 w = g.width();
 
-		const auto to_index = [w](const ivec2 p) { return as<u32>(p.y) * w + as<u32>(p.x); };
-		const auto to_point = [w](const u32 i) { return ivec2{as<i32>(i % w), as<i32>(i / w)}; };
+		const auto to_index = [w](const ivec2 p) { return as<i32>(p.y) * w + as<i32>(p.x); };
+		const auto to_point = [w](const i32 i) { return ivec2{as<i32>(i % w), as<i32>(i / w)}; };
 
-		constexpr u32 none = std::numeric_limits<u32>::max();
+		constexpr i32 none = std::numeric_limits<i32>::max();
 
-		std::vector<u32>  parent(g.size(), none);
+		std::vector<i32>  parent(g.size(), none);
 		std::vector<bool> visited(g.size(), false);
-		std::stack<u32>   open; // LIFO: the last pushed neighbour is explored first
+		std::stack<i32>   open; // LIFO: the last pushed neighbour is explored first
 
-		const u32 start_index = to_index(start);
+		const i32 start_index = to_index(start);
 		visited[start_index]  = true;
 		open.push(start_index);
 
@@ -885,14 +902,14 @@ namespace deckard
 
 		while (not open.empty())
 		{
-			const u32   current = open.top();
+			const i32   current = open.top();
 			const ivec2 pos     = to_point(current);
 			open.pop();
 
 			if (pos == goal)
 			{
 				std::vector<ivec2> path;
-				for (u32 i = current; i != none; i = parent[i])
+				for (i32 i = current; i != none; i = parent[i])
 					path.push_back(to_point(i));
 
 				std::ranges::reverse(path);
@@ -906,7 +923,7 @@ namespace deckard
 				if (not g.valid(next) or not walkable(g.get(next)))
 					continue;
 
-				const u32 next_index = to_index(next);
+				const i32 next_index = to_index(next);
 				if (visited[next_index])
 					continue;
 
@@ -925,22 +942,21 @@ namespace deckard
 		return dfs(g, start, goal, [](const u8 v) { return v == 0; });
 	}
 
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// ########################################################################
+	// Grid 3d
 
-	// ########################################################################
-	// ########################################################################
-	// ########################################################################
-	// ########################################################################
-	// ########################################################################
-	// ########################################################################
-	// Grid 3d 
-
-	export template<typename T=u8>
+	export template<typename T = u8>
 	class grid3d
 	{
 	private:
 		struct cell_data
 		{
-			std::optional<T> value;
+			std::optional<T>                value;
 			std::array<std::optional<T>, 6> faces{};
 		};
 
@@ -962,14 +978,14 @@ namespace deckard
 			return std::nullopt;
 		}
 
-		i64                          width{};
-		i64 height{};
-		i64                          depth{};
+		i32 width{};
+		i32 height{};
+		i32 depth{};
 
 		std::unordered_map<ivec3, cell_data> data;
-	public:
 
-		grid3d(i64 width, i64 height, i64 depth)
+	public:
+		grid3d(i32 width, i32 height, i32 depth)
 			: width(width)
 			, height(height)
 			, depth(depth)
@@ -989,17 +1005,17 @@ namespace deckard
 			if (not index.has_value())
 				return;
 
-			const i64 expected_width = dir.x != 0 ? depth : width;
-			const i64 expected_height = dir.x != 0 ? height : dir.y != 0 ? depth : height;
-			const bool dimensions_match =
-			  as<i64>(plane.width()) == expected_width and as<i64>(plane.height()) == expected_height;
+			const i32  expected_width  = dir.x != 0 ? depth : width;
+			const i32  expected_height = dir.x != 0 ? height : dir.y != 0 ? depth : height;
+			const bool dimensions_match
+			  = as<i32>(plane.width()) == expected_width and as<i32>(plane.height()) == expected_height;
 			assert::check(dimensions_match, "grid3d::set_plane: plane dimensions do not match face");
 			if (not dimensions_match)
 				return;
 
-			for (i64 y = 0; y < expected_height; ++y)
+			for (i32 y = 0; y < expected_height; ++y)
 			{
-				for (i64 x = 0; x < expected_width; ++x)
+				for (i32 x = 0; x < expected_width; ++x)
 				{
 					ivec3 pos;
 					if (dir.x != 0)
@@ -1009,11 +1025,10 @@ namespace deckard
 					else
 						pos = {as<i32>(x), as<i32>(y), dir.z < 0 ? 0 : as<i32>(depth - 1)};
 
-					data[pos].faces[*index] = plane.get(as<u32>(x), as<u32>(y));
+					data[pos].faces[*index] = plane.get(as<i32>(x), as<i32>(y));
 				}
 			}
 		}
-
 
 		grid<T> getplane(const ivec3 dir) const
 		{
@@ -1022,16 +1037,16 @@ namespace deckard
 			if (not index.has_value())
 				return grid<T>{0, 0};
 
-			const i64 plane_width = dir.x != 0 ? depth : width;
-			const i64 plane_height = dir.y != 0 ? depth : height;
-			grid<T> plane{as<u32>(plane_width), as<u32>(plane_height)};
+			const i32 plane_width  = dir.x != 0 ? depth : width;
+			const i32 plane_height = dir.y != 0 ? depth : height;
+			grid<T>   plane{as<i32>(plane_width), as<i32>(plane_height)};
 
 			const i32 fixed_x = dir.x < 0 ? 0 : as<i32>(width - 1);
 			const i32 fixed_y = dir.y < 0 ? 0 : as<i32>(height - 1);
 			const i32 fixed_z = dir.z < 0 ? 0 : as<i32>(depth - 1);
-			for (i64 y = 0; y < plane_height; ++y)
+			for (i32 y = 0; y < plane_height; ++y)
 			{
-				for (i64 x = 0; x < plane_width; ++x)
+				for (i32 x = 0; x < plane_width; ++x)
 				{
 					ivec3 pos;
 					if (dir.x != 0)
@@ -1041,7 +1056,7 @@ namespace deckard
 					else
 						pos = {as<i32>(x), as<i32>(y), fixed_z}; // (x,y)
 
-					plane.set(as<u32>(x), as<u32>(y), get_face(pos, dir).value_or(T{}));
+					plane.set(as<i32>(x), as<i32>(y), get_face(pos, dir).value_or(T{}));
 				}
 			}
 
@@ -1050,32 +1065,32 @@ namespace deckard
 
 		std::string print() const
 		{
-			const auto grid_top = getplane(grid3d_directions::top);
+			const auto grid_top    = getplane(grid3d_directions::top);
 			const auto grid_bottom = getplane(grid3d_directions::bottom);
-			const auto grid_left = getplane(grid3d_directions::left);
-			const auto grid_right = getplane(grid3d_directions::right);
-			const auto grid_front = getplane(grid3d_directions::front);
-			const auto grid_back = getplane(grid3d_directions::back);
+			const auto grid_left   = getplane(grid3d_directions::left);
+			const auto grid_right  = getplane(grid3d_directions::right);
+			const auto grid_front  = getplane(grid3d_directions::front);
+			const auto grid_back   = getplane(grid3d_directions::back);
 
-			std::string result;
+			std::string       result;
 			const std::string indent(grid_left.width() + 1, ' ');
-			const auto append_row = [&result](const grid<T>& face, const u32 y)
+			const auto        append_row = [&result](const grid<T>& face, const i32 y)
 			{
-				for (u32 x = 0; x < face.width(); ++x)
+				for (i32 x = 0; x < face.width(); ++x)
 				{
 					const char value = static_cast<char>(face.get(x, y));
 					result.push_back(value == '\0' ? '.' : value);
 				}
 			};
 
-			for (u32 y = 0; y < grid_top.height(); ++y)
+			for (i32 y = 0; y < grid_top.height(); ++y)
 			{
 				result += indent;
 				append_row(grid_top, y);
 				result.push_back('\n');
 			}
 
-			for (u32 y = 0; y < grid_front.height(); ++y)
+			for (i32 y = 0; y < grid_front.height(); ++y)
 			{
 				append_row(grid_left, y);
 				result.push_back(' ');
@@ -1087,7 +1102,7 @@ namespace deckard
 				result.push_back('\n');
 			}
 
-			for (u32 y = 0; y < grid_bottom.height(); ++y)
+			for (i32 y = 0; y < grid_bottom.height(); ++y)
 			{
 				result += indent;
 				append_row(grid_bottom, y);
@@ -1106,13 +1121,13 @@ namespace deckard
 		// cubies retain a separate sticker value for each face.
 		void load_from_grids(const std::array<grid<T>, 6>& grids)
 		{
-			const bool dimensions_match =
-			  as<i64>(grids[0].width()) == width and as<i64>(grids[0].height()) == height and
-			  as<i64>(grids[1].width()) == width and as<i64>(grids[1].height()) == height and
-			  as<i64>(grids[2].width()) == depth and as<i64>(grids[2].height()) == height and
-			  as<i64>(grids[3].width()) == depth and as<i64>(grids[3].height()) == height and
-			  as<i64>(grids[4].width()) == width and as<i64>(grids[4].height()) == depth and
-			  as<i64>(grids[5].width()) == width and as<i64>(grids[5].height()) == depth;
+			const bool dimensions_match
+			  = as<i32>(grids[0].width()) == width and as<i32>(grids[0].height()) == height
+				and as<i32>(grids[1].width()) == width and as<i32>(grids[1].height()) == height
+				and as<i32>(grids[2].width()) == depth and as<i32>(grids[2].height()) == height
+				and as<i32>(grids[3].width()) == depth and as<i32>(grids[3].height()) == height
+				and as<i32>(grids[4].width()) == width and as<i32>(grids[4].height()) == depth
+				and as<i32>(grids[5].width()) == width and as<i32>(grids[5].height()) == depth;
 			assert::check(dimensions_match, "grid3d::load_from_grids: face dimensions do not match grid dimensions");
 			if (not dimensions_match)
 				return;
@@ -1124,9 +1139,6 @@ namespace deckard
 			set_plane(grids[4], grid3d_directions::top);
 			set_plane(grids[5], grid3d_directions::bottom);
 		}
-
-
-
 
 		void set(ivec3 pos, const T& value)
 		{
@@ -1166,12 +1178,12 @@ namespace deckard
 			bool on_boundary = false;
 			switch (*index)
 			{
-				case 0: on_boundary = pos.y == 0; break; // top
+				case 0: on_boundary = pos.y == 0; break;          // top
 				case 1: on_boundary = pos.y == height - 1; break; // bottom
-				case 2: on_boundary = pos.x == 0; break; // left
-				case 3: on_boundary = pos.x == width - 1; break; // right
-				case 4: on_boundary = pos.z == 0; break; // front
-				case 5: on_boundary = pos.z == depth - 1; break; // back
+				case 2: on_boundary = pos.x == 0; break;          // left
+				case 3: on_boundary = pos.x == width - 1; break;  // right
+				case 4: on_boundary = pos.z == 0; break;          // front
+				case 5: on_boundary = pos.z == depth - 1; break;  // back
 			}
 			assert::check(on_boundary, "grid3d::set_face: position is not on the requested face");
 			if (not on_boundary)
@@ -1199,13 +1211,11 @@ namespace deckard
 			return it->second.faces[*index];
 		}
 
-
-		void rotate(const ivec3 axis, const i32 angle) 
+		void rotate(const ivec3 axis, const i32 angle)
 		{
-			const bool valid_axis =
-			  ((axis.x == 1 or axis.x == -1) and axis.y == 0 and axis.z == 0) or
-			  ((axis.y == 1 or axis.y == -1) and axis.x == 0 and axis.z == 0) or
-			  ((axis.z == 1 or axis.z == -1) and axis.x == 0 and axis.y == 0);
+			const bool valid_axis = ((axis.x == 1 or axis.x == -1) and axis.y == 0 and axis.z == 0)
+									or ((axis.y == 1 or axis.y == -1) and axis.x == 0 and axis.z == 0)
+									or ((axis.z == 1 or axis.z == -1) and axis.x == 0 and axis.y == 0);
 			assert::check(valid_axis, "grid3d::rotate: axis must be a signed unit axis");
 			if (not valid_axis)
 				return;
@@ -1223,10 +1233,10 @@ namespace deckard
 			if (turns < 0)
 				turns += 4;
 
-			const i64 old_width = width;
-			const i64 old_height = height;
-			const i64 old_depth = depth;
-			auto rotated = std::unordered_map<ivec3, cell_data>{};
+			const i32 old_width  = width;
+			const i32 old_height = height;
+			const i32 old_depth  = depth;
+			auto      rotated    = std::unordered_map<ivec3, cell_data>{};
 			rotated.reserve(data.size());
 			const auto rotate_direction = [axis, turns](const ivec3 dir)
 			{
@@ -1321,10 +1331,7 @@ namespace deckard
 
 			data = std::move(rotated);
 		}
-
 	};
-
-
 
 
 } // namespace deckard
