@@ -72,4 +72,5 @@ namespace deckard::math
 	*/
 
 
+
 } // namespace deckard::math

@@ -9,8 +9,6 @@ using namespace deckard;
 using namespace deckard::math;
 using namespace Catch;
 
-
-
 TEST_CASE("index from", "[index_from]")
 {
 	SECTION("index_from_2d")
@@ -51,19 +49,69 @@ TEST_CASE("radians/degrees", "[radians][degrees]")
 TEST_CASE("math.utility", "[math]")
 {
 
+	SECTION("safe math floating")
+	{
+		CHECK(safe_mul(2.0f, 3.0f) == 6.0f);
+		CHECK(safe_add(2.0f, 3.0f) == 5.0f);
+		CHECK(safe_sub(5.0f, 3.0f) == 2.0f);
+		CHECK(safe_div(10.0, 2.0) == 5.0);
+
+		const auto max = std::numeric_limits<f32>::max();
+		CHECK_FALSE(safe_mul(max, 2.0f).has_value());
+		CHECK_FALSE(safe_add(max, max).has_value());
+		CHECK_FALSE(safe_sub(max, -max).has_value());
+		CHECK_FALSE(safe_div(10.0f, 0.0f).has_value());
+		CHECK_FALSE(safe_div(10.0, 0.0).has_value());
+		CHECK_FALSE(safe_div(max, std::numeric_limits<f32>::min()).has_value());
+	}
+
+	SECTION("safe math integral")
+	{
+		static_assert(safe_mul(2, 3).value() == 6);
+		static_assert(safe_add(2, 3).value() == 5);
+		static_assert(safe_sub(5, 3).value() == 2);
+		static_assert(safe_div(-7, 3).value() == -2);
+
+		CHECK(safe_mul(2, 3) == 6);
+		CHECK(safe_add(2, 3) == 5);
+		CHECK(safe_sub(5, 3) == 2);
+		CHECK(safe_div(10, 2) == 5);
+		CHECK(safe_div(-7, 3) == -2);
+
+		const auto max = std::numeric_limits<i32>::max();
+		const auto min = std::numeric_limits<i32>::min();
+		CHECK_FALSE(safe_mul(min, -1).has_value());
+		CHECK_FALSE(safe_add(max, 1).has_value());
+		CHECK_FALSE(safe_add(min, -1).has_value());
+		CHECK_FALSE(safe_sub(min, 1).has_value());
+		CHECK_FALSE(safe_sub(max, -1).has_value());
+		CHECK_FALSE(safe_div(min, -1).has_value());
+		CHECK_FALSE(safe_div(10, 0).has_value());
+
+		const auto unsigned_max = std::numeric_limits<u32>::max();
+		CHECK(safe_mul(2u, 3u) == 6u);
+		CHECK(safe_add(2u, 3u) == 5u);
+		CHECK(safe_sub(5u, 3u) == 2u);
+		CHECK(safe_div(10u, 2u) == 5u);
+		CHECK_FALSE(safe_mul(unsigned_max, 2u).has_value());
+		CHECK_FALSE(safe_add(unsigned_max, 1u).has_value());
+		CHECK_FALSE(safe_sub(0u, 1u).has_value());
+		CHECK_FALSE(safe_div(10u, 0u).has_value());
+	}
+
+
 	SECTION("align")
-	{ 
+	{
 		CHECK(align_integer(7, 8) == 8);
 		CHECK(align_integer(7, 16) == 16);
 		CHECK(align_integer(7, 4) == 8);
 		CHECK(align_integer(124, 2) == 124);
-
 	}
 
 	SECTION("remap")
 	{
 		CHECK(remap(0.5f, 0.0f, 1.0f, 20.0f, 40.0f) == Approx(30.0f).margin(0.0001));
-		CHECK(550 == remap(5, 0, 10, 100, 1'000));
+		CHECK(550 == remap(5, 0, 10, 100, 1000));
 	}
 	SECTION("mod")
 	{
@@ -72,32 +120,20 @@ TEST_CASE("math.utility", "[math]")
 		CHECK(3 == mod(-11, 7));
 	}
 
-	SECTION("digits") 
+	SECTION("mod float")
+	{
+		CHECK(10.0f == mod(10.0f, 100.0f));
+		CHECK(10.0f == mod(110.0f, 100.0f));
+		CHECK(3.0f == mod(-11.0f, 7.0f));
+	}
+
+	SECTION("digits")
 	{
 		CHECK(1 == count_digits(0));
 		CHECK(1 == count_digits(1));
 
 		CHECK(3 == count_digits(999));
-		CHECK(6 == count_digits(999999));
-	}
-
-	SECTION("safe divide")
-	{
-		CHECK(5 == safe_divide(10, 2));
-		CHECK(safe_divide(10.0f, 3.3f) == Approx(3.03030f).margin(0.000001f));
-		
-		CHECK(safe_divide(0, 10) == 0);
-		CHECK(safe_divide(0.0f, 2.0f) == 0);
-		CHECK(safe_divide(0.0, 4.4) == 0);
-
-
-
-		CHECK_FALSE(safe_divide(10, 0).has_value());
-		CHECK_FALSE(safe_divide(10.0f, 0.0f).has_value());
-		CHECK_FALSE(safe_divide(10.0, 0.0).has_value());
-
-
-
+		CHECK(6 == count_digits(999'999));
 	}
 
 }

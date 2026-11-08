@@ -179,33 +179,20 @@ namespace deckard::vec
 
 		[[nodiscard("Use the absolute value")]] constexpr vec_type abs() const { return vec_type(std::abs(x), std::abs(y)); }
 
-		[[nodiscard("Use the distance value")]] constexpr T squared_distance(const vec_type& other) const
-		requires(std::is_integral_v<T>)
+		[[nodiscard("Use the distance value")]] constexpr u64 squared_distance(const vec_type& other) const noexcept
+		requires std::integral<T>
 		{
-			T result{};
-
-			auto T = abs_diff(x, other.x);
-			result = T * T;
-
-			T = abs_diff(y, other.y);
-			result += T * T;
-
-			return result;
+			const auto dx = static_cast<u64>(abs_diff(x, other.x));
+			const auto dy = static_cast<u64>(abs_diff(y, other.y));
+			return dx * dx + dy * dy;
 		}
 
-		[[nodiscard("Use the distance value")]] constexpr T squared_distance(const vec_type& other) const
-		requires(std::is_floating_point_v<T>)
+		[[nodiscard("Use the distance value")]] constexpr T squared_distance(const vec_type& other) const noexcept
+		requires std::floating_point<T>
 		{
-			T result{};
-
-
-			T tmp = as<T>(abs_diff(x, other.x));
-			result += tmp * tmp;
-
-			tmp = as<T>(abs_diff(y, other.y));
-			result += tmp * tmp;
-
-			return result;
+			const T dx = x - other.x;
+			const T dy = y - other.y;
+			return dx * dx + dy * dy;
 		}
 
 		// distance
@@ -696,12 +683,13 @@ namespace deckard::vec
 	}
 
 	export template<std::floating_point T>
-	[[nodiscard("Use the lerped vector")]] constexpr generic_vec2<T> lerp(const generic_vec2<T>& lhs, const generic_vec2<T>& rhs, const T t)
+	[[nodiscard("Use the lerped vector")]] constexpr generic_vec2<T> lerp(
+	  const generic_vec2<T>& lhs, const generic_vec2<T>& rhs, const T t)
 	{
 		return lhs.lerp(rhs, t);
 	}
 
-} // namespace deckard::math
+} // namespace deckard::vec
 
 export namespace std
 {

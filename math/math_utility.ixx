@@ -15,6 +15,156 @@ import deckard.debug;
 export namespace deckard::math
 {
 
+	template<typename T>
+	concept MathOp = std::same_as<T, std::plus<>> or std::same_as<T, std::minus<>> or std::same_as<T, std::multiplies<>>
+					 or std::same_as<T, std::divides<>>;
+
+	template<std::integral T, MathOp Op>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> checked_op(T a, T b, Op op)
+	{
+		if constexpr (std::same_as<Op, std::multiplies<>>)
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (a == 0 or b == 0)
+					return T{};
+				if (a > 0)
+				{
+					if (b > 0)
+					{
+						if (a > std::numeric_limits<T>::max() / b)
+							return std::unexpected("integer overflow in multiplication");
+					}
+					else if (b < std::numeric_limits<T>::min() / a)
+						return std::unexpected("integer underflow in multiplication");
+				}
+				else
+				{
+					if (b > 0)
+					{
+						if (a < std::numeric_limits<T>::min() / b)
+							return std::unexpected("integer underflow in multiplication");
+					}
+					else if (a < std::numeric_limits<T>::max() / b)
+						return std::unexpected("integer overflow in multiplication");
+				}
+			}
+			else if (b != 0 and a > std::numeric_limits<T>::max() / b)
+				return std::unexpected("integer overflow in multiplication");
+		}
+		else if constexpr (std::same_as<Op, std::plus<>>)
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (b > 0 and a > std::numeric_limits<T>::max() - b)
+					return std::unexpected("integer overflow in addition");
+				if (b < 0 and a < std::numeric_limits<T>::min() - b)
+					return std::unexpected("integer underflow in addition");
+			}
+			else if (a > std::numeric_limits<T>::max() - b)
+				return std::unexpected("integer overflow in addition");
+		}
+		else if constexpr (std::same_as<Op, std::minus<>>)
+		{
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (b < 0 and a > std::numeric_limits<T>::max() + b)
+					return std::unexpected("integer overflow in subtraction");
+				if (b > 0 and a < std::numeric_limits<T>::min() + b)
+					return std::unexpected("integer underflow in subtraction");
+			}
+			else if (a < b)
+				return std::unexpected("integer underflow in subtraction");
+		}
+		else
+		{
+			if (b == 0)
+				return std::unexpected("division by zero");
+			if constexpr (std::is_signed_v<T>)
+			{
+				if (a == std::numeric_limits<T>::min() and b == -1)
+					return std::unexpected("integer overflow in division");
+			}
+		}
+
+		return op(a, b);
+	}
+
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_mul(T a, T b)
+	{
+		return checked_op(a, b, std::multiplies<>{});
+	}
+
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_add(T a, T b)
+	{
+		return checked_op(a, b, std::plus<>{});
+	}
+
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_sub(T a, T b)
+	{
+		return checked_op(a, b, std::minus<>{});
+	}
+
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_div(T a, T b)
+	{
+		return checked_op(a, b, std::divides<>{});
+	}
+
+	// Floating point safe math
+
+
+	template<std::floating_point T, MathOp Op>
+	[[nodiscard]] auto checked_op(T a, T b, std::string_view name, Op op) noexcept -> std::expected<T, std::string>
+	{
+		if (std::isnan(a) or std::isnan(b))
+			return std::unexpected(std::format("NaN in input: a = {}, b = {}", a, b));
+		if (std::isinf(a) or std::isinf(b))
+			return std::unexpected(std::format("infinity in input: a = {}, b = {}", a, b));
+
+		const T result = op(a, b);
+		if (not std::isfinite(result))
+			return std::unexpected(std::format("overflow in {}: a = {}, b = {}", name, a, b));
+
+		return result;
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] auto safe_mul(T a, T b) noexcept -> std::expected<T, std::string>
+	{
+		return checked_op(a, b, "multiplication", std::multiplies<>{});
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] auto safe_div(T a, T b) noexcept -> std::expected<T, std::string>
+	{
+		if (b == T{0})
+			return std::unexpected(std::format("division by zero: a = {}", a));
+
+		return checked_op(a, b, "division", std::divides<>{});
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] auto safe_add(T a, T b) noexcept -> std::expected<T, std::string>
+	{
+		return checked_op(a, b, "addition", std::plus<>{});
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] auto safe_sub(T a, T b) noexcept -> std::expected<T, std::string>
+	{
+		return checked_op(a, b, "subtraction", std::minus<>{});
+	}
+
+	//
 
 	template<std::floating_point T = float>
 	constexpr T deg_to_radians = std::numbers::pi_v<T> / T{180};
@@ -144,8 +294,6 @@ export namespace deckard::math
 	template<std::floating_point T>
 	constexpr T default_epsilon = T{1e-6};
 
-
-
 	// zero_clamp
 	template<std::floating_point T>
 	[[nodiscard]] constexpr T clamp_zero(T value, T epsilon = default_epsilon<T>) noexcept
@@ -197,27 +345,6 @@ export namespace deckard::math
 	[[nodiscard]] constexpr bool is_close_enough_zero(const T& A)
 	{
 		return is_close_enough<T>(A, T{0});
-	}
-
-	// safe_divide
-	template<std::integral T, std::integral U>
-	[[nodiscard]] constexpr std::optional<f64> safe_divide(T x, U y) noexcept
-	{
-		if (is_close_enough_zero(y))
-			return {};
-
-		if constexpr (sizeof(T) > sizeof(U))
-			return (static_cast<f64>(x) / static_cast<f64>(y));
-		else
-			return (static_cast<f32>(x) / static_cast<f32>(y));
-	}
-
-	template<std::floating_point T>
-	[[nodiscard]] constexpr std::optional<T> safe_divide(T x, T y) noexcept
-	{
-		if (is_close_enough_zero(y))
-			return {};
-		return x / y;
 	}
 
 	//
@@ -354,11 +481,11 @@ export namespace deckard::math
 		return q;
 	}
 
-	//template<std::unsigned_integral T>
+	// template<std::unsigned_integral T>
 	//[[nodiscard]] constexpr u64 index_from_2d(T x, T y, T width) noexcept
 	//{
 	//	return u64{y} * width + x;
-	//}
+	// }
 
 	template<std::integral T, std::integral U = T>
 	constexpr T index_from_2d(T x, T y, U width)

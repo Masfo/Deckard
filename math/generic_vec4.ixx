@@ -224,44 +224,25 @@ namespace deckard::vec
 			return vec_type(std::abs(x), std::abs(y), std::abs(z), std::abs(w));
 		}
 
-		[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(const vec_type& other) const
-		requires(std::is_integral_v<T>)
+	
+		[[nodiscard("Use the distance value")]] constexpr u64 squared_distance(const vec_type& other) const noexcept
+		requires std::integral<T>
 		{
-			T result{};
-
-			auto d = abs_diff(x, other.x);
-			result = d * d;
-
-			d = abs_diff(y, other.y);
-			result += d * d;
-
-			d = abs_diff(z, other.z);
-			result += d * d;
-
-			d = abs_diff(w, other.w);
-			result += d * d;
-
-			return result;
+			const auto dx = static_cast<u64>(abs_diff(x, other.x));
+			const auto dy = static_cast<u64>(abs_diff(y, other.y));
+			const auto dz = static_cast<u64>(abs_diff(z, other.z));
+			const auto dw = static_cast<u64>(abs_diff(w, other.w));
+			return dx * dx + dy * dy + dz * dz + dw * dw;
 		}
 
-		[[nodiscard("Use the distance value")]] constexpr T squared_distance(const vec_type& other) const
-		requires(std::is_floating_point_v<T>)
+		[[nodiscard("Use the distance value")]] constexpr T squared_distance(const vec_type& other) const noexcept
+		requires std::floating_point<T>
 		{
-			T result{};
-
-			T tmp = as<T>(abs_diff(x, other.x));
-			result += tmp * tmp;
-
-			tmp = as<T>(abs_diff(y, other.y));
-			result += tmp * tmp;
-
-			tmp = as<T>(abs_diff(z, other.z));
-			result += tmp * tmp;
-
-			tmp = as<T>(abs_diff(w, other.w));
-			result += tmp * tmp;
-
-			return result;
+			const T dx = x - other.x;
+			const T dy = y - other.y;
+			const T dz = z - other.z;
+			const T dw = w - other.w;
+			return dx * dx + dy * dy + dz * dz + dw * dw;
 		}
 
 		// distance
