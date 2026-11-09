@@ -204,6 +204,51 @@ export namespace deckard::math
 		return std::bit_ceil(v);
 	}
 
+	template<std::unsigned_integral T>
+	[[nodiscard]] constexpr T isqrt(T value) noexcept
+	{
+		if (value == 0)
+			return 0;
+
+		// Highest power of 4 <= value
+		T bit = static_cast<T>(T{1} << ((std::bit_width(value) - 1) & ~1));
+		T res = 0;
+
+		while (bit != 0)
+		{
+			if (value >= res + bit)
+			{
+				value = static_cast<T>(value - (res + bit));
+				res   = static_cast<T>((res >> 1) + bit);
+			}
+			else
+			{
+				res >>= 1;
+			}
+			bit >>= 2;
+		}
+		return res;
+	}
+
+	template<std::unsigned_integral T>
+	[[nodiscard]] constexpr T ceil_isqrt(T value) noexcept
+	{
+		const T r = isqrt(value);
+		return static_cast<T>(r + (r * r != value));
+	}
+
+	static_assert(ceil_isqrt<u32>(16) == 4); // 4 * 4 = 16 >= 16
+	static_assert(ceil_isqrt<u32>(24) == 5); // 5 * 5 = 25 >= 24
+
+	template<std::unsigned_integral T>
+	[[nodiscard]] constexpr T floor_isqrt(T value) noexcept
+	{
+		return isqrt(value);
+	}
+
+	static_assert(floor_isqrt<u32>(24) == 4); // 4 * 4 = 16 <= 24
+	static_assert(floor_isqrt<u32>(25) == 5); // 5 * 5 = 25 <= 25
+
 	template<arithmetic T>
 	[[nodiscard]] constexpr T clamp01(const T x, const T lowerlimit = T{0}, const T upperlimit = T{1})
 	{
