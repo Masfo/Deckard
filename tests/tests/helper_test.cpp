@@ -9,10 +9,13 @@ import deckard.stringhelper;
 import deckard.types;
 import deckard.as;
 import deckard.enums;
+import deckard.vec;
+
 
 using namespace deckard;
 using namespace deckard::string;
 using namespace deckard::literals;
+using namespace deckard::vec;
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -546,6 +549,28 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(input == "hello=world");
 	}
 
+	SECTION("transpose vector ints")
+	{
+		// const std::array<i32, 3>                first_row{1, 2, 3};
+		// const std::array<i32, 2>                second_row{4, 5};
+		// const std::vector<std::span<const i32>> matrix{std::span<const i32>{first_row}, std::span<const i32>{second_row}};
+		// const std::vector<std::vector<i32>>     expected{{1, 4}, {2, 5}, {3, 0}};
+		// CHECK(transpose(matrix) == expected);
+	}
+
+	SECTION("transpose string vectors")
+	{
+		// const std::vector<std::string_view> input{"ab", "c"};
+		// CHECK(transpose(input) == std::vector<std::string_view>{"ac", "b "});
+		//
+		// const std::array<i32, 2> first_row{1, 2};
+		// const std::array<i32, 1> second_row{3};
+		// const std::vector<std::span<const i32>> matrix{
+		//   std::span<const i32>{first_row}, std::span<const i32>{second_row}};
+		// const std::vector<std::vector<i32>> expected{{1, 3}, {2, 0}};
+		// CHECK(transpose(matrix) == expected);
+	}
+
 	SECTION("split")
 	{
 		std::string input("hello|world");
@@ -555,6 +580,24 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted[0] == "hello");
 		CHECK(splitted[1] == "world");
 
+		auto [first, second] = split<i32, i32>("12,34", ",");
+		CHECK(first == 12);
+		CHECK(second == 34);
+
+		auto [first_point, second_point] = split<ivec2, ivec2>("12,34|5,3", "|");
+		CHECK(first_point == ivec2{12, 34});
+		CHECK(second_point == ivec2{5, 3});
+
+		auto [point3, point4] = split<ivec3, ivec4>("1,2,3|4,5,6,7", "|");
+		CHECK(point3 == ivec3{1, 2, 3});
+		CHECK(point4 == ivec4{4, 5, 6, 7});
+
+		ivec2 point        = split<ivec2>("10,20", ",");
+		ivec3 color        = split<ivec3>("10,20,30", ",");
+		ivec3 spaced_color = split<ivec3>("1024, 256, 1024", ", ");
+		CHECK(point == ivec2{10, 20});
+		CHECK(color == ivec3{10, 20, 30});
+		CHECK(spaced_color == ivec3{1024, 256, 1024});
 
 		std::string_view input_view = input;
 		auto             split_view = split<std::string_view>(input_view, "|");
@@ -586,6 +629,10 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted[0] == "hello");
 		CHECK(splitted[1] == "world|dog");
 		CHECK(splitted[2] == "cat");
+
+		auto [first, second] = split_exact<i32, i32>("12||34", "||");
+		CHECK(first == 12);
+		CHECK(second == 34);
 	}
 
 	SECTION("split_exact")
@@ -608,6 +655,18 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted.size() == 2);
 		CHECK(splitted[0] == "hello");
 		CHECK(splitted[1] == "WORLDmagic");
+
+		auto [first, second] = split_exact<i32, i32>("12345", 2);
+		CHECK(first == 12);
+		CHECK(second == 345);
+
+		auto [letter, number] = split_exact<char, i32>("R128", 1);
+		CHECK(letter == 'R');
+		CHECK(number == 128);
+
+		auto [first_text, second_text] = split_exact<std::string, std::string>("helloWORLD", 5);
+		CHECK(first_text == "hello");
+		CHECK(second_text == "WORLD");
 	}
 
 	SECTION("split_stride")
@@ -619,6 +678,9 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted[0] == "hello");
 		CHECK(splitted[1] == "WORLD");
 		CHECK(splitted[2] == "magic");
+
+		auto values = split_stride<i32>("123456", 2);
+		CHECK(values == std::vector<i32>{12, 34, 56});
 	}
 
 	SECTION("split_once")
@@ -629,6 +691,10 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(splitted.size() == 2);
 		CHECK(splitted[0] == "hello");
 		CHECK(splitted[1] == "world|123");
+
+		auto [letter, number] = split_once<char, i32>("R128", "12");
+		CHECK(letter == 'R');
+		CHECK(number == 8);
 	}
 
 	SECTION("trim")
@@ -819,6 +885,32 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(first == real);
 	}
 
+
+	SECTION("transpose vector")
+	{
+		std::vector<std::vector<int>> input      = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+		auto                          transposed = transpose(input);
+		CHECK(transposed.size() == 3);
+		CHECK(transposed[0] == std::vector<int>{1, 4, 7});
+		CHECK(transposed[1] == std::vector<int>{2, 5, 8});
+		CHECK(transposed[2] == std::vector<int>{3, 6, 9});
+
+		const std::vector<std::vector<int>> non_square{{1, 2, 3}, {4, 5, 6}};
+		const std::vector<std::vector<int>> non_square_expected{{1, 4}, {2, 5}, {3, 6}};
+		CHECK(transpose(non_square) == non_square_expected);
+
+		const std::array<std::array<int, 2>, 3> array_matrix{{{1, 2}, {3, 4}, {5, 6}}};
+		const std::vector<std::vector<int>>     array_expected{{1, 3, 5}, {2, 4, 6}};
+		CHECK(transpose(array_matrix) == array_expected);
+
+		const std::vector<std::vector<int>> ragged{{1, 2, 3}, {4, 5}};
+		const std::vector<std::vector<int>> padded_expected{{1, 4}, {2, 5}, {3, -1}};
+		CHECK(transpose(ragged, -1) == padded_expected);
+		CHECK(rotate_cw(ragged, -1) == std::vector<std::vector<int>>{{4, 1}, {5, 2}, {-1, 3}});
+		CHECK(rotate_ccw(ragged, -1) == std::vector<std::vector<int>>{{3, -1}, {2, 5}, {1, 4}});
+	}
+
+
 	SECTION("strip-range")
 	{
 		std::string input("+ABC123DEF-");
@@ -827,12 +919,24 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(input == "+123-");
 	}
 
+	SECTION("strip default")
+	{
+		std::string input("+ABC\n 123 DEF-");
+		input = strip(input);
+		CHECK(input == "+ABC123DEF-");
+	}
+
 	SECTION("strip")
 	{
 		std::string input("+ABC123DEF-");
 
 		input = strip(input, "123+-BDF");
 		CHECK(input == "ACE");
+
+
+		input = "+ABC123DEF-\0";
+		input = strip(input, '\0');
+		CHECK(input == "+ABC123DEF-");
 	}
 
 	SECTION("strip-option")
@@ -853,12 +957,39 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(4 == count("aabbcc aa"sv, "a"));
 	}
 
+
+	SECTION("count_exact")
+	{
+		CHECK(1 == count_exact("hello world"sv, "lo"));
+		CHECK(0 == count_exact("hello"sv, "xyz"));
+		CHECK(2 == count_exact("aabbcc aa"sv, "aa"));
+		CHECK(0 == count_exact("hello"sv, ""));
+	}
+
 	SECTION("strip-single-char")
 	{
 		std::string input("hello world");
 
 		input = strip(input, 'l');
 		CHECK(input == "heo word");
+	}
+
+	SECTION("histogram")
+	{
+		auto hist = histogram("banana");
+		CHECK(hist.size() == 3);
+		CHECK(hist.at('b') == 1);
+		CHECK(hist.at('a') == 3);
+		CHECK(hist.at('n') == 2);
+
+		hist = histogram("monkey");
+		CHECK(hist.size() == 6);
+		CHECK(hist.at('m') == 1);
+		CHECK(hist.at('o') == 1);
+		CHECK(hist.at('n') == 1);
+		CHECK(hist.at('k') == 1);
+		CHECK(hist.at('e') == 1);
+		CHECK(hist.at('y') == 1);
 	}
 
 	SECTION("include only")
@@ -877,8 +1008,21 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK("abc_def" == include_only("abc_def123", l, "_"));
 	}
 
+	SECTION("exclude only")
+	{
+		using enum string::option;
+
+		CHECK("ABCDEF" == exclude_only("ABC123DEF", d));
+		CHECK("123" == exclude_only("abc123ABC!@#", l | u | s));
+		CHECK("abc123" == exclude_only("abc123ABC!@#", u | s));
+		CHECK("123" == exclude_only("abc_def123", a, "_"));
+	}
+
 	SECTION("split_to_vector")
 	{
+		auto split_values = split<i32>("10,20", ",");
+		CHECK(split_values == std::vector<i32>{10, 20});
+
 		auto ints_v = split_to_vector<i32>("1 2 3 4 5");
 		CHECK(ints_v.size() == 5);
 		CHECK(ints_v[0] == 1);
@@ -968,10 +1112,11 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(sum(v) == 15);
 		CHECK(product(v) == 120);
 		CHECK(subtract<i32>(v) == -13);
-		
+
 		std::vector<std::string> vs{"1", "2", "3", "4", "5"};
 		CHECK(sum(vs) == "12345"sv);
-		
+		CHECK(sum<i64>(vs) == 15);
+
 
 		std::vector<std::optional<i64>> vopt{1, 2, 3, std::nullopt, 4, 5};
 		CHECK(sum<i64>(vopt) == 15);
@@ -979,7 +1124,9 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(subtract<i64>(vopt) == -13);
 
 
-
+		CHECK(sum(vopt) == 15);
+		CHECK(product(vopt) == 120);
+		CHECK(subtract(vopt) == -13);
 	}
 
 	SECTION("group_by")
@@ -1037,8 +1184,70 @@ TEST_CASE("helpers", "[helpers]")
 				CHECK(sum<u64>(groups[i]) == expected[i]);
 			}
 		}
+
+		// group by empty optional
+		{
+			std::vector<std::optional<u64>> vs{100, 200, std::nullopt, 400, std::nullopt, 500, std::nullopt, 700, 300};
+			std::vector<u64>                expected{300, 400, 500, 1000};
+			auto                            groups = vs | group_by_empty | std::ranges::to<std::vector>();
+			CHECK(groups.size() == expected.size());
+			for (size_t i = 0; i < groups.size(); ++i)
+			{
+				CHECK(sum<u64>(groups[i]) == expected[i]);
+			}
+		}
 	}
 
+	SECTION("group_by_trailing")
+	{
+		std::vector<std::string>              vs{"100", "200", "x", "400", "500", "x", "5", "15", "x"};
+		std::vector<std::vector<std::string>> groups;
+
+		for (const auto& group : vs | group_by_trailing([](const std::string& s) { return s == "x"; }))
+			groups.push_back(group | std::ranges::to<std::vector<std::string>>());
+
+		CHECK(groups.size() == 3);
+
+		CHECK(groups[0].size() == 3);
+		CHECK(groups[0][0] == "100");
+		CHECK(groups[0][1] == "200");
+		CHECK(groups[0][2] == "x");
+		CHECK(sum<i64>(groups[0]) == 300);
+
+		CHECK(groups[1].size() == 3);
+		CHECK(sum<i64>(groups[1]) == 900);
+		CHECK(product<i64>(groups[1]) == 200'000);
+
+
+		CHECK(groups[2].size() == 3);
+		CHECK(sum<i64>(groups[2]) == 20);
+	}
+
+	SECTION("group_by_leading")
+	{
+		std::vector<std::string>              vs{"x", "100", "200", "x", "400", "500", "x", "5", "15"};
+		std::vector<std::vector<std::string>> groups;
+
+		for (const auto& group : vs | group_by_leading([](const std::string& s) { return s == "x"; }))
+			groups.push_back(group | std::ranges::to<std::vector<std::string>>());
+
+		CHECK(groups.size() == 3);
+		CHECK(groups[0].size() == 3);
+		CHECK(groups[0][0] == "x");
+		CHECK(groups[0][1] == "100");
+		CHECK(groups[0][2] == "200");
+		CHECK(sum<i64>(groups[0]) == 300);
+
+		CHECK(groups[1].size() == 3);
+		CHECK(groups[1][0] == "x");
+		CHECK(groups[1][1] == "400");
+		CHECK(groups[1][2] == "500");
+		CHECK(sum<i64>(groups[1]) == 900);
+		CHECK(product<i64>(groups[1]) == 200'000);
+
+		CHECK(groups[2].size() == 3);
+		CHECK(sum<i64>(groups[2]) == 20);
+	}
 	SECTION("load_as/load_as_be")
 	{
 		const std::array<u8, 8> buf{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
@@ -1100,6 +1309,12 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(1080 == concat(10, 80));
 
 		CHECK(1234 == concat(1, 2, 3, 4));
+
+		auto pairs = concat<2>(ints<4>("w: 1, x: 2, y: 3 z: 4"));
+		CHECK(pairs == std::array<i64, 2>{12, 34});
+		CHECK(concat<2>(pairs) == 1234);
+
+		CHECK(123'456 == concat<6>(ints<6>("1,2,3,4,5,6")));
 	}
 
 	SECTION("nth_digit")
@@ -1531,6 +1746,26 @@ TEST_CASE("helpers", "[helpers]")
 
 	SECTION("simple-pattern-match")
 	{
+
+
+		{
+			std::string input("R128");
+			auto        s = split_exact(input, 1);
+
+			int x = 0;
+		}
+
+
+		{
+
+			std::string input("abaa 123");
+			std::string expr("aba* ?");
+
+			auto result = string::simple_pattern_match(expr, input);
+			CHECK(result.size() == 1);
+			CHECK(result[0] == "123");
+		}
+
 		{
 			std::string input("turn off 123,456 through 789,012 XXX");
 			std::string expr("turn off ?,? through ?,?");
@@ -1542,6 +1777,39 @@ TEST_CASE("helpers", "[helpers]")
 			CHECK(result[1] == "456");
 			CHECK(result[2] == "789");
 			CHECK(result[3] == "012");
+		}
+		{
+			std::string input("turn off 123,456 through 789,012 XXX");
+			std::string expr("turn on ?,? through ?,?");
+
+			auto result = string::simple_pattern_match(expr, input);
+
+			CHECK(result.empty());
+		}
+
+		{
+			std::string input("turn off 123,456 through 789,012 XXX");
+			std::string expr("turn * ?,? through ?,?");
+
+			auto result = string::simple_pattern_match(expr, input);
+
+			CHECK(result.size() == 4);
+			CHECK(result[0] == "123");
+			CHECK(result[1] == "456");
+			CHECK(result[2] == "789");
+			CHECK(result[3] == "012");
+
+			auto [x1, y1, x2, y2] = string::simple_pattern_match<i32, i32, i32, i32>(expr, input);
+			CHECK(x1 == 123);
+			CHECK(y1 == 456);
+			CHECK(x2 == 789);
+			CHECK(y2 == 12);
+		}
+
+		{
+			const auto result = string::simple_pattern_match("*aba ?", "aaba 42");
+			REQUIRE(result.size() == 1);
+			CHECK(result[0] == "42");
 		}
 
 		{

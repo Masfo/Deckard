@@ -31,11 +31,11 @@ export namespace deckard
 
 
 	// upto 0..n-1, P3060
-	inline constexpr auto upto      = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
-	inline constexpr auto upto_from = []<std::integral I>(I s, I n) { return std::views::iota(s, n); };
+	constexpr auto upto      = []<std::integral I>(I n) { return std::views::iota(I{}, n); };
+	constexpr auto upto_from = []<std::integral I>(I s, I n) { return std::views::iota(s, n); };
 
 	//  for(const auto &i: range(0,100,5))
-	inline constexpr auto range = []<std::integral I, std::integral U>(I begin, U end, std::make_unsigned_t<I> stepsize = 0)
+	constexpr auto range = []<std::integral I, std::integral U>(I begin, U end, std::make_unsigned_t<I> stepsize = 0)
 	{
 		const bool descending = begin > end;
 
@@ -61,7 +61,7 @@ export namespace deckard
 	};
 
 	// loop (n, n+1, n+..)
-	inline constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
+	constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
 
 	// repeat
 	// repeat<10> = [&] { dbg::println("xshift: {:X}", xshift.next()); };
@@ -1730,7 +1730,8 @@ export namespace deckard
 	template<std::signed_integral T>
 	size_t count_digits(T v)
 	{
-		return count_digits(as<u64>(v < 0 ? -v : v));
+		const u64 magnitude = v < 0 ? static_cast<u64>(-(v + 1)) + 1 : static_cast<u64>(v);
+		return count_digits(magnitude);
 	}
 #else
 

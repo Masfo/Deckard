@@ -55,6 +55,17 @@ TEST_CASE("math.utility", "[math]")
 		CHECK(safe_add(2.0f, 3.0f) == 5.0f);
 		CHECK(safe_sub(5.0f, 3.0f) == 2.0f);
 		CHECK(safe_div(10.0, 2.0) == 5.0);
+		CHECK(safe_div(-7.0f, 3.0f) == Approx(-2.3333333f).margin(0.000001f));
+		CHECK(safe_floor_div(7.0f, 3.0f) == 2.0f);
+		CHECK(safe_floor_div(-7.0f, 3.0f) == -3.0f);
+		CHECK(safe_floor_div(7.0f, -3.0f) == -3.0f);
+		CHECK(safe_floor_div(-7.0f, -3.0f) == 2.0f);
+		CHECK(safe_floor_div(6.0f, 3.0f) == 2.0f);
+		CHECK(safe_ceil_div(7.0f, 3.0f) == 3.0f);
+		CHECK(safe_ceil_div(-7.0f, 3.0f) == -2.0f);
+		CHECK(safe_ceil_div(7.0f, -3.0f) == -2.0f);
+		CHECK(safe_ceil_div(-7.0f, -3.0f) == 3.0f);
+		CHECK(safe_ceil_div(6.0f, 3.0f) == 2.0f);
 
 		const auto max = std::numeric_limits<f32>::max();
 		CHECK_FALSE(safe_mul(max, 2.0f).has_value());
@@ -62,6 +73,8 @@ TEST_CASE("math.utility", "[math]")
 		CHECK_FALSE(safe_sub(max, -max).has_value());
 		CHECK_FALSE(safe_div(10.0f, 0.0f).has_value());
 		CHECK_FALSE(safe_div(10.0, 0.0).has_value());
+		CHECK_FALSE(safe_floor_div(10.0f, 0.0f).has_value());
+		CHECK_FALSE(safe_ceil_div(10.0f, 0.0f).has_value());
 		CHECK_FALSE(safe_div(max, std::numeric_limits<f32>::min()).has_value());
 	}
 
@@ -71,12 +84,26 @@ TEST_CASE("math.utility", "[math]")
 		static_assert(safe_add(2, 3).value() == 5);
 		static_assert(safe_sub(5, 3).value() == 2);
 		static_assert(safe_div(-7, 3).value() == -2);
+		static_assert(safe_floor_div(-7, 3).value() == -3);
+		static_assert(safe_floor_div(7, -3).value() == -3);
+		static_assert(safe_ceil_div(7, 3).value() == 3);
+		static_assert(safe_ceil_div(-7, -3).value() == 3);
 
 		CHECK(safe_mul(2, 3) == 6);
 		CHECK(safe_add(2, 3) == 5);
 		CHECK(safe_sub(5, 3) == 2);
 		CHECK(safe_div(10, 2) == 5);
 		CHECK(safe_div(-7, 3) == -2);
+		CHECK(safe_floor_div(7, 3) == 2);
+		CHECK(safe_floor_div(-7, 3) == -3);
+		CHECK(safe_floor_div(7, -3) == -3);
+		CHECK(safe_floor_div(-7, -3) == 2);
+		CHECK(safe_floor_div(-6, 3) == -2);
+		CHECK(safe_ceil_div(7, 3) == 3);
+		CHECK(safe_ceil_div(-7, 3) == -2);
+		CHECK(safe_ceil_div(7, -3) == -2);
+		CHECK(safe_ceil_div(-7, -3) == 3);
+		CHECK(safe_ceil_div(6, 3) == 2);
 
 		const auto max = std::numeric_limits<i32>::max();
 		const auto min = std::numeric_limits<i32>::min();
@@ -87,12 +114,18 @@ TEST_CASE("math.utility", "[math]")
 		CHECK_FALSE(safe_sub(max, -1).has_value());
 		CHECK_FALSE(safe_div(min, -1).has_value());
 		CHECK_FALSE(safe_div(10, 0).has_value());
+		CHECK_FALSE(safe_floor_div(min, -1).has_value());
+		CHECK_FALSE(safe_floor_div(10, 0).has_value());
+		CHECK_FALSE(safe_ceil_div(min, -1).has_value());
+		CHECK_FALSE(safe_ceil_div(10, 0).has_value());
 
 		const auto unsigned_max = std::numeric_limits<u32>::max();
 		CHECK(safe_mul(2u, 3u) == 6u);
 		CHECK(safe_add(2u, 3u) == 5u);
 		CHECK(safe_sub(5u, 3u) == 2u);
 		CHECK(safe_div(10u, 2u) == 5u);
+		CHECK(safe_floor_div(10u, 3u) == 3u);
+		CHECK(safe_ceil_div(10u, 3u) == 4u);
 		CHECK_FALSE(safe_mul(unsigned_max, 2u).has_value());
 		CHECK_FALSE(safe_add(unsigned_max, 1u).has_value());
 		CHECK_FALSE(safe_sub(0u, 1u).has_value());

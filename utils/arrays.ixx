@@ -156,22 +156,22 @@ namespace deckard
 
 			if constexpr (is_debug_build)
 			{
-				constexpr u32 MIN_DUMPSIZE = 256;
+				constexpr i32 MIN_DUMPSIZE = 256;
 
-				u32 w = std::min(width(), MIN_DUMPSIZE);
+				i32 w = std::min(width(), MIN_DUMPSIZE);
 
 
-				u32 maxunit{1};
-				for (i32 i : upto(count_digits(w) - 1))
+				i32 maxunit{1};
+				for ([[maybe_unused]]usize i : upto(count_digits(w) - 1))
 					maxunit *= 10;
 
 				i32 dwidth = count_digits(w);
 
-				for (int units = maxunit; units >= 1; units /= 10)
+				for (i32 units = maxunit; units >= 1; units /= 10)
 				{
 					dbg::print("{:{}}", "", dwidth + 2);
 
-					for (int i : upto(w))
+					for (i32 i : upto(w))
 					{
 						int dv = i / units;
 						if (units == 1)
@@ -188,11 +188,11 @@ namespace deckard
 				}
 
 
-				for (u32 y = 0; y < height(); y++)
+				for (i32 y = 0; y < height(); y++)
 				{
 					dbg::print("{:0{}}. ", y, dwidth);
 
-					for (u32 x = 0; x < width(); x++)
+					for (i32 x = 0; x < width(); x++)
 						dbg::print("{:}", static_cast<char>(get(x, y)));
 
 					dbg::println();

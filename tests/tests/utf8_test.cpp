@@ -2523,8 +2523,9 @@ TEST_CASE("normalization", "[utf8][normalization]")
 
 
 		auto lines = file::read_lines("utf\\NormalizationTest18.txt");
-		REQUIRE(lines.size() > 0);
-		REQUIRE(lines[0].starts_with("# NormalizationTest-18.0.0.txt"));
+		REQUIRE(lines);
+		REQUIRE(lines->size() > 0);
+		REQUIRE((*lines)[0].starts_with("# NormalizationTest-18.0.0.txt"));
 
 		u32 nfc_count  = 0;
 		u32 nfd_count  = 0;
@@ -2534,7 +2535,7 @@ TEST_CASE("normalization", "[utf8][normalization]")
 		{ return ((target == fn(inputs)) and ...); };
 
 
-		for (const auto& [index, line] : lines | std::views::enumerate)
+		for (const auto& [index, line] : *lines | std::views::enumerate)
 		{
 			if (line.empty() or line[0] == '#' or line[0] == '@')
 				continue;
