@@ -119,6 +119,42 @@ export namespace deckard::math
 		return checked_op(a, b, std::divides<>{});
 	}
 
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_floor_div(T a, T b)
+	{
+		auto quotient = safe_div(a, b);
+		if (not quotient)
+			return std::unexpected(quotient.error());
+
+		if constexpr (std::is_signed_v<T>)
+		{
+			if (a % b != 0 and ((a < 0) != (b < 0)))
+				return checked_op(*quotient, T{1}, std::minus<>{});
+		}
+
+		return quotient;
+	}
+
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_ceil_div(T a, T b)
+	{
+		auto quotient = safe_div(a, b);
+		if (not quotient)
+			return std::unexpected(quotient.error());
+
+		if (a % b != 0)
+		{
+			if constexpr (std::is_unsigned_v<T>)
+				return checked_op(*quotient, T{1}, std::plus<>{});
+			else if ((a < 0) == (b < 0))
+				return checked_op(*quotient, T{1}, std::plus<>{});
+		}
+
+		return quotient;
+	}
+
 	// Floating point safe math
 
 
@@ -150,6 +186,26 @@ export namespace deckard::math
 			return std::unexpected(std::format("division by zero: a = {}", a));
 
 		return checked_op(a, b, "division", std::divides<>{});
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] auto safe_floor_div(T a, T b) noexcept -> std::expected<T, std::string>
+	{
+		auto quotient = safe_div(a, b);
+		if (not quotient)
+			return std::unexpected(quotient.error());
+
+		return std::floor(*quotient);
+	}
+
+	template<std::floating_point T>
+	[[nodiscard]] auto safe_ceil_div(T a, T b) noexcept -> std::expected<T, std::string>
+	{
+		auto quotient = safe_div(a, b);
+		if (not quotient)
+			return std::unexpected(quotient.error());
+
+		return std::ceil(*quotient);
 	}
 
 	template<std::floating_point T>
@@ -210,7 +266,7 @@ export namespace deckard::math
 		if (value == 0)
 			return 0;
 
-		// Highest power of 4 <= value
+		// Highest power of 4 <= value (bit_width - 1, rounded down to even)
 		T bit = static_cast<T>(T{1} << ((std::bit_width(value) - 1) & ~1));
 		T res = 0;
 
@@ -218,8 +274,8 @@ export namespace deckard::math
 		{
 			if (value >= res + bit)
 			{
-				value = static_cast<T>(value - (res + bit));
-				res   = static_cast<T>((res >> 1) + bit);
+				value -= res + bit;
+				res = (res >> 1) + bit;
 			}
 			else
 			{
