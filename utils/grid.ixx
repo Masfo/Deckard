@@ -7,6 +7,7 @@ import deckard.debug;
 import deckard.types;
 import deckard.math;
 import deckard.utils.hash;
+import deckard.helpers;
 import deckard.as;
 import deckard.stringhelper;
 
@@ -14,6 +15,7 @@ namespace deckard
 {
 	using namespace deckard::math;
 	using namespace deckard::vec;
+	using namespace deckard::utils;
 
 	export enum class filled { yes, no };
 
@@ -55,6 +57,44 @@ namespace deckard
 		inline constexpr ivec3 front{0, 0, -1};
 		inline constexpr ivec3 back{0, 0, 1};
 	} // namespace grid3d_directions
+
+
+
+
+	struct grid_pattern
+	{
+		std::vector<ivec2> offsets;
+
+		void rotate_cw()
+		{
+			for (auto& offset : offsets)
+			{
+				offset = ivec2{offset.y, -offset.x};
+			}
+		}
+
+		void rotate_ccw()
+		{
+			for (auto& offset : offsets)
+			{
+				offset = ivec2{-offset.y, offset.x};
+			}
+		}	
+
+
+		void mirror(bool horizontal)
+		{
+			for (auto& offset : offsets)
+			{
+				if (horizontal)
+					offset = ivec2{-offset.x, offset.y};
+				else
+					offset = ivec2{offset.x, -offset.y};
+			}
+		}
+
+		
+	};
 
 	export template<typename T = u8>
 	class grid
@@ -325,7 +365,10 @@ namespace deckard
 
 		operator auto() const noexcept { return hash(); }
 
-		auto hash(u64 seed = 0) const { return data.hash(seed); }
+		auto hash(u64 seed = 0) const 
+		{
+			return hash_combine(seed, data.hash(), width(), height());
+		}
 
 		bool operator==(const grid& other) const noexcept { return data == other.data; }
 
@@ -578,6 +621,31 @@ namespace deckard
 			return floodfill(pos, [r](ivec2) -> T { return r; });
 		}
 
+		// islands
+		[[nodiscard]] auto find_islands(const std::span<T> to_find) const
+		{
+			std::vector<std::vector<ivec2>> islands{};
+			grid<T>                         copy = *this;
+			for (const ivec2 point : copy.points())
+			{
+				if (std::ranges::contains(to_find, copy.get(point)))
+				{
+					std::vector<ivec2> island{};
+					copy.floodfill(
+					  point,
+					  [&](ivec2 pos) -> T
+					  {
+						  island.push_back(pos);
+						  return T{};
+					  });
+					islands.push_back(island);
+				}
+			}
+			return islands;
+		}
+
+		[[nodiscard]] auto find_islands(const std::string_view to_find) const { return find_islands(to_span(to_find)); }
+
 		// find_all
 		[[nodiscard]] auto find_all(const T to_find) const
 		{
@@ -597,7 +665,13 @@ namespace deckard
 			return points;
 		}
 
-		std::optional<ivec2> find(const T value) const { return data.find(value); }
+		std::optional<ivec2> find(const T value) const 
+		{
+			auto r = find_all(value);
+			if (r.empty())
+				return std::nullopt;
+			return r.front();
+		}
 
 		void reverse_row(i32 row)
 		{
