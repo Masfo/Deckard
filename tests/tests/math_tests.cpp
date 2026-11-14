@@ -66,8 +66,13 @@ TEST_CASE("math.utility", "[math]")
 		CHECK(safe_ceil_div(7.0f, -3.0f) == -2.0f);
 		CHECK(safe_ceil_div(-7.0f, -3.0f) == 3.0f);
 		CHECK(safe_ceil_div(6.0f, 3.0f) == 2.0f);
+		CHECK(safe_pow(2.0f, 3.0f) == 8.0f);
+		CHECK(safe_pow(-2.0, 3.0) == -8.0);
+		CHECK(safe_pow(2.0, -3.0) == 0.125);
 
 		const auto max = std::numeric_limits<f32>::max();
+		const auto infinity = std::numeric_limits<f32>::infinity();
+		const auto nan = std::numeric_limits<f32>::quiet_NaN();
 		CHECK_FALSE(safe_mul(max, 2.0f).has_value());
 		CHECK_FALSE(safe_add(max, max).has_value());
 		CHECK_FALSE(safe_sub(max, -max).has_value());
@@ -76,6 +81,11 @@ TEST_CASE("math.utility", "[math]")
 		CHECK_FALSE(safe_floor_div(10.0f, 0.0f).has_value());
 		CHECK_FALSE(safe_ceil_div(10.0f, 0.0f).has_value());
 		CHECK_FALSE(safe_div(max, std::numeric_limits<f32>::min()).has_value());
+		CHECK_FALSE(safe_pow(max, 2.0f).has_value());
+		CHECK_FALSE(safe_pow(nan, 2.0f).has_value());
+		CHECK_FALSE(safe_pow(2.0f, nan).has_value());
+		CHECK_FALSE(safe_pow(infinity, 2.0f).has_value());
+		CHECK_FALSE(safe_pow(2.0f, infinity).has_value());
 	}
 
 	SECTION("safe math integral")
@@ -88,6 +98,9 @@ TEST_CASE("math.utility", "[math]")
 		static_assert(safe_floor_div(7, -3).value() == -3);
 		static_assert(safe_ceil_div(7, 3).value() == 3);
 		static_assert(safe_ceil_div(-7, -3).value() == 3);
+		static_assert(safe_pow(2, 0).value() == 1);
+		static_assert(safe_pow(2, 3).value() == 8);
+		static_assert(safe_pow(-2, 3).value() == -8);
 
 		CHECK(safe_mul(2, 3) == 6);
 		CHECK(safe_add(2, 3) == 5);
@@ -104,6 +117,10 @@ TEST_CASE("math.utility", "[math]")
 		CHECK(safe_ceil_div(7, -3) == -2);
 		CHECK(safe_ceil_div(-7, -3) == 3);
 		CHECK(safe_ceil_div(6, 3) == 2);
+		CHECK(safe_pow(2, 0) == 1);
+		CHECK(safe_pow(2, 3) == 8);
+		CHECK(safe_pow(-2, 4) == 16);
+		CHECK(safe_pow(-2, 3) == -8);
 
 		const auto max = std::numeric_limits<i32>::max();
 		const auto min = std::numeric_limits<i32>::min();
@@ -118,6 +135,8 @@ TEST_CASE("math.utility", "[math]")
 		CHECK_FALSE(safe_floor_div(10, 0).has_value());
 		CHECK_FALSE(safe_ceil_div(min, -1).has_value());
 		CHECK_FALSE(safe_ceil_div(10, 0).has_value());
+		CHECK_FALSE(safe_pow(2, -1).has_value());
+		CHECK_FALSE(safe_pow(2, 31).has_value());
 
 		const auto unsigned_max = std::numeric_limits<u32>::max();
 		CHECK(safe_mul(2u, 3u) == 6u);

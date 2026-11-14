@@ -155,6 +155,23 @@ export namespace deckard::math
 		return quotient;
 	}
 
+	template<std::integral T>
+	requires(not std::same_as<T, bool>)
+	constexpr std::expected<T, std::string> safe_pow(T base, T exp)
+	{
+		if (exp < 0)
+			return std::unexpected("negative exponent not supported for integer types");
+		T result = 1;
+		for (T i = 0; i < exp; ++i)
+		{
+			auto mul_result = safe_mul(result, base);
+			if (not mul_result)
+				return std::unexpected(mul_result.error());
+			result = *mul_result;
+		}
+		return result;
+	}
+
 	// Floating point safe math
 
 
@@ -218,6 +235,20 @@ export namespace deckard::math
 	[[nodiscard]] auto safe_sub(T a, T b) noexcept -> std::expected<T, std::string>
 	{
 		return checked_op(a, b, "subtraction", std::minus<>{});
+	}
+
+	template<std::floating_point T>
+	constexpr std::expected<T, std::string> safe_pow(T base, T exp)
+	{
+		if (std::isnan(base) or std::isnan(exp))
+			return std::unexpected(std::format("NaN in input: base = {}, exp = {}", base, exp));
+		if (std::isinf(base) or std::isinf(exp))
+			return std::unexpected(std::format("infinity in input: base = {}, exp = {}", base, exp));
+		const T result = std::pow(base, exp);
+		if (not std::isfinite(result))
+			return std::unexpected(std::format("overflow in exponentiation: base = {}, exp = {}", base, exp));
+		return result;
+
 	}
 
 	//
