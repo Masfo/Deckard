@@ -7,6 +7,9 @@ import deckard.math;
 import deckard.vec;
 import deckard.grid;
 
+// run this test only once a minute, because it is slower
+[[nodiscard]] consteval bool run_once_a_minute() noexcept { return __TIME__[6] == '1'; }
+
 TEST_CASE("grid", "[grid]")
 {
 	using namespace deckard;
@@ -90,16 +93,16 @@ TEST_CASE("grid", "[grid]")
 	SECTION("valid")
 	{
 		grid<char> g(4, 3);
-		CHECK(g.valid(0, 0));
-		CHECK(g.valid(3, 2));
-		CHECK_FALSE(g.valid(4, 0));
-		CHECK_FALSE(g.valid(0, 3));
-		CHECK_FALSE(g.valid(100, 100));
+		CHECK(g.is_valid(0, 0));
+		CHECK(g.is_valid(3, 2));
+		CHECK_FALSE(g.is_valid(4, 0));
+		CHECK_FALSE(g.is_valid(0, 3));
+		CHECK_FALSE(g.is_valid(100, 100));
 
-		CHECK(g.valid(ivec2{3, 2}));
-		CHECK_FALSE(g.valid(ivec2{-1, 0}));
-		CHECK_FALSE(g.valid(ivec2{0, -1}));
-		CHECK_FALSE(g.valid(ivec2{4, 0}));
+		CHECK(g.is_valid(ivec2{3, 2}));
+		CHECK_FALSE(g.is_valid(ivec2{-1, 0}));
+		CHECK_FALSE(g.is_valid(ivec2{0, -1}));
+		CHECK_FALSE(g.is_valid(ivec2{4, 0}));
 	}
 
 
@@ -311,7 +314,7 @@ TEST_CASE("grid", "[grid]")
 
 	SECTION("from_string")
 	{
-		grid g;
+		grid g(8, 5);
 		g.from_string(R"(
 ########
 #......#
@@ -323,6 +326,13 @@ TEST_CASE("grid", "[grid]")
 		CHECK(g.height() == 5u);
 		CHECK(g.get(0, 0) == '#');
 		CHECK(g.get(1, 1) == '.');
+
+		grid sized(3, 2);
+		sized.from_string("abcdef");
+		CHECK(sized.width() == 3u);
+		CHECK(sized.height() == 2u);
+		CHECK(sized.get(0, 1) == 'd');
+		CHECK(sized.get(2, 1) == 'f');
 	}
 
 	SECTION("from_lines")
@@ -943,15 +953,21 @@ TEST_CASE("grid", "[grid]")
 		// ghi
 
 		auto center = g.neighbours4(ivec2{1, 1});
-		CHECK(center[0] == 'b');
-		CHECK(center[1] == 'f');
-		CHECK(center[2] == 'h');
-		CHECK(center[3] == 'd');
+		CHECK(center[0]->first == ivec2{1, 0});
+		CHECK(center[0]->second == 'b');
+		CHECK(center[1]->first == ivec2{2, 1});
+		CHECK(center[1]->second == 'f');
+		CHECK(center[2]->first == ivec2{1, 2});
+		CHECK(center[2]->second == 'h');
+		CHECK(center[3]->first == ivec2{0, 1});
+		CHECK(center[3]->second == 'd');
 
 		auto corner = g.neighbours4(ivec2{0, 0});
 		CHECK_FALSE(corner[0].has_value());
-		CHECK(corner[1] == 'b');
-		CHECK(corner[2] == 'd');
+		CHECK(corner[1]->first == ivec2{1, 0});
+		CHECK(corner[1]->second == 'b');
+		CHECK(corner[2]->first == ivec2{0, 1});
+		CHECK(corner[2]->second == 'd');
 		CHECK_FALSE(corner[3].has_value());
 	}
 
@@ -964,17 +980,25 @@ TEST_CASE("grid", "[grid]")
 		// def
 		// ghi
 
-		const auto                center = g.neighbours8(ivec2{1, 1});
-		const std::array<char, 8> expected_center{'b', 'c', 'f', 'i', 'h', 'g', 'd', 'a'};
+		const auto                 center = g.neighbours8(ivec2{1, 1});
+		const std::array<ivec2, 8> expected_positions{
+		  ivec2{1, 0}, ivec2{2, 0}, ivec2{2, 1}, ivec2{2, 2}, ivec2{1, 2}, ivec2{0, 2}, ivec2{0, 1}, ivec2{0, 0}};
+		const std::array<char, 8> expected_values{'b', 'c', 'f', 'i', 'h', 'g', 'd', 'a'};
 		for (std::size_t i = 0; i < center.size(); ++i)
-			CHECK(center[i] == expected_center[i]);
+		{
+			CHECK(center[i]->first == expected_positions[i]);
+			CHECK(center[i]->second == expected_values[i]);
+		}
 
 		const auto corner = g.neighbours8(ivec2{0, 0});
 		CHECK_FALSE(corner[0].has_value());
 		CHECK_FALSE(corner[1].has_value());
-		CHECK(corner[2] == 'b');
-		CHECK(corner[3] == 'e');
-		CHECK(corner[4] == 'd');
+		CHECK(corner[2]->first == ivec2{1, 0});
+		CHECK(corner[2]->second == 'b');
+		CHECK(corner[3]->first == ivec2{1, 1});
+		CHECK(corner[3]->second == 'e');
+		CHECK(corner[4]->first == ivec2{0, 1});
+		CHECK(corner[4]->second == 'd');
 		CHECK_FALSE(corner[5].has_value());
 		CHECK_FALSE(corner[6].has_value());
 		CHECK_FALSE(corner[7].has_value());
@@ -996,8 +1020,10 @@ TEST_CASE("grid", "[grid]")
 			  {
 				  CHECK(v == char{'a'});
 				  CHECK_FALSE(neighbours[0].has_value());
-				  CHECK(neighbours[1].value() == char{'b'});
-				  CHECK(neighbours[2].value() == char{'d'});
+				  CHECK(neighbours[1]->first == ivec2{1, 0});
+				  CHECK(neighbours[1]->second == char{'b'});
+				  CHECK(neighbours[2]->first == ivec2{0, 1});
+				  CHECK(neighbours[2]->second == char{'d'});
 				  CHECK_FALSE(neighbours[3].has_value());
 			  }
 
@@ -1005,10 +1031,14 @@ TEST_CASE("grid", "[grid]")
 			  if (pos == ivec2{1, 1})
 			  {
 				  CHECK(v == char{'e'});
-				  CHECK(neighbours[0].value() == char{'b'});
-				  CHECK(neighbours[1].value() == char{'f'});
-				  CHECK(neighbours[2].value() == char{'h'});
-				  CHECK(neighbours[3].value() == char{'d'});
+				  CHECK(neighbours[0]->first == ivec2{1, 0});
+				  CHECK(neighbours[0]->second == char{'b'});
+				  CHECK(neighbours[1]->first == ivec2{2, 1});
+				  CHECK(neighbours[1]->second == char{'f'});
+				  CHECK(neighbours[2]->first == ivec2{1, 2});
+				  CHECK(neighbours[2]->second == char{'h'});
+				  CHECK(neighbours[3]->first == ivec2{0, 1});
+				  CHECK(neighbours[3]->second == char{'d'});
 			  }
 
 			  if (pos == ivec2{2, 1})
@@ -1030,9 +1060,12 @@ TEST_CASE("grid", "[grid]")
 				  CHECK(v == char{'a'});
 				  CHECK_FALSE(neighbours[0].has_value());
 				  CHECK_FALSE(neighbours[1].has_value());
-				  CHECK(neighbours[2].value() == char{'b'});
-				  CHECK(neighbours[3].value() == char{'e'});
-				  CHECK(neighbours[4].value() == char{'d'});
+				  CHECK(neighbours[2]->first == ivec2{1, 0});
+				  CHECK(neighbours[2]->second == char{'b'});
+				  CHECK(neighbours[3]->first == ivec2{1, 1});
+				  CHECK(neighbours[3]->second == char{'e'});
+				  CHECK(neighbours[4]->first == ivec2{0, 1});
+				  CHECK(neighbours[4]->second == char{'d'});
 				  CHECK_FALSE(neighbours[5].has_value());
 				  CHECK_FALSE(neighbours[6].has_value());
 				  CHECK_FALSE(neighbours[7].has_value());
@@ -1040,14 +1073,22 @@ TEST_CASE("grid", "[grid]")
 			  if (pos == ivec2{1, 1})
 			  {
 				  CHECK(v == char{'e'});
-				  CHECK(neighbours[0].value() == char{'b'});
-				  CHECK(neighbours[1].value() == char{'c'});
-				  CHECK(neighbours[2].value() == char{'f'});
-				  CHECK(neighbours[3].value() == char{'i'});
-				  CHECK(neighbours[4].value() == char{'h'});
-				  CHECK(neighbours[5].value() == char{'g'});
-				  CHECK(neighbours[6].value() == char{'d'});
-				  CHECK(neighbours[7].value() == char{'a'});
+				  CHECK(neighbours[0]->first == ivec2{1, 0});
+				  CHECK(neighbours[0]->second == char{'b'});
+				  CHECK(neighbours[1]->first == ivec2{2, 0});
+				  CHECK(neighbours[1]->second == char{'c'});
+				  CHECK(neighbours[2]->first == ivec2{2, 1});
+				  CHECK(neighbours[2]->second == char{'f'});
+				  CHECK(neighbours[3]->first == ivec2{2, 2});
+				  CHECK(neighbours[3]->second == char{'i'});
+				  CHECK(neighbours[4]->first == ivec2{1, 2});
+				  CHECK(neighbours[4]->second == char{'h'});
+				  CHECK(neighbours[5]->first == ivec2{0, 2});
+				  CHECK(neighbours[5]->second == char{'g'});
+				  CHECK(neighbours[6]->first == ivec2{0, 1});
+				  CHECK(neighbours[6]->second == char{'d'});
+				  CHECK(neighbours[7]->first == ivec2{0, 0});
+				  CHECK(neighbours[7]->second == char{'a'});
 			  }
 			  if (pos == ivec2{2, 1})
 				  return false;
@@ -1474,8 +1515,6 @@ TEST_CASE("grid", "[grid]")
 		CHECK(std::ranges::contains(islands[2], ivec2{6, 4}));
 		CHECK(std::ranges::contains(islands[2], ivec2{2, 8}));
 		CHECK_FALSE(std::ranges::contains(islands[2], ivec2{1, 8}));
-
-
 	}
 
 	SECTION("visual a_star")
@@ -1570,6 +1609,25 @@ TEST_CASE("grid", "[grid]")
 
 		for (std::size_t i = 1; i < p.size(); ++i)
 			CHECK(std::abs(p[i].x - p[i - 1].x) + std::abs(p[i].y - p[i - 1].y) == 1);
+	}
+
+	SECTION("a_star shortest path on open 8-way grid")
+	{
+		grid<u8> g(5, 5);
+
+		auto path = a_star(g, ivec2{0, 0}, ivec2{4, 4}, directions8);
+		REQUIRE(path.has_value());
+		CHECK(path->size() == 5u);
+		CHECK(path->front() == ivec2{0, 0});
+		CHECK(path->back() == ivec2{4, 4});
+	}
+
+	SECTION("a_star movement options restrict turns")
+	{
+		grid<u8>                 g(3, 3);
+		const std::array<movement_option, 1> forward_only{movement_option::forward};
+
+		CHECK_FALSE(a_star(g, ivec2{0, 0}, ivec2{2, 1}, [](const u8) { return true; }, forward_only).has_value());
 	}
 
 	SECTION("a_star goes around wall")
@@ -1672,6 +1730,14 @@ TEST_CASE("grid", "[grid]")
 			CHECK(std::abs(p[i].x - p[i - 1].x) + std::abs(p[i].y - p[i - 1].y) == 1);
 	}
 
+	SECTION("bfs movement options restrict turns")
+	{
+		grid<u8>                 g(3, 3);
+		const std::array<movement_option, 1> forward_only{movement_option::forward};
+
+		CHECK_FALSE(bfs(g, ivec2{0, 0}, ivec2{2, 1}, [](const u8) { return true; }, directions4, forward_only).has_value());
+	}
+
 	SECTION("bfs start equals goal")
 	{
 		grid<u8> g(3, 3);
@@ -1731,6 +1797,204 @@ TEST_CASE("grid", "[grid]")
 
 		for (const auto& pos : p)
 			CHECK(g.get(pos) != '#');
+	}
+
+	SECTION("bfs with waypoints visits them in any order")
+	{
+		grid<u8>         g(5, 3);
+		const std::array waypoints{ivec2{0, 0}, ivec2{4, 2}, ivec2{0, 2}, ivec2{4, 0}};
+
+		auto path = bfs(g, waypoints);
+		REQUIRE(path.has_value());
+		CHECK(path->size() == 9u);
+		CHECK(path->front() == waypoints.front());
+		CHECK(path->back() == waypoints.back());
+		CHECK(std::ranges::find(*path, waypoints[1]) != path->end());
+		CHECK(std::ranges::find(*path, waypoints[2]) != path->end());
+
+		auto a_star_path = a_star(g, waypoints);
+		REQUIRE(a_star_path.has_value());
+		CHECK(a_star_path->size() == path->size());
+	}
+
+	SECTION("maze with waypoints")
+	{
+		grid<u8> g;
+		g.from_lines(
+		  // 012345678901234567890
+		  {"#####################",   // 0
+		   "#S..#......A....#...#",   // 1
+		   "###.#.###.#####.#.###",   // 2
+		   "#.B.#...#...#.#.#..C#",   // 3
+		   "#.#####.###.#.#.###D#",   // 4
+		   "#.#.....#.#.#.......#",   // 5
+		   "#.#.#.#.#.#.#########",   // 6
+		   "#.#.#E..#.#.....#...#",   // 7
+		   "#.#.#.###.#####.#.#.#",   // 8
+		   "#.#.......#.....#.#.#",   // 9
+		   "#.###.###.#.#.#.#.#.#",   // 10
+		   "#...#.#.....#.#...#.#",   // 11
+		   "###.#.#.#.###.###.#.#",   // 12
+		   "#...#...#.........#.#",   // 13
+		   "#.###.#.#.#.#####.#.#",   // 14
+		   "#.#...#...#.......#.#",   // 15
+		   "#.#.###.#.###.#####.#",   // 16
+		   "#.#.....#.....#.....#",   // 17
+		   "#.#.#####.#####.###.#",   // 18
+		   "#...#..............X#",   // 19
+		   "#####################"}); // 20
+		//  012345678901234567890
+
+		const ivec2 start = g.find('S').value();
+		const ivec2 goal  = g.find('X').value();
+
+		auto waypoints = g.find_all("ABCDE");
+		waypoints.insert(waypoints.begin(), start);
+		waypoints.push_back(goal);
+
+		auto path = bfs(g, waypoints, [](const u8 c) { return c != '#'; });
+		REQUIRE(path.has_value());
+		CHECK(path->size() == 125u);
+		CHECK(path->front() == waypoints.front());
+		CHECK(path->back() == waypoints.back());
+		for (const auto& wp : waypoints)
+			CHECK(std::ranges::find(*path, wp) != path->end());
+
+		//
+		auto collected = g.collect_all(waypoints);
+		CHECK(collected.size() == waypoints.size());
+		CHECK(collected.front() == 'S');
+		CHECK(collected.back() == 'X');
+
+
+		//
+		std::string               shortest_order;
+		std::unordered_set<ivec2> seen;
+		for (const auto& pos : *path)
+		{
+			if (seen.contains(pos))
+				continue;
+			seen.insert(pos);
+			if (g[pos] == '#' or g[pos] == '.')
+				continue;
+
+			shortest_order.push_back(g[pos]);
+		}
+		CHECK(shortest_order == "SBEADCX"sv);
+
+		auto a_star_path = a_star(g, waypoints, [](const u8 c) { return c != '#'; });
+		REQUIRE(a_star_path.has_value());
+		CHECK(a_star_path->size() == path->size());
+	}
+
+	SECTION("maze limited turns with waypoints")
+	{
+		//if constexpr (run_once_a_minute()) // this test is slow, so only run it once a minute
+		{
+			grid<char> g;
+
+			g.from_string(R"(
+#####################################################
+#.@.........#................#.....................##
+#.#########@#.##############.#.###################.##
+#.#.......#.#.##..........##.#.###..@..@......@###.##
+#.#.#####.#.#.##.########.##.#.###@###########.###.##
+#.#.#@@@#.#.#.##.##....##.##@#.###.###.....###.###.#.
+#.#.#.#.#.#.#.##.##.##.##.##.#.###.###.###.###.###.##
+S...................................................E
+#.#.#.#.#.#.#.##.##.##.##.##.#.###.###.###.###.###@##
+#.#.#...#.#.#.##@##.@..##.##.#.###.###@....###.###.##
+#.#.#####.#.#.##.########.##.#.###.###########.###.##
+#.#.......#.#.##..@.......##.#.###.............###.##
+#.#########.#.##############.#.###################.##
+#...........#................#................@....##
+#####################################################)");
+
+			ivec2 start = g.find('S').value();
+			ivec2 end   = g.find('E').value();
+			auto  wp    = g.find_all('@');
+
+			wp.insert(wp.begin(), start);
+			wp.push_back(end);
+
+			auto path = a_star(g, wp, [](char c) { return c != '#'; }, directions4);
+			REQUIRE(path.has_value());
+			CHECK(path->size() == 141u);
+
+			auto apath = a_star(g, wp, [](char c) { return c != '#'; }, directions4, left_forward_right);
+			REQUIRE(apath.has_value());
+			CHECK(apath->size() == 185u);
+
+			CHECK(std::ranges::all_of(wp, [&](const ivec2 waypoint) { return std::ranges::contains(*apath, waypoint); }));
+		}
+	}
+
+
+	SECTION("maze with limited movements")
+	{
+		grid<u8> g;
+		g.from_string(R"(
+#################
+#S..............#
+#######.###.###.#
+###W....###.###.#
+#######.#######.#
+#######........E#
+#######.#########
+#######.....#####
+#################)");
+		const ivec2 start     = g.find('S').value();
+		const ivec2 goal      = g.find('E').value();
+		auto        waypoints = g.find_all("W");
+		waypoints.insert(waypoints.begin(), start);
+		waypoints.push_back(goal);
+
+		// All directions
+		auto path = bfs(g, waypoints, [](const u8 c) { return c != '#'; }, directions4);
+		REQUIRE(path.has_value());
+		CHECK(path->size() == 27u);
+
+		// Only left, right, forward
+		path = bfs(g, waypoints, [](const u8 c) { return c != '#'; }, directions4, left_forward_right);
+		CHECK_FALSE(path.has_value());
+
+		auto a_star_path = a_star(g, waypoints, [](const u8 c) { return c != '#'; }, directions4, left_forward_right);
+		CHECK_FALSE(a_star_path.has_value());
+
+		// Only left, forward
+		path = bfs(g, waypoints, [](const u8 c) { return c != '#'; }, directions4, left_forward);
+		CHECK_FALSE(path.has_value());
+
+		// Only right, forward
+		path = bfs(g, waypoints, [](const u8 c) { return c != '#'; }, directions4, right_forward);
+		CHECK_FALSE(path.has_value());
+	}
+
+	SECTION("bfs with waypoints rejects invalid input")
+	{
+		grid<u8>         g(3, 3);
+		const std::array too_few{ivec2{0, 0}};
+		const std::array blocked{ivec2{0, 0}, ivec2{1, 1}, ivec2{2, 2}};
+		const std::array out_of_bounds{ivec2{0, 0}, ivec2{3, 2}};
+		g.set(1, 1, 1);
+
+		CHECK_FALSE(bfs(g, too_few).has_value());
+		CHECK_FALSE(bfs(g, blocked).has_value());
+		CHECK_FALSE(bfs(g, out_of_bounds).has_value());
+	}
+
+	SECTION("bfs with more than 64 waypoints")
+	{
+		grid<u8>           g(66, 1);
+		std::vector<ivec2> waypoints;
+		for (i32 x = 0; x < g.width(); ++x)
+			waypoints.emplace_back(x, 0);
+
+		auto path = bfs(g, waypoints);
+		REQUIRE(path.has_value());
+		CHECK(path->size() == 66u);
+		CHECK(path->front() == waypoints.front());
+		CHECK(path->back() == waypoints.back());
 	}
 
 	SECTION("bfs matches a_star length")

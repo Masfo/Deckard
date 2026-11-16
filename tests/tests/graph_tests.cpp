@@ -366,6 +366,39 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(path[1] == weighted_edge<std::string>{"A", "B", 1});
 	}
 
+	SECTION("Bellman-Ford shortest path")
+	{
+
+		/*	/ --- B -- C
+		 *	|	  |    |
+		 *  S --- A ---/   
+		 *  
+		 *        D
+		 */
+
+
+		directed<std::string> gr;
+		gr.connect("S", "A", 4);
+		gr.connect("S", "B", 5);
+		gr.connect("A", "B", -2);
+		gr.connect("B", "C", 3);
+		gr.connect("A", "C", 10);
+		gr.add("D");
+
+		auto path = gr.shortest_path_bellman_ford("S", "C");
+		CHECK(path.size() == 3);
+		CHECK(path[0] == weighted_edge<std::string>{"S", "A", 4});
+		CHECK(path[1] == weighted_edge<std::string>{"A", "B", -2});
+		CHECK(path[2] == weighted_edge<std::string>{"B", "C", 3});
+		CHECK(gr.shortest_path_bellman_ford("S", "D").empty());
+
+		directed<std::string> negative_cycle;
+		negative_cycle.connect("S", "A", 1);
+		negative_cycle.connect("A", "B", -2);
+		negative_cycle.connect("B", "A", -2);
+		CHECK(negative_cycle.shortest_path_bellman_ford("S", "B").empty());
+	}
+
 
 	SECTION("all pairs")
 	{
@@ -376,7 +409,6 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		 *        E ---- F
 		 */
 
-		// D-B shortest path: D-A-E-F-B
 
 		undirected<std::string> gr;
 		gr.connect("A", "B", 8);
@@ -516,6 +548,13 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.connected_components(0).size() == 6);
 		CHECK(gr.unconnected_components_as_vector().size() == 6);
 		CHECK(gr.connected_components(1).size() == 0); // filter size > 1
+
+
+		for (const auto& node : gr.unconnected_components())
+		{
+			CHECK(node.size() == 1);
+		}
+
 	}
 
 	SECTION("minimum spanning tree")
@@ -559,6 +598,109 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(mst[4] == weighted_edge<std::string>{"Q", "Z", 1});
 		CHECK(mst[5] == weighted_edge<std::string>{"Q", "Y", 1});
 		CHECK(mst[6] == weighted_edge<std::string>{"A", "D", 3});
+	}
+
+	SECTION("minimum cut")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B -- Q -- Z
+		 *        |      |    |
+		 *        E ---- F    Y
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+
+		gr.connect("Q", "B", 9);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 9);
+
+
+		auto [cut_weight, partition] = gr.minimum_cut();
+
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B -- Q -- Z
+		 *        |      |
+		 *        E ---- F    Y
+		 */
+
+		CHECK(cut_weight == 1);
+		CHECK(not partition.empty());
+		CHECK(partition.size() < gr.size());
+
+		std::unordered_set<std::string> partition_nodes(partition.begin(), partition.end());
+		f32                             cut_weight_from_edges{};
+		for (const auto& edge : gr.edges_as_vector())
+		{
+			if (partition_nodes.contains(edge.from) != partition_nodes.contains(edge.to))
+				cut_weight_from_edges += edge.weight;
+		}
+		CHECK(cut_weight_from_edges == cut_weight);
+	}
+
+	SECTION("bridges")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B -- Q -- Z
+		 *        |      |    |
+		 *        E ---- F    Y
+		 */
+
+		undirected<std::string> gr;
+		gr.connect("A", "B", 8);
+		gr.connect("A", "C", 1);
+		gr.connect("A", "D", 3);
+		gr.connect("A", "E", 1);
+
+		gr.connect("B", "F", 1);
+		gr.connect("E", "F", 1);
+
+		gr.connect("Q", "Z", 1);
+		gr.connect("Q", "Y", 1);
+
+		gr.connect("Q", "B", 7);
+
+		CHECK(gr.size() == 9);
+		CHECK(gr.edge_count() == 9);
+
+		auto bridges = gr.bridges();
+
+		/*		  C
+		 *
+		 *  D     A ---- B    Q    Z
+		 *        |      |
+		 *        E ---- F    Y
+		 */
+
+		CHECK(bridges.size() == 5);
+		auto has_bridge = [&](std::string_view from, std::string_view to, f32 weight)
+		{
+			return std::ranges::any_of(
+			  bridges,
+			  [&](const auto& bridge)
+			  {
+				  return ((bridge.from == from and bridge.to == to) or (bridge.from == to and bridge.to == from))
+						 and bridge.weight == weight;
+			  });
+		};
+		CHECK(has_bridge("A", "C", 1));
+		CHECK(has_bridge("A", "D", 3));
+		CHECK(has_bridge("Q", "B", 7));
+		CHECK(has_bridge("Q", "Z", 1));
+		CHECK(has_bridge("Q", "Y", 1));
 	}
 
 	SECTION("articulation points")
@@ -1142,19 +1284,17 @@ TEST_CASE("AVL", "[avl]")
 	}
 }
 
-
 TEST_CASE("flat_tree", "[flat_tree][graph]")
 {
 	using namespace deckard::graph::binary;
-	SECTION("empty") 
-	{ 
+	SECTION("empty")
+	{
 		flat_tree<int> f(16);
 		CHECK(f.size() == 0);
 		CHECK(f.empty() == true);
 		CHECK(f.capacity() == 16);
-
 	}
-	SECTION("insert") 
+	SECTION("insert")
 	{
 		flat_tree<int> f(16);
 		CHECK(f.size() == 0);
