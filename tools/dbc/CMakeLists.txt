@@ -71,7 +71,6 @@ if(MSVC)
 
         target_compile_options(dbc PRIVATE /JMC)    # Just my debugging
         target_compile_options(dbc PRIVATE /Od)
-        target_compile_options(dbc PRIVATE /RTC1)
         target_compile_options(dbc PRIVATE /GS)
         target_compile_options(dbc PRIVATE /Zi)     # /ZI edit/continue
 

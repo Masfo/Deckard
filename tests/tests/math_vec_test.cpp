@@ -148,6 +148,7 @@ TEST_CASE("ivec2", "[vec][ivec2][math]")
 
 		const auto sdist = squared_distance(v1, v2);
 		CHECK(sdist == 58);
+		CHECK(squared_distance(ivec2{0}, ivec2{50'000, 0}) == 2'500'000'000ull);
 
 		const auto m_dist = manhattan_distance(v1, v2);
 		CHECK(m_dist == 10);

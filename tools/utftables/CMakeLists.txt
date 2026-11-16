@@ -66,7 +66,6 @@ if(MSVC)
         target_compile_options(utftables PRIVATE /W4)
         target_compile_options(utftables  PRIVATE /JMC)    # Just my debugging
         target_compile_options(utftables  PRIVATE /Od)
-        target_compile_options(utftables  PRIVATE /RTC1)
         target_compile_options(utftables  PRIVATE /EHsc)
         target_compile_options(utftables  PRIVATE /GS)
         target_compile_options(utftables  PRIVATE /Zi)     # /ZI edit/continue

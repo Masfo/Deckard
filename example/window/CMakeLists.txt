@@ -79,7 +79,6 @@ if(MSVC)
 
         target_compile_options(${PROJECT_NAME} PRIVATE /JMC)    # Just my debugging
         target_compile_options(${PROJECT_NAME} PRIVATE /Od)
-        target_compile_options(${PROJECT_NAME} PRIVATE /RTC1)
         target_compile_options(${PROJECT_NAME} PRIVATE /GS)
         target_compile_options(${PROJECT_NAME} PRIVATE /Zi)     # /ZI edit/continue
 

@@ -663,7 +663,7 @@ namespace deckard::vec
 	}
 
 	export template<arithmetic T>
-	[[nodiscard("Use the squared distance value")]] constexpr T squared_distance(
+	[[nodiscard("Use the squared distance value")]] constexpr auto squared_distance(
 	  const generic_vec4<T>& lhs, const generic_vec4<T>& rhs)
 	{
 		return lhs.squared_distance(rhs);

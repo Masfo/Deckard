@@ -79,10 +79,14 @@ if(MSVC)
 			/FS
 			/diagnostics:caret
 			/MP
+	
 		>
 		$<$<COMPILE_LANGUAGE:ASM_MASM>:/nologo>
 	)
 
+	target_link_options(deckard PRIVATE 		
+		/WARNUNUSEDLIBS
+	)
 
 	#target_compile_options(deckard PRIVATE /arch:AVX2)
 
