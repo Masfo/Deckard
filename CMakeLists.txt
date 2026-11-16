@@ -4,6 +4,10 @@ cmake_minimum_required (VERSION 4.5)
 project(deckard LANGUAGES CXX ASM_MASM)
 message(STATUS "CMake version: ${CMAKE_VERSION}")
 
+if(MSVC)
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	set(CMAKE_CXX23_STANDARD_COMPILE_OPTION "/std:c++latest")
+endif()
 
 add_library(deckard STATIC)
 
@@ -69,7 +73,6 @@ if(MSVC)
 	target_compile_options(deckard PRIVATE 
 		$<$<COMPILE_LANGUAGE:CXX>:
 			/nologo
-			/std:c++latest 
 			/Zc:preprocessor 
 			/Zc:cmath
 			/Zc:__cplusplus /Zc:__STDC__ 
@@ -143,6 +146,12 @@ if(MSVC)
 		target_link_options(deckard PRIVATE /MERGE:.pdata=.text /MERGE:.rdata=.text)
 		option(DECKARD_BUILD_TESTS "Build tests" FALSE)
 
+	endif()
+
+	if (${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
+		set_target_properties(deckard PROPERTIES
+			MSVC_RUNTIME_LIBRARY "MultiThreaded"
+		)
 	endif()
 
 

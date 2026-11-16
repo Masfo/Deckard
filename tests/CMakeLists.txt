@@ -6,6 +6,10 @@ find_package(Catch2 CONFIG REQUIRED)
 
 project(tests VERSION 0.0.1 LANGUAGES CXX)
 
+if(MSVC)
+    set(CMAKE_CXX23_STANDARD_COMPILE_OPTION "/std:c++latest")
+endif()
+
 add_executable(tests)
 
 set_target_properties(tests PROPERTIES
@@ -28,8 +32,6 @@ target_compile_options(tests PRIVATE /EHsc)
 target_compile_options(tests PRIVATE /diagnostics:caret)
 target_compile_options(tests PRIVATE /Zc:preprocessor)
 target_compile_options(tests PRIVATE /Zc:cmath)  
-target_compile_options(tests PRIVATE /std:c++latest)
-
 target_compile_options(tests PRIVATE /W4)
 
 
@@ -194,6 +196,11 @@ if(MSVC)
 
         target_link_options(tests PRIVATE /OPT:REF /OPT:ICF)
 
+    endif()
+
+    if (${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
+        set_target_properties(tests PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        target_link_options(tests PRIVATE /DEBUG /INCREMENTAL /ILK:${CMAKE_SOURCE_DIR}/bin/pdb/tests.ilk)
     endif()
 endif()
 

@@ -8,6 +8,10 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 project(utftables LANGUAGES CXX)
 
+if(MSVC)
+    set(CMAKE_CXX23_STANDARD_COMPILE_OPTION "/std:c++latest")
+endif()
+
 add_executable(utftables)
 
 set_target_properties(utftables PROPERTIES
@@ -43,7 +47,6 @@ if(MSVC)
     
     target_compile_options(utftables PRIVATE /Zc:preprocessor /Zc:cmath)
     target_compile_options(utftables PRIVATE /permissive-)
-    target_compile_options(utftables PRIVATE /std:c++latest)
     target_compile_options(utftables PRIVATE /Zc:__cplusplus)
     target_compile_options(utftables PRIVATE /utf-8)
 

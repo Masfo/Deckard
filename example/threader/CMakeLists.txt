@@ -9,6 +9,10 @@ set(PROJECT_NAME threader)
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
+if(MSVC)
+    set(CMAKE_CXX23_STANDARD_COMPILE_OPTION "/std:c++latest")
+endif()
+
 add_executable(${PROJECT_NAME} WIN32)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -48,7 +52,6 @@ if(MSVC)
     
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /Zc:cmath)
     target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
-    target_compile_options(${PROJECT_NAME} PRIVATE /std:c++latest)
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus)
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
 

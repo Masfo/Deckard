@@ -8,6 +8,10 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 project(dbc LANGUAGES CXX)
 
+if(MSVC)
+    set(CMAKE_CXX23_STANDARD_COMPILE_OPTION "/std:c++latest")
+endif()
+
 add_executable(dbc WIN32)
 
 set_target_properties(dbc PROPERTIES
@@ -40,9 +44,8 @@ if(MSVC)
     target_compile_definitions(dbc PRIVATE WIN32_LEAN_AND_MEAN)
     target_compile_definitions(dbc PRIVATE WIN32_EXTRA_LEAN)
     
-    target_compile_options(dbc PRIVATE /Zc:preprocessor /Zc:cmath) 
+    target_compile_options(dbc PRIVATE /Zc:preprocessor /Zc:cmath)
     target_compile_options(dbc PRIVATE /permissive-)
-    target_compile_options(dbc PRIVATE /std:c++latest)
     target_compile_options(dbc PRIVATE /Zc:__cplusplus)
     target_compile_options(dbc PRIVATE /utf-8)
 

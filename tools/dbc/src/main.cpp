@@ -57,8 +57,8 @@ i32 deckard_main(utf8::view /*commandline*/)
 
 
 #ifndef _DEBUG
-	std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
-	std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
+	//std::print("dbc {} ({}), ", dbc::build::version_string, dbc::build::calver);
+	//std::println("deckard {} ({})", deckard_build::build::version_string, deckard_build::build::calver);
 #endif
 
 

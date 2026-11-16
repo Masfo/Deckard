@@ -127,7 +127,7 @@ export import deckard.app;
 export import deckard.win32;
 
 #ifndef _DEBUG
-export import deckard_build;
+//export import deckard_build;
 #endif
 
 

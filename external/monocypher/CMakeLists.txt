@@ -67,7 +67,7 @@ add_library(monocypher OBJECT
 
 if(MSVC)
     target_compile_options(monocypher PRIVATE /W0)
-	set_target_properties(monocypher PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug,RelWithDebInfo>:Debug>")
+	set_target_properties(monocypher PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     #target_compile_options(monocypher PRIVATE /Z7)
 
 endif()
