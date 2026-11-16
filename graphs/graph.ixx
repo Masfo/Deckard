@@ -758,7 +758,7 @@ namespace deckard::graph
 		}
 
 		// Bellman-Ford single-source shortest path (supports negative weights).
-		std::vector<WeightedEdge> bellman_ford(const T& src, const T& dst) const
+		std::vector<WeightedEdge> shortest_path_bellman_ford(const T& src, const T& dst) const
 		{
 			auto isrc = index_map.find(src);
 			auto idst = index_map.find(dst);
@@ -916,13 +916,102 @@ namespace deckard::graph
 			return result;
 		}
 
-		auto bridges() const -> std::vector<std::pair<T, T>>
+		// Global minimum cut using Stoer-Wagner; returns the weight and one side of the partition.
+		auto minimum_cut() const -> std::pair<Weight, std::vector<T>> requires(not Directed)
+		{
+			u64 n = static_cast<u64>(reverse_index.size());
+			if (n < 2)
+				return {Weight{}, {}};
+
+			std::vector<std::vector<Weight>> weights(
+			  static_cast<size_t>(n), std::vector<Weight>(static_cast<size_t>(n), Weight{}));
+			for (u64 u = 0; u < n; ++u)
+			{
+				for (u64 v : adjacent_list[u])
+				{
+					if (v <= u)
+						continue;
+
+					Weight edge_weight{1};
+					auto   itw = edge_weights[u].find(v);
+					if (itw != edge_weights[u].end())
+						edge_weight = itw->second;
+					assert::check(edge_weight >= Weight{}, "graph::minimum_cut: edge weights must be non-negative");
+					weights[u][v] = edge_weight;
+					weights[v][u] = edge_weight;
+				}
+			}
+
+			std::vector<u64> active(n);
+			std::iota(active.begin(), active.end(), u64{});
+
+			std::vector<std::vector<u64>> groups(static_cast<size_t>(n));
+			for (u64 i = 0; i < n; ++i)
+				groups[i].push_back(i);
+
+			Weight             minimum_weight = std::numeric_limits<Weight>::max();
+			std::vector<u64>   minimum_group;
+			while (active.size() > 1)
+			{
+				std::vector<char>  added(static_cast<size_t>(n), 0);
+				std::vector<Weight> connection(static_cast<size_t>(n), Weight{});
+				u64 previous = active.front();
+
+				for (size_t phase_index = 0; phase_index < active.size(); ++phase_index)
+				{
+					u64 selected = n;
+					for (u64 v : active)
+					{
+						if (added[v])
+							continue;
+						if (selected == n or connection[v] > connection[selected])
+							selected = v;
+					}
+
+					if (phase_index + 1 == active.size())
+					{
+						if (connection[selected] < minimum_weight)
+						{
+							minimum_weight = connection[selected];
+							minimum_group  = groups[selected];
+						}
+
+						for (u64 v : active)
+						{
+							if (v == previous or v == selected)
+								continue;
+							weights[previous][v] += weights[selected][v];
+							weights[v][previous] = weights[previous][v];
+						}
+						groups[previous].insert(groups[previous].end(), groups[selected].begin(), groups[selected].end());
+						active.erase(std::ranges::find(active, selected));
+						break;
+					}
+
+					added[selected] = 1;
+					previous      = selected;
+					for (u64 v : active)
+					{
+						if (not added[v])
+							connection[v] += weights[selected][v];
+					}
+				}
+			}
+
+			std::vector<T> partition;
+			partition.reserve(minimum_group.size());
+			for (u64 i : minimum_group)
+				partition.push_back(reverse_index[i]);
+			return {minimum_weight, std::move(partition)};
+		}
+
+		auto bridges() const -> std::vector<WeightedEdge> requires(not Directed)
 		{
 			u64                          n = static_cast<u64>(reverse_index.size());
 			std::vector<int>             disc(n, -1);
 			std::vector<int>             low(n, -1);
 			std::vector<int>             parent(n, -1);
-			std::vector<std::pair<T, T>> result;
+			std::vector<WeightedEdge> result;
 
 			int timer = 0;
 
@@ -938,7 +1027,11 @@ namespace deckard::graph
 						low[u] = std::min(low[u], low[v]);
 						if (low[v] > disc[u])
 						{
-							result.emplace_back(reverse_index[u], reverse_index[v]);
+							Weight weight{1};
+							auto   itw = edge_weights[u].find(v);
+							if (itw != edge_weights[u].end())
+								weight = itw->second;
+							result.push_back({reverse_index[u], reverse_index[v], weight});
 						}
 					}
 					else if (static_cast<int>(v) != parent[u])
