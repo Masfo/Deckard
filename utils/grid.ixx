@@ -27,7 +27,62 @@ namespace deckard
 	export template<typename T, typename F>
 	concept Walkable = std::predicate<F&, const T&>;
 
+	namespace grid_detail
+	{
+		struct waypoint_mask
+		{
+			u64              first_word{};
+			std::vector<u64> remaining_words;
+
+			bool operator==(const waypoint_mask&) const = default;
+
+			void reserve_bits(const std::size_t bit_count)
+			{
+				if (bit_count > 64)
+					remaining_words.reserve(1 + (bit_count - 65) / 64);
+			}
+
+			void set(const std::size_t bit)
+			{
+				if (bit < 64)
+				{
+					first_word |= u64{1} << bit;
+					return;
+				}
+
+				const std::size_t word = bit / 64 - 1;
+				if (remaining_words.size() <= word)
+					remaining_words.resize(word + 1, 0);
+				remaining_words[word] |= u64{1} << (bit % 64);
+			}
+
+			[[nodiscard]] auto test(const std::size_t bit) const -> bool
+			{
+				if (bit < 64)
+					return (first_word & (u64{1} << bit)) != 0;
+
+				const std::size_t word = bit / 64 - 1;
+				return word < remaining_words.size() and (remaining_words[word] & (u64{1} << (bit % 64))) != 0;
+			}
+		};
+
+		struct waypoint_mask_hash
+		{
+			std::size_t operator()(const waypoint_mask& mask) const
+			{
+				u64 hash = hash_combine(constant_seed, mask.first_word);
+				for (const u64 word : mask.remaining_words)
+					hash = hash_combine(hash, word);
+				return as<std::size_t>(hash);
+			}
+		};
+	} // namespace grid_detail
+
 	// TODO: non-member drawings
+
+
+	export using result_path = std::optional<std::vector<ivec2>>;
+
 
 	export constexpr ivec2 north{0, -1};
 	export constexpr ivec2 east{1, 0};
@@ -44,6 +99,16 @@ namespace deckard
 	export constexpr ivec2 south_west{south + west};
 	export constexpr ivec2 north_west{north + west};
 
+	export enum class movement_option { turn_left, turn_right, forward, backward };
+
+	export constexpr std::array<movement_option, 2> left_forward{movement_option::turn_left, movement_option::forward};
+	export constexpr std::array<movement_option, 2> right_forward{movement_option::turn_right, movement_option::forward};
+	export constexpr std::array<movement_option, 3> left_forward_right{
+	  movement_option::turn_left, movement_option::forward, movement_option::turn_right};
+	export constexpr std::array<movement_option, 4> default_movement_options{
+	  movement_option::turn_left, movement_option::turn_right, movement_option::forward, movement_option::backward};
+
+
 	export constexpr std::array<ivec2, 4> directions4{north, east, south, west};
 	export constexpr std::array<ivec2, 8> directions8{
 	  north, north_east, east, south_east, south, south_west, west, north_west};
@@ -58,12 +123,24 @@ namespace deckard
 		inline constexpr ivec3 back{0, 0, 1};
 	} // namespace grid3d_directions
 
-
-
-
-	struct grid_pattern
+	export struct grid_pattern
 	{
 		std::vector<ivec2> offsets;
+
+		explicit grid_pattern(const std::span<const ivec2> offsets)
+			: offsets(offsets.begin(), offsets.end())
+		{
+		}
+
+		void push(const ivec2 offset) { offsets.push_back(offset); }
+
+		[[nodiscard]] auto size() const { return offsets.size(); }
+
+		[[nodiscard]] auto begin() const { return offsets.begin(); }
+
+		[[nodiscard]] auto end() const { return offsets.end(); }
+
+		void clear() { offsets.clear(); }
 
 		void rotate_cw()
 		{
@@ -79,21 +156,18 @@ namespace deckard
 			{
 				offset = ivec2{-offset.y, offset.x};
 			}
-		}	
+		}
 
-
-		void mirror(bool horizontal)
+		void mirror(bool hori)
 		{
 			for (auto& offset : offsets)
 			{
-				if (horizontal)
+				if (hori)
 					offset = ivec2{-offset.x, offset.y};
 				else
 					offset = ivec2{offset.x, -offset.y};
 			}
 		}
-
-		
 	};
 
 	export template<typename T = u8>
@@ -125,7 +199,21 @@ namespace deckard
 
 		void from_string(std::string_view input)
 		{
-			auto lines = string::split<std::string>(input, "\n\t");
+			// TODO: find width from input if not set, detect newlines, etc.
+
+			auto copy = std::string{input};
+			if (width() > 1)
+			{
+				auto lines = string::split_stride<std::string>(string::strip(copy), as<u64>(width()));
+				assert::check(
+				  lines.size() == as<std::size_t>(height()), "grid::from_string: input size does not match grid height");
+				assert::check(
+				  lines[0].size() == as<std::size_t>(width()), "grid::from_string: input size does not match grid width");
+
+				from_lines(lines);
+				return;
+			}
+			auto lines = string::split<std::string>(copy, "\n\t");
 
 			from_lines(lines);
 		}
@@ -140,7 +228,7 @@ namespace deckard
 
 			i32 width  = as<i32>(lines[0].size());
 			i32 height = as<i32>(lines.size());
-
+			resize(width, height);
 
 			i32 widths = 0;
 			for (const auto& line : lines)
@@ -226,6 +314,15 @@ namespace deckard
 
 		T& get(const ivec2 pos) { return data.get(pos.x, pos.y); }
 
+		[[nodiscard]] auto unique_cells() const -> std::vector<T>
+		{
+			std::set<T> unique{};
+			for (const auto& p : points())
+				unique.insert(get(p));
+
+			return std::vector<T>(unique.begin(), unique.end());
+		}
+
 		std::optional<std::span<const T>> row(const i32 y) const
 		{
 			if (y >= height())
@@ -242,7 +339,7 @@ namespace deckard
 			return std::span<T>{&data.get(0, y), static_cast<std::size_t>(width())};
 		}
 
-		std::optional<T> try_at(const ivec2 pos) const { return valid(pos) ? get(pos) : std::optional<T>{}; }
+		std::optional<T> try_at(const ivec2 pos) const { return is_valid(pos) ? get(pos) : std::optional<T>{}; }
 
 		void for_each(const FunctionOp& op) const
 		{
@@ -260,7 +357,8 @@ namespace deckard
 		}
 
 		void for_each_neighbour4(
-		  const std::function<bool(const ivec2, const T, const std::array<std::optional<T>, 4>&)>& op) const
+		  const std::function<bool(const ivec2, const T, const std::array<std::optional<std::pair<ivec2, T>>, 4>&)>& op)
+		  const
 		{
 			for (i32 y = 0; y < as<i32>(height()); ++y)
 			{
@@ -276,7 +374,8 @@ namespace deckard
 		}
 
 		void for_each_neighbour8(
-		  const std::function<bool(const ivec2, const T, const std::array<std::optional<T>, 8>&)>& op) const
+		  const std::function<bool(const ivec2, const T, const std::array<std::optional<std::pair<ivec2, T>>, 8>&)>& op)
+		  const
 		{
 			for (i32 y = 0; y < as<i32>(height()); ++y)
 			{
@@ -332,27 +431,39 @@ namespace deckard
 
 		i32 count(std::string_view input) const { return data.count(input); }
 
-		bool valid(const i32 x, const i32 y) const { return data.valid(x, y); }
+		bool is_valid(const i32 x, const i32 y) const { return data.valid(x, y); }
 
-		bool valid(ivec2 c) const { return data.valid(c.x, c.y); }
+		bool is_valid(ivec2 c) const { return data.valid(c.x, c.y); }
 
-		auto neighbours4(ivec2 pos) const
+		auto neighbours4(ivec2 pos) const -> std::array<std::optional<std::pair<ivec2, T>>, 4>
 		{
-			return std::array<std::optional<T>, 4>{
-			  try_at(pos + north), try_at(pos + east), try_at(pos + south), try_at(pos + west)};
+			auto neighbour = [this](const ivec2 neighbour_pos)
+			{
+				return try_at(neighbour_pos)
+				  .transform([neighbour_pos](const T& value) { return std::pair{neighbour_pos, value}; });
+			};
+
+			return std::array<std::optional<std::pair<ivec2, T>>, 4>{
+			  neighbour(pos + north), neighbour(pos + east), neighbour(pos + south), neighbour(pos + west)};
 		}
 
-		auto neighbours8(ivec2 pos) const
+		auto neighbours8(ivec2 pos) const -> std::array<std::optional<std::pair<ivec2, T>>, 8>
 		{
-			return std::array<std::optional<T>, 8>{
-			  try_at(pos + north),
-			  try_at(pos + north_east),
-			  try_at(pos + east),
-			  try_at(pos + south_east),
-			  try_at(pos + south),
-			  try_at(pos + south_west),
-			  try_at(pos + west),
-			  try_at(pos + north_west)};
+			auto neighbour = [this](const ivec2 neighbour_pos)
+			{
+				return try_at(neighbour_pos)
+				  .transform([neighbour_pos](const T& value) { return std::pair{neighbour_pos, value}; });
+			};
+
+			return std::array<std::optional<std::pair<ivec2, T>>, 8>{
+			  neighbour(pos + north),
+			  neighbour(pos + north_east),
+			  neighbour(pos + east),
+			  neighbour(pos + south_east),
+			  neighbour(pos + south),
+			  neighbour(pos + south_west),
+			  neighbour(pos + west),
+			  neighbour(pos + north_west)};
 		}
 
 		i32 width() const { return data.width(); };
@@ -365,10 +476,7 @@ namespace deckard
 
 		operator auto() const noexcept { return hash(); }
 
-		auto hash(u64 seed = 0) const 
-		{
-			return hash_combine(seed, data.hash(), width(), height());
-		}
+		auto hash(u64 seed = 0) const { return hash_combine(seed, data.hash(), width(), height()); }
 
 		bool operator==(const grid& other) const noexcept { return data == other.data; }
 
@@ -571,8 +679,6 @@ namespace deckard
 
 		void fill(const T& value) { data.fill(value); }
 
-
-
 		template<floodfill_cb Func>
 		i32 floodfill(ivec2 pos, const Func&& cb)
 		{
@@ -593,7 +699,7 @@ namespace deckard
 				const auto newpos = to_visit.front();
 				to_visit.pop_front();
 
-				if (not valid(newpos))
+				if (not is_valid(newpos))
 					continue;
 
 				if (seen.contains(newpos))
@@ -647,7 +753,8 @@ namespace deckard
 		[[nodiscard]] auto find_islands(const std::string_view to_find) const { return find_islands(to_span(to_find)); }
 
 		// find_all
-		[[nodiscard]] auto find_all(const T to_find) const
+
+		[[nodiscard]] auto find_all(std::span<const T> to_find) const
 		{
 			std::vector<ivec2> points;
 
@@ -655,7 +762,7 @@ namespace deckard
 			{
 				for (auto x = 0; x < width(); ++x)
 				{
-					if (data.get(x, y) == to_find)
+					if (std::ranges::contains(to_find, data.get(x, y)))
 						points.emplace_back(ivec2{as<i32>(x), as<i32>(y)});
 				}
 			}
@@ -665,7 +772,24 @@ namespace deckard
 			return points;
 		}
 
-		std::optional<ivec2> find(const T value) const 
+		[[nodiscard]] auto collect_all(std::span<const ivec2> coordinates) const -> std::vector<T>
+		{
+			std::vector<T> points;
+			points.reserve(coordinates.size());
+
+			for (const ivec2 pos : coordinates)
+			{
+				if (is_valid(pos))
+					points.push_back(get(pos));
+			}
+			return points;
+		}
+
+		[[nodiscard]] auto find_all(const T to_find) const { return find_all(std::span<const T>{&to_find, 1}); }
+
+		[[nodiscard]] auto find_all(const std::string_view to_find) const { return find_all(to_span(to_find)); }
+
+		std::optional<ivec2> find(const T value) const
 		{
 			auto r = find_all(value);
 			if (r.empty())
@@ -780,169 +904,580 @@ namespace deckard
 	// non-members
 
 	// #############################
+
+
 	// AStar #######################
 
+	export using result_path = std::optional<std::vector<ivec2>>;
 
+	// Left and right turn in place once between moves; the returned path contains moved cells only. The first move is
+	// unrestricted.
 	export template<typename T, typename WalkableFn>
 	requires Walkable<T, WalkableFn>
-	auto a_star(const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable)
-	  -> std::optional<std::vector<ivec2>>
+	auto a_star(
+	  const grid<T>& g, const std::span<const ivec2> waypoints, WalkableFn&& walkable, std::span<const ivec2> directions,
+	  std::span<const movement_option> movement_options = default_movement_options) -> result_path
 	{
-		const auto can_walk = [&](const ivec2 p) { return g.valid(p) and walkable(g.get(p)); };
-
-		if (not can_walk(start) or not can_walk(goal))
+		if (waypoints.size() < 2)
 			return std::nullopt;
 
-		// per-cell search state, indexed by position
-		struct cell
+		for (const ivec2 waypoint : waypoints)
 		{
-			i32   cost = std::numeric_limits<i32>::max(); // best known steps from start
-			ivec2 parent{-1, -1};                         // where we came from
+			if (not g.is_valid(waypoint) or not walkable(g.get(waypoint)))
+				return std::nullopt;
+		}
+
+
+		const i32  width    = g.width();
+		const auto to_index = [width](const ivec2 p) { return as<i32>(p.y) * width + as<i32>(p.x); };
+		const auto to_point = [width](const i32 i) { return ivec2{as<i32>(i % width), as<i32>(i / width)}; };
+		const bool is_eight_way
+		  = directions.size() == directions8.size()
+			and std::ranges::all_of(
+			  directions8, [&directions](const ivec2 direction) { return std::ranges::contains(directions, direction); });
+		const auto distance = [is_eight_way](const ivec2 a, const ivec2 b)
+		{
+			const i32 dx = as<i32>(std::abs(a.x - b.x));
+			const i32 dy = as<i32>(std::abs(a.y - b.y));
+			return is_eight_way ? std::max(dx, dy) : dx + dy;
+		};
+		const i32   goal            = to_index(waypoints.back());
+		const ivec2 goal_pos        = waypoints.back();
+		const i32   direction_count = as<i32>(directions.size());
+		const bool  can_turn_left   = std::ranges::contains(movement_options, movement_option::turn_left);
+		const bool  can_turn_right  = std::ranges::contains(movement_options, movement_option::turn_right);
+		const bool  can_forward     = std::ranges::contains(movement_options, movement_option::forward);
+		const bool  can_backward    = std::ranges::contains(movement_options, movement_option::backward);
+
+		constexpr i32 none         = std::numeric_limits<i32>::max();
+		constexpr i32 no_direction = -1;
+
+		struct state_key
+		{
+			i32                        position;
+			i32                        direction;
+			bool                       turned_in_place;
+			grid_detail::waypoint_mask visited_waypoints;
+
+			bool operator==(const state_key&) const = default;
 		};
 
-														  // open-list entry, f = cost + heuristic
+		struct state_hash
+		{
+			std::size_t operator()(const state_key& key) const
+			{
+				const std::size_t mask_hash = grid_detail::waypoint_mask_hash{}(key.visited_waypoints);
+				return as<std::size_t>(
+				  hash_combine(constant_seed, key.position, key.direction, key.turned_in_place, mask_hash));
+			}
+		};
+
+		struct state
+		{
+			state_key key;
+			i32       cost;
+			i32       parent;
+		};
+
 		struct node
 		{
-			ivec2 pos{};
-			i32   cost{0}; // cost from start
-			i32   f{0};    // f = cost + heuristic
+			i32 state_index;
+			i32 estimate;
 		};
 
-		const i32  width     = g.width();
-		const auto heuristic = [goal](const ivec2 p) { return as<i32>(std::abs(p.x - goal.x) + std::abs(p.y - goal.y)); };
-		const auto sorter    = [](const node& a, const node& b) { return a.f > b.f; }; // min-heap on f
-
-		std::vector<cell>                                              cells(g.size());
-		std::priority_queue<node, std::vector<node>, decltype(sorter)> queue(sorter);
-
-		//
-		const auto build_path = [&]
+		std::vector<i32>           waypoint_bits(g.size(), none);
+		std::vector<ivec2>         waypoint_positions;
+		waypoint_positions.reserve(waypoints.size());
+		grid_detail::waypoint_mask all_waypoints;
+		all_waypoints.reserve_bits(waypoints.size());
+		for (const ivec2 waypoint : waypoints)
 		{
-			std::vector<ivec2> path;
-			for (ivec2 p = goal; p != start; p = cells[index_from_2d(p, width)].parent)
-				path.push_back(p);
-
-			path.push_back(start);
-			std::ranges::reverse(path);
-			return path;
-		};
-
-		cells[index_from_2d(start, width)].cost = 0;
-		queue.push({start, 0, heuristic(start)});
-
-		constexpr std::array<ivec2, 4> directions{north, east, south, west};
-
-		while (not queue.empty())
-		{
-			const node current = queue.top();
-			queue.pop();
-
-			// stale entry: a cheaper route to this cell was found after it was pushed
-			if (current.cost > cells[index_from_2d(current.pos, width)].cost)
+			const i32 index = to_index(waypoint);
+			if (waypoint_bits[index] != none)
 				continue;
 
-			if (current.pos == goal)
-				return build_path();
+			const i32 bit        = as<i32>(waypoint_positions.size());
+			waypoint_bits[index] = bit;
+			waypoint_positions.push_back(waypoint);
+			all_waypoints.set(as<std::size_t>(bit));
+		}
 
-			for (const ivec2 direction : directions)
+		const std::size_t waypoint_count = waypoint_positions.size();
+		u64               all            = 0;
+		if (waypoint_count == 64)
+			all = ~u64{};
+		else if (waypoint_count < 64)
+			all = (u64{1} << waypoint_count) - 1;
+
+		std::unordered_map<grid_detail::waypoint_mask, i32, grid_detail::waypoint_mask_hash> mst_cache;
+		mst_cache.reserve(waypoint_count);
+		std::vector<i32>             mst_edge_costs;
+		std::vector<u8>              in_mst;
+		if (waypoint_count > 64)
+		{
+			mst_edge_costs.resize(waypoint_count, none);
+			in_mst.resize(waypoint_count, 0);
+		}
+		const auto mst_cost = [&](const u64 remaining, const grid_detail::waypoint_mask& visited) -> i32
+		{
+			if (const auto it = mst_cache.find(visited); it != mst_cache.end())
+				return it->second;
+
+			std::array<i32, 64> edge;
+			edge.fill(none);
+
+			u64 pending                     = remaining;
+			edge[std::countr_zero(pending)] = 0;
+
+			i32 total = 0;
+			while (pending != 0)
 			{
-				const ivec2 next      = current.pos + direction;
-				const i32   next_cost = current.cost + 1;
+				i32 closest = -1;
+				for (u64 m = pending; m != 0; m &= m - 1)
+				{
+					const i32 bit = std::countr_zero(m);
+					if (closest == -1 or edge[bit] < edge[closest])
+						closest = bit;
+				}
 
-				if (not can_walk(next))
-					continue;
+				pending &= ~(u64{1} << closest);
+				total += edge[closest];
 
-				cell& next_cell = cells[index_from_2d(next, width)];
-				if (next_cost >= next_cell.cost)
-					continue;
-
-				next_cell = {.cost = next_cost, .parent = current.pos};
-				queue.push({next, next_cost, next_cost + heuristic(next)});
+				for (u64 m = pending; m != 0; m &= m - 1)
+				{
+					const i32 bit = std::countr_zero(m);
+					edge[bit]     = std::min(edge[bit], distance(waypoint_positions[closest], waypoint_positions[bit]));
+				}
 			}
+
+			mst_cache.emplace(visited, total);
+			return total;
+		};
+
+		const auto heuristic = [&](const state_key& key) -> i32
+		{
+			const ivec2 position = to_point(key.position);
+			if (waypoint_count <= 64)
+			{
+				const u64 remaining = all & ~key.visited_waypoints.first_word;
+				if (remaining == 0)
+					return distance(position, goal_pos);
+
+				i32 from_position = none;
+				i32 to_goal       = none;
+				for (u64 m = remaining; m != 0; m &= m - 1)
+				{
+					const auto& waypoint = waypoint_positions[std::countr_zero(m)];
+					from_position        = std::min(from_position, distance(position, waypoint));
+					to_goal              = std::min(to_goal, distance(waypoint, goal_pos));
+				}
+
+				return from_position + mst_cost(remaining, key.visited_waypoints) + to_goal;
+			}
+
+			i32         from_position   = none;
+			i32         to_goal         = none;
+			std::size_t remaining_count = 0;
+			for (std::size_t bit = 0; bit < waypoint_count; ++bit)
+			{
+				if (key.visited_waypoints.test(bit))
+					continue;
+
+				++remaining_count;
+				from_position = std::min(from_position, distance(position, waypoint_positions[bit]));
+				to_goal       = std::min(to_goal, distance(waypoint_positions[bit], goal_pos));
+			}
+
+			if (remaining_count == 0)
+				return distance(position, goal_pos);
+
+			i32 tree_cost;
+			if (const auto it = mst_cache.find(key.visited_waypoints); it != mst_cache.end())
+			{
+				tree_cost = it->second;
+			}
+			else
+			{
+				std::ranges::fill(mst_edge_costs, none);
+				std::ranges::fill(in_mst, u8{0});
+				std::size_t first = 0;
+				while (key.visited_waypoints.test(first))
+					++first;
+				mst_edge_costs[first] = 0;
+				tree_cost = 0;
+				for (std::size_t count = 0; count < remaining_count; ++count)
+				{
+					std::size_t closest = waypoint_count;
+					for (std::size_t bit = 0; bit < waypoint_count; ++bit)
+					{
+						if (not key.visited_waypoints.test(bit) and not in_mst[bit]
+							and (closest == waypoint_count or mst_edge_costs[bit] < mst_edge_costs[closest]))
+							closest = bit;
+					}
+
+					in_mst[closest] = 1;
+					tree_cost += mst_edge_costs[closest];
+					for (std::size_t bit = 0; bit < waypoint_count; ++bit)
+					{
+						if (key.visited_waypoints.test(bit) or in_mst[bit])
+							continue;
+						mst_edge_costs[bit] = std::min(
+						  mst_edge_costs[bit], distance(waypoint_positions[closest], waypoint_positions[bit]));
+					}
+				}
+				mst_cache.emplace(key.visited_waypoints, tree_cost);
+			}
+
+			return from_position + tree_cost + to_goal;
+		};
+
+		const auto         sorter = [](const node& a, const node& b) { return a.estimate > b.estimate; };
+		std::vector<state> states;
+		std::unordered_map<state_key, i32, state_hash> state_indices;
+
+		std::vector<node> open_storage;
+		open_storage.reserve(g.size());
+
+		std::priority_queue<node, std::vector<node>, decltype(sorter)> open(sorter, std::move(open_storage));
+
+		states.reserve(g.size());
+		state_indices.reserve(g.size());
+
+		state_key start_key{to_index(waypoints.front()), no_direction, false, {}};
+		const i32 start_bit = waypoint_bits[start_key.position];
+		start_key.visited_waypoints.set(as<std::size_t>(start_bit));
+		states.push_back({start_key, 0, none});
+		state_indices.emplace(start_key, 0);
+		open.push({0, heuristic(start_key)});
+
+		while (not open.empty())
+		{
+			const node      current_node  = open.top();
+			const i32       current_index = current_node.state_index;
+			open.pop();
+
+			const auto best = state_indices.find(states[current_index].key);
+			if (best == state_indices.end() or best->second != current_index)
+				continue;
+			const state_key& current = best->first;
+
+			if (current.position == goal and current.visited_waypoints == all_waypoints)
+			{
+				std::vector<ivec2> path;
+				for (i32 i = current_index; i != none; i = states[i].parent)
+				{
+					const ivec2 point = to_point(states[i].key.position);
+					if (path.empty() or path.back() != point)
+						path.push_back(point);
+				}
+
+				std::ranges::reverse(path);
+				return path;
+			}
+
+			const auto add_state = [&](state_key next_key, const i32 cost_delta)
+			{
+				const i32 next_cost = states[current_index].cost + cost_delta;
+				auto      existing  = state_indices.find(next_key);
+				if (existing != state_indices.end() and states[existing->second].cost <= next_cost)
+					return;
+
+				const i32 next_index = as<i32>(states.size());
+				const i32 estimate   = next_cost + heuristic(next_key);
+				states.push_back({next_key, next_cost, current_index});
+				if (existing == state_indices.end())
+					state_indices.emplace(std::move(next_key), next_index);
+				else
+					existing->second = next_index;
+				open.push({next_index, estimate});
+			};
+
+			const ivec2 pos      = to_point(current.position);
+			const auto  add_move = [&](const i32 move_direction, const i32 facing)
+			{
+				const ivec2 next = pos + directions[move_direction];
+				if (not g.is_valid(next) or not walkable(g.get(next)))
+					return;
+
+				state_key next_key{to_index(next), facing, false, current.visited_waypoints};
+				const i32 waypoint_bit = waypoint_bits[next_key.position];
+				if (waypoint_bit != none)
+					next_key.visited_waypoints.set(as<std::size_t>(waypoint_bit));
+				add_state(std::move(next_key), 1);
+			};
+
+			if (current.direction == no_direction)
+			{
+				for (i32 direction_index = 0; direction_index < direction_count; ++direction_index)
+					add_move(direction_index, direction_index);
+				continue;
+			}
+
+			if (not current.turned_in_place)
+			{
+				if (can_turn_left)
+				{
+					const i32 next_direction = (current.direction + direction_count - 1) % direction_count;
+
+					add_state({current.position, next_direction, true, current.visited_waypoints}, 0);
+				}
+				if (can_turn_right)
+					add_state(
+					  {current.position, (current.direction + 1) % direction_count, true, current.visited_waypoints}, 0);
+			}
+
+			if (can_forward)
+				add_move(current.direction, current.direction);
+			if (can_backward)
+				add_move((current.direction + direction_count / 2) % direction_count, current.direction);
 		}
 
 		return std::nullopt;
 	}
 
-	// default u8 grid: 0 is walkable, anything else is a wall
-	export auto a_star(const grid<u8>& g, const ivec2 start, const ivec2 goal) -> std::optional<std::vector<ivec2>>
+	export template<typename T = u8>
+	auto a_star(const grid<T>& g, const std::span<const ivec2> waypoints, std::span<const ivec2> directions = directions4,
+				std::span<const movement_option> movement_options = default_movement_options) -> result_path
 	{
-		return a_star(g, start, goal, [](const u8 v) { return v == 0; });
+		return a_star(g, waypoints, [](const T& value) { return value == 0; }, directions, movement_options);
+	}
+
+	export template<typename T, typename WalkableFn>
+	requires Walkable<T, WalkableFn>
+	auto a_star(
+	  const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable, std::span<const ivec2> directions,
+	  std::span<const movement_option> movement_options = default_movement_options) -> result_path
+	{
+		std::vector<ivec2> waypoints{start, goal};
+		return a_star(g, waypoints, std::forward<WalkableFn>(walkable), directions, movement_options);
+	}
+
+	export template<typename T, typename WalkableFn>
+	requires Walkable<T, WalkableFn>
+	auto a_star(const grid<T>& g, const std::span<const ivec2> waypoints, WalkableFn&& walkable,
+				std::span<const movement_option> movement_options = default_movement_options) -> result_path
+	{
+		return a_star(g, waypoints, std::forward<WalkableFn>(walkable), directions4, movement_options);
+	}
+
+	export template<typename T, typename WalkableFn>
+	requires Walkable<T, WalkableFn>
+	auto a_star(const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable,
+				std::span<const movement_option> movement_options = default_movement_options) -> result_path
+	{
+		std::vector<ivec2> waypoints{start, goal};
+		return a_star(g, waypoints, std::forward<WalkableFn>(walkable), directions4, movement_options);
+	}
+
+	// default u8 grid: 0 is walkable, anything else is a wall
+	export auto a_star(
+	  const grid<u8>& g, const ivec2 start, const ivec2 goal, std::span<const ivec2> directions = directions4,
+	  std::span<const movement_option> movement_options = default_movement_options) -> result_path
+	{
+		return a_star(g, start, goal, [](const u8 v) { return v == 0; }, directions, movement_options);
 	}
 
 	// #############################
 	// BFS #########################
 
 
-	// BFS on a 4-connected grid. Returns a shortest path from start to goal (both included), or nullopt if no path exists.
+	// Left and right turn in place once between moves; the returned path contains moved cells only. The first move is
+	// unrestricted. Waypoints: first and last are start and goal, the rest are intermediate waypoints to visit in any order.
 	export template<typename T, typename WalkableFn>
 	requires Walkable<T, WalkableFn>
-	auto bfs(const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable)
-	  -> std::optional<std::vector<ivec2>>
+	auto bfs(const grid<T>& g, const std::span<const ivec2> waypoints, WalkableFn&& walkable,
+			 const std::span<const ivec2>           directions       = directions4,
+			 const std::span<const movement_option> movement_options = default_movement_options) -> result_path
 	{
-		if (not g.valid(start) or not g.valid(goal))
+		if (waypoints.size() < 2)
 			return std::nullopt;
 
-		if (not walkable(g.get(start)) or not walkable(g.get(goal)))
-			return std::nullopt;
+		// check all waypoints are valid and walkable
+		for (const ivec2 waypoint : waypoints)
+		{
+			if (not g.is_valid(waypoint) or not walkable(g.get(waypoint)))
+				return std::nullopt;
+		}
 
-		const i32 w = g.width();
-
+		const i32  w        = g.width();
 		const auto to_index = [w](const ivec2 p) { return as<i32>(p.y) * w + as<i32>(p.x); };
 		const auto to_point = [w](const i32 i) { return ivec2{as<i32>(i % w), as<i32>(i / w)}; };
 
 		constexpr i32 none = std::numeric_limits<i32>::max();
 
-		std::vector<i32>  parent(g.size(), none);
-		std::vector<bool> visited(g.size(), false);
-		std::queue<i32>   open;
+		struct state_key
+		{
+			i32                        position;
+			i32                        direction;
+			bool                       turned_in_place;
+			grid_detail::waypoint_mask visited_waypoints;
 
-		const i32 start_index = to_index(start);
-		visited[start_index]  = true;
-		open.push(start_index);
+			bool operator==(const state_key&) const = default;
+		};
 
-		constexpr std::array<ivec2, 4> directions{north, east, south, west};
+		struct state_hash
+		{
+			std::size_t operator()(const state_key& key) const
+			{
+				const std::size_t mask_hash = grid_detail::waypoint_mask_hash{}(key.visited_waypoints);
+				return as<std::size_t>(
+				  hash_combine(constant_seed, key.position, key.direction, key.turned_in_place, mask_hash));
+			}
+		};
+
+		struct state
+		{
+			state_key key;
+			i32       cost;
+			i32       parent;
+		};
+
+		std::vector<i32>           waypoint_bits(g.size(), none);
+		grid_detail::waypoint_mask all_waypoints;
+		all_waypoints.reserve_bits(waypoints.size());
+		i32                        waypoint_count = 0;
+		for (const ivec2 waypoint : waypoints)
+		{
+			const i32 index = to_index(waypoint);
+			if (waypoint_bits[index] != none)
+				continue;
+
+			const i32 bit        = waypoint_count++;
+			waypoint_bits[index] = bit;
+			all_waypoints.set(as<std::size_t>(bit));
+		}
+
+		std::vector<state>                             states;
+		std::unordered_map<state_key, i32, state_hash> state_indices;
+		std::deque<i32>                                open;
+		states.reserve(g.size());
+		state_indices.reserve(g.size());
+
+		constexpr i32 no_direction = -1;
+		state_key     start_key{to_index(waypoints.front()), no_direction, false, {}};
+		const i32     start_bit = waypoint_bits[start_key.position];
+		start_key.visited_waypoints.set(as<std::size_t>(start_bit));
+		states.push_back({start_key, 0, none});
+		state_indices.emplace(start_key, 0);
+		open.push_back(0);
+
+
+		const i32  goal            = to_index(waypoints.back());
+		const i32  direction_count = as<i32>(directions.size());
+		const bool can_turn_left   = std::ranges::contains(movement_options, movement_option::turn_left);
+		const bool can_turn_right  = std::ranges::contains(movement_options, movement_option::turn_right);
+		const bool can_forward     = std::ranges::contains(movement_options, movement_option::forward);
+		const bool can_backward    = std::ranges::contains(movement_options, movement_option::backward);
 
 		while (not open.empty())
 		{
-			const i32   current = open.front();
-			const ivec2 pos     = to_point(current);
-			open.pop();
+			const i32       current_index = open.front();
+			open.pop_front();
 
-			if (pos == goal)
+			const auto best = state_indices.find(states[current_index].key);
+			if (best == state_indices.end() or best->second != current_index)
+				continue;
+			const state_key& current = best->first;
+
+			if (current.position == goal and current.visited_waypoints == all_waypoints)
 			{
 				std::vector<ivec2> path;
-				for (i32 i = current; i != none; i = parent[i])
-					path.push_back(to_point(i));
+				for (i32 i = current_index; i != none; i = states[i].parent)
+				{
+					const ivec2 point = to_point(states[i].key.position);
+					if (path.empty() or path.back() != point)
+						path.push_back(point);
+				}
 
 				std::ranges::reverse(path);
 				return path;
 			}
 
-			for (const auto& direction : directions)
+			const auto add_state = [&](state_key next_key, const i32 cost_delta)
 			{
-				const ivec2 next = pos + direction;
+				const i32 next_cost = states[current_index].cost + cost_delta;
+				auto      existing  = state_indices.find(next_key);
+				if (existing != state_indices.end() and states[existing->second].cost <= next_cost)
+					return;
 
-				if (not g.valid(next) or not walkable(g.get(next)))
-					continue;
+				const i32 next_index = as<i32>(states.size());
+				states.push_back({next_key, next_cost, current_index});
+				if (existing == state_indices.end())
+					state_indices.emplace(std::move(next_key), next_index);
+				else
+					existing->second = next_index;
+				if (cost_delta == 0)
+					open.push_front(next_index);
+				else
+					open.push_back(next_index);
+			};
 
-				const i32 next_index = to_index(next);
-				if (visited[next_index])
-					continue;
+			const ivec2 pos      = to_point(current.position);
+			const auto  add_move = [&](const i32 move_direction, const i32 facing)
+			{
+				const ivec2 next = pos + directions[move_direction];
+				if (not g.is_valid(next) or not walkable(g.get(next)))
+					return;
 
-				visited[next_index] = true;
-				parent[next_index]  = current;
-				open.push(next_index);
+				state_key next_key{to_index(next), facing, false, current.visited_waypoints};
+				const i32 waypoint_bit = waypoint_bits[next_key.position];
+				if (waypoint_bit != none)
+					next_key.visited_waypoints.set(as<std::size_t>(waypoint_bit));
+				add_state(std::move(next_key), 1);
+			};
+
+			if (current.direction == no_direction)
+			{
+				for (i32 direction_index = 0; direction_index < direction_count; ++direction_index)
+					add_move(direction_index, direction_index);
+				continue;
 			}
+
+			if (not current.turned_in_place)
+			{
+				if (can_turn_left)
+				{
+					i32 next_direction = (current.direction - 1) % direction_count;
+					if (next_direction < 0)
+						next_direction += direction_count;
+					add_state({current.position, next_direction, true, current.visited_waypoints}, 0);
+				}
+				if (can_turn_right)
+					add_state(
+					  {current.position, (current.direction + 1) % direction_count, true, current.visited_waypoints}, 0);
+			}
+
+			if (can_forward)
+				add_move(current.direction, current.direction);
+			if (can_backward)
+				add_move((current.direction + direction_count / 2) % direction_count, current.direction);
 		}
 
 		return std::nullopt;
 	}
 
-	// default u8 grid: 0 is walkable, anything else is a wall
-	export auto bfs(const grid<u8>& g, const ivec2 start, const ivec2 goal) -> std::optional<std::vector<ivec2>>
+	export template<typename T = u8>
+	auto bfs(const grid<T>& g, const std::span<const ivec2> waypoints, const std::span<const ivec2> directions = directions4,
+			 const std::span<const movement_option> movement_options = default_movement_options) -> result_path
 	{
-		return bfs(g, start, goal, [](const u8 v) { return v == 0; });
+		return bfs(g, waypoints, [](const T& value) { return value == 0; }, directions, movement_options);
+	}
+
+	export template<typename T, typename WalkableFn>
+	requires Walkable<T, WalkableFn>
+	auto bfs(const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable,
+			 std::span<const ivec2>           directions       = directions4,
+			 std::span<const movement_option> movement_options = default_movement_options) -> result_path
+	{
+		std::vector<ivec2> waypoints{start, goal};
+		return bfs(g, waypoints, std::forward<WalkableFn>(walkable), directions, movement_options);
+	}
+
+	export template<typename T = u8>
+	auto bfs(const grid<T>& g, const ivec2 start, const ivec2 goal, std::span<const ivec2> directions = directions4,
+			 std::span<const movement_option> movement_options = default_movement_options) -> result_path
+	{
+		return bfs(g, start, goal, [](const T& value) { return value == 0; }, directions, movement_options);
 	}
 
 	// DFS on a 4-connected grid. Returns a path from start to goal (both included), or nullopt if no path exists.
@@ -951,7 +1486,7 @@ namespace deckard
 	auto dfs(const grid<T>& g, const ivec2 start, const ivec2 goal, WalkableFn&& walkable)
 	  -> std::optional<std::vector<ivec2>>
 	{
-		if (not g.valid(start) or not g.valid(goal))
+		if (not g.is_valid(start) or not g.is_valid(goal))
 			return std::nullopt;
 
 		if (not walkable(g.get(start)) or not walkable(g.get(goal)))
@@ -994,7 +1529,7 @@ namespace deckard
 			{
 				const ivec2 next = pos + direction;
 
-				if (not g.valid(next) or not walkable(g.get(next)))
+				if (not g.is_valid(next) or not walkable(g.get(next)))
 					continue;
 
 				const i32 next_index = to_index(next);

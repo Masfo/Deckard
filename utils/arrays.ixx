@@ -165,7 +165,7 @@ namespace deckard
 				for ([[maybe_unused]]usize i : upto(count_digits(w) - 1))
 					maxunit *= 10;
 
-				i32 dwidth = count_digits(w);
+				usize dwidth = count_digits(w);
 
 				for (i32 units = maxunit; units >= 1; units /= 10)
 				{

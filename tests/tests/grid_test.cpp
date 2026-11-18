@@ -1889,7 +1889,7 @@ TEST_CASE("grid", "[grid]")
 
 	SECTION("maze limited turns with waypoints")
 	{
-		//if constexpr (run_once_a_minute()) // this test is slow, so only run it once a minute
+		if constexpr (run_once_a_minute()) // this test is slow, so only run it once a minute
 		{
 			grid<char> g;
 
