@@ -29,8 +29,6 @@ namespace deckard::graph
 		std::vector<T>                               reverse_index{};
 		std::vector<std::unordered_map<u64, Weight>> edge_weights{};
 
-		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
-
 		void dfsVisit(std::size_t u, std::unordered_set<std::size_t>& visited, std::vector<T>& traversal) const
 		{
 			visited.insert(u);
@@ -45,6 +43,41 @@ namespace deckard::graph
 			}
 		}
 
+		template<typename Proj>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> at_rank_from_index(
+		  const u64 start_index, const usize rank, Proj proj) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			if (rank == 0 or rank > size() or start_index >= size())
+				co_return;
+
+			std::vector<usize> ranks(reverse_index.size(), 0);
+			std::deque<u64>    pending;
+			ranks[start_index] = 1;
+			pending.push_back(start_index);
+			while (not pending.empty())
+			{
+				const u64 node = pending.front();
+				pending.pop_front();
+				if (ranks[node] == rank)
+					continue;
+				for (u64 neighbor : adjacent_list[node])
+				{
+					if (ranks[neighbor] == 0)
+					{
+						ranks[neighbor] = ranks[node] + 1;
+						pending.push_back(neighbor);
+					}
+				}
+			}
+
+			for (u64 i = 0; i < ranks.size(); ++i)
+			{
+				if (ranks[i] == rank)
+					co_yield std::optional<U>{std::invoke(proj, reverse_index[i])};
+			}
+		}
+
 	public:
 		graph() = default;
 
@@ -54,6 +87,10 @@ namespace deckard::graph
 				return 0;
 			return adjacent_list[index_map.at(node)].size();
 		}
+
+		bool has_node(const T& node) const { return index_map.find(node) != index_map.end(); }
+
+		bool has_edge(u64 u, u64 v) const { return adjacent_list[u].find(v) != adjacent_list[u].end(); }
 
 		void clear() noexcept
 		{
@@ -195,7 +232,7 @@ namespace deckard::graph
 
 		void disconnect(const T& a, const T& b)
 		{
-			if (not index_map.contains(a) || not index_map.contains(b))
+			if (not index_map.contains(a) or not index_map.contains(b))
 				return;
 			u64 first  = index_map.at(a);
 			u64 second = index_map.at(b);
@@ -373,6 +410,66 @@ namespace deckard::graph
 				co_yield node;
 		}
 
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_leafs(Proj proj = {}) const
+		{
+			using U      = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			using Output = std::conditional_t<std::is_void_v<Container>, std::vector<U>, Container>;
+			Output out{};
+			for (auto&& leaf : leafs(std::move(proj)))
+			{
+				if constexpr (requires { out.push_back(std::move(*leaf)); })
+					out.push_back(std::move(*leaf));
+				else
+					out.insert(std::move(*leaf));
+			}
+			return out;
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> leafs(Proj proj = {}) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			for (u64 i = 0; i < reverse_index.size(); ++i)
+			{
+				if constexpr (Directed)
+				{
+					if (not adjacent_list[i].empty())
+						continue;
+				}
+				else if (adjacent_list[i].size() != 1)
+					continue;
+
+				co_yield std::optional<U>{std::invoke(proj, reverse_index[i])};
+			}
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_at_rank(const T& start, const usize rank, Proj proj = {}) const
+		{
+			using U      = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			using Output = std::conditional_t<std::is_void_v<Container>, std::vector<U>, Container>;
+			Output out{};
+			for (auto&& value : at_rank(start, rank, std::move(proj)))
+			{
+				if constexpr (requires { out.push_back(std::move(*value)); })
+					out.push_back(std::move(*value));
+				else
+					out.insert(std::move(*value));
+			}
+			return out;
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> at_rank(
+		  const T& start, const usize rank, Proj proj = {}) const
+		{
+			auto it = index_map.find(start);
+			if (it == index_map.end())
+				return at_rank_from_index(size(), rank, std::move(proj));
+			return at_rank_from_index(it->second, rank, std::move(proj));
+		}
+
 		std::generator<const WeightedEdge&> edges() const
 		{
 			for (u64 u = 0; u < adjacent_list.size(); ++u)
@@ -453,7 +550,8 @@ namespace deckard::graph
 
 		// Return a maximum matching for bipartite graphs using Hopcroft-Karp.
 		// If the graph is not bipartite, fall back to a greedy maximal matching.
-		auto max_matching() const -> std::vector<std::pair<T, T>> requires(not Directed)
+		auto max_matching() const -> std::vector<std::pair<T, T>>
+		requires(not Directed)
 		{
 			u64 n = static_cast<u64>(reverse_index.size());
 
@@ -582,7 +680,7 @@ namespace deckard::graph
 				for (i64 v : adjL[u])
 				{
 					i64 pu = pairV[v];
-					if (pu == -1 || (dist[pu] == dist[u] + 1 && dfs(pu)))
+					if (pu == -1 or (dist[pu] == dist[u] + 1 && dfs(pu)))
 					{
 						pairU[u] = v;
 						pairV[v] = u;
@@ -641,9 +739,10 @@ namespace deckard::graph
 		}
 
 		// return vector of nodes to remove to get an unconnected nodes
-		auto independent_set() const -> std::vector<T> requires(not Directed)
+		auto independent_set() const -> std::vector<T>
+		requires(not Directed)
 		{
-			assert::equal(reverse_index.size() , adjacent_list.size(), "Reverse index and adjacent list should match");
+			assert::equal(reverse_index.size(), adjacent_list.size(), "Reverse index and adjacent list should match");
 
 			u64               n = static_cast<u64>(reverse_index.size());
 			std::vector<char> blocked(n, 0);
@@ -662,7 +761,8 @@ namespace deckard::graph
 			return result;
 		}
 
-		std::vector<std::vector<T>> connected_components(u64 include_groups_larger_than = 1) const requires(not Directed)
+		std::vector<std::vector<T>> connected_components(u64 include_groups_larger_than = 1) const
+		requires(not Directed)
 		{
 			assert::equal(reverse_index.size(), adjacent_list.size(), "Reverse index and adjacent list should match");
 
@@ -702,7 +802,7 @@ namespace deckard::graph
 		{
 			auto isrc = index_map.find(src);
 			auto idst = index_map.find(dst);
-			if (isrc == index_map.end() || idst == index_map.end())
+			if (isrc == index_map.end() or idst == index_map.end())
 				return {};
 
 			u64 s = isrc->second;
@@ -771,7 +871,7 @@ namespace deckard::graph
 		{
 			auto isrc = index_map.find(src);
 			auto idst = index_map.find(dst);
-			if (isrc == index_map.end() || idst == index_map.end())
+			if (isrc == index_map.end() or idst == index_map.end())
 				return {};
 
 			u64 s = isrc->second;
@@ -820,7 +920,7 @@ namespace deckard::graph
 			}
 
 			std::vector<char> affected(n, 0);
-			std::deque<u64>  affected_nodes;
+			std::deque<u64>   affected_nodes;
 			for (const auto& e : edges)
 			{
 				u64    u;
@@ -872,7 +972,8 @@ namespace deckard::graph
 		}
 
 		// Minimum spanning tree (Kruskal) using stored edge weights. Returns forest as list of weighted edges.
-		std::vector<WeightedEdge> minimum_spanning_tree() const requires(not Directed)
+		std::vector<WeightedEdge> minimum_spanning_tree() const
+		requires(not Directed)
 		{
 			u64                                       n = static_cast<u64>(reverse_index.size());
 			std::vector<std::tuple<Weight, u64, u64>> edges;
@@ -893,7 +994,8 @@ namespace deckard::graph
 				}
 			}
 
-			std::sort(edges.begin(), edges.end(), [](auto const& a, auto const& b) { return std::get<0>(a) < std::get<0>(b); });
+			std::sort(
+			  edges.begin(), edges.end(), [](const auto& a, const auto& b) { return std::get<0>(a) < std::get<0>(b); });
 
 			// union-find
 			std::vector<u64> parent(n);
@@ -948,7 +1050,8 @@ namespace deckard::graph
 		}
 
 		// Global minimum cut using Stoer-Wagner; returns the weight and one side of the partition.
-		auto minimum_cut() const -> std::pair<Weight, std::vector<T>> requires(not Directed)
+		auto minimum_cut() const -> std::pair<Weight, std::vector<T>>
+		requires(not Directed)
 		{
 			u64 n = static_cast<u64>(reverse_index.size());
 			if (n < 2)
@@ -980,13 +1083,13 @@ namespace deckard::graph
 			for (u64 i = 0; i < n; ++i)
 				groups[i].push_back(i);
 
-			Weight             minimum_weight = std::numeric_limits<Weight>::max();
-			std::vector<u64>   minimum_group;
+			Weight           minimum_weight = std::numeric_limits<Weight>::max();
+			std::vector<u64> minimum_group;
 			while (active.size() > 1)
 			{
-				std::vector<char>  added(static_cast<size_t>(n), 0);
+				std::vector<char>   added(static_cast<size_t>(n), 0);
 				std::vector<Weight> connection(static_cast<size_t>(n), Weight{});
-				u64 previous = active.front();
+				u64                 previous = active.front();
 
 				for (size_t phase_index = 0; phase_index < active.size(); ++phase_index)
 				{
@@ -1020,7 +1123,7 @@ namespace deckard::graph
 					}
 
 					added[selected] = 1;
-					previous      = selected;
+					previous        = selected;
 					for (u64 v : active)
 					{
 						if (not added[v])
@@ -1036,12 +1139,13 @@ namespace deckard::graph
 			return {minimum_weight, std::move(partition)};
 		}
 
-		auto bridges() const -> std::vector<WeightedEdge> requires(not Directed)
+		auto bridges() const -> std::vector<WeightedEdge>
+		requires(not Directed)
 		{
-			u64                          n = static_cast<u64>(reverse_index.size());
-			std::vector<int>             disc(n, -1);
-			std::vector<int>             low(n, -1);
-			std::vector<int>             parent(n, -1);
+			u64                       n = static_cast<u64>(reverse_index.size());
+			std::vector<int>          disc(n, -1);
+			std::vector<int>          low(n, -1);
+			std::vector<int>          parent(n, -1);
 			std::vector<WeightedEdge> result;
 
 			int timer = 0;
@@ -1081,7 +1185,8 @@ namespace deckard::graph
 			return result;
 		}
 
-		std::vector<T> articulation_points() const requires(not Directed)
+		std::vector<T> articulation_points() const
+		requires(not Directed)
 		{
 			u64               n = static_cast<u64>(reverse_index.size());
 			std::vector<int>  disc(n, -1);
@@ -1131,7 +1236,8 @@ namespace deckard::graph
 		}
 
 		// Return true if graph contains any cycle (undirected)
-		auto has_cycle() const -> bool requires(not Directed)
+		auto has_cycle() const -> bool
+		requires(not Directed)
 		{
 			u64               n = static_cast<u64>(reverse_index.size());
 			std::vector<char> visited(n, 0);
@@ -1169,7 +1275,8 @@ namespace deckard::graph
 		}
 
 		// Return true if the graph is a tree: connected and acyclic.
-		auto is_tree() const -> bool requires(not Directed)
+		auto is_tree() const -> bool
+		requires(not Directed)
 		{
 			u64 n = static_cast<u64>(reverse_index.size());
 			if (n == 0)
@@ -1203,7 +1310,8 @@ namespace deckard::graph
 		}
 
 		// return cycles in the graph
-		auto cycles() const -> std::vector<std::vector<T>> requires(not Directed)
+		auto cycles() const -> std::vector<std::vector<T>>
+		requires(not Directed)
 		{
 			u64                             n = static_cast<u64>(reverse_index.size());
 			std::vector<char>               visited(n, 0);
@@ -1307,11 +1415,11 @@ namespace deckard::graph
 						Weight d = p.second;
 						if (std::isnan(d))
 							continue;
-						if (!best.has_value() || d > ecc)
+						if (!best.has_value() or d > ecc)
 							ecc = std::max(ecc, d);
 					}
 				}
-				if (!best.has_value() || ecc < *best)
+				if (!best.has_value() or ecc < *best)
 					best = ecc;
 			}
 			return best;
@@ -1339,13 +1447,13 @@ namespace deckard::graph
 						ecc = std::max(ecc, d);
 					}
 				}
-				if (!best.has_value() || ecc > *best)
+				if (!best.has_value() or ecc > *best)
 					best = ecc;
 			}
 			return best;
 		}
 
-		// compress 
+		// compress
 		void compress()
 		{
 			std::vector<T>                               new_reverse_index;
@@ -1385,7 +1493,6 @@ namespace deckard::graph
 			adjacent_list = std::move(new_adjacent_list);
 			edge_weights  = std::move(new_edge_weights);
 		}
-
 
 		auto difference(const graph& other) const -> std::vector<T>
 		{
@@ -1434,6 +1541,23 @@ namespace deckard::graph
 			}
 			return g;
 		}
+
+		[[nodiscard]] std::string to_string() const
+		{
+			std::string out;
+			for (u64 i = 0; i < reverse_index.size(); ++i)
+			{
+				if (i != 0)
+					out.push_back('\n');
+
+				std::format_to(std::back_inserter(out), "{} :", reverse_index[i]);
+				for (u64 neighbor : adjacent_list[i])
+					std::format_to(std::back_inserter(out), " {}", reverse_index[neighbor]);
+			}
+			return out;
+		}
+
+		void print() const { dbg::println("{}", to_string()); }
 
 		void dump_as_matrix() const
 		{
@@ -1492,7 +1616,10 @@ namespace deckard::graph
 		T      to;
 		Weight weight{Weight{0}};
 
-		bool operator==(const weighted_edge_t& rhs) const { return from == rhs.from and to == rhs.to and weight == rhs.weight; }
+		bool operator==(const weighted_edge_t& rhs) const
+		{
+			return from == rhs.from and to == rhs.to and weight == rhs.weight;
+		}
 	};
 
 	export template<typename T>

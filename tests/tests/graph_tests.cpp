@@ -8,7 +8,13 @@ import deckard.graph;
 using namespace deckard;
 using namespace deckard::graph;
 
-TEST_CASE("Graph/Undirected", "[graph][undirected]")
+// █    █   █    █   █████    ██████   █████    ██████    ████    ██████   ██████   █████    
+// █    █   ██   █   █    █     ██     █    █   █        █          ██     █        █    █   
+// █    █   █ █  █   █    █     ██     █████    ████     █          ██     ████     █    █   
+// █    █   █  █ █   █    █     ██     █   █    █        █          ██     █        █    █   
+//  ████    █   ██   █████    ██████   █    █   ██████    ████      ██     ██████   █████
+
+  TEST_CASE("Graph/Undirected", "[graph][undirected]")
 {
 	SECTION("empty")
 	{
@@ -847,7 +853,59 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(diff.has_edge("A", "D") == true);
 		CHECK(diff.weight("A", "D") == 7);
 	}
+
+	SECTION("leafs and nodes at rank")
+	{
+		/*
+		
+			A --- B     E
+			|        
+			|
+			C --- D
+		*/
+
+		undirected<std::string> g;
+		g.connect("A", "B", 8);
+		g.connect("A", "C", 1);
+		g.connect("C", "D", 1);
+		g.add("E");
+
+		CHECK(g.collect_leafs() == std::vector<std::string>{"B", "D"});
+		CHECK(g.collect_leafs<std::list<char>>([](const auto& node) { return node.front(); }) == std::list<char>{'B', 'D'});
+
+		std::vector<std::string> generated_leafs;
+		for (const auto& leaf : g.leafs())
+			generated_leafs.push_back(*leaf);
+		CHECK(generated_leafs == std::vector<std::string>{"B", "D"});
+
+		CHECK(g.collect_at_rank("A", 1) == std::vector<std::string>{"A"});
+		CHECK(g.collect_at_rank("A", 2) == std::vector<std::string>{"B", "C"});
+		CHECK(g.collect_at_rank("A", 3) == std::vector<std::string>{"D"});
+		std::vector<std::string> generated_rank;
+		for (const auto& value : g.at_rank("A", 2))
+			generated_rank.push_back(*value);
+		CHECK(generated_rank == std::vector<std::string>{"B", "C"});
+		CHECK(g.collect_at_rank("missing", 1).empty());
+		CHECK(g.collect_at_rank("A", 0).empty());
+	}
+
+	SECTION("print")
+	{
+		undirected<std::string> g;
+		g.connect("A", "B");
+		g.add("C");
+
+		CHECK(g.to_string() == "A : B\nB : A\nC :");
+	}
 }
+ 
+// █████    ██████   █████    ██████    ████    ██████   ██████   █████    
+// █    █     ██     █    █   █        █          ██     █        █    █   
+// █    █     ██     █████    ████     █          ██     ████     █    █   
+// █    █     ██     █   █    █        █          ██     █        █    █   
+// █████    ██████   █    █   ██████    ████      ██     ██████   █████    
+ 
+
 
 TEST_CASE("Graph/Directed", "[graph][directed]")
 {
@@ -993,6 +1051,21 @@ TEST_CASE("Graph/Directed", "[graph][directed]")
 		CHECK(g.shortest_path("C", "A").empty());
 	}
 
+	SECTION("leafs and nodes at rank")
+	{
+		directed<std::string> g;
+		g.connect("A", "B");
+		g.connect("A", "C");
+		g.connect("C", "D");
+		g.connect("D", "C");
+		g.add("E");
+
+		CHECK(g.collect_leafs() == std::vector<std::string>{"B", "E"});
+		CHECK(g.collect_at_rank("A", 2) == std::vector<std::string>{"B", "C"});
+		CHECK(g.collect_at_rank("A", 3) == std::vector<std::string>{"D"});
+		CHECK(g.collect_at_rank("B", 2).empty());
+	}
+
 	SECTION("Bellman-Ford shortest path")
 	{
 		directed<std::string> g;
@@ -1026,6 +1099,12 @@ TEST_CASE("Graph/Directed", "[graph][directed]")
 		CHECK(unaffected_path[0] == weighted_edge<std::string>{"S", "T", 5});
 	}
 }
+
+// █████    ██████   █    █    ████    █████    █    █   ██████   █████    ██████   ██████   
+// █    █     ██     ██   █   █    █   █    █    █  █      ██     █    █   █        █        
+// █████      ██     █ █  █   ██████   █████      ██       ██     █████    ████     ████     
+// █    █     ██     █  █ █   █    █   █   █      ██       ██     █   █    █        █        
+// █████    ██████   █   ██   █    █   █    █     ██       ██     █    █   ██████   ██████   
 
 TEST_CASE("Binary Tree", "[binarytree]")
 {
@@ -1188,11 +1267,18 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 	SECTION("print") 
 	{ 
+		/*
+		     50
+		     ├── 25
+		     │   ├── 10
+		     │   └── ·
+		     └── 75
+		*/
+
 		binary::tree<i32> tree;
 		tree.insert(50, 25, 75, 10);
 		CHECK(tree.size() == 4);
 
-		tree.print();
 		auto printed = tree.to_string();
 		CHECK(printed.find("50") != std::string::npos);
 
@@ -1391,7 +1477,12 @@ TEST_CASE("Binary Tree", "[binarytree]")
 	}
 }
 
-// AVL
+//  ████    █    █   █        
+// █    █   █    █   █        
+// ██████   █    █   █        
+// █    █    █  █    █        
+// █    █     ██     ██████   
+
 
 TEST_CASE("AVL", "[avl]")
 {
