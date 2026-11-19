@@ -247,11 +247,19 @@ namespace deckard::graph
 			}
 		}
 
-		bool empty() const { return reverse_index.empty(); }
+		[[nodiscard]] auto find(const T& node) const -> std::optional<u64>
+		{
+			auto it = index_map.find(node);
+			if (it == index_map.end())
+				return {};
+			return it->second;
+		}
 
-		u64 node_count() const { return reverse_index.size(); }
+		[[nodiscard]] bool empty() const { return reverse_index.empty(); }
 
-		u64 edge_count() const
+		[[nodiscard]] u64 node_count() const { return reverse_index.size(); }
+
+		[[nodiscard]] u64 edge_count() const
 		{
 			u64 total = 0;
 			for (const auto& nbrs : adjacent_list)
