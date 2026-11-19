@@ -133,38 +133,45 @@ namespace deckard::graph::binary
 		template<typename X = T, typename... Args>
 		void insert(X&& first, Args&&... args)
 		{
-			insert_util(std::forward<X>(first), root);
-			++count;
+			if (insert_util(std::forward<X>(first), root) != nullptr)
+				++count;
 			insert(std::forward<Args>(args)...);
 		}
 
 		template<typename X = T>
 		auto insert(X&& first) -> Node*
 		{
-			++count;
-			return insert_util(std::forward<X>(first), root);
+			auto node = insert_util(std::forward<X>(first), root);
+			if (node != nullptr)
+				++count;
+			return node;
 		}
 
 		// remove
 		template<typename X = T, typename... Args>
 		void remove(const X& first, Args&&... args)
 		{
-			if (count == 0)
-				return;
-
-			remove_util(first, root);
-			--count;
+			if (remove_util(first, root))
+				--count;
 			remove(std::forward<Args>(args)...);
 		}
 
 		void remove(const T& first)
 		{
-			if (count == 0)
-				return;
-
-			remove_util(first, root);
-			--count;
+			if (remove_util(first, root))
+				--count;
 		}
+
+		nodeptr& get_root() { return root; }
+
+		usize height(const nodeptr& node) const
+		{
+			if (not node)
+				return 0;
+			return 1 + std::max(height(node->left), height(node->right));
+		}
+
+		usize height() const { return height(root); }
 
 		const T& min_element() const { return min_element(root); }
 
@@ -219,6 +226,145 @@ namespace deckard::graph::binary
 				visit_levelorder(root, v);
 		}
 
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_leafs(const nodeptr& node, Proj proj = {}) const
+		{
+			using U      = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			using Output = std::conditional_t<std::is_void_v<Container>, std::vector<U>, Container>;
+			Output out{};
+
+			if (not node)
+				return out;
+
+			auto add = [&](const T& value)
+			{
+				auto projected = std::invoke(proj, value);
+				if constexpr (requires { out.push_back(projected); })
+					out.push_back(std::move(projected));
+				else
+					out.insert(std::move(projected));
+			};
+
+			auto walk = [&](this auto&& self, const nodeptr& n) -> void
+			{
+				if (not n)
+					return;
+				if (not n->left and not n->right)
+				{
+					add(n->data);
+					return;
+				}
+				self(n->left);
+				self(n->right);
+			};
+			walk(node);
+			return out;
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_leafs(Proj proj = {}) const
+		{
+			return collect_leafs<Container>(root, std::move(proj));
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> leafs(
+		  const nodeptr& node, Proj proj = {}) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			if (not node)
+				co_return;
+			std::deque<const Node*> pending;
+			pending.emplace_back(node.get());
+			while (not pending.empty())
+			{
+				const auto n = pending.front();
+				pending.pop_front();
+				if (not n->left and not n->right)
+				{
+					co_yield std::optional<U>{std::invoke(proj, n->data)};
+					continue;
+				}
+				if (n->left)
+					pending.emplace_back(n->left.get());
+				if (n->right)
+					pending.emplace_back(n->right.get());
+			}
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> leafs(
+		  Proj proj = {}) const
+		{
+			return leafs(root, std::move(proj));
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_at_rank(const nodeptr& root, usize rank, Proj proj = {}) const
+		{
+			using U      = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			using Output = std::conditional_t<std::is_void_v<Container>, std::vector<U>, Container>;
+			Output out;
+			if (rank == 0 or rank > size())
+				return out;
+			auto add = [&](const T& value)
+			{
+				auto projected = std::invoke(proj, value);
+				if constexpr (requires { out.push_back(projected); })
+					out.push_back(std::move(projected));
+				else
+					out.insert(std::move(projected));
+			};
+
+			auto walk = [&](this auto&& self, const nodeptr& n, usize r) -> void
+			{
+				if (not n or r == 0)
+					return;
+				if (r == 1)
+				{
+					add(n->data);
+					return;
+				}
+				self(n->left, r - 1);
+				self(n->right, r - 1);
+			};
+
+			walk(root, rank);
+			return out;
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_at_rank(const usize rank, Proj proj = {}) const
+		{
+			return collect_at_rank<Container>(root, rank, std::move(proj));
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> at_rank(
+		  const usize rank, Proj proj = {}) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			if (rank == 0 or rank > size())
+				co_return;
+
+			std::deque<std::pair<const Node*, usize>> pending;
+			pending.emplace_back(root.get(), 1);
+			while (not pending.empty())
+			{
+				const auto [node, node_rank] = pending.front();
+				pending.pop_front();
+				if (node_rank == rank)
+				{
+					co_yield std::optional<U>{std::invoke(proj, node->data)};
+					continue;
+				}
+				if (node->left)
+					pending.emplace_back(node->left.get(), node_rank + 1);
+				if (node->right)
+					pending.emplace_back(node->right.get(), node_rank + 1);
+			}
+		}
+
 		void clear()
 		{
 			root.reset(nullptr);
@@ -226,6 +372,16 @@ namespace deckard::graph::binary
 		}
 
 		void print() { print(root); }
+
+		[[nodiscard]] std::string to_string() const { return to_string(root); }
+
+		[[nodiscard]] std::string to_string(const nodeptr& node) const
+		{
+			std::string out;
+			if (node)
+				append_tree(out, node, {}, true, true);
+			return out;
+		}
 
 	private:
 		bool contains(const T& x, const nodeptr& node) const
@@ -245,19 +401,19 @@ namespace deckard::graph::binary
 
 		bool compare_util(const nodeptr& left, const nodeptr& right) const
 		{
-			if (!left && !right)
+			if (not left and not right)
 				return true;
-			else if (!left || !right)
+			else if (not left or not right)
 				return false;
 			else if (left->data != right->data)
 				return false;
 
-			return compare_util(left->left, right->left) && compare_util(left->right, right->right);
+			return compare_util(left->left, right->left) and compare_util(left->right, right->right);
 		}
 
 		nodeptr clone(const nodeptr& node) const
 		{
-			if (!node)
+			if (not node)
 				return nullptr;
 
 			return std::make_unique<Node>(node->data, clone(node->left), clone(node->right));
@@ -280,26 +436,28 @@ namespace deckard::graph::binary
 			return ret;
 		}
 
-		void remove_util(const T& x, nodeptr& node)
+		bool remove_util(const T& x, nodeptr& node)
 		{
 			if (node == nullptr)
-				return;
+				return false;
 
 			if (x < node->data)
-				remove_util(x, node->left);
+				return remove_util(x, node->left);
 			else if (node->data < x)
-				remove_util(x, node->right);
+				return remove_util(x, node->right);
 			else if (node->left != nullptr && node->right != nullptr)
 			{
 				// Two children
-				node->data = find_min(node->right);
-				remove_util(node->data, node->right);
+				const T successor = min_element(node->right);
+				node->data        = successor;
+				return remove_util(successor, node->right);
 			}
 			else
 			{
 				// One children
 				nodeptr oldNode{std::move(node)};
 				node = (oldNode->left != nullptr) ? std::move(oldNode->left) : std::move(oldNode->right);
+				return true;
 			}
 		}
 
@@ -400,27 +558,38 @@ namespace deckard::graph::binary
 			}
 		}
 
-		void print(const nodeptr& node) { print("", node, false); }
+		void print(const nodeptr& node) { dbg::println("{}", to_string(node)); }
 
-		void print(const std::string& prefix, const nodeptr& node, bool isleft)
+
+		void append_tree(std::string& out, const nodeptr& n, const std::string& prefix, bool is_last, bool is_root) const
 		{
-			if (node == nullptr)
+			const auto branch = is_last ? "└── " : "├── ";
+			auto       it     = std::back_inserter(out);
+
+			if (!n) // placeholder for a missing child
+			{
+				std::format_to(it, "{}{}·\n", prefix, branch);
+				return;
+			}
+
+			if (is_root)
+				std::format_to(it, "{}\n", n->data);
+			else
+				std::format_to(it, "{}{}{}\n", prefix, branch, n->data);
+
+			if (!n->left && !n->right)
 				return;
 
-			dbg::print("{}", prefix);
-			dbg::print("{}", isleft ? "├──" : "└──");
+			const auto child_prefix = is_root ? std::string{} : prefix + (is_last ? "    " : "│   ");
 
-			dbg::println("{}", node->data);
-
-			print(prefix + (isleft ? "│   " : "    "), node->left, true);
-			print(prefix + (isleft ? "│   " : "    "), node->right, false);
+			append_tree(out, n->left, child_prefix, false, false);
+			append_tree(out, n->right, child_prefix, true, false);
 		}
 	};
 
-
 	// #################################
 
-	export template<typename T, std::unsigned_integral U=u16>
+	export template<typename T, std::unsigned_integral U = u16>
 	class flat_tree
 	{
 	private:
@@ -433,24 +602,24 @@ namespace deckard::graph::binary
 
 		static constexpr U null_index = 0;
 		std::vector<node>  nodes;
-	public:
 
+	public:
 		explicit flat_tree(size_t capacity = 0)
 		{
-			nodes.reserve(capacity+1);
+			nodes.reserve(capacity + 1);
 			nodes.push_back(node{}); // index 0 is reserved for null
 		}
 
 		[[nodiscard]] auto insert(const T value) -> U
 		{
-			auto const index = static_cast<U>(nodes.size());
+			const auto index = static_cast<U>(nodes.size());
 
 			assert::check(index < std::numeric_limits<U>::max(), "flat_tree: index overflow");
 
 			nodes.emplace_back(value);
 
 			if (index == 1)
-				return index; 
+				return index;
 
 			u32 cur = 1;
 			while (true)
@@ -486,7 +655,7 @@ namespace deckard::graph::binary
 			u32 cur = size() == 0 ? null_index : 1;
 			while (cur != null_index)
 			{
-				auto const& n = nodes[cur];
+				const auto& n = nodes[cur];
 				if (value == n.value)
 					return cur;
 				else if (value < n.value)
@@ -523,10 +692,9 @@ namespace deckard::graph::binary
 		{
 			if (idx == null_index or size() == 0)
 				return 0;
-			auto const& n = nodes[idx];
+			const auto& n = nodes[idx];
 			return 1 + std::max(height(n.left), height(n.right));
 		}
-
 
 		[[nodiscard]] auto get(u32 index) const -> const node&
 		{
@@ -552,7 +720,6 @@ namespace deckard::graph::binary
 			return nodes.capacity() - 1; // exclude the null node
 		}
 	};
-
 
 
 } // namespace deckard::graph::binary

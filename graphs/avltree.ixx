@@ -1,4 +1,7 @@
+module;
+#include <version>
 export module deckard.graph:avltree;
+
 
 import std;
 import deckard.types;
@@ -204,16 +207,153 @@ namespace deckard::graph::avl
 				visit_levelorder(root, v);
 		}
 
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_leafs(const nodeptr& node, Proj proj = {}) const
+		{
+			using U      = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			using Output = std::conditional_t<std::is_void_v<Container>, std::vector<U>, Container>;
+			Output out{};
+
+			if (not node)
+				return out;
+
+			auto add = [&](const T& value)
+			{
+				auto projected = std::invoke(proj, value);
+				if constexpr (requires { out.push_back(projected); })
+					out.push_back(std::move(projected));
+				else
+					out.insert(std::move(projected));
+			};
+
+			auto walk = [&](this auto&& self, const nodeptr& n) -> void
+			{
+				if (not n)
+					return;
+				if (not n->left and not n->right)
+				{
+					add(n->data);
+					return;
+				}
+				self(n->left);
+				self(n->right);
+			};
+			walk(node);
+			return out;
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_leafs(Proj proj = {}) const
+		{
+			return collect_leafs<Container>(root, std::move(proj));
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> leafs(
+		  const nodeptr& node, Proj proj = {}) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			if (not node)
+				co_return;
+
+			std::deque<const Node*> pending;
+			pending.emplace_back(node.get());
+			while (not pending.empty())
+			{
+				const auto n = pending.front();
+				pending.pop_front();
+				if (not n->left and not n->right)
+				{
+					co_yield std::optional<U>{std::invoke(proj, n->data)};
+					continue;
+				}
+				if (n->left)
+					pending.emplace_back(n->left.get());
+				if (n->right)
+					pending.emplace_back(n->right.get());
+			}
+		}
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>> leafs(
+		  Proj proj = {}) const
+		{
+			return leafs(root, std::move(proj));
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_at_rank(const nodeptr& root, usize rank, Proj proj = {}) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			using Output = std::conditional_t<std::is_void_v<Container>, std::vector<U>, Container>;
+			Output out;
+			if (rank == 0 or rank > size())
+				return out;
+			auto add = [&](const T& value)
+			{
+				auto projected = std::invoke(proj, value);
+				if constexpr (requires { out.push_back(projected); })
+					out.push_back(std::move(projected));
+				else
+					out.insert(std::move(projected));
+			};
+
+			auto walk = [&](this auto&& self, const nodeptr& n, usize r) -> void
+			{
+				if (not n or r == 0)
+					return;
+				if (r == 1)
+				{
+					add(n->data);
+					return;
+				}
+				self(n->left, r - 1);
+				self(n->right, r - 1);
+			};
+
+			walk(root, rank);
+			return out;
+		}
+
+		template<typename Container = void, typename Proj = std::identity>
+		[[nodiscard]] auto collect_at_rank(const usize rank, Proj proj = {}) const
+		{
+			return collect_at_rank<Container>(root, rank, std::move(proj));
+		}
+
+
+		template<typename Proj = std::identity>
+		std::generator<std::optional<std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>>>
+		at_rank(const usize rank, Proj proj = {}) const
+		{
+			using U = std::remove_cvref_t<std::invoke_result_t<Proj, const T&>>;
+			if (rank == 0 or rank > size())
+				co_return;
+
+			std::deque<std::pair<const Node*, usize>> pending;
+			pending.emplace_back(root.get(), 1);
+			while (not pending.empty())
+			{
+				const auto [node, node_rank] = pending.front();
+				pending.pop_front();
+				if (node_rank == rank)
+				{
+					co_yield std::optional<U>{std::invoke(proj, node->data)};
+					continue;
+				}
+				if (node->left)
+					pending.emplace_back(node->left.get(), node_rank + 1);
+				if (node->right)
+					pending.emplace_back(node->right.get(), node_rank + 1);
+			}
+		}
+
+
+
+
 		void print() const
 		{
-			if (empty())
-				dbg::println("{}");
-			else
-			{
-				dbg::print("{");
-				visit_inorder([](const T& data) { dbg::print("{}, ", data); });
-				dbg::println("}");
-			}
+			dbg::println("{}", to_string(root));
 		}
 
 #if __cpp_lib_optional_ref
@@ -231,6 +371,16 @@ namespace deckard::graph::avl
 		bool operator==(const tree& other) const { return compare(other); }
 
 		void print() { print(root); }
+
+		[[nodiscard]] std::string to_string() const { return to_string(root); }
+
+		[[nodiscard]] std::string to_string(const nodeptr& root) const
+		{
+			std::string out;
+			if (root)
+				append_tree(out, root, {}, true, true);
+			return out;
+		}
 
 
 	private:
@@ -466,20 +616,31 @@ namespace deckard::graph::avl
 			rotate_right(k1);
 		}
 
-		void print(const nodeptr& node) { print("", node, false); }
+		void print(const nodeptr& node) { dbg::println("{}", to_string(node)); }
 
-		void print(const std::string& prefix, const nodeptr& node, bool isleft)
+		void append_tree(std::string& out, const nodeptr& n, const std::string& prefix, bool is_last, bool is_root) const
 		{
-			if (node == nullptr)
+			const auto branch = is_last ? "└── " : "├── ";
+			auto       it     = std::back_inserter(out);
+
+			if (!n)
+			{
+				std::format_to(it, "{}{}·\n", prefix, branch);
+				return;
+			}
+
+			if (is_root)
+				std::format_to(it, "{}\n", n->data);
+			else
+				std::format_to(it, "{}{}{}\n", prefix, branch, n->data);
+
+			if (!n->left && !n->right)
 				return;
 
-			dbg::print("{}", prefix);
-			dbg::print("{}", isleft ? "├──" : "└──");
+			const auto child_prefix = is_root ? std::string{} : prefix + (is_last ? "    " : "│   ");
 
-			dbg::println("─ {}", node->data);
-
-			print(prefix + (isleft ? "│   " : "    "), node->left, true);
-			print(prefix + (isleft ? "│   " : "    "), node->right, false);
+			append_tree(out, n->left, child_prefix, false, false);
+			append_tree(out, n->right, child_prefix, true, false);
 		}
 
 	}; // end of class avl

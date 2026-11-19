@@ -366,40 +366,6 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(path[1] == weighted_edge<std::string>{"A", "B", 1});
 	}
 
-	SECTION("Bellman-Ford shortest path")
-	{
-
-		/*	/ --- B -- C
-		 *	|	  |    |
-		 *  S --- A ---/   
-		 *  
-		 *        D
-		 */
-
-
-		directed<std::string> gr;
-		gr.connect("S", "A", 4);
-		gr.connect("S", "B", 5);
-		gr.connect("A", "B", -2);
-		gr.connect("B", "C", 3);
-		gr.connect("A", "C", 10);
-		gr.add("D");
-
-		auto path = gr.shortest_path_bellman_ford("S", "C");
-		CHECK(path.size() == 3);
-		CHECK(path[0] == weighted_edge<std::string>{"S", "A", 4});
-		CHECK(path[1] == weighted_edge<std::string>{"A", "B", -2});
-		CHECK(path[2] == weighted_edge<std::string>{"B", "C", 3});
-		CHECK(gr.shortest_path_bellman_ford("S", "D").empty());
-
-		directed<std::string> negative_cycle;
-		negative_cycle.connect("S", "A", 1);
-		negative_cycle.connect("A", "B", -2);
-		negative_cycle.connect("B", "A", -2);
-		CHECK(negative_cycle.shortest_path_bellman_ford("S", "B").empty());
-	}
-
-
 	SECTION("all pairs")
 	{
 		/*		  C
@@ -430,6 +396,7 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.has_edge("A", "B") == true);
 
 		auto allpairs = gr.all_pairs_shortest_paths();
+
 		CHECK(allpairs.size() == 6);
 		CHECK(allpairs["A"]["A"] == 0);
 		CHECK(allpairs["A"]["B"] == 3);
@@ -554,7 +521,6 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		{
 			CHECK(node.size() == 1);
 		}
-
 	}
 
 	SECTION("minimum spanning tree")
@@ -747,6 +713,318 @@ TEST_CASE("Graph/Undirected", "[graph][undirected]")
 		CHECK(gr.connected_components(0).size() == 5); // Sets: D, C, [B,F,E], Z, Y
 		CHECK(gr.connected_components(1).size() == 1); // Sets [B,F,E]
 	}
+
+
+	SECTION("compress")
+	{
+		undirected<std::string> gr;
+
+		/*
+
+			A -- B --- C --- D
+
+
+				 Z
+
+		*/
+
+		gr.add("Z");
+		gr.connect("A", "B", 2);
+		gr.connect("B", "C", 2);
+		gr.connect("C", "D", 2);
+		CHECK(gr.size() == 5);
+		CHECK(gr.edge_count() == 3);
+
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.weight("A", "B") == 2);
+
+		CHECK(gr.has_edge("B", "C") == true);
+		CHECK(gr.weight("B", "C") == 2);
+
+		CHECK(gr.has_edge("C", "D") == true);
+		CHECK(gr.weight("C", "D") == 2);
+
+		CHECK(gr.has_edge("A", "Z") == false);
+		CHECK(gr.weight("A", "Z") == std::nullopt);
+
+		gr.compress();
+
+		/*
+
+			A -- B --- C --- D
+
+		*/
+		CHECK(gr.size() == 4);
+		CHECK(gr.edge_count() == 3);
+		CHECK(gr.has_edge("A", "B") == true);
+		CHECK(gr.has_edge("B", "C") == true);
+		CHECK(gr.has_edge("C", "D") == true);
+	}
+
+	SECTION("difference")
+	{
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B    Q -- Z
+		 *        |      |    |
+		 *        E ---- F    Y
+		 */
+
+		undirected<std::string> gr1;
+		gr1.connect("A", "B", 8);
+		gr1.connect("A", "C", 1);
+		gr1.connect("A", "D", 3);
+		gr1.connect("A", "E", 1);
+
+		gr1.connect("B", "F", 1);
+		gr1.connect("E", "F", 1);
+
+		gr1.connect("Q", "Z", 1);
+		gr1.connect("Q", "Y", 1);
+
+		CHECK(gr1.size() == 9);
+		CHECK(gr1.edge_count() == 8);
+
+
+		/*		  C
+		 *		  |
+		 *  D --- A ---- B
+		 *        |      |
+		 *        E ---- F
+		 */
+		undirected<std::string> gr2;
+		gr2.connect("A", "B", 8);
+		gr2.connect("A", "C", 1);
+		gr2.connect("A", "D", 3);
+		gr2.connect("A", "E", 1);
+
+		gr2.connect("B", "F", 1);
+		gr2.connect("E", "F", 1);
+
+		CHECK(gr2.size() == 6);
+		CHECK(gr2.edge_count() == 6);
+
+		auto diff = gr1.difference(gr2);
+		CHECK_FALSE(diff.empty());
+		CHECK(diff.size() == 3);
+		CHECK(std::ranges::contains(diff, "Q"));
+		CHECK(std::ranges::contains(diff, "Y"));
+		CHECK(std::ranges::contains(diff, "Z"));
+	}
+
+	SECTION("difference_graph")
+	{
+		/*
+				A -- B -- C
+				|         |
+				|         |      E
+				D---------/
+		*/
+		undirected<std::string> gr1;
+		gr1.connect("A", "B", 2);
+		gr1.connect("A", "D", 7);
+		gr1.connect("B", "C", 3);
+		gr1.connect("C", "D", 4);
+		gr1.add("E");
+
+		undirected<std::string> gr2;
+		gr2.add("B");
+		gr2.add("C");
+
+		/*
+				B      C
+
+		*/
+
+		auto diff = gr1.difference_graph(gr2);
+		CHECK(diff.size() == 3);
+		CHECK(diff.contains("A") == true);
+		CHECK(diff.contains("D") == true);
+		CHECK(diff.contains("E") == true);
+		CHECK(diff.contains("B") == false);
+		CHECK(diff.contains("C") == false);
+		CHECK(diff.edge_count() == 1);
+		CHECK(diff.has_edge("A", "D") == true);
+		CHECK(diff.weight("A", "D") == 7);
+	}
+}
+
+TEST_CASE("Graph/Directed", "[graph][directed]")
+{
+	SECTION("empty")
+	{
+		directed<std::string> g;
+		CHECK(g.size() == 0);
+		CHECK(g.node_count() == 0);
+		CHECK(g.edge_count() == 0);
+		CHECK(g.empty() == true);
+	}
+
+	SECTION("add nodes and connect directed edges")
+	{
+		directed<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		g.connect("A", "B", 4);
+		g.connect("C", "A");
+
+		CHECK(g.size() == 3);
+		CHECK(g.node_count() == 3);
+		CHECK(g.edge_count() == 2);
+		CHECK(g.degree("A") == 1);
+		CHECK(g.degree("B") == 0);
+		CHECK(g.degree("C") == 1);
+		CHECK(g.has_edge("A", "B") == true);
+		CHECK(g.has_edge("B", "A") == false);
+		CHECK(g.has_edge("C", "A") == true);
+		CHECK(g.weight("A", "B") == 4);
+		CHECK(g.weight("B", "A").has_value() == false);
+	}
+
+	SECTION("edges preserve direction")
+	{
+		directed<std::string> g;
+		g.add("A");
+		g.add("B");
+		g.add("C");
+		g.connect("C", "A", 3);
+		g.connect("A", "B", 2);
+
+		auto edges = g.edges_as_vector();
+		CHECK(edges.size() == 2);
+		CHECK(edges[0] == weighted_edge<std::string>{"A", "B", 2});
+		CHECK(edges[1] == weighted_edge<std::string>{"C", "A", 3});
+
+		std::vector<weighted_edge<std::string>> generated_edges;
+		for (const auto& edge : g.edges())
+			generated_edges.push_back(edge);
+		CHECK(generated_edges == edges);
+	}
+
+	SECTION("difference graph preserves directed edges")
+	{
+		/*
+			A --2--> B --4--> C
+			A <--3-- B
+			A --7--> D
+			A <--9-- D
+
+			Remove B and C; keep A and D with both directed edges.
+		*/
+		directed<std::string> g;
+		g.connect("A", "B", 2);
+		g.connect("B", "A", 3);
+		g.connect("A", "D", 7);
+		g.connect("D", "A", 9);
+		g.connect("B", "C", 4);
+
+		directed<std::string> other;
+		other.add("B");
+		other.add("C");
+
+		auto diff = g.difference_graph(other);
+		CHECK(diff.size() == 2);
+		CHECK(diff.edge_count() == 2);
+		CHECK(diff.has_edge("A", "D") == true);
+		CHECK(diff.has_edge("D", "A") == true);
+		CHECK(diff.weight("A", "D") == 7);
+		CHECK(diff.weight("D", "A") == 9);
+		CHECK(diff.has_edge("A", "B") == false);
+	}
+
+	SECTION("copy and clear")
+	{
+		directed<std::string> g;
+		g.connect("A", "B", 2);
+		auto copy = g;
+
+		CHECK(copy.edge_count() == 1);
+		CHECK(copy.has_edge("A", "B") == true);
+		CHECK(copy.has_edge("B", "A") == false);
+
+		g.clear();
+		CHECK(g.empty() == true);
+		CHECK(g.edge_count() == 0);
+		CHECK(copy.has_edge("A", "B") == true);
+	}
+
+	SECTION("disconnect edge")
+	{
+		directed<std::string> g;
+		g.connect("A", "B");
+		g.connect("B", "A");
+
+		g.disconnect("A", "B");
+
+		CHECK(g.edge_count() == 1);
+		CHECK(g.has_edge("A", "B") == false);
+		CHECK(g.has_edge("B", "A") == true);
+	}
+
+	SECTION("remove node removes incoming and outgoing edges")
+	{
+		directed<std::string> g;
+		g.connect("A", "B");
+		g.connect("B", "C");
+		g.connect("C", "A");
+
+		g.remove_node("B");
+
+		CHECK(g.contains("B") == false);
+		CHECK(g.size() == 2);
+		CHECK(g.edge_count() == 1);
+		CHECK(g.has_edge("A", "B") == false);
+		CHECK(g.has_edge("B", "C") == false);
+		CHECK(g.has_edge("C", "A") == true);
+	}
+
+	SECTION("shortest path follows edge direction")
+	{
+		directed<std::string> g;
+		g.connect("A", "B", 2);
+		g.connect("B", "C", 3);
+		g.connect("A", "C", 10);
+
+		auto path = g.shortest_path("A", "C");
+		CHECK(path.size() == 2);
+		CHECK(path[0] == weighted_edge<std::string>{"A", "B", 2});
+		CHECK(path[1] == weighted_edge<std::string>{"B", "C", 3});
+		CHECK(g.shortest_path("C", "A").empty());
+	}
+
+	SECTION("Bellman-Ford shortest path")
+	{
+		directed<std::string> g;
+		g.connect("S", "A", 4);
+		g.connect("S", "B", 5);
+		g.connect("A", "B", -2);
+		g.connect("B", "C", 3);
+		g.connect("A", "C", 10);
+		g.add("D");
+
+		auto path = g.shortest_path_bellman_ford("S", "C");
+		CHECK(path.size() == 3);
+		CHECK(path[0] == weighted_edge<std::string>{"S", "A", 4});
+		CHECK(path[1] == weighted_edge<std::string>{"A", "B", -2});
+		CHECK(path[2] == weighted_edge<std::string>{"B", "C", 3});
+		CHECK(g.shortest_path_bellman_ford("S", "D").empty());
+
+		directed<std::string> negative_cycle;
+		negative_cycle.connect("S", "A", 1);
+		negative_cycle.connect("A", "B", -2);
+		negative_cycle.connect("B", "A", -2);
+		CHECK(negative_cycle.shortest_path_bellman_ford("S", "B").empty());
+
+		directed<std::string> unrelated_negative_cycle;
+		unrelated_negative_cycle.connect("S", "T", 5);
+		unrelated_negative_cycle.connect("S", "A", 1);
+		unrelated_negative_cycle.connect("A", "B", -2);
+		unrelated_negative_cycle.connect("B", "A", 1);
+		auto unaffected_path = unrelated_negative_cycle.shortest_path_bellman_ford("S", "T");
+		CHECK(unaffected_path.size() == 1);
+		CHECK(unaffected_path[0] == weighted_edge<std::string>{"S", "T", 5});
+	}
 }
 
 TEST_CASE("Binary Tree", "[binarytree]")
@@ -757,6 +1035,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		CHECK(tree.size() == 0);
 		CHECK(tree.empty() == true);
+		CHECK(tree.height() == 0);
 	}
 
 	SECTION("insert")
@@ -772,6 +1051,60 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.insert(80);
 		CHECK(tree.size() == 7);
 		CHECK(tree.empty() == false);
+		CHECK(tree.height() == 5);
+	}
+
+	SECTION("nodes at rank")
+	{
+		binary::tree<std::pair<i32, char>> tree;
+		tree.insert({10, 'A'});
+		tree.insert({15, 'D'});
+		tree.insert({12, 'F'});
+		tree.insert({5, 'B'});
+		tree.insert({3, 'C'});
+		tree.insert({20, 'G'});
+		tree.insert({4, 'E'});
+		CHECK(tree.height() == 4);
+
+
+		auto values = tree.collect_at_rank(3);
+		CHECK(values.size() == 3);
+		CHECK(values[0].second == 'C');
+		CHECK(values[1].second == 'F');
+		CHECK(values[2].second == 'G');
+		CHECK(tree.collect_at_rank(0).empty());
+		CHECK(tree.collect_at_rank(tree.size() + 1).empty());
+
+		auto labels = tree.collect_at_rank(3, [](const auto& value) { return value.second; });
+		CHECK(labels == std::vector<char>{'C', 'F', 'G'});
+		auto label_list = tree.collect_at_rank<std::list<char>>(3, [](const auto& value) { return value.second; });
+		CHECK(label_list == std::list<char>{'C', 'F', 'G'});
+		auto label_map = tree.collect_at_rank<std::unordered_map<i32, char>>(3);
+		CHECK(label_map == std::unordered_map<i32, char>{{3, 'C'}, {12, 'F'}, {20, 'G'}});
+
+		auto label_string = tree.collect_at_rank<std::string>(3, [](const auto& value) { return value.second; });
+		CHECK(label_string == std::string("CFG"));
+
+		std::vector<char> generated_labels;
+		for (const auto& value : tree.at_rank(3))
+		{
+			CHECK(value.has_value());
+			generated_labels.push_back(value->second);
+		}
+		CHECK(generated_labels == std::vector<char>{'C', 'F', 'G'});
+
+		std::vector<char> projected_labels;
+		for (const auto& value : tree.at_rank(3, [](const auto& item) { return item.second; }))
+		{
+			CHECK(value.has_value());
+			projected_labels.push_back(*value);
+		}
+		CHECK(projected_labels == std::vector<char>{'C', 'F', 'G'});
+
+		auto rank_zero = tree.at_rank(0);
+		CHECK(rank_zero.begin() == rank_zero.end());
+		auto missing_rank = tree.at_rank(tree.size() + 1);
+		CHECK(missing_rank.begin() == missing_rank.end());
 	}
 
 	SECTION("clone")
@@ -794,7 +1127,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 	SECTION("remove")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -810,6 +1143,59 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 		CHECK(tree.size() == 6);
 		CHECK(tree2.size() == 7);
+	}
+
+	SECTION("leafs")
+	{
+
+		/*
+		└──10
+		    ├──2
+            │   └──4
+            │       └──6
+            └──30
+                └──70
+                    └──80
+		*/ 
+		binary::tree<i32> tree;
+		tree.insert(10);
+		tree.insert(30);
+		tree.insert(2);
+		tree.insert(4);
+		tree.insert(70);
+		tree.insert(6);
+		tree.insert(80);
+
+		auto leafs = tree.collect_leafs();
+		CHECK(leafs.size() == 2);
+		CHECK(std::ranges::contains(leafs, 6));
+		CHECK(std::ranges::contains(leafs, 80));
+
+		std::vector<i32> generated_leafs;
+		for (const auto& leaf : tree.leafs())
+		{
+			CHECK(leaf.has_value());
+			generated_leafs.push_back(*leaf);
+		}
+		CHECK(generated_leafs == std::vector<i32>{6, 80});
+
+		auto leafs_vector = tree.collect_leafs<std::vector<i32>>();
+		CHECK(leafs_vector.size() == 2);
+		CHECK(leafs_vector == std::vector<i32>{6, 80});
+
+
+	}
+
+	SECTION("print") 
+	{ 
+		binary::tree<i32> tree;
+		tree.insert(50, 25, 75, 10);
+		CHECK(tree.size() == 4);
+
+		tree.print();
+		auto printed = tree.to_string();
+		CHECK(printed.find("50") != std::string::npos);
+
 	}
 
 	SECTION("has")
@@ -851,7 +1237,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 	SECTION("get node/height")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -860,32 +1246,11 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		CHECK(tree.size() == 4);
 		CHECK(tree.empty() == false);
 
-		CHECK(tree.get(10)->height == 0);
-		CHECK(tree.get(30)->height == 2);
-		CHECK(tree.get(60)->height == 1);
-		CHECK(tree.get(80)->height == 0);
-
-		tree.insert(100);
-		CHECK(tree.size() == 5);
-		CHECK(tree.get(10)->height == 0);
-		CHECK(tree.get(30)->height == 2);
-		CHECK(tree.get(60)->height == 0);
-		CHECK(tree.get(80)->height == 1);
-		CHECK(tree.get(100)->height == 0);
-
-		tree.insert(5);
-		CHECK(tree.size() == 6);
-		CHECK(tree.get(5)->height == 0);
-		CHECK(tree.get(10)->height == 1);
-		CHECK(tree.get(30)->height == 2);
-		CHECK(tree.get(60)->height == 0);
-		CHECK(tree.get(80)->height == 1);
-		CHECK(tree.get(100)->height == 0);
 	}
 
 	SECTION("at")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -907,7 +1272,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 	SECTION("visit inorder")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -919,11 +1284,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		tree.visit(to_vector);
 
 
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
+
 
 
 		CHECK(v.size() == 4);
@@ -935,7 +1296,7 @@ TEST_CASE("Binary Tree", "[binarytree]")
 
 	SECTION("visit preorder")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -944,25 +1305,20 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		std::vector<i32> v;
 		auto             to_vector = [&](i32 value) { v.push_back(value); };
 
-		tree.visit(avl::order::pre, to_vector);
+		tree.visit(binary::order::pre, to_vector);
 
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
-
+		// 10 -> 30 -> 60 -> 80
 
 		CHECK(v.size() == 4);
-		CHECK(v[0] == 30);
-		CHECK(v[1] == 10);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 30);
 		CHECK(v[2] == 60);
 		CHECK(v[3] == 80);
 	}
 
 	SECTION("visit postorder")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -971,25 +1327,20 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		std::vector<i32> v;
 		auto             to_vector = [&](i32 value) { v.push_back(value); };
 
-		tree.visit(avl::order::post, to_vector);
+		tree.visit(binary::order::post, to_vector);
 
-
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
+		// 10 -> 30 -> 60 -> 80
 
 		CHECK(v.size() == 4);
-		CHECK(v[0] == 10);
-		CHECK(v[1] == 80);
-		CHECK(v[2] == 60);
-		CHECK(v[3] == 30);
+		CHECK(v[0] == 80);
+		CHECK(v[1] == 60);
+		CHECK(v[2] == 30);
+		CHECK(v[3] == 10);
 	}
 
 	SECTION("visit levelorder")
 	{
-		avl::tree<i32> tree;
+		binary::tree<i32> tree;
 
 		tree.insert(10);
 		tree.insert(30);
@@ -998,20 +1349,45 @@ TEST_CASE("Binary Tree", "[binarytree]")
 		std::vector<i32> v;
 		auto             to_vector = [&](i32 value) { v.push_back(value); };
 
-		tree.visit(avl::order::level, to_vector);
+		tree.visit(binary::order::level, to_vector);
 
-
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
+		// 10 -> 30 -> 60 -> 80
 
 		CHECK(v.size() == 4);
-		CHECK(v[0] == 30);
-		CHECK(v[1] == 10);
+		CHECK(v[0] == 10);
+		CHECK(v[1] == 30);
 		CHECK(v[2] == 60);
 		CHECK(v[3] == 80);
+	}
+
+	SECTION("insert count")
+	{
+		binary::tree<i32> tree;
+		tree.insert(10);
+		CHECK(tree.size() == 1);
+
+		tree.insert(10);
+		CHECK(tree.size() == 1);
+
+		tree.insert(5, 15, 20);
+		CHECK(tree.size() == 4);
+	}
+
+	SECTION("remove count")
+	{
+		binary::tree<i32> tree;
+		tree.insert(10, 5, 15, 20);
+
+		tree.remove(99);
+		CHECK(tree.size() == 4);
+
+		tree.remove(10);
+		CHECK(tree.size() == 3);
+		CHECK(tree.contains(10) == false);
+
+		tree.remove(5, 15, 20, 99);
+		CHECK(tree.size() == 0);
+		CHECK(tree.empty() == true);
 	}
 }
 
@@ -1215,12 +1591,7 @@ TEST_CASE("AVL", "[avl]")
 
 		tree.visit(avl::order::pre, to_vector);
 
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
-
+		// 30 -> 10, 60 -> 80
 
 		CHECK(v.size() == 4);
 		CHECK(v[0] == 30);
@@ -1242,12 +1613,7 @@ TEST_CASE("AVL", "[avl]")
 
 		tree.visit(avl::order::post, to_vector);
 
-
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
+		// 30 -> 10, 60 -> 80
 
 		CHECK(v.size() == 4);
 		CHECK(v[0] == 10);
@@ -1269,18 +1635,88 @@ TEST_CASE("AVL", "[avl]")
 
 		tree.visit(avl::order::level, to_vector);
 
-
-		//        30			0
-		//      /    \
-		//    10      60		1
-		// 	 /  \	 /  \
-		//  .    .  .    80		2
+		// 30 -> 10, 60 -> 80
 
 		CHECK(v.size() == 4);
 		CHECK(v[0] == 30);
 		CHECK(v[1] == 10);
 		CHECK(v[2] == 60);
 		CHECK(v[3] == 80);
+	}
+
+	
+	SECTION("leafs")
+	{
+		avl::tree<i32> tree;
+		tree.insert(10, 20, 30, 40);
+
+		CHECK(tree.collect_leafs() == std::vector<i32>{10, 40});
+		auto projected = tree.collect_leafs<std::list<i32>>([](i32 value) { return value * 2; });
+		CHECK(projected == std::list<i32>{20, 80});
+
+		std::vector<i32> generated_leafs;
+		for (const auto& leaf : tree.leafs())
+		{
+			CHECK(leaf.has_value());
+			generated_leafs.push_back(*leaf);
+		}
+		CHECK(generated_leafs == std::vector<i32>{10, 40});
+
+		std::vector<i32> projected_leafs;
+		for (const auto& leaf : tree.leafs([](i32 value) { return value * 2; }))
+		{
+			CHECK(leaf.has_value());
+			projected_leafs.push_back(*leaf);
+		}
+		CHECK(projected_leafs == std::vector<i32>{20, 80});
+	}
+
+	SECTION("at rank")
+	{
+		avl::tree<std::pair<i32, char>> tree;
+		tree.insert({10, 'A'});
+		tree.insert({15, 'D'});
+		tree.insert({12, 'F'});
+		tree.insert({5, 'B'});
+		tree.insert({3, 'C'});
+		tree.insert({20, 'G'});
+		tree.insert({4, 'E'});
+
+		auto values = tree.collect_at_rank(3);
+		CHECK(values.size() == 3);
+		CHECK(values[0].second == 'C');
+		CHECK(values[1].second == 'A');
+		CHECK(values[2].second == 'G');
+		CHECK(tree.collect_at_rank(0).empty());
+		CHECK(tree.collect_at_rank(tree.size() + 1).empty());
+
+		auto labels = tree.collect_at_rank(3, [](const auto& value) { return value.second; });
+		CHECK(labels == std::vector<char>{'C', 'A', 'G'});
+		auto label_list = tree.collect_at_rank<std::list<char>>(3, [](const auto& value) { return value.second; });
+		CHECK(label_list == std::list<char>{'C', 'A', 'G'});
+		auto label_map = tree.collect_at_rank<std::unordered_map<i32, char>>(3);
+		CHECK(label_map == std::unordered_map<i32, char>{{3, 'C'}, {10, 'A'}, {20, 'G'}});
+
+		std::vector<char> generated_labels;
+		for (const auto& value : tree.at_rank(3))
+		{
+			CHECK(value.has_value());
+			generated_labels.push_back(value->second);
+		}
+		CHECK(generated_labels == std::vector<char>{'C', 'A', 'G'});
+
+		std::vector<char> projected_labels;
+		for (const auto& value : tree.at_rank(3, [](const auto& item) { return item.second; }))
+		{
+			CHECK(value.has_value());
+			projected_labels.push_back(*value);
+		}
+		CHECK(projected_labels == std::vector<char>{'C', 'A', 'G'});
+
+		auto rank_zero = tree.at_rank(0);
+		CHECK(rank_zero.begin() == rank_zero.end());
+		auto missing_rank = tree.at_rank(tree.size() + 1);
+		CHECK(missing_rank.begin() == missing_rank.end());
 	}
 }
 
