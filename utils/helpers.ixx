@@ -781,13 +781,16 @@ export namespace deckard
 			return sum(sum(a, b), args...);
 	}
 
-	template<std::ranges::input_range Container>
-	auto sum(const Container& container) -> std::ranges::range_value_t<Container>
+	template<std::ranges::input_range Container, typename Projection = std::identity>
+	requires std::ranges::input_range<const Container>
+			 and std::invocable<Projection&, std::ranges::range_reference_t<const Container>>
+			 and (not maybe_like<std::ranges::range_value_t<Container>> or not std::same_as<Projection, std::identity>)
+	auto sum(const Container& container, Projection projection = {})
 	{
-		using ValueType = std::ranges::range_value_t<Container>;
-		static_assert(can_sum_v<ValueType, ValueType>, "Cannot sum types on this container");
+		using ValueType = std::remove_cvref_t<std::invoke_result_t<Projection&, std::ranges::range_reference_t<const Container>>>;
+		static_assert(can_sum_v<ValueType, ValueType>, "Cannot sum projected types on this container");
 
-		return std::ranges::fold_left(container, ValueType{}, std::plus<>{});
+		return std::ranges::fold_left(container | std::views::transform(projection), ValueType{}, std::plus<>{});
 	}
 
 	template<std::ranges::input_range Container>
@@ -823,13 +826,16 @@ export namespace deckard
 			return subtract(subtract(a, b), args...);
 	}
 
-	template<std::ranges::input_range Container>
-	auto subtract(const Container& container) -> std::ranges::range_value_t<Container>
+	template<std::ranges::input_range Container, typename Projection = std::identity>
+	requires std::ranges::input_range<const Container>
+			 and std::invocable<Projection&, std::ranges::range_reference_t<const Container>>
+			 and (not maybe_like<std::ranges::range_value_t<Container>> or not std::same_as<Projection, std::identity>)
+	auto subtract(const Container& container, Projection projection = {})
 	{
-		using ValueType = std::ranges::range_value_t<Container>;
-		static_assert(can_subtract_v<ValueType, ValueType>, "Cannot sum types on this container");
+		using ValueType = std::remove_cvref_t<std::invoke_result_t<Projection&, std::ranges::range_reference_t<const Container>>>;
+		static_assert(can_subtract_v<ValueType, ValueType>, "Cannot subtract projected types on this container");
 
-		return std::ranges::fold_left(container, ValueType{}, std::minus<>{});
+		return std::ranges::fold_left(container | std::views::transform(projection), ValueType{}, std::minus<>{});
 	}
 
 	template<std::ranges::input_range Container>
@@ -868,12 +874,16 @@ export namespace deckard
 			return product(product(a, b), args...);
 	}
 
-	template<std::ranges::input_range Container>
-	auto product(const Container& container) -> std::ranges::range_value_t<Container>
+	template<std::ranges::input_range Container, typename Projection = std::identity>
+	requires std::ranges::input_range<const Container>
+			 and std::invocable<Projection&, std::ranges::range_reference_t<const Container>>
+			 and (not maybe_like<std::ranges::range_value_t<Container>> or not std::same_as<Projection, std::identity>)
+	auto product(const Container& container, Projection projection = {})
 	{
-		using ValueType = std::ranges::range_value_t<Container>;
-		static_assert(can_multiply_v<ValueType, ValueType>, "Cannot multiply types on this container");
-		return std::ranges::fold_left(container, ValueType{1}, std::multiplies<>{});
+		using ValueType = std::remove_cvref_t<std::invoke_result_t<Projection&, std::ranges::range_reference_t<const Container>>>;
+		static_assert(can_multiply_v<ValueType, ValueType>, "Cannot multiply projected types on this container");
+
+		return std::ranges::fold_left(container | std::views::transform(projection), ValueType{1}, std::multiplies<>{});
 	}
 
 	template<std::ranges::input_range Container>

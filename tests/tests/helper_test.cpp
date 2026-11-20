@@ -1110,12 +1110,18 @@ TEST_CASE("helpers", "[helpers]")
 	{
 		std::vector<i32> v{1, 2, 3, 4, 5};
 		CHECK(sum(v) == 15);
+		CHECK(sum(v, [](i32 value) { return value * 2; }) == 30);
 		CHECK(product(v) == 120);
 		CHECK(subtract<i32>(v) == -13);
 
 		std::vector<std::string> vs{"1", "2", "3", "4", "5"};
 		CHECK(sum(vs) == "12345"sv);
 		CHECK(sum<i64>(vs) == 15);
+
+		std::vector<std::pair<std::string, i32>> vpair{{"a", 1}, {"b", 2}, {"c", 3}};
+		CHECK(sum(vpair, [](const auto& p) { return p.second; }) == 6);
+		CHECK(subtract(vpair, [](const auto& p) { return p.second; }) == -6);
+		CHECK(product(vpair, [](const auto& p) { return p.second; }) == 6);
 
 
 		std::vector<std::optional<i64>> vopt{1, 2, 3, std::nullopt, 4, 5};
