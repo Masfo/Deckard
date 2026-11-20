@@ -1460,6 +1460,51 @@ namespace deckard::graph
 			}
 			return best;
 		}
+		/*
+		
+		void compress_grid_corridors(undirected<std::pair<ivec2, u8>>& graph, grid_options options = {})
+		{
+			std::vector<std::pair<ivec2, u8>> nodes;
+			for (const auto& node : graph.nodes())
+				nodes.push_back(node);
+
+			for (const auto& node : nodes)
+			{
+				if (graph.degree(node) != 2
+					or std::ranges::find(options.floor_values, node.second) == options.floor_values.end())
+					continue;
+
+				const auto neighbors = graph.neighbors(node);
+				if (graph.has_edge(neighbors[0], neighbors[1]))
+					continue;
+
+				const auto weight = graph.weight(node, neighbors[0]).value() + graph.weight(node, neighbors[1]).value();
+				graph.remove_node(node);
+				graph.connect(neighbors[0], neighbors[1], weight);
+			}
+		}
+
+		*/
+
+
+		// Shortens paths by removing nodes with two neighbors and combining their link weights, unless those neighbors are already linked.
+		void suppress_degree_2_vertices() requires (not Directed)
+		{
+			const auto nodes = reverse_index;
+			for (const auto& node : nodes)
+			{
+				if (degree(node) != 2)
+					continue;
+
+				const auto adjacent = neighbors(node);
+				if (has_edge(adjacent[0], adjacent[1]))
+					continue;
+
+				const auto merged_weight = weight(node, adjacent[0]).value() + weight(node, adjacent[1]).value();
+				remove_node(node);
+				connect(adjacent[0], adjacent[1], merged_weight);
+			}
+		}
 
 		// compress
 		void compress()
@@ -1630,6 +1675,9 @@ namespace deckard::graph
 		}
 	};
 
+
+
+
 	export template<typename T>
 	using undirected = graph<T, f32, false>;
 
@@ -1639,5 +1687,136 @@ namespace deckard::graph
 	export template<typename T>
 	using directed = graph<T, f32, true>;
 
+	export template<typename T>
+	[[nodiscard]] auto shortest_path_via_waypoints(const undirected<T>& graph, std::span<const T> waypoints) -> std::vector<weighted_edge<T>>
+	{
+		if (waypoints.size() < 2)
+			return {};
+
+		std::vector<T> nodes;
+		nodes.reserve(graph.size());
+		std::unordered_map<T, u64> node_indices;
+		node_indices.reserve(graph.size());
+		for (const auto& node : graph.nodes())
+		{
+			node_indices.emplace(node, nodes.size());
+			nodes.push_back(node);
+		}
+
+		const auto start = node_indices.find(waypoints.front());
+		const auto goal  = node_indices.find(waypoints.back());
+		if (start == node_indices.end() or goal == node_indices.end())
+			return {};
+
+		const usize no_bit = std::numeric_limits<usize>::max();
+		std::vector<usize> waypoint_bits(nodes.size(), no_bit);
+		usize waypoint_count = 0;
+		for (const auto& waypoint : waypoints)
+		{
+			auto it = node_indices.find(waypoint);
+			if (it == node_indices.end())
+				return {};
+			if (waypoint_bits[it->second] == no_bit)
+				waypoint_bits[it->second] = waypoint_count++;
+		}
+
+		struct state_key
+		{
+			u64               node;
+			std::vector<u64>  visited;
+
+			bool operator==(const state_key&) const = default;
+		};
+		struct state_hash
+		{
+			auto operator()(const state_key& key) const -> std::size_t
+			{
+				std::size_t hash = std::hash<u64>{}(key.node);
+				for (u64 word : key.visited)
+					hash ^= std::hash<u64>{}(word) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+				return hash;
+			}
+		};
+		struct state
+		{
+			state_key key;
+			f32       distance;
+			usize     parent;
+		};
+
+		const usize word_count = (waypoint_count + 63) / 64;
+		std::vector<u64> all_waypoints(word_count, ~u64{});
+		if (waypoint_count % 64 != 0)
+			all_waypoints.back() = (u64{1} << (waypoint_count % 64)) - 1;
+
+		state_key start_key{start->second, std::vector<u64>(word_count, 0)};
+		const usize start_bit = waypoint_bits[start->second];
+		start_key.visited[start_bit / 64] |= u64{1} << (start_bit % 64);
+
+		std::vector<state> states;
+		std::unordered_map<state_key, usize, state_hash> state_indices;
+		states.push_back({start_key, 0, no_bit});
+		state_indices.emplace(std::move(start_key), 0);
+
+		using QueueItem = std::pair<f32, usize>;
+		std::priority_queue<QueueItem, std::vector<QueueItem>, std::greater<QueueItem>> pending;
+		pending.emplace(0, 0);
+		usize goal_state = no_bit;
+		while (not pending.empty())
+		{
+			const auto [distance, state_index] = pending.top();
+			pending.pop();
+			if (distance > states[state_index].distance)
+				continue;
+
+			const u64 node = states[state_index].key.node;
+			if (node == goal->second and states[state_index].key.visited == all_waypoints)
+			{
+				goal_state = state_index;
+				break;
+			}
+
+			const auto visited = states[state_index].key.visited;
+			for (const auto& neighbor : graph.neighbors(nodes[node]))
+			{
+				const u64 next_node = node_indices.at(neighbor);
+				auto next_visited = visited;
+				const usize bit = waypoint_bits[next_node];
+				if (bit != no_bit)
+					next_visited[bit / 64] |= u64{1} << (bit % 64);
+
+				const f32 edge_weight = graph.weight(nodes[node], neighbor).value_or(f32{1});
+				const f32 next_distance = distance + edge_weight;
+				state_key next_key{next_node, std::move(next_visited)};
+				auto it = state_indices.find(next_key);
+				if (it == state_indices.end())
+				{
+					const usize next_index = states.size();
+					states.push_back({next_key, next_distance, state_index});
+					state_indices.emplace(std::move(next_key), next_index);
+					pending.emplace(next_distance, next_index);
+				}
+				else if (next_distance < states[it->second].distance)
+				{
+					states[it->second].distance = next_distance;
+					states[it->second].parent = state_index;
+					pending.emplace(next_distance, it->second);
+				}
+			}
+		}
+
+		if (goal_state == no_bit)
+			return {};
+
+		std::vector<weighted_edge<T>> path;
+		for (usize current = goal_state; states[current].parent != no_bit; current = states[current].parent)
+		{
+			const u64 from = states[states[current].parent].key.node;
+			const u64 to   = states[current].key.node;
+			path.push_back({nodes[from], nodes[to], graph.weight(nodes[from], nodes[to]).value_or(f32{1})});
+		}
+		std::ranges::reverse(path);
+		return path;
+	}
 
 } // namespace deckard::graph

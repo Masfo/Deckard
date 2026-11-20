@@ -355,21 +355,42 @@ using namespace deckard::graph;
 		CHECK(gr.has_edge("A", "B") == true);
 
 		auto path = gr.shortest_path("D", "B");
+		CHECK(dijkstra(gr, std::string{"D"}, std::string{"B"}) == path);
 
 		CHECK(path.size() == 4);
 		CHECK(path[0] == weighted_edge<std::string>{"D", "A", 3});
 		CHECK(path[1] == weighted_edge<std::string>{"A", "E", 1});
 		CHECK(path[2] == weighted_edge<std::string>{"E", "F", 1});
 		CHECK(path[3] == weighted_edge<std::string>{"F", "B", 1});
+		const std::array<std::string, 5> waypoints{"D", "A", "E", "F", "B"};
+		CHECK(shortest_path_via_waypoints(gr, waypoints) == path);
 
 
 		gr.connect("A", "B", 1);
 		// D-B shortest path: D-A-B
 		path = gr.shortest_path("D", "B");
+		CHECK(dijkstra(gr, std::string{"D"}, std::string{"B"}) == path);
 
 		CHECK(path.size() == 2);
 		CHECK(path[0] == weighted_edge<std::string>{"D", "A", 3});
 		CHECK(path[1] == weighted_edge<std::string>{"A", "B", 1});
+
+		gr.add("Z");
+		const std::array<std::string, 3> unreachable_waypoint{"D", "Z", "B"};
+		CHECK(shortest_path_via_waypoints(gr, unreachable_waypoint).empty());
+
+		const std::array<std::string, 3> missing_waypoint{"D", "missing", "B"};
+		CHECK(shortest_path_via_waypoints(gr, missing_waypoint).empty());
+
+		undirected<std::string> waypoint_graph;
+		waypoint_graph.connect("S", "A", 1);
+		waypoint_graph.connect("S", "B", 2);
+		waypoint_graph.connect("A", "B", 1);
+		waypoint_graph.connect("A", "G", 5);
+		waypoint_graph.connect("B", "G", 1);
+		const std::array<std::string, 4> unordered_waypoints{"S", "B", "A", "G"};
+		CHECK(shortest_path_via_waypoints(waypoint_graph, unordered_waypoints)
+		  == std::vector<weighted_edge<std::string>>{{"S", "A", 1}, {"A", "B", 1}, {"B", "G", 1}});
 	}
 
 	SECTION("all pairs")
@@ -765,6 +786,25 @@ using namespace deckard::graph;
 		CHECK(gr.has_edge("A", "B") == true);
 		CHECK(gr.has_edge("B", "C") == true);
 		CHECK(gr.has_edge("C", "D") == true);
+	}
+
+	SECTION("suppress degree-2 vertices")
+	{
+		undirected<std::string> gr;
+		gr.add("Z");
+		gr.connect("A", "B", 2);
+		gr.connect("B", "C", 3);
+		gr.connect("C", "D", 4);
+
+		gr.suppress_degree_2_vertices();
+
+		CHECK(gr.size() == 3);
+		CHECK(gr.edge_count() == 1);
+		CHECK(gr.has_node("B") == false);
+		CHECK(gr.has_node("C") == false);
+		CHECK(gr.has_node("Z") == true);
+		CHECK(gr.has_edge("A", "D") == true);
+		CHECK(gr.weight("A", "D") == 9);
 	}
 
 	SECTION("difference")

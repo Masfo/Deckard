@@ -429,6 +429,8 @@ namespace deckard
 
 		void clear() { data.clear(); }
 
+		[[nodiscard]] bool empty() const { return data.empty(); }
+
 		i32 count(std::string_view input) const { return data.count(input); }
 
 		bool is_valid(const i32 x, const i32 y) const { return data.valid(x, y); }
@@ -985,8 +987,8 @@ namespace deckard
 			i32 estimate;
 		};
 
-		std::vector<i32>           waypoint_bits(g.size(), none);
-		std::vector<ivec2>         waypoint_positions;
+		std::vector<i32>   waypoint_bits(g.size(), none);
+		std::vector<ivec2> waypoint_positions;
 		waypoint_positions.reserve(waypoints.size());
 		grid_detail::waypoint_mask all_waypoints;
 		all_waypoints.reserve_bits(waypoints.size());
@@ -1011,8 +1013,8 @@ namespace deckard
 
 		std::unordered_map<grid_detail::waypoint_mask, i32, grid_detail::waypoint_mask_hash> mst_cache;
 		mst_cache.reserve(waypoint_count);
-		std::vector<i32>             mst_edge_costs;
-		std::vector<u8>              in_mst;
+		std::vector<i32> mst_edge_costs;
+		std::vector<u8>  in_mst;
 		if (waypoint_count > 64)
 		{
 			mst_edge_costs.resize(waypoint_count, none);
@@ -1104,7 +1106,7 @@ namespace deckard
 				while (key.visited_waypoints.test(first))
 					++first;
 				mst_edge_costs[first] = 0;
-				tree_cost = 0;
+				tree_cost             = 0;
 				for (std::size_t count = 0; count < remaining_count; ++count)
 				{
 					std::size_t closest = waypoint_count;
@@ -1152,8 +1154,8 @@ namespace deckard
 
 		while (not open.empty())
 		{
-			const node      current_node  = open.top();
-			const i32       current_index = current_node.state_index;
+			const node current_node  = open.top();
+			const i32  current_index = current_node.state_index;
 			open.pop();
 
 			const auto best = state_indices.find(states[current_index].key);
@@ -1335,7 +1337,7 @@ namespace deckard
 		std::vector<i32>           waypoint_bits(g.size(), none);
 		grid_detail::waypoint_mask all_waypoints;
 		all_waypoints.reserve_bits(waypoints.size());
-		i32                        waypoint_count = 0;
+		i32 waypoint_count = 0;
 		for (const ivec2 waypoint : waypoints)
 		{
 			const i32 index = to_index(waypoint);
@@ -1371,7 +1373,7 @@ namespace deckard
 
 		while (not open.empty())
 		{
-			const i32       current_index = open.front();
+			const i32 current_index = open.front();
 			open.pop_front();
 
 			const auto best = state_indices.find(states[current_index].key);
