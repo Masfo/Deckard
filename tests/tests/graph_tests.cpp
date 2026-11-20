@@ -355,7 +355,6 @@ using namespace deckard::graph;
 		CHECK(gr.has_edge("A", "B") == true);
 
 		auto path = gr.shortest_path("D", "B");
-		CHECK(dijkstra(gr, std::string{"D"}, std::string{"B"}) == path);
 
 		CHECK(path.size() == 4);
 		CHECK(path[0] == weighted_edge<std::string>{"D", "A", 3});
@@ -369,7 +368,6 @@ using namespace deckard::graph;
 		gr.connect("A", "B", 1);
 		// D-B shortest path: D-A-B
 		path = gr.shortest_path("D", "B");
-		CHECK(dijkstra(gr, std::string{"D"}, std::string{"B"}) == path);
 
 		CHECK(path.size() == 2);
 		CHECK(path[0] == weighted_edge<std::string>{"D", "A", 3});

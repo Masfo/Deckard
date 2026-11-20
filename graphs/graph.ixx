@@ -156,6 +156,15 @@ namespace deckard::graph
 			index_map.erase(it);
 		}
 
+		void reserve(u64 node_count, u64 edge_count)
+		{
+			adjacent_list.reserve(node_count);
+			reverse_index.reserve(node_count);
+			edge_weights.reserve(node_count);
+			for (auto& weights : edge_weights)
+				weights.reserve(edge_count);
+		}
+
 		u64 size() const { return reverse_index.size(); }
 
 		void remove_nodes(const std::vector<T>& nodes)
@@ -1688,7 +1697,8 @@ namespace deckard::graph
 	using directed = graph<T, f32, true>;
 
 	export template<typename T>
-	[[nodiscard]] auto shortest_path_via_waypoints(const undirected<T>& graph, std::span<const T> waypoints) -> std::vector<weighted_edge<T>>
+	[[nodiscard]] auto shortest_path_via_waypoints(const undirected<T>& graph, std::span<const std::type_identity_t<T>> waypoints)
+	  -> std::vector<weighted_edge<T>>
 	{
 		if (waypoints.size() < 2)
 			return {};
@@ -1760,7 +1770,7 @@ namespace deckard::graph
 
 		using QueueItem = std::pair<f32, usize>;
 		std::priority_queue<QueueItem, std::vector<QueueItem>, std::greater<QueueItem>> pending;
-		pending.emplace(0, 0);
+		pending.push(QueueItem{f32{0}, usize{0}});
 		usize goal_state = no_bit;
 		while (not pending.empty())
 		{
