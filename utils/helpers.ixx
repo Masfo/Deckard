@@ -751,15 +751,15 @@ export namespace deckard
 	}
 
 	// sum/product/subtract helpers
-	template<std::integral I, I Neutral, typename T>
-	[[nodiscard]] constexpr I operand(const T& value)
+	template<arithmetic I, typename T>
+	[[nodiscard]] constexpr I operand(const T& value, I neutral)
 	{
 		if constexpr (maybe_like<T>)
-			return value ? operand<I, Neutral>(*value) : Neutral;
+			return value ? operand<I>(*value, neutral) : neutral;
 		else if constexpr (arithmetic<T>)
 			return static_cast<I>(value);
 		else
-			return try_to_number<I>(value).value_or(Neutral);
+			return try_to_number<I>(value).value_or(neutral);
 	}
 
 
@@ -802,15 +802,18 @@ export namespace deckard
 		using T         = maybe_value_t<ValueType>;
 
 		return std::ranges::fold_left(
-		  container, T{}, [](T acc, const ValueType& value) -> T { return static_cast<T>(acc + operand<T, T{0}>(value)); });
+		  container, T{}, [](T acc, const ValueType& value) -> T { return static_cast<T>(acc + operand<T>(value, T{0})); });
 	}
 
-	template<std::integral I, std::ranges::input_range Container>
-	[[nodiscard]] constexpr auto sum(const Container& container) -> I
+	template<arithmetic I, std::ranges::input_range Container, typename Projection = std::identity>
+	requires std::ranges::input_range<const Container>
+			 and std::invocable<Projection&, std::ranges::range_reference_t<const Container>>
+	[[nodiscard]] constexpr auto sum(const Container& container, Projection projection = {}) -> I
 	{
-		return std::ranges::fold_left_first(container | std::views::transform([](const auto& v) { return operand<I, I{0}>(v); }),
-											[](I acc, I v) -> I { return static_cast<I>(acc + v); })
-		  .value_or(I{});
+		return std::ranges::fold_left(
+		  container | std::views::transform(projection), I{}, [](I acc, const auto& value) -> I {
+			  return static_cast<I>(acc + operand<I>(value, I{0}));
+		  });
 	}
 
 	// ##############################################################################
@@ -848,16 +851,20 @@ export namespace deckard
 		using T         = maybe_value_t<ValueType>;
 
 		return std::ranges::fold_left_first(
-		  container | std::views::transform([](const ValueType& value) { return operand<T, T{0}>(value); }),
+		  container | std::views::transform([](const ValueType& value) { return operand<T>(value, T{0}); }),
 		  [](T acc, T v) -> T { return static_cast<T>(acc - v); })
 		  .value_or(T{});
 	}
 
-	template<std::integral I, std::ranges::input_range Container>
-	[[nodiscard]] constexpr auto subtract(const Container& container) -> I
+	template<arithmetic I, std::ranges::input_range Container, typename Projection = std::identity>
+	requires std::ranges::input_range<const Container>
+			 and std::invocable<Projection&, std::ranges::range_reference_t<const Container>>
+	[[nodiscard]] constexpr auto subtract(const Container& container, Projection projection = {}) -> I
 	{
-		return std::ranges::fold_left_first(container | std::views::transform([](const auto& v) { return operand<I, I{0}>(v); }),
-											[](I acc, I v) -> I { return static_cast<I>(acc - v); })
+		return std::ranges::fold_left_first(
+			container | std::views::transform(projection)
+			  | std::views::transform([](const auto& value) { return operand<I>(value, I{0}); }),
+			[](I acc, I value) -> I { return static_cast<I>(acc - value); })
 		  .value_or(I{});
 	}
 
@@ -896,16 +903,19 @@ export namespace deckard
 		using T         = maybe_value_t<ValueType>;
 
 		return std::ranges::fold_left(
-		  container | std::views::transform([](const ValueType& value) { return operand<T, T{1}>(value); }),
+		  container | std::views::transform([](const ValueType& value) { return operand<T>(value, T{1}); }),
 		  T{1},
 		  [](T acc, T v) -> T { return static_cast<T>(acc * v); });
 	}
 
-	template<std::integral I, std::ranges::input_range Container>
-	[[nodiscard]] constexpr auto product(const Container& container) -> I
+	template<arithmetic I, std::ranges::input_range Container, typename Projection = std::identity>
+	requires std::ranges::input_range<const Container>
+			 and std::invocable<Projection&, std::ranges::range_reference_t<const Container>>
+	[[nodiscard]] constexpr auto product(const Container& container, Projection projection = {}) -> I
 	{
 		return std::ranges::fold_left(
-		  container | std::views::transform([](const auto& v) { return operand<I, I{1}>(v); }),
+		  container | std::views::transform(projection)
+			  | std::views::transform([](const auto& value) { return operand<I>(value, I{1}); }),
 		  I{1},
 		  [](I acc, I v) -> I { return static_cast<I>(acc * v); });
 	}
