@@ -100,7 +100,7 @@ export namespace deckard::string
 
 	template<typename T>
 	requires split_conversion_target<T>
-	auto convert_to_type(std::string_view input, [[maybe_unused]] std::string_view delims = " ") -> T
+	auto convert_to_type(std::string_view input, [[maybe_unused]] std::string_view delims = ",") -> T
 	{
 		if constexpr (std::same_as<T, char>)
 		{
@@ -118,7 +118,10 @@ export namespace deckard::string
 
 			for (size_t i = 0; i < component_count; ++i)
 			{
-				const auto separator = input.find(',', first);
+				first = input.find_first_not_of(delims, first);
+				assert::check(first != std::string_view::npos, "Missing vector component");
+
+				const auto separator = input.find_first_of(delims, first);
 				if (i + 1 < component_count)
 				{
 					assert::check(separator != std::string_view::npos, "Missing vector component");
@@ -127,8 +130,11 @@ export namespace deckard::string
 				}
 				else
 				{
-					assert::check(separator == std::string_view::npos, "Too many vector components");
-					components[i] = input.substr(first);
+					assert::check(separator == std::string_view::npos
+								or input.find_first_not_of(delims, separator + 1) == std::string_view::npos,
+							  "Too many vector components");
+					const auto component_end = separator == std::string_view::npos ? input.size() : separator;
+					components[i]            = input.substr(first, component_end - first);
 				}
 			}
 
@@ -371,6 +377,7 @@ export namespace deckard::string
 
 	// split
 	template<typename T = std::string_view>
+	requires (not vector_convertible<T>)
 	std::vector<T> split(std::string_view input, std::string_view delims = " ")
 	{
 		std::vector<T> output;
@@ -392,6 +399,13 @@ export namespace deckard::string
 		return output;
 	}
 
+	template<typename T>
+	requires vector_convertible<T>
+	T split(std::string_view input, std::string_view delims = ",")
+	{
+		return convert_to_type<T>(input, delims);
+	}
+
 
 	// auto [a,b] = split<std::string, std::string>(input, delims);
 	template<typename... Ts>
@@ -405,6 +419,7 @@ export namespace deckard::string
 		return [&]<size_t... I>(std::index_sequence<I...>) -> std::tuple<Ts...>
 		{ return {convert_to_type<Ts>(parts[I])...}; }(std::index_sequence_for<Ts...>{});
 	}
+
 
 	// split_once
 	auto split_once(std::string_view str, std::string_view delims = " ")
@@ -812,39 +827,56 @@ export namespace deckard::string
 		{ return {convert.template operator()<Ts>(values[I])...}; }(std::index_sequence_for<Ts...>{});
 	}
 
+	// ? captures a single token, * captures everything until the next token
 	export auto simple_pattern_match(std::string_view expression, std::string_view input) -> std::vector<std::string_view>
 	{
 		std::vector<std::string_view> ret;
 
-		size_t expression_index = 0;
-		size_t input_index      = 0;
-
-		while (expression_index < expression.size() and input_index < input.size())
+		auto match = [&](auto&& self, size_t expression_index, size_t input_index) -> bool
 		{
-
-			if (expression[expression_index] == input[input_index])
+			while (expression_index < expression.size())
 			{
-				expression_index += 1;
-				input_index += 1;
-				continue;
+				if (expression[expression_index] == '*')
+				{
+					++expression_index;
+					for (size_t candidate = input_index;; ++candidate)
+					{
+						const auto capture_count = ret.size();
+						if (self(self, expression_index, candidate))
+							return true;
+						ret.resize(capture_count);
+						if (candidate == input.size())
+							break;
+					}
+					return false;
+				}
+
+				if (expression[expression_index] == '?')
+				{
+					++expression_index;
+					const char read_until = expression_index < expression.size() ? expression[expression_index] : ' ';
+					const auto start = input_index;
+
+					while (input_index < input.size() and input[input_index] != read_until)
+						++input_index;
+
+					ret.emplace_back(input.substr(start, input_index - start));
+					continue;
+				}
+
+				if (input_index == input.size() or expression[expression_index] != input[input_index])
+					return false;
+
+				++expression_index;
+				++input_index;
 			}
 
-			if (expression[expression_index] == '?')
-			{
-				expression_index += 1;
+			return true;
+		};
 
-				char read_until = expression_index < expression.size() ? expression[expression_index] : ' ';
+		if (not match(match, 0, 0))
+			return {};
 
-				size_t start = input_index;
-
-				while (input_index < input.size() and input[input_index] != read_until)
-					input_index += 1;
-
-
-				std::string_view token = input.substr(start, input_index - start);
-				ret.emplace_back(token);
-			}
-		}
 		return ret;
 	}
 
