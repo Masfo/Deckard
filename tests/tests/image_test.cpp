@@ -49,31 +49,31 @@ TEST_CASE("tga loader", "[image][tga]")
 		REQUIRE(img.height() == 3);
 
 		// top row
-		CHECK(img[0, 0] == rgba{255, 0, 0, 255});     // red
-		CHECK(img[1, 0] == rgba{0, 255, 0, 255});     // green
-		CHECK(img[2, 0] == rgba{0, 0, 255, 255});     // blue
+		CHECK(img[0, 0] == rgba<u8>{255, 0, 0, 255});     // red
+		CHECK(img[1, 0] == rgba<u8>{0, 255, 0, 255});     // green
+		CHECK(img[2, 0] == rgba<u8>{0, 0, 255, 255});     // blue
 
 		// middle row (exercises partial/zero alpha)
-		CHECK(img[0, 1] == rgba{0x40, 0x40, 0x40, 0}); // transparent gray
-		CHECK(img[1, 1] == rgba{255, 0, 0, 128});     // semi-transparent red
-		CHECK(img[2, 1] == rgba{255, 0, 0, 0});       // fully transparent red
+		CHECK(img[0, 1] == rgba<u8>{0x40, 0x40, 0x40, 0}); // transparent gray
+		CHECK(img[1, 1] == rgba<u8>{255, 0, 0, 128});     // semi-transparent red
+		CHECK(img[2, 1] == rgba<u8>{255, 0, 0, 0});       // fully transparent red
 
 		// bottom row
-		CHECK(img[0, 2] == rgba{255, 255, 0, 255});   // yellow
-		CHECK(img[1, 2] == rgba{0, 255, 255, 255});   // cyan
-		CHECK(img[2, 2] == rgba{255, 0, 255, 255});   // magenta
+		CHECK(img[0, 2] == rgba<u8>{255, 255, 0, 255});   // yellow
+		CHECK(img[1, 2] == rgba<u8>{0, 255, 255, 255});   // cyan
+		CHECK(img[2, 2] == rgba<u8>{255, 0, 255, 255});   // magenta
 
 		// decoding the same 32-bit file as image_rgb must drop alpha
 		auto rgb_result = image::decode_tga<image_rgb>(tga_3x3);
 		REQUIRE(rgb_result.has_value());
-		CHECK((*rgb_result)[1, 1] == rgb{255, 0, 0});
-		CHECK((*rgb_result)[0, 1] == rgb{0x40, 0x40, 0x40});
+		CHECK((*rgb_result)[1, 1] == rgb<u8>{255, 0, 0});
+		CHECK((*rgb_result)[0, 1] == rgb<u8>{0x40, 0x40, 0x40});
 
 		// the default template argument is image_rgba, so alpha survives an unqualified load
 		// (this is what image::load_tga with no explicit type returns)
 		auto default_result = image::decode_tga(tga_3x3);
 		REQUIRE(default_result.has_value());
-		CHECK((*default_result)[1, 1] == rgba{255, 0, 0, 128});
+		CHECK((*default_result)[1, 1] == rgba<u8>{255, 0, 0, 128});
 	}
 
 	SECTION("tga rgba 32-bit round trip")
@@ -124,7 +124,7 @@ TEST_CASE("tga loader", "[image][tga]")
 		// re-decoding as rgba fills alpha with 255
 		auto as_rgba = image::decode_tga<image_rgba>(std::span<const u8>{buffer.data(), buffer.size()});
 		REQUIRE(as_rgba.has_value());
-		CHECK((*as_rgba)[0, 0] == rgba{1, 2, 3, 255});
+		CHECK((*as_rgba)[0, 0] == rgba<u8>{1, 2, 3, 255});
 	}
 }
 
@@ -157,17 +157,17 @@ TEST_CASE("png loader", "[image][png]")
 		REQUIRE(result);
 		CHECK(result->width() == 3);
 		CHECK(result->height() == 3);
-		CHECK((*result)[0, 0] == deckard::rgba{255, 0, 0, 255});   // red
-		CHECK((*result)[1, 0] == deckard::rgba{0, 255, 0, 255});   // green
-		CHECK((*result)[2, 0] == deckard::rgba{0, 0, 255, 255});   // blue
+		CHECK((*result)[0, 0] == deckard::rgba<u8>{255, 0, 0, 255});   // red
+		CHECK((*result)[1, 0] == deckard::rgba<u8>{0, 255, 0, 255});   // green
+		CHECK((*result)[2, 0] == deckard::rgba<u8>{0, 0, 255, 255});   // blue
 
-		CHECK((*result)[0, 1] == deckard::rgba{0, 0, 0, 0});       // transparent
-		CHECK((*result)[1, 1] == deckard::rgba{255, 0, 0, 128});   // semi-transparent red
-		CHECK((*result)[2, 1] == deckard::rgba{0, 0, 0, 0});       // transparent
+		CHECK((*result)[0, 1] == deckard::rgba<u8>{0, 0, 0, 0});       // transparent
+		CHECK((*result)[1, 1] == deckard::rgba<u8>{255, 0, 0, 128});   // semi-transparent red
+		CHECK((*result)[2, 1] == deckard::rgba<u8>{0, 0, 0, 0});       // transparent
 
-		CHECK((*result)[0, 2] == deckard::rgba{255, 255, 0, 255}); // yellow
-		CHECK((*result)[1, 2] == deckard::rgba{0, 255, 255, 255}); // cyan
-		CHECK((*result)[2, 2] == deckard::rgba{255, 0, 255, 255}); // magenta
+		CHECK((*result)[0, 2] == deckard::rgba<u8>{255, 255, 0, 255}); // yellow
+		CHECK((*result)[1, 2] == deckard::rgba<u8>{0, 255, 255, 255}); // cyan
+		CHECK((*result)[2, 2] == deckard::rgba<u8>{255, 0, 255, 255}); // magenta
 	}
 
 	SECTION("load_png_invalid")
@@ -179,6 +179,7 @@ TEST_CASE("png loader", "[image][png]")
 
 TEST_CASE("image", "[image]")
 {
+	using namespace deckard;
 	SECTION("rgb_2x2")
 	{
 		//
@@ -190,10 +191,10 @@ TEST_CASE("image", "[image]")
 		img[1, 0] = {0, 255, 0};
 		img[0, 1] = {0, 0, 255};
 		img[1, 1] = {255, 255, 0};
-		CHECK(img[0, 0] == deckard::rgb{255, 0, 0});
-		CHECK(img[1, 0] == deckard::rgb{0, 255, 0});
-		CHECK(img[0, 1] == deckard::rgb{0, 0, 255});
-		CHECK(img[1, 1] == deckard::rgb{255, 255, 0});
+		CHECK(img[0, 0] == deckard::rgb<u8>{255, 0, 0});
+		CHECK(img[1, 0] == deckard::rgb<u8>{0, 255, 0});
+		CHECK(img[0, 1] == deckard::rgb<u8>{0, 0, 255});
+		CHECK(img[1, 1] == deckard::rgb<u8>{255, 255, 0});
 	}
 
 	SECTION("rgba_2x2")
@@ -207,10 +208,10 @@ TEST_CASE("image", "[image]")
 		img[1, 0] = {0, 255, 0, 64};
 		img[0, 1] = {0, 0, 255, 128};
 		img[1, 1] = {255, 255, 0, 255};
-		CHECK(img[0, 0] == deckard::rgba{255, 0, 0, 0});
-		CHECK(img[1, 0] == deckard::rgba{0, 255, 0, 64});
-		CHECK(img[0, 1] == deckard::rgba{0, 0, 255, 128});
-		CHECK(img[1, 1] == deckard::rgba{255, 255, 0, 255});
+		CHECK(img[0, 0] == deckard::rgba<u8>{255, 0, 0, 0});
+		CHECK(img[1, 0] == deckard::rgba<u8>{0, 255, 0, 64});
+		CHECK(img[0, 1] == deckard::rgba<u8>{0, 0, 255, 128});
+		CHECK(img[1, 1] == deckard::rgba<u8>{255, 255, 0, 255});
 	}
 
 	SECTION("row")
@@ -225,16 +226,16 @@ TEST_CASE("image", "[image]")
 		img[1, 1] = {255, 255, 0, 255};
 
 		auto row0 = img.row(0);
-		CHECK(row0[0] == deckard::rgba{255, 0, 0, 0});
-		CHECK(row0[1] == deckard::rgba{0, 255, 0, 64});
+		CHECK(row0[0] == deckard::rgba<u8>{255, 0, 0, 0});
+		CHECK(row0[1] == deckard::rgba<u8>{0, 255, 0, 64});
 
-		row0[0] = deckard::rgba{1, 2, 3, 4};
-		CHECK(row0[0] == deckard::rgba{1, 2, 3, 4});
-		CHECK(row0[1] == deckard::rgba{0, 255, 0, 64});
+		row0[0] = deckard::rgba<u8>{1, 2, 3, 4};
+		CHECK(row0[0] == deckard::rgba<u8>{1, 2, 3, 4});
+		CHECK(row0[1] == deckard::rgba<u8>{0, 255, 0, 64});
 
 		auto row1 = img.row(1);
-		CHECK(row1[0] == deckard::rgba{0, 0, 255, 128});
-		CHECK(row1[1] == deckard::rgba{255, 255, 0, 255});
+		CHECK(row1[0] == deckard::rgba<u8>{0, 0, 255, 128});
+		CHECK(row1[1] == deckard::rgba<u8>{255, 255, 0, 255});
 
 
 		auto row0_bytes = img.row_bytes(0);
@@ -259,7 +260,7 @@ TEST_CASE("image", "[image]")
 
 
 		row0_bytes[0] = 64;
-		CHECK(img[0, 0] == deckard::rgba{64, 2, 3, 4});
+		CHECK(img[0, 0] == deckard::rgba<u8>{64, 2, 3, 4});
 	}
 
 	SECTION("encode_bmp_2x2")
@@ -308,10 +309,10 @@ TEST_CASE("image", "[image]")
 		REQUIRE(decoded.has_value());
 		CHECK(decoded->width() == 2);
 		CHECK(decoded->height() == 2);
-		CHECK((*decoded)[0, 0] == deckard::rgb{1, 2, 3});
-		CHECK((*decoded)[1, 0] == deckard::rgb{4, 5, 6});
-		CHECK((*decoded)[0, 1] == deckard::rgb{7, 8, 9});
-		CHECK((*decoded)[1, 1] == deckard::rgb{10, 11, 12});
+		CHECK((*decoded)[0, 0] == deckard::rgb<u8>{1, 2, 3});
+		CHECK((*decoded)[1, 0] == deckard::rgb<u8>{4, 5, 6});
+		CHECK((*decoded)[0, 1] == deckard::rgb<u8>{7, 8, 9});
+		CHECK((*decoded)[1, 1] == deckard::rgb<u8>{10, 11, 12});
 	}
 
 	SECTION("encode_bmp_2x2 rgba (32-bit)")
@@ -346,15 +347,15 @@ TEST_CASE("image", "[image]")
 		REQUIRE(decoded.has_value());
 		CHECK(decoded->width() == 2);
 		CHECK(decoded->height() == 2);
-		CHECK((*decoded)[0, 0] == deckard::rgba{1, 2, 3, 4});
-		CHECK((*decoded)[1, 0] == deckard::rgba{4, 5, 6, 7});
-		CHECK((*decoded)[0, 1] == deckard::rgba{7, 8, 9, 10});
-		CHECK((*decoded)[1, 1] == deckard::rgba{10, 11, 12, 13});
+		CHECK((*decoded)[0, 0] == deckard::rgba<u8>{1, 2, 3, 4});
+		CHECK((*decoded)[1, 0] == deckard::rgba<u8>{4, 5, 6, 7});
+		CHECK((*decoded)[0, 1] == deckard::rgba<u8>{7, 8, 9, 10});
+		CHECK((*decoded)[1, 1] == deckard::rgba<u8>{10, 11, 12, 13});
 
 		// decoding the 32-bit result as rgb drops alpha
 		auto as_rgb = deckard::image::decode_bmp<deckard::image_rgb>(out);
 		REQUIRE(as_rgb.has_value());
-		CHECK((*as_rgb)[0, 0] == deckard::rgb{1, 2, 3});
+		CHECK((*as_rgb)[0, 0] == deckard::rgb<u8>{1, 2, 3});
 	}
 
 	SECTION("dif encode/decode")
@@ -397,10 +398,10 @@ TEST_CASE("image", "[image]")
 			CHECK(decoded->height() == 2);
 
 			// Verify pixel data matches
-			CHECK(decoded->at(0, 0) == deckard::rgb{10, 20, 30});
-			CHECK(decoded->at(1, 0) == deckard::rgb{40, 50, 60});
-			CHECK(decoded->at(0, 1) == deckard::rgb{70, 80, 90});
-			CHECK(decoded->at(1, 1) == deckard::rgb{100, 110, 120});
+				CHECK(decoded->at(0, 0) == deckard::rgb<u8>{10, 20, 30});
+				CHECK(decoded->at(1, 0) == deckard::rgb<u8>{40, 50, 60});
+				CHECK(decoded->at(0, 1) == deckard::rgb<u8>{70, 80, 90});
+				CHECK(decoded->at(1, 1) == deckard::rgb<u8>{100, 110, 120});
 		}
 
 		SECTION("rgba_2x2")
@@ -435,10 +436,10 @@ TEST_CASE("image", "[image]")
 			CHECK(decoded->height() == 2);
 
 			// Verify pixel data matches including alpha
-			CHECK(decoded->at(0, 0) == deckard::rgba{10, 20, 30, 255});
-			CHECK(decoded->at(1, 0) == deckard::rgba{40, 50, 60, 200});
-			CHECK(decoded->at(0, 1) == deckard::rgba{70, 80, 90, 150});
-			CHECK(decoded->at(1, 1) == deckard::rgba{100, 110, 120, 100});
+			CHECK(decoded->at(0, 0) == deckard::rgba<u8>{10, 20, 30, 255});
+			CHECK(decoded->at(1, 0) == deckard::rgba<u8>{40, 50, 60, 200});
+			CHECK(decoded->at(0, 1) == deckard::rgba<u8>{70, 80, 90, 150});
+			CHECK(decoded->at(1, 1) == deckard::rgba<u8>{100, 110, 120, 100});
 		}
 
 		SECTION("rgb_larger_image")
@@ -449,7 +450,7 @@ TEST_CASE("image", "[image]")
 			{
 				for (deckard::u16 x = 0; x < 64; ++x)
 				{
-					img.at(x, y) = deckard::rgb{
+					img.at(x, y) = deckard::rgb<u8>{
 					  static_cast<deckard::u8>(x * 4),
 					  static_cast<deckard::u8>(y * 4),
 					  static_cast<deckard::u8>((x + y) * 2)};
@@ -474,9 +475,9 @@ TEST_CASE("image", "[image]")
 			CHECK(decoded->height() == 64);
 
 			// Spot check a few pixels
-			CHECK(decoded->at(0, 0) == deckard::rgb{0, 0, 0});
-			CHECK(decoded->at(32, 32) == deckard::rgb{128, 128, 128});
-			CHECK(decoded->at(63, 63) == deckard::rgb{252, 252, 252});
+			CHECK(decoded->at(0, 0) == deckard::rgb<u8>{0, 0, 0});
+			CHECK(decoded->at(32, 32) == deckard::rgb<u8>{128, 128, 128});
+			CHECK(decoded->at(63, 63) == deckard::rgb<u8>{252, 252, 252});
 		}
 
 		SECTION("buffer_too_small")
@@ -531,7 +532,7 @@ TEST_CASE("image", "[image]")
 		{
 			for (deckard::u16 x = 0; x < img.width(); ++x)
 			{
-				deckard::rgb p;
+				deckard::rgb<u8> p;
 				p.r       = static_cast<deckard::u8>(x);
 				p.g       = static_cast<deckard::u8>(y);
 				p.b       = static_cast<deckard::u8>(x + y);
@@ -544,7 +545,7 @@ TEST_CASE("image", "[image]")
 			for (deckard::u16 x = 0; x < img.width(); ++x)
 			{
 				CHECK(img[x, y]
-					  == deckard::rgb{
+					  == deckard::rgb<u8>{
 						static_cast<deckard::u8>(x),
 						static_cast<deckard::u8>(y),
 						static_cast<deckard::u8>(x + y),
@@ -552,9 +553,9 @@ TEST_CASE("image", "[image]")
 			}
 		}
 
-		img[1, 2] = deckard::rgb{1, 2, 3};
+		img[1, 2] = deckard::rgb<u8>{1, 2, 3};
 
-		CHECK(img[1, 2] == deckard::rgb{1, 2, 3});
+		CHECK(img[1, 2] == deckard::rgb<u8>{1, 2, 3});
 	}
 
 	SECTION("rgba")
@@ -567,7 +568,7 @@ TEST_CASE("image", "[image]")
 		{
 			for (deckard::u16 x = 0; x < img.width(); ++x)
 			{
-				deckard::rgba p;
+				deckard::rgba<u8> p;
 				p.r       = static_cast<deckard::u8>(x * 10);
 				p.g       = static_cast<deckard::u8>(y * 10);
 				p.b       = static_cast<deckard::u8>(x + y);
@@ -581,7 +582,7 @@ TEST_CASE("image", "[image]")
 			for (deckard::u16 x = 0; x < img.width(); ++x)
 			{
 				CHECK(img[x, y]
-					  == deckard::rgba{
+					  == deckard::rgba<u8>{
 						static_cast<deckard::u8>(x * 10),
 						static_cast<deckard::u8>(y * 10),
 						static_cast<deckard::u8>(x + y),
@@ -590,13 +591,13 @@ TEST_CASE("image", "[image]")
 			}
 		}
 
-		deckard::rgba c;
+		deckard::rgba<u8> c;
 		c.r       = 10;
 		c.g       = 20;
 		c.b       = 30;
 		c.a       = 40;
 		img[0, 1] = c;
 
-		CHECK(img[0, 1] == deckard::rgba{10, 20, 30, 40});
+		CHECK(img[0, 1] == deckard::rgba<u8>{10, 20, 30, 40});
 	}
 }

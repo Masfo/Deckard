@@ -14,13 +14,13 @@ namespace deckard
 	class image_channels final
 	{
 		static_assert(
-		  Channels == 1 or Channels == 3 or Channels == 4, "Channels must be either 1 (Gray), 3 (RGB) or 4 (RGBA)");
+		  Channels == 1 or Channels == 4 or Channels == 3, "Channels must be either 1 (Gray), 3 (RGB) or 4 (RGBA)");
 
 
 	public:
 		static constexpr u64 MAX_WIDTH  = static_cast<u64>(16384);
 		static constexpr u64 MAX_HEIGHT = static_cast<u64>(16384);
-		using color_format = std::conditional_t<Channels == 1, gray, std::conditional_t<Channels == 4, rgba, rgb>>;
+		using color_format = std::conditional_t<Channels == 1, gray<u8>, std::conditional_t<Channels == 4, rgba<u8>, rgb<u8>>>;
 
 	private:
 		std::vector<color_format> m_data;

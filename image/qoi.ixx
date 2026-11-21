@@ -16,7 +16,7 @@ namespace deckard::image
 
 	namespace detail
 	{
-		constexpr u8 qoi_hash(const rgba& p) { return (p.r * 3u + p.g * 5u + p.b * 7u + p.a * 11u) % 64u; }
+		constexpr u8 qoi_hash(const rgba<u8>& p) { return (p.r * 3u + p.g * 5u + p.b * 7u + p.a * 11u) % 64u; }
 
 		constexpr u8 qoi_op_index = 0x00; // 00xxxxxx
 		constexpr u8 qoi_op_diff  = 0x40; // 01xxxxxx
@@ -62,10 +62,12 @@ namespace deckard::image
 		}
 
 		template<typename Px>
-		constexpr rgba qoi_to_rgba(const Px& px)
+		constexpr rgba<u8> qoi_to_rgba(const Px& px)
 		{
-			if constexpr (std::is_same_v<Px, rgba>)
+			if constexpr (std::is_same_v<Px, rgba<u8>>)
 				return px;
+			else if constexpr (std::is_same_v<Px, gray<u8>>)
+				return {px.r, px.r, px.r, 255u};
 			else
 				return {px.r, px.g, px.b, 255u};
 		}
@@ -73,13 +75,13 @@ namespace deckard::image
 		template<typename Px>
 		void qoi_encode_pixels(std::vector<u8>& buffer, std::span<const Px> pixels)
 		{
-			std::array<rgba, 64> index{};
-			rgba                 prev{0, 0, 0, 255};
-			u8                   run = 0;
+			std::array<rgba<u8>, 64> index{};
+			rgba<u8>                 prev{0, 0, 0, 255};
+			u8                       run = 0;
 
 			for (size_t i = 0; i < pixels.size(); ++i)
 			{
-				const rgba px = qoi_to_rgba(pixels[i]);
+				const rgba<u8> px = qoi_to_rgba(pixels[i]);
 
 				if (px == prev)
 				{
@@ -240,8 +242,8 @@ namespace deckard::image
 		Img            img(width, height);
 		constexpr bool is_rgba = std::is_same_v<Img, image_rgba>;
 
-		std::array<rgba, 64> index{};
-		rgba                 prev{0, 0, 0, 255};
+		std::array<rgba<u8>, 64> index{};
+		rgba<u8>                prev{0, 0, 0, 255};
 
 
 		if (width == 0 or height == 0)
@@ -253,7 +255,7 @@ namespace deckard::image
 		auto*     out         = img.data().data();
 		usize     pos         = 0;
 
-		auto write_pixel = [&](const rgba& p)
+		auto write_pixel = [&](const rgba<u8>& p)
 		{
 			if constexpr (is_rgba)
 			{
@@ -261,7 +263,7 @@ namespace deckard::image
 			}
 			else
 			{
-				out[pos] = rgb{p.r, p.g, p.b};
+				out[pos] = rgb<u8>{p.r, p.g, p.b};
 			}
 			++pos;
 		};

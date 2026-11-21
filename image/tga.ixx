@@ -93,12 +93,12 @@ namespace deckard::image
 				if (pixel_depth == 32)
 				{
 					for (u16 x = 0; x < width; ++x, s += 4)
-						*d++ = rgba{s[2], s[1], s[0], s[3]};
+						*d++ = rgba<u8>{s[2], s[1], s[0], s[3]};
 				}
 				else
 				{
 					for (u16 x = 0; x < width; ++x, s += 3)
-						*d++ = rgba{s[2], s[1], s[0], 255u};
+						*d++ = rgba<u8>{s[2], s[1], s[0], 255u};
 				}
 			}
 			else
@@ -106,12 +106,12 @@ namespace deckard::image
 				if (pixel_depth == 32)
 				{
 					for (u16 x = 0; x < width; ++x, s += 4)
-						*d++ = rgb{s[2], s[1], s[0]}; // drop alpha
+						*d++ = rgb<u8>{s[2], s[1], s[0]}; // drop alpha
 				}
 				else
 				{
 					for (u16 x = 0; x < width; ++x, s += 3)
-						*d++ = rgb{s[2], s[1], s[0]};
+						*d++ = rgb<u8>{s[2], s[1], s[0]};
 				}
 			}
 		}

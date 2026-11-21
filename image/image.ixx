@@ -44,7 +44,7 @@ namespace deckard
 			for (u16 x = 0; x < width; ++x)
 			{
 				const auto& rgba_pixel = img.at(x, y);
-				rgb_img.at(x, y)       = rgb{rgba_pixel.r, rgba_pixel.g, rgba_pixel.b};
+				rgb_img.at(x, y)       = rgb<u8>{rgba_pixel.r, rgba_pixel.g, rgba_pixel.b};
 			}
 		}
 		return rgb_img;
@@ -61,7 +61,7 @@ namespace deckard
 			{
 				const auto& p1 = lhs.at(x, y);
 				const auto& p2 = img2.at(x, y);
-				if (p1.r != p2.r || p1.g != p2.g || p1.b != p2.b)
+				if (p1.r != p2.r or p1.g != p2.g or p1.b != p2.b)
 					return false;
 			}
 		}

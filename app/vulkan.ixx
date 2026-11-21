@@ -19,6 +19,7 @@ import std;
 import deckard.as;
 import deckard.types;
 import deckard.vec;
+import deckard.colors;
 import deckard.debug;
 import deckard.assert;
 import deckard.scope_exit;
@@ -37,7 +38,7 @@ namespace deckard::vulkan
 
 	constexpr VkImageSubresourceRange color_range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-	inline constexpr std::array<f32, 3> default_clear_rgb{0.0f, 0.5f, 0.75f};
+	constexpr rgb<f32> default_clear_rgb{0.0f, 0.5f, 0.75f};
 
 
 	export struct buffer
@@ -105,7 +106,8 @@ namespace deckard::vulkan
 		texture_id          texture{};
 		std::array<f32, 16> model{};  // column-major model transform
 		std::array<f32, 12> normal{}; // mat3 inverse-transpose of the model matrix, each column padded to 16 bytes
-		std::array<f32, 4>  color{1.0f, 1.0f, 1.0f, 0.0f}; // RGB tint, W emissive strength
+		generic_color<f32, 3> color{1.0f, 1.0f, 1.0f};
+		f32                  emissive{0.0f};
 	};
 
 	struct texture_resource
@@ -712,7 +714,7 @@ namespace deckard::vulkan
 		VkDescriptorPool            m_scene_descriptor_pool{VK_NULL_HANDLE};
 		light                        m_scene_light{
 		  .position = {-2.0f, 4.0f, 3.0f}, .color = {1.0f, 0.95f, 0.85f}, .intensity = 2.5f, .radius = 10.0f};
-		std::array<f32, 3>          m_clear_rgb{default_clear_rgb};
+		rgb<f32>       m_clear_rgb{default_clear_rgb};
 
 		bool                                  vsync{true};
 
@@ -877,7 +879,7 @@ namespace deckard::vulkan
 
 		bool draw(
 		  std::span<const vertex2d> batch = {}, std::span<const mesh_draw> meshes = {},
-		  std::array<f32, 3> clear_rgb = default_clear_rgb,
+		  rgb<f32> clear_rgb = default_clear_rgb,
 		  std::array<f32, 16> view_projection = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1})
 		{
 
@@ -953,7 +955,7 @@ namespace deckard::vulkan
 
 		[[nodiscard]] std::expected<image_rgb, std::string> screenshot(
 		  std::span<const vertex2d> batch = {}, std::span<const mesh_draw> meshes = {},
-		  std::array<f32, 3> clear_rgb = default_clear_rgb,
+		  generic_color<f32, 3> clear_rgb = default_clear_rgb,
 		  std::array<f32, 16> view_projection = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1})
 		{
 			if (m_device == VK_NULL_HANDLE or m_swapchain_images.empty())
@@ -1037,9 +1039,9 @@ namespace deckard::vulkan
 			for (std::size_t i = 0; i < output.size(); ++i)
 			{
 				const std::size_t offset = i * 4;
-				output[i].r              = pixels[offset + (bgra ? 2 : 0)];
-				output[i].g              = pixels[offset + 1];
-				output[i].b              = pixels[offset + (bgra ? 0 : 2)];
+				output[i].r             = pixels[offset + (bgra ? 2 : 0)];
+				output[i].g             = pixels[offset + 1];
+				output[i].b             = pixels[offset + (bgra ? 0 : 2)];
 			}
 
 			return image;
@@ -1432,7 +1434,7 @@ namespace deckard::vulkan
 		template<std::invocable<VkCommandBuffer> Draw>
 		std::expected<void, std::string> record_commands(
 		  VkCommandBuffer cmd, VkCommandBufferUsageFlags usage, u32 image_index, VkExtent2D extent,
-		  const std::array<f32, 3>& clear_rgb, Draw&& draw)
+		  const generic_color<f32, 3>& clear_rgb, Draw&& draw)
 		{
 			const VkCommandBufferBeginInfo begin_info{
 			  .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1453,7 +1455,7 @@ namespace deckard::vulkan
 			  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 			VkClearValue clear_value{};
-			clear_value.color = {{clear_rgb[0], clear_rgb[1], clear_rgb[2], 1.0f}};
+			clear_value.color = {{clear_rgb.r, clear_rgb.g, clear_rgb.b, 1.0f}};
 
 			const VkRenderingAttachmentInfo color_attachment{
 			  .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -1641,7 +1643,7 @@ namespace deckard::vulkan
 							  continue;
 
 						  // Emissive markers skip depth testing so they stay visible behind geometry.
-						  const VkBool32 depth = item.color[3] > 0.0f ? VK_FALSE : VK_TRUE;
+						  const VkBool32 depth = item.emissive > 0.0f ? VK_FALSE : VK_TRUE;
 						  vkCmdSetDepthTestEnable(cmd, depth);
 						  vkCmdSetDepthWriteEnable(cmd, depth);
 
@@ -1663,7 +1665,9 @@ namespace deckard::vulkan
 							0,
 							nullptr);
 
-						  const mesh_push_constant push{item.model, item.normal, item.color};
+						  const mesh_push_constant push{
+							item.model, item.normal,
+							{item.color.r, item.color.g, item.color.b, item.emissive}};
 						  vkCmdPushConstants(
 							cmd,
 							m_pipeline_mesh.layout,
@@ -1840,7 +1844,7 @@ namespace deckard::vulkan
 			if (auto result = initialize_texture_descriptor(); not result)
 				return result;
 			image_rgba white_image{1, 1};
-			white_image.at(0, 0) = rgba{255, 255, 255, 255};
+			white_image.at(0, 0) = rgba<u8>{255, 255, 255, 255};
 			auto white_texture   = upload_image(white_image);
 			if (not white_texture)
 				return std::unexpected(std::format("Failed to create white fallback texture: {}", white_texture.error()));

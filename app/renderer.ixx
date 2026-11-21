@@ -32,7 +32,8 @@ export namespace deckard::app
 		vulkan::context* ctx{nullptr};
 		extent<u16>                 size{1920, 1080};
 		f32                         hue{0.0f};
-		std::array<f32, 3>          clear_color{0.0f, 0.0f, 0.0f};
+		rgb<f32>                   clear_color{0.0f, 0.0f, 0.0f};
+
 		std::vector<vertex2d>       vertices;
 		std::vector<vulkan::mesh_draw> mesh_draws;
 		std::array<f32, 3>          triangle_angles{};
@@ -53,9 +54,9 @@ export namespace deckard::app
 		  {{0.5f, 0.0f}}, {{1.0f, 1.0f}}, {{0.0f, 1.0f}}}};
 
 	private:
-		[[nodiscard]] static constexpr u32 pack(const std::array<u8, 3>& c, u8 a = 255) noexcept
+		[[nodiscard]] static constexpr u32 pack(const rgb<u8>& c, u8 a = 255) noexcept
 		{
-			return u32{c[0]} | (u32{c[1]} << 8) | (u32{c[2]} << 16) | (u32{a} << 24);
+			return u32{c.r} | (u32{c.g} << 8) | (u32{c.b} << 16) | (u32{a} << 24);
 		}
 
 		[[nodiscard]] mat4 view_projection() const noexcept
@@ -121,7 +122,7 @@ export namespace deckard::app
 		}
 
 		void push_textured_quad(
-		  f32 x, f32 y, f32 width, f32 height, vulkan::texture_id texture, const std::array<u8, 3>& tint)
+		  f32 x, f32 y, f32 width, f32 height, vulkan::texture_id texture, const rgb<u8>& tint)
 		{
 			const f32 x1 = x + width;
 			const f32 y1 = y + height;
@@ -227,11 +228,11 @@ export namespace deckard::app
 			return ctx->screenshot(vertices, mesh_draws, clear_color, view_projection_data());
 		}
 
-		void clear(const std::array<u8, 3>& color = {0, 0, 0})
+		void clear(const rgb<u8>& color = {0, 0, 0})
 		{
 			vertices.clear();
 			mesh_draws.clear();
-			clear_color = {color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f};
+			clear_color = {color.r / 255.0f, color.g / 255.0f, color.b / 255.0f};
 		}
 
 		// #########################################################
@@ -276,7 +277,7 @@ export namespace deckard::app
 		// Draws a mesh at a world-space position. `rotation` is in radians (XYZ order), `scale` per-axis.
 		void draw_mesh(
 		  vulkan::mesh_id mesh, const vec3& position, const vec3& rotation = vec3::zero(),
-		  const vec3& scale = vec3::one(), const std::array<u8, 3>& color = {255, 255, 255},
+		  const vec3& scale = vec3::one(), const rgb<u8>& color = {255, 255, 255},
 		  vulkan::texture_id texture = {}, f32 emissive = 0.0f)
 		{
 			if (ctx == nullptr or not mesh)
@@ -305,22 +306,23 @@ export namespace deckard::app
 			std::memcpy(draw.model.data(), model.mat.data(), sizeof(draw.model));
 
 			draw.color = {
-			  color[0] / 255.0f,
-			  color[1] / 255.0f,
-			  color[2] / 255.0f,
-			  emissive};
+			  color.r / 255.0f,
+			  color.g / 255.0f,
+			  color.b / 255.0f,
+			};
+			draw.emissive = emissive;
 
 			mesh_draws.push_back(draw);
 		}
 
 		void draw_mesh(
-		  vulkan::mesh_id mesh, f32 x, f32 y, f32 z, const std::array<u8, 3>& color = {255, 255, 255},
+		  vulkan::mesh_id mesh, f32 x, f32 y, f32 z, const rgb<u8>& color = {255, 255, 255},
 		  vulkan::texture_id texture = {}, f32 emissive = 0.0f)
 		{
 			draw_mesh(mesh, vec3{x, y, z}, vec3::zero(), vec3::one(), color, texture, emissive);
 		}
 
-		void draw_line(f32 x0, f32 y0, f32 x1, f32 y1, const std::array<u8, 3>& color, f32 thickness = 1.0f)
+		void draw_line(f32 x0, f32 y0, f32 x1, f32 y1, const rgb<u8>& color, f32 thickness = 1.0f)
 		{
 			const f32  half       = std::max(1.0f, thickness) * 0.5f;
 			const bool round_caps = half >= round_cap_min_half_width;
@@ -355,7 +357,7 @@ export namespace deckard::app
 
 
 
-		void draw_sprite(f32 x, f32 y, std::array<f32, 2> sprite_size, const std::array<u8, 3>& color)
+		void draw_sprite(f32 x, f32 y, std::array<f32, 2> sprite_size, const rgb<u8>& color)
 		{
 			if (not reserve_vertices(quad_vertices))
 				return;
@@ -380,7 +382,7 @@ export namespace deckard::app
 
 		void draw_sprite(
 		  vulkan::texture_id texture, f32 x, f32 y, std::array<f32, 2> sprite_size,
-		  const std::array<u8, 3>& tint = {255, 255, 255})
+		  const rgb<u8>& tint = {255, 255, 255})
 		{
 			if (not texture or not reserve_vertices(quad_vertices))
 				return;
@@ -389,7 +391,7 @@ export namespace deckard::app
 
 		void draw_sprite(
 		  f32 x, f32 y, std::array<f32, 2> sprite_size, vulkan::texture_id texture,
-		  const std::array<u8, 3>& tint = {255, 255, 255})
+		  const rgb<u8>& tint = {255, 255, 255})
 		{
 			draw_sprite(texture, x, y, sprite_size, tint);
 		}
@@ -414,12 +416,12 @@ export namespace deckard::app
 			}
 		}
 
-		void rectangle(f32 x, f32 y, f32 width, f32 height, const std::array<u8, 3>& color)
+		void rectangle(f32 x, f32 y, f32 width, f32 height, const rgb<u8>& color)
 		{
 			draw_sprite(x, y, {width, height}, color);
 		}
 
-		void rectangle(const geometry::rect& r, const std::array<u8, 3>& color)
+		void rectangle(const geometry::rect& r, const rgb<u8>& color)
 		{
 			if (not reserve_vertices(quad_vertices))
 				return;
@@ -430,8 +432,8 @@ export namespace deckard::app
 
 		void rectangle(
 		  f32 x, f32 y, f32 width, f32 height,
-		  const std::array<u8, 3>& top_color,
-		  const std::array<u8, 3>& bottom_color)
+		  const rgb<u8>& top_color,
+		  const rgb<u8>& bottom_color)
 		{
 			if (not reserve_vertices(quad_vertices))
 				return;
@@ -452,8 +454,8 @@ export namespace deckard::app
 
 		void rectangle(
 		  const geometry::rect& r,
-		  const std::array<u8, 3>& top_color,
-		  const std::array<u8, 3>& bottom_color)
+		  const rgb<u8>& top_color,
+		  const rgb<u8>& bottom_color)
 		{
 			if (not reserve_vertices(quad_vertices))
 				return;
@@ -461,28 +463,28 @@ export namespace deckard::app
 			push_quad(r, pack(top_color), pack(bottom_color));
 		}
 
-		void draw_rectangle(f32 x, f32 y, f32 width, f32 height, const std::array<u8, 3>& color)
+		void draw_rectangle(f32 x, f32 y, f32 width, f32 height, const rgb<u8>& color)
 		{
 			rectangle(x, y, width, height, color);
 		}
 
-		void draw_rectangle(const geometry::rect& r, const std::array<u8, 3>& color)
+		void draw_rectangle(const geometry::rect& r, const rgb<u8>& color)
 		{
 			rectangle(r, color);
 		}
 
 		void draw_rectangle(
 		  f32 x, f32 y, f32 width, f32 height,
-		  const std::array<u8, 3>& top_color,
-		  const std::array<u8, 3>& bottom_color)
+		  const rgb<u8>& top_color,
+		  const rgb<u8>& bottom_color)
 		{
 			rectangle(x, y, width, height, top_color, bottom_color);
 		}
 
 		void draw_rectangle(
 		  const geometry::rect& r,
-		  const std::array<u8, 3>& top_color,
-		  const std::array<u8, 3>& bottom_color)
+		  const rgb<u8>& top_color,
+		  const rgb<u8>& bottom_color)
 		{
 			rectangle(r, top_color, bottom_color);
 		}
@@ -499,8 +501,8 @@ export namespace deckard::app
 			else
 				rectangle(x - pad, y - pad, width + pad * 2.0f, height + pad * 2.0f, {30, 30, 35});
 
-			const std::array<u8, 3> top_color    = highlight ? std::array<u8, 3>{85, 85, 90} : std::array<u8, 3>{60, 60, 65};
-			const std::array<u8, 3> bottom_color = highlight ? std::array<u8, 3>{60, 60, 65} : std::array<u8, 3>{40, 40, 45};
+			const rgb<u8> top_color    = highlight ? rgb<u8>{85, 85, 90} : rgb<u8>{60, 60, 65};
+			const rgb<u8> bottom_color = highlight ? rgb<u8>{60, 60, 65} : rgb<u8>{40, 40, 45};
 
 			rectangle(x, y, width, height, top_color, bottom_color);
 		}
@@ -515,10 +517,10 @@ export namespace deckard::app
 			outer.size.x += pad * 2.0f;
 			outer.size.y += pad * 2.0f;
 
-			const std::array<u8, 3> top_color    = highlight ? std::array<u8, 3>{85, 85, 90} : std::array<u8, 3>{60, 60, 65};
-			const std::array<u8, 3> bottom_color = highlight ? std::array<u8, 3>{60, 60, 65} : std::array<u8, 3>{40, 40, 45};
+			const rgb<u8> top_color    = highlight ? rgb<u8>{85, 85, 90} : rgb<u8>{60, 60, 65};
+			const rgb<u8> bottom_color = highlight ? rgb<u8>{60, 60, 65} : rgb<u8>{40, 40, 45};
 
-			rectangle(outer, highlight ? std::array<u8, 3>{255, 255, 255} : std::array<u8, 3>{30, 30, 35});
+			rectangle(outer, highlight ? rgb<u8>{255, 255, 255} : rgb<u8>{30, 30, 35});
 			rectangle(r, top_color, bottom_color);
 		}
 

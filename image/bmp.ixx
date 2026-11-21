@@ -177,13 +177,13 @@ namespace deckard::image
 				if constexpr (is_rgba)
 				{
 					if (bpp == 32u)
-						dst[x] = rgba{p[2], p[1], p[0], p[3]};
+						dst[x] = rgba<u8>{p[2], p[1], p[0], p[3]};
 					else
-						dst[x] = rgba{p[2], p[1], p[0], 255u};
+						dst[x] = rgba<u8>{p[2], p[1], p[0], 255u};
 				}
 				else
 				{
-					dst[x] = rgb{p[2], p[1], p[0]}; // drop alpha when 32-bit
+					dst[x] = rgb<u8>{p[2], p[1], p[0]}; // drop alpha when 32-bit
 				}
 			}
 		}
