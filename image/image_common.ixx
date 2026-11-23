@@ -42,31 +42,19 @@ namespace deckard
 			assign(pixels);
 		}
 
-		image_channels(const image_channels<4>& other)
-			: image_channels(other.width(), other.height())
-		{
-			for (u16 y = 0; y < m_height; ++y)
-			{
-				for (u16 x = 0; x < m_width; ++x)
-				{
-					const auto& rgba_pixel = other.at(x, y);
-					at(x, y)               = color_format{rgba_pixel.r, rgba_pixel.g, rgba_pixel.b, rgba_pixel.a};
-				}
-			}
-		}
+		image_channels(const image_channels&) = default;
+		image_channels(image_channels&&) = default;
+		image_channels& operator=(const image_channels&) = default;
+		image_channels& operator=(image_channels&&) = default;
 
 		image_channels(const image_channels<3>& other)
-		requires(Channels == 3 or Channels == 4)
+		requires(Channels == 4)
 			: image_channels(other.width(), other.height())
 		{
-			for (u16 y = 0; y < m_height; ++y)
+			std::ranges::transform(other.data(), m_data.begin(), [](const auto& pixel)
 			{
-				for (u16 x = 0; x < m_width; ++x)
-				{
-					const auto& rgb_pixel = other.at(x, y);
-					at(x, y)              = color_format{rgb_pixel.r, rgb_pixel.g, rgb_pixel.b};
-				}
-			}
+				return color_format{pixel.r, pixel.g, pixel.b};
+			});
 		}
 
 		u16 width() const { return m_width; }
@@ -87,21 +75,21 @@ namespace deckard
 		std::span<const color_format> row(u16 y) const
 		{
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
-			auto row_start = math::index_from_2d(static_cast<u16>(0), y, static_cast<u16>(m_width));
+			auto row_start = math::index_from_2d(usize{0}, usize{y}, usize{m_width});
 			return std::span<const color_format>{m_data.data() + row_start, m_width};
 		}
 
 		std::span<color_format> row(u16 y)
 		{
 			assert::check(y < m_height, "y-coordinate out-of-bounds");
-			auto row_start = math::index_from_2d(static_cast<u16>(0), y, static_cast<u16>(m_width));
+			auto row_start = math::index_from_2d(usize{0}, usize{y}, usize{m_width});
 			return std::span<color_format>{m_data.data() + row_start, m_width};
 		}
 
 		std::span<const u8> row_bytes(u16 y) const
 		{
 			auto bytes = std::as_bytes(row(y));
-			return {reinterpret_cast<u8*>(bytes.data()), bytes.size()};
+			return {reinterpret_cast<const u8*>(bytes.data()), bytes.size()};
 		}
 
 		std::span<u8> row_bytes(u16 y)
@@ -121,21 +109,13 @@ namespace deckard
 		color_format& at(u16 x, u16 y)
 		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
-			assert::check(y < m_height, "y-coordinate out-of-bounds");
-
-			auto idx = math::index_from_2d(x, y, m_width);
-			assert::check(idx < m_data.size(), "index out of bounds");
-			return m_data[idx];
+			return row(y)[x];
 		}
 
 		const color_format& at(u16 x, u16 y) const
 		{
 			assert::check(x < m_width, "x-coordinate out-of-bounds");
-			assert::check(y < m_height, "y-coordinate out-of-bounds");
-
-			auto idx = math::index_from_2d(x, y, m_width);
-			assert::check(idx < m_data.size(), "index out of bounds");
-			return m_data[idx];
+			return row(y)[x];
 		}
 
 		color_format& operator[](u16 x, u16 y) { return at(x, y); }

@@ -247,6 +247,10 @@ TEST_CASE("image", "[image]")
 		CHECK(row0_bytes[5] == 255);
 		CHECK(row0_bytes[6] == 0);
 		CHECK(row0_bytes[7] == 64);
+		const auto& const_img = img;
+		const auto  const_row_bytes = const_img.row_bytes(0);
+		CHECK(const_row_bytes[0] == 1);
+		CHECK(const_row_bytes[7] == 64);
 
 		auto row1_bytes = img.row_bytes(1);
 		CHECK(row1_bytes[0] == 0);
@@ -261,6 +265,20 @@ TEST_CASE("image", "[image]")
 
 		row0_bytes[0] = 64;
 		CHECK(img[0, 0] == deckard::rgba<u8>{64, 2, 3, 4});
+	}
+
+	SECTION("large_image_row_index")
+	{
+		deckard::image_rgba img(1024, 65);
+		img[0, 0]  = {1, 2, 3, 4};
+		img[0, 64] = {5, 6, 7, 8};
+
+		CHECK(img[0, 0] == deckard::rgba<u8>{1, 2, 3, 4});
+		CHECK(img[0, 64] == deckard::rgba<u8>{5, 6, 7, 8});
+		CHECK(img.row(64)[0] == deckard::rgba<u8>{5, 6, 7, 8});
+
+		const deckard::image_rgba copied = img;
+		CHECK(copied[0, 64] == deckard::rgba<u8>{5, 6, 7, 8});
 	}
 
 	SECTION("encode_bmp_2x2")
