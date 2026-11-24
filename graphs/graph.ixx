@@ -1,4 +1,5 @@
 export module deckard.graph;
+import deckard.log;
 
 
 export import :binarytree;
@@ -156,8 +157,11 @@ namespace deckard::graph
 			index_map.erase(it);
 		}
 
-		void reserve(u64 node_count, u64 edge_count)
+		void reserve(u64 node_count, u64 edge_count = 0)
 		{
+			if (edge_count == 0)
+				edge_count = node_count * 2;
+
 			adjacent_list.reserve(node_count);
 			reverse_index.reserve(node_count);
 			edge_weights.reserve(node_count);
@@ -410,7 +414,7 @@ namespace deckard::graph
 			auto it = index_map.find(start);
 			if (it == index_map.end())
 			{
-				dbg::println("Start node not found");
+				log::println("Start node not found");
 				return {};
 			}
 
@@ -1619,20 +1623,20 @@ namespace deckard::graph
 			return out;
 		}
 
-		void print() const { dbg::println("{}", to_string()); }
+		void print() const { log::println("{}", to_string()); }
 
 		void dump_as_matrix() const
 		{
 			const u64 n = reverse_index.size();
 
-			dbg::print("    ");
+			log::print("    ");
 			for (u64 j = 0; j < n; ++j)
 			{
-				dbg::print("{}", reverse_index[j]);
+				log::print("{}", reverse_index[j]);
 				if (j + 1 < n)
-					dbg::print(" ");
+					log::print(" ");
 			}
-			dbg::println();
+			log::println();
 
 			for (u64 i = 0; i < n; ++i)
 			{
@@ -1644,12 +1648,12 @@ namespace deckard::graph
 						present[nbr] = true;
 				}
 
-				dbg::print("{} :", reverse_index[i]);
+				log::print("{} :", reverse_index[i]);
 
 				for (u64 j = 0; j < n; ++j)
-					dbg::print(" {}", present[j] ? "1" : "0");
+					log::print(" {}", present[j] ? "1" : "0");
 
-				dbg::println();
+				log::println();
 			}
 		}
 
@@ -1659,14 +1663,14 @@ namespace deckard::graph
 
 			for (u64 i = 0; i < adjacent_list.size(); ++i)
 			{
-				dbg::print("{} :", reverse_index[i]);
+				log::print("{} :", reverse_index[i]);
 
 				for (const auto& nbr : adjacent_list[i])
 				{
-					dbg::print(" {}", reverse_index[nbr]);
+					log::print(" {}", reverse_index[nbr]);
 				}
 
-				dbg::println();
+				log::println();
 			}
 		}
 	};

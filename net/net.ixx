@@ -3,6 +3,7 @@ module;
 #include <ws2tcpip.h>
 
 export module deckard.net;
+import deckard.log;
 import deckard.types;
 import deckard.debug;
 
@@ -50,7 +51,7 @@ namespace deckard::net
 		WSADATA wsadata{};
 		if( auto result = WSAStartup(0x0202, &wsadata); result != 0 or wsadata.wVersion != 0x0202)
 		{
-			dbg::println("WSAStartup failed: {}", result);
+			log::println("WSAStartup failed: {}", result);
 			WSACleanup();
 		}
 	}

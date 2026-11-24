@@ -1,4 +1,5 @@
 export module deckard.app;
+import deckard.log;
 export import :window;
 export import :renderer;
 export import :inputs;
@@ -191,7 +192,7 @@ namespace deckard::app
 		// vulkan
 		detail::vulkan.set_debug_callback(
 		  [](const std::string_view severity, const std::string_view type, std::string_view message) noexcept
-		  { dbg::println("Vulkan [{}] [{}]: {}", severity, type, message); });
+		  { log::println("Vulkan [{}] [{}]: {}", severity, type, message); });
 		detail::vulkan.set_vsync(opt.vsync);
 
 
@@ -324,7 +325,7 @@ namespace deckard::app
 		auto img = detail::m_render.screenshot();
 		if (not img)
 		{
-			dbg::println("Failed to capture screenshot: {}", img.error());
+			log::println("Failed to capture screenshot: {}", img.error());
 			return;
 		}
 		std::jthread(
@@ -332,9 +333,9 @@ namespace deckard::app
 		  {
 			  ScopeTimer timer("screenshot");
 			  if (auto result = deckard::image::save_qoi("screenshot.qoi"_path, img); not result)
-				  dbg::println("Failed to save screenshot: {}", result.error());
+				  log::println("Failed to save screenshot: {}", result.error());
 			  else
-				  dbg::println("Screenshot saved to screenshot.qoi");
+				  log::println("Screenshot saved to screenshot.qoi");
 		  })
 		  .detach();
 	}
@@ -356,7 +357,7 @@ namespace deckard::app
 		if (not detail::window.on_initialize)
 			detail::window.on_initialize = std::move(callback);
 		else
-			dbg::println("window: on_initialize callback already set");
+			log::println("window: on_initialize callback already set");
 	}
 
 	export void on_render(render_callback callback)
@@ -364,7 +365,7 @@ namespace deckard::app
 		if (not detail::m_render.user_render)
 			detail::m_render.user_render = std::move(callback);
 		else
-			dbg::println("window: on_render callback already set");
+			log::println("window: on_render callback already set");
 	}
 
 	export void on_destroy(destroy_callback callback)
@@ -372,7 +373,7 @@ namespace deckard::app
 		if (not detail::window.on_destroy)
 			detail::window.on_destroy = std::move(callback);
 		else
-			dbg::println("window: on_destroy callback already set");
+			log::println("window: on_destroy callback already set");
 	}
 
 } // namespace deckard::app

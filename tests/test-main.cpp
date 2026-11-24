@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 import std;
-import deckard.logger;
+import deckard.log;
 
 /*
 #include <catch2/catch_all.hpp>
@@ -42,7 +42,9 @@ int main(int argc, char* argv[])
 	}
 
 	if (is_test_discovery)
-		deckard::logger.set_suppress_init(true);
+		deckard::log::set_suppress_init(true);
+	else
+		deckard::log::initialize();
 
 	return Catch::Session().run(argc, argv);
 }

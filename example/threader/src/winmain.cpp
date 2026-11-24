@@ -144,21 +144,21 @@ struct TCP
 {
 	bool open(u16 port)
 	{
-		info("TCP open port {}", port);
+		log::println("TCP open port {}", port);
 		return true;
 	}
 
-	void close() { info("TCP close"); }
+	void close() { log::println("TCP close"); }
 
 	u64 send(std::string_view input)
 	{
-		info("TCP::send = '{}'", input);
+		log::println("TCP::send = '{}'", input);
 		return input.size();
 	}
 
 	std::string receive(u64 n)
 	{
-		info("TCP::receive {} bytes", n);
+		log::println("TCP::receive {} bytes", n);
 		return "TCP receive";
 	}
 
@@ -174,7 +174,7 @@ struct UDP
 		socket = ::socket(type, SOCK_DGRAM, IPPROTO_UDP);
 		if (socket == INVALID_SOCKET)
 		{
-			dbg::println("Failed to create UDP socket: {}", WSAGetLastError());
+			log::println("Failed to create UDP socket: {}", WSAGetLastError());
 			return false;
 		}
 		return true;
@@ -184,13 +184,13 @@ struct UDP
 
 	u64 send(std::string_view input)
 	{
-		info("UDP::send = '{}'", input);
+		log::println("UDP::send = '{}'", input);
 		return input.size();
 	}
 
 	std::string receive(u64 n)
 	{
-		info("UDP::receive {} bytes", n);
+		log::println("UDP::receive {} bytes", n);
 		return "UDP receive";
 	}
 
@@ -211,7 +211,7 @@ struct Socket : TransportPolicy
 
 	std::string receive(u64 n)
 	{
-		dbg::println("Policy: {}", TransportPolicy::receive(n));
+		log::println("Policy: {}", TransportPolicy::receive(n));
 
 		return "TCP recv";
 	}
@@ -293,7 +293,7 @@ public:
 		DWORD timeout_ms = 2000;
 		if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout_ms), sizeof timeout_ms)
 			== SOCKET_ERROR)
-			dbg::println("setsockopt failed: {}", net::wsa_error_string());
+			log::println("setsockopt failed: {}", net::wsa_error_string());
 
 		sockaddr_in6 dest{};
 		dest.sin6_family = AF_INET6;
@@ -360,7 +360,7 @@ public:
 				closesocket(sockfd);
 				if (r.error() == "TC")
 				{
-					dbg::println("Response truncated, retrying over TCP...");
+					log::println("Response truncated, retrying over TCP...");
 					return send_query_tcp(record_type, dest);
 				}
 				return r;
@@ -420,7 +420,7 @@ public:
 
 			const int n = recv(sockfd, reinterpret_cast<char*>(buffer.data()) + received, resp_len - received, 0);
 
-			dbg::println("TCP recv {} bytes ({} total, {})", n, received + n, resp_len - received);
+			log::println("TCP recv {} bytes ({} total, {})", n, received + n, resp_len - received);
 
 			if (n <= 0)
 			{
@@ -469,7 +469,7 @@ private:
 		dns->nscount   = 0;        // No authority
 		dns->arcount   = 0;        // No additional
 
-		dbg::println("transaction id: {:x}", transaction_id);
+		log::println("transaction id: {:x}", transaction_id);
 
 		size_t           offset = DNS_HEADER_SIZE;
 		std::string_view rest{domain};
@@ -590,9 +590,9 @@ private:
 		if (recv_len < DNS_HEADER_SIZE)
 			return std::unexpected("DNS response too short");
 
-		dbg::println("DNS response received, length: {}", recv_len);
-		dbg::println("Raw response data:");
-		dbg::println("{}", to_hex_string<u8>({buffer.data(), recv_len}, {.delimiter = " ", .show_hex = false}));
+		log::println("DNS response received, length: {}", recv_len);
+		log::println("Raw response data:");
+		log::println("{}", to_hex_string<u8>({buffer.data(), recv_len}, {.delimiter = " ", .show_hex = false}));
 
 
 		auto read_be16_at = [&](size_t pos) -> std::optional<u16>
@@ -610,11 +610,11 @@ private:
 
 		if (transaction_id != tid.value_or(0))
 		{
-			dbg::println("Expected {:x} got {:x}", transaction_id, tid.value_or(0));
+			log::println("Expected {:x} got {:x}", transaction_id, tid.value_or(0));
 			return std::unexpected("Transaction ID mismatch");
 		}
 		else
-			dbg::println("Transaction ID: {:x}", tid.value_or(0));
+			log::println("Transaction ID: {:x}", tid.value_or(0));
 
 		const auto flags = read_be16_at(2);
 
@@ -643,7 +643,7 @@ private:
 		if (rcode != 0)
 			return std::unexpected(std::format("DNS error rcode={}", rcode));
 
-		dbg::println(
+		log::println(
 		  "Flags: qr={} opcode={} aa={} tc={} rd={} ra={} z={} ad={} cd={} rcode={}",
 		  qr,
 		  opcode,
@@ -670,7 +670,7 @@ private:
 		int authority_count  = static_cast<int>(*auth_count);
 		int additional_count = static_cast<int>(*add_count);
 
-		dbg::println(
+		log::println(
 		  "Received {} bytes, Questions: {}, Answers: {}, Authority: {}, Additional: {}",
 		  recv_len,
 		  question_count,
@@ -693,7 +693,7 @@ private:
 
 		auto parse_records = [&](std::string_view section_name, int count) -> std::expected<void, std::string>
 		{
-			dbg::println("{} records: {}", section_name, count);
+			log::println("{} records: {}", section_name, count);
 
 			for (int i = 0; i < count; ++i)
 			{
@@ -716,40 +716,40 @@ private:
 
 				answer.name = name;
 
-				dbg::println("{} Record {}:", section_name, i + 1);
-				dbg::println("  Name: {}", answer.name);
-				dbg::println("  Type: {}", answer.type);
-				dbg::println("  Class: {}", answer.class_);
-				dbg::println("  TTL: {}", answer.ttl);
+				log::println("{} Record {}:", section_name, i + 1);
+				log::println("  Name: {}", answer.name);
+				log::println("  Type: {}", answer.type);
+				log::println("  Class: {}", answer.class_);
+				log::println("  TTL: {}", answer.ttl);
 
 				if (answer.type == 1)
 				{
 					char ipv4[INET_ADDRSTRLEN]{};
 					if (answer.data.size() == 4 and inet_ntop(AF_INET, answer.data.data(), ipv4, sizeof(ipv4)) != nullptr)
-						dbg::println("  Address (IPv4): {}", ipv4);
+						log::println("  Address (IPv4): {}", ipv4);
 					else
-						dbg::println("  Address (IPv4): <invalid>");
+						log::println("  Address (IPv4): <invalid>");
 				}
 				else if (answer.type == 2)
 				{
 					std::string ns_name;
 					size_t      ns_offset = rdata_start;
 					if (parse_name(ns_offset, recv_len, ns_name))
-						dbg::println("  NS: {}", ns_name);
+						log::println("  NS: {}", ns_name);
 					else
-						dbg::println("  NS: <invalid>");
+						log::println("  NS: <invalid>");
 				}
 				else if (answer.type == 28)
 				{
 					char ipv6[INET6_ADDRSTRLEN]{};
 					if (answer.data.size() == 16 and inet_ntop(AF_INET6, answer.data.data(), ipv6, sizeof(ipv6)) != nullptr)
-						dbg::println("  Address (IPv6): {}", ipv6);
+						log::println("  Address (IPv6): {}", ipv6);
 					else
-						dbg::println("  Address (IPv6): <invalid>");
+						log::println("  Address (IPv6): <invalid>");
 				}
 				else
 				{
-					dbg::println(
+					log::println(
 					  "  Data (hex): {}", to_hex_string(std::span{answer.data}, {.delimiter = " ", .show_hex = false}));
 				}
 			}
@@ -787,47 +787,14 @@ public:
 	}
 };
 
-auto ip_query(std::string_view host, [[maybe_unused]] int version = 4) -> std::pair<std::string, std::chrono::milliseconds>
-{
-	const std::string req = std::format("GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n", host);
 
-	net::socket s(net::endpoint{host, 80});
-	s.write(req);
-	if (not s.send())
-		return {};
 
-	auto [response, rtt] = s.recv_string();
-
-	// Strip HTTP headers — body follows "\r\n\r\n"
-	if (const auto pos = response.find("\r\n\r\n"); pos != std::string::npos)
-	{
-		auto ip = response.substr(pos + 4);
-		// trim trailing whitespace/newline
-		while (not ip.empty() and (ip.back() == '\n' or ip.back() == '\r' or ip.back() == ' '))
-			ip.pop_back();
-		return {ip, rtt};
-	}
-
-	return {response, rtt};
-}
-
-auto ip_query(int version = 4)
-{
-	const std::string host = (version == 6) ? "ipv6.icanhazip.com" : "ipv4.icanhazip.com";
-	return ip_query(host, version);
-}
-
-auto ipify_query(int version = 4)
-{
-	const std::string host = (version == 6) ? "api6.ipify.org" : "api.ipify.org";
-	return ip_query(host, version);
-}
 
 constexpr std::array<std::string_view, 128> koremutake_syllables = {
   {"BA",  "BE",  "BI",  "BO",  "BU",  "BY",  "DA",  "DE",  "DI",  "DO",  "DU",  "DY",  "FA",  "FE",  "FI",  "FO",
    "FU",  "FY",  "GA",  "GE",  "GI",  "GO",  "GU",  "GY",  "HA",  "HE",  "HI",  "HO",  "HU",  "HY",  "JA",  "JE",
    "JI",  "JO",  "JU",  "JY",  "KA",  "KE",  "KI",  "KO",  "KU",  "KY",  "LA",  "LE",  "LI",  "LO",  "LU",  "LY",
-   "MA",  "ME",  "MI",  "MO",  "MU",  "MY",  "NA",  "NE",  "NI",  "NO",  "NU",  "NY",  "PA",  "PE",  "PI",  "PO",
+   "MA",  "ME",  "MI",  "MO",  "MU",  "MY",  "NA",  "NE",  "NI",  "NO",  "NU",  "NY",  "PA",  "PE",  "PI" , "PO",
    "PU",  "PY",  "RA",  "RE",  "RI",  "RO",  "RU",  "RY",  "SA",  "SE",  "SI",  "SO",  "SU",  "SY",  "TA",  "TE",
    "TI",  "TO",  "TU",  "TY",  "VA",  "VE",  "VI",  "VO",  "VU",  "VY",  "BRA", "BRE", "BRI", "BRO", "BRU", "BRY",
    "DRA", "DRE", "DRI", "DRO", "DRU", "DRY", "FRA", "FRE", "FRI", "FRO", "FRU", "FRY", "GRA", "GRE", "GRI", "GRO",
@@ -1115,7 +1082,7 @@ static constexpr std::array coda = {
 
 i32 deckard_main([[maybe_unused]] utf8::view commandline)
 {
-	dbg::println("cmd: {}", commandline);
+	log::println("cmd: {}", commandline);
 
 #if 0
 	u64        lines = 0;
@@ -1141,14 +1108,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		auto pss1 = koremutake_encode(random::randu8(2, 7));
 
-		dbg::println("Koremutake: {: >21}", pss1);
+		log::println("Koremutake: {: >21}", pss1);
 	}
 
 	for ([[maybe_unused]] const auto i : range(0, 100))
 	{
 		auto pss = generate_human_name(rng, random::randu8(2, 3));
 
-		dbg::println("Human Name: {: >16}", pss);
+		log::println("Human Name: {: >16}", pss);
 	}
 
 
@@ -1164,29 +1131,29 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	for (const auto& test : test_strings)
 		if (keywords.contains(test))
-			info("'{}' is a keyword", test);
+			log::println("'{}' is a keyword", test);
 		else
-			info("'{}' is not a keyword", test);
+			log::println("'{}' is not a keyword", test);
 
 	_ = 0;
 
 
 	/* deckard::threadpool tp(0);
-	tp.post([] { info("Hello from threadpool!"); });
+	tp.post([] { log::println("Hello from threadpool!"); });
 
 	auto task = [](deckard::threadpool& tp, int id)
 	{
-		info("Task {} started", id);
+		log::println("Task {} started", id);
 		std::this_thread::sleep_for(1s);
 
 		while(tp.is_running())
 		{
-			info("Task {} is running...", id);
+			log::println("Task {} is running...", id);
 			std::this_thread::sleep_for(1s);
 		}
 
 		tp.post([id] {
-			info("Task {} completed", id);
+			log::println("Task {} completed", id);
 		});
 	};
 
@@ -1197,49 +1164,19 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	*/
 
 
-	auto [body, rtt] = ip_query();
-	dbg::println("Public IPv4: {} - ({})", body, rtt);
-
-	auto [body2, rtt2] = ip_query(6);
-	dbg::println("Public IPv6: {} - ({})", body2, rtt2);
-
-	auto [body3, rtt3] = ipify_query();
-	dbg::println("Public IPv4: {} - ({})", body3, rtt3);
-
-	auto [body4, rtt4] = ipify_query(6);
-	dbg::println("Public IPv6: {} - ({})", body4, rtt4);
-
 
 	_ = 0;
 
 
-	info("░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░");
-	info("✅ ⚠️ ❌ ❗");
+	log::println("░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░");
+	log::println("✅ ⚠️ ❌ ❗");
 
-	auto ips1 = net::resolve_ips("1.1.1.1", 4);
-
-	auto ips  = net::resolve_ips("api.taboobuilder.com", 6);
-	auto ips2 = net::resolve_ips("2606:4700:4700::1111", 6);
-	for (const auto& ip : ips.value_or({}))
-		dbg::println("Resolved IP: {}", ip);
-
-
-	dbg::println("Hostname: {}", net::hostname());
-
-
-	net::endpoint ep("api.taboobuilder.com", 80);
-
-	dbg::println("Measused MTU: {}", net::measure_mtu_for_target({"api.taboobuilder.com", 80}));
-
-
-	dbg::println("Endpoint: {}", ep.to_string());
-	_ = 0;
 
 	{
 		SOCKET server = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (server == INVALID_SOCKET)
 		{
-			dbg::println("Failed to create server socket: {}", WSAGetLastError());
+			log::println("Failed to create server socket: {}", WSAGetLastError());
 			return 1;
 		}
 
@@ -1250,14 +1187,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		if (::bind(server, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR)
 		{
-			dbg::println("bind() failed: {}", WSAGetLastError());
+			log::println("bind() failed: {}", WSAGetLastError());
 			::closesocket(server);
 			return 1;
 		}
 
 		if (::listen(server, 1) == SOCKET_ERROR)
 		{
-			dbg::println("listen() failed: {}", WSAGetLastError());
+			log::println("listen() failed: {}", WSAGetLastError());
 			::closesocket(server);
 			return 1;
 		}
@@ -1265,7 +1202,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		int server_len = static_cast<int>(sizeof(server_addr));
 		if (::getsockname(server, reinterpret_cast<sockaddr*>(&server_addr), &server_len) == SOCKET_ERROR)
 		{
-			dbg::println("getsockname() failed: {}", WSAGetLastError());
+			log::println("getsockname() failed: {}", WSAGetLastError());
 			::closesocket(server);
 			return 1;
 		}
@@ -1281,14 +1218,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		SOCKET client = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (client == INVALID_SOCKET)
 		{
-			dbg::println("Failed to create client socket: {}", WSAGetLastError());
+			log::println("Failed to create client socket: {}", WSAGetLastError());
 			::closesocket(server);
 			return 1;
 		}
 
 		if (::connect(client, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR)
 		{
-			dbg::println("connect() failed: {}", WSAGetLastError());
+			log::println("connect() failed: {}", WSAGetLastError());
 			::closesocket(client);
 			::closesocket(server);
 			return 1;
@@ -1297,7 +1234,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		SOCKET accepted = ::accept(server, nullptr, nullptr);
 		if (accepted == INVALID_SOCKET)
 		{
-			dbg::println("accept() failed: {}", WSAGetLastError());
+			log::println("accept() failed: {}", WSAGetLastError());
 			::closesocket(client);
 			::closesocket(server);
 			return 1;
@@ -1322,10 +1259,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					inet_ntop(AF_INET6, &in6.sin6_addr, ip, sizeof(ip));
 					port = ntohs(in6.sin6_port);
 				}
-				dbg::println("client peer: {}:{}", ip, port);
+				log::println("client peer: {}:{}", ip, port);
 			}
 			else
-				dbg::println("getpeername() failed: {}", WSAGetLastError());
+				log::println("getpeername() failed: {}", WSAGetLastError());
 		}
 
 		u32 sent_bytes = 0;
@@ -1342,10 +1279,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				  int n = ::send(client, msg.data(), static_cast<int>(msg.size()), 0);
 				  if (n == SOCKET_ERROR)
 				  {
-					  dbg::println("send() failed: {}", WSAGetLastError());
+					  log::println("send() failed: {}", WSAGetLastError());
 					  break;
 				  }
-				  // dbg::println("Sent {} bytes", n);
+				  // log::println("Sent {} bytes", n);
 				  sent_bytes++;
 				  // std::this_thread::sleep_for(std::chrono::milliseconds(250));
 			  }
@@ -1364,12 +1301,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				  int n = ::recv(accepted, buf.data(), static_cast<int>(buf.size()), 0);
 				  if (n <= 0)
 				  {
-					  dbg::println("recv() ended: {}", WSAGetLastError());
+					  log::println("recv() ended: {}", WSAGetLastError());
 					  break;
 				  }
-				  // dbg::println("Received {} bytes", n);
+				  // log::println("Received {} bytes", n);
 				  recv_bytes++;
-				  // dbg::println("Message: {}", std::string_view{buf.data(), static_cast<size_t>(n)});
+				  // log::println("Message: {}", std::string_view{buf.data(), static_cast<size_t>(n)});
 			  }
 		  });
 
@@ -1381,7 +1318,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		sender.request_stop();
 		receiver.request_stop();
 
-		dbg::println(
+		log::println(
 		  "Sent {} messages, received {} messages - {} bytes / {} bytes",
 		  sent_bytes,
 		  recv_bytes,
@@ -1403,7 +1340,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	// query.set_dns_server("2001:503:ba3e::2:30", 6);
 
 	if (auto result = query.send_query(); not result)
-		dbg::println("{}", result.error());
+		log::println("{}", result.error());
 
 
 	//
@@ -1413,11 +1350,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 	DWORD dw = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, nullptr, &outsize);
-	dbg::println("Buffer needs to be {} bytes", outsize);
+	log::println("Buffer needs to be {} bytes", outsize);
 
 	if (dw == ERROR_BUFFER_OVERFLOW)
 	{
-		dbg::println("Buffer overflow, allocating {} bytes", outsize);
+		log::println("Buffer overflow, allocating {} bytes", outsize);
 
 		pHead      = (IP_ADAPTER_ADDRESSES*)MALLOC(outsize);
 		pAddresses = pHead;
@@ -1425,7 +1362,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		dw = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outsize);
 		if (dw != ERROR_SUCCESS)
 		{
-			dbg::println("GetAdaptersAddresses failed with error: {}", dw);
+			log::println("GetAdaptersAddresses failed with error: {}", dw);
 			FREE(pHead);
 			return 0;
 		}
@@ -1441,11 +1378,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	while (pAddresses->Next != nullptr)
 	{
 		auto friendly_name = platform::string_from_wide(pAddresses->FriendlyName);
-		dbg::println("Adapter: {}", friendly_name);
+		log::println("Adapter: {}", friendly_name);
 
 		if (pAddresses->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
 		{
-			dbg::println("Software loopback, skipping...");
+			log::println("Software loopback, skipping...");
 			pAddresses = pAddresses->Next;
 			continue;
 		}
@@ -1453,12 +1390,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		const bool mtu_unlimited = (pAddresses->Mtu == std::numeric_limits<ULONG>::max());
 		if (mtu_unlimited)
-			dbg::println("Mtu: unlimited");
+			log::println("Mtu: unlimited");
 		else
-			dbg::println("Mtu: {}", pAddresses->Mtu);
+			log::println("Mtu: {}", pAddresses->Mtu);
 
-		dbg::println("Adapter: {}", pAddresses->AdapterName);
-		dbg::println("Description: {}", platform::string_from_wide(pAddresses->Description));
+		log::println("Adapter: {}", pAddresses->AdapterName);
+		log::println("Description: {}", platform::string_from_wide(pAddresses->Description));
 
 
 		auto address_to_string = [](auto address) -> std::string
@@ -1475,14 +1412,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		//
 		while (pAddresses->FirstUnicastAddress and pAddresses->FirstUnicastAddress->Address.lpSockaddr != nullptr)
 		{
-			dbg::println("Unicast address: {}", address_to_string(&pAddresses->FirstUnicastAddress->Address.lpSockaddr));
+			log::println("Unicast address: {}", address_to_string(&pAddresses->FirstUnicastAddress->Address.lpSockaddr));
 			pAddresses->FirstUnicastAddress = pAddresses->FirstUnicastAddress->Next;
 		}
 
 		//
 		while (pAddresses->FirstAnycastAddress and pAddresses->FirstAnycastAddress->Address.lpSockaddr != nullptr)
 		{
-			dbg::println("Anycast address: {}", address_to_string(&pAddresses->FirstAnycastAddress->Address.lpSockaddr));
+			log::println("Anycast address: {}", address_to_string(&pAddresses->FirstAnycastAddress->Address.lpSockaddr));
 			pAddresses->FirstAnycastAddress = pAddresses->FirstAnycastAddress->Next;
 		}
 
@@ -1490,7 +1427,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		//
 		while (pAddresses->FirstMulticastAddress and pAddresses->FirstMulticastAddress->Address.lpSockaddr != nullptr)
 		{
-			dbg::println("FirstMulticastAddress address: {}",
+			log::println("FirstMulticastAddress address: {}",
 						 address_to_string(&pAddresses->FirstMulticastAddress->Address.lpSockaddr));
 			pAddresses->FirstMulticastAddress = pAddresses->FirstMulticastAddress->Next;
 		}
@@ -1498,7 +1435,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		//
 		while (pAddresses->FirstDnsServerAddress and pAddresses->FirstDnsServerAddress->Address.lpSockaddr != nullptr)
 		{
-			dbg::println("FirstDnsServerAddress address: {}",
+			log::println("FirstDnsServerAddress address: {}",
 						 address_to_string(&pAddresses->FirstDnsServerAddress->Address.lpSockaddr));
 			pAddresses->FirstDnsServerAddress = pAddresses->FirstDnsServerAddress->Next;
 		}
@@ -1507,7 +1444,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		bool has_mac = pAddresses->PhysicalAddressLength > 0;
 		if (has_mac)
 		{
-			dbg::println(
+			log::println(
 			  "Physical Address: {:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X}",
 			  pAddresses->PhysicalAddress[0],
 			  pAddresses->PhysicalAddress[1],
@@ -1517,41 +1454,41 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			  pAddresses->PhysicalAddress[5]);
 		}
 		else
-			dbg::println("No mac");
+			log::println("No mac");
 
 
-		dbg::println("Flags: {}", pAddresses->Flags);
+		log::println("Flags: {}", pAddresses->Flags);
 
-		dbg::println(" - DHCP enabled: {}", (pAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0);
-		dbg::println(" - Registered: {}", (pAddresses->Flags & IP_ADAPTER_REGISTER_ADAPTER_SUFFIX) != 0);
-		dbg::println(" - Dhcpv4 enabled: {}", (pAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0);
-		dbg::println(" - Receive-only: {}", (pAddresses->Flags & IP_ADAPTER_RECEIVE_ONLY) != 0);
-		dbg::println(" - NoMulticast: {}", (pAddresses->Flags & IP_ADAPTER_NO_MULTICAST) != 0);
-		dbg::println(" - IPv6OthersStatefulConfig: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_OTHER_STATEFUL_CONFIG) != 0);
-		dbg::println(" - Netbios over Tcpip enabled: {}", (pAddresses->Flags & IP_ADAPTER_NETBIOS_OVER_TCPIP_ENABLED) != 0);
-		dbg::println(" - Ipv4 enabled: {}", (pAddresses->Flags & IP_ADAPTER_IPV4_ENABLED) != 0);
-		dbg::println(" - Ipv6 enabled: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0);
-		dbg::println(" - Ipv6 Managed Address Config: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_MANAGE_ADDRESS_CONFIG) != 0);
+		log::println(" - DHCP enabled: {}", (pAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0);
+		log::println(" - Registered: {}", (pAddresses->Flags & IP_ADAPTER_REGISTER_ADAPTER_SUFFIX) != 0);
+		log::println(" - Dhcpv4 enabled: {}", (pAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0);
+		log::println(" - Receive-only: {}", (pAddresses->Flags & IP_ADAPTER_RECEIVE_ONLY) != 0);
+		log::println(" - NoMulticast: {}", (pAddresses->Flags & IP_ADAPTER_NO_MULTICAST) != 0);
+		log::println(" - IPv6OthersStatefulConfig: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_OTHER_STATEFUL_CONFIG) != 0);
+		log::println(" - Netbios over Tcpip enabled: {}", (pAddresses->Flags & IP_ADAPTER_NETBIOS_OVER_TCPIP_ENABLED) != 0);
+		log::println(" - Ipv4 enabled: {}", (pAddresses->Flags & IP_ADAPTER_IPV4_ENABLED) != 0);
+		log::println(" - Ipv6 enabled: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0);
+		log::println(" - Ipv6 Managed Address Config: {}", (pAddresses->Flags & IP_ADAPTER_IPV6_MANAGE_ADDRESS_CONFIG) != 0);
 
 		[[maybe_unused]] bool has_ipv4 = (pAddresses->Flags & IP_ADAPTER_IPV4_ENABLED) != 0;
 		[[maybe_unused]] bool has_ipv6 = (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0;
 
 
-		dbg::println("IfType: {}", pAddresses->IfType);
-		dbg::println("OperStatus: {}", as<u32>(pAddresses->OperStatus));
-		dbg::println("Ipv6IfIndex: {}", pAddresses->Ipv6IfIndex);
+		log::println("IfType: {}", pAddresses->IfType);
+		log::println("OperStatus: {}", as<u32>(pAddresses->OperStatus));
+		log::println("Ipv6IfIndex: {}", pAddresses->Ipv6IfIndex);
 
 		bool ipv4_enabled = (pAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0;
 		bool ipv6_enabled = (pAddresses->Flags & IP_ADAPTER_IPV6_ENABLED) != 0;
 
-		dbg::println("v4 enabled: {}", ipv4_enabled);
-		dbg::println("v6 enabled: {}", ipv6_enabled);
+		log::println("v4 enabled: {}", ipv4_enabled);
+		log::println("v6 enabled: {}", ipv6_enabled);
 
-		dbg::println("Connection type: {}", as<u32>(pAddresses->ConnectionType));
-		dbg::println("Tunnel type: {}", as<u32>(pAddresses->TunnelType));
+		log::println("Connection type: {}", as<u32>(pAddresses->ConnectionType));
+		log::println("Tunnel type: {}", as<u32>(pAddresses->TunnelType));
 
 		bool is_active = (pAddresses->OperStatus == IfOperStatusUp) and (pAddresses->FirstUnicastAddress != nullptr);
-		dbg::println("Active: {}", is_active);
+		log::println("Active: {}", is_active);
 
 		bool is_tunnel
 		  = (pAddresses->IfType == IF_TYPE_TUNNEL)                // generic encapsulation (6to4, Teredo, ISATAP)
@@ -1561,7 +1498,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			or (pAddresses->IfType == IF_TYPE_PPPMULTILINKBUNDLE) // PPP multilink
 			or (pAddresses->TunnelType != TUNNEL_TYPE_NONE)       // explicit tunnel type from OS
 			or (pAddresses->PhysicalAddressLength == 0 and not mtu_unlimited); // no MAC = virtual/tunnel (excludes loopback)
-		dbg::println("Tunnel: {}", is_tunnel);
+		log::println("Tunnel: {}", is_tunnel);
 
 		//
 		if (is_tunnel == false and is_active == true and has_mac and not non_tunnel_local_addr.has_value())
@@ -1573,7 +1510,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					non_tunnel_local_addr = *reinterpret_cast<sockaddr_in*>(ua->Address.lpSockaddr);
 					char ip_str[INET_ADDRSTRLEN]{};
 					inet_ntop(AF_INET, &non_tunnel_local_addr->sin_addr, ip_str, sizeof(ip_str));
-					dbg::println("Non-tunnel local IP captured: {}", ip_str);
+					log::println("Non-tunnel local IP captured: {}", ip_str);
 					// break;
 				}
 			}
@@ -1590,13 +1527,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					tunnel_local_addr->sin_port = 0; // port 0: OS picks the ephemeral source port
 					char ip_str[INET_ADDRSTRLEN]{};
 					inet_ntop(AF_INET, &tunnel_local_addr->sin_addr, ip_str, sizeof(ip_str));
-					dbg::println("Tunnel local IP captured: {}", ip_str);
+					log::println("Tunnel local IP captured: {}", ip_str);
 					break;
 				}
 			}
 		}
 
-		dbg::println();
+		log::println();
 
 
 		pAddresses = pAddresses->Next;
@@ -1606,7 +1543,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	FREE(pHead);
 	pHead = pAddresses = nullptr;
 
-	info("GAA: {}", dw);
+	log::println("GAA: {}", dw);
 	SOCKET tunnel_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 #if 1
@@ -1614,15 +1551,15 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		char ip_str[INET_ADDRSTRLEN]{};
 		inet_ntop(AF_INET, &non_tunnel_local_addr->sin_addr, ip_str, sizeof(ip_str));
-		dbg::println("Non-tunnel local IP: {}", ip_str);
+		log::println("Non-tunnel local IP: {}", ip_str);
 		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&non_tunnel_local_addr.value()), sizeof(sockaddr_in))
 			!= SOCKET_ERROR)
 		{
-			dbg::println("Socket bound to non-tunnel interface");
+			log::println("Socket bound to non-tunnel interface");
 		}
 		else
 		{
-			dbg::println("bind to non-tunnel failed: {}", WSAGetLastError());
+			log::println("bind to non-tunnel failed: {}", WSAGetLastError());
 			closesocket(tunnel_socket);
 			WSACleanup();
 			return 4;
@@ -1637,13 +1574,13 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		if (::bind(tunnel_socket, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(sockaddr_in))
 			!= SOCKET_ERROR)
 		{
-			dbg::println("Socket bound to tunnel interface");
+			log::println("Socket bound to tunnel interface");
 
 			// connect() and send() now go through the tunnel
 		}
 		else
 		{
-			dbg::println("bind to tunnel failed: {}", WSAGetLastError());
+			log::println("bind to tunnel failed: {}", WSAGetLastError());
 			closesocket(tunnel_socket);
 			WSACleanup();
 			return 5;
@@ -1661,7 +1598,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	timeout.tv_usec = 0;
 
 	if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, as<const char*>(&timeout), sizeof timeout) == SOCKET_ERROR)
-		dbg::println("setsockopt failed: {}", WSAGetLastError());
+		log::println("setsockopt failed: {}", WSAGetLastError());
 
 	// if (bind(s, reinterpret_cast<sockaddr*>(&tunnel_local_addr.value()), sizeof(*tunnel_local_addr)) == SOCKET_ERROR)
 	//{
@@ -1710,7 +1647,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		if (n <= 0)
 			break;
 		std::string ret{rx.data(), static_cast<size_t>(n)};
-		dbg::println("{}", ret);
+		log::println("{}", ret);
 	}
 
 	closesocket(s);
@@ -1724,8 +1661,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	tdps.send("hello");
 
-	info("{}", udps.receive(10));
-	info("{}", tdps.receive(20));
+	log::println("{}", udps.receive(10));
+	log::println("{}", tdps.receive(20));
 
 
 	return 0;

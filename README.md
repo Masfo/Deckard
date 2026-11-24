@@ -1,4 +1,4 @@
-﻿# Deckard - Utility Modules
+# Deckard - Utility Modules
 
  ![logo_ai_gen](https://github.com/user-attachments/assets/0dd8ff7c-cc2c-4f5e-be24-5bca713821e1)
 
@@ -27,16 +27,21 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	```cpp
 	import deckard;
 
+	log::initialize(); // Called by deckard_init for Deckard applications.
 	dbg::trace("Hello {}", "World"); // winmain.cpp(15): Hello World
-	dbg::println("Similar to trace");  // Similar to trace
-	dbg::print("Like dbgln but ");     // 
-	dbg::print("w/o newline\n");       // Like dbgln but w/o newline 
+	log::println("Similar to trace");  // Similar to trace
+	log::print("Like println but ");
+	log::print("w/o newline\n");       // Like println but w/o newline
+	log::eprintln("Error output: {}", "message");
 
 	dbg::panic("reason");	
 
 	assert::check(1==2, "Wrong");
 	
 	```
+	`log::initialize()` writes the opening message once; call it at startup when not using `deckard_init()`.
+	Printing without initialization still writes messages, but omits the opening and closing messages.
+	In debug builds, `eprint` and `eprintln` write to stderr and the debugger as well as the log file; release builds write to the file only.
   - **Basic types**
 	  ```cpp
 	  import deckard;
@@ -138,7 +143,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	auto ok = zstd::compress(buffer, comp);
 	if (!ok)
 	{
-		dbg::println("Failed to compress");
+		log::println("Failed to compress");
 	}
 	else
 		comp.resize(*ok);
@@ -149,7 +154,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} Deckard)
 	uncomp.resize(buffer.size());
 	ok = zstd::uncompress(comp, uncomp);
 	if (!ok)
-		dbg::println("Failed to uncompress");
+		log::println("Failed to uncompress");
 	else
 	{
 		auto kss = *ok;

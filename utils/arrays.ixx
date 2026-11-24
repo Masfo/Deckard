@@ -1,4 +1,5 @@
 export module deckard.arrays;
+import deckard.log;
 
 
 import std;
@@ -169,35 +170,35 @@ namespace deckard
 
 				for (i32 units = maxunit; units >= 1; units /= 10)
 				{
-					dbg::print("{:{}}", "", dwidth + 2);
+					log::print("{:{}}", "", dwidth + 2);
 
 					for (i32 i : upto(w))
 					{
 						int dv = i / units;
 						if (units == 1)
-							dbg::print("{}", i % 10);
+							log::print("{}", i % 10);
 						else
 						{
 							if (i < units)
-								dbg::print(" ");
+								log::print(" ");
 							else
-								dbg::print("{}", dv % 10);
+								log::print("{}", dv % 10);
 						}
 					}
-					dbg::println();
+					log::println();
 				}
 
 
 				for (i32 y = 0; y < height(); y++)
 				{
-					dbg::print("{:0{}}. ", y, dwidth);
+					log::print("{:0{}}. ", y, dwidth);
 
 					for (i32 x = 0; x < width(); x++)
-						dbg::print("{:}", static_cast<char>(get(x, y)));
+						log::print("{:}", static_cast<char>(get(x, y)));
 
-					dbg::println();
+					log::println();
 				}
-				dbg::println();
+				log::println();
 			}
 		}
 

@@ -2,6 +2,7 @@ module;
 #include <windows.h>
 
 export module deckard.file;
+import deckard.log;
 
 import std;
 import deckard.debug;
@@ -404,7 +405,7 @@ namespace deckard::file
 		for (auto& i : file::map({.file = "260.bin", .chunk_size=32}))
 	{
 
-		info("map {}, offset {}, {}", i.chunk_buffer.size(), i.offset, to_hex_string(i.chunk_buffer));
+		log::println("map {}, offset {}, {}", i.chunk_buffer.size(), i.offset, to_hex_string(i.chunk_buffer));
 
 		//i.offset += i.chunk_size;
 		i.chunk_size = (i.chunk_size == 64) ? 32 : 64;
@@ -418,7 +419,7 @@ namespace deckard::file
 	{
 		if (not fs::exists(option.filename))
 		{
-			dbg::println("filemap: file '{}' does not exist", platform::string_from_wide(option.filename.wstring()).c_str());
+			log::println("filemap: file '{}' does not exist", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
@@ -437,7 +438,7 @@ namespace deckard::file
 		  option.filename.wstring().c_str(), rw, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (handle == INVALID_HANDLE_VALUE)
 		{
-			dbg::println("filemap: could not open file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
+			log::println("filemap: could not open file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
@@ -445,14 +446,14 @@ namespace deckard::file
 		if (size == 0)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: file '{}' is empty", platform::string_from_wide(option.filename.wstring()).c_str());
+			log::println("filemap: file '{}' is empty", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 
 		if (option.offset >= size)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: offset {} is beyond end of file '{}' (size {})",
+			log::println("filemap: offset {} is beyond end of file '{}' (size {})",
 						 option.offset,
 						 platform::string_from_wide(option.filename.wstring()).c_str(),
 						 size);
@@ -464,7 +465,7 @@ namespace deckard::file
 		if (mapping == nullptr)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: could not create mapping for file '{}'",
+			log::println("filemap: could not create mapping for file '{}'",
 						 platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
@@ -476,7 +477,7 @@ namespace deckard::file
 		if (raw_address == nullptr)
 		{
 			CloseHandle(mapping);
-			dbg::println("filemap: could not map file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
+			log::println("filemap: could not map file '{}'", platform::string_from_wide(option.filename.wstring()).c_str());
 			co_return;
 		}
 		CloseHandle(mapping);
@@ -653,7 +654,7 @@ namespace deckard::file
 
 				written_total += bytes_written;
 
-				dbg::println("flush: {}/{}", bytes_written, written_total);
+				log::println("flush: {}/{}", bytes_written, written_total);
 			}
 
 			write_offset += written_total;
@@ -673,7 +674,7 @@ namespace deckard::file
 	{
 		if (option.filename.empty())
 		{
-			dbg::println("appender: filename is empty");
+			log::println("appender: filename is empty");
 			co_return;
 		}
 		auto file = std::filesystem::absolute(option.filename);
@@ -682,14 +683,14 @@ namespace deckard::file
 		  file.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (handle == INVALID_HANDLE_VALUE)
 		{
-			dbg::println("appender: could not open file '{}'", platform::string_from_wide(file.wstring()));
+			log::println("appender: could not open file '{}'", platform::string_from_wide(file.wstring()));
 			co_return;
 		}
 
 		LARGE_INTEGER original_size{};
 		if (GetFileSizeEx(handle, &original_size) == 0)
 		{
-			dbg::println("appender: could not get file size '{}'", platform::string_from_wide(file.wstring()));
+			log::println("appender: could not get file size '{}'", platform::string_from_wide(file.wstring()));
 			CloseHandle(handle);
 			co_return;
 		}
@@ -699,7 +700,7 @@ namespace deckard::file
 			LARGE_INTEGER current_size{};
 			if (GetFileSizeEx(handle, &current_size) == 0)
 			{
-				dbg::println("appender: could not get file size '{}'", platform::string_from_wide(file.wstring()));
+				log::println("appender: could not get file size '{}'", platform::string_from_wide(file.wstring()));
 				CloseHandle(handle);
 				co_return;
 			}
@@ -711,7 +712,7 @@ namespace deckard::file
 
 				if (SetFilePointerEx(handle, target_size, nullptr, FILE_BEGIN) == 0 or SetEndOfFile(handle) == 0)
 				{
-					dbg::println("appender: could not preallocate file '{}'", platform::string_from_wide(file.wstring()));
+					log::println("appender: could not preallocate file '{}'", platform::string_from_wide(file.wstring()));
 					CloseHandle(handle);
 					co_return;
 				}
@@ -736,7 +737,7 @@ namespace deckard::file
 					return;
 
 				if (auto result = writer.flush(); not result)
-					dbg::println("appender: flush failed '{}'", result.error());
+					log::println("appender: flush failed '{}'", result.error());
 
 				FlushFileBuffers(handle);
 
@@ -744,9 +745,9 @@ namespace deckard::file
 				target_size.QuadPart = static_cast<LONGLONG>(writer.write_offset);
 
 				if (SetFilePointerEx(handle, target_size, nullptr, FILE_BEGIN) == 0)
-					dbg::println("appender: seek for resize failed '{}'", platform::string_from_wide(file.wstring()));
+					log::println("appender: seek for resize failed '{}'", platform::string_from_wide(file.wstring()));
 				else if (SetEndOfFile(handle) == 0)
-					dbg::println("appender: could not resize file '{}' (error {})",
+					log::println("appender: could not resize file '{}' (error {})",
 								 platform::string_from_wide(file.wstring()),
 								 platform::get_error());
 
@@ -875,7 +876,7 @@ namespace deckard::file
 		  CreateFileW(file.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (handle == INVALID_HANDLE_VALUE)
 		{
-			dbg::println("filemap: could not open file '{}'", file.string());
+			log::println("filemap: could not open file '{}'", file.string());
 			return view;
 		}
 
@@ -883,7 +884,7 @@ namespace deckard::file
 		if (file_size == 0)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: invalid range for file '{}'", file.string());
+			log::println("filemap: invalid range for file '{}'", file.string());
 			return view;
 		}
 
@@ -892,7 +893,7 @@ namespace deckard::file
 		else if (size > file_size)
 		{
 			CloseHandle(handle);
-			dbg::println("filemap: requested size {} exceeds file '{}' (size {})", size, file.string(), size);
+			log::println("filemap: requested size {} exceeds file '{}' (size {})", size, file.string(), size);
 			return view;
 		}
 
@@ -900,7 +901,7 @@ namespace deckard::file
 		CloseHandle(handle);
 		if (mapping == nullptr)
 		{
-			dbg::println("filemap: could not create mapping for file '{}'", file.string());
+			log::println("filemap: could not create mapping for file '{}'", file.string());
 			return view;
 		}
 
@@ -910,7 +911,7 @@ namespace deckard::file
 
 		if (address == nullptr)
 		{
-			dbg::println("filemap: could not map file '{}'", file.string());
+			log::println("filemap: could not map file '{}'", file.string());
 			return view;
 		}
 

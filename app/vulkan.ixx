@@ -10,6 +10,7 @@ module;
 
 
 export module deckard.vulkan;
+import deckard.log;
 export import deckard.vulkan.common;
 export import deckard.vulkan.light;
 export import deckard.mesh;
@@ -784,7 +785,7 @@ namespace deckard::vulkan
 				  VK_API_VERSION_MINOR(instance_version),
 				  VK_API_VERSION_PATCH(instance_version)));
 
-			dbg::println("Vulkan instance version: {}.{}.{}",
+			log::println("Vulkan instance version: {}.{}.{}",
 						 VK_API_VERSION_MAJOR(instance_version),
 						 VK_API_VERSION_MINOR(instance_version),
 						 VK_API_VERSION_PATCH(instance_version));
@@ -851,7 +852,7 @@ namespace deckard::vulkan
 								.and_then([this] { return resize_synchronization(); });
 				not result)
 			{
-				dbg::println("resize failed: {}", result.error());
+				log::println("resize failed: {}", result.error());
 				return false;
 			}
 
@@ -913,7 +914,7 @@ namespace deckard::vulkan
 			vkResetCommandBuffer(frame.cmd, 0);
 			if (auto recorded = record_frame(frame, image_index, meshes, view_projection); not recorded)
 			{
-				dbg::println("{}", recorded.error());
+				log::println("{}", recorded.error());
 				m_needs_resize = true;
 				return false;
 			}
@@ -921,7 +922,7 @@ namespace deckard::vulkan
 			const u64 signal_value = m_timeline_counter + 1;
 			if (result = submit_frame(frame, image_index, signal_value); result != VK_SUCCESS)
 			{
-				dbg::println("Failed to submit frame: {}", string_VkResult(result));
+				log::println("Failed to submit frame: {}", string_VkResult(result));
 				m_needs_resize = true;
 				return false;
 			}
@@ -944,7 +945,7 @@ namespace deckard::vulkan
 				m_needs_resize = true;
 			else if (result != VK_SUCCESS)
 			{
-				dbg::println("Failed to present: {}", string_VkResult(result));
+				log::println("Failed to present: {}", string_VkResult(result));
 				return false;
 			}
 
@@ -993,7 +994,7 @@ namespace deckard::vulkan
 				if (m_screenshot_readback.handle != VK_NULL_HANDLE)
 					destroy_buffer(m_screenshot_readback);
 				m_screenshot_readback = std::exchange(readback, buffer{});
-				dbg::println("Screenshot readback memory: cached={}, coherent={}",
+				log::println("Screenshot readback memory: cached={}, coherent={}",
 							 (m_screenshot_readback.memory_properties & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0,
 							 (m_screenshot_readback.memory_properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0);
 			}

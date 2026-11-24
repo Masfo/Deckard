@@ -1,4 +1,5 @@
 export module deckard.lexer;
+import deckard.log;
 import std;
 import deckard.utf8;
 import deckard.as;
@@ -472,7 +473,7 @@ namespace deckard::lexer
 			(config.single_line_comment_start == config.block_comment_start or
 			 config.single_line_comment_start == config.block_comment_end))
 		{
-			dbg::println("Single line comment start cannot be the same as block comment start or end");
+			log::println("Single line comment start cannot be the same as block comment start or end");
 			co_yield Token{
 			  .line   = line,
 			  .column = column,
@@ -486,7 +487,7 @@ namespace deckard::lexer
 		if (not config.block_comment_start.empty() and not config.block_comment_end.empty() and
 			config.block_comment_end == config.block_comment_start)
 		{
-			dbg::println("Block comment start and end cannot be the same");
+			log::println("Block comment start and end cannot be the same");
 			co_yield Token{
 			  .line   = line,
 			  .column = column,

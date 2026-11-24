@@ -1,4 +1,5 @@
 export module deckard.utf8:scanner;
+import deckard.log;
 
 import :codepoints;
 import :decode;
@@ -18,7 +19,7 @@ namespace deckard::utf8
 	 *
 	 *	// iterate
 	 *	while (s.has_next())
-	 *		dbg::println("{}", (u32)s.next());
+	 *		log::println("{}", (u32)s.next());
 	 *
 	 *	// bidirectional movement
 	 *	s += 2;       // skip 2 codepoints forward

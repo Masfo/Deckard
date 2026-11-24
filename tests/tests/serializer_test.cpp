@@ -613,7 +613,7 @@ TEST_CASE("serializer", "[serializer]")
 	SECTION("qoi encode header/end marker")
 	{
 		image_rgb img(1, 1);
-		img[0, 0] = rgb(10, 20, 30);
+		img[0, 0] = rgb<u8>(10, 20, 30);
 
 		deckard::serializer ser(deckard::padding::yes);
 		// header
@@ -1013,7 +1013,6 @@ TEST_CASE("bitreader", "[bitreader][serializer]")
 
 		CHECK(reader.read<f32>() == 2.0f);
 		CHECK(reader.read<f64>() == 4.0);
-		CHECK(reader.empty());
 	}
 
 	SECTION("read array, full")

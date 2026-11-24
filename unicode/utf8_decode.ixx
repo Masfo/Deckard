@@ -1,4 +1,5 @@
 export module deckard.utf8:decode;
+import deckard.log;
 
 import :codepoints;
 
@@ -204,14 +205,14 @@ export namespace deckard::utf8
 			{
 				if (i + 1 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1)))
 				{
-					dbg::println("Invalid or missing continuation byte at offset {}", i);
+					log::println("Invalid or missing continuation byte at offset {}", i);
 					return std::nullopt;
 				}
 
 				codepoint = (((c & 0x1F) << 6) | (u8_at(buffer, i + 1) & 0x3F));
 				if (codepoint < 0x80)
 				{
-					dbg::println("Overlong 2-byte encoding at offset {}", i);
+					log::println("Overlong 2-byte encoding at offset {}", i);
 					return std::nullopt;
 				}
 
@@ -222,20 +223,20 @@ export namespace deckard::utf8
 				if (i + 2 >= buffer.size() or not utf8::is_continuation_byte(u8_at(buffer, i + 1))
 					or not utf8::is_continuation_byte(u8_at(buffer, i + 2)))
 				{
-					dbg::println("Invalid or missing continuation byte at offset {}", i);
+					log::println("Invalid or missing continuation byte at offset {}", i);
 					return std::nullopt;
 				}
 
 				codepoint = (((c & 0x0F) << 12) | ((u8_at(buffer, i + 1) & 0x3F) << 6) | (u8_at(buffer, i + 2) & 0x3F));
 				if (codepoint < 0x800)
 				{
-					dbg::println("Overlong 3-byte encoding at offset {}", i);
+					log::println("Overlong 3-byte encoding at offset {}", i);
 					return std::nullopt;
 				}
 
 				if (codepoint >= 0xD800 and codepoint <= 0xDFFF)
 				{
-					dbg::println("UTF-8 encoded surrogate pair at offset {}", i);
+					log::println("UTF-8 encoded surrogate pair at offset {}", i);
 					return std::nullopt;
 				}
 
@@ -247,7 +248,7 @@ export namespace deckard::utf8
 					or not utf8::is_continuation_byte(u8_at(buffer, i + 2))
 					or not utf8::is_continuation_byte(u8_at(buffer, i + 3)))
 				{
-					dbg::println("Invalid or missing continuation byte at offset {}", i);
+					log::println("Invalid or missing continuation byte at offset {}", i);
 					return std::nullopt;
 				}
 
@@ -256,13 +257,13 @@ export namespace deckard::utf8
 
 				if (codepoint < 0x1'0000)
 				{
-					dbg::println("Overlong 4-byte encoding at offset {}", i);
+					log::println("Overlong 4-byte encoding at offset {}", i);
 					return std::nullopt;
 				}
 
 				if (codepoint > 0x10'FFFF)
 				{
-					dbg::println("Codepoint beyond U+10FFFF at offset {}", i);
+					log::println("Codepoint beyond U+10FFFF at offset {}", i);
 					return std::nullopt;
 				}
 
@@ -270,7 +271,7 @@ export namespace deckard::utf8
 			}
 			else
 			{
-				dbg::println("Invalid leading byte at offset {}", i);
+				log::println("Invalid leading byte at offset {}", i);
 				return std::nullopt;
 			}
 

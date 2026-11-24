@@ -2,6 +2,7 @@ module;
 #include <vulkan/vulkan.h>
 
 export module deckard.vulkan:buffer;
+import deckard.log;
 import :device;
 
 import std;
@@ -27,7 +28,7 @@ namespace deckard::vulkan
 
 			if (vkCreateBuffer(dev, &buffer_info, nullptr, &m_buffer) != VK_SUCCESS)
 			{
-				dbg::println("Failed to create vertex buffer");
+				log::println("Failed to create vertex buffer");
 				return false;
 			}
 
@@ -54,7 +55,7 @@ namespace deckard::vulkan
 
 			if (memory_type == 0xFFFF'FFFF)
 			{
-				dbg::println("No suitable memory type for vertex buffer");
+				log::println("No suitable memory type for vertex buffer");
 				return false;
 			}
 
@@ -66,7 +67,7 @@ namespace deckard::vulkan
 
 			if (vkAllocateMemory(dev, &alloc_info, nullptr, &m_memory) != VK_SUCCESS)
 			{
-				dbg::println("Failed to allocate vertex buffer memory");
+				log::println("Failed to allocate vertex buffer memory");
 				return false;
 			}
 

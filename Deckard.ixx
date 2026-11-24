@@ -12,6 +12,7 @@ export module deckard;
 export import deckard.as;
 export import deckard.assert;
 export import deckard.debug;
+export import deckard.debugwindow;
 export import deckard.enums;
 export import deckard.helpertypes;
 export import deckard.log;
@@ -48,8 +49,8 @@ export import deckard.function_ref;
 export import deckard.grid;
 export import deckard.helpers;
 export import deckard.hmac;
+export import deckard.ipc;
 export import deckard.json;
-export import deckard.logger;
 export import deckard.lru;
 export import deckard.platform;
 export import deckard.random;
@@ -211,20 +212,20 @@ export void deckard_init()
 	// clang-format on
 
 	redirect_console(true);
+	log::initialize();
 
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDllDirectoryW(L"");
 
-	info("Initialized");
+	log::println("Initialized");
 
 	deckard::random::initialize();
 	net::initialize();
-	dbg::println("Initialized");
 }
 
 export void deckard_deinit()
 {
-	dbg::println("Deinitializing");
+	log::println("Deinitializing");
 	net::deinitialize();
 	redirect_console(false);
 }

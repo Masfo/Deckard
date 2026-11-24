@@ -7,6 +7,7 @@ module;
 
 
 export module deckard.vulkan:core;
+import deckard.log;
 
 import std;
 import deckard.debug;
@@ -218,7 +219,7 @@ namespace deckard::vulkan
 		{
 			if (auto init = create_instance(); not init)
 			{
-				dbg::println("Vulkan instance initialization failed: {}", init.error());
+				log::println("Vulkan instance initialization failed: {}", init.error());
 				return;
 			}
 		}

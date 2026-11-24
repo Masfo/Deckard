@@ -1,4 +1,5 @@
-﻿export module opengl;
+export module opengl;
+import deckard.log;
 
 // GL
 namespace gl
@@ -97,7 +98,7 @@ u32 compile_shader(u32 type, std::string_view source)
 	{
 		char log[4096]{};
 		gl::GetShaderInfoLog(shader, sizeof(log), 0, log);
-		dbg::println("Compile: {}", log);
+		::deckard::log::println("Compile: {}", log);
 	}
 
 	return shader;
@@ -116,7 +117,7 @@ u32 link_program(u32 vert, u32 frag)
 	{
 		char log[4096]{};
 		gl::GetProgramInfoLog(program, sizeof(log), NULL, log);
-		dbg::println("Link: {}", log);
+		::deckard::log::println("Link: {}", log);
 	}
 
 	return program;
@@ -136,7 +137,7 @@ void init_gl_renderer()
 	};
 	if (SetPixelFormat(dc, ChoosePixelFormat(dc, &pdf), &pdf) == 0)
 	{
-		dbg::println("SetPixelFormat failed: {}", get_windows_error());
+		::deckard::log::println("SetPixelFormat failed: {}", get_windows_error());
 		return;
 	}
 
@@ -144,13 +145,13 @@ void init_gl_renderer()
 
 	if (old == nullptr)
 	{
-		dbg::println("wglCreateContext failed: {}", get_windows_error());
+		::deckard::log::println("wglCreateContext failed: {}", get_windows_error());
 		return;
 	}
 
 	if (wglMakeCurrent(dc, old) == 0)
 	{
-		dbg::println("wglMakeCurrent failed: {}", get_windows_error());
+		::deckard::log::println("wglMakeCurrent failed: {}", get_windows_error());
 		return;
 	}
 
@@ -179,29 +180,29 @@ void init_gl_renderer()
 	HGLRC hglrc = gl::wglCreateContextAttribsARB(dc, old, attribs);
 	if (hglrc == nullptr)
 	{
-		dbg::println("wglCreateContextAttribs failed: {}", glGetError());
+		::deckard::log::println("wglCreateContextAttribs failed: {}", glGetError());
 		return;
 	}
 
 	if (wglMakeCurrent(dc, hglrc) == 0)
 	{
-		dbg::println("wglMakeCurrent failed: {}", get_windows_error());
+		::deckard::log::println("wglMakeCurrent failed: {}", get_windows_error());
 		return;
 	}
 
 	if (wglDeleteContext(old) == 0)
 	{
-		dbg::println("wglDeleteContext failed: {}", get_windows_error());
+		::deckard::log::println("wglDeleteContext failed: {}", get_windows_error());
 		return;
 	}
 
 	gl::initialize_functions();
 
 
-	dbg::println("GL Vendor   : {}", (const char*)glGetString(GL_VENDOR));
-	dbg::println("GL Renderer : {}", (const char*)glGetString(GL_RENDERER));
-	dbg::println("GL Version  : {}", (const char*)glGetString(GL_VERSION));
-	dbg::println("GL GLSL     : {}", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+	::deckard::log::println("GL Vendor   : {}", (const char*)glGetString(GL_VENDOR));
+	::deckard::log::println("GL Renderer : {}", (const char*)glGetString(GL_RENDERER));
+	::deckard::log::println("GL Version  : {}", (const char*)glGetString(GL_VERSION));
+	::deckard::log::println("GL GLSL     : {}", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 
 	if (gl::has_wgl_extension("WGL_EXT_swap_control"))
@@ -263,7 +264,7 @@ void init_gl_renderer()
 
 				  default: break;
 			  }
-			  dbg::println("{}: {} - {} | {}", source_sv, type_sv, severity_sv, message);
+			  ::deckard::log::println("{}: {} - {} | {}", source_sv, type_sv, severity_sv, message);
 		  },
 		  0);
 		gl::DebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);

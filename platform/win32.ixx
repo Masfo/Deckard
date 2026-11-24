@@ -7,6 +7,7 @@ module;
 #include <dwmapi.h>
 
 export module deckard.win32;
+import deckard.log;
 
 import std;
 import deckard.as;
@@ -45,7 +46,7 @@ namespace deckard::system
 		dwError = RegQueryValueExA(hKey, value.data(), nullptr, &Type, nullptr, &cb);
 		if (dwError != ERROR_SUCCESS)
 		{
-			dbg::println("Registry query failed: {}", platform::get_error_string());
+			log::println("Registry query failed: {}", platform::get_error_string());
 			return "";
 		}
 

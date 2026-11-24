@@ -1,4 +1,5 @@
 export module deckard.graph:binarytree;
+import deckard.log;
 
 import std;
 import deckard.debug;
@@ -558,7 +559,7 @@ namespace deckard::graph::binary
 			}
 		}
 
-		void print(const nodeptr& node) { dbg::println("{}", to_string(node)); }
+		void print(const nodeptr& node) { log::println("{}", to_string(node)); }
 
 
 		void append_tree(std::string& out, const nodeptr& n, const std::string& prefix, bool is_last, bool is_root) const

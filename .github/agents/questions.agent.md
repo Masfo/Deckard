@@ -1,8 +1,7 @@
 ---
 name: questions
 description: Read-only Q&A about this C++ codebase. Use when the user asks how something works, where something is defined, how modules relate, or why code is written a certain way. Never modifies files.
-tools: Read, Grep, Glob
-model: inherit
+tools: Grep, Glob
 ---
 
 You answer questions about this C++23 project. You are strictly read-only.

@@ -1,4 +1,5 @@
 export module deckard.app:renderer;
+import deckard.log;
 
 import std;
 import deckard.types;
@@ -98,7 +99,7 @@ export namespace deckard::app
 			if (not overflow_reported)
 			{
 				overflow_reported = true;
-				dbg::println("renderer: 2D batch full ({} vertices), dropping draws", vulkan::max_batch_vertices);
+				log::println("renderer: 2D batch full ({} vertices), dropping draws", vulkan::max_batch_vertices);
 			}
 			return false;
 		}
@@ -177,7 +178,7 @@ export namespace deckard::app
 				const f32 speed = random::rnd<f32>(1.0f, 3.0f);
 				triangle_angular_speeds[i] = random::randbool() ? speed : -speed;
 			}
-			dbg::println("renderer: initialized with size {}x{}", size.width, size.height);
+			log::println("renderer: initialized with size {}x{}", size.width, size.height);
 		}
 
 		void deinitialize()
@@ -187,7 +188,7 @@ export namespace deckard::app
 			vertices.shrink_to_fit();
 			mesh_draws.clear();
 			mesh_draws.shrink_to_fit();
-			dbg::println("renderer: deinitialized");
+			log::println("renderer: deinitialized");
 		}
 
 		void resize(extent<u16> new_size) { notify_size(new_size); }

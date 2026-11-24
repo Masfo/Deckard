@@ -11,6 +11,91 @@ import deckard.helpers;
 using namespace deckard;
 using namespace std::string_view_literals;
 
+TEST_CASE("strongtype", "[strongtype]")
+{
+	using Kilo       = strongtype<f64, "Kilo">;
+	using ArrayType  = strongtype<std::array<u8, 4>, "ArrayType">;
+	using VectorType = strongtype<std::vector<u8>, "VectorType">;
+	struct matrix_value
+	{
+		std::array<u8, 4> elements{};
+
+		constexpr u8& operator[](usize row, usize column) { return elements[row * 2 + column]; }
+		constexpr const u8& operator[](usize row, usize column) const { return elements[row * 2 + column]; }
+	};
+	using MatrixType = strongtype<matrix_value, "Matrix">;
+
+	SECTION("basic usage")
+	{
+		Kilo k1{1.0};
+		Kilo k2{2.0};
+		CHECK(k1.get() == 1.0);
+		CHECK(k2.get() == 2.0);
+
+		auto k3 = k1 + k2;
+		CHECK(k3.get() == 3.0);
+		auto k4 = k3 - k1;
+		CHECK(k4.get() == 2.0);
+		auto k5 = k4 * Kilo{2.0};
+		CHECK(k5.get() == 4.0);
+		auto k6 = k5 / Kilo{2.0};
+		CHECK(k6.get() == 2.0);
+
+
+		VectorType v1{{5, 6, 7, 8}};
+		CHECK(v1.get() == std::vector<u8>{{5, 6, 7, 8}});
+		v1[0] = 10;
+		CHECK(v1[0] == 10);
+		CHECK(v1.get() == std::vector<u8>{{10, 6, 7, 8}});
+
+		
+		ArrayType  a1{{1, 2, 3, 4}};
+		CHECK(a1.get() == std::array<u8, 4>{{1, 2, 3, 4}});
+		a1[1] = 10;
+		CHECK(a1[1] == 10);
+		CHECK(a1.get() == std::array<u8, 4>{{1, 10, 3, 4}});
+
+		MatrixType matrix{};
+		matrix[1, 0] = 42;
+		CHECK(matrix[1, 0] == 42);
+		const auto& const_matrix = matrix;
+		CHECK(const_matrix[1, 0] == 42);
+	}
+
+
+	SECTION("hash")
+	{
+		std::unordered_map<Kilo, std::string> map;
+		map.emplace(Kilo{1.0}, "one");
+		map.emplace(Kilo{2.0}, "two");
+		CHECK(map[Kilo{1.0}] == "one");
+		CHECK(map[Kilo{2.0}] == "two");
+	}
+
+	SECTION("format")
+	{
+		Kilo k{3.14};
+		auto fmt = std::format("{}", k);
+		CHECK(fmt == "3.14"sv);
+	}
+
+	SECTION("explicit conversion")
+	{
+		static_assert(not std::convertible_to<Kilo, f64>);
+		Kilo k{1.0};
+		const f64 d = static_cast<f64>(k);
+		CHECK(d == 1.0);
+	}
+
+	SECTION("compile error")
+	{
+		// Uncommenting the following lines should result in a compile-time error
+		// Kilo k{1.0};
+		// ArrayType a{{1, 2, 3, 4}};
+		// auto invalid_operation = k + a; // This should not compile
+	}
+}
+
 TEST_CASE("utility", "[utility]")
 {
 	SECTION("limits")
@@ -159,7 +244,7 @@ TEST_CASE("bytepool", "[bytepool]")
 		CHECK(is_equal(retrieved1, data2));
 	}
 
-	SECTION("combine") 
+	SECTION("combine")
 	{
 		bytepool pool(1024);
 
@@ -170,7 +255,7 @@ TEST_CASE("bytepool", "[bytepool]")
 		CHECK(pool.size() == 1);
 
 		// pool 2
-		bytepool pool2(1024);
+		bytepool          pool2(1024);
 		std::array<u8, 5> data2{5, 6, 7, 8, 9};
 		(void)pool2.add(data2);
 		CHECK(pool2.size() == 1);
@@ -184,10 +269,9 @@ TEST_CASE("bytepool", "[bytepool]")
 		auto retrieved0 = pool.get(0);
 		auto retrieved1 = pool.get(1);
 		auto retrieved2 = pool2.get(0);
-		CHECK(is_equal(retrieved0,data));
-		CHECK(is_equal(retrieved1,data2));
+		CHECK(is_equal(retrieved0, data));
+		CHECK(is_equal(retrieved1, data2));
 		CHECK(is_equal(retrieved2, data2));
-
 	}
 
 	SECTION("contains")
@@ -228,7 +312,7 @@ TEST_CASE("stringpool", "[stringpool]")
 	{
 		string_pool      pool(1024);
 		std::string_view str   = "hello world";
-		auto              index = pool.add(str);
+		auto             index = pool.add(str);
 		CHECK(index == 0);
 		CHECK(pool.size() == 1);
 
@@ -290,7 +374,6 @@ TEST_CASE("stringpool", "[stringpool]")
 		auto retrieved1 = pool.get(1);
 		CHECK(retrieved0 == str);
 		CHECK(retrieved1 == "hello world"sv);
-
 	}
 
 

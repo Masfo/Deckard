@@ -5,6 +5,7 @@ module;
 
 
 export module deckard.vulkan:shaders;
+import deckard.log;
 
 import deckard.types;
 import deckard.file;
@@ -50,10 +51,10 @@ namespace deckard::vulkan
 			u8 major = (spirv[1] >> 16) & 0xFF;
 			u8 minor = (spirv[1] >> 8) & 0xFF;
 
-			dbg::println("SPIR-V version: v{}.{}", major, minor);
-			dbg::println("SPIR-V generator: 0x{:X}", spirv[2]);
-			dbg::println("SPIR-V bound: 0x{:X}", spirv[3]);
-			dbg::println("SPIR-V schema: 0x{:X}", spirv[4]);
+			log::println("SPIR-V version: v{}.{}", major, minor);
+			log::println("SPIR-V generator: 0x{:X}", spirv[2]);
+			log::println("SPIR-V bound: 0x{:X}", spirv[3]);
+			log::println("SPIR-V schema: 0x{:X}", spirv[4]);
 
 			VkShaderModuleCreateInfo createInfo = {};
 			createInfo.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -148,14 +149,14 @@ namespace deckard::vulkan
 			{
 				delete_count += 1;
 
-				dbg::println("Removing old shader cache: {} (age: {}s)",
+				log::println("Removing old shader cache: {} (age: {}s)",
 							 entry.path().string(),
 							 std::chrono::duration_cast<std::chrono::seconds>(age).count());
 				fs::remove(entry.path());
 			}
 		}
 
-		dbg::println("Removed {} old shader cache files", delete_count);
+		log::println("Removed {} old shader cache files", delete_count);
 	}
 
 	export std::vector<u8> compile_spirv13(fs::path source_file)
@@ -182,7 +183,7 @@ namespace deckard::vulkan
 
 			if (fs::exists(cache_file))
 			{
-				dbg::println("Using cached shader: {}", cache_file.string());
+				log::println("Using cached shader: {}", cache_file.string());
 				return file::read(cache_file);
 			}
 
@@ -202,7 +203,7 @@ namespace deckard::vulkan
 				return {};
 			}
 
-			dbg::println(
+			log::println(
 			  "Compiled shader '{}' ({}) to '{}'", source_file.string(), result.elapsed_time, cache_file.string());
 
 

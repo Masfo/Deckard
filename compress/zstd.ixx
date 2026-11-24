@@ -2,6 +2,7 @@ module;
 #include <zstd.h>
 
 export module deckard.zstd;
+import deckard.log;
 
 import deckard.types;
 import deckard.debug;
@@ -69,20 +70,20 @@ namespace deckard::zstd
 
 		if (!content_size)
 		{
-			dbg::println("ZSTD_decompress: failed to get decompressed size");
+			log::println("ZSTD_decompress: failed to get decompressed size");
 			return {};
 		}
 
 		if (output.size() < *content_size)
 		{
-			dbg::println("ZSTD_decompress: output buffer too small({}), should be atleast {}", output.size(), *content_size);
+			log::println("ZSTD_decompress: output buffer too small({}), should be atleast {}", output.size(), *content_size);
 			return {};
 		}
 
 		u64 r = ZSTD_decompress(output.data(), output.size(), input.data(), input.size());
 		if (ZSTD_isError(r))
 		{
-			dbg::println("ZSTD_decompress failed to decompress");
+			log::println("ZSTD_decompress failed to decompress");
 			return {};
 		}
 		return r;
@@ -96,7 +97,7 @@ namespace deckard::zstd
 		auto fmap = file::map(path1);
 		if (not fmap)
 		{
-			dbg::println("compress_file_to: could not map file '{}'", path1.string());
+			log::println("compress_file_to: could not map file '{}'", path1.string());
 			return {};
 		}
 
@@ -110,7 +111,7 @@ namespace deckard::zstd
 
 		if (not compressed_size)
 		{
-			dbg::println("compress_file_to: compression failed for file '{}'", path1.string());
+			log::println("compress_file_to: compression failed for file '{}'", path1.string());
 			return {};
 		}
 
@@ -120,7 +121,7 @@ namespace deckard::zstd
 		  file::write({.filename = path2, .buffer = std::span{compressed_data.data(), compressed_data.size()}});
 		if (not write_result and *write_result != compressed_data.size())
 		{
-			dbg::println("compress_file_to: could not write compressed data to file '{}'", path2.string());
+			log::println("compress_file_to: could not write compressed data to file '{}'", path2.string());
 			return {};
 		}
 		return *compressed_size;
@@ -156,7 +157,7 @@ namespace deckard::zstd
 		auto compressed_size = compress(input, output, compression_level);
 		if (not compressed_size)
 		{
-			dbg::println("compress_easy: compression failed");
+			log::println("compress_easy: compression failed");
 			return {};
 		}
 		output.resize(*compressed_size);
@@ -168,7 +169,7 @@ namespace deckard::zstd
 		auto content_size = decompressed_size(input);
 		if (not content_size)
 		{
-			dbg::println("decompress_easy: failed to get decompressed size");
+			log::println("decompress_easy: failed to get decompressed size");
 			return {};
 		}
 		std::vector<u8> output;
@@ -176,7 +177,7 @@ namespace deckard::zstd
 		auto decompressed_size = decompress(input, output);
 		if (not decompressed_size)
 		{
-			dbg::println("decompress_easy: decompression failed");
+			log::println("decompress_easy: decompression failed");
 			return {};
 		}
 		output.resize(*decompressed_size);

@@ -1,4 +1,5 @@
 export module deckard.grid;
+import deckard.log;
 
 import std;
 import deckard.assert;
@@ -222,7 +223,7 @@ namespace deckard
 		{
 			if (lines.empty())
 			{
-				dbg::println("grid::from_lines: empty lines");
+				log::println("grid::from_lines: empty lines");
 				return;
 			}
 
@@ -239,7 +240,7 @@ namespace deckard
 			bool square = widths == width * height;
 
 			if (not square)
-				dbg::println("grid::from_lines: not square: {}x{} vs {}x{}", width, height, lines[0].size(), lines.size());
+				log::println("grid::from_lines: not square: {}x{} vs {}x{}", width, height, lines[0].size(), lines.size());
 
 			if (lines.empty() or width == 0 or height == 0)
 				return;
@@ -1723,7 +1724,7 @@ namespace deckard
 			return result;
 		}
 
-		void dump() const { dbg::print("{}", print()); }
+		void dump() const { log::print("{}", print()); }
 
 		// Face order: front (z=0), back (z=depth-1), left (x=0),
 		// right (x=width-1), top (y=0), bottom (y=height-1).
@@ -1755,7 +1756,7 @@ namespace deckard
 		{
 			if (not valid_position(pos))
 			{
-				dbg::println("grid3d::set: invalid position {}", pos);
+				log::println("grid3d::set: invalid position {}", pos);
 				return;
 			}
 
@@ -1766,7 +1767,7 @@ namespace deckard
 		{
 			if (not valid_position(pos))
 			{
-				dbg::println("grid3d::get: invalid position {}", pos);
+				log::println("grid3d::get: invalid position {}", pos);
 				return std::nullopt;
 			}
 
@@ -1778,7 +1779,7 @@ namespace deckard
 		{
 			if (not valid_position(pos))
 			{
-				dbg::println("grid3d::set_face: invalid position {}", pos);
+				log::println("grid3d::set_face: invalid position {}", pos);
 				return;
 			}
 
@@ -1807,7 +1808,7 @@ namespace deckard
 		{
 			if (not valid_position(pos))
 			{
-				dbg::println("grid3d::get_face: invalid position {}", pos);
+				log::println("grid3d::get_face: invalid position {}", pos);
 				return std::nullopt;
 			}
 

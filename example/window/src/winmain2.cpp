@@ -41,7 +41,7 @@ std::array<unsigned char, 256> current_state{0};
 #if 0
 void keyboard_callback([[maybe_unused]]vulkanapp& app, [[maybe_unused]] i32 key, [[maybe_unused]] i32 scancode, [[maybe_unused]] bool action, [[maybe_unused]] i32 mods)
 {
-	dbg::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action ? "UP" : "DOWN", mods);
+	log::println("key: {:#x} - {:#x}, {} - {}", key, scancode, action ? "UP" : "DOWN", mods);
 
 	bool up = action;
 
@@ -64,7 +64,7 @@ void keyboard_callback([[maybe_unused]]vulkanapp& app, [[maybe_unused]] i32 key,
 
 	if (key == Key::Escape and up)
 	{
-		dbg::println("quit");
+		log::println("quit");
 		app.quit();
 	}
 
@@ -92,32 +92,32 @@ void keyboard_callback([[maybe_unused]]vulkanapp& app, [[maybe_unused]] i32 key,
 	if (key == Key::Numpad1 and up)
 	{
 		// app.set(Attribute::gameticks, 60u);
-		dbg::println("ticks 60");
+		log::println("ticks 60");
 	}
 	if (key == Key::Numpad2 and up)
 	{
 		// app.set(Attribute::gameticks, 30u);
-		dbg::println("ticks 30");
+		log::println("ticks 30");
 	}
 
 	if (key == Key::Numpad3 and up)
 	{
 		// app.set(Attribute::gameticks, 5u);
-		dbg::println("ticks 5");
+		log::println("ticks 5");
 	}
 
 	if (key == Key::Add and up)
 	{
 		// u32 newticks = app.get(Attribute::gameticks) * 2;
 		// app.set(Attribute::gameticks, newticks);
-		// dbg::println("ticks {}", newticks);
+		// log::println("ticks {}", newticks);
 	}
 
 	if (key == Key::Subtract and up)
 	{
 		// u32 newticks = app.get(Attribute::gameticks) / 2;
 		// app.set(Attribute::gameticks, newticks == 0 ? 1 : newticks);
-		// dbg::println("ticks {}", newticks);
+		// log::println("ticks {}", newticks);
 	}
 }
 
@@ -386,7 +386,7 @@ NtpPacket parse_ntp(
 
 	auto                          tz = std::chrono::current_zone();
 	const std::chrono::zoned_time zt{tz, pkt.origTimestamp};
-	dbg::println("Local zone: {}", zt);
+	log::println("Local zone: {}", zt);
 
 	// auto local_time = zt.get_local_time();
 	// std::chrono::system_clock::time_point local_tp{zt.get_local_time()};
@@ -400,13 +400,13 @@ NtpPacket parse_ntp(
 	// const auto local_tp = tokyo_time.get_local_time();
 	//
 	//// Print the times to demonstrate the conversion
-	// dbg::println("Original zoned_time (in Tokyo): {}", std::format("{:%Y-%m-%d %H:%M:%S %Z}", tokyo_time));
+	// log::println("Original zoned_time (in Tokyo): {}", std::format("{:%Y-%m-%d %H:%M:%S %Z}", tokyo_time));
 	//
-	// dbg::println("Converted time_point (UTC): {}", sys_tp);
-	// dbg::println("Converted time_point (UTC): {}", local_tp);
+	// log::println("Converted time_point (UTC): {}", sys_tp);
+	// log::println("Converted time_point (UTC): {}", local_tp);
 	//
 	// std::chrono::local_time local_new = tokyo_time.get_local_time();
-	// dbg::println("Converted time_point (UTC): {}", local_new);
+	// log::println("Converted time_point (UTC): {}", local_new);
 
 
 	return pkt;
@@ -566,7 +566,7 @@ private:
 	std::vector<int> flags;
 };
 
-void destroy() noexcept { dbg::println("destroy() called"); }
+void destroy() noexcept { log::println("destroy() called"); }
 
 /*
 class Entity {
@@ -668,7 +668,7 @@ struct entity
 	f32       timer{0.0f};
 	f32       pause_time{0.5f};
 	f32       speed{1.0f}; // tiles per second, set once at creation
-	rgb       color{0, 255, 255};
+	rgb<u8>     color{0, 255, 255};
 };
 
 constexpr f32 move_duration = 1.0f;
@@ -943,7 +943,7 @@ void render(deckard::app2::renderer2* render, [[maybe_unused]] f32 delta) noexce
 
 bool initialize() noexcept
 {
-	dbg::println("initialize() called");
+	log::println("initialize() called");
 	return true;
 }
 
@@ -993,12 +993,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	  .monitor       = 0,
 	  .title         = "Deckard - Vulkan - Window  1",
 	};
-	options.load_and_save();
+	if (auto result = options.load_and_save(); not result)
+	{
+		log::println("Failed to load/save settings: {}", result.error());
+		return -1;
+	}
 
 
 	if (auto result = app::open(options); not result)
 	{
-		dbg::println("Failed to open app: {}", result.error());
+		log::println("Failed to open app: {}", result.error());
 		return -1;
 	}
 
@@ -1056,7 +1060,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		}
 	}
 
-	dbg::println("ratio: {}", uiticks / static_cast<f32>(netticks));
+	log::println("ratio: {}", uiticks / static_cast<f32>(netticks));
 
 
 	_ = 0;
@@ -1071,14 +1075,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	if (!init)
 	{
-		dbg::println("init");
+		log::println("init");
 
 		// Gdiplus::GdiplusStartup();
 		init = true;
 	}
 	else
 	{
-		dbg::println("already init");
+		log::println("already init");
 	}
 
 	{
@@ -1094,28 +1098,28 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 		ScopeTimer time("chibihash");
 
 		u64 hash = utils::chibihash64(rnd_data);
-		dbg::println("chibihash64: {:0X}", hash);
+		log::println("chibihash64: {:0X}", hash);
 	}
 
 	{
 		ScopeTimer time("rapidhash");
 
 		u64 hash = utils::rapidhash(rnd_data);
-		dbg::println("rapidhash: {:0X}", hash);
+		log::println("rapidhash: {:0X}", hash);
 	}
 
 	{
 		ScopeTimer time("xxhash64");
 
 		u64 hash = utils::xxhash64(rnd_data);
-		dbg::println("xxhash64: {:0X}", hash);
+		log::println("xxhash64: {:0X}", hash);
 	}
 
 	{
 		ScopeTimer time("xxh64");
 
 		auto hash = utils::xxh64(rnd_data);
-		dbg::println("xxh64: {:0X}", hash);
+		log::println("xxh64: {:0X}", hash);
 	}
 
 	(void)file::write({.filename = "archive_test.dat", .buffer = rnd_data, .offset = sizeof(archive_magic)});
@@ -1147,8 +1151,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	  {'D', tree + 1, tree + 2}, {'B', tree + 3, tree + 4}, {'F', tree + 5, tree + 6}, {'A'}, {'C'}, {'E'}, {'G'}};
 
 	for (char x : tree->traverse_inorder())
-		dbg::print("{} ", x);
-	dbg::println();
+		log::print("{} ", x);
+	log::println();
 
 	_ = 0;
 #endif
@@ -1158,10 +1162,10 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	config cfg(fs::path{"config.txt"});
 
-	//	dbg::println("Version: {}", cfg["version"].as<std::string>());
-	dbg::println("width: {}", cfg["window.width"].as<u32>());
-	dbg::println("height: {}", cfg["window.height"].as<u32>());
-	dbg::println("fullscreen: {}", cfg["window.fullscreen"].as<bool>());
+	//	log::println("Version: {}", cfg["version"].as<std::string>());
+	log::println("width: {}", cfg["window.width"].as<u32>());
+	log::println("height: {}", cfg["window.height"].as<u32>());
+	log::println("fullscreen: {}", cfg["window.fullscreen"].as<bool>());
 
 
 	cfg["window.fullscreen"] = not cfg["window.fullscreen"].as<bool>();
@@ -1172,7 +1176,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	cfg.set_comment("window.width", "new comment for window.width");
 
-	dbg::println("id from config: {}", cfg["version"].as<std::string>());
+	log::println("id from config: {}", cfg["version"].as<std::string>());
 
 	// cfg[std::format("new_{}", random::id(3))] = "hello world";
 
@@ -1203,9 +1207,9 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	for (const auto& [i, c] : vi.data() | std::views::enumerate)
 	{
-		dbg::print("{:02X} ", c);
+		log::print("{:02X} ", c);
 		if ((i + 1) % 16 == 0)
-			dbg::println();
+			log::println();
 	}
 
 	auto dvi = vi.data();
@@ -1215,8 +1219,8 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	config cfg2(fs::path{"config2.txt"});
 
 
-	dbg::println("window.fullscreen: {}", cfg2["window.fullscreen"].as<bool>());
-	dbg::println("window.hello: {}", cfg2["window.fullscreen"].as<utf8::string>());
+	log::println("window.fullscreen: {}", cfg2["window.fullscreen"].as<bool>());
+	log::println("window.hello: {}", cfg2["window.fullscreen"].as<utf8::string>());
 
 
 	(void)cfg2.save();
@@ -1249,7 +1253,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 		percent = result ? percent : 0.0f;
 
-		dbg::println(
+		log::println(
 		  "compress_if_smaller: {}% compressable, result: {}, compressed size: {} bytes ({:.2f})",
 		  i,
 		  result.has_value() ? "compressed" : "not compressed",
@@ -1282,12 +1286,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			const u8 g = static_cast<u8>(((x >> 2) ^ (y << 1)) & 0xFF);
 			const u8 b = static_cast<u8>(((x << 1) ^ (y >> 2)) & 0xFF);
 
-			xortexture[x, y] = rgb(r, g, b);
+			xortexture[x, y] = rgb<u8>(r, g, b);
 		}
 	}
 	timer.stop("xor texture generation");
 
-	info("hash: {:#16X}", utils::xxhash64(xortexture.raw_data()));
+	log::println("hash: {:#16X}", utils::xxhash64(xortexture.raw_data()));
 
 
 	_ = 0;
@@ -1304,11 +1308,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	if (loaded_xor == xortexture)
 	{
-		info("xor texture bmp save/load successful");
+		log::println("xor texture bmp save/load successful");
 	}
 	else
 	{
-		info("xor texture bmp save/load failed");
+		log::println("xor texture bmp save/load failed");
 	}
 
 	save_bmp("xor_texture_copy.bmp", *loaded_xor);
@@ -1324,11 +1328,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	if (loaded_tga == xortexture)
 	{
-		info("xor texture tga save/load successful");
+		log::println("xor texture tga save/load successful");
 	}
 	else
 	{
-		info("xor texture tga save/load failed");
+		log::println("xor texture tga save/load failed");
 	}
 
 	save_tga("xor_texture_copy.tga", *loaded_tga);
@@ -1346,11 +1350,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	if (loaded_qoi == xortexture)
 	{
-		info("xor texture qoi save/load successful");
+		log::println("xor texture qoi save/load successful");
 	}
 	else
 	{
-		info("xor texture qoi save/load failed");
+		log::println("xor texture qoi save/load failed");
 	}
 
 	save_qoi("xor_texture_copy.qoi", *loaded_qoi);
@@ -1364,11 +1368,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	timer.stop("dif load");
 	if (loaded_dif == xortexture)
 	{
-		info("xor texture dif save/load successful");
+		log::println("xor texture dif save/load successful");
 	}
 	else
 	{
-		info("xor texture dif save/load failed");
+		log::println("xor texture dif save/load failed");
 	}
 
 	save_bmp("xor_texture_copy_from_dif.bmp", *loaded_dif);
@@ -1390,11 +1394,11 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	if (loaded_viking_dif == viking_bmp)
 	{
-		info("viking dif save/load successful");
+		log::println("viking dif save/load successful");
 	}
 	else
 	{
-		info("viking dif save/load failed");
+		log::println("viking dif save/load failed");
 	}
 
 	timer.start();
@@ -1414,12 +1418,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 #endif
 
-	info("heloo");
+	log::println("heloo");
 	// ########################################################################
 
 
-	info("{}", file::get_temp_path().string());
-	info("{}", file::get_temp_file("spv").string());
+	log::println("{}", file::get_temp_path().string());
+	log::println("{}", file::get_temp_file("spv").string());
 
 
 	// ########################################################################
@@ -1433,12 +1437,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 	{
 		for (const auto& ip : *ip_result)
 		{
-			dbg::println("{}: {}", ip.is_ipv4() ? "ipv4" : "ipv6", ip);
+			log::println("{}: {}", ip.is_ipv4() ? "ipv4" : "ipv6", ip);
 		}
 	}
 	else
 	{
-		dbg::println("Failed to get IP addresses: {}", ip_result.error());
+		log::println("Failed to get IP addresses: {}", ip_result.error());
 	}
 #endif
 	_ = 0;
@@ -1448,7 +1452,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 	auto resolve_stun = net::resolve_ips("stun.l.google.com");
 	for (const auto& ip : resolve_stun.value_or({}))
-		dbg::println("Resolved STUN IP: {}", ip);
+		log::println("Resolved STUN IP: {}", ip);
 
 	_ = 0;
 	{
@@ -1473,16 +1477,16 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			// ----------------------- Resolve host ---------------------------------
 			const auto& domain = hostname;
 
-			dbg::println("Resolving '{}'...", domain);
+			log::println("Resolving '{}'...", domain);
 			auto resolved = net::resolve_ips(domain);
 			if (not resolved or resolved->empty())
 			{
-				dbg::println("Failed to resolve '{}'", domain);
+				log::println("Failed to resolve '{}'", domain);
 				return 1;
 			}
 
 			for (const auto& ip : *resolved)
-				dbg::println("  {} (IPv{})", ip, ip.version());
+				log::println("  {} (IPv{})", ip, ip.version());
 
 			// auto [storage, addrlen] = resolved->front().to_sockaddr();
 
@@ -1502,7 +1506,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			SOCKET sock = socket(storage.ss_family, SOCK_DGRAM, IPPROTO_UDP);
 			if (sock == INVALID_SOCKET)
 			{
-				dbg::println("socket() failed: {}", WSAGetLastError());
+				log::println("socket() failed: {}", WSAGetLastError());
 			}
 
 			std::array<u8, 20> stunpacket{
@@ -1554,12 +1558,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			if (sent == SOCKET_ERROR)
 			{
-				dbg::println("sendto() failed: {}", WSAGetLastError());
+				log::println("sendto() failed: {}", WSAGetLastError());
 				closesocket(sock);
 				WSACleanup();
 				return 1;
 			}
-			dbg::println("STUN send = {}", sent);
+			log::println("STUN send = {}", sent);
 
 			// ----------------------- Set receive timeout (5 seconds) ---------------
 			// ----------------------- Receive reply ---------------------------------
@@ -1572,24 +1576,24 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			if (len == SOCKET_ERROR)
 			{
-				dbg::println("recvfrom() failed: {}", WSAGetLastError());
+				log::println("recvfrom() failed: {}", WSAGetLastError());
 				incoming.clear();
 			}
 			else
 			{
 
-				dbg::println("STUN received {} bytes:", len);
+				log::println("STUN received {} bytes:", len);
 				incoming.resize(len);
 
 				for (const auto& c : incoming)
-					dbg::print("{:02X} ", c);
-				dbg::println("\n\n");
+					log::print("{:02X} ", c);
+				log::println("\n\n");
 			}
 
 			STUNHeader stun_header{};
 			if (incoming.size() < 20)
 			{
-				dbg::println("STUN response too small: {}", incoming.size());
+				log::println("STUN response too small: {}", incoming.size());
 			}
 
 			if (incoming.size() >= 20)
@@ -1608,28 +1612,28 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 				switch (class_bits(stun_header.type))
 				{
-					case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
-					case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
-					case 0b10: dbg::println("  Attribute Class: Success Response (0b10)"); break;
-					case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
-					default: dbg::println("  Attribute Class: Unknown"); break;
+					case 0b00: log::println("  Attribute Class: Request (0b00)"); break;
+					case 0b01: log::println("  Attribute Class: Indication (0b01)"); break;
+					case 0b10: log::println("  Attribute Class: Success Response (0b10)"); break;
+					case 0b11: log::println("  Attribute Class: Error Response (0b11)"); break;
+					default: log::println("  Attribute Class: Unknown"); break;
 				}
 
 				switch (method_bits(stun_header.type))
 				{
-					case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
-					default: dbg::println("  Attribute Method: Unknown"); break;
+					case 0x0001: log::println("  Attribute Method: Binding (0x0001)"); break;
+					default: log::println("  Attribute Method: Unknown"); break;
 				}
 
 
 				if (not stun_header.is_zero())
 				{
-					dbg::println("Invalid STUN message type (most significant 2 bits must be 0)");
+					log::println("Invalid STUN message type (most significant 2 bits must be 0)");
 				}
 				// Validate message length
 				if (stun_header.length + 20 != incoming.size())
 				{
-					dbg::println("STUN message length mismatch: header length = {}, actual length = {}",
+					log::println("STUN message length mismatch: header length = {}, actual length = {}",
 								 stun_header.length,
 								 incoming.size() - 20);
 				}
@@ -1637,30 +1641,30 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				// Validate magic cookie
 				if (stun_header.cookie != 0x2112'A442)
 				{
-					dbg::println("Invalid STUN magic cookie: 0x{:08X}", stun_header.cookie);
+					log::println("Invalid STUN magic cookie: 0x{:08X}", stun_header.cookie);
 				}
 
 				// Validate transaction ID matches what we sent
 				if (not std::ranges::equal(stun_header.transaction_id, std::span{stunpacket}.subspan<8, 12>()))
 				{
-					dbg::println("STUN transaction ID mismatch");
+					log::println("STUN transaction ID mismatch");
 				}
 
 
 				// Binding request: class 00, method 000000000001
 				// Binding response: class 10, method 000000000001
 
-				dbg::println("STUN Message Type: 0b{:014b}", as<u16>(stun_header.type));
-				dbg::println("  Class:    0b{:02b}", stun_header.class_bits());
-				dbg::println("  Method:   0b{:012b}", stun_header.method_bits());
-				dbg::println("Message Length: {}", stun_header.length);
-				dbg::println("Magic Cookie: 0x{:04X}", stun_header.cookie);
-				dbg::println(
+				log::println("STUN Message Type: 0b{:014b}", as<u16>(stun_header.type));
+				log::println("  Class:    0b{:02b}", stun_header.class_bits());
+				log::println("  Method:   0b{:012b}", stun_header.method_bits());
+				log::println("Message Length: {}", stun_header.length);
+				log::println("Magic Cookie: 0x{:04X}", stun_header.cookie);
+				log::println(
 				  "Transaction ID: {}",
 				  to_hex_string(std::span<u8>{stun_header.transaction_id}, {.delimiter = " ", .show_hex = false}));
 
 				std::span<u8> rest = std::span<u8>{incoming}.subspan(20, incoming.size() - 20);
-				dbg::println("Rest: {}", to_hex_string(rest, {.delimiter = " ", .show_hex = false}));
+				log::println("Rest: {}", to_hex_string(rest, {.delimiter = " ", .show_hex = false}));
 
 				packetx.reset(rest);
 
@@ -1675,56 +1679,56 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					u8  class_encoding = class_bits(attr_type);
 					u16 method         = method_bits(attr_type);
 
-					dbg::println("  Attribute Class: 0b{:02b}", class_encoding);
+					log::println("  Attribute Class: 0b{:02b}", class_encoding);
 					switch (class_encoding)
 					{
-						case 0b00: dbg::println("  Attribute Class: Request (0b00)"); break;
-						case 0b01: dbg::println("  Attribute Class: Indication (0b01)"); break;
-						case 0b10: dbg::println("  Attribute Class: Success Response (0b10)"); break;
-						case 0b11: dbg::println("  Attribute Class: Error Response (0b11)"); break;
-						default: dbg::println("  Attribute Class: Unknown"); break;
+						case 0b00: log::println("  Attribute Class: Request (0b00)"); break;
+						case 0b01: log::println("  Attribute Class: Indication (0b01)"); break;
+						case 0b10: log::println("  Attribute Class: Success Response (0b10)"); break;
+						case 0b11: log::println("  Attribute Class: Error Response (0b11)"); break;
+						default: log::println("  Attribute Class: Unknown"); break;
 					}
-					dbg::println("  Attribute Method: 0b{:012b}", method);
+					log::println("  Attribute Method: 0b{:012b}", method);
 					switch (method)
 					{
-						case 0x0001: dbg::println("  Attribute Method: Binding (0x0001)"); break;
-						default: dbg::println("  Attribute Method: Unknown", method); break;
+						case 0x0001: log::println("  Attribute Method: Binding (0x0001)"); break;
+						default: log::println("  Attribute Method: Unknown", method); break;
 					}
 
 					u16 attr_length = packetx.read<u16>();
 					if (packetx.remaining() < attr_length)
 					{
-						dbg::println("Attribute length exceeds remaining packet size");
+						log::println("Attribute length exceeds remaining packet size");
 						break;
 					}
 
 					switch (attr_type)
 					{
 
-						case 0x0001: dbg::println("Attribute Type: MAPPED-ADDRESS (0x0001)"); break;
-						case 0x0006: dbg::println("Attribute Type: USERNAME (0x0006)"); break;
-						case 0x0008: dbg::println("Attribute Type: MESSAGE-INTEGRITY (0x0008)"); break;
-						case 0x0009: dbg::println("Attribute Type: ERROR-CODE (0x0009)"); break;
-						case 0x000A: dbg::println("Attribute Type: UNKNOWN-ATTRIBUTES (0x000A)"); break;
-						case 0x0014: dbg::println("Attribute Type: REALM (0x0014)"); break;
-						case 0x0015: dbg::println("Attribute Type: NONCE (0x0015)"); break;
+						case 0x0001: log::println("Attribute Type: MAPPED-ADDRESS (0x0001)"); break;
+						case 0x0006: log::println("Attribute Type: USERNAME (0x0006)"); break;
+						case 0x0008: log::println("Attribute Type: MESSAGE-INTEGRITY (0x0008)"); break;
+						case 0x0009: log::println("Attribute Type: ERROR-CODE (0x0009)"); break;
+						case 0x000A: log::println("Attribute Type: UNKNOWN-ATTRIBUTES (0x000A)"); break;
+						case 0x0014: log::println("Attribute Type: REALM (0x0014)"); break;
+						case 0x0015: log::println("Attribute Type: NONCE (0x0015)"); break;
 
-						case 0x0020: dbg::println("Attribute Type: XOR-MAPPED-ADDRESS (0x0020)"); break;
+						case 0x0020: log::println("Attribute Type: XOR-MAPPED-ADDRESS (0x0020)"); break;
 
 						// Optional
-						case 0x8022: dbg::println("Attribute Type: SOFTWARE (0x8022) "); break;
-						case 0x8023: dbg::println("Attribute Type: ALTERNATE-SERVER (0x8023)"); break;
-						case 0x8028: dbg::println("Attribute Type: FINGERPRINT (0x8028)"); break;
-						default: dbg::println("Unhandled type: {:02X}", attr_type); break;
+						case 0x8022: log::println("Attribute Type: SOFTWARE (0x8022) "); break;
+						case 0x8023: log::println("Attribute Type: ALTERNATE-SERVER (0x8023)"); break;
+						case 0x8028: log::println("Attribute Type: FINGERPRINT (0x8028)"); break;
+						default: log::println("Unhandled type: {:02X}", attr_type); break;
 					}
 
 					packetx.read<u8>(); // PADDING
-					dbg::println("Attribute Type: 0x{:04X}, Length: {}", attr_type, attr_length);
+					log::println("Attribute Type: 0x{:04X}, Length: {}", attr_type, attr_length);
 
 					u8  ip_version = packetx.read<u8>();
 					u16 port       = packetx.read<u16>();
 
-					dbg::println("  IP Version: {}, Port: {}", ip_version, port);
+					log::println("  IP Version: {}, Port: {}", ip_version, port);
 
 					u32 ip = 0;
 					if (ip_version == 1)
@@ -1741,15 +1745,15 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 						// To get the actual port number, you may need to convert it from network byte order to host byte
 						// order. On most systems, you can use the ntohs function for this purpose.
 						u16 real_port = port;
-						dbg::println("Real Port: {}", real_port);
-						dbg::println("{}.{}.{}.{}", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
+						log::println("Real Port: {}", real_port);
+						log::println("{}.{}.{}.{}", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
 					}
 
 					if (attr_type == 0x0001 and ip_version == 2)
 					{
 						u16 real_port = port;
-						dbg::println("Real Port: {}", real_port);
-						dbg::println("IPv6: {}", to_hex_string(std::span<u8>{ip6}, {.delimiter = ":", .show_hex = false}));
+						log::println("Real Port: {}", real_port);
+						log::println("IPv6: {}", to_hex_string(std::span<u8>{ip6}, {.delimiter = ":", .show_hex = false}));
 					}
 
 
@@ -1758,7 +1762,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 						u16 xport = port ^ (stun_header.cookie >> 16);
 						// XOR-MAPPED-ADDRESS
 						u32 xip = ip ^ stun_header.cookie;
-						dbg::println(
+						log::println(
 						  "X-Port: {}, X-IP: {}.{}.{}.{}",
 						  xport,
 						  (xip >> 24) & 0xFF,
@@ -1779,12 +1783,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 							else
 								xip6[i] = ip6[i] ^ stun_header.transaction_id[i - 4];
 						}
-						dbg::println("X-Port: {}, X-IP6: {}",
+						log::println("X-Port: {}, X-IP6: {}",
 									 xport,
 									 to_hex_string(std::span<u8>{xip6}, {.delimiter = ":", .show_hex = false}));
 					}
 
-					dbg::println("Remaining: {}", packetx.remaining());
+					log::println("Remaining: {}", packetx.remaining());
 					//// Align to 4-byte boundary
 					// size_t padding = (4 - (attr_length % 4)) % 4;
 					// if (padding > 0 && packetx.remaining() >= padding)
@@ -1958,12 +1962,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 				if (sent == SOCKET_ERROR)
 				{
-					dbg::println("sendto() failed: {}", WSAGetLastError());
+					log::println("sendto() failed: {}", WSAGetLastError());
 					closesocket(sock);
 					WSACleanup();
 					return 1;
 				}
-				dbg::println("send 2 = {}", sent);
+				log::println("send 2 = {}", sent);
 
 				// ----------------------- Set receive timeout (5 seconds) ---------------
 				// ----------------------- Receive reply ---------------------------------
@@ -1975,17 +1979,17 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 				if (len == SOCKET_ERROR)
 				{
-					dbg::println("recvfrom() failed: {}", WSAGetLastError());
+					log::println("recvfrom() failed: {}", WSAGetLastError());
 				}
 				else
 				{
 
-					dbg::println("received {} bytes:", len);
+					log::println("received {} bytes:", len);
 					incoming2.resize(len);
 
 					for (const auto& c : incoming2)
-						dbg::print("{:02X} ", c);
-					dbg::println("\n\n");
+						log::print("{:02X} ", c);
+					log::println("\n\n");
 				}
 			}
 
@@ -2078,17 +2082,17 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				std::string hostname   = ntp_server.hostname ? *ntp_server.hostname : "";
 
 				// ----------------------- Resolve host ---------------------------------
-				dbg::println("Resolving '{}'...", hostname);
+				log::println("Resolving '{}'...", hostname);
 				auto resolved = net::resolve_ips(hostname);
 				if (not resolved or resolved->empty())
 				{
-					dbg::println("Failed to resolve '{}'", hostname);
+					log::println("Failed to resolve '{}'", hostname);
 					return 1;
 				}
 
 
 				for (const auto& ip : *resolved)
-					dbg::println("  {} (IPv{})", ip, ip.version());
+					log::println("  {} (IPv{})", ip, ip.version());
 
 				auto [ntp_storage, ntp_addrlen] = resolved->front().to_sockaddr();
 
@@ -2101,7 +2105,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				SOCKET sock = socket(ntp_storage.ss_family, SOCK_DGRAM, IPPROTO_UDP);
 				if (sock == INVALID_SOCKET)
 				{
-					dbg::println("socket() failed: {}", WSAGetLastError());
+					log::println("socket() failed: {}", WSAGetLastError());
 				}
 
 				DWORD timeoutMs = 5000;
@@ -2160,12 +2164,12 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 				if (sent == SOCKET_ERROR)
 				{
-					dbg::println("sendto() failed: {}", WSAGetLastError());
+					log::println("sendto() failed: {}", WSAGetLastError());
 					closesocket(sock);
 					WSACleanup();
 					return 1;
 				}
-				dbg::println("send = {}", sent);
+				log::println("send = {}", sent);
 
 				// ----------------------- Set receive timeout (5 seconds) ---------------
 				// ----------------------- Receive reply ---------------------------------
@@ -2176,14 +2180,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 				if (recvLen == SOCKET_ERROR)
 				{
-					dbg::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
+					log::println("{} recvfrom() failed (timeout?): {}", hostname, WSAGetLastError());
 					closesocket(sock);
 					WSACleanup();
 				}
 
 				if (recvLen < static_cast<int>(NTP_PACKET_SIZE))
 				{
-					dbg::println("Received packet too short ({}) bytes", recvLen);
+					log::println("Received packet too short ({}) bytes", recvLen);
 					closesocket(sock);
 				}
 
@@ -2193,27 +2197,27 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 					auto ntp = parse_ntp(packet, t1, t4);
 
-					dbg::println("{:<20}: {}", "Leap", ntp.leapIndicator);
+					log::println("{:<20}: {}", "Leap", ntp.leapIndicator);
 
-					dbg::println("{:<20}: {}", "Precision", ntp.precision);
-					dbg::println("{:<20}: {}", "Root delay", ntp.root_delay);
-					dbg::println("{:<20}: {}", "Reference ID", ntp.ref_id_string);
-					dbg::println("{:<20}: {}", "Root dispersion", ntp.root_dispersion);
-					dbg::println("{:<20}: {}", "Reference time", ntp.refTimestamp);
-					dbg::println("{:<20}: {}", "Origin time", ntp.origTimestamp);
-					dbg::println("{:<20}: {}", "Receive time", ntp.rxTimestamp);
-					dbg::println("{:<20}: {}", "Transmit time", ntp.txTimestamp);
+					log::println("{:<20}: {}", "Precision", ntp.precision);
+					log::println("{:<20}: {}", "Root delay", ntp.root_delay);
+					log::println("{:<20}: {}", "Reference ID", ntp.ref_id_string);
+					log::println("{:<20}: {}", "Root dispersion", ntp.root_dispersion);
+					log::println("{:<20}: {}", "Reference time", ntp.refTimestamp);
+					log::println("{:<20}: {}", "Origin time", ntp.origTimestamp);
+					log::println("{:<20}: {}", "Receive time", ntp.rxTimestamp);
+					log::println("{:<20}: {}", "Transmit time", ntp.txTimestamp);
 
-					dbg::println("{:<20}: {}", "Round trip", ntp.roundtrip_delay);
-					dbg::println("{:<20}: {}", "Clock offset", ntp.local_clock_offset);
-					dbg::println("{:<20}: {}", "Unix Epoch", ntp.unix_epoch);
-					dbg::println("{:<20}: {}", "Local Epoch", epoch());
-					dbg::println();
-					dbg::println("NTP from {}", hostname);
-					dbg::println("{:<20}: {}", "Version", ntp.version);
-					dbg::println("{:<20}: {}", "Mode", ntp.mode);
-					dbg::println("{:<20}: {}", "Stratum", ntp.stratum);
-					dbg::println("{:<20}: {}", "Poll", ntp.poll);
+					log::println("{:<20}: {}", "Round trip", ntp.roundtrip_delay);
+					log::println("{:<20}: {}", "Clock offset", ntp.local_clock_offset);
+					log::println("{:<20}: {}", "Unix Epoch", ntp.unix_epoch);
+					log::println("{:<20}: {}", "Local Epoch", epoch());
+					log::println();
+					log::println("NTP from {}", hostname);
+					log::println("{:<20}: {}", "Version", ntp.version);
+					log::println("{:<20}: {}", "Mode", ntp.mode);
+					log::println("{:<20}: {}", "Stratum", ntp.stratum);
+					log::println("{:<20}: {}", "Poll", ntp.poll);
 				}
 				_ = 0;
 
@@ -2236,7 +2240,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			constexpr size_t mof_size  = sizeof(std::move_only_function<void()>);
 			constexpr size_t stdf_size = sizeof(std::function<void()>);
 			constexpr size_t fr_size   = sizeof(function_ref<void()>);
-			dbg::println(
+			log::println(
 			  "move_only_function size: {} / std::function size: {}, function_ref size: {}", mof_size, stdf_size, fr_size);
 
 			using function_t = function_ref<void()>;
@@ -2262,28 +2266,28 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				  });
 			}
 
-			vfr.emplace_back([] { dbg::println("hello from function_ref 1!"); });
+			vfr.emplace_back([] { log::println("hello from function_ref 1!"); });
 			vfr.emplace_back(
 			  []
 			  {
-				  dbg::println("hello from function_ref 2!");
+				  log::println("hello from function_ref 2!");
 				  std::this_thread::sleep_for(10s);
 			  });
 			vfr.emplace_back(
 			  []
 			  {
-				  dbg::println("hello from function_ref 3!");
+				  log::println("hello from function_ref 3!");
 				  std::this_thread::sleep_for(5s);
 			  });
-			vfr.emplace_back([] { dbg::println("hello from function_ref 4!"); });
+			vfr.emplace_back([] { log::println("hello from function_ref 4!"); });
 
 
 			auto tasker = [&]()
 			{
-				dbg::println("\ttasker started");
+				log::println("\ttasker started");
 
 
-				dbg::println("\ttasker loop started");
+				log::println("\ttasker loop started");
 
 
 				while (true)
@@ -2303,7 +2307,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 					threader_tasks++;
 					task();
 				}
-				dbg::println("\ttasker loop ended");
+				log::println("\ttasker loop ended");
 			};
 
 			std::vector<std::thread> tasks;
@@ -2311,27 +2315,27 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			for (int i = 0; i < 10; ++i)
 				tasks.emplace_back(tasker);
 
-			dbg::println("tasks waiting...");
+			log::println("tasks waiting...");
 
 			cv.notify_all();
 			ready = true;
 
-			dbg::println("tasks started");
+			log::println("tasks started");
 
 			for (int i = 0; i < 5; i++)
 			{
-				dbg::println("main thread {}", i);
+				log::println("main thread {}", i);
 				std::this_thread::sleep_for(1s);
 			}
 
-			dbg::println("joining...");
+			log::println("joining...");
 			cv1.notify_all();
 
 			for (auto& t : tasks)
 				t.join();
 
-			dbg::println("joined");
-			dbg::println("tasks run {} / {}", counter.load(), threader_tasks.load());
+			log::println("joined");
+			log::println("tasks run {} / {}", counter.load(), threader_tasks.load());
 			_;
 		}
 
@@ -2345,14 +2349,14 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 			auto task1 = []
 			{
-				dbg::println("Hello from threadpool!");
+				log::println("Hello from threadpool!");
 				return 42;
 			};
 
 			auto task2 = []
 			{
 				std::this_thread::sleep_for(2s);
-				dbg::println("long task");
+				log::println("long task");
 				return std::string("long done");
 			};
 
@@ -2365,7 +2369,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 			auto task3 = []
 			{
 				std::this_thread::sleep_for(1s);
-				dbg::println("short task");
+				log::println("short task");
 				return 666.314;
 			};
 
@@ -2376,7 +2380,7 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 				tpool.enqueue(
 				  [i]
 				  {
-					  dbg::println("{} task", i);
+					  log::println("{} task", i);
 					  std::this_thread::sleep_for(2s);
 					  return i * 2;
 				  });
@@ -2387,25 +2391,25 @@ i32 deckard_main([[maybe_unused]] utf8::view commandline)
 
 
 			{
-				dbg::println("work on main thread");
+				log::println("work on main thread");
 
 				for (int i = 0; i < 5; i++)
 				{
-					dbg::println("main thread working... {}", i);
+					log::println("main thread working... {}", i);
 					std::this_thread::sleep_for(1s);
 				}
-				dbg::println("done main thread");
+				log::println("done main thread");
 			}
 
-			dbg::println("waiting for tasks...");
+			log::println("waiting for tasks...");
 			int rt1 = t1.get();
 			f64 rt3 = t3.get();
 			clock_delta("get 1/3", tpool_start);
-			dbg::println("results: {} / {}", rt1, rt3);
+			log::println("results: {} / {}", rt1, rt3);
 
 			std::string rt2 = t2.get();
 			clock_delta("get 2 long", tpool_start);
-			dbg::println("result2: {}", rt2);
+			log::println("result2: {}", rt2);
 
 			tpool.join();
 			clock_delta<std::chrono::seconds>("join", tpool_start);

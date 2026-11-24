@@ -1,4 +1,5 @@
 export module deckard.config;
+import deckard.log;
 
 import deckard.assert;
 import deckard.utf8;
@@ -467,7 +468,7 @@ namespace deckard
 					continue;
 				}
 
-				dbg::println("config: unrecognized token starting with '{}'", static_cast<char>(*scan));
+				log::println("config: unrecognized token starting with '{}'", static_cast<char>(*scan));
 				scan++;
 				current_cp_index++;
 			}
@@ -521,7 +522,7 @@ namespace deckard
 			utf8::view view(m_data);
 			for (const auto& token : tokens)
 			{
-				dbg::println(
+				log::println(
 				  "{}({}-{}): '{}'",
 				  token_type_to_string(token.type),
 				  token.start,
@@ -556,7 +557,7 @@ namespace deckard
 					{
 						const auto& val_tok = tokens[val_idx];
 						auto        val_sv  = view.subview(val_tok.start, val_tok.length);
-						dbg::println("'{}' -> '{}'", full_key, val_sv);
+						log::println("'{}' -> '{}'", full_key, val_sv);
 					}
 				}
 			}
@@ -574,7 +575,7 @@ namespace deckard
 			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it == key_hash_to_token_index.end() or it->second.empty())
 			{
-				dbg::println("config: key '{}' not found", key);
+				log::println("config: key '{}' not found", key);
 				return default_value.value_or(T{});
 			}
 
@@ -598,23 +599,13 @@ namespace deckard
 				std::from_chars(sv.data(), sv.data() + sv.size(), result);
 				return result;
 			}
-			else if constexpr (std::is_same_v<T, deckard::net::endpoint>)
-			{
-				if (sv.empty())
-					return {};
-
-				auto host_and_port = string::split_once(sv, ":");
-
-				const auto port = try_to_number<u16>(host_and_port[1]);
-				return net::endpoint(host_and_port[0], port.value_or(0));
-			}
 			else if constexpr (std::is_same_v<T, deckard::utf8::string>)
 			{
 				return utf8::string(view.subview(tok.start, tok.length));
 			}
 			else
 			{
-				dbg::println("config: unsupported type for key '{}'", key);
+				log::println("config: unsupported type for key '{}'", key);
 				return T{};
 			}
 		}
@@ -643,15 +634,6 @@ namespace deckard
 					T result{};
 					std::from_chars(sv.data(), sv.data() + sv.size(), result);
 					results.push_back(result);
-				}
-				else if constexpr (std::is_same_v<T, deckard::net::endpoint>)
-				{
-					if (sv.empty())
-						continue;
-
-					auto host_and_port = string::split_once(sv, ":");
-					auto port          = try_to_number<u16>(host_and_port[1]);
-					results.push_back(net::endpoint(host_and_port[0], port.value_or(0)));
 				}
 			}
 			return results;
@@ -823,7 +805,7 @@ namespace deckard
 			auto it = key_hash_to_token_index.find(utils::hash(key));
 			if (it == key_hash_to_token_index.end() or it->second.empty())
 			{
-				dbg::println("set_comment: key '{}' not found, cannot set comment", key);
+				log::println("set_comment: key '{}' not found, cannot set comment", key);
 				return;
 			}
 

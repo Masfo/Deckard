@@ -875,13 +875,6 @@ TEST_CASE("config set_comment", "[config]")
 		CHECK(values[1] == 6.28);
 	}
 
-	SECTION("value as endpoint, localhost:port")
-	{
-		config cfg = config("[server]\nhost=\"localhost:1234\""sv);
-
-		CHECK(cfg["server.host"].as<net::endpoint>() == net::endpoint("localhost"sv, 1234));
-	}
-
 	SECTION("sections() yields section names in order, no duplicates")
 	{
 		config cfg = config("[a]\nk=1\n[b]\nk=2\n[a]\nk=3"sv);

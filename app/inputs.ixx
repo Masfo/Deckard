@@ -2,6 +2,7 @@ module;
 #include <Windows.h>
 
 export module deckard.app:inputs;
+import deckard.log;
 
 import std;
 import deckard.types;
@@ -61,7 +62,7 @@ namespace deckard::app
 		void deinitialize()
 		{
 			m_key_states.fill(key_state::up);
-			dbg::println("inputs: deinitialized");
+			log::println("inputs: deinitialized");
 		}
 
 		void poll(f32 delta)
@@ -77,7 +78,7 @@ namespace deckard::app
 		void character_input(char32 c)
 		{
 			textbuffer.append(c);
-			dbg::println("Character input: U+{:04X} -> '{}' | Buffer: '{}'", static_cast<u32>(c), utf8::view{c}, textbuffer);
+			log::println("Character input: U+{:04X} -> '{}' | Buffer: '{}'", static_cast<u32>(c), utf8::view{c}, textbuffer);
 		}
 
 		auto take_character_buffer() { return std::exchange(textbuffer, utf8::string(DEFAULT_TEXTBUFFER_SIZE, 0)); }

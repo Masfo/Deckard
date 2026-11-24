@@ -1,4 +1,5 @@
 export module deckard.timers;
+import deckard.log;
 
 import std;
 import deckard.assert;
@@ -192,9 +193,9 @@ namespace deckard
 		void now(std::string_view input = "")
 		{
 			if (input.empty())
-				dbg::println("{} took {}", name, duration());
+				log::println("{} took {}", name, duration());
 			else
-				dbg::println("{}/{} took {}", name, input, duration());
+				log::println("{}/{} took {}", name, input, duration());
 		}
 
 		auto duration()
@@ -229,7 +230,7 @@ namespace deckard
 		~AverageTimer()
 		{
 			if (has_dumped == false)
-				dbg::println("{}", dump());
+				log::println("{}", dump());
 		}
 
 		void begin() { start_time = clock_now(); }

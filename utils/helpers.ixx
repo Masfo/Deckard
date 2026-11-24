@@ -1,4 +1,5 @@
 export module deckard.helpers;
+import deckard.log;
 
 import std;
 import deckard.as;
@@ -64,7 +65,7 @@ export namespace deckard
 	constexpr auto loop = []<std::integral I>(I start = 0) { return std::views::iota(start); };
 
 	// repeat
-	// repeat<10> = [&] { dbg::println("xshift: {:X}", xshift.next()); };
+	// repeat<10> = [&] { log::println("xshift: {:X}", xshift.next()); };
 	//
 #ifdef __cpp_reflection
 #error ("Use std::meta::reflect instead");
@@ -305,19 +306,19 @@ export namespace deckard
 		if constexpr (is_debug_build)
 		{
 			if constexpr (std::is_same_v<TimeType, std::chrono::hours>)
-				dbg::println("{} took {:.6f} hrs", id, took);
+				log::println("{} took {:.6f} hrs", id, took);
 			else if constexpr (std::is_same_v<TimeType, std::chrono::minutes>)
-				dbg::println("{} took {:.6f} min", id, took);
+				log::println("{} took {:.6f} min", id, took);
 			else if constexpr (std::is_same_v<TimeType, std::chrono::seconds>)
-				dbg::println("{} took {:.6f} s", id, took);
+				log::println("{} took {:.6f} s", id, took);
 			else if constexpr (std::is_same_v<TimeType, std::chrono::milliseconds>)
-				dbg::println("{} took {} ms", id, (i64)(took));
+				log::println("{} took {} ms", id, (i64)(took));
 			else if constexpr (std::is_same_v<TimeType, std::chrono::microseconds>)
-				dbg::println("{} took {} us", id, (i64)(took));
+				log::println("{} took {} us", id, (i64)(took));
 			else if constexpr (std::is_same_v<TimeType, std::chrono::nanoseconds>)
-				dbg::println("{} took {} ns", id, (i64)(took));
+				log::println("{} took {} ns", id, (i64)(took));
 			else
-				dbg::println("{} took {} (unknown) ", id, (i64)(took));
+				log::println("{} took {} (unknown) ", id, (i64)(took));
 		}
 	}
 
@@ -1439,7 +1440,7 @@ export namespace deckard
 			return *result;
 
 
-		dbg::println("to_number(\"{}\"): failed to convert to number", input);
+		log::println("to_number(\"{}\"): failed to convert to number", input);
 		return T{0};
 	}
 

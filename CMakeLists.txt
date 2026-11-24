@@ -177,14 +177,14 @@ set(DECKARD_MODULES
 
 		$<$<CONFIG:Debug>:debug/debug.ixx>
 		$<$<CONFIG:Debug>:debug/assert.ixx>
-		$<$<CONFIG:Debug>:debug/log.ixx>
+		debug/log.ixx
 
 		$<$<CONFIG:RelWithDebInfo,Release>:debug/debug_null.ixx>
 		$<$<CONFIG:RelWithDebInfo,Release>:debug/assert_null.ixx>
-		$<$<CONFIG:RelWithDebInfo,Release>:debug/log_null.ixx>
 
 
 		$<$<PLATFORM_ID:Windows>:debug/console.ixx>
+		$<$<PLATFORM_ID:Windows>:debug/debug_window.cppm>
 
 		# File
 		file/file.ixx
@@ -228,17 +228,14 @@ set(DECKARD_MODULES
 		spatial/octree.ixx
 		spatial/quadtree.ixx
 
+		# IPC
+		ipc/ipc.cppm
+
 		# Net
 		net/net.ixx
 		
-		net/auth.ixx
-		net/client.ixx
-		net/ip.ixx
-		net/protocol.ixx
-		net/server.ixx
-		net/socket.ixx
-		net/types.ixx
-	   
+		
+			   
 		# threadpool
 		threadpool/threadpool.ixx
 
@@ -265,7 +262,6 @@ set(DECKARD_MODULES
 		utils/helpers.ixx
 		utils/hmac.ixx
 		utils/json.ixx
-		utils/logger.ixx
 		utils/lru.ixx
 		utils/random.ixx
 		utils/ringbuffer.ixx
@@ -317,6 +313,8 @@ set(DECKARD_MODULES
 		app/window.ixx
 		app/renderer.ixx
 
+		
+
 
 		# Vulkan
 		app/vulkan.ixx
@@ -359,10 +357,7 @@ set(DECKARD_MODULES
 		$<$<PLATFORM_ID:Windows>:platform/win32.ixx>
 		# $<$<PLATFORM_ID:Windows>:platform/DTE.ixx>
 
-		#std.ixx
-
-
-)
+  )
 
   set(DECKARD_MODULES_IMPL
 

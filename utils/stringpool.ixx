@@ -1,4 +1,5 @@
 export module deckard.stringpool;
+import deckard.log;
 
 import std;
 import deckard.types;
@@ -78,11 +79,11 @@ namespace deckard
 		{
 			if constexpr (is_debug_build)
 			{
-				dbg::println("String pool dump ({} entries):", size());
+				log::println("String pool dump ({} entries):", size());
 				for (handle i = 0; i < static_cast<handle>(m_pool.size()); ++i)
 				{
 					auto view = span_to_view(m_pool.get(i));
-					dbg::println("  [{}] '{}' - {}", i, view, view.data() | std::views::take(15));
+					log::println("  [{}] '{}' - {}", i, view, view.data() | std::views::take(15));
 				}
 			}
 		}

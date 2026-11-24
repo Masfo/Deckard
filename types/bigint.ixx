@@ -8,7 +8,7 @@ import deckard.utils.hash;
 import deckard.helpers;
 import deckard.debug;
 import deckard.random;
-import deckard.logger;
+import deckard.log;
 import std;
 
 namespace deckard

@@ -3,10 +3,10 @@ module;
 
 
 export module deckard.debug;
+import deckard.log;
 
 import std;
 import deckard.types;
-// import deckard.log;
 
 
 // export deckard::log::log_to_file global_log;
@@ -16,18 +16,11 @@ export constexpr bool is_debug_build = true;
 
 void output_message(const std::string_view message)
 {
-
-	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.data(), static_cast<DWORD>(message.size()), nullptr, nullptr);
-
 	OutputDebugStringA(message.data());
-
-	// log::global_log.log(message);
 }
 
 void error_output_message(const std::string_view message)
 {
-	WriteFile(GetStdHandle(STD_ERROR_HANDLE), message.data(), static_cast<DWORD>(message.size()), nullptr, nullptr);
-
 	OutputDebugStringA(message.data());
 }
 
@@ -53,11 +46,6 @@ struct alignas(64) FormatLocation
 
 static_assert(64 == sizeof(FormatLocation), "FormatLocation is not 64 bytes");
 
-// template<typename... Args>
-// auto format_check(std::format_string<Args...> format, Args&&... args)
-// {
-// 	return std::format(format, std::forward<Args>(args)...);
-// }
 
 template<typename... Args>
 auto format(std::string_view fmt, Args&&... args)
@@ -78,7 +66,7 @@ export namespace deckard::dbg
 		InitCommonControls
 
 
-		dbg::println("Hello {}!", "World");
+		log::println("Hello {}!", "World");
 
 		- thread safe
 		- output to log file
@@ -190,7 +178,7 @@ export namespace deckard::dbg
 			if (traceline.source_file().contains(std::string_view{__FILE__}))
 				continue;
 
-			dbg::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
+			log::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
 		}
 	}
 
@@ -206,7 +194,7 @@ export namespace deckard::dbg
 		println("\n{}({}):"sv, loc.file_name(), loc.line());
 	}
 
-	void trace(FormatLocation fmt) { dbg::println("{}", fmt.to_string()); }
+	void trace(FormatLocation fmt) { log::println("{}", fmt.to_string()); }
 
 	// Panic
 
@@ -214,14 +202,14 @@ export namespace deckard::dbg
 	template<typename... Args>
 	[[noreturn]] void panic(std::string_view fmt, Args&&... args)
 	{
-		dbg::print("{} : ", who_called_me());
+		log::print("{} : ", who_called_me());
 		if constexpr (sizeof...(args) > 0)
 		{
-			dbg::println("PANIC: {}", format(fmt, args...));
+			log::println("PANIC: {}", format(fmt, args...));
 		}
 		else
 		{
-			dbg::println("PANIC: {}", fmt);
+			log::println("PANIC: {}", fmt);
 		}
 
 		breakpoint();

@@ -1,6 +1,7 @@
 module;
 #include <version>
 export module deckard.graph:avltree;
+import deckard.log;
 
 
 import std;
@@ -353,7 +354,7 @@ namespace deckard::graph::avl
 
 		void print() const
 		{
-			dbg::println("{}", to_string(root));
+			log::println("{}", to_string(root));
 		}
 
 #if __cpp_lib_optional_ref
@@ -616,7 +617,7 @@ namespace deckard::graph::avl
 			rotate_right(k1);
 		}
 
-		void print(const nodeptr& node) { dbg::println("{}", to_string(node)); }
+		void print(const nodeptr& node) { log::println("{}", to_string(node)); }
 
 		void append_tree(std::string& out, const nodeptr& n, const std::string& prefix, bool is_last, bool is_root) const
 		{

@@ -5,6 +5,7 @@ module;
 
 
 export module deckard.app:window;
+import deckard.log;
 import :inputs;
 
 import std;
@@ -205,7 +206,7 @@ namespace deckard::app
 				normalized_client_size = new_normalized;
 				invalidated            = true;
 
-				dbg::println(
+				log::println(
 				  "window: resized physical: {}x{}, normalized: {}x{}",
 				  physical_client_size.width,
 				  physical_client_size.height,
@@ -462,7 +463,7 @@ namespace deckard::app
 			if (monitor >= monitor_count())
 				monitor = primary_monitor_index();
 
-			dbg::println("window: initializing on monitor {} of {}", monitor, monitor_count() - 1);
+			log::println("window: initializing on monitor {} of {}", monitor, monitor_count() - 1);
 
 			get_monitors();
 

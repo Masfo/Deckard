@@ -1,5 +1,6 @@
 
 export module deckard.assert;
+import deckard.log;
 
 import std;
 import deckard.debug;
@@ -12,7 +13,7 @@ export namespace deckard::assert
 	{
 		if (not expr)
 		{
-			dbg::println("****\n{}({}): {}\n****", loc.file_name(), loc.line(), message);
+			log::println("****\n{}({}): {}\n****", loc.file_name(), loc.line(), message);
 		}
 	}
 
@@ -25,11 +26,11 @@ export namespace deckard::assert
 		{
 			if (std::cmp_not_equal(a, b))
 			{
-				dbg::println("\n***** EQUAL ASSERT *****\n");
-				dbg::println("Assertion failed: '{}' != '{}'", a, b);
+				log::println("\n***** EQUAL ASSERT *****\n");
+				log::println("Assertion failed: '{}' != '{}'", a, b);
 				warning(false, message, loc);
 				dbg::stacktrace();
-				dbg::println("\n\n***** EQUAL ASSERT *****\n");
+				log::println("\n\n***** EQUAL ASSERT *****\n");
 				dbg::panic("assert");
 			}
 		}
@@ -37,12 +38,12 @@ export namespace deckard::assert
 		{
 			if (a != b)
 			{
-				dbg::println("\n***** EQUAL ASSERT *****\n");
-				dbg::println("Assertion failed: '{}' != '{}'", a, b);
+				log::println("\n***** EQUAL ASSERT *****\n");
+				log::println("Assertion failed: '{}' != '{}'", a, b);
 				warning(false, message, loc);
 
 				dbg::stacktrace();
-				dbg::println("\n\n***** EQUAL ASSERT *****\n");
+				log::println("\n\n***** EQUAL ASSERT *****\n");
 				dbg::panic("assert");
 			}
 		}
@@ -53,12 +54,12 @@ export namespace deckard::assert
 	{
 		if (not expr)
 		{
-			dbg::println("\n***** ASSERT *****\n\n");
+			log::println("\n***** ASSERT *****\n\n");
 
 			warning(expr, message, loc);
 
 			dbg::stacktrace();
-			dbg::println("\n\n***** ASSERT *****\n");
+			log::println("\n\n***** ASSERT *****\n");
 			dbg::panic("assert");
 		}
 	}

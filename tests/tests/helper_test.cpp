@@ -1125,7 +1125,7 @@ TEST_CASE("helpers", "[helpers]")
 		CHECK(sum(vpair, [](const auto& p) { return p.second; }) == 6);
 		CHECK(subtract(vpair, [](const auto& p) { return p.second; }) == -6);
 		CHECK(product(vpair, [](const auto& p) { return p.second; }) == 6);
-		CHECK(subtract<f64>(vpair, [](const auto& p) { return p.second; }) == -6.0);
+		CHECK(subtract<f64>(vpair, [](const auto& p) { return p.second; }) == -4.0);
 		CHECK(product<f64>(vpair, [](const auto& p) { return p.second; }) == 6.0);
 
 

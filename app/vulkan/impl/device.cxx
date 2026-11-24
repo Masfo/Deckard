@@ -7,6 +7,7 @@ module;
 #include <vulkan/vulkan_win32.h>
 
 module deckard.vulkan;
+import deckard.log;
 
 import std;
 import deckard.debug;
@@ -59,7 +60,7 @@ namespace deckard::vulkan
 
 			if (not features13.dynamicRendering or not features13.synchronization2 or not features12.timelineSemaphore)
 			{
-				dbg::println(
+				log::println(
 				  "Skipping device {}: need dynamic rendering, synchronization2 and timelineSemaphore", props.deviceName);
 				continue;
 			}
@@ -67,7 +68,7 @@ namespace deckard::vulkan
 			if (not version_at_least(
 				  props.apiVersion, VK_API_VERSION_MAJOR(minimum_api_version), VK_API_VERSION_MINOR(minimum_api_version)))
 			{
-				dbg::println(
+				log::println(
 				  "Skipping device {}: {}.{}.{}, requires at least {}.{}",
 				  props.deviceName,
 				  VK_API_VERSION_MAJOR(props.apiVersion),
@@ -107,15 +108,15 @@ namespace deckard::vulkan
 
 		vkGetPhysicalDeviceProperties2(m_physical_device, &properties2);
 
-		dbg::println(
+		log::println(
 		  "Conformance version: {}.{}.{}.{}",
 		  vulkan12.conformanceVersion.major,
 		  vulkan12.conformanceVersion.minor,
 		  vulkan12.conformanceVersion.subminor,
 		  vulkan12.conformanceVersion.patch);
-		dbg::println("Device name: {}", properties2.properties.deviceName);
-		dbg::println("Driver name: {}", vulkan12.driverName);
-		dbg::println("Driver version: {}.0.{}",
+		log::println("Device name: {}", properties2.properties.deviceName);
+		log::println("Driver name: {}", vulkan12.driverName);
+		log::println("Driver version: {}.0.{}",
 					 VK_VERSION_MAJOR(properties2.properties.driverVersion),
 					 VK_VERSION_PATCH(properties2.properties.driverVersion));
 	}

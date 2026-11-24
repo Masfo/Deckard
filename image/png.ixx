@@ -1,4 +1,5 @@
 export module deckard.image:png;
+import deckard.log;
 
 import std;
 import deckard.as;
@@ -471,7 +472,7 @@ namespace deckard::image
 		u32 bpp = bitdepth * channels;
 		bpp     = std::max<u32>(1, bpp / 8);
 
-		dbg::println(" - {}x{}x{} color format {}", width, height, bpp, color_format);
+		log::println(" - {}x{}x{} color format {}", width, height, bpp, color_format);
 
 		// decompress
 		const u64 row_bytes     = (u64{width} * channels * bitdepth + 7) / 8;
