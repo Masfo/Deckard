@@ -1,4 +1,5 @@
 export module deckard.vec;
+import deckard.log;
 
 export import :vec2;
 export import :vec3;
@@ -164,9 +165,9 @@ export namespace deckard::vec
 		{
 			for (const u32& x : upto(8))
 			{
-				dbg::print("{:02} ", vec::to_zorder(math::uvec2{x, y}));
+				log::print("{:02} ", vec::to_zorder(math::uvec2{x, y}));
 			}
-			dbg::println();
+			log::println();
 		}
 	*/
 
@@ -186,9 +187,9 @@ export namespace deckard::vec
 		{
 		for (const u32& x : upto(8))
 		{
-			dbg::print("{:02} ", vec::to_zigzag(uvec2{x, y}, 8, 8));
+			log::print("{:02} ", vec::to_zigzag(uvec2{x, y}, 8, 8));
 		}
-		dbg::println();
+		log::println();
 		}
 */
 

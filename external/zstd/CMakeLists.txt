@@ -3,8 +3,8 @@
 
 cmake_minimum_required (VERSION 3.23)
 
-set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.zip)
-set(ZSTD_ZIP_NAME_NOEXT zstd-1.5.7)
+set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/tags/v1.6.0.zip)
+set(ZSTD_ZIP_NAME_NOEXT zstd-1.6.0)
 #set(ZSTD_ZIP_NAME_NOEXT zstd-dev)
 #set(ZSTD_ZIP_URL https://github.com/facebook/zstd/archive/refs/heads/dev.zip)
 get_filename_component(ZSTD_ZIP_NAME ${ZSTD_ZIP_URL} NAME)
@@ -27,6 +27,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${ZSTD_ZIP_NAME})
         common/allocations.h
         common/bits.h
         common/bitstream.h
+        common/bmi2.h
         common/compiler.h
         common/cpu.h
         common/debug.c
