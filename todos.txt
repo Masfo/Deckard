@@ -1,0 +1,51 @@
+﻿D:\projektit\Deckard\app\vulkan\shaders.ixx:71: // TODO: have fs::path member, have a reload method
+D:\projektit\Deckard\app\app.ixx:30: // TODO: fixed_callbacks for preupdate, update, fixedupdate
+D:\projektit\Deckard\app\controller.ixx:22: // TODO: variable deadzone, option to resize
+D:\projektit\Deckard\debug\debug.ixx:60: // TODO: own debug window
+D:\projektit\Deckard\external\zstd\common\xxhash.h:779: * TODO: Update to correct value when its been specified.
+D:\projektit\Deckard\external\zstd\common\xxhash.h:3899: && defined(__GNUC__) /* TODO: IBM XL */
+D:\projektit\Deckard\file\File.ixx:23: // TODO: remove many imports, more standalone
+D:\projektit\Deckard\file\File.ixx:439: // TODO: change to expected ref when c++ supports it
+D:\projektit\Deckard\geometry\geometry.ixx:11: // TODO: cube, cuboid, cylinder, cone, pyramic, torus, prism
+D:\projektit\Deckard\image\png.ixx:535: // TODO: loader to read header first then return image_gray, image_rgb, image_rgba
+D:\projektit\Deckard\math\generic_vec2.ixx:711: // TODO: Parse width
+D:\projektit\Deckard\math\generic_vec3.ixx:758: // TODO: Parse width
+D:\projektit\Deckard\math\generic_vec4.ixx:788: // TODO: Parse width
+D:\projektit\Deckard\math\matrix.ixx:741: // TODO:	project_world_to_screen
+D:\projektit\Deckard\math\matrix.ixx:824: // TODO: Parse single or multi row?
+D:\projektit\Deckard\monocypher\monocypher.ixx:14: // TODO: easy to use helpers
+D:\projektit\Deckard\scripting\lexer\lexer.ixx:394: // TODO: extract string_pool to own module
+D:\projektit\Deckard\scripting\lexer\lexer.ixx:397: // TODO: only use lexeme pool id for identifiers etc, instead of offset and length
+D:\projektit\Deckard\scripting\lexer\lexer.ixx:403: // TODO: remove offset+length, use id
+D:\projektit\Deckard\scripting\lexer\lexer.ixx:443: /* TODO: put extracted token string to lexemepool, and assign to Token::Id
+D:\projektit\Deckard\tests\tests\bigint_tests.cpp:1083: // TODO: optimize formatter
+D:\projektit\Deckard\tests\tests\serializer_test.cpp:553: // TODO: fix writing arrays
+D:\projektit\Deckard\tests\tests\to_hex_test.cpp:32: // TODO: array<u32> -> unsigned value -> to_hex
+D:\projektit\Deckard\tools\utftables\src\main.cpp:1220: // TODO: to_uppercase, to_lowercase mappings
+D:\projektit\Deckard\tools\utftables\src\main.cpp:1239: // TODO: detect ranges FIRST-LAST, write them to file
+D:\projektit\Deckard\tools\utftables\src\main.cpp:1251: // TODO: collect all non-zero CCC,
+D:\projektit\Deckard\tools\utftables\src\main.cpp:1373: // TODO: ccc chunks wrong, should be chunk be ccc
+D:\projektit\Deckard\types\bigint.ixx:576: // TODO: optional<&> for remainder
+D:\projektit\Deckard\unicode\utf8string.ixx:431: // TODO: bounds check
+D:\projektit\Deckard\unicode\utf8_codepoints.ixx:146: // TODO: digit codepoints
+D:\projektit\Deckard\utils\colors.ixx:577: // TODO: Parse width
+D:\projektit\Deckard\utils\colors.ixx:600: // TODO: Parse width
+D:\projektit\Deckard\utils\colors.ixx:715: // TODO: Parse width
+D:\projektit\Deckard\utils\grid.ixx:82: // TODO: non-member drawings
+D:\projektit\Deckard\utils\grid.ixx:203: // TODO: find width from input if not set, detect newlines, etc.
+D:\projektit\Deckard\utils\grid.ixx:264: // TODO: subgrid
+D:\projektit\Deckard\utils\grid.ixx:879: // TODO: serialize to/from disk
+D:\projektit\Deckard\utils\grid.ixx:880: // TODO: non-member export
+D:\projektit\Deckard\utils\helpers.ixx:372: // TODO: output width( ie, how often newlines)
+D:\projektit\Deckard\utils\helpers.ixx:414: // TODO: limit output size
+D:\projektit\Deckard\utils\json.ixx:93: // TODO: expected &
+D:\projektit\Deckard\utils\json.ixx:413: // TODO: read 4 hex digits (and low surrogate for pairs outside the
+D:\projektit\Deckard\utils\ringbuffer.ixx:264: // TODO: iterator instead of copying
+D:\projektit\Deckard\utils\serializer.ixx:12: // TODO: fixed size reader/writer
+D:\projektit\Deckard\utils\serializer.ixx:13: // TODO: append bitreader/writers
+D:\projektit\Deckard\utils\serializer.ixx:14: // TODO: limit array/string to 16-bit max?
+D:\projektit\Deckard\utils\serializer.ixx:526: // TODO: operator &=(?) for simpler serialization
+D:\projektit\Deckard\utils\serializer.ixx:532: // TODO: save types for serialized as a metadata
+D:\projektit\Deckard\utils\sha.ixx:111: // TODO: Generic to_hex
+D:\projektit\Deckard\utils\smallbufferobject.ixx:859: // TODO: self insert check
+D:\projektit\Deckard\utils\smallbufferobject.ixx:881: //	// TODO: Parse width
