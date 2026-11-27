@@ -244,34 +244,105 @@ export namespace deckard
 
 	// static_assert(requires(A a, A b) { a + b; }, "elements must be addable");
 
-	// using Kilo = StrongType<double, struct Kilo_>;
+	/*
+	 *  ████    ██████   █████     ████    █    █    ████    ██████   █    █   █████    ██████
+	 * █          ██     █    █   █    █   ██   █   █          ██      █  █    █    █   █
+	 *  ████      ██     █████    █    █   █ █  █   █  ███     ██       ██     █████    ████
+	 *      █     ██     █   █    █    █   █  █ █   █    █     ██       ██     █        █
+	 *  ████      ██     █    █    ████    █   ██    ████      ██       ██     █        ██████
+	 */
+
+	// using Kilo = strongtype<double, "Kilo">;
+
+
+	template<std::size_t N>
+	struct fixed_string
+	{
+		char value[N]{};
+
+		constexpr fixed_string(const char (&s)[N]) noexcept { std::copy_n(s, N, value); }
+
+		constexpr bool operator==(const fixed_string&) const = default;
+	};
+
+	template<std::size_t N>
+	fixed_string(const char (&)[N]) -> fixed_string<N>;
+
 
 	template<typename T>
-	concept strong_type_value = std::is_object_v<T> and not std::is_reference_v<T> and std::is_destructible_v<T>;
+	concept strong_type_value = std::move_constructible<T> and std::same_as<T, std::remove_cvref_t<T>>;
 
-	template<strong_type_value T, typename P>
+	template<strong_type_value T, fixed_string Name>
 	class strongtype
 	{
 	public:
-		constexpr explicit strongtype(const T& value)
-			: m_value(value)
-		{
-		}
+		using value_type                       = T;
+		static constexpr std::string_view name = Name.value;
 
-		constexpr explicit strongtype(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+		constexpr strongtype()
+		requires std::default_initializable<T>
+		= default;
+
+		constexpr explicit strongtype(T value) noexcept(std::is_nothrow_move_constructible_v<T>)
 			: m_value(std::move(value))
 		{
 		}
 
-		[[nodiscard]] constexpr T& get() noexcept { return m_value; }
+		[[nodiscard]] explicit constexpr operator T() const& noexcept(std::is_nothrow_copy_constructible_v<T>)
+			requires std::copy_constructible<T>
+		{
+			return m_value;
+		}
 
-		[[nodiscard]] constexpr const T& get() const noexcept { return m_value; }
+		[[nodiscard]] explicit constexpr operator T() && noexcept(std::is_nothrow_move_constructible_v<T>)
+		{
+			return std::move(m_value);
+		}
+
+		[[nodiscard]] constexpr auto&& get(this auto&& self) noexcept { return std::forward<decltype(self)>(self).m_value; }
+
+		[[nodiscard]] constexpr decltype(auto) operator[](this auto&& self, auto&&... indices)
+			requires requires { std::forward<decltype(self)>(self).m_value[std::forward<decltype(indices)>(indices)...]; }
+		{
+			return std::forward<decltype(self)>(self).m_value[std::forward<decltype(indices)>(indices)...];
+		}
+
+		[[nodiscard]] friend constexpr strongtype operator+(const strongtype& lhs, const strongtype& rhs)
+		requires requires(const T& a, const T& b) {
+			{ a + b } -> std::convertible_to<T>;
+		}
+		{
+			return strongtype{static_cast<T>(lhs.m_value + rhs.m_value)};
+		}
+
+		[[nodiscard]] friend constexpr strongtype operator-(const strongtype& lhs, const strongtype& rhs)
+		requires requires(const T& a, const T& b) {
+			{ a - b } -> std::convertible_to<T>;
+		}
+		{
+			return strongtype{static_cast<T>(lhs.m_value - rhs.m_value)};
+		}
+
+		[[nodiscard]] friend constexpr strongtype operator*(const strongtype& lhs, const strongtype& rhs)
+		requires requires(const T& a, const T& b) {
+			{ a * b } -> std::convertible_to<T>;
+		}
+		{
+			return strongtype{static_cast<T>(lhs.m_value * rhs.m_value)};
+		}
+
+		[[nodiscard]] friend constexpr strongtype operator/(const strongtype& lhs, const strongtype& rhs)
+		requires requires(const T& a, const T& b) {
+			{ a / b } -> std::convertible_to<T>;
+		}
+		{
+			return strongtype{static_cast<T>(lhs.m_value / rhs.m_value)};
+		}
 
 		friend constexpr auto operator<=>(const strongtype&, const strongtype&) = default;
-		friend constexpr bool operator==(const strongtype&, const strongtype&)  = default;
 
 	private:
-		T m_value;
+		T m_value{};
 	};
 
 	// ###########################################################################
@@ -499,6 +570,28 @@ export namespace deckard
 	*/
 
 } // namespace deckard
+
+export namespace std
+{
+	template<deckard::strong_type_value T, deckard::fixed_string Name>
+	struct hash<deckard::strongtype<T, Name>>
+	{
+		[[nodiscard]] constexpr std::size_t operator()(const deckard::strongtype<T, Name>& v) const
+		  noexcept(noexcept(std::hash<T>{}(v.get())))
+		{
+			return std::hash<T>{}(v.get());
+		}
+	};
+
+	template<deckard::strong_type_value T, deckard::fixed_string Name, typename Char>
+	struct formatter<deckard::strongtype<T, Name>, Char> : formatter<T, Char>
+	{
+		constexpr auto format(const deckard::strongtype<T, Name>& v, auto& ctx) const
+		{
+			return formatter<T, Char>::format(v.get(), ctx);
+		}
+	};
+} // namespace std
 
 template<std::integral T>
 struct std::formatter<deckard::extent<T>>
