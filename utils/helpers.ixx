@@ -297,6 +297,20 @@ export namespace deckard
 
 	auto clock_now() { return std::chrono::steady_clock::now(); }
 
+	auto local_time()
+	{
+		const auto now         = std::chrono::system_clock::now();
+		const auto now_seconds = std::chrono::floor<std::chrono::seconds>(now);
+		const std::chrono::zoned_time local_now{std::chrono::current_zone(), now_seconds};
+		return std::format("{:%H:%M:%S}", local_now);
+	}
+
+		auto local_date()
+	{
+		std::chrono::zoned_time now{std::chrono::current_zone(), std::chrono::system_clock::now()};
+		return std::format("{:%Y-%m-%d}", now);
+	}
+
 	template<typename TimeType = std::chrono::milliseconds>
 	void clock_delta(std::string_view id, const decltype(clock_now()) start)
 	{
