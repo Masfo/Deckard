@@ -1,5 +1,4 @@
 export module deckard.as;
-import deckard.log;
 
 import std;
 import deckard.debug;
@@ -24,7 +23,7 @@ namespace deckard
 
 			if constexpr (std::is_floating_point_v<U>)
 			{
-				log::println(
+				dbg::println(
 				  "Unable to cast '{:f}' safely. Target range is {}...{}, cast to '{}'",
 				  value,
 				  std::numeric_limits<T>::min(),
@@ -35,7 +34,7 @@ namespace deckard
 
 			if constexpr (std::is_unsigned_v<U>)
 			{
-				log::println(
+				dbg::println(
 				  "Unable to cast '{}' safely. Target range is {}...{}, cast to '{}'",
 				  static_cast<u64>(value),
 				  std::numeric_limits<T>::min(),
@@ -93,19 +92,19 @@ namespace deckard
 
 				if (std::isinf(new_value))
 				{
-					log::println("Casting '{}'(f64) to f32 resulted in INF. Consider using f64 instead", value);
+					dbg::println("Casting '{}'(f64) to f32 resulted in INF. Consider using f64 instead", value);
 					return new_value;
 				}
 
 				if (std::isnan(new_value))
 				{
-					log::println("Casting '{}'(f64) to f32 resulted in NaN. Consider using f64 instead", value);
+					dbg::println("Casting '{}'(f64) to f32 resulted in NaN. Consider using f64 instead", value);
 					return new_value;
 				}
 
 				if (static_cast<f64>(new_value) != value)
 				{
-					log::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.",
+					dbg::println("Casting '{}'(f64) to '{}'(f32), this may lose precision. Consider using f64 instead.",
 								 value,
 								 new_value);
 				}
@@ -218,7 +217,7 @@ namespace deckard
 			{
 				if constexpr (give_warning)
 				{
-					log::println("fallback <as> {}({})", loc.file_name(), loc.line());
+					dbg::println("fallback <as> {}({})", loc.file_name(), loc.line());
 				}
 			}
 			return static_cast<Ret>(u);
