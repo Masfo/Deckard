@@ -3,7 +3,6 @@ module;
 
 
 export module deckard.debug;
-import deckard.log;
 
 import std;
 import deckard.types;
@@ -178,7 +177,7 @@ export namespace deckard::dbg
 			if (traceline.source_file().contains(std::string_view{__FILE__}))
 				continue;
 
-			log::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
+			dbg::println("{}({}): {}", traceline.source_file(), traceline.source_line(), traceline.description());
 		}
 	}
 
@@ -186,15 +185,15 @@ export namespace deckard::dbg
 	template<typename... Args>
 	void trace(FormatLocation fmt, Args&&... args)
 	{
-		println("\n{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
+		dbg::println("\n{}({}): {}"sv, fmt.loc.file_name(), fmt.loc.line(), format(fmt.fmt, args...));
 	}
 
 	void trace(const std::source_location& loc = std::source_location::current())
 	{
-		println("\n{}({}):"sv, loc.file_name(), loc.line());
+		dbg::println("\n{}({}):"sv, loc.file_name(), loc.line());
 	}
 
-	void trace(FormatLocation fmt) { log::println("{}", fmt.to_string()); }
+	void trace(FormatLocation fmt) { dbg::println(fmt.to_string()); }
 
 	// Panic
 
@@ -202,14 +201,14 @@ export namespace deckard::dbg
 	template<typename... Args>
 	[[noreturn]] void panic(std::string_view fmt, Args&&... args)
 	{
-		log::print("{} : ", who_called_me());
+		dbg::print("{} : ", who_called_me());
 		if constexpr (sizeof...(args) > 0)
 		{
-			log::println("PANIC: {}", format(fmt, args...));
+			dbg::println("PANIC: {}", format(fmt, args...));
 		}
 		else
 		{
-			log::println("PANIC: {}", fmt);
+			dbg::println("PANIC: {}", fmt);
 		}
 
 		breakpoint();

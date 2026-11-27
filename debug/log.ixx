@@ -93,13 +93,12 @@ namespace deckard::log
 *    █        ██████   ██████   ██████    ████    ██████   █   ██   █   ██   
 */
 
-	// Buffers text, appends the buffer to the log file when full. The file is created on first flush.
+	// Buffers text; the file is created on the first flush or oversized write.
 	export struct FileSink
 	{
 		static constexpr std::size_t BUFFER_SIZE = 2_KiB;
 
 		std::filesystem::path    path; // empty: log.<date>.<time>.txt in the current directory
-		std::ofstream            file;
 		std::vector<std::byte>   buffer;
 		std::size_t              offset{0};
 		std::mutex               mutex;
@@ -120,60 +119,30 @@ namespace deckard::log
 		FileSink(const FileSink&)            = delete;
 		FileSink& operator=(const FileSink&) = delete;
 
-		void write(std::string_view text)
-		{
-			if (text.empty())
-				return;
-
-			std::scoped_lock lock(mutex);
-			if (text.size() > BUFFER_SIZE - offset)
-				flush_locked();
-
-			if (text.size() > BUFFER_SIZE)
-			{
-				open_locked();
-				file.write(text.data(), static_cast<std::streamsize>(text.size()));
-				return;
-			}
-
-			std::memcpy(buffer.data() + offset, text.data(), text.size());
-			offset += text.size();
-		}
+		void write(std::string_view text); // log-impl.cppm
 
 		void ewrite(std::string_view text) { write(text); }
+
 
 		void flush()
 		{
 			std::scoped_lock lock(mutex);
 			flush_locked();
-			if (file.is_open())
-				file.flush();
 		}
 
 	private:
-		void open_locked()
+		bool append_locked(std::span<const u8> bytes); // log-impl.cppm
+
+		bool flush_locked()
 		{
-			if (file.is_open())
-				return;
+			if (offset == 0)
+				return true;
 
-			if (path.empty())
-			{
-				clean_older_logfiles();
-				path = std::filesystem::current_path() / std::format("log.{}.{}.txt", date_string(), time_string("."));
-			}
-
-			file.open(path, std::ios::app | std::ios::binary);
-		}
-
-		void flush_locked()
-		{
-			if (offset > 0)
-			{
-				open_locked();
-				file.write(reinterpret_cast<const char*>(buffer.data()), static_cast<std::streamsize>(offset));
-			}
+			if (not append_locked({reinterpret_cast<const u8*>(buffer.data()), offset}))
+				return false;
 
 			offset = 0;
+			return true;
 		}
 	};
 /*
@@ -209,7 +178,6 @@ namespace deckard::log
 
 		void flush()
 		{
-			console.flush();
 			file.flush();
 		}
 	};
