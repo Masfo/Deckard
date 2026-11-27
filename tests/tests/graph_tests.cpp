@@ -978,6 +978,21 @@ TEST_CASE("Graph/Directed", "[graph][directed]")
 		CHECK(g.weight("B", "A").has_value() == false);
 	}
 
+	SECTION("shortest path via waypoints")
+	{
+		directed<std::string> g;
+		g.connect("S", "A", 2);
+		g.connect("A", "B", 3);
+		g.connect("B", "G", 4);
+
+		const std::array<std::string, 3> waypoints{"S", "B", "G"};
+		CHECK(shortest_path_via_waypoints(g, waypoints)
+		  == std::vector<weighted_edge<std::string>>{{"S", "A", 2}, {"A", "B", 3}, {"B", "G", 4}});
+
+		const std::array<std::string, 2> reverse_waypoints{"G", "S"};
+		CHECK(shortest_path_via_waypoints(g, reverse_waypoints).empty());
+	}
+
 	SECTION("edges preserve direction")
 	{
 		directed<std::string> g;

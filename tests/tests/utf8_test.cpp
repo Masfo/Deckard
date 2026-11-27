@@ -87,6 +87,22 @@ TEST_CASE("utf8::ascii", "[utf8]")
 // Additional sections for utf8::string tests
 TEST_CASE("utf8::string", "[utf8]")
 {
+	SECTION("checked indexing")
+	{
+		utf8::string str(u8"A🌍");
+		CHECK(str.at(0) == U'A');
+		CHECK(str.at(1) == U'🌍');
+		CHECK(str[1] == U'🌍');
+
+		auto at_end = str.at(2);
+		REQUIRE_FALSE(at_end);
+		CHECK_FALSE(str[2]);
+		CHECK_FALSE(str.at(std::numeric_limits<u64>::max()));
+
+		utf8::string empty;
+		CHECK_FALSE(empty.at(0));
+		CHECK_FALSE(empty[0]);
+	}
 
 	SECTION("ascii c-tor")
 	{
