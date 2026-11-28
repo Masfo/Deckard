@@ -424,19 +424,20 @@ namespace deckard::utf8
 		}
 
 		[[nodiscard("use result of at method")]]
-		unit at(u64 index) const
+		std::optional<unit> at(u64 index) const
 		{
-			assert::check(index < size(), "Index out of bounds");
+			if (index >= size())
+				return std::nullopt;
 
-			// TODO: bounds check
 			auto it = begin();
 			while (index--)
-				it++;
+				++it;
 
 			return *it;
 		}
 
-		[[nodiscard("use result of index operator")]] unit operator[](u64 index) const { return at(index); }
+		[[nodiscard("use result of index operator")]]
+		std::optional<unit> operator[](u64 index) const { return at(index); }
 
 		bool operator==(std::span<const u8> other) const
 		{
